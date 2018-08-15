@@ -12,19 +12,22 @@ const char* password = "guyd5161";
 const char* mqtt_server = "192.168.2.113";
 int last_sw_state = 0;
 
+const char *clientID = "Sonoff1";
+const char *dev_direction = "up";
+
+const char *client_temp = "HomePi/Dvir/Windows/";
+char inTopic[50];
+const char *outTopic = "HomePi/Dvir/Messages";
+const char* inTopic2 = "HomePi/Dvir/Windows/All";
+
 WiFiClient espClient;
 PubSubClient client(espClient);
 
 
-char msg[50];
-const char* clientID = "Sonoff";
-char *client_temp = "HomePi/Dvir/Windows/";
-const char* outTopic = "HomePi/Dvir/Messages";
-const char* outTopic2 = "HomePi/Dvir/Windows/ESP32";
-const char* inTopic [strlen(client_temp) + 3];
-const char* inTopic2 = "HomePi/Dvir/Windows/All";
-
-String clock;
+void createTopic(const char *chr1, const char *chr2, char *result_char) {
+  strcpy(result_char, chr1);
+  strcat(result_char, chr2);
+}
 
 void start_wifi() {
   WiFi.mode(WIFI_STA);
@@ -34,6 +37,8 @@ void start_wifi() {
     delay(500);
     Serial.print(".");
   }
+  
+  WiFi.setAutoReconnect(true);
   
   Serial.println("");
   Serial.println("WiFi connected");  
@@ -48,13 +53,17 @@ void start_wifi() {
   }
 }
 
-void get_time(){
-  client.publish(outTopic2,"time");
-}
+//void get_time(){
+//  client.publish(outTopic2,"time");
+//}
+
 void setup() {
   Serial.begin(115200); // start serial service
   delay(10);
-
+  
+  //  constuct topic
+  createTopic(client_temp,clientID , inTopic);
+  
   // define sonoff gpios
   pinMode(LED_SONOFF, OUTPUT);
   pinMode(REL_SONOFF, OUTPUT);
@@ -62,13 +71,14 @@ void setup() {
   digitalWrite(LED_SONOFF,HIGH); // LED high is OFF
   digitalWrite(REL_SONOFF,LOW); 
 
-  start_wifi(); // start wifi service
-
+  // start wifi service
+  start_wifi(); 
 
   // start mqtt
   client.setServer(mqtt_server, 1883);
-  client.setCallback(callback);  
-//  run PowerOnBit
+  client.setCallback(callback); 
+  
+  //  run PowerOnBit
   PBit();
 }
 
@@ -106,7 +116,7 @@ void callback(char* topic, byte* payload, unsigned int length) {
   if ((char)payload[0] == '0') {
     switch_off();
     Serial.print("payload: ");
-    Serial.println(payload[0]);
+//    Serial.println((char)payload);
   }
 
 }
@@ -132,7 +142,7 @@ void reconnect() {
             
       subscribe_mqtt(inTopic);
       subscribe_mqtt(inTopic2);
-      subscribe_mqtt(outTopic2);
+//      subscribe_mqtt(outTopic2);
 
     } 
     else {
