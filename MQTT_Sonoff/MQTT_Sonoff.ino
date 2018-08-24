@@ -18,13 +18,13 @@ const char* ssid = "HOTBOX-Darabi";
 const char* password = "75999276";
 const char* mqtt_server = "guydvir.noip.me";
 
-int last_sw_state = 0;
+int lastState = 0;
 int up_cmd = 0;
 int down_cmd = 0;
-int off_cmd = 0;
+//int off_cmd = 0;
 int down_clearance = 0;
 int up_clearance = 0;
-int timeout_cmd = 0 ;
+//int timeout_cmd = 0 ;
 
 const char *clientID = "Sonoff1";
 const char *dev_direction = "down"; // "UP or "DOWN"
@@ -78,9 +78,11 @@ void setup() {
   pinMode(LED_SONOFF, OUTPUT);
   pinMode(REL_SONOFF, OUTPUT);
   pinMode(PIN_SW, INPUT_PULLUP); // GPIO14 has a pullup resistor
-  digitalWrite(LED_SONOFF, HIGH); // LED high is OFF
+  digitalWrite(LED_SONOFF, HIGH); // LED high == OFF
   digitalWrite(REL_SONOFF, LOW);
 
+  //  Switch state - at boot
+  lastState = digitalRead(PIN_SW);
 
   // start wifi service
   start_wifi();
@@ -92,9 +94,20 @@ void setup() {
   client.setCallback(callback);
 
   //  run PowerOnBit
-  PBit();
+  //  PBit();
+  PowerOnBlink();
 }
 
+void PowerOnBlink() {
+  bool ledState = LOW;
+  for (int i = 0; i < 5; i++) {
+    digitalWrite(LED_SONOFF, ledState);
+    delay(200);
+    ledState = !ledState;
+    delay(200);
+
+  }
+}
 void PBit() {
   Serial.println("PB-start");
   for (int i = 0; i < 2; i++) {
@@ -251,10 +264,10 @@ void callback(char* topic, byte * payload, unsigned int length) {
 void reset_flags() {
   up_cmd = 0;
   down_cmd = 0;
-  off_cmd = 0 ;
+  //  off_cmd = 0 ;
   up_clearance = 0;
   down_clearance = 0;
-  timeout_cmd = 0 ;
+//  timeout_cmd = 0 ;
 }
 
 void subscribe_mqtt(const char* topic) {
@@ -303,14 +316,52 @@ void loop() {
     reconnect();
   }
   client.loop();
-  
+
+  // ############# Local Switch Commands ######
+
+  if (digitalRead(PIN_SW) != lastState) {
+    if (digitalRead(PIN_SW) != digitalRead(REL_SONOFF)) {
+
+      //    Turn Off
+      if (digitalRead(PIN_SW) == HIGH) {
+        switch_off();
+        if (strcmp(dev_direction, "up")) {
+          pub_mqtt("[UP] Switch [OFF]");
+        }
+        else if (strcmp(dev_direction, "down")) {
+          pub_mqtt("[DOWN] Switch [OFF]");
+        }
+      }
+
+      //    Turn On
+      else if (digitalRead(PIN_SW) == LOW) {
+        remote_off();
+        if (switch_off() == 1 ) {
+          delay(300);
+          if (switch_on() == 1) {
+            if (strcmp(dev_direction, "up")) {
+              pub_mqtt("[UP] Switch [ON]");
+            }
+            else if (strcmp(dev_direction, "down")) {
+              pub_mqtt("[DOWN] Switch [ON]");
+            }
+          }
+        }
+      }
+    }
+    lastState = digitalRead(PIN_SW);
+  }
+
+  // ############# End Local Switch ###########
+
+  // ############# MQTT Commands ##############
   if (up_cmd == 1) {
     if (strcmp(dev_direction, "up") == 0) {
       remote_off();
-      pub_mqtt("up_remote off");
+      //      pub_mqtt("up_remote off");
       if (switch_off() == 1 ) {
-        pub_mqtt("up_switched off");
-        delay(1000);
+        //        pub_mqtt("up_switched off");
+        delay(300);
         if (switch_on() == 1) {
           pub_mqtt("SWITCHED UP");
         }
@@ -321,17 +372,17 @@ void loop() {
   else if (down_cmd == 1) {
     if (strcmp(dev_direction, "down") == 0) {
       remote_off();
-      pub_mqtt("down_remote off");
+      //      pub_mqtt("down_remote off");
       if (switch_off() == 1) {
-        pub_mqtt("down switch off");
-        delay(1000);
+        //        pub_mqtt("down switch off");
+        delay(300);
         if (switch_on() == 1) {
           pub_mqtt("SWITCHED DOWN");
-
         }
       }
     }
   }
+  //  ########### End MQTT Commands #############
   delay(200);
 }
 
