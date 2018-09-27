@@ -14,9 +14,15 @@ const char* user = "guy";
 const char* passw = "kupelu9e";
 
 //MQTT topics
-const char* deviceName = "Sonoff1";
-const char* deviceTopic = "HomePi/Dvir/Switches/S1";
+// NEED TO BE CHANGED FOR EVERY BOARD FLASHED
+const char* deviceName = "Sonoff3_lab";
+const char* deviceTopic = "HomePi/Dvir/Switches/S_lab";
+const char* stateTopic = "HomePi/Dvir/Switches/S_lab/State";
+const char* availTopic = "HomePi/Dvir/Switches/S_lab/Avail";
+
+// CONST topics
 const char* msgTopic = "HomePi/Dvir/Messages";
+// following topics maybe unusable
 const char* groupTopic = "HomePi/Dvir/All";
 const char* alertTopic = "HomePi/Dvir/Alerts";
 const char* topicArry[]={deviceTopic,groupTopic, alertTopic};
@@ -24,7 +30,7 @@ const char* topicArry[]={deviceTopic,groupTopic, alertTopic};
 char msg[150];
 char timeStamp[50];
 char bootTime[50];
-char* ver="1.2";
+char* ver="1.3";
 bool lastRelState;
 bool curRelState;
 bool toggleState=false;
@@ -46,8 +52,10 @@ void setup() {
         pinMode(extPin, INPUT_PULLUP);
         pinMode(relPin, OUTPUT);
         pinMode(ledPin, OUTPUT);
-        digitalWrite(ledPin,HIGH); // means OFF
-        digitalWrite(relPin, !digitalRead(ledPin));
+
+        // ON on boot
+        digitalWrite(ledPin,LOW); // means OFF
+        digitalWrite(relPin, HIGH);
 
         setup_wifi();
         client.setServer(mqtt_server, 1883);
@@ -124,14 +132,14 @@ void reconnect() {
         while (!client.connected()) {
                 Serial.print("Attempting MQTT connection...");
                 // Attempt to connect
-                if (client.connect(deviceName,user, passw)) {
+                if (client.connect(deviceName,user, passw, availTopic,0,true,"offline")) {
                         Serial.println("connected");
+                        client.publish(availTopic, "online", true);
                         pub_msg("Connected to MQTT server");
 
                         for (int i=0; i<sizeof(topicArry)/sizeof(char *); i++) {
                                 client.subscribe(topicArry[i]);
                                 sprintf(msg, "Subscribed to %s",topicArry[i]);
-                                pub_msg(msg);
                         }
                 } else {
                         Serial.print("failed, rc=");
@@ -156,6 +164,7 @@ void get_timeStamp(){
 
 void loop() {
         if (!client.connected()) {
+          client.publish(availTopic, "offline", true);
                 reconnect();
         }
         client.loop();
@@ -170,6 +179,7 @@ void loop() {
                 if (digitalRead(extPin)==HIGH && lastRelState!=LOW) {
                         digitalWrite(relPin,HIGH);
                         lastRelState=LOW;
+                        client.publish(stateTopic, "on", true);
                         pub_msg("Ext.Button pressed [ON]");
                 }
         }
@@ -179,6 +189,7 @@ void loop() {
                 if (digitalRead(extPin)==LOW && lastRelState!=HIGH) {
                         digitalWrite(relPin,LOW);
                         lastRelState=HIGH;
+                        client.publish(stateTopic, "off", true);
                         pub_msg("Ext.Button pressed [OFF]");
 
                 }
@@ -189,6 +200,9 @@ void loop() {
                 digitalWrite(relPin, toggleState);
                 sprintf(msg, "Button toggled [%s]",toggleState ? "ON" : "OFF");
                 pub_msg(msg);
+                sprintf(msg, "%s",toggleState ? "on" : "off");
+                client.publish(stateTopic, msg, true);
+
                 delay(300);
         }
 
