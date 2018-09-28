@@ -15,10 +15,10 @@ const char* passw = "kupelu9e";
 
 //MQTT topics
 // NEED TO BE CHANGED FOR EVERY BOARD FLASHED
-const char* deviceName = "Sonoff3_lab";
-const char* deviceTopic = "HomePi/Dvir/Switches/S_lab";
-const char* stateTopic = "HomePi/Dvir/Switches/S_lab/State";
-const char* availTopic = "HomePi/Dvir/Switches/S_lab/Avail";
+const char* deviceName = "PergLight";
+const char* deviceTopic = "HomePi/Dvir/Lights/Pergola";
+const char* stateTopic = "HomePi/Dvir/Lights/Pergola/State";
+const char* availTopic = "HomePi/Dvir/Lights/Pergola/Avail";
 
 // CONST topics
 const char* msgTopic = "HomePi/Dvir/Messages";
@@ -34,6 +34,7 @@ char* ver="1.3";
 bool lastRelState;
 bool curRelState;
 bool toggleState=false;
+bool firstRun = true;
 
 
 // GPIO setup
@@ -56,6 +57,7 @@ void setup() {
         // ON on boot
         digitalWrite(ledPin,LOW); // means OFF
         digitalWrite(relPin, HIGH);
+        // in case of change -- > there is a retain msg to change !
 
         setup_wifi();
         client.setServer(mqtt_server, 1883);
@@ -135,6 +137,10 @@ void reconnect() {
                 if (client.connect(deviceName,user, passw, availTopic,0,true,"offline")) {
                         Serial.println("connected");
                         client.publish(availTopic, "online", true);
+                        if (firstRun ) == true {
+                          client.publish(stateTopic, "on", true);
+                          firstRun = false;
+                        }
                         pub_msg("Connected to MQTT server");
 
                         for (int i=0; i<sizeof(topicArry)/sizeof(char *); i++) {
@@ -164,7 +170,6 @@ void get_timeStamp(){
 
 void loop() {
         if (!client.connected()) {
-          client.publish(availTopic, "offline", true);
                 reconnect();
         }
         client.loop();
@@ -191,7 +196,6 @@ void loop() {
                         lastRelState=HIGH;
                         client.publish(stateTopic, "off", true);
                         pub_msg("Ext.Button pressed [OFF]");
-
                 }
         }
         // Button pressed ( toggle on/off)
