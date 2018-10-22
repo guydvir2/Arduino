@@ -27,6 +27,7 @@ const int pressAmount=10;
 
 void setup() {
         Serial.begin(9600);
+        Serial.println("HI GUY");
         // INPUTS
         pinMode(localInput_0, INPUT_PULLUP);
         pinMode(localInput_1, INPUT_PULLUP);
@@ -71,7 +72,7 @@ void loop() {
                         digitalWrite(relay_0_Pin, !read_localInput_0);
                         lastState_localInput_0=read_localInput_0;
                         Serial.println("localInput_0 detected");
-                        // reset prcodure of remote board 
+                        // Send RESET request to Remote pins
                         if (millis()-lastPressTime <= pressTimeInterval) {
                                 resetCounter=resetCounter+1;
                                 if (resetCounter>=pressAmount) {
