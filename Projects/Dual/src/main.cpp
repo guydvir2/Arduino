@@ -15,10 +15,10 @@ const char* passw = "kupelu9e";
 
 //MQTT topics
 // NEED TO BE CHANGED FOR EVERY BOARD FLASHED
-const char* deviceName = "Stove";
-const char* deviceTopic = "HomePi/Dvir/Lights/Stove";
-const char* stateTopic = "HomePi/Dvir/Lights/Stove/State";
-const char* availTopic = "HomePi/Dvir/Lights/Stove/Avail";
+const char* deviceName = "windows_test1";
+const char* deviceTopic = "HomePi/Dvir/Windows/test1";
+const char* stateTopic = "HomePi/Dvir/Windows/test1/State";
+const char* availTopic = "HomePi/Dvir/Windows/test1/Avail";
 
 // CONST topics
 const char* msgTopic = "HomePi/Dvir/Messages";
@@ -30,18 +30,22 @@ const char* topicArry[]={deviceTopic,groupTopic, alertTopic};
 char msg[150];
 char timeStamp[50];
 char bootTime[50];
-char* ver="1.4";
-bool lastRelState;
-bool curRelState;
-bool toggleState=false;
+char* ver="1.0";
+bool lastRel_1_State;
+bool curRel_1_State;
+bool toggleState_0=false;
+bool toggleState_1=false;
 bool firstRun = true;
 
 
 // GPIO setup
-int buttonPin = 0;
-int relPin = 12;
+int buttonPin = 10;
 int ledPin = 13;
-int extPin = 14;
+
+int relPin_1 = 5;
+int extPin_1 = 9;
+int relPin_0 = 12;
+int extPin_0 = 0;
 
 WiFiClient espClient;
 PubSubClient client(espClient);
@@ -50,14 +54,19 @@ void setup() {
         Serial.begin(9600);
 
         pinMode(buttonPin, INPUT);
-        pinMode(extPin, INPUT_PULLUP);
-        pinMode(relPin, OUTPUT);
         pinMode(ledPin, OUTPUT);
+
+        pinMode(extPin_1, INPUT_PULLUP);
+        pinMode(relPin_1, OUTPUT);
+        pinMode(extPin_0, INPUT_PULLUP);
+        pinMode(relPin_0, OUTPUT);
 
         // ON on boot
         digitalWrite(ledPin,LOW); // means OFF
-        digitalWrite(relPin, HIGH);
-        toggleState = true;
+        digitalWrite(relPin_1, HIGH);
+        digitalWrite(relPin_0, HIGH);
+        toggleState_0 = true;
+        toggleState_1 = true;
         // in case of change -- > there is a retain msg to change !
 
         setup_wifi();
@@ -113,18 +122,18 @@ void callback(char* topic, byte* payload, unsigned int length) {
         Serial.println("");
 
         //  comply with action
-        curRelState = digitalRead(relPin);
+        curRel_1_State = digitalRead(relPin_1);
         if (strcmp(incoming_msg,"status")==0) {
-                sprintf(msg,"Status CMD: Relay State: [%d], bootTime: [%s], [v%s]",curRelState,bootTime,ver);
+                sprintf(msg,"Status CMD: Relay State: [%d], bootTime: [%s], [v%s]",curRel_1_State,bootTime,ver);
                 pub_msg(msg);
         }
         else if (strcmp(incoming_msg,"on")==0) {
-                digitalWrite(relPin, HIGH);
+                digitalWrite(relPin_1, HIGH);
                 sprintf(msg,"Topic: [%s] Remote CMD: [ON]",topic);
                 pub_msg(msg);
         }
         else if (strcmp(incoming_msg,"off")==0) {
-                digitalWrite(relPin, LOW);
+                digitalWrite(relPin_1, LOW);
                 sprintf(msg,"Topic: [%s] Remote CMD: [OFF]",topic);
                 pub_msg(msg);
         }
@@ -166,7 +175,7 @@ void pub_msg(char *inmsg){
 
 void get_timeStamp(){
         time_t t=now();
-        sprintf(timeStamp,"%02d-%02d-%02d %02d:%02d:%02d:00",year(t),month(t), day(t), hour(t), minute(t), second(t));
+        sprintf(timeStamp,"%02d-%02d-%d %02d:%02d:%02d:00",year(t),month(t), day(t), hour(t), minute(t), second(t));
 }
 
 void loop() {
@@ -176,36 +185,36 @@ void loop() {
         client.loop();
 
         // corrolate Relstate to LedState
-        curRelState=digitalRead(relPin);
-        digitalWrite(ledPin,!curRelState);
+        curRel_1_State=digitalRead(relPin_1);
+        digitalWrite(ledPin_1,!curRel_1_State);
 
         // EXT released (GPIO14)
-        if (digitalRead(extPin)==HIGH) {
+        if (digitalRead(extPin_1)==HIGH) {
                 delay(50);
-                if (digitalRead(extPin)==HIGH && lastRelState!=LOW) {
-                        digitalWrite(relPin,HIGH);
-                        lastRelState=LOW;
+                if (digitalRead(extPin_1)==HIGH && lastRel_1_State!=LOW) {
+                        digitalWrite(relPin_1,HIGH);
+                        lastRel_1_State=LOW;
                         client.publish(stateTopic, "on", true);
                         pub_msg("Ext.Button pressed [ON]");
                 }
         }
         // EXT pressed (GPIO14)
-        else if (digitalRead(extPin)==LOW) {
+        else if (digitalRead(extPin_1)==LOW) {
                 delay(50);
-                if (digitalRead(extPin)==LOW && lastRelState!=HIGH) {
-                        digitalWrite(relPin,LOW);
-                        lastRelState=HIGH;
+                if (digitalRead(extPin_1)==LOW && lastRel_1_State!=HIGH) {
+                        digitalWrite(relPin_1,LOW);
+                        lastRel_1_State=HIGH;
                         client.publish(stateTopic, "off", true);
                         pub_msg("Ext.Button pressed [OFF]");
                 }
         }
         // Button pressed ( toggle on/off)
         if (digitalRead(buttonPin)==0) {
-                toggleState = !toggleState;
-                digitalWrite(relPin, toggleState);
-                sprintf(msg, "Button toggled [%s]",toggleState ? "ON" : "OFF");
+                toggleState_0 = !toggleState_0;
+                digitalWrite(relPin_1, toggleState_0);
+                sprintf(msg, "Button toggled [%s]",toggleState_0 ? "ON" : "OFF");
                 pub_msg(msg);
-                sprintf(msg, "%s",toggleState ? "on" : "off");
+                sprintf(msg, "%s",toggleState_0 ? "on" : "off");
                 client.publish(stateTopic, msg, true);
                 delay(300);
         }
