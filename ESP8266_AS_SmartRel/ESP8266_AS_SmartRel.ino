@@ -53,6 +53,18 @@ bool firstRun = true;
 const char *ver="1.0";
 const int clockUpdateInt=1; // hrs to update clock
 
+int manResetCounter = 0;
+int pressAmount2Reset = 5;
+int timeIntResetCounter = 1000;
+long lastResetPress =0;
+long resetTimer =0;
+
+int mqttFailCounter=0;
+long ignoreMqttTime = 1000*60*5;//5 mins stop try to MQTT
+long firstNotConnected = 0;
+int pauseTryConnect = 0;
+
+
 WiFiClient espClient;
 PubSubClient client(espClient);
 
@@ -100,33 +112,41 @@ void startWifi() {
         Serial.println(WiFi.localIP());
 }
 
-void connectMQTT() {
+int connectMQTT() {
         // Loop until we're reconnected
-        while (!client.connected()) {
-                Serial.print("Attempting MQTT connection...");
-                // Attempt to connect
-                if (client.connect(deviceName,user, passw, availTopic,0,true,"offline")) {
-                        Serial.println("connected");
-                        client.publish(availTopic, "online", true);
-                        if (firstRun == true) {
-                          client.publish(stateTopic, "off", true);
-                          firstRun = false;
-                        }
-                        pub_msg("Connected to MQTT server");
-
-                        for (int i=0; i<sizeof(topicArry)/sizeof(char *); i++) {
-                                client.subscribe(topicArry[i]);
-                                sprintf(msg, "Subscribed to %s",topicArry[i]);
-                        }
-                } else {
-                        Serial.print("failed, rc=");
-                        Serial.print(client.state());
-                        Serial.println(" try again in 5 seconds");
-                        delay(5000);
-                }
+        if (WiFi.status() == WL_CONNECTED) {
+          while (!client.connected() || mqttFailCounter <= 3) {
+                  Serial.print("Attempting MQTT connection...");
+                  // Attempt to connect
+                  if (client.connect(deviceName,user, passw, availTopic,0,true,"offline")) {
+                          Serial.println("connected");
+                          client.publish(availTopic, "online", true);
+                          if (firstRun == true) {
+                            client.publish(stateTopic, "off", true);
+                            firstRun = false;
+                          }
+                          pub_msg("Connected to MQTT server");
+  
+                          for (int i=0; i<sizeof(topicArry)/sizeof(char *); i++) {
+                                  client.subscribe(topicArry[i]);
+                                  sprintf(msg, "Subscribed to %s",topicArry[i]);
+                          }
+                          return 1;
+                  } 
+                  else {
+                          Serial.print("failed, rc=");
+                          Serial.print(client.state());
+                          Serial.println(" try again in 5 seconds");
+                          delay(5000);
+                          mqttFailCounter ++;
+                  }
+          }
         }
+        else {
+          Serial.println("Fail to connect MATT server");
+          return 0;
+          }
 }
-
 void callback(char* topic, byte* payload, unsigned int length) {
         char incoming_msg[50];
         char state[5];
@@ -158,23 +178,11 @@ void callback(char* topic, byte* payload, unsigned int length) {
             sprintf(state,"OFF");
           }
           sprintf(msg,"Status CMD: Relay State: [%s], bootTime: [%s], [v%s]",state,bootTime,ver);
-//          pub_msg(msg);
         }
 //      up - via MQTT
         else if (strcmp(incoming_msg,"up")==0 || strcmp(incoming_msg,"down")==0 || strcmp(incoming_msg,"off")==0) {
           switchIt("MQTT",incoming_msg);
         }
-//
-//        }
-////      off - via MQTT
-//        else if (strcmp(incoming_msg,"off")==0) {
-//          switchIt("MQTT","off");
-//        }
-////      down - via MQTT
-//        else if (strcmp(incoming_msg,"down")==0) {
-//          switchIt("MQTT","down");
-//        }
-//        Serial.println(msg);
 }
 
 void pub_msg(char *inmsg){
@@ -235,13 +243,40 @@ void switchIt(char *type, char *dir){
   pub_msg(mqttmsg);
 }
 
+void sendReset(){
+  Serial.println("RESET SENT");
+}
+
 void loop() {
-  
+  int connectionFlag;
 //  MQTT service
-  if (!client.connected()) {
-    connectMQTT();
+
+//  reconnection
+  if (!client.connected() && pauseTryConnect == 0 ) {
+    connectionFlag=connectMQTT();
+    if (connectionFlag==1){
+      client.loop();
     }
+//    fail to connect for the forst time
+    else if (connectionFlag == 0 && firstNotConnected == 0 ){
+        firstNotConnected = millis();
+      }
+  }
+//  reset stop trying to connect
+  else if (millis() - firstNotConnected > ignoreMqttTime ){
+    pauseTryConnect = 0;  
+    firstNotConnected = 0;
+  }
+//  timeout to keep trying altough tere is no success
+  else if (millis() - firstNotConnected > 1000*30){
+    pauseTryConnect = 1;  
+  }
+
+  if (client.connected()){
     client.loop();
+  }
+   
+//    client.loop();
 //    ##
     
   Rel_0_state = digitalRead(Rel_0_Pin);
@@ -262,13 +297,30 @@ void loop() {
     if (digitalRead(Sw_0_Pin) != lastSW_0_state){
       if (digitalRead(Sw_0_Pin) == LOW && Rel_0_state!=LOW){
         switchIt("Button","up");
-      }
+
+//        ############ Manual Reset Request by user #######
+        if (millis()-lastResetPress < timeIntResetCounter) {
+          Serial.println(millis()-lastResetPress);
+          if (manResetCounter >=pressAmount2Reset){
+            sendReset();
+            manResetCounter=0;
+          }
+          else {
+              manResetCounter ++;
+          }
+        }
+        else {
+          manResetCounter = 0;
+        }
+//        ##################################################
+        }   
       else if (digitalRead(Sw_0_Pin) == HIGH && Rel_0_state!=HIGH){
         switchIt("Button","off");
       }
       else {
         Serial.println("Wrong command");
       }
+      lastResetPress = millis();
     }
   }
 
@@ -287,7 +339,6 @@ void loop() {
       }
     }
   }
-
 
   lastSW_0_state = digitalRead(Sw_0_Pin);
   lastSW_1_state = digitalRead(Sw_1_Pin);
