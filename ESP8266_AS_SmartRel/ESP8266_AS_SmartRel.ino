@@ -14,8 +14,8 @@ const char* deviceName = deviceTopic;
 
 
 // GPIO Pins for ESP8266 - change if needed
-const int Sw_0_Pin = 0;
-const int Sw_1_Pin = 2;
+const int Sw_0_Pin = 14;
+const int Sw_1_Pin = 12;
 const int Rel_0_Pin = 4;
 const int Rel_1_Pin = 5;
 //######################
@@ -60,9 +60,10 @@ long lastResetPress =0;
 long resetTimer =0;
 
 int mqttFailCounter=0;
-long ignoreMqttTime = 1000*60*5;//5 mins stop try to MQTT
+long MQTTtimeOut = (1000*60)*5;//5 mins stop try to MQTT
 long firstNotConnected = 0;
-int pauseTryConnect = 0;
+int connectionFlag = 0;
+int MQTTretries = 3;
 
 
 WiFiClient espClient;
@@ -113,9 +114,10 @@ void startWifi() {
 }
 
 int connectMQTT() {
-        // Loop until we're reconnected
+        // verify wifi connected
         if (WiFi.status() == WL_CONNECTED) {
-          while (!client.connected() || mqttFailCounter <= 3) {
+          Serial.println("have wifi, entering MQTT connection");
+          while (!client.connected() && mqttFailCounter <= MQTTretries) {
                   Serial.print("Attempting MQTT connection...");
                   // Attempt to connect
                   if (client.connect(deviceName,user, passw, availTopic,0,true,"offline")) {
@@ -131,6 +133,7 @@ int connectMQTT() {
                                   client.subscribe(topicArry[i]);
                                   sprintf(msg, "Subscribed to %s",topicArry[i]);
                           }
+                          mqttFailCounter = 0;
                           return 1;
                   } 
                   else {
@@ -138,15 +141,22 @@ int connectMQTT() {
                           Serial.print(client.state());
                           Serial.println(" try again in 5 seconds");
                           delay(5000);
+                          Serial.print("number of fails to reconnect MQTT");
+                          Serial.println(mqttFailCounter);
                           mqttFailCounter ++;
+
                   }
           }
+          Serial.println("Exit without connecting MQTT");
+          mqttFailCounter = 0;
+          return 0;
         }
         else {
-          Serial.println("Fail to connect MATT server");
+          Serial.println("Not connected to Wifi, abort try to connect MQTT broker");
           return 0;
           }
 }
+
 void callback(char* topic, byte* payload, unsigned int length) {
         char incoming_msg[50];
         char state[5];
@@ -248,37 +258,32 @@ void sendReset(){
 }
 
 void loop() {
-  int connectionFlag;
-//  MQTT service
-
-//  reconnection
-  if (!client.connected() && pauseTryConnect == 0 ) {
+  
+//  reconnect MQTT service
+//  reconnection for first time or after first insuccess to reconnect
+  if (!client.connected() && firstNotConnected == 0){
     connectionFlag=connectMQTT();
-    if (connectionFlag==1){
-      client.loop();
-    }
-//    fail to connect for the forst time
-    else if (connectionFlag == 0 && firstNotConnected == 0 ){
-        firstNotConnected = millis();
+//  still not connected
+    if (connectionFlag == 0 ) {
+      firstNotConnected=millis();
       }
-  }
-//  reset stop trying to connect
-  else if (millis() - firstNotConnected > ignoreMqttTime ){
-    pauseTryConnect = 0;  
-    firstNotConnected = 0;
-  }
-//  timeout to keep trying altough tere is no success
-  else if (millis() - firstNotConnected > 1000*30){
-    pauseTryConnect = 1;  
-  }
-
-  if (client.connected()){
+      else {
+        client.loop();
+      }  
+   }
+// retry after fail - resume only after timeout
+   else if (!client.connected() && firstNotConnected !=0 && millis() - firstNotConnected > MQTTtimeOut){
+//    after cooling out period - try again
+      connectionFlag=connectMQTT();
+      firstNotConnected = 0 ;
+      Serial.println("trying again to reconnect");
+   }
+   else {
     client.loop();
-  }
-   
-//    client.loop();
-//    ##
-    
+   }
+
+// #############################
+
   Rel_0_state = digitalRead(Rel_0_Pin);
   Rel_1_state = digitalRead(Rel_1_Pin);
 
@@ -311,6 +316,7 @@ void loop() {
         }
         else {
           manResetCounter = 0;
+          Serial.println("reset counter");
         }
 //        ##################################################
         }   
