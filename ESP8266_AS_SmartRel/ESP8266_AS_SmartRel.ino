@@ -121,45 +121,45 @@ void startWifi() {
 int connectMQTT() {
         // verify wifi connected
         if (WiFi.status() == WL_CONNECTED) {
-          Serial.println("have wifi, entering MQTT connection");
-          while (!client.connected() && mqttFailCounter <= MQTTretries) {
-                  Serial.print("Attempting MQTT connection...");
-                  // Attempt to connect
-                  if (client.connect(deviceName,user, passw, availTopic,0,true,"offline")) {
-                          Serial.println("connected");
-                          client.publish(availTopic, "online", true);
-                          if (firstRun == true) {
-                            client.publish(stateTopic, "off", true);
-                            firstRun = false;
-                          }
-                          pub_msg("Connected to MQTT server");
-  
-                          for (int i=0; i<sizeof(topicArry)/sizeof(char *); i++) {
-                                  client.subscribe(topicArry[i]);
-                                  sprintf(msg, "Subscribed to %s",topicArry[i]);
-                          }
-                          mqttFailCounter = 0;
-                          return 1;
-                  } 
-                  else {
-                          Serial.print("failed, rc=");
-                          Serial.print(client.state());
-                          Serial.println(" try again in 5 seconds");
-                          delay(5000);
-                          Serial.print("number of fails to reconnect MQTT");
-                          Serial.println(mqttFailCounter);
-                          mqttFailCounter ++;
+                Serial.println("have wifi, entering MQTT connection");
+                while (!client.connected() && mqttFailCounter <= MQTTretries) {
+                        Serial.print("Attempting MQTT connection...");
+                        // Attempt to connect
+                        if (client.connect(deviceName,user, passw, availTopic,0,true,"offline")) {
+                                Serial.println("connected");
+                                client.publish(availTopic, "online", true);
+                                if (firstRun == true) {
+                                        client.publish(stateTopic, "off", true);
+                                        firstRun = false;
+                                }
+                                pub_msg("Connected to MQTT server");
 
-                  }
-          }
-          Serial.println("Exit without connecting MQTT");
-          mqttFailCounter = 0;
-          return 0;
+                                for (int i=0; i<sizeof(topicArry)/sizeof(char *); i++) {
+                                        client.subscribe(topicArry[i]);
+                                        sprintf(msg, "Subscribed to %s",topicArry[i]);
+                                }
+                                mqttFailCounter = 0;
+                                return 1;
+                        }
+                        else {
+                                Serial.print("failed, rc=");
+                                Serial.print(client.state());
+                                Serial.println(" try again in 5 seconds");
+                                delay(5000);
+                                Serial.print("number of fails to reconnect MQTT");
+                                Serial.println(mqttFailCounter);
+                                mqttFailCounter++;
+
+                        }
+                }
+                Serial.println("Exit without connecting MQTT");
+                mqttFailCounter = 0;
+                return 0;
         }
         else {
-          Serial.println("Not connected to Wifi, abort try to connect MQTT broker");
-          return 0;
-          }
+                Serial.println("Not connected to Wifi, abort try to connect MQTT broker");
+                return 0;
+        }
 }
 
 void callback(char* topic, byte* payload, unsigned int length) {
@@ -168,7 +168,7 @@ void callback(char* topic, byte* payload, unsigned int length) {
         char state2[5];
         char msg2[100];
 
-        
+
 //      Display on Serial monitor only
         Serial.print("Message arrived [");
         Serial.print(topic);
@@ -180,7 +180,7 @@ void callback(char* topic, byte* payload, unsigned int length) {
         incoming_msg[length]=0;
         Serial.println("");
 //      ##############################
-        
+
 //      status - via MQTT
         if (strcmp(incoming_msg,"status")==0) {
                 // relays state
@@ -213,7 +213,7 @@ void callback(char* topic, byte* payload, unsigned int length) {
                 sprintf(msg2, "Status #2 Relay:[%s],Switch:[%s],Ver:[%s]", state,state2,ver);
                 pub_msg(msg2);
         }
-//      up - via MQTT
+//      switch commands via MQTT
         else if (strcmp(incoming_msg,"up")==0 || strcmp(incoming_msg,"down")==0 || strcmp(incoming_msg,"off")==0) {
                 switchIt("MQTT",incoming_msg);
         }
@@ -223,7 +223,7 @@ void pub_msg(char *inmsg){
         char tmpmsg[150];
 
         get_timeStamp();
-        
+
         sprintf(tmpmsg,"[%s] [%s] %s",timeStamp,deviceTopic, inmsg);
         client.publish(msgTopic, tmpmsg);
 }
@@ -272,6 +272,23 @@ void switchIt(char *type, char *dir){
         pub_msg(mqttmsg);
 }
 
+void detectResetPresses(){
+        //        ############ Manual Reset Request by user #######
+        if (millis()-lastResetPress < timeIntResetCounter) {
+                Serial.println(millis()-lastResetPress);
+                if (manResetCounter >=pressAmount2Reset) {
+                        sendReset();
+                        manResetCounter=0;
+                }
+                else {
+                        manResetCounter++;
+                }
+        }
+        else {
+                manResetCounter = 0;
+        }
+}
+
 void PBit(){
         switchIt("Button","up");
         delay(500);
@@ -281,34 +298,34 @@ void PBit(){
 }
 
 void loop() {
-  
+
 //  reconnect MQTT service
 //  reconnection for first time or after first insuccess to reconnect
-  if (!client.connected() && firstNotConnected == 0){
-    connectionFlag=connectMQTT();
+        if (!client.connected() && firstNotConnected == 0) {
+                connectionFlag=connectMQTT();
 //  still not connected
-    if (connectionFlag == 0 ) {
-      firstNotConnected=millis();
-      }
-      else {
-        client.loop();
-      }  
-   }
+                if (connectionFlag == 0 ) {
+                        firstNotConnected=millis();
+                }
+                else {
+                        client.loop();
+                }
+        }
 // retry after fail - resume only after timeout
-   else if (!client.connected() && firstNotConnected !=0 && millis() - firstNotConnected > MQTTtimeOut){
+        else if (!client.connected() && firstNotConnected !=0 && millis() - firstNotConnected > MQTTtimeOut) {
 //    after cooling out period - try again
-      connectionFlag=connectMQTT();
-      firstNotConnected = 0 ;
-      Serial.println("trying again to reconnect");
-   }
-   else {
-    client.loop();
-   }
+                connectionFlag=connectMQTT();
+                firstNotConnected = 0;
+                Serial.println("trying again to reconnect");
+        }
+        else {
+                client.loop();
+        }
 
 // #############################
 
-  Rel_0_state = digitalRead(Rel_0_Pin);
-  Rel_1_state = digitalRead(Rel_1_Pin);
+        Rel_0_state = digitalRead(Rel_0_Pin);
+        Rel_1_state = digitalRead(Rel_1_Pin);
 
 //  verfiy not in Hazard State
         if (Rel_0_state == LOW && Rel_1_state == LOW ) {
@@ -324,6 +341,7 @@ void loop() {
                 if (digitalRead(Sw_0_Pin) != lastSW_0_state) {
                         if (digitalRead(Sw_0_Pin) == LOW && Rel_0_state!=LOW) {
                                 switchIt("Button","up");
+                                detectResetPresses();
                         }
                         else if (digitalRead(Sw_0_Pin) == HIGH && Rel_0_state!=HIGH) {
                                 switchIt("Button","off");
@@ -331,6 +349,7 @@ void loop() {
                         else {
                                 Serial.println("Wrong command");
                         }
+                        lastResetPress = millis();
                 }
         }
 
