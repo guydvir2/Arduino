@@ -1,11 +1,11 @@
-//#include <Arduino.h>
+#include <Arduino.h>
 #include <ESP8266WiFi.h>
 #include <PubSubClient.h>
 #include <TimeLib.h>
 #include <NtpClientLib.h>
 
 
-//MQTT topics - must change for every device 
+//MQTT topics - must change for every device
 const char *deviceTopic = "HomePi/Dvir/Windows/KidsRoom";
 const char *stateTopic="HomePi/Dvir/Windows/KidsRoom/State";
 const char* availTopic = "HomePi/Dvir/Windows/KidsRoom/Avail";
@@ -37,6 +37,7 @@ const char* passw = "kupelu9e";
 const char* msgTopic = "HomePi/Dvir/Messages";
 const char* groupTopic = "HomePi/Dvir/All";
 const char* topicArry[]={deviceTopic,groupTopic};
+// ##############################################
 
 
 // GPIO status flags
@@ -44,6 +45,7 @@ bool Rel_0_state;
 bool Rel_1_state;
 bool lastSW_0_state;
 bool lastSW_1_state;
+// #################
 
 char msg[150];
 char timeStamp[50];
@@ -85,14 +87,17 @@ void setup() {
 //        start MQTT services
         client.setServer(mqtt_server, 1883);
         client.setCallback(callback);
-        
+
 //        start NTP clock updates
         NTP.begin("pool.ntp.org", 2, true);
         NTP.setInterval(1000*3600*clockUpdateInt);
-        
+
 //        get boot time stamp
         get_timeStamp();
         strcpy(bootTime,timeStamp);
+
+        // PowerOn Bit
+        PBit();
 }
 
 void startWifi() {
@@ -160,6 +165,9 @@ int connectMQTT() {
 void callback(char* topic, byte* payload, unsigned int length) {
         char incoming_msg[50];
         char state[5];
+        char state2[5];
+        char msg2[100];
+
         
 //      Display on Serial monitor only
         Serial.print("Message arrived [");
@@ -175,86 +183,101 @@ void callback(char* topic, byte* payload, unsigned int length) {
         
 //      status - via MQTT
         if (strcmp(incoming_msg,"status")==0) {
-          if (Rel_0_state==LOW && Rel_1_state==LOW){
-            sprintf(state,"invalid MQTT");
-          }
-          else if (Rel_0_state==HIGH && Rel_1_state==LOW){
-            sprintf(state,"DOWN");
-          }
-          else if (Rel_0_state==LOW && Rel_1_state==HIGH){
-            sprintf(state,"UP");
-          }
-          else {
-            sprintf(state,"OFF");
-          }
-          sprintf(msg,"Status CMD: Relay State: [%s], bootTime: [%s], [v%s]",state,bootTime,ver);
+                // relays state
+                if (Rel_0_state==LOW && Rel_1_state==LOW) {
+                        sprintf(state,"invalid MQTT");
+                }
+                else if (Rel_0_state==HIGH && Rel_1_state==LOW) {
+                        sprintf(state,"DOWN");
+                }
+                else if (Rel_0_state==LOW && Rel_1_state==HIGH) {
+                        sprintf(state,"UP");
+                }
+                else {
+                        sprintf(state,"OFF");
+                }
+
+                // switch state
+                if (lastSW_0_state==HIGH && lastSW_1_state==HIGH) {
+                        sprintf(state2, "OFF");
+                }
+                else if (lastSW_0_state==LOW && lastSW_1_state==HIGH) {
+                        sprintf(state2, "UP");
+                }
+                else if (lastSW_0_state==HIGH && lastSW_1_state==LOW) {
+                        sprintf(state2, "DOWN");
+                }
+
+                sprintf(msg,"Status #1: bootTime: [%s]",bootTime);
+                pub_msg(msg);
+                sprintf(msg2, "Status #2 Relay:[%s],Switch:[%s],Ver:[%s]", state,state2,ver);
+                pub_msg(msg2);
         }
 //      up - via MQTT
         else if (strcmp(incoming_msg,"up")==0 || strcmp(incoming_msg,"down")==0 || strcmp(incoming_msg,"off")==0) {
-          switchIt("MQTT",incoming_msg);
+                switchIt("MQTT",incoming_msg);
         }
 }
 
 void pub_msg(char *inmsg){
         char tmpmsg[150];
-        char tmpmsg2[150];
+
         get_timeStamp();
         
         sprintf(tmpmsg,"[%s] [%s] %s",timeStamp,deviceTopic, inmsg);
-//        Serial.println(strlen(tmpmsg));
-//        if (strlen(tmpmsg)<100){
-          client.publish(msgTopic, tmpmsg);
-//        }
-//        else {
-//          tmpmsg[100]=0;
-//          client.publish(msgTopic, tmpmsg);
-//          Serial.println(tmpmsg);
-//        }
+        client.publish(msgTopic, tmpmsg);
 }
 
 void get_timeStamp(){
         time_t t=now();
-        sprintf(timeStamp,"%02d-%02d-%02d %02d:%02d:%02d:00",year(t),month(t), day(t), hour(t), minute(t), second(t));
+        sprintf(timeStamp,"%02d-%02d-%02d %02d:%02d:%02d",year(t),month(t), day(t), hour(t), minute(t), second(t));
 }
 
 void switchIt(char *type, char *dir){
-  char mqttmsg[50];
-  bool states[2];
-  if (strcmp(dir,"up")==0){
-    states[0]=LOW;
-    states[1]=HIGH;
-  }
-  else if (strcmp(dir,"down")==0){
-    states[0]=HIGH;
-    states[1]=LOW;
-  }
-  else if (strcmp(dir,"off")==0){
-    states[0]=HIGH;
-    states[1]=HIGH;
-  }
+        char mqttmsg[50];
+        bool states[2];
+        // system states: up, down, off
+        if (strcmp(dir,"up")==0) {
+                states[0]=LOW;
+                states[1]=HIGH;
+        }
+        else if (strcmp(dir,"down")==0) {
+                states[0]=HIGH;
+                states[1]=LOW;
+        }
+        else if (strcmp(dir,"off")==0) {
+                states[0]=HIGH;
+                states[1]=HIGH;
+        }
 
-  if (Rel_0_state != states[0] && Rel_1_state != states[1]){
-    digitalWrite(Rel_0_Pin, HIGH);
-    digitalWrite(Rel_1_Pin, HIGH);
-    delay(50);
-    digitalWrite(Rel_0_Pin, states[0]);
-    digitalWrite(Rel_1_Pin, states[1]);
-    }
-  else if (Rel_0_state != states[0] || Rel_1_state != states[1]){
-    digitalWrite(Rel_0_Pin, states[0]);
-    digitalWrite(Rel_1_Pin, states[1]);
-    }
-    
-  Rel_1_state=states[0];
-  Rel_0_state=states[1];
+        // Case that both realys need to change state ( Up --> Down or Down --> Up )
+        if (Rel_0_state != states[0] && Rel_1_state != states[1]) {
+                digitalWrite(Rel_0_Pin, HIGH);
+                digitalWrite(Rel_1_Pin, HIGH);
+                delay(50);
+                digitalWrite(Rel_0_Pin, states[0]);
+                digitalWrite(Rel_1_Pin, states[1]);
+        }
+        // Case that one relay changes from/to off --> on
+        else if (Rel_0_state != states[0] || Rel_1_state != states[1]) {
+                digitalWrite(Rel_0_Pin, states[0]);
+                digitalWrite(Rel_1_Pin, states[1]);
+        }
+        // updates relay states
+        Rel_0_state=states[0];
+        Rel_1_state=states[1];
 
-  client.publish(stateTopic, dir, true);
-  sprintf(mqttmsg,"[%s] switched [%s]" ,type, dir);
-  pub_msg(mqttmsg);
+        client.publish(stateTopic, dir, true);
+        sprintf(mqttmsg,"[%s] switched [%s]",type, dir);
+        pub_msg(mqttmsg);
 }
 
-void sendReset(){
-  Serial.println("RESET SENT");
+void PBit(){
+        switchIt("Button","up");
+        delay(500);
+        switchIt("Button","down");
+        delay(500);
+        switchIt("Button","off");
 }
 
 void loop() {
@@ -288,66 +311,46 @@ void loop() {
   Rel_1_state = digitalRead(Rel_1_Pin);
 
 //  verfiy not in Hazard State
-  if (Rel_0_state == LOW && Rel_1_state == LOW ){
-    switchIt("Button","off");
-    Serial.println("Hazard state - both switches were ON");
-  }
+        if (Rel_0_state == LOW && Rel_1_state == LOW ) {
+                switchIt("Button","off");
+                Serial.println("Hazard state - both switches were ON");
+        }
 //  ##
 
 //  physical switch change detected
-
 //  switch UP
-  if (digitalRead(Sw_0_Pin) != lastSW_0_state){
-    delay(50); //debounce
-    if (digitalRead(Sw_0_Pin) != lastSW_0_state){
-      if (digitalRead(Sw_0_Pin) == LOW && Rel_0_state!=LOW){
-        switchIt("Button","up");
-
-//        ############ Manual Reset Request by user #######
-        if (millis()-lastResetPress < timeIntResetCounter) {
-          Serial.println(millis()-lastResetPress);
-          if (manResetCounter >=pressAmount2Reset){
-            sendReset();
-            manResetCounter=0;
-          }
-          else {
-              manResetCounter ++;
-          }
+        if (digitalRead(Sw_0_Pin) != lastSW_0_state) {
+                delay(50); //debounce
+                if (digitalRead(Sw_0_Pin) != lastSW_0_state) {
+                        if (digitalRead(Sw_0_Pin) == LOW && Rel_0_state!=LOW) {
+                                switchIt("Button","up");
+                        }
+                        else if (digitalRead(Sw_0_Pin) == HIGH && Rel_0_state!=HIGH) {
+                                switchIt("Button","off");
+                        }
+                        else {
+                                Serial.println("Wrong command");
+                        }
+                }
         }
-        else {
-          manResetCounter = 0;
-          Serial.println("reset counter");
-        }
-//        ##################################################
-        }   
-      else if (digitalRead(Sw_0_Pin) == HIGH && Rel_0_state!=HIGH){
-        switchIt("Button","off");
-      }
-      else {
-        Serial.println("Wrong command");
-      }
-      lastResetPress = millis();
-    }
-  }
 
 //  switch down
-  if (digitalRead(Sw_1_Pin) != lastSW_1_state){
-    delay(50);
-    if (digitalRead(Sw_1_Pin) != lastSW_1_state){
-      if (digitalRead(Sw_1_Pin) == LOW && Rel_1_state!=LOW){
-        switchIt("Button","down");        
-      }
-      else if (digitalRead(Sw_1_Pin) == HIGH && Rel_1_state!=HIGH){
-        switchIt("Button","off");        
-      }
-      else {
-        Serial.println("Wrong command");
-      }
-    }
-  }
+        if (digitalRead(Sw_1_Pin) != lastSW_1_state) {
+                delay(50);
+                if (digitalRead(Sw_1_Pin) != lastSW_1_state) {
+                        if (digitalRead(Sw_1_Pin) == LOW && Rel_1_state!=LOW) {
+                                switchIt("Button","down");
+                        }
+                        else if (digitalRead(Sw_1_Pin) == HIGH && Rel_1_state!=HIGH) {
+                                switchIt("Button","off");
+                        }
+                        else {
+                                Serial.println("Wrong command");
+                        }
+                }
+        }
 
-  lastSW_0_state = digitalRead(Sw_0_Pin);
-  lastSW_1_state = digitalRead(Sw_1_Pin);
-
-  delay(50);
+        lastSW_0_state = digitalRead(Sw_0_Pin);
+        lastSW_1_state = digitalRead(Sw_1_Pin);
+        delay(50);
 }
