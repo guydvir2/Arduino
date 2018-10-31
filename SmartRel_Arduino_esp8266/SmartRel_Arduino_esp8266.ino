@@ -6,16 +6,16 @@
 
 
 //MQTT topics - must change for every device
-const char *deviceTopic = "HomePi/Dvir/Windows/ParentsRoom";
-const char *stateTopic="HomePi/Dvir/Windows/ParentsRoom/State";
-const char* availTopic = "HomePi/Dvir/Windows/ParentsRoom/Avail";
+const char *deviceTopic = "HomePi/Dvir/Windows/slave";
+const char *stateTopic="HomePi/Dvir/Windows/slave/State";
+const char* availTopic = "HomePi/Dvir/Windows/slave/Avail";
 const char* deviceName = deviceTopic;
 //###########################
 
 
 // GPIO Pins for ESP8266 - change if needed
-const int Sw_0_Pin = 14;
-const int Sw_1_Pin = 12;
+const int Rel_0_RTN_Pin = 14;
+const int Rel_1_RTN_Pin = 12;
 const int Rel_0_Pin = 4;
 const int Rel_1_Pin = 5;
 //######################
@@ -85,8 +85,8 @@ void setup() {
 
         Serial.begin(9600);
 
-        pinMode(Sw_0_Pin, INPUT_PULLUP);
-        pinMode(Sw_1_Pin, INPUT_PULLUP);
+        pinMode(Rel_0_RTN_Pin, INPUT_PULLUP);
+        pinMode(Rel_1_RTN_Pin, INPUT_PULLUP);
         pinMode(Rel_0_Pin, OUTPUT);
         pinMode(Rel_1_Pin, OUTPUT);
 
@@ -340,52 +340,52 @@ void loop() {
 
 // #############################
 
-        Rel_0_state = digitalRead(Rel_0_Pin);
-        Rel_1_state = digitalRead(Rel_1_Pin);
+        Rel_0_state = digitalRead(Rel_0_RTN_Pin);
+        Rel_1_state = digitalRead(Rel_1_RTN_Pin);
 
-//  verfiy not in Hazard State
-        if (Rel_0_state == LOW && Rel_1_state == LOW ) {
-                switchIt("Button","off");
-                Serial.println("Hazard state - both switches were ON");
-        }
-//  ##
-
-//  physical switch change detected
-//  switch UP
-        if (digitalRead(Sw_0_Pin) != lastSW_0_state) {
-                delay(50); //debounce
-                if (digitalRead(Sw_0_Pin) != lastSW_0_state) {
-                        if (digitalRead(Sw_0_Pin) == LOW && Rel_0_state!=LOW) {
-                                switchIt("Button","up");
-                                detectResetPresses();
-                        }
-                        else if (digitalRead(Sw_0_Pin) == HIGH && Rel_0_state!=HIGH) {
-                                switchIt("Button","off");
-                        }
-                        else {
-                                Serial.println("Wrong command");
-                        }
-                        lastResetPress = millis();
-                }
-        }
-
-//  switch down
-        if (digitalRead(Sw_1_Pin) != lastSW_1_state) {
-                delay(50);
-                if (digitalRead(Sw_1_Pin) != lastSW_1_state) {
-                        if (digitalRead(Sw_1_Pin) == LOW && Rel_1_state!=LOW) {
-                                switchIt("Button","down");
-                        }
-                        else if (digitalRead(Sw_1_Pin) == HIGH && Rel_1_state!=HIGH) {
-                                switchIt("Button","off");
-                        }
-                        else {
-                                Serial.println("Wrong command");
-                        }
-                }
-        }
-
-        lastSW_0_state = digitalRead(Sw_0_Pin);
-        lastSW_1_state = digitalRead(Sw_1_Pin);
+// //  verfiy not in Hazard State
+//         if (Rel_0_state == LOW && Rel_1_state == LOW ) {
+//                 switchIt("Button","off");
+//                 Serial.println("Hazard state - both switches were ON");
+//         }
+// //  ##
+//
+// //  physical switch change detected
+// //  switch UP
+//         if (digitalRead(Rel_0_RTN_Pin) != lastSW_0_state) {
+//                 delay(50); //debounce
+//                 if (digitalRead(Rel_0_RTN_Pin) != lastSW_0_state) {
+//                         if (digitalRead(Rel_0_RTN_Pin) == LOW && Rel_0_state!=LOW) {
+//                                 switchIt("Button","up");
+//                                 detectResetPresses();
+//                         }
+//                         else if (digitalRead(Rel_0_RTN_Pin) == HIGH && Rel_0_state!=HIGH) {
+//                                 switchIt("Button","off");
+//                         }
+//                         else {
+//                                 Serial.println("Wrong command");
+//                         }
+//                         lastResetPress = millis();
+//                 }
+//         }
+//
+// //  switch down
+//         if (digitalRead(Rel_1_RTN_Pin) != lastSW_1_state) {
+//                 delay(50);
+//                 if (digitalRead(Rel_1_RTN_Pin) != lastSW_1_state) {
+//                         if (digitalRead(Rel_1_RTN_Pin) == LOW && Rel_1_state!=LOW) {
+//                                 switchIt("Button","down");
+//                         }
+//                         else if (digitalRead(Rel_1_RTN_Pin) == HIGH && Rel_1_state!=HIGH) {
+//                                 switchIt("Button","off");
+//                         }
+//                         else {
+//                                 Serial.println("Wrong command");
+//                         }
+//                 }
+//         }
+        //
+        // lastSW_0_state = digitalRead(Rel_0_RTN_Pin);
+        // lastSW_1_state = digitalRead(Rel_1_RTN_Pin);
         delay(50);
 }
