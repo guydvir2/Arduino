@@ -84,9 +84,13 @@ PubSubClient client(espClient);
 void setup() {
 
         Serial.begin(9600);
-
+        /* Rel_RTN pins are indication pin that triggered from Arduino, to indicate Relay's status.
+        when Relay switched high or low ( using local switch in Arduino OR on esp board), Rel_RTN
+        pins get updated.
+        */
         pinMode(Rel_0_RTN_Pin, INPUT_PULLUP);
         pinMode(Rel_1_RTN_Pin, INPUT_PULLUP);
+        // Output Pins to switch Arduino Remote input and trigger relay accordingly
         pinMode(Rel_0_Pin, OUTPUT);
         pinMode(Rel_1_Pin, OUTPUT);
 
@@ -285,27 +289,27 @@ void switchIt(char *type, char *dir){
         pub_msg(mqttmsg);
 }
 
-void detectResetPresses(){
-//############ Manual Reset Request by user #######
-        if (millis()-lastResetPress < timeIntResetCounter) {
-                Serial.println(millis()-lastResetPress);
-                if (manResetCounter >=pressAmount2Reset) {
-                        sendReset();
-                        manResetCounter=0;
-                }
-                else {
-                        manResetCounter++;
-                }
-        }
-        else {
-                manResetCounter = 0;
-        }
-}
-
-void sendReset() {
-        Serial.println("Sending Reset command");
-        ESP.reset();
-}
+// void detectResetPresses(){
+// //############ Manual Reset Request by user #######
+//         if (millis()-lastResetPress < timeIntResetCounter) {
+//                 Serial.println(millis()-lastResetPress);
+//                 if (manResetCounter >=pressAmount2Reset) {
+//                         sendReset();
+//                         manResetCounter=0;
+//                 }
+//                 else {
+//                         manResetCounter++;
+//                 }
+//         }
+//         else {
+//                 manResetCounter = 0;
+//         }
+// }
+//
+// void sendReset() {
+//         Serial.println("Sending Reset command");
+//         ESP.reset();
+// }
 
 void PBit(){
         switchIt("Button","up");
@@ -340,52 +344,53 @@ void loop() {
 
 // #############################
 
+// read state of indication GPIO that reflects Relays state on Arduino board
         Rel_0_state = digitalRead(Rel_0_RTN_Pin);
         Rel_1_state = digitalRead(Rel_1_RTN_Pin);
 
-// //  verfiy not in Hazard State
-//         if (Rel_0_state == LOW && Rel_1_state == LOW ) {
-//                 switchIt("Button","off");
-//                 Serial.println("Hazard state - both switches were ON");
-//         }
-// //  ##
-//
-// //  physical switch change detected
-// //  switch UP
-//         if (digitalRead(Rel_0_RTN_Pin) != lastSW_0_state) {
-//                 delay(50); //debounce
-//                 if (digitalRead(Rel_0_RTN_Pin) != lastSW_0_state) {
-//                         if (digitalRead(Rel_0_RTN_Pin) == LOW && Rel_0_state!=LOW) {
-//                                 switchIt("Button","up");
-//                                 detectResetPresses();
-//                         }
-//                         else if (digitalRead(Rel_0_RTN_Pin) == HIGH && Rel_0_state!=HIGH) {
-//                                 switchIt("Button","off");
-//                         }
-//                         else {
-//                                 Serial.println("Wrong command");
-//                         }
-//                         lastResetPress = millis();
-//                 }
-//         }
-//
-// //  switch down
-//         if (digitalRead(Rel_1_RTN_Pin) != lastSW_1_state) {
-//                 delay(50);
-//                 if (digitalRead(Rel_1_RTN_Pin) != lastSW_1_state) {
-//                         if (digitalRead(Rel_1_RTN_Pin) == LOW && Rel_1_state!=LOW) {
-//                                 switchIt("Button","down");
-//                         }
-//                         else if (digitalRead(Rel_1_RTN_Pin) == HIGH && Rel_1_state!=HIGH) {
-//                                 switchIt("Button","off");
-//                         }
-//                         else {
-//                                 Serial.println("Wrong command");
-//                         }
-//                 }
-//         }
-        //
-        // lastSW_0_state = digitalRead(Rel_0_RTN_Pin);
-        // lastSW_1_state = digitalRead(Rel_1_RTN_Pin);
+//  verfiy not in Hazard State
+        if (Rel_0_state == LOW && Rel_1_state == LOW ) {
+                switchIt("Button","off");
+                Serial.println("Hazard state - both switches were ON");
+        }
+//  ##
+
+//  physical switch change detected on Arduino Board
+//  switch UP
+        if (digitalRead(Rel_0_RTN_Pin) != lastSW_0_state) {
+                delay(50); //debounce
+                if (digitalRead(Rel_0_RTN_Pin) != lastSW_0_state) {
+                        if (digitalRead(Rel_0_RTN_Pin) == LOW && Rel_0_state!=LOW) {
+                                switchIt("Button","up");
+                                detectResetPresses();
+                        }
+                        else if (digitalRead(Rel_0_RTN_Pin) == HIGH && Rel_0_state!=HIGH) {
+                                switchIt("Button","off");
+                        }
+                        else {
+                                Serial.println("Wrong command");
+                        }
+                        lastResetPress = millis();
+                }
+        }
+
+//  switch down
+        if (digitalRead(Rel_1_RTN_Pin) != lastSW_1_state) {
+                delay(50);
+                if (digitalRead(Rel_1_RTN_Pin) != lastSW_1_state) {
+                        if (digitalRead(Rel_1_RTN_Pin) == LOW && Rel_1_state!=LOW) {
+                                switchIt("Button","down");
+                        }
+                        else if (digitalRead(Rel_1_RTN_Pin) == HIGH && Rel_1_state!=HIGH) {
+                                switchIt("Button","off");
+                        }
+                        else {
+                                Serial.println("Wrong command");
+                        }
+                }
+        }
+
+        lastSW_0_state = digitalRead(Rel_0_RTN_Pin);
+        lastSW_1_state = digitalRead(Rel_1_RTN_Pin);
         delay(50);
 }
