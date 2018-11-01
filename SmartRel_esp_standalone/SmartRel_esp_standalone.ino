@@ -6,27 +6,19 @@
 
 
 //MQTT topics - must change for every device
-const char *deviceTopic = "HomePi/Dvir/Windows/slave";
-const char *stateTopic="HomePi/Dvir/Windows/slave/State";
-const char* availTopic = "HomePi/Dvir/Windows/slave/Avail";
+const char *deviceTopic = "HomePi/Dvir/Windows/ParentsRoom";
+const char *stateTopic="HomePi/Dvir/Windows/ParentsRoom/State";
+const char* availTopic = "HomePi/Dvir/Windows/ParentsRoom/Avail";
 const char* deviceName = deviceTopic;
 //###########################
 
 
 // GPIO Pins for ESP8266 - change if needed
-const int relUpIndPin = 14;
-const int relDownIndPin = 12;
-const int CMD2relUpPin = 4;
-const int CMD2relDownPin = 5;
+const int switchUpPin = 14;
+const int switchDownPin = 12;
+const int relayUpPin = 4;
+const int relayDownPin = 5;
 //######################
-
-
-// GPIO status flags
-bool relUpIndPin_curState;
-bool relDownIndPin_curState;
-bool relUpIndPin_lastState;
-bool relDownIndPin_lastState;
-// ##########################
 
 
 //wifi creadentials - change if needed
@@ -50,15 +42,21 @@ const char* switchStates[]={"up","down","off"};
 // ##############################################
 
 
+// GPIO status flags
+bool relayUp_currentState;
+bool relayDown_currentState;
+bool switchUp_lastState;
+bool switchDown_lastState;
+// #################
+
 // time interval parameters
 const int clockUpdateInt=1; // hrs to update clock
-int timeIntResetCounter = 1000; // time between consq presses to init RESET cmd
+int timeInt2Reset = 1000; // time between consq presses to init RESET cmd
 long MQTTtimeOut = (1000*60)*5; //5 mins stop try to MQTT
-long WIFItimeOut = (1000*60)*2; //2 mins try to reconnect WiFi
-int debouncetInt = 50;
+long WIFItimeOut = (1000*60)*2; //2 mins try to connect WiFi
 // ############################
 
-// Board RESET parameters
+// RESET parameters
 int manResetCounter = 0;
 int pressAmount2Reset = 5;
 long lastResetPress = 0;
@@ -87,15 +85,13 @@ void setup() {
 
         Serial.begin(9600);
 
-        pinMode(relUpIndPin, INPUT_PULLUP);
-        pinMode(relDownIndPin, INPUT_PULLUP);
-        
-        // Output Pins to switch Arduino Remote input and trigger relay accordingly
-        pinMode(CMD2relUpPin, OUTPUT);
-        pinMode(CMD2relDownPin, OUTPUT);
+        pinMode(switchUpPin, INPUT_PULLUP);
+        pinMode(switchDownPin, INPUT_PULLUP);
+        pinMode(relayUpPin, OUTPUT);
+        pinMode(relayDownPin, OUTPUT);
 
-        digitalWrite(CMD2relUpPin,HIGH);
-        digitalWrite(CMD2relDownPin,HIGH);
+        digitalWrite(relayUpPin,HIGH);
+        digitalWrite(relayDownPin,HIGH);
 
         startWifi();
 //        start MQTT services
@@ -199,13 +195,13 @@ void callback(char* topic, byte* payload, unsigned int length) {
 //      status - via MQTT
         if (strcmp(incoming_msg,"status")==0) {
                 // relays state
-                if (relUpIndPin_curState==LOW && relDownIndPin_curState==LOW) {
+                if (relayUp_currentState==LOW && relayDown_currentState==LOW) {
                         sprintf(state,"invalid Relay State");
                 }
-                else if (relUpIndPin_curState==HIGH && relDownIndPin_curState==LOW) {
+                else if (relayUp_currentState==HIGH && relayDown_currentState==LOW) {
                         sprintf(state,"DOWN");
                 }
-                else if (relUpIndPin_curState==LOW && relDownIndPin_curState==HIGH) {
+                else if (relayUp_currentState==LOW && relayDown_currentState==HIGH) {
                         sprintf(state,"UP");
                 }
                 else {
@@ -213,13 +209,13 @@ void callback(char* topic, byte* payload, unsigned int length) {
                 }
 
                 // switch state
-                if (relUpIndPin_lastState==HIGH && relDownIndPin_lastState==HIGH) {
+                if (switchUp_lastState==HIGH && switchDown_lastState==HIGH) {
                         sprintf(state2, "OFF");
                 }
-                else if (relUpIndPin_lastState==LOW && relDownIndPin_lastState==HIGH) {
+                else if (switchUp_lastState==LOW && switchDown_lastState==HIGH) {
                         sprintf(state2, "UP");
                 }
-                else if (relUpIndPin_lastState==HIGH && relDownIndPin_lastState==LOW) {
+                else if (switchUp_lastState==HIGH && switchDown_lastState==LOW) {
                         sprintf(state2, "DOWN");
                 }
 
@@ -239,6 +235,7 @@ void callback(char* topic, byte* payload, unsigned int length) {
 
 void pub_msg(char *inmsg){
         char tmpmsg[150];
+        char tmp2[150];
 
         get_timeStamp();
         sprintf(tmpmsg,"[%s] [%s] %s",timeStamp,deviceTopic, inmsg);
@@ -268,33 +265,21 @@ void switchIt(char *type, char *dir){
         }
 
         // Case that both realys need to change state ( Up --> Down or Down --> Up )
-        if (relUpIndPin_curState != states[0] && relDownIndPin_curState != states[1]) {
-                delay(debouncetInt); // debounce
-                // read again same values for debounce
-                if (digitalRead(relUpIndPin) != states[0] && digitalRead(relDownIndPin) != states[1]) {
-                        // switch off both relays
-                        digitalWrite(CMD2relUpPin, HIGH);
-                        digitalWrite(CMD2relDownPin, HIGH);
-                        delay(debouncetInt);
-                        // switch on needed relays
-                        digitalWrite(CMD2relUpPin, states[0]);
-                        digitalWrite(CMD2relDownPin, states[1]);
-                }
+        if (relayUp_currentState != states[0] && relayDown_currentState != states[1]) {
+                digitalWrite(relayUpPin, HIGH);
+                digitalWrite(relayDownPin, HIGH);
+                delay(50);
+                digitalWrite(relayUpPin, states[0]);
+                digitalWrite(relayDownPin, states[1]);
         }
-
-        // Case that only one relay changes from/to off --> on
-        else if (relUpIndPin_curState != states[0] || relDownIndPin_curState != states[1]) {
-                delay(debouncetInt); //debounce
-                // read again for debounce
-                if (digitalRead(relUpIndPin) != states[0] || digitalRead(relDownIndPin) != states[1]) {
-                        digitalWrite(CMD2relUpPin, states[0]);
-                        digitalWrite(CMD2relDownPin, states[1]);
-                }
+        // Case that one relay changes from/to off --> on
+        else if (relayUp_currentState != states[0] || relayDown_currentState != states[1]) {
+                digitalWrite(relayUpPin, states[0]);
+                digitalWrite(relayDownPin, states[1]);
         }
-
         // updates relay states
-        relUpIndPin_curState=states[0];
-        relDownIndPin_curState=states[1];
+        relayUp_currentState=states[0];
+        relayDown_currentState=states[1];
 
         client.publish(stateTopic, dir, true);
         sprintf(mqttmsg,"[%s] switched [%s]",type, dir);
@@ -302,7 +287,8 @@ void switchIt(char *type, char *dir){
 }
 
 void detectResetPresses(){
-        if (millis()-lastResetPress < timeIntResetCounter) {
+//############ Manual Reset Request by user #######
+        if (millis()-lastResetPress < timeInt2Reset) {
                 Serial.println(millis()-lastResetPress);
                 if (manResetCounter >=pressAmount2Reset) {
                         sendReset();
@@ -330,8 +316,8 @@ void PBit(){
         switchIt("Button","off");
 }
 
-void loop() {
-//  MQTT reconnection for first time or after first insuccess to reconnect
+void verifyMQTTConnection(){
+        //  MQTT reconnection for first time or after first insuccess to reconnect
         if (!client.connected() && firstNotConnected == 0) {
                 connectionFlag=connectMQTT();
 //  still not connected
@@ -352,38 +338,67 @@ void loop() {
         else {
                 client.loop();
         }
-// #############################
+}
 
-// read state of local indication GPIO (reflects Relays state on remote Arduino board)
-        relUpIndPin_curState = digitalRead(relUpIndPin);
-        relDownIndPin_curState = digitalRead(relDownIndPin);
+void checkSwitch_PressedUp() {
+        if (digitalRead(switchUpPin) != switchUp_lastState) {
+                delay(50); //debounce
+                if (digitalRead(switchUpPin) != switchUp_lastState) {
+                        if (digitalRead(switchUpPin) == LOW && relayUp_currentState!=LOW) {
+                                switchIt("Button","up");
+                                detectResetPresses();
+                        }
+                        else if (digitalRead(switchUpPin) == HIGH && relayUp_currentState!=HIGH) {
+                                switchIt("Button","off");
+                        }
+                        else {
+                                Serial.println("Wrong command");
+                        }
+                        lastResetPress = millis();
+                }
+        }
 
-//  verfiy not in Hazard State
-        if (relUpIndPin_curState == LOW && relDownIndPin_curState == LOW ) {
+}
+
+void checkSwitch_PressedDown(){
+        if (digitalRead(switchDownPin) != switchDown_lastState) {
+                delay(50);
+                if (digitalRead(switchDownPin) != switchDown_lastState) {
+                        if (digitalRead(switchDownPin) == LOW && relayDown_currentState!=LOW) {
+                                switchIt("Button","down");
+                        }
+                        else if (digitalRead(switchDownPin) == HIGH && relayDown_currentState!=HIGH) {
+                                switchIt("Button","off");
+                        }
+                        else {
+                                Serial.println("Wrong command");
+                        }
+                }
+        }
+
+
+}
+
+void verifyNotHazardState(){
+        if (relayUp_currentState == LOW && relayDown_currentState == LOW ) {
                 switchIt("Button","off");
                 Serial.println("Hazard state - both switches were ON");
         }
-        // ###########################################
 
-// check for changes done remotely on Arduino board and need to notify MQTT using ESP8266:
-// up
-        if (relUpIndPin_curState != relUpIndPin_lastState) {
-                delay(debouncetInt);
-                if (digitalRead(relUpIndPin)!= relUpIndPin_lastState) {
-                        pub_msg("[Local] Switch [UP]");
-                }
-        }
-// down
-        if (relDownIndPin_curState != relDownIndPin_lastState) {
-                delay(debouncetInt);
-                if (digitalRead(relDownIndPin)!= relDownIndPin_lastState) {
-                        pub_msg("[Local] Switch [DOWN]");
-                }
-        }
-// ###############################################
+}
 
+void loop() {
+        verifyMQTTConnection();
 
-        relUpIndPin_lastState = digitalRead(relUpIndPin);
-        relDownIndPin_lastState = digitalRead(relDownIndPin);
+        relayUp_currentState = digitalRead(relayUpPin);
+        relayDown_currentState = digitalRead(relayDownPin);
+
+        verifyNotHazardState(); // both up and down are pressed ---> OFF
+        checkSwitch_PressedUp();
+        checkSwitch_PressedDown();
+
+        switchUp_lastState = digitalRead(switchUpPin);
+        switchDown_lastState = digitalRead(switchDownPin);
+        
         delay(50);
 }
