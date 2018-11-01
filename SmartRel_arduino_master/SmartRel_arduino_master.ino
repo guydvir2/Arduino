@@ -167,22 +167,26 @@ void switchIt(char *dir){
                 digitalWrite(relayUpPin, states[0]);
                 digitalWrite(relayDownPin, states[1]);
         }
-        // // updates relay states
-        // relayUp_currentState=states[0];
-        // relayDown_currentState=states[1];
+//         // updates relay states
+//         relayUp_currentState=states[0];
+//         relayDown_currentState=states[1];
 }
 
 void loop() {
         readCurrentState();
+        
         //update output status pins
         digitalWrite(relayUp_statusPin, digitalRead(relayUpPin));
         digitalWrite(relayDown_statusPin, digitalRead(relayDownPin));
+        
         // Local inputs
         checkSwitch_pressedUp();
         checkSwitch_pressedDown();
+        
         // ESP inputs
         checkRemote_CmdUp();
         checkRemote_CmdDown();
 
         delay(100);
 }
+
