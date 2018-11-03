@@ -3,14 +3,12 @@
 #include <PubSubClient.h>
 #include <TimeLib.h>
 #include <NtpClientLib.h>
+#include <Math.h>
 
 
 //MQTT topics - must change for every device
-const char *deviceTopic = "HomePi/Dvir/Windows/ParentsRoom";
-const char *stateTopic="HomePi/Dvir/Windows/ParentsRoom/State";
-const char* availTopic = "HomePi/Dvir/Windows/ParentsRoom/Avail";
-const char* deviceName = deviceTopic;
-//###########################
+const char *deviceTopic = "HomePi/Dvir/Windows/test1"; // ---> Only This to change
+//####################################################
 
 
 // GPIO Pins for ESP8266 - change if needed
@@ -18,7 +16,7 @@ const int inputUpPin = 14;
 const int inputDownPin = 12;
 const int outputUpPin = 4;
 const int outputDownPin = 5;
-//######################
+//##########################
 
 
 //wifi creadentials - change if needed
@@ -37,8 +35,11 @@ const char* passw = "kupelu9e";
 // CONST topics
 const char* msgTopic = "HomePi/Dvir/Messages";
 const char* groupTopic = "HomePi/Dvir/All";
+const char* deviceName = deviceTopic;
 const char* topicArry[]={deviceTopic,groupTopic};
 const char* switchStates[]={"up","down","off"};
+char stateTopic[50];
+char availTopic[50];
 // ##############################################
 
 
@@ -49,7 +50,7 @@ bool inputUp_lastState;
 bool inputDown_lastState;
 bool inputUp_currentState;
 bool inputDown_currentState;
-// #################
+// ###########################
 
 // time interval parameters
 const int clockUpdateInt=1; // hrs to update clock
@@ -60,17 +61,17 @@ int deBounceInt = 50;
 // ############################
 
 // RESET parameters
-int manResetCounter = 0;
-int pressAmount2Reset = 5;
-long lastResetPress = 0;
+int manResetCounter = 0;  // reset press counter
+int pressAmount2Reset = 5; // time to press button to init Reset
+long lastResetPress = 0; // time stamp of last press
 long resetTimer = 0;
 // ####################
 
 // MQTT connection flags
-int mqttFailCounter = 0;
-long firstNotConnected = 0;
+int mqttFailCounter = 0; // count tries to reconnect
+long firstNotConnected = 0; // time stamp of first try
 int connectionFlag = 0;
-int MQTTretries = 3;
+int MQTTretries = 3; // allowed tries to reconnect
 // ######################
 
 // assorted
@@ -78,15 +79,15 @@ char msg[150];
 char timeStamp[50];
 char bootTime[50];
 bool firstRun = true;
-const char *ver="1.3";
+const char *ver="1.5";
 // ###################
 
 WiFiClient espClient;
 PubSubClient client(espClient);
 
 void setup() {
-
         Serial.begin(9600);
+        createTopics(deviceTopic, stateTopic, availTopic);
 
         pinMode(inputUpPin, INPUT_PULLUP);
         pinMode(inputDownPin, INPUT_PULLUP);
@@ -97,20 +98,14 @@ void setup() {
         digitalWrite(outputDownPin,HIGH);
 
         startWifi();
-//        start MQTT services
-        client.setServer(mqtt_server, 1883);
-        client.setCallback(callback);
+        startMQTT();
+        startNTP();
 
-//        start NTP clock updates
-        NTP.begin("pool.ntp.org", 2, true);
-        NTP.setInterval(1000*3600*clockUpdateInt);
+        PBit(); // PowerOn Bit
 
-//        get boot time stamp
+//      get boot time stamp
         get_timeStamp();
         strcpy(bootTime,timeStamp);
-
-        // PowerOn Bit
-        PBit();
 }
 
 void startWifi() {
@@ -133,6 +128,16 @@ void startWifi() {
         Serial.println("WiFi connected");
         Serial.print("IP address: ");
         Serial.println(WiFi.localIP());
+}
+
+void startMQTT() {
+        client.setServer(mqtt_server, 1883);
+        client.setCallback(callback);
+}
+
+void startNTP() {
+        NTP.begin("pool.ntp.org", 2, true);
+        NTP.setInterval(1000*3600*clockUpdateInt);
 }
 
 int connectMQTT() {
@@ -175,6 +180,11 @@ int connectMQTT() {
                 Serial.println("Not connected to Wifi, abort try to connect MQTT broker");
                 return 0;
         }
+}
+
+void createTopics(const char *devTopic, char *state, char *avail) {
+        sprintf(state,"%s/State",devTopic);
+        sprintf(avail,"%s/Avail",devTopic);
 }
 
 void callback(char* topic, byte* payload, unsigned int length) {
@@ -222,10 +232,10 @@ void callback(char* topic, byte* payload, unsigned int length) {
                         sprintf(state2, "DOWN");
                 }
 
-                sprintf(msg,"Status #1: bootTime:[%s]",bootTime);
+                sprintf(msg,"Status: bootTime:[%s], Relay:[%s], Switch:[%s], Ver:[%s]",bootTime, state,state2,ver);
                 pub_msg(msg);
-                sprintf(msg2, "Status #2 Relay:[%s],Switch:[%s],Ver:[%s]", state,state2,ver);
-                pub_msg(msg2);
+//                sprintf(msg2, "Status #2 Relay:[%s],Switch:[%s],Ver:[%s]", state,state2,ver);
+//                pub_msg(msg2);
         }
 //      switch commands via MQTT
         else if (strcmp(incoming_msg,"up")==0 || strcmp(incoming_msg,"down")==0 || strcmp(incoming_msg,"off")==0) {
@@ -238,11 +248,38 @@ void callback(char* topic, byte* payload, unsigned int length) {
 
 void pub_msg(char *inmsg){
         char tmpmsg[150];
-        char tmp2[150];
 
         get_timeStamp();
-        sprintf(tmpmsg,"[%s] [%s] %s",timeStamp,deviceTopic, inmsg);
-        client.publish(msgTopic, tmpmsg);
+        sprintf(tmpmsg,"[%s] [%s]",timeStamp,deviceTopic );
+        msgSplitter(inmsg, 95, tmpmsg, "split #" );
+}
+
+void msgSplitter( const char* msg_in, int max_msgSize, char *prefix, char *split_msg){
+        char tmp[120];
+
+        if (strlen(prefix) + strlen(msg_in) > max_msgSize) {
+                int max_chunk = max_msgSize - strlen(prefix) - strlen(split_msg);
+                int num=ceil((float)strlen(msg_in)/max_chunk);
+                int pre_len;
+
+                for (int k=0; k<num; k++) {
+                        sprintf(tmp,"%s %s%d: ",prefix,split_msg,k);
+                        pre_len = strlen(tmp);
+                        for (int i=0; i<max_chunk; i++) {
+                                tmp[i+pre_len]=(char)msg_in[i+k*max_chunk];
+                                tmp[i+1+pre_len]='\0';
+                        }
+//                        Serial.println(tmp);
+                        client.publish(msgTopic, tmp);
+
+                }
+        }
+        else {
+                sprintf(tmp,"%s %s",prefix,msg_in);
+                client.publish(msgTopic, tmp);
+//          Serial.println(tmp);
+
+        }
 }
 
 void get_timeStamp(){
@@ -344,7 +381,7 @@ void verifyMQTTConnection(){
 
 void checkSwitch_PressedUp() {
         if (inputUp_currentState != inputUp_lastState) {
-                delay(deBounceInt); 
+                delay(deBounceInt);
                 if (digitalRead(inputUpPin) != inputUp_lastState) {
                         if (digitalRead(inputUpPin) == LOW && outputUp_currentState!=LOW) {
                                 switchIt("Button","up");
@@ -403,6 +440,6 @@ void loop() {
 
         inputUp_lastState = digitalRead(inputUpPin);
         inputDown_lastState = digitalRead(inputDownPin);
-        
+
         delay(50);
 }
