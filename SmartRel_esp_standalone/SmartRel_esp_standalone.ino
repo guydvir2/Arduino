@@ -1,17 +1,18 @@
+//change deviceTopic !
+//###################################################
+#define deviceTopic "HomePi/Dvir/Windows/FamilyRoom" 
+//###################################################
+
 #include <Arduino.h>
 #include <ESP8266WiFi.h>
 #include <PubSubClient.h>
 #include <TimeLib.h>
 #include <NtpClientLib.h>
 #include <Math.h>
+#include <Ticker.h>
 
 
-//MQTT topics - must change for every device
-const char *deviceTopic = "HomePi/Dvir/Windows/FamilyRoom"; // ---> Only This to change
-//####################################################
-
-
-// GPIO Pins for ESP8266 - change if needed
+// GPIO Pins for ESP8266
 const int inputUpPin = 14;
 const int inputDownPin = 12;
 const int outputUpPin = 4;
@@ -19,7 +20,7 @@ const int outputDownPin = 5;
 //##########################
 
 
-//wifi creadentials - change if needed
+//wifi creadentials
 const char* ssid = "HomeNetwork_2.4G";
 const char* password = "guyd5161";
 //###################################
@@ -54,10 +55,12 @@ bool inputDown_currentState;
 
 // time interval parameters
 const int clockUpdateInt=1; // hrs to update clock
-int timeInt2Reset = 1000; // time between consq presses to init RESET cmd
+int timeInt2Reset = 1500; // time between consq presses to init RESET cmd
 long MQTTtimeOut = (1000*60)*5; //5 mins stop try to MQTT
 long WIFItimeOut = (1000*60)*2; //2 mins try to connect WiFi
-int deBounceInt = 50;
+int deBounceInt = 100; // ---> extend from 50 to 100 ms
+volatile int wdtResetCounter = 0;
+int wdtMaxRetries =3;
 // ############################
 
 // RESET parameters
@@ -79,36 +82,35 @@ char msg[150];
 char timeStamp[50];
 char bootTime[50];
 bool firstRun = true;
-const char *ver="1.5";
+const char *ver="1.6";
 // ###################
+
 
 WiFiClient espClient;
 PubSubClient client(espClient);
+Ticker wdt;
+
 
 void setup() {
         Serial.begin(9600);
-        createTopics(deviceTopic, stateTopic, availTopic);
+        
+        startGPIOs();
+        startNetwork();
+        PBit(); // PowerOn Bit
+        wdt.attach(1,takeTheDog); // Start WatchDog
+        
+        }
 
+void startGPIOs(){
         pinMode(inputUpPin, INPUT_PULLUP);
         pinMode(inputDownPin, INPUT_PULLUP);
         pinMode(outputUpPin, OUTPUT);
         pinMode(outputDownPin, OUTPUT);
 
-        digitalWrite(outputUpPin,HIGH); //relay off
-        digitalWrite(outputDownPin,HIGH);
-
-        startWifi();
-        startMQTT();
-        startNTP();
-        
-        PBit(); // PowerOn Bit
-
-//      get boot time stamp
-        get_timeStamp();
-        strcpy(bootTime,timeStamp); 
+        allOff(); 
 }
 
-void startWifi() {
+void startNetwork() {
         long startWifiConnection=0;
 
         Serial.println();
@@ -128,9 +130,16 @@ void startWifi() {
         Serial.println("WiFi connected");
         Serial.print("IP address: ");
         Serial.println(WiFi.localIP());
+
+        startMQTT();
+        startNTP();
+
+        get_timeStamp();
+        strcpy(bootTime,timeStamp);
 }
 
 void startMQTT() {
+  createTopics(deviceTopic, stateTopic, availTopic);
   client.setServer(mqtt_server, 1883);
   client.setCallback(callback);
 }
@@ -269,7 +278,6 @@ void msgSplitter( const char* msg_in, int max_msgSize, char *prefix, char *split
                                 tmp[i+pre_len]=(char)msg_in[i+k*max_chunk];
                                 tmp[i+1+pre_len]='\0';
                         }
-//                        Serial.println(tmp);
                         client.publish(msgTopic, tmp);
 
                 }
@@ -277,8 +285,6 @@ void msgSplitter( const char* msg_in, int max_msgSize, char *prefix, char *split
         else {
                 sprintf(tmp,"%s %s",prefix,msg_in);
                 client.publish(msgTopic, tmp);
-//          Serial.println(tmp);
-
         }
 }
 
@@ -306,8 +312,8 @@ void switchIt(char *type, char *dir){
 
         // Case that both realys need to change state ( Up --> Down or Down --> Up )
         if (outputUp_currentState != states[0] && outputDown_currentState != states[1]) {
-                digitalWrite(outputUpPin, HIGH);
-                digitalWrite(outputDownPin, HIGH);
+                allOff();
+                
                 delay(deBounceInt);
                 digitalWrite(outputUpPin, states[0]);
                 digitalWrite(outputDownPin, states[1]);
@@ -317,9 +323,6 @@ void switchIt(char *type, char *dir){
                 digitalWrite(outputUpPin, states[0]);
                 digitalWrite(outputDownPin, states[1]);
         }
-        // updates relay states
-//        outputUp_currentState=states[0];
-//        outputDown_currentState=states[1];
 
         client.publish(stateTopic, dir, true);
         sprintf(mqttmsg,"[%s] switched [%s]",type, dir);
@@ -348,11 +351,17 @@ void sendReset() {
 }
 
 void PBit(){
-        switchIt("Button","up");
+        allOff();
+
+        digitalWrite(outputUpPin, LOW);
         delay(1000);
-        switchIt("Button","down");
+        digitalWrite(outputUpPin, HIGH);
         delay(1000);
-        switchIt("Button","off");
+        digitalWrite(outputDownPin, LOW);
+        delay(1000);
+
+        allOff();
+
 }
 
 void verifyMQTTConnection(){
@@ -377,6 +386,11 @@ void verifyMQTTConnection(){
         else {
                 client.loop();
         }
+}
+
+void allOff() {
+  digitalWrite(outputUpPin,HIGH); //relay off
+  digitalWrite(outputDownPin,HIGH); 
 }
 
 void checkSwitch_PressedUp() {
@@ -422,19 +436,35 @@ void verifyNotHazardState(){
         if (outputUp_currentState == LOW && outputDown_currentState == LOW ) {
                 switchIt("Button","off");
                 Serial.println("Hazard state - both switches were ON");
+                pub_msg("HazradState - Reset");
+                sendReset();
         }
 
 }
 
-void loop() {
-        verifyMQTTConnection();
+void takeTheDog(){
+        wdtResetCounter ++;
+        if (wdtResetCounter >= wdtMaxRetries) {
+                sendReset();
+        }
+}
 
+void readGpioStates(){
         outputUp_currentState = digitalRead(outputUpPin);
         outputDown_currentState = digitalRead(outputDownPin);
         inputDown_currentState = digitalRead(inputDownPin);
         inputUp_currentState = digitalRead(inputUpPin);
+}
 
-        verifyNotHazardState(); // both up and down are pressed ---> OFF
+void loop() {
+        wdtResetCounter = 0; // reset WDT
+        
+        verifyMQTTConnection();
+        
+        readGpioStates();
+        
+        verifyNotHazardState(); // both up and down are ---> OFF
+        
         checkSwitch_PressedUp();
         checkSwitch_PressedDown();
 
