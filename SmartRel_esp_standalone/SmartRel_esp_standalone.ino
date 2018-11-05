@@ -7,7 +7,7 @@
 
 
 //MQTT topics - must change for every device
-const char *deviceTopic = "HomePi/Dvir/Windows/test1"; // ---> Only This to change
+const char *deviceTopic = "HomePi/Dvir/Windows/FamilyRoom"; // ---> Only This to change
 //####################################################
 
 
@@ -100,12 +100,12 @@ void setup() {
         startWifi();
         startMQTT();
         startNTP();
-
+        
         PBit(); // PowerOn Bit
 
 //      get boot time stamp
         get_timeStamp();
-        strcpy(bootTime,timeStamp);
+        strcpy(bootTime,timeStamp); 
 }
 
 void startWifi() {
@@ -131,13 +131,13 @@ void startWifi() {
 }
 
 void startMQTT() {
-        client.setServer(mqtt_server, 1883);
-        client.setCallback(callback);
+  client.setServer(mqtt_server, 1883);
+  client.setCallback(callback);
 }
 
 void startNTP() {
-        NTP.begin("pool.ntp.org", 2, true);
-        NTP.setInterval(1000*3600*clockUpdateInt);
+  NTP.begin("pool.ntp.org", 2, true);
+  NTP.setInterval(1000*3600*clockUpdateInt);
 }
 
 int connectMQTT() {
@@ -183,8 +183,8 @@ int connectMQTT() {
 }
 
 void createTopics(const char *devTopic, char *state, char *avail) {
-        sprintf(state,"%s/State",devTopic);
-        sprintf(avail,"%s/Avail",devTopic);
+  sprintf(state,"%s/State",devTopic);
+  sprintf(avail,"%s/Avail",devTopic);
 }
 
 void callback(char* topic, byte* payload, unsigned int length) {
