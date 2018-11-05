@@ -5,6 +5,8 @@
 #include <NtpClientLib.h>
 #include <Math.h>
 
+#include <Ticker.h>
+Ticker wdt;
 
 //MQTT topics - must change for every device
 const char *deviceTopic = "HomePi/Dvir/Windows/test1"; // ---> Only This to change
@@ -57,7 +59,9 @@ const int clockUpdateInt=1; // hrs to update clock
 int timeInt2Reset = 1000; // time between consq presses to init RESET cmd
 long MQTTtimeOut = (1000*60)*5; //5 mins stop try to MQTT
 long WIFItimeOut = (1000*60)*2; //2 mins try to connect WiFi
-int deBounceInt = 50;
+int deBounceInt = 100;
+int wdtResetCounter = 0;
+int wdtMaxRetries =5;
 // ############################
 
 // RESET parameters
@@ -79,7 +83,7 @@ char msg[150];
 char timeStamp[50];
 char bootTime[50];
 bool firstRun = true;
-const char *ver="1.5";
+const char *ver="1.6";
 // ###################
 
 WiFiClient espClient;
@@ -101,11 +105,12 @@ void setup() {
         startMQTT();
         startNTP();
 
-        PBit(); // PowerOn Bit
+        // PBit(); // PowerOn Bit
 
 //      get boot time stamp
         get_timeStamp();
         strcpy(bootTime,timeStamp);
+        wdt.attach_ms(1,takeTheDog
 }
 
 void startWifi() {
@@ -426,7 +431,14 @@ void verifyNotHazardState(){
 
 }
 
+void takeTheDog(){
+        wdtResetCounter ++;
+        if (wdtResetCounter >= wdtMaxRetries) {
+                ESP.reset();
+        }
+}
 void loop() {
+        wdtResetCounter = 0;
         verifyMQTTConnection();
 
         outputUp_currentState = digitalRead(outputUpPin);
