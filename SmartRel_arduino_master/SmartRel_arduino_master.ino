@@ -29,8 +29,8 @@ bool input_2_UpPin_curState= 1;
 bool input_2_DownPin_curState= 1;
 
 // reset timing parameters
-unsigned int lastPressTime=0;
-unsigned int lastTiming=0;
+unsigned long lastPressTime=0;
+unsigned long lastTiming=0;
 int resetCounter=0;
 const int pressTimeInterval=2000;
 const int pressAmount=10;
@@ -125,6 +125,28 @@ void check_input_1_pressedDown(){
 
 }
 
+
+void check_input_2_pressedUp(){
+        if (input_2_UpPin_curState!=input_1_UpPin_lastState) {
+                delay(debounceInt);
+                if (digitalRead(input_2_UpPin)!=input_2_UpPin_lastState) {
+                        if (digitalRead(output_2_DownPin)==HIGH) {
+                                digitalWrite(output_2_DownPin,LOW);
+                                input_1_DownPin_lastState=input_1_DownPin_curState;
+                        }
+//                      ON OR OFF
+                        digitalWrite(output_2_UpPin, !input_2_UpPin_curState);
+                        input_2_UpPin_lastState=input_2_UpPin_curState;
+                        Serial.print("UpLocal:");
+                        Serial.println(digitalRead(input_2_UpPin));
+
+                        detectResetPresses();
+                        Serial.print("ResetCounter: ");
+                        Serial.println(resetCounter);
+                }
+        }
+
+}
 void checkRemote_CmdUp(){
 //        if (switchUpRemote_curState!=switchUpRemote_lastState) {
 //                delay(debounceInt);
@@ -225,7 +247,6 @@ void gpio_RELstatus(){
 
 void loop() {
         read_inputCurrentState();
-
         //update output status pins
         digitalWrite(output_2_UpPin, digitalRead(output_1_UpPin));
         digitalWrite(output_2_DownPin, digitalRead(output_1_DownPin));
@@ -237,8 +258,8 @@ void loop() {
 //        gpio_RELstatus();
 
         // ESP inputs
-        checkRemote_CmdUp();
-        checkRemote_CmdDown();
+//        checkRemote_CmdUp();
+//        checkRemote_CmdDown();
 //          gpio_SWstatus();
 
         delay(50);
