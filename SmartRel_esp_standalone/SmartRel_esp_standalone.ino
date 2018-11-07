@@ -1,6 +1,6 @@
 //change deviceTopic !
 //###################################################
-#define deviceTopic "HomePi/Dvir/Windows/FamilyRoom" 
+#define deviceTopic "HomePi/Dvir/Windows/Saloon1" 
 //###################################################
 
 #include <Arduino.h>
@@ -8,7 +8,7 @@
 #include <PubSubClient.h>
 #include <TimeLib.h>
 #include <NtpClientLib.h>
-#include <Math.h>
+//#include <Math.h>
 #include <Ticker.h>
 
 
