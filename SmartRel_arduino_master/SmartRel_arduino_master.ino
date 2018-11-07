@@ -34,12 +34,17 @@ unsigned int lastTiming=0;
 int resetCounter=0;
 const int pressTimeInterval=2000;
 const int pressAmount=10;
-int debounceInt=50; // milliseconds debounce def
+int debounceInt=100; // milliseconds debounce def
 
 void setup() {
 
         Serial.begin(9600);
         Serial.println("Arduino Master- Begins");
+        /*
+        input == LOW is switch on
+        rel == HIGH is switched off
+         */
+
         // INPUTS
         pinMode(input_1_UpPin, INPUT_PULLUP);
         pinMode(input_1_DownPin, INPUT_PULLUP);
@@ -51,15 +56,20 @@ void setup() {
         pinMode(output_1_DownPin, OUTPUT);
         pinMode(output_2_UpPin, OUTPUT);
         pinMode(output_2_DownPin, OUTPUT);
-        
+
         pinMode(resetPin, OUTPUT);
 
-        // Status to EXT pin ( back to ESP port)
-        digitalWrite(output_1_UpPin, LOW);
-        digitalWrite(output_1_DownPin, LOW);
-        digitalWrite(output_2_UpPin, LOW);
-        digitalWrite(output_2_DownPin, LOW);
-//        digitalWrite(resetPin, LOW);
+        allOff();
+}
+
+void allOff(){
+  bool st=HIGH;
+
+  digitalWrite(output_1_UpPin, st);
+  digitalWrite(output_1_DownPin, st);
+  digitalWrite(output_2_UpPin, st);
+  digitalWrite(output_2_DownPin, st);
+
 }
 
 void sendReset(){
@@ -69,14 +79,14 @@ void sendReset(){
         Serial.println("RESET CMD SENT");
 }
 
-void readCurrentState(){
-        input_1_DownPin_curState= digitalRead(input_1_DownPin);
+void read_inputCurrentState(){
+        input_1_DownPin_curState = digitalRead(input_1_DownPin);
         input_1_UpPin_curState = digitalRead(input_1_UpPin);
         input_2_UpPin_curState = digitalRead(input_2_UpPin);
         input_2_DownPin_curState = digitalRead(input_2_DownPin);
 }
 
-void checkSwitch_pressedUp(){
+void check_input_1_pressedUp(){
         if (input_1_UpPin_curState!=input_1_UpPin_lastState) {
                 delay(debounceInt);
                 if (digitalRead(input_1_UpPin)!=input_1_UpPin_lastState) {
@@ -98,7 +108,7 @@ void checkSwitch_pressedUp(){
 
 }
 
-void checkSwitch_pressedDown(){
+void check_input_1_pressedDown(){
         if (input_1_DownPin_curState!=input_1_DownPin_lastState) {
                 delay(debounceInt);
                 if (digitalRead(input_1_DownPin)!=input_1_DownPin_lastState) {
@@ -145,7 +155,7 @@ void checkRemote_CmdDown(){
 //                        Serial.println(digitalRead(switchDownRemote));
 //                }
 //        }
-Serial.prinln("Remote Down");
+Serial.println("Remote Down");
 }
 
 void detectResetPresses(){
@@ -214,15 +224,15 @@ void gpio_RELstatus(){
 }
 
 void loop() {
-        readCurrentState();
+        read_inputCurrentState();
 
         //update output status pins
         digitalWrite(output_2_UpPin, digitalRead(output_1_UpPin));
         digitalWrite(output_2_DownPin, digitalRead(output_1_DownPin));
 
         // Local inputs
-        checkSwitch_pressedUp();
-        checkSwitch_pressedDown();
+        check_input_1_pressedUp();
+        check_input_1_pressedDown();
 
 //        gpio_RELstatus();
 
