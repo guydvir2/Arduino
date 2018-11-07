@@ -38,6 +38,7 @@ const int pressAmount=10;
 int debounceInt=50; // milliseconds debounce def
 
 void setup() {
+  
         Serial.begin(9600);
         Serial.println("Arduino Master- Begins");
         // INPUTS
@@ -115,37 +116,36 @@ void checkSwitch_pressedDown(){
 }
 
 void checkRemote_CmdUp(){
-        if (switchUpRemote_curState!=switchUpRemote_lastState) {
-                delay(debounceInt);
-                if (digitalRead(switchUpRemote)!=switchUpRemote_lastState) {
-                        if (digitalRead(relayDownPin)==HIGH) {
-                                digitalWrite(relayDownPin,LOW);
-                                switchDownRemote_lastState=switchDownRemote_curState;
-                        }
-                        digitalWrite(relayUpPin, !switchUpRemote_curState);
-                        switchUpRemote_lastState=switchUpRemote_curState;
-                        Serial.println("UpRemote");
-                        Serial.println(digitalRead(switchUpRemote));
-                }
+//        if (switchUpRemote_curState!=switchUpRemote_lastState) {
+//                delay(debounceInt);
+//                if (digitalRead(switchUpRemote)!=switchUpRemote_lastState) {
+//                        if (digitalRead(relayDownPin)==HIGH) {
+//                                digitalWrite(relayDownPin,LOW);
+//                                switchDownRemote_lastState=switchDownRemote_curState;
+//                        }
+//                        digitalWrite(relayUpPin, !switchUpRemote_curState);
+//                        switchUpRemote_lastState=switchUpRemote_curState;
+//                        Serial.println("UpRemote");
+//                        Serial.println(digitalRead(switchUpRemote));
+//                }
+        Serial.println("RempteUp is pressed");
         }
-
-}
 
 void checkRemote_CmdDown(){
-        if (switchDownRemote_curState!=switchDownRemote_lastState) {
-                delay(debounceInt);
-                if (digitalRead(switchDownRemote)!=switchDownRemote_lastState) {
-                        if (digitalRead(relayUpPin)==HIGH) {
-                                digitalWrite(relayUpPin,LOW);
-                                switchUpRemote_lastState=switchUpRemote_curState;
-                        }
-                        digitalWrite(relayDownPin, !switchDownRemote_curState);
-                        switchDownRemote_lastState=switchDownRemote_curState;
-                        Serial.print("DownRemote:");
-                        Serial.println(digitalRead(switchDownRemote));
-                }
-//
-        }
+//        if (switchDownRemote_curState!=switchDownRemote_lastState) {
+//                delay(debounceInt);
+//                if (digitalRead(switchDownRemote)!=switchDownRemote_lastState) {
+//                        if (digitalRead(relayUpPin)==HIGH) {
+//                                digitalWrite(relayUpPin,LOW);
+//                                switchUpRemote_lastState=switchUpRemote_curState;
+//                        }
+//                        digitalWrite(relayDownPin, !switchDownRemote_curState);
+//                        switchDownRemote_lastState=switchDownRemote_curState;
+//                        Serial.print("DownRemote:");
+//                        Serial.println(digitalRead(switchDownRemote));
+//                }
+//        }
+Serial.prinln("Remote Down");
 }
 
 void detectResetPresses(){
