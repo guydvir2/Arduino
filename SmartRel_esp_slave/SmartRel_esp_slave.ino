@@ -3,21 +3,22 @@
 #define deviceTopic "HomePi/Dvir/Windows/test"
 //###################################################
 
+// GPIO Pins for ESP8266
+#define inputUpPin 14
+#define inputDownPin 12
+#define outputUpPin 4
+#define outputDownPin 5
+//#########################
+#define RelayOn LOW
+
 #include <Arduino.h>
 #include <ESP8266WiFi.h>
 #include <PubSubClient.h>
 #include <TimeLib.h>
 #include <NtpClientLib.h>
-//#include <Math.h>
 #include <Ticker.h>
 
 
-// GPIO Pins for ESP8266
-const int inputUpPin = 14;
-const int inputDownPin = 12;
-const int outputUpPin = 4;
-const int outputDownPin = 5;
-//##########################
 
 
 //wifi creadentials
@@ -55,9 +56,9 @@ bool inputDown_currentState;
 // time interval parameters
 const int clockUpdateInt = 1; // hrs to update clock
 int timeInt2Reset = 1500; // time between consq presses to init RESET cmd
-long MQTTtimeOut = (1000 * 60) * 5; //5 mins stop try to MQTT
-long WIFItimeOut = (1000 * 60) * 2; //2 mins try to connect WiFi
-int MQTTtimeOut_repost = 2000; // 2 mintues delay between switch post and MQTT command
+int MQTTtimeOut = (1000 * 60) * 5; //5 mins stop try to MQTT
+int WIFItimeOut = (1000 * 60) * 2; //2 mins try to connect WiFi
+int MQTTtimeOut_repost = 2000; // 2 seconds delay between switch post and MQTT command
 unsigned long repostCounter = 0;
 int deBounceInt = 100; // ---> extend from 50 to 100 ms
 volatile int wdtResetCounter = 0;
@@ -67,13 +68,13 @@ int wdtMaxRetries = 3;
 // RESET parameters
 int manResetCounter = 0;  // reset press counter
 int pressAmount2Reset = 5; // time to press button to init Reset
-long lastResetPress = 0; // time stamp of last press
-long resetTimer = 0;
+unsigned long lastResetPress = 0; // time stamp of last press
+unsigned long resetTimer = 0;
 // ####################
 
 // MQTT connection flags
 int mqttFailCounter = 0; // count tries to reconnect
-long firstNotConnected = 0; // time stamp of first try
+unsigned long firstNotConnected = 0; // time stamp of first try
 int connectionFlag = 0;
 int MQTTretries = 3; // allowed tries to reconnect
 // ######################
@@ -328,10 +329,10 @@ void switchIt(char *type, char *dir) {
     digitalWrite(outputDownPin, states[1]);
   }
 
-  Serial.print("upPin:");
-  Serial.println(digitalRead(outputUpPin));
-  Serial.print("downPin:");
-  Serial.println(digitalRead(outputDownPin));
+//  Serial.print("upPin:");
+//  Serial.println(digitalRead(outputUpPin));
+//  Serial.print("downPin:");
+//  Serial.println(digitalRead(outputDownPin));
 
 
   client.publish(stateTopic, dir, true);
@@ -358,17 +359,17 @@ void detectResetPresses() {
 
 void sendReset() {
   Serial.println("Sending Reset command");
-  ESP.reset();
+  ESP.restart();
 }
 
 void PBit() {
   allOff();
 
-  digitalWrite(outputUpPin, LOW);
+  digitalWrite(outputUpPin, RelayOn);
   delay(1000);
-  digitalWrite(outputUpPin, HIGH);
+  digitalWrite(outputUpPin, !RelayOn);
   delay(1000);
-  digitalWrite(outputDownPin, LOW);
+  digitalWrite(outputDownPin, RelayOn);
   delay(1000);
 
   allOff();
@@ -400,8 +401,8 @@ void verifyMQTTConnection() {
 }
 
 void allOff() {
-  digitalWrite(outputUpPin, HIGH); //relay off
-  digitalWrite(outputDownPin, HIGH);
+  digitalWrite(outputUpPin, !RelayOn);
+  digitalWrite(outputDownPin, !RelayOn);
 }
 
 void checkSwitch_PressedUp() {
@@ -412,6 +413,8 @@ void checkSwitch_PressedUp() {
     if (digitalRead(inputUpPin) != inputUp_lastState) {
       sprintf(mqttmsg, "[%s] switched [%s]", "Button", digitalRead(inputUpPin) ? "up" : "off");
       pub_msg(mqttmsg);
+
+      inputUp_lastState = digitalRead(inputUpPin);
     }
   }
 }
@@ -424,13 +427,15 @@ void checkSwitch_PressedDown() {
     if (digitalRead(inputDownPin) != inputDown_lastState) {
       sprintf(mqttmsg, "[%s] switched [%s]", "Button", digitalRead(inputDownPin) ? "down" : "off");
       pub_msg(mqttmsg);
+
+      inputDown_lastState = digitalRead(inputDownPin);
     }
   }
 
 }
 
 void verifyNotHazardState() {
-  if (outputUp_currentState == LOW && outputDown_currentState == LOW ) {
+  if (outputUp_currentState == RelayOn && outputDown_currentState == RelayOn ) {
     switchIt("Button", "off");
     Serial.println("Hazard state - both switches were ON");
     pub_msg("HazradState - Reset");
@@ -464,8 +469,6 @@ void loop() {
     checkSwitch_PressedUp();
     checkSwitch_PressedDown();
   }
-
-  inputUp_lastState = digitalRead(inputUpPin);
-  inputDown_lastState = digitalRead(inputDownPin);
+  
   delay(50);
 }

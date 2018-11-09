@@ -1,32 +1,26 @@
 #include <Arduino.h>
 
-// Pin defs
-// input_1: local switches
-const int input_1_UpPin = 2;
-const int input_1_DownPin = 3;
-// input_2: remote switches by ESP, via MQTT commands
-const int input_2_UpPin = 4;
-const int input_2_DownPin = 5;
-// Relays
-const int output_1_UpPin = 6;
-const int output_1_DownPin = 7;
-// mirror status to other GPIO for ESP to read
-const int output_2_UpPin = 8;
-const int output_2_DownPin = 9;
+#define RelayOn HIGH
+#define SwitchOn LOW
 
-// others
-//const int resetPin = 10;
-// ######################################
+#define input_1_UpPin 2    // local switches
+#define input_1_DownPin 3
+#define input_2_UpPin 4    // remote switches
+#define input_2_DownPin 5
+#define output_1_UpPin  6  // local relays
+#define output_1_DownPin 7
+#define output_2_UpPin 8   // remote to esp
+#define output_2_DownPin 9
 
 // rel_status set
-bool input_1_UpPin_lastState = 1;
-bool input_1_DownPin_lastState = 1;
-bool input_2_UpPin_lastState = 1;
-bool input_2_DownPin_lastState = 1;
-bool input_1_UpPin_curState = 1;
-bool input_1_DownPin_curState = 1;
-bool input_2_UpPin_curState = 1;
-bool input_2_DownPin_curState = 1;
+bool input_1_UpPin_lastState = !RelayOn;
+bool input_1_DownPin_lastState = !RelayOn;
+bool input_2_UpPin_lastState = !RelayOn;
+bool input_2_DownPin_lastState = !RelayOn;
+bool input_1_UpPin_curState = !RelayOn;
+bool input_1_DownPin_curState = !RelayOn;
+bool input_2_UpPin_curState = !RelayOn;
+bool input_2_DownPin_curState = !RelayOn;
 
 // reset timing parameters
 unsigned long lastPressTime = 0;
@@ -45,11 +39,6 @@ void setup() {
 }
 
 void startGPIOs() {
-  /*
-    input == LOW is switch on
-    rel == HIGH is switched off
-  */
-
   // INPUTS
   pinMode(input_1_UpPin, INPUT_PULLUP);
   pinMode(input_1_DownPin, INPUT_PULLUP);
@@ -65,12 +54,10 @@ void startGPIOs() {
 }
 
 void allOff() {
-  bool st = HIGH;
-
-  digitalWrite(output_1_UpPin, st);
-  digitalWrite(output_1_DownPin, st);
-  digitalWrite(output_2_UpPin, st);
-  digitalWrite(output_2_DownPin, st);
+  digitalWrite(output_1_UpPin, !RelayOn);
+  digitalWrite(output_1_DownPin, !RelayOn);
+  digitalWrite(output_2_UpPin, !RelayOn);
+  digitalWrite(output_2_DownPin, !RelayOn);
 
 }
 
@@ -88,69 +75,67 @@ void read_inputCurrentState() {
   input_2_DownPin_curState = digitalRead(input_2_DownPin);
 }
 
-void read_inputLastState() {
-  input_1_DownPin_lastState = digitalRead(input_1_DownPin);
-  input_1_UpPin_lastState = digitalRead(input_1_UpPin);
-  input_2_UpPin_lastState = digitalRead(input_2_UpPin);
-  input_2_DownPin_lastState = digitalRead(input_2_DownPin);
-}
-
 void check_input_1_pressedUp() {
   if (input_1_UpPin_curState != input_1_UpPin_lastState) {
     delay(debounceInt);
     if (digitalRead(input_1_UpPin) != input_1_UpPin_lastState) {
-      if (digitalRead(output_1_DownPin) == HIGH) {
-        digitalWrite(output_1_DownPin, LOW);
-        digitalWrite(output_2_DownPin, LOW);
+      if (digitalRead(output_1_DownPin) == RelayOn) {
+        digitalWrite(output_1_DownPin, !RelayOn);
+        input_1_DownPin_lastState = digitalRead(input_1_DownPin);
       }
-      delay(deBounceInt);
-      // ON OR OFF
-      digitalWrite(output_1_UpPin, !input_1_UpPin_curState);
-      digitalWrite(output_2_UpPin, !input_1_UpPin_curState); // update ESP pin
 
+      delay(debounceInt);
+      // switch input_1 (local switch ) ON OR OFF
+      digitalWrite(output_1_UpPin, !input_1_UpPin_curState);
+      input_1_UpPin_lastState = digitalRead(input_1_UpPin);
+
+      //reset by user
       detectResetPresses();
       lastPressTime = millis();
 
-      Serial.print("UpLocal:");
-      Serial.println(digitalRead(input_1_UpPin));
+      //      Serial.print("UpLocal:");
+      //      Serial.println(digitalRead(input_1_UpPin));
     }
   }
-
 }
 
 void check_input_1_pressedDown() {
   if (input_1_DownPin_curState != input_1_DownPin_lastState) {
     delay(debounceInt);
     if (digitalRead(input_1_DownPin) != input_1_DownPin_lastState) {
-      if (digitalRead(output_1_UpPin) == HIGH) {
-        digitalWrite(output_1_UpPin, LOW);
-        digitalWrite(output_2_UpPin, LOW);
+      if (digitalRead(output_1_UpPin) == RelayOn) {
+        digitalWrite(output_1_UpPin, !RelayOn);
+        input_1_UpPin_lastState = digitalRead(input_1_UpPin);
       }
-      delay(deBounceInt);
 
+      delay(debounceInt);
       digitalWrite(output_1_DownPin, !input_1_DownPin_curState);
-      digitalWrite(output_2_DownPin, !input_1_DownPin_curState); //update ESP pin
-
-      Serial.print("DownLocal:");
-      Serial.println(digitalRead(input_1_DownPin));
+      input_1_DownPin_lastState = digitalRead(input_1_DownPin);
+      //      Serial.print("DownLocal:");
+      //      Serial.println(digitalRead(input_1_DownPin));
     }
   }
-
 }
 
 void check_input_2_pressedUp() {
   if (input_2_UpPin_curState != input_2_UpPin_lastState) {
     delay(debounceInt);
     if (digitalRead(input_2_UpPin) != input_2_UpPin_lastState) {
-      if (digitalRead(output_1_DownPin) == HIGH) {
-        digitalWrite(output_1_DownPin, LOW);
+      if (digitalRead(output_1_DownPin) == RelayOn) {
+        digitalWrite(output_1_DownPin, !RelayOn);
       }
 
-      //                      ON OR OFF
-      digitalWrite(output_1_UpPin, !input_2_UpPin_curState);
-
-      Serial.print("UpRemote:");
-      Serial.println(digitalRead(input_2_UpPin));
+      //ON OR OFF
+      if (digitalRead(input_2_UpPin) == SwitchOn ) {
+        digitalWrite(output_1_UpPin, RelayOn);
+      }
+      else if (digitalRead(input_2_UpPin) == !SwitchOn ) {
+        digitalWrite(output_1_UpPin, !RelayOn);
+      }
+      input_2_UpPin_lastState = digitalRead(input_2_UpPin);
+      //
+      //      Serial.print("UpRemote:");
+      //      Serial.println(digitalRead(input_2_UpPin));
     }
   }
 
@@ -160,16 +145,21 @@ void check_input_2_pressedDown() {
   if (input_2_DownPin_curState != input_2_DownPin_lastState) {
     delay(debounceInt);
     if (digitalRead(input_2_DownPin) != input_2_DownPin_lastState) {
-      if (digitalRead(output_1_UpPin) == HIGH) {
-        digitalWrite(output_1_UpPin, LOW);
-        // input_2_UpPin_lastState = input_2_UpPin_curState;
+      if (digitalRead(output_1_UpPin) == RelayOn) {
+        digitalWrite(output_1_UpPin, !RelayOn);
       }
-      //                      ON OR OFF
-      digitalWrite(output_1_DownPin, !input_2_DownPin_curState);
-      // input_2_DownPin_lastState = !input_2_DownPin_curState;
 
-      Serial.print("DownRemote:");
-      Serial.println(digitalRead(input_2_DownPin));
+      //ON OR OFF
+      if (digitalRead(input_2_DownPin) == SwitchOn ) {
+        digitalWrite(output_1_DownPin, RelayOn);
+      }
+      else if (digitalRead(input_2_DownPin) == !SwitchOn ) {
+        digitalWrite(output_1_DownPin, !RelayOn);
+      }
+
+      input_2_DownPin_lastState = digitalRead(input_2_DownPin);
+      //      Serial.print("DownRemote:");
+      //      Serial.println(digitalRead(input_2_DownPin));
     }
   }
 
@@ -189,21 +179,8 @@ void detectResetPresses() {
   }
 }
 
-void gpio_SWstatus() {
-  Serial.print("up:");
-  Serial.println(digitalRead(input_1_UpPin));
-  Serial.print("down:");
-  Serial.println(digitalRead(input_1_DownPin));
-}
-
-void gpio_RELstatus() {
-  Serial.print("up:");
-  Serial.println(digitalRead(output_1_UpPin));
-  Serial.print("down:");
-  Serial.println(digitalRead(output_1_DownPin));
-}
-
 void loop() {
+
   read_inputCurrentState();
   //update output status pins
   digitalWrite(output_2_UpPin, digitalRead(output_1_UpPin));
@@ -212,11 +189,10 @@ void loop() {
   // Local inputs
   check_input_1_pressedUp();
   check_input_1_pressedDown();
-  //  Remote Inputs
-  check_input_2_pressedDown();
-  check_input_2_pressedUp();
 
-  read_inputLastState();
+  //  Remote Inputs
+  check_input_2_pressedUp();
+  check_input_2_pressedDown();
 
   delay(50);
 }
