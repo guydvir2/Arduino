@@ -1,6 +1,6 @@
 //change deviceTopic !
 //###################################################
-#define deviceTopic "HomePi/Dvir/Windows/Saloon1"
+#define deviceTopic "HomePi/Dvir/Windows/test"
 //###################################################
 
 #include <Arduino.h>
@@ -243,8 +243,6 @@ void callback(char* topic, byte* payload, unsigned int length) {
 
                 sprintf(msg,"Status: bootTime:[%s], Relay:[%s], Switch:[%s], Ver:[%s]",bootTime, state,state2,ver);
                 pub_msg(msg);
-//                sprintf(msg2, "Status #2 Relay:[%s],Switch:[%s],Ver:[%s]", state,state2,ver);
-//                pub_msg(msg2);
         }
 //      switch commands via MQTT
         else if (strcmp(incoming_msg,"up")==0 || strcmp(incoming_msg,"down")==0 || strcmp(incoming_msg,"off")==0) {
