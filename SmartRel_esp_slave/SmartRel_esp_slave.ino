@@ -1,6 +1,22 @@
+/*
+   This code is a part of 2 codes system: 1) runs on arduino and 2) ESP8266 (this code)
+   Both devices are ment to control an Up-Off-Down electric window cover.
+   The use of 2 components, an Arduino and an ESP8266 is for reliablity pusposes.
+   Arduino is incharge of commanding the dual relay ( Up/Off/Down) using a physial switch.
+   ESP8266 is ment to get remote commands via a MQTT protocol and via gpio flaging the arduino to
+   switch the window accordingly.
+
+   The main reason for using the Arduino - is that in case of some wifi/MQTT/code crash - to be able
+   to person to shut the cover ( as said- reliablity).
+
+   Written : Guy Dvir
+   Date: 10/2018
+ */
+
+
 //change deviceTopic !
 //###################################################
-#define deviceTopic "HomePi/Dvir/Windows/Arduino_Slave"
+#define deviceTopic "Dvir/Windows/GardenExit"
 //###################################################
 
 // GPIO Pins for ESP8266
@@ -8,9 +24,12 @@
 #define inputDownPin 12
 #define outputUpPin 4
 #define outputDownPin 5
-//#########################
+//######################
+
+// Hw states
 #define RelayOn LOW
-// #define SwitchOn LOW
+#define SwitchOn HIGH
+//####################
 
 #include <Arduino.h>
 #include <ESP8266WiFi.h>
@@ -34,8 +53,8 @@ const char* passw = "kupelu9e";
 
 
 // CONST topics
-const char* msgTopic = "HomePi/Dvir/Messages";
-const char* groupTopic = "HomePi/Dvir/All";
+const char* msgTopic = "Dvir/Messages";
+const char* groupTopic = "Dvir/All";
 const char* deviceName = deviceTopic;
 const char* topicArry[] = {deviceTopic, groupTopic};
 char stateTopic[50];
@@ -57,7 +76,7 @@ const int clockUpdateInt = 1; // hrs to update clock
 int timeInt2Reset = 1500; // time between consq presses to init RESET cmd
 int MQTTtimeOut = (1000 * 60) * 5; //5 mins stop try to MQTT
 int WIFItimeOut = (1000 * 60) * 2; //2 mins try to connect WiFi
-int MQTTtimeOut_repost = 2000; // 2 seconds delay between switch post and MQTT command
+int MQTTtimeOut_repost = 500; // 500 mil.seconds delay between switch post and MQTT command
 unsigned long repostCounter = 0;
 int deBounceInt = 100;
 volatile int wdtResetCounter = 0;
@@ -83,7 +102,7 @@ char msg[150];
 char timeStamp[50];
 char bootTime[50];
 bool firstRun = true;
-const char *ver = "slaveESP_1.0";
+const char *ver = "Ard+slaveESP_1.1";
 // ###################
 
 
@@ -201,6 +220,7 @@ void callback(char* topic, byte* payload, unsigned int length) {
         char incoming_msg[50];
         char state[5];
         char state2[5];
+        char state3[5];
         char msg2[100];
 
         //      Display on Serial monitor only
@@ -218,13 +238,13 @@ void callback(char* topic, byte* payload, unsigned int length) {
         //      status - via MQTT
         if (strcmp(incoming_msg, "status") == 0) {
                 // relays state
-                if (outputUp_currentState == LOW && outputDown_currentState == LOW) {
+                if (outputUp_currentState == RelayOn && outputDown_currentState == RelayOn) {
                         sprintf(state, "invalid Relay State");
                 }
-                else if (outputUp_currentState == HIGH && outputDown_currentState == LOW) {
+                else if (outputUp_currentState == !RelayOn && outputDown_currentState == RelayOn) {
                         sprintf(state, "DOWN");
                 }
-                else if (outputUp_currentState == LOW && outputDown_currentState == HIGH) {
+                else if (outputUp_currentState == RelayOn && outputDown_currentState == !RelayOn) {
                         sprintf(state, "UP");
                 }
                 else {
@@ -232,25 +252,44 @@ void callback(char* topic, byte* payload, unsigned int length) {
                 }
 
                 // switch state
-                if (inputUp_lastState == HIGH && inputDown_lastState == HIGH) {
+                if (inputUp_lastState == !SwitchOn && inputDown_lastState == !SwitchOn) {
                         sprintf(state2, "OFF");
                 }
-                else if (inputUp_lastState == LOW && inputDown_lastState == HIGH) {
+                else if (inputUp_lastState == SwitchOn && inputDown_lastState == !SwitchOn) {
                         sprintf(state2, "UP");
                 }
-                else if (inputUp_lastState == HIGH && inputDown_lastState == LOW) {
+                else if (inputUp_lastState == !SwitchOn && inputDown_lastState == SwitchOn) {
                         sprintf(state2, "DOWN");
                 }
 
-                // sprintf(msg, "Status: bootTime:[%s], Relay:[%s], Switch:[%s], Ver:[%s]", bootTime, state, state2, ver);
-                sprintf(msg, "Status: Relay:[%s], Switch:[%s]", state, state2);
+                // MQTT state
+                if (outputUp_currentState == !RelayOn && outputDown_currentState == !RelayOn) {
+                        sprintf(state3, "OFF");
+                }
+                else if (outputUp_currentState == RelayOn && outputDown_currentState == !RelayOn) {
+                        sprintf(state3, "UP");
+                }
+                else if (outputUp_currentState == !RelayOn && outputDown_currentState == RelayOn) {
+                        sprintf(state3, "DOWN");
+                }
+
+                sprintf(msg, "Status: Relay:[%s], Sw:[%s], MQTT[%s]", state, state2, state3);
                 pub_msg(msg);
         }
         //      switch commands via MQTT
         else if (strcmp(incoming_msg, "up") == 0 || strcmp(incoming_msg, "down") == 0 || strcmp(incoming_msg, "off") == 0) {
                 switchIt("MQTT", incoming_msg);
-                repostCounter = millis();
+                repostCounter = millis(); // to avoid hardware and MQTT notifications, fire together
 
+                if (strcmp(incoming_msg, "up") == 0 ) { //for hardware reset
+                        lastResetPress = millis();
+                        detectResetPresses();
+                }
+
+        }
+        else if (strcmp(incoming_msg, "info") == 0 ) {
+                sprintf(msg, "info: boot:[%s,  Ver:[%s]", bootTime, ver);
+                pub_msg(msg);
         }
         else if (strcmp(incoming_msg, "reset") == 0 ) {
                 sendReset();
@@ -262,7 +301,7 @@ void pub_msg(char *inmsg) {
 
         get_timeStamp();
         sprintf(tmpmsg, "[%s] [%s]", timeStamp, deviceTopic );
-        msgSplitter(inmsg, 105, tmpmsg, "split #" );
+        msgSplitter(inmsg, 95, tmpmsg, "#" );
 }
 
 void msgSplitter( const char* msg_in, int max_msgSize, char *prefix, char *split_msg) {
@@ -311,38 +350,17 @@ void switchIt(char *type, char *dir) {
                 states[0] = !RelayOn;
                 states[1] = !RelayOn;
         }
-        allOff();
 
-        delay(deBounceInt*2);
+        allOff();
+        delay(deBounceInt);
         digitalWrite(outputUpPin, states[0]);
-        delay(deBounceInt*2);
+        delay(deBounceInt);
         digitalWrite(outputDownPin, states[1]);
 
-        // // Case that both realys need to change state ( Up --> Down or Down --> Up )
-        // if (outputUp_currentState != states[0] && outputDown_currentState != states[1]) {
-        //         allOff();
-        //
-        //         delay(deBounceInt*2);
-        //         digitalWrite(outputUpPin, states[0]);
-        //         delay(deBounceInt*2);
-        //         digitalWrite(outputDownPin, states[1]);
-        //         // delay(deBounceInt);
-        // }
-        //
-        // // Case that one relay changes from/to off --> on
-        // else if (outputUp_currentState != states[0] || outputDown_currentState != states[1]) {
-        //         allOff();
-        //
-        //         delay(deBounceInt*2);
-        //         digitalWrite(outputUpPin, states[0]);
-        //         delay(deBounceInt*2);
-        //         digitalWrite(outputDownPin, states[1]);
-        // }
+        client.publish(stateTopic, dir, true); // post a Retained State
 
-        client.publish(stateTopic, dir, true);
         sprintf(mqttmsg, "[%s] switched [%s]", type, dir);
         pub_msg(mqttmsg);
-
 }
 
 void detectResetPresses() {
@@ -350,8 +368,7 @@ void detectResetPresses() {
                 Serial.println(millis() - lastResetPress);
                 if (manResetCounter >= pressAmount2Reset) {
                         sendReset();
-                        manResetCounter = 0;
-                }
+                        }
                 else {
                         manResetCounter++;
                 }
@@ -368,13 +385,14 @@ void sendReset() {
 
 void PBit() {
         allOff();
+        int t = deBounceInt*5;
 
         digitalWrite(outputUpPin, RelayOn);
-        delay(1000);
+        delay(t);
         digitalWrite(outputUpPin, !RelayOn);
-        delay(1000);
+        delay(t);
         digitalWrite(outputDownPin, RelayOn);
-        delay(1000);
+        delay(t);
 
         allOff();
 
@@ -416,7 +434,9 @@ void checkSwitch_PressedUp() {
                 delay(deBounceInt);
                 if (digitalRead(inputUpPin) != inputUp_lastState) {
                         sprintf(mqttmsg, "[%s] switched [%s]", "Button", digitalRead(inputUpPin) ? "up" : "off");
-                        pub_msg(mqttmsg);
+                        if (millis() - repostCounter >= MQTTtimeOut_repost) { // to avoid MQTT msg and Button msgs together
+                                pub_msg(mqttmsg);
+                        }
 
                         inputUp_lastState = digitalRead(inputUpPin);
                 }
@@ -430,7 +450,9 @@ void checkSwitch_PressedDown() {
                 delay(deBounceInt);
                 if (digitalRead(inputDownPin) != inputDown_lastState) {
                         sprintf(mqttmsg, "[%s] switched [%s]", "Button", digitalRead(inputDownPin) ? "down" : "off");
-                        pub_msg(mqttmsg);
+                        if (millis() - repostCounter >= MQTTtimeOut_repost) {
+                                pub_msg(mqttmsg);
+                        }
 
                         inputDown_lastState = digitalRead(inputDownPin);
                 }
@@ -465,14 +487,10 @@ void readGpioStates() {
 void loop() {
         wdtResetCounter = 0; // reset WDT
         verifyMQTTConnection();
-
         readGpioStates();
         verifyNotHazardState(); // both up and down are ---> OFF
-
-        if (millis() - repostCounter >= MQTTtimeOut_repost) {
-                checkSwitch_PressedUp();
-                checkSwitch_PressedDown();
-        }
+        checkSwitch_PressedUp();
+        checkSwitch_PressedDown();
 
         delay(50);
 }

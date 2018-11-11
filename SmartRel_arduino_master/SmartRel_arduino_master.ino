@@ -87,8 +87,8 @@ void check_input_1_pressedUp() {
                         input_1_UpPin_lastState = digitalRead(input_1_UpPin);
 
                         //reset by user
-                        // detectResetPresses();
-                        // lastPressTime = millis();
+                        detectResetPresses();
+                        lastPressTime = millis();
 
                         Serial.print("UpLocal:");
                         Serial.println(digitalRead(input_1_UpPin));
@@ -100,15 +100,13 @@ void check_input_1_pressedDown() {
         if (input_1_DownPin_curState != input_1_DownPin_lastState) {
                 delay(debounceInt);
                 if (digitalRead(input_1_DownPin) != input_1_DownPin_lastState ) {
-                        if (digitalRead(output_1_UpPin) == RelayOn) {
+                        if (digitalRead(output_1_UpPin) == RelayOn ) {
                                 digitalWrite(output_1_UpPin, !RelayOn);
                                 delay(debounceInt);
                         }
 
-                        if (input_1_DownPin_curState != input_1_DownPin_lastState) {
-                                digitalWrite(output_1_DownPin, !input_1_DownPin_curState);
-                                input_1_DownPin_lastState = digitalRead(input_1_DownPin);
-                        }
+                        digitalWrite(output_1_DownPin, !input_1_DownPin_curState);
+                        input_1_DownPin_lastState = digitalRead(input_1_DownPin);
 
                         Serial.print("DownLocal:");
                         Serial.println(digitalRead(input_1_DownPin));
@@ -119,20 +117,23 @@ void check_input_1_pressedDown() {
 void check_input_2_pressedUp() {
         if (input_2_UpPin_curState != input_2_UpPin_lastState) {
                 delay(debounceInt);
-                if (digitalRead(input_2_UpPin) != input_2_UpPin_lastState && output_1_UpPin != RelayOn) {
-                        if (digitalRead(output_1_DownPin) == RelayOn) {
+                if (digitalRead(input_2_UpPin) != input_2_UpPin_lastState) {//} && output_1_UpPin != RelayOn) {
+                        if (digitalRead(output_1_DownPin) == RelayOn ){//}&& input_2_UpPin_curState == SwitchOn) {
                                 digitalWrite(output_1_DownPin, !RelayOn);
                                 delay(debounceInt);
                         }
 
-                        //ON OR OFF
-                        if (digitalRead(input_2_UpPin) == SwitchOn ) {
-                                digitalWrite(output_1_UpPin, RelayOn);
-                        }
-                        else if (digitalRead(input_2_UpPin) == !SwitchOn ) {
-                                digitalWrite(output_1_UpPin, !RelayOn);
-                        }
+                        digitalWrite(output_1_UpPin, !input_2_UpPin_curState);
                         input_2_UpPin_lastState = digitalRead(input_2_UpPin);
+
+                        // //ON OR OFF
+                        // if (digitalRead(input_2_UpPin) == SwitchOn ) {
+                        //         digitalWrite(output_1_UpPin, RelayOn);
+                        // }
+                        // else if (digitalRead(input_2_UpPin) == !SwitchOn ) {
+                        //         digitalWrite(output_1_UpPin, !RelayOn);
+                        // }
+                        // input_2_UpPin_lastState = digitalRead(input_2_UpPin);
 
 
                         Serial.print("UpRemote:");
@@ -145,19 +146,21 @@ void check_input_2_pressedUp() {
 void check_input_2_pressedDown() {
         if (input_2_DownPin_curState != input_2_DownPin_lastState) {
                 delay(debounceInt);
-                if (digitalRead(input_2_DownPin) != input_2_DownPin_lastState && output_1_DownPin != RelayOn) {
+                if (digitalRead(input_2_DownPin) != input_2_DownPin_lastState ){//&& output_1_DownPin != RelayOn) {
                         if (digitalRead(output_1_UpPin) == RelayOn) {
                                 digitalWrite(output_1_UpPin, !RelayOn);
                         }
-
-                        //ON OR OFF
-                        if (digitalRead(input_2_DownPin) == SwitchOn ) {
-                                digitalWrite(output_1_DownPin, RelayOn);
-                        }
-                        else if (digitalRead(input_2_DownPin) == !SwitchOn ) {
-                                digitalWrite(output_1_DownPin, !RelayOn);
-                        }
+                        digitalWrite(output_1_DownPin, !input_2_DownPin_curState);
                         input_2_DownPin_lastState = digitalRead(input_2_DownPin);
+
+                        // //ON OR OFF
+                        // if (digitalRead(input_2_DownPin) == SwitchOn ) {
+                        //         digitalWrite(output_1_DownPin, RelayOn);
+                        // }
+                        // else if (digitalRead(input_2_DownPin) == !SwitchOn ) {
+                        //         digitalWrite(output_1_DownPin, !RelayOn);
+                        // }
+                        // input_2_DownPin_lastState = digitalRead(input_2_DownPin);
 
                         Serial.print("DownRemote:");
                         Serial.println(digitalRead(input_2_DownPin));
