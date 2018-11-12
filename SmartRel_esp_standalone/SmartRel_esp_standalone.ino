@@ -1,6 +1,6 @@
 //change deviceTopic !
 //###################################################
-#define deviceTopic "HomePi/Dvir/Windows/NewRoom"
+#define deviceTopic "HomePi/Dvir/Windows/ParentsRoom"
 //###################################################
 #define RelayOn LOW
 #define SwitchOn LOW
@@ -10,15 +10,14 @@
 #include <PubSubClient.h>
 #include <TimeLib.h>
 #include <NtpClientLib.h>
-//#include <Math.h>
 #include <Ticker.h>
 
 
 // GPIO Pins for ESP8266
-const int inputUpPin = 14;
-const int inputDownPin = 12;
-const int outputUpPin = 4;
-const int outputDownPin = 5;
+const int inputUpPin = 4;
+const int inputDownPin = 5;
+const int outputUpPin = 14;
+const int outputDownPin = 12;
 //##########################
 
 
@@ -40,7 +39,6 @@ const char* msgTopic = "HomePi/Dvir/Messages";
 const char* groupTopic = "HomePi/Dvir/All";
 const char* deviceName = deviceTopic;
 const char* topicArry[]={deviceTopic,groupTopic};
-const char* switchStates[]={"up","down","off"};
 char stateTopic[50];
 char availTopic[50];
 // ##############################################
@@ -60,10 +58,11 @@ const int clockUpdateInt=1; // hrs to update clock
 int timeInt2Reset = 1500; // time between consq presses to init RESET cmd
 long MQTTtimeOut = (1000*60)*5; //5 mins stop try to MQTT
 long WIFItimeOut = (1000*60)*2; //2 mins try to connect WiFi
-int deBounceInt = 100; // ---> extend from 50 to 100 ms
+int deBounceInt = 50; //
 volatile int wdtResetCounter = 0;
 int wdtMaxRetries =3;
 // ############################
+
 
 // RESET parameters
 int manResetCounter = 0;  // reset press counter
@@ -71,6 +70,7 @@ int pressAmount2Reset = 5; // time to press button to init Reset
 long lastResetPress = 0; // time stamp of last press
 long resetTimer = 0;
 // ####################
+
 
 // MQTT connection flags
 int mqttFailCounter = 0; // count tries to reconnect
@@ -84,7 +84,7 @@ char msg[150];
 char timeStamp[50];
 char bootTime[50];
 bool firstRun = true;
-const char *ver="ESP_1.8";
+const char *ver="ESP_1.9";
 // ###################
 
 
@@ -251,6 +251,10 @@ void callback(char* topic, byte* payload, unsigned int length) {
         else if (strcmp(incoming_msg,"up")==0 || strcmp(incoming_msg,"down")==0 || strcmp(incoming_msg,"off")==0) {
                 switchIt("MQTT",incoming_msg);
         }
+        else if (strcmp(incoming_msg, "info") == 0 ) {
+                sprintf(msg, "info: boot:[%s,  Ver:[%s]", bootTime, ver);
+                pub_msg(msg);
+        }
         else if (strcmp(incoming_msg,"reset")==0 ) {
                 sendReset();
         }
@@ -352,7 +356,7 @@ void sendReset() {
 }
 
 void PBit(){
-  int pause = 5*deBounceInt;
+        int pause = 5*deBounceInt;
         allOff();
 
         digitalWrite(outputUpPin, RelayOn);
@@ -393,45 +397,59 @@ void verifyMQTTConnection(){
 void allOff() {
         digitalWrite(outputUpPin,!RelayOn);
         digitalWrite(outputDownPin,!RelayOn);
+        inputUp_lastState = digitalRead(inputUpPin);
+        inputDown_lastState = digitalRead(inputDownPin);
 }
 
 void checkSwitch_PressedUp() {
-        if (inputUp_currentState != inputUp_lastState) {
+        bool temp_inputUpPin = digitalRead(inputUpPin);
+
+        if (temp_inputUpPin != inputUp_lastState) {
                 delay(deBounceInt);
                 if (digitalRead(inputUpPin) != inputUp_lastState) {
-                        if (digitalRead(inputUpPin) == SwitchOn && outputUp_currentState!=RelayOn) {
+                        if (digitalRead(inputUpPin) == SwitchOn && outputUp_currentState == !RelayOn) {
                                 switchIt("Button","up");
                                 detectResetPresses();
+                                lastResetPress = millis();
+                                inputUp_lastState = digitalRead(inputUpPin);
                         }
-                        else if (digitalRead(inputUpPin) == !SwitchOn && outputUp_currentState!=!RelayOn) {
+                        else if (digitalRead(inputUpPin) == !SwitchOn && outputUp_currentState == RelayOn) {
                                 switchIt("Button","off");
+                                inputUp_lastState = digitalRead(inputUpPin);
                         }
-                        else {
-                                Serial.println("Wrong command");
-                        }
-                        lastResetPress = millis();
+                }
+
+                else { // for debug only
+                        char tMsg [100];
+                        sprintf(tMsg,"UP Bounce detected: cRead[%s] lRead[%s]", temp_inputUpPin, inputUp_lastState);
+                        pub_msg(tMsg);
                 }
         }
 
 }
 
 void checkSwitch_PressedDown(){
-        if (digitalRead(inputDownPin) != inputDown_lastState) {
+        bool temp_inputDownPin = digitalRead(inputDownPin);
+
+        if (temp_inputDownPin != inputDown_lastState) {
                 delay(deBounceInt);
                 if (digitalRead(inputDownPin) != inputDown_lastState) {
-                        if (digitalRead(inputDownPin) == SwitchOn && outputDown_currentState!=RelayOn) {
+                        if (digitalRead(inputDownPin) == SwitchOn && outputDown_currentState == !RelayOn) {
                                 switchIt("Button","down");
+                                inputDown_lastState = digitalRead(inputDownPin);
                         }
-                        else if (digitalRead(inputDownPin) == !SwitchOn && outputDown_currentState!=!RelayOn) {
+                        else if (digitalRead(inputDownPin) == !SwitchOn && outputDown_currentState == RelayOn) {
                                 switchIt("Button","off");
-                        }
-                        else {
-                                Serial.println("Wrong command");
+                                inputDown_lastState = digitalRead(inputDownPin);
                         }
                 }
+
+                else { // for debug only
+                        char tMsg [100];
+                        sprintf(tMsg,"Down Bounce detected: cRead[%s] lRead[%s]", temp_inputDownPin, inputDown_lastState);
+                        pub_msg(tMsg);
+                }
         }
-
-
 }
 
 void verifyNotHazardState(){
@@ -462,16 +480,13 @@ void loop() {
         wdtResetCounter = 0; // reset WDT
 
         verifyMQTTConnection();
-
         readGpioStates();
-
         verifyNotHazardState(); // both up and down are ---> OFF
-
         checkSwitch_PressedUp();
         checkSwitch_PressedDown();
 
-        inputUp_lastState = digitalRead(inputUpPin);
-        inputDown_lastState = digitalRead(inputDownPin);
+        // inputUp_lastState = digitalRead(inputUpPin);
+        // inputDown_lastState = digitalRead(inputDownPin);
 
         delay(50);
 }

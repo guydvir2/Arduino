@@ -425,6 +425,8 @@ void verifyMQTTConnection() {
 void allOff() {
         digitalWrite(outputUpPin, !RelayOn);
         digitalWrite(outputDownPin, !RelayOn);
+        inputDown_lastState = digitalRead(inputDownPin);
+        inputUp_lastState = digitalRead(inputUpPin);
 }
 
 void checkSwitch_PressedUp() {
