@@ -1,6 +1,6 @@
 //change deviceTopic !
 //###################################################
-#define deviceTopic "HomePi/Dvir/Windows/ParentsRoom"
+#define deviceTopic "HomePi/Dvir/Windows/ota_Room"
 //###################################################
 #define RelayOn LOW
 #define SwitchOn LOW
@@ -12,12 +12,23 @@
 #include <NtpClientLib.h>
 #include <Ticker.h>
 
+// ADDED OTA
+// #include <ESP8266WiFi.h>
+#include <ESP8266mDNS.h>
+#include <WiFiUdp.h>
+#include <ArduinoOTA.h>
+bool OTAflag;
+unsigned int timeoutOTA = 0;
+
+//#####################
+
 
 // GPIO Pins for ESP8266
 const int inputUpPin = 4;
 const int inputDownPin = 5;
 const int outputUpPin = 14;
 const int outputDownPin = 12;
+const byte progPin = 15;
 //##########################
 
 
@@ -88,10 +99,12 @@ const char *ver="ESP_1.9";
 // ###################
 
 
+// %%%%%%%%%%%%%%%%%%%%%%%% Start Here ##################
+
+//  Start Modules
 WiFiClient espClient;
 PubSubClient client(espClient);
 Ticker wdt;
-
 
 void setup() {
         Serial.begin(9600);
@@ -101,17 +114,226 @@ void setup() {
         PBit(); // PowerOn Bit
         wdt.attach(1,takeTheDog); // Start WatchDog
 
+        startOTA(); // OTA service
+        // if (digitalRead(progPin)==SwitchOn) {
+        OTAflag = true;
+        timeoutOTA = millis();
+        // }
+
+}
+void loop() {
+        wdtResetCounter = 0; // reset WDT
+        wait4OTA();
+        verifyMQTTConnection();
+        readGpioStates();
+        verifyNotHazardState(); // both up and down are ---> OFF
+        checkSwitch_PressedUp();
+        checkSwitch_PressedDown();
+
+        delay(50);
 }
 
+// GPIO
 void startGPIOs(){
         pinMode(inputUpPin, INPUT_PULLUP);
         pinMode(inputDownPin, INPUT_PULLUP);
+        pinMode(progPin, INPUT_PULLUP);
+
         pinMode(outputUpPin, OUTPUT);
         pinMode(outputDownPin, OUTPUT);
 
         allOff();
 }
+void PBit(){
+        int pause = 5*deBounceInt;
+        allOff();
 
+        digitalWrite(outputUpPin, RelayOn);
+        delay(pause);
+        digitalWrite(outputUpPin, !RelayOn);
+        delay(pause);
+        digitalWrite(outputDownPin, RelayOn);
+        delay(pause);
+
+        allOff();
+
+}
+void allOff() {
+        digitalWrite(outputUpPin,!RelayOn);
+        digitalWrite(outputDownPin,!RelayOn);
+        inputUp_lastState = digitalRead(inputUpPin);
+        inputDown_lastState = digitalRead(inputDownPin);
+}
+void readGpioStates(){
+        outputUp_currentState = digitalRead(outputUpPin);
+        outputDown_currentState = digitalRead(outputDownPin);
+        inputDown_currentState = digitalRead(inputDownPin);
+        inputUp_currentState = digitalRead(inputUpPin);
+}
+//
+
+// Switch GPIOs
+void switchIt(char *type, char *dir){
+        char mqttmsg[50];
+        bool states[2];
+        // system states: up, down, off
+        if (strcmp(dir,"up")==0) {
+                states[0]=RelayOn;
+                states[1]=!RelayOn;
+        }
+        else if (strcmp(dir,"down")==0) {
+                states[0]=!RelayOn;
+                states[1]=RelayOn;
+        }
+        else if (strcmp(dir,"off")==0) {
+                states[0]=!RelayOn;
+                states[1]=!RelayOn;
+        }
+
+        // Case that both realys need to change state ( Up --> Down or Down --> Up )
+        if (outputUp_currentState != states[0] && outputDown_currentState != states[1]) {
+                allOff();
+
+                delay(deBounceInt*2);
+                digitalWrite(outputUpPin, states[0]);
+                digitalWrite(outputDownPin, states[1]);
+        }
+        // Case that one relay changes from/to off --> on
+        else if (outputUp_currentState != states[0] || outputDown_currentState != states[1]) {
+                digitalWrite(outputUpPin, states[0]);
+                digitalWrite(outputDownPin, states[1]);
+        }
+
+        client.publish(stateTopic, dir, true);
+        sprintf(mqttmsg,"[%s] switched [%s]",type, dir);
+        pub_msg(mqttmsg);
+}
+void checkSwitch_PressedUp() {
+        bool temp_inputUpPin = digitalRead(inputUpPin);
+
+        if (temp_inputUpPin != inputUp_lastState) {
+                delay(deBounceInt);
+                if (digitalRead(inputUpPin) != inputUp_lastState) {
+                        if (digitalRead(inputUpPin) == SwitchOn && outputUp_currentState == !RelayOn) {
+                                switchIt("Button","up");
+                                detectResetPresses();
+                                lastResetPress = millis();
+                                inputUp_lastState = digitalRead(inputUpPin);
+                        }
+                        else if (digitalRead(inputUpPin) == !SwitchOn && outputUp_currentState == RelayOn) {
+                                switchIt("Button","off");
+                                inputUp_lastState = digitalRead(inputUpPin);
+                        }
+                }
+
+                else { // for debug only
+                        char tMsg [100];
+                        sprintf(tMsg,"UP Bounce detected: cRead[%s] lRead[%s]", temp_inputUpPin, inputUp_lastState);
+                        pub_msg(tMsg);
+                }
+        }
+
+}
+void checkSwitch_PressedDown(){
+        bool temp_inputDownPin = digitalRead(inputDownPin);
+
+        if (temp_inputDownPin != inputDown_lastState) {
+                delay(deBounceInt);
+                if (digitalRead(inputDownPin) != inputDown_lastState) {
+                        if (digitalRead(inputDownPin) == SwitchOn && outputDown_currentState == !RelayOn) {
+                                switchIt("Button","down");
+                                inputDown_lastState = digitalRead(inputDownPin);
+                        }
+                        else if (digitalRead(inputDownPin) == !SwitchOn && outputDown_currentState == RelayOn) {
+                                switchIt("Button","off");
+                                inputDown_lastState = digitalRead(inputDownPin);
+                        }
+                }
+
+                else { // for debug only
+                        char tMsg [100];
+                        sprintf(tMsg,"Down Bounce detected: cRead[%s] lRead[%s]", temp_inputDownPin, inputDown_lastState);
+                        pub_msg(tMsg);
+                }
+        }
+}
+void verifyNotHazardState(){
+        if (outputUp_currentState == RelayOn && outputDown_currentState == RelayOn ) {
+                switchIt("Button","off");
+                Serial.println("Hazard state - both switches were ON");
+                pub_msg("HazradState - Reset");
+                sendReset();
+        }
+
+}
+//
+
+//  OTA FUNCTIONS
+void startOTA() {
+
+        // Port defaults to 8266
+        // ArduinoOTA.setPort(8266);
+
+        // Hostname defaults to esp8266-[ChipID]
+        ArduinoOTA.setHostname("Room1");
+
+        // No authentication by default
+        ArduinoOTA.setPassword("admin");
+
+        // Password can be set with it's md5 value as well
+        // MD5(admin) = 21232f297a57a5a743894a0e4a801fc3
+        // ArduinoOTA.setPasswordHash("21232f297a57a5a743894a0e4a801fc3");
+
+        ArduinoOTA.onStart([]() {
+                String type;
+                if (ArduinoOTA.getCommand() == U_FLASH) {
+                        type = "sketch";
+                } else { // U_SPIFFS
+                        type = "filesystem";
+                }
+
+                // NOTE: if updating SPIFFS this would be the place to unmount SPIFFS using SPIFFS.end()
+                Serial.println("Start updating " + type);
+        });
+        ArduinoOTA.onEnd([]() {
+                Serial.println("\nEnd");
+        });
+        ArduinoOTA.onProgress([](unsigned int progress, unsigned int total) {
+                Serial.printf("Progress: %u%%\r", (progress / (total / 100)));
+        });
+        ArduinoOTA.onError([](ota_error_t error) {
+                Serial.printf("Error[%u]: ", error);
+                if (error == OTA_AUTH_ERROR) {
+                        Serial.println("Auth Failed");
+                } else if (error == OTA_BEGIN_ERROR) {
+                        Serial.println("Begin Failed");
+                } else if (error == OTA_CONNECT_ERROR) {
+                        Serial.println("Connect Failed");
+                } else if (error == OTA_RECEIVE_ERROR) {
+                        Serial.println("Receive Failed");
+                } else if (error == OTA_END_ERROR) {
+                        Serial.println("End Failed");
+                }
+        });
+        ArduinoOTA.begin();
+        Serial.println("Ready");
+        Serial.print("IP address: ");
+        Serial.println(WiFi.localIP());
+
+}
+void wait4OTA() {
+        if (OTAflag == true && millis()-timeoutOTA < 90000) {
+                ArduinoOTA.handle();
+                digitalWrite(progPin,!digitalRead(progPin));
+                delay(100);
+        }
+        else if (millis()-timeoutOTA > 90000) {
+          OTAflag = false;
+        }
+}
+// ##################
+
+// Networking
 void startNetwork() {
         long startWifiConnection=0;
 
@@ -139,18 +361,18 @@ void startNetwork() {
         get_timeStamp();
         strcpy(bootTime,timeStamp);
 }
+void startNTP() {
+        NTP.begin("pool.ntp.org", 2, true);
+        NTP.setInterval(1000*3600*clockUpdateInt);
+}
+//
 
+// MQTT
 void startMQTT() {
         createTopics(deviceTopic, stateTopic, availTopic);
         client.setServer(mqtt_server, 1883);
         client.setCallback(callback);
 }
-
-void startNTP() {
-        NTP.begin("pool.ntp.org", 2, true);
-        NTP.setInterval(1000*3600*clockUpdateInt);
-}
-
 int connectMQTT() {
         // verify wifi connected
         if (WiFi.status() == WL_CONNECTED) {
@@ -192,12 +414,29 @@ int connectMQTT() {
                 return 0;
         }
 }
-
-void createTopics(const char *devTopic, char *state, char *avail) {
-        sprintf(state,"%s/State",devTopic);
-        sprintf(avail,"%s/Avail",devTopic);
+void verifyMQTTConnection(){
+        //  MQTT reconnection for first time or after first insuccess to reconnect
+        if (!client.connected() && firstNotConnected == 0) {
+                connectionFlag=connectMQTT();
+//  still not connected
+                if (connectionFlag == 0 ) {
+                        firstNotConnected=millis();
+                }
+                else {
+                        client.loop();
+                }
+        }
+// retry after fail - resume only after timeout
+        else if (!client.connected() && firstNotConnected !=0 && millis() - firstNotConnected > MQTTtimeOut) {
+//    after cooling out period - try again
+                connectionFlag=connectMQTT();
+                firstNotConnected = 0;
+                Serial.println("trying again to reconnect");
+        }
+        else {
+                client.loop();
+        }
 }
-
 void callback(char* topic, byte* payload, unsigned int length) {
         char incoming_msg[50];
         char state[5];
@@ -259,7 +498,9 @@ void callback(char* topic, byte* payload, unsigned int length) {
                 sendReset();
         }
 }
+//
 
+// Publish MQTT MSG
 void pub_msg(char *inmsg){
         char tmpmsg[150];
 
@@ -267,7 +508,10 @@ void pub_msg(char *inmsg){
         sprintf(tmpmsg,"[%s] [%s]",timeStamp,deviceTopic );
         msgSplitter(inmsg, 95, tmpmsg, "split #" );
 }
-
+void createTopics(const char *devTopic, char *state, char *avail) {
+        sprintf(state,"%s/State",devTopic);
+        sprintf(avail,"%s/Avail",devTopic);
+}
 void msgSplitter( const char* msg_in, int max_msgSize, char *prefix, char *split_msg){
         char tmp[120];
 
@@ -292,48 +536,19 @@ void msgSplitter( const char* msg_in, int max_msgSize, char *prefix, char *split
                 client.publish(msgTopic, tmp);
         }
 }
-
 void get_timeStamp(){
         time_t t=now();
         sprintf(timeStamp,"%02d-%02d-%02d %02d:%02d:%02d",year(t),month(t), day(t), hour(t), minute(t), second(t));
 }
 
-void switchIt(char *type, char *dir){
-        char mqttmsg[50];
-        bool states[2];
-        // system states: up, down, off
-        if (strcmp(dir,"up")==0) {
-                states[0]=RelayOn;
-                states[1]=!RelayOn;
-        }
-        else if (strcmp(dir,"down")==0) {
-                states[0]=!RelayOn;
-                states[1]=RelayOn;
-        }
-        else if (strcmp(dir,"off")==0) {
-                states[0]=!RelayOn;
-                states[1]=!RelayOn;
-        }
 
-        // Case that both realys need to change state ( Up --> Down or Down --> Up )
-        if (outputUp_currentState != states[0] && outputDown_currentState != states[1]) {
-                allOff();
-
-                delay(deBounceInt*2);
-                digitalWrite(outputUpPin, states[0]);
-                digitalWrite(outputDownPin, states[1]);
+// WatchDog
+void takeTheDog(){
+        wdtResetCounter++;
+        if (wdtResetCounter >= wdtMaxRetries) {
+                sendReset();
         }
-        // Case that one relay changes from/to off --> on
-        else if (outputUp_currentState != states[0] || outputDown_currentState != states[1]) {
-                digitalWrite(outputUpPin, states[0]);
-                digitalWrite(outputDownPin, states[1]);
-        }
-
-        client.publish(stateTopic, dir, true);
-        sprintf(mqttmsg,"[%s] switched [%s]",type, dir);
-        pub_msg(mqttmsg);
 }
-
 void detectResetPresses(){
         if (millis()-lastResetPress < timeInt2Reset) {
                 Serial.println(millis()-lastResetPress);
@@ -349,144 +564,8 @@ void detectResetPresses(){
                 manResetCounter = 0;
         }
 }
-
 void sendReset() {
         Serial.println("Sending Reset command");
         ESP.restart();
 }
-
-void PBit(){
-        int pause = 5*deBounceInt;
-        allOff();
-
-        digitalWrite(outputUpPin, RelayOn);
-        delay(pause);
-        digitalWrite(outputUpPin, !RelayOn);
-        delay(pause);
-        digitalWrite(outputDownPin, RelayOn);
-        delay(pause);
-
-        allOff();
-
-}
-
-void verifyMQTTConnection(){
-        //  MQTT reconnection for first time or after first insuccess to reconnect
-        if (!client.connected() && firstNotConnected == 0) {
-                connectionFlag=connectMQTT();
-//  still not connected
-                if (connectionFlag == 0 ) {
-                        firstNotConnected=millis();
-                }
-                else {
-                        client.loop();
-                }
-        }
-// retry after fail - resume only after timeout
-        else if (!client.connected() && firstNotConnected !=0 && millis() - firstNotConnected > MQTTtimeOut) {
-//    after cooling out period - try again
-                connectionFlag=connectMQTT();
-                firstNotConnected = 0;
-                Serial.println("trying again to reconnect");
-        }
-        else {
-                client.loop();
-        }
-}
-
-void allOff() {
-        digitalWrite(outputUpPin,!RelayOn);
-        digitalWrite(outputDownPin,!RelayOn);
-        inputUp_lastState = digitalRead(inputUpPin);
-        inputDown_lastState = digitalRead(inputDownPin);
-}
-
-void checkSwitch_PressedUp() {
-        bool temp_inputUpPin = digitalRead(inputUpPin);
-
-        if (temp_inputUpPin != inputUp_lastState) {
-                delay(deBounceInt);
-                if (digitalRead(inputUpPin) != inputUp_lastState) {
-                        if (digitalRead(inputUpPin) == SwitchOn && outputUp_currentState == !RelayOn) {
-                                switchIt("Button","up");
-                                detectResetPresses();
-                                lastResetPress = millis();
-                                inputUp_lastState = digitalRead(inputUpPin);
-                        }
-                        else if (digitalRead(inputUpPin) == !SwitchOn && outputUp_currentState == RelayOn) {
-                                switchIt("Button","off");
-                                inputUp_lastState = digitalRead(inputUpPin);
-                        }
-                }
-
-                else { // for debug only
-                        char tMsg [100];
-                        sprintf(tMsg,"UP Bounce detected: cRead[%s] lRead[%s]", temp_inputUpPin, inputUp_lastState);
-                        pub_msg(tMsg);
-                }
-        }
-
-}
-
-void checkSwitch_PressedDown(){
-        bool temp_inputDownPin = digitalRead(inputDownPin);
-
-        if (temp_inputDownPin != inputDown_lastState) {
-                delay(deBounceInt);
-                if (digitalRead(inputDownPin) != inputDown_lastState) {
-                        if (digitalRead(inputDownPin) == SwitchOn && outputDown_currentState == !RelayOn) {
-                                switchIt("Button","down");
-                                inputDown_lastState = digitalRead(inputDownPin);
-                        }
-                        else if (digitalRead(inputDownPin) == !SwitchOn && outputDown_currentState == RelayOn) {
-                                switchIt("Button","off");
-                                inputDown_lastState = digitalRead(inputDownPin);
-                        }
-                }
-
-                else { // for debug only
-                        char tMsg [100];
-                        sprintf(tMsg,"Down Bounce detected: cRead[%s] lRead[%s]", temp_inputDownPin, inputDown_lastState);
-                        pub_msg(tMsg);
-                }
-        }
-}
-
-void verifyNotHazardState(){
-        if (outputUp_currentState == RelayOn && outputDown_currentState == RelayOn ) {
-                switchIt("Button","off");
-                Serial.println("Hazard state - both switches were ON");
-                pub_msg("HazradState - Reset");
-                sendReset();
-        }
-
-}
-
-void takeTheDog(){
-        wdtResetCounter++;
-        if (wdtResetCounter >= wdtMaxRetries) {
-                sendReset();
-        }
-}
-
-void readGpioStates(){
-        outputUp_currentState = digitalRead(outputUpPin);
-        outputDown_currentState = digitalRead(outputDownPin);
-        inputDown_currentState = digitalRead(inputDownPin);
-        inputUp_currentState = digitalRead(inputUpPin);
-}
-
-void loop() {
-        wdtResetCounter = 0; // reset WDT
-
-        verifyMQTTConnection();
-        readGpioStates();
-        verifyNotHazardState(); // both up and down are ---> OFF
-        checkSwitch_PressedUp();
-        checkSwitch_PressedDown();
-
-        // inputUp_lastState = digitalRead(inputUpPin);
-        // inputDown_lastState = digitalRead(inputDownPin);
-
-        delay(50);
-}
+//
