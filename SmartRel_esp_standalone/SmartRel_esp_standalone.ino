@@ -1,6 +1,6 @@
 //change deviceTopic !
 //###################################################
-#define deviceTopic "HomePi/Dvir/Windows/ota_Room"
+#define deviceTopic "HomePi/Dvir/Windows/ParentsRoom"
 //###################################################
 #define RelayOn LOW
 #define SwitchOn LOW
@@ -12,23 +12,12 @@
 #include <NtpClientLib.h>
 #include <Ticker.h>
 
-// ADDED OTA
-// #include <ESP8266WiFi.h>
-#include <ESP8266mDNS.h>
-#include <WiFiUdp.h>
-#include <ArduinoOTA.h>
-bool OTAflag;
-unsigned int timeoutOTA = 0;
-
-//#####################
-
 
 // GPIO Pins for ESP8266
 const int inputUpPin = 4;
 const int inputDownPin = 5;
 const int outputUpPin = 14;
 const int outputDownPin = 12;
-const byte progPin = 15;
 //##########################
 
 
@@ -95,84 +84,211 @@ char msg[150];
 char timeStamp[50];
 char bootTime[50];
 bool firstRun = true;
-const char *ver="ESP_1.9";
+const char *ver="ESP_1.91_no_wdt";
 // ###################
 
+bool useNetwork = true;
+bool useWDT = false;
 
-// %%%%%%%%%%%%%%%%%%%%%%%% Start Here ##################
-
-//  Start Modules
 WiFiClient espClient;
-PubSubClient client(espClient);
+PubSubClient mqttClient(espClient);
 Ticker wdt;
 
 void setup() {
         Serial.begin(9600);
 
         startGPIOs();
-        startNetwork();
+        if (useNetwork) {
+                startNetwork();
+                if (useWDT) {
+                  wdt.attach(1,feedTheDog); // Start WatchDog
+                }
+        }
         PBit(); // PowerOn Bit
-        wdt.attach(1,takeTheDog); // Start WatchDog
-
-        startOTA(); // OTA service
-        // if (digitalRead(progPin)==SwitchOn) {
-        OTAflag = true;
-        timeoutOTA = millis();
-        // }
-
 }
-void loop() {
-        wdtResetCounter = 0; // reset WDT
-        wait4OTA();
-        verifyMQTTConnection();
-        readGpioStates();
-        verifyNotHazardState(); // both up and down are ---> OFF
-        checkSwitch_PressedUp();
-        checkSwitch_PressedDown();
-
-        delay(50);
-}
-
-// GPIO
 void startGPIOs(){
         pinMode(inputUpPin, INPUT_PULLUP);
         pinMode(inputDownPin, INPUT_PULLUP);
-        pinMode(progPin, INPUT_PULLUP);
-
         pinMode(outputUpPin, OUTPUT);
         pinMode(outputDownPin, OUTPUT);
 
         allOff();
 }
-void PBit(){
-        int pause = 5*deBounceInt;
-        allOff();
+void startNetwork() {
+        long startWifiConnection=0;
 
-        digitalWrite(outputUpPin, RelayOn);
-        delay(pause);
-        digitalWrite(outputUpPin, !RelayOn);
-        delay(pause);
-        digitalWrite(outputDownPin, RelayOn);
-        delay(pause);
+        Serial.println();
+        Serial.print("Connecting to ");
+        Serial.println(ssid);
 
-        allOff();
+        startWifiConnection = millis();
+        WiFi.begin(ssid, password);
+        // in case of reboot - timeOUT to wifi
+        while (WiFi.status() != WL_CONNECTED && millis()-startWifiConnection <WIFItimeOut) {
+                delay(500);
+                Serial.print(".");
+        }
 
+        WiFi.setAutoReconnect(true);
+        Serial.println("");
+        Serial.println("WiFi connected");
+        Serial.print("IP address: ");
+        Serial.println(WiFi.localIP());
+
+        startMQTT();
+        startNTP();
+
+        get_timeStamp();
+        strcpy(bootTime,timeStamp);
 }
-void allOff() {
-        digitalWrite(outputUpPin,!RelayOn);
-        digitalWrite(outputDownPin,!RelayOn);
-        inputUp_lastState = digitalRead(inputUpPin);
-        inputDown_lastState = digitalRead(inputDownPin);
+void startMQTT() {
+        createTopics(deviceTopic, stateTopic, availTopic);
+        mqttClient.setServer(mqtt_server, 1883);
+        mqttClient.setCallback(callback);
 }
-void readGpioStates(){
-        outputUp_currentState = digitalRead(outputUpPin);
-        outputDown_currentState = digitalRead(outputDownPin);
-        inputDown_currentState = digitalRead(inputDownPin);
-        inputUp_currentState = digitalRead(inputUpPin);
+void startNTP() {
+        NTP.begin("pool.ntp.org", 2, true);
+        NTP.setInterval(1000*3600*clockUpdateInt);
 }
-//
+int connectMQTT() {
+        // verify wifi connected
+        if (WiFi.status() == WL_CONNECTED) {
+                Serial.println("have wifi, entering MQTT connection");
+                while (!mqttClient.connected() && mqttFailCounter <= MQTTretries) {
+                        Serial.print("Attempting MQTT connection...");
+                        // Attempt to connect
+                        if (mqttClient.connect(deviceName,user, passw, availTopic,0,true,"offline")) {
+                                Serial.println("connected");
+                                mqttClient.publish(availTopic, "online", true);
+                                if (firstRun == true) {
+                                        mqttClient.publish(stateTopic, "off", true);
+                                        firstRun = false;
+                                }
+                                pub_msg("Connected to MQTT server");
+                                for (int i=0; i<sizeof(topicArry)/sizeof(char *); i++) {
+                                        mqttClient.subscribe(topicArry[i]);
+                                        sprintf(msg, "Subscribed to %s",topicArry[i]);
+                                }
+                                mqttFailCounter = 0;
+                                return 1;
+                        }
+                        else {
+                                Serial.print("failed, rc=");
+                                Serial.print(mqttClient.state());
+                                Serial.println(" try again in 5 seconds");
+                                delay(5000);
+                                Serial.print("number of fails to reconnect MQTT");
+                                Serial.println(mqttFailCounter);
+                                mqttFailCounter++;
+                        }
+                }
+                Serial.println("Exit without connecting MQTT");
+                mqttFailCounter = 0;
+                return 0;
+        }
+        else {
+                Serial.println("Not connected to Wifi, abort try to connect MQTT broker");
+                return 0;
+        }
+}
+void createTopics(const char *devTopic, char *state, char *avail) {
+        sprintf(state,"%s/State",devTopic);
+        sprintf(avail,"%s/Avail",devTopic);
+}
+void callback(char* topic, byte* payload, unsigned int length) {
+        char incoming_msg[50];
+        char state[5];
+        char state2[5];
+        char msg2[100];
 
-// Switch GPIOs
+//      Display on Serial monitor only
+        Serial.print("Message arrived [");
+        Serial.print(topic);
+        Serial.print("] ");
+        for (int i = 0; i < length; i++) {
+                Serial.print((char)payload[i]);
+                incoming_msg[i] = (char)payload[i];
+        }
+        incoming_msg[length]=0;
+        Serial.println("");
+//      ##############################
+
+        if (strcmp(incoming_msg,"status")==0) {
+                // relays state
+                if (outputUp_currentState==RelayOn && outputDown_currentState==RelayOn) {
+                        sprintf(state,"invalid Relay State");
+                }
+                else if (outputUp_currentState==!RelayOn && outputDown_currentState==RelayOn) {
+                        sprintf(state,"DOWN");
+                }
+                else if (outputUp_currentState==RelayOn && outputDown_currentState==!RelayOn) {
+                        sprintf(state,"UP");
+                }
+                else {
+                        sprintf(state,"OFF");
+                }
+
+                // switch state
+                if (inputUp_lastState==!RelayOn && inputDown_lastState==!RelayOn) {
+                        sprintf(state2, "OFF");
+                }
+                else if (inputUp_lastState==RelayOn && inputDown_lastState==!RelayOn) {
+                        sprintf(state2, "UP");
+                }
+                else if (inputUp_lastState==!RelayOn && inputDown_lastState==RelayOn) {
+                        sprintf(state2, "DOWN");
+                }
+                sprintf(msg,"Status: Relay:[%s], Switch:[%s]", state,state2);
+                pub_msg(msg);
+        }
+        else if (strcmp(incoming_msg,"up")==0 || strcmp(incoming_msg,"down")==0 || strcmp(incoming_msg,"off")==0) {
+                switchIt("MQTT",incoming_msg);
+        }
+        else if (strcmp(incoming_msg, "info") == 0 ) {
+                sprintf(msg, "info: boot:[%s,  Ver:[%s]", bootTime, ver);
+                pub_msg(msg);
+        }
+        else if (strcmp(incoming_msg,"reset")==0 ) {
+                sendReset("[MQTT]");
+        }
+}
+void pub_msg(char *inmsg){
+        char tmpmsg[150];
+
+        if(useNetwork == true) {
+                get_timeStamp();
+                sprintf(tmpmsg,"[%s] [%s]",timeStamp,deviceTopic );
+                msgSplitter(inmsg, 95, tmpmsg, "split #" );
+        }
+}
+void msgSplitter( const char* msg_in, int max_msgSize, char *prefix, char *split_msg){
+        char tmp[120];
+
+        if (strlen(prefix) + strlen(msg_in) > max_msgSize) {
+                int max_chunk = max_msgSize - strlen(prefix) - strlen(split_msg);
+                int num=ceil((float)strlen(msg_in)/max_chunk);
+                int pre_len;
+
+                for (int k=0; k<num; k++) {
+                        sprintf(tmp,"%s %s%d: ",prefix,split_msg,k);
+                        pre_len = strlen(tmp);
+                        for (int i=0; i<max_chunk; i++) {
+                                tmp[i+pre_len]=(char)msg_in[i+k*max_chunk];
+                                tmp[i+1+pre_len]='\0';
+                        }
+                        mqttClient.publish(msgTopic, tmp);
+
+                }
+        }
+        else {
+                sprintf(tmp,"%s %s",prefix,msg_in);
+                mqttClient.publish(msgTopic, tmp);
+        }
+}
+void get_timeStamp(){
+        time_t t=now();
+        sprintf(timeStamp,"%02d-%02d-%02d %02d:%02d:%02d",year(t),month(t), day(t), hour(t), minute(t), second(t));
+}
 void switchIt(char *type, char *dir){
         char mqttmsg[50];
         bool states[2];
@@ -203,10 +319,77 @@ void switchIt(char *type, char *dir){
                 digitalWrite(outputUpPin, states[0]);
                 digitalWrite(outputDownPin, states[1]);
         }
+        if (useNetwork==true) {
+                mqttClient.publish(stateTopic, dir, true);
+                sprintf(mqttmsg,"[%s] switched [%s]",type, dir);
+                pub_msg(mqttmsg);
+        }
+}
+void detectResetPresses(){
+        if (millis()-lastResetPress < timeInt2Reset) {
+                Serial.println(millis()-lastResetPress);
+                if (manResetCounter >=pressAmount2Reset) {
+                        sendReset("Manual operation");
+                        manResetCounter=0;
+                }
+                else {
+                        manResetCounter++;
+                }
+        }
+        else {
+                manResetCounter = 0;
+        }
+}
+void sendReset(char *header) {
+        char temp[150];
 
-        client.publish(stateTopic, dir, true);
-        sprintf(mqttmsg,"[%s] switched [%s]",type, dir);
-        pub_msg(mqttmsg);
+        Serial.println("Sending Reset command");
+        sprintf(temp, "[%s] - Reset sent", header);
+        pub_msg(temp);
+        ESP.restart();
+}
+void PBit(){
+        int pause = 5*deBounceInt;
+        allOff();
+
+        digitalWrite(outputUpPin, RelayOn);
+        delay(pause);
+        digitalWrite(outputUpPin, !RelayOn);
+        delay(pause);
+        digitalWrite(outputDownPin, RelayOn);
+        delay(pause);
+
+        allOff();
+
+}
+void verifyMQTTConnection(){
+        //  MQTT reconnection for first time or after first insuccess to reconnect
+        if (!mqttClient.connected() && firstNotConnected == 0) {
+                connectionFlag=connectMQTT();
+//  still not connected
+                if (connectionFlag == 0 ) {
+                        firstNotConnected=millis();
+                }
+                else {
+                        mqttClient.loop();
+                }
+        }
+// retry after fail - resume only after timeout
+        else if (!mqttClient.connected() && firstNotConnected !=0 && millis() - firstNotConnected > MQTTtimeOut) {
+//    after cooling out period - try again
+                connectionFlag=connectMQTT();
+                firstNotConnected = 0;
+                Serial.println("trying again to reconnect");
+        }
+        else {
+                mqttClient.loop();
+        }
+}
+void allOff() {
+        digitalWrite(outputUpPin,!RelayOn);
+        digitalWrite(outputDownPin,!RelayOn);
+        inputUp_lastState = digitalRead(inputUpPin);
+        inputDown_lastState = digitalRead(inputDownPin);
 }
 void checkSwitch_PressedUp() {
         bool temp_inputUpPin = digitalRead(inputUpPin);
@@ -223,6 +406,11 @@ void checkSwitch_PressedUp() {
                         else if (digitalRead(inputUpPin) == !SwitchOn && outputUp_currentState == RelayOn) {
                                 switchIt("Button","off");
                                 inputUp_lastState = digitalRead(inputUpPin);
+                        }
+                        else { // for debug only
+                                char err[100];
+                                sprintf(err,"UpPress_err: cur_switch [%s], last_switch[%s] rel[%s]", temp_inputUpPin, inputUp_lastState, outputUp_currentState);
+                                pub_msg("err");
                         }
                 }
 
@@ -248,6 +436,11 @@ void checkSwitch_PressedDown(){
                                 switchIt("Button","off");
                                 inputDown_lastState = digitalRead(inputDownPin);
                         }
+                        else { // for debug only
+                                char err[100];
+                                sprintf(err,"DownPress_err: cur_switch [%s], last_switch[%s] rel[%s]", temp_inputDownPin, inputDown_lastState, outputDown_currentState);
+                                pub_msg("err");
+                        }
                 }
 
                 else { // for debug only
@@ -261,311 +454,47 @@ void verifyNotHazardState(){
         if (outputUp_currentState == RelayOn && outputDown_currentState == RelayOn ) {
                 switchIt("Button","off");
                 Serial.println("Hazard state - both switches were ON");
-                pub_msg("HazradState - Reset");
-                sendReset();
+                // pub_msg(" - Reset");
+                sendReset("HazradState");
         }
 
 }
-//
-
-//  OTA FUNCTIONS
-void startOTA() {
-
-        // Port defaults to 8266
-        // ArduinoOTA.setPort(8266);
-
-        // Hostname defaults to esp8266-[ChipID]
-        ArduinoOTA.setHostname("Room1");
-
-        // No authentication by default
-        ArduinoOTA.setPassword("admin");
-
-        // Password can be set with it's md5 value as well
-        // MD5(admin) = 21232f297a57a5a743894a0e4a801fc3
-        // ArduinoOTA.setPasswordHash("21232f297a57a5a743894a0e4a801fc3");
-
-        ArduinoOTA.onStart([]() {
-                String type;
-                if (ArduinoOTA.getCommand() == U_FLASH) {
-                        type = "sketch";
-                } else { // U_SPIFFS
-                        type = "filesystem";
-                }
-
-                // NOTE: if updating SPIFFS this would be the place to unmount SPIFFS using SPIFFS.end()
-                Serial.println("Start updating " + type);
-        });
-        ArduinoOTA.onEnd([]() {
-                Serial.println("\nEnd");
-        });
-        ArduinoOTA.onProgress([](unsigned int progress, unsigned int total) {
-                Serial.printf("Progress: %u%%\r", (progress / (total / 100)));
-        });
-        ArduinoOTA.onError([](ota_error_t error) {
-                Serial.printf("Error[%u]: ", error);
-                if (error == OTA_AUTH_ERROR) {
-                        Serial.println("Auth Failed");
-                } else if (error == OTA_BEGIN_ERROR) {
-                        Serial.println("Begin Failed");
-                } else if (error == OTA_CONNECT_ERROR) {
-                        Serial.println("Connect Failed");
-                } else if (error == OTA_RECEIVE_ERROR) {
-                        Serial.println("Receive Failed");
-                } else if (error == OTA_END_ERROR) {
-                        Serial.println("End Failed");
-                }
-        });
-        ArduinoOTA.begin();
-        Serial.println("Ready");
-        Serial.print("IP address: ");
-        Serial.println(WiFi.localIP());
-
-}
-void wait4OTA() {
-        if (OTAflag == true && millis()-timeoutOTA < 90000) {
-                ArduinoOTA.handle();
-                digitalWrite(progPin,!digitalRead(progPin));
-                delay(100);
-        }
-        else if (millis()-timeoutOTA > 90000) {
-          OTAflag = false;
-        }
-}
-// ##################
-
-// Networking
-void startNetwork() {
-        long startWifiConnection=0;
-
-        Serial.println();
-        Serial.print("Connecting to ");
-        Serial.println(ssid);
-
-        startWifiConnection = millis();
-        WiFi.begin(ssid, password);
-        // in case of reboot - timeOUT to wifi
-        while (WiFi.status() != WL_CONNECTED && millis()-startWifiConnection <WIFItimeOut) {
-                delay(500);
-                Serial.print(".");
-        }
-
-        WiFi.setAutoReconnect(true);
-        Serial.println("");
-        Serial.println("WiFi connected");
-        Serial.print("IP address: ");
-        Serial.println(WiFi.localIP());
-
-        startMQTT();
-        startNTP();
-
-        get_timeStamp();
-        strcpy(bootTime,timeStamp);
-}
-void startNTP() {
-        NTP.begin("pool.ntp.org", 2, true);
-        NTP.setInterval(1000*3600*clockUpdateInt);
-}
-//
-
-// MQTT
-void startMQTT() {
-        createTopics(deviceTopic, stateTopic, availTopic);
-        client.setServer(mqtt_server, 1883);
-        client.setCallback(callback);
-}
-int connectMQTT() {
-        // verify wifi connected
-        if (WiFi.status() == WL_CONNECTED) {
-                Serial.println("have wifi, entering MQTT connection");
-                while (!client.connected() && mqttFailCounter <= MQTTretries) {
-                        Serial.print("Attempting MQTT connection...");
-                        // Attempt to connect
-                        if (client.connect(deviceName,user, passw, availTopic,0,true,"offline")) {
-                                Serial.println("connected");
-                                client.publish(availTopic, "online", true);
-                                if (firstRun == true) {
-                                        client.publish(stateTopic, "off", true);
-                                        firstRun = false;
-                                }
-                                pub_msg("Connected to MQTT server");
-                                for (int i=0; i<sizeof(topicArry)/sizeof(char *); i++) {
-                                        client.subscribe(topicArry[i]);
-                                        sprintf(msg, "Subscribed to %s",topicArry[i]);
-                                }
-                                mqttFailCounter = 0;
-                                return 1;
-                        }
-                        else {
-                                Serial.print("failed, rc=");
-                                Serial.print(client.state());
-                                Serial.println(" try again in 5 seconds");
-                                delay(5000);
-                                Serial.print("number of fails to reconnect MQTT");
-                                Serial.println(mqttFailCounter);
-                                mqttFailCounter++;
-                        }
-                }
-                Serial.println("Exit without connecting MQTT");
-                mqttFailCounter = 0;
-                return 0;
-        }
-        else {
-                Serial.println("Not connected to Wifi, abort try to connect MQTT broker");
-                return 0;
-        }
-}
-void verifyMQTTConnection(){
-        //  MQTT reconnection for first time or after first insuccess to reconnect
-        if (!client.connected() && firstNotConnected == 0) {
-                connectionFlag=connectMQTT();
-//  still not connected
-                if (connectionFlag == 0 ) {
-                        firstNotConnected=millis();
-                }
-                else {
-                        client.loop();
-                }
-        }
-// retry after fail - resume only after timeout
-        else if (!client.connected() && firstNotConnected !=0 && millis() - firstNotConnected > MQTTtimeOut) {
-//    after cooling out period - try again
-                connectionFlag=connectMQTT();
-                firstNotConnected = 0;
-                Serial.println("trying again to reconnect");
-        }
-        else {
-                client.loop();
-        }
-}
-void callback(char* topic, byte* payload, unsigned int length) {
-        char incoming_msg[50];
-        char state[5];
-        char state2[5];
-        char msg2[100];
-
-//      Display on Serial monitor only
-        Serial.print("Message arrived [");
-        Serial.print(topic);
-        Serial.print("] ");
-        for (int i = 0; i < length; i++) {
-                Serial.print((char)payload[i]);
-                incoming_msg[i] = (char)payload[i];
-        }
-        incoming_msg[length]=0;
-        Serial.println("");
-//      ##############################
-
-//      status - via MQTT
-        if (strcmp(incoming_msg,"status")==0) {
-                // relays state
-                if (outputUp_currentState==RelayOn && outputDown_currentState==RelayOn) {
-                        sprintf(state,"invalid Relay State");
-                }
-                else if (outputUp_currentState==!RelayOn && outputDown_currentState==RelayOn) {
-                        sprintf(state,"DOWN");
-                }
-                else if (outputUp_currentState==RelayOn && outputDown_currentState==!RelayOn) {
-                        sprintf(state,"UP");
-                }
-                else {
-                        sprintf(state,"OFF");
-                }
-
-                // switch state
-                if (inputUp_lastState==!RelayOn && inputDown_lastState==!RelayOn) {
-                        sprintf(state2, "OFF");
-                }
-                else if (inputUp_lastState==RelayOn && inputDown_lastState==!RelayOn) {
-                        sprintf(state2, "UP");
-                }
-                else if (inputUp_lastState==!RelayOn && inputDown_lastState==RelayOn) {
-                        sprintf(state2, "DOWN");
-                }
-
-                // sprintf(msg,"Status: bootTime:[%s], Relay:[%s], Switch:[%s], Ver:[%s]",bootTime, state,state2,ver);
-                sprintf(msg,"Status: Relay:[%s], Switch:[%s]", state,state2);
-                pub_msg(msg);
-        }
-//      switch commands via MQTT
-        else if (strcmp(incoming_msg,"up")==0 || strcmp(incoming_msg,"down")==0 || strcmp(incoming_msg,"off")==0) {
-                switchIt("MQTT",incoming_msg);
-        }
-        else if (strcmp(incoming_msg, "info") == 0 ) {
-                sprintf(msg, "info: boot:[%s,  Ver:[%s]", bootTime, ver);
-                pub_msg(msg);
-        }
-        else if (strcmp(incoming_msg,"reset")==0 ) {
-                sendReset();
-        }
-}
-//
-
-// Publish MQTT MSG
-void pub_msg(char *inmsg){
-        char tmpmsg[150];
-
-        get_timeStamp();
-        sprintf(tmpmsg,"[%s] [%s]",timeStamp,deviceTopic );
-        msgSplitter(inmsg, 95, tmpmsg, "split #" );
-}
-void createTopics(const char *devTopic, char *state, char *avail) {
-        sprintf(state,"%s/State",devTopic);
-        sprintf(avail,"%s/Avail",devTopic);
-}
-void msgSplitter( const char* msg_in, int max_msgSize, char *prefix, char *split_msg){
-        char tmp[120];
-
-        if (strlen(prefix) + strlen(msg_in) > max_msgSize) {
-                int max_chunk = max_msgSize - strlen(prefix) - strlen(split_msg);
-                int num=ceil((float)strlen(msg_in)/max_chunk);
-                int pre_len;
-
-                for (int k=0; k<num; k++) {
-                        sprintf(tmp,"%s %s%d: ",prefix,split_msg,k);
-                        pre_len = strlen(tmp);
-                        for (int i=0; i<max_chunk; i++) {
-                                tmp[i+pre_len]=(char)msg_in[i+k*max_chunk];
-                                tmp[i+1+pre_len]='\0';
-                        }
-                        client.publish(msgTopic, tmp);
-
-                }
-        }
-        else {
-                sprintf(tmp,"%s %s",prefix,msg_in);
-                client.publish(msgTopic, tmp);
-        }
-}
-void get_timeStamp(){
-        time_t t=now();
-        sprintf(timeStamp,"%02d-%02d-%02d %02d:%02d:%02d",year(t),month(t), day(t), hour(t), minute(t), second(t));
-}
-
-
-// WatchDog
-void takeTheDog(){
+void feedTheDog(){
         wdtResetCounter++;
         if (wdtResetCounter >= wdtMaxRetries) {
-                sendReset();
+                sendReset("[WatchDog]");
         }
 }
-void detectResetPresses(){
-        if (millis()-lastResetPress < timeInt2Reset) {
-                Serial.println(millis()-lastResetPress);
-                if (manResetCounter >=pressAmount2Reset) {
-                        sendReset();
-                        manResetCounter=0;
-                }
-                else {
-                        manResetCounter++;
-                }
-        }
-        else {
-                manResetCounter = 0;
-        }
+void readGpioStates(){
+        outputUp_currentState = digitalRead(outputUpPin);
+        outputDown_currentState = digitalRead(outputDownPin);
+        inputDown_currentState = digitalRead(inputDownPin);
+        inputUp_currentState = digitalRead(inputUpPin);
 }
-void sendReset() {
-        Serial.println("Sending Reset command");
-        ESP.restart();
-}
+// void getName(){
+//   int length=strlen(deviceTopic);
 //
+//   for (int i=length; i>0; i--) {
+//     Serial.print(deviceT)
+//
+//
+//   }
+//
+//
+// }
+void loop() {
+        readGpioStates();
+
+        if (useNetwork) {
+                if (useWDT) {
+                  wdtResetCounter = 0; // reset WDT
+                }
+                verifyMQTTConnection();
+                verifyNotHazardState(); // both up and down are ---> OFF
+        }
+
+        checkSwitch_PressedUp();
+        checkSwitch_PressedDown();
+
+        delay(50);
+}
