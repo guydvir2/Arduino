@@ -288,7 +288,7 @@ void callback(char* topic, byte* payload, unsigned int length) {
 
         }
         else if (strcmp(incoming_msg, "info") == 0 ) {
-                sprintf(msg, "info: boot:[%s,  Ver:[%s]", bootTime, ver);
+                sprintf(msg, "info: boot:[%s],  Ver:[%s]", bootTime, ver);
                 pub_msg(msg);
         }
         else if (strcmp(incoming_msg, "reset") == 0 ) {

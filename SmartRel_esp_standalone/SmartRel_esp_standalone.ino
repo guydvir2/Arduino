@@ -1,7 +1,17 @@
 //change deviceTopic !
 //###################################################
-#define deviceTopic "HomePi/Dvir/Windows/ESP_6"
+
+#define deviceTopic "HomePi/Dvir/Windows/ESP_3"
+
+// Service flags
+bool useNetwork = true;
+bool useWDT = false;
+bool useSerial = false;
+
+const char *ver = "ESP_woWDT_1.92";
+
 //###################################################
+
 #define RelayOn LOW
 #define SwitchOn LOW
 
@@ -73,7 +83,7 @@ int wdtMaxRetries = 3;
 
 // RESET parameters
 int manResetCounter = 0;  // reset press counter
-int pressAmount2Reset = 5; // time to press button to init Reset
+int pressAmount2Reset = 3; // time to press button to init Reset
 long lastResetPress = 0; // time stamp of last press
 long resetTimer = 0;
 // ####################
@@ -84,13 +94,9 @@ char msg[150];
 char timeStamp[50];
 char bootTime[50];
 bool firstRun = true;
-const char *ver = "ESP_WDT_1.92";
 // ###################
 
-// Service flags
-bool useNetwork = true;
-bool useWDT = false;
-bool useSerial = true;
+
 // ###################
 
 WiFiClient espClient;
@@ -134,7 +140,8 @@ void startNetwork() {
   // in case of reboot - timeOUT to wifi
   while (WiFi.status() != WL_CONNECTED && millis() - startWifiConnection < WIFItimeOut) {
     delay(500);
-    if (useSerial) {Serial.print(".");
+    if (useSerial) {
+      Serial.print(".");
     }
   }
 
@@ -167,12 +174,18 @@ void startNTP() {
 int connectMQTT() {
   // verify wifi connected
   if (WiFi.status() == WL_CONNECTED) {
-    if (useSerial) {Serial.println("have wifi, entering MQTT connection");}
+    if (useSerial) {
+      Serial.println("have wifi, entering MQTT connection");
+    }
     while (!mqttClient.connected() && mqttFailCounter <= MQTTretries) {
-      if (useSerial) {Serial.print("Attempting MQTT connection...");}
+      if (useSerial) {
+        Serial.print("Attempting MQTT connection...");
+      }
       // Attempt to connect
       if (mqttClient.connect(deviceName, user, passw, availTopic, 0, true, "offline")) {
-        if (useSerial) {Serial.println("connected");}
+        if (useSerial) {
+          Serial.println("connected");
+        }
         mqttClient.publish(availTopic, "online", true);
         if (firstRun == true) {
           mqttClient.publish(stateTopic, "off", true);
@@ -200,12 +213,16 @@ int connectMQTT() {
         mqttFailCounter++;
       }
     }
-    if (useSerial) {Serial.println("Exit without connecting MQTT");}
+    if (useSerial) {
+      Serial.println("Exit without connecting MQTT");
+    }
     mqttFailCounter = 0;
     return 0;
   }
   else {
-    if (useSerial) {Serial.println("Not connected to Wifi, abort try to connect MQTT broker");}
+    if (useSerial) {
+      Serial.println("Not connected to Wifi, abort try to connect MQTT broker");
+    }
     return 0;
   }
 }
@@ -228,11 +245,15 @@ void callback(char* topic, byte* payload, unsigned int length) {
     Serial.print("] ");
   }
   for (int i = 0; i < length; i++) {
-    if (useSerial) {Serial.print((char)payload[i]);}
+    if (useSerial) {
+      Serial.print((char)payload[i]);
+    }
     incoming_msg[i] = (char)payload[i];
   }
   incoming_msg[length] = 0;
-  if (useSerial) {Serial.println("");}
+  if (useSerial) {
+    Serial.println("");
+  }
   //      ##############################
 
   if (strcmp(incoming_msg, "status") == 0) {
@@ -267,7 +288,7 @@ void callback(char* topic, byte* payload, unsigned int length) {
     switchIt("MQTT", incoming_msg);
   }
   else if (strcmp(incoming_msg, "info") == 0 ) {
-    sprintf(msg, "info: boot:[%s,  Ver:[%s]", bootTime, ver);
+    sprintf(msg, "info: Boot:[%s],  ver:[%s]", bootTime, ver);
     pub_msg(msg);
   }
   else if (strcmp(incoming_msg, "reset") == 0 ) {
@@ -353,20 +374,28 @@ void switchIt(char *type, char *dir) {
 
 void detectResetPresses() {
   if (millis() - lastResetPress < timeInt2Reset) {
-      if (useSerial) {Serial.println(millis() - lastResetPress);}
+    if (useSerial) {
+      Serial.println(millis() - lastResetPress);
+    }
     if (manResetCounter >= pressAmount2Reset) {
       sendReset("Manual operation");
       manResetCounter = 0;
     }
-    else {manResetCounter++;}
+    else {
+      manResetCounter++;
+    }
   }
-  else {manResetCounter = 0;}
+  else {
+    manResetCounter = 0;
+  }
 }
 
 void sendReset(char *header) {
   char temp[150];
-  
-  if (useSerial) {Serial.println("Sending Reset command");}
+
+  if (useSerial) {
+    Serial.println("Sending Reset command");
+  }
   sprintf(temp, "[%s] - Reset sent", header);
   pub_msg(temp);
   delay(100);
@@ -374,7 +403,7 @@ void sendReset(char *header) {
 }
 
 void PBit() {
-  int pause = 5 * deBounceInt;
+  int pause = 2 * 5 * deBounceInt;
   allOff();
   delay(pause);
   digitalWrite(outputUpPin, RelayOn);
@@ -404,9 +433,13 @@ void verifyMQTTConnection() {
     //    after cooling out period - try again
     connectionFlag = connectMQTT();
     firstNotConnected = 0;
-    if (useSerial) {Serial.println("trying again to reconnect");}
+    if (useSerial) {
+      Serial.println("trying again to reconnect");
+    }
   }
-  else {mqttClient.loop();}
+  else {
+    mqttClient.loop();
+  }
 }
 
 void allOff() {
@@ -422,26 +455,22 @@ void checkSwitch_PressedUp() {
   if (temp_inputUpPin != inputUp_lastState) {
     delay(deBounceInt);
     if (digitalRead(inputUpPin) != inputUp_lastState) {
-      if (digitalRead(inputUpPin) == SwitchOn && outputUp_currentState == !RelayOn) {
+      if (digitalRead(inputUpPin) == SwitchOn) {
         switchIt("Button", "up");
+        inputUp_lastState = digitalRead(inputUpPin);
+
         detectResetPresses();
         lastResetPress = millis();
-        inputUp_lastState = digitalRead(inputUpPin);
       }
-      else if (digitalRead(inputUpPin) == !SwitchOn && outputUp_currentState == RelayOn) {
+      else if (digitalRead(inputUpPin) == !SwitchOn) {
         switchIt("Button", "off");
         inputUp_lastState = digitalRead(inputUpPin);
-      }
-      else { // for debug only
-        char err[100];
-        sprintf(err, "UpPress_err: cur_switch [%s], last_switch[%s] rel[%s]", temp_inputUpPin, inputUp_lastState, outputUp_currentState);
-        pub_msg("err");
       }
     }
 
     else { // for debug only
       char tMsg [100];
-      sprintf(tMsg, "UP Bounce detected: cRead[%s] lRead[%s]", temp_inputUpPin, inputUp_lastState);
+      sprintf(tMsg, "UP Bounce: cRead [%d] lRead[%d]", temp_inputUpPin, inputUp_lastState);
       pub_msg(tMsg);
     }
   }
@@ -455,24 +484,19 @@ void checkSwitch_PressedDown() {
     delay(deBounceInt);
     if (digitalRead(inputDownPin) != inputDown_lastState) {
 
-      if (digitalRead(inputDownPin) == SwitchOn && outputDown_currentState == !RelayOn) {
+      if (digitalRead(inputDownPin) == SwitchOn) {
         switchIt("Button", "down");
         inputDown_lastState = digitalRead(inputDownPin);
       }
-      else if (digitalRead(inputDownPin) == !SwitchOn && outputDown_currentState == RelayOn) {
+      else if (digitalRead(inputDownPin) == !SwitchOn) {
         switchIt("Button", "off");
         inputDown_lastState = digitalRead(inputDownPin);
-      }
-      else { // for debug only
-        char err[100];
-        sprintf(err, "DownPress_err: cur_switch [%s], last_switch[%s] rel[%s]", temp_inputDownPin, inputDown_lastState, outputDown_currentState);
-        pub_msg("err");
       }
     }
 
     else { // for debug only
       char tMsg [100];
-      sprintf(tMsg, "Down Bounce detected: cRead[%s] lRead[%s]", temp_inputDownPin, inputDown_lastState);
+      sprintf(tMsg, "Down Bounce: cRead[%d] lRead[%d]", temp_inputDownPin, inputDown_lastState);
       pub_msg(tMsg);
     }
   }
@@ -481,7 +505,9 @@ void checkSwitch_PressedDown() {
 void verifyNotHazardState() {
   if (outputUp_currentState == RelayOn && outputDown_currentState == RelayOn ) {
     switchIt("Button", "off");
-    if (useSerial) {Serial.println("Hazard state - both switches were ON");}
+    if (useSerial) {
+      Serial.println("Hazard state - both switches were ON");
+    }
     sendReset("HazradState");
   }
 
@@ -505,10 +531,12 @@ void loop() {
   readGpioStates();
 
   if (useNetwork) {
-    if (useWDT) {wdtResetCounter = 0;} // reset WDT}
+    if (useWDT) {
+      wdtResetCounter = 0;
+    } // reset WDT}
     verifyMQTTConnection();
-    verifyNotHazardState(); // both up and down are ---> OFF
   }
+  verifyNotHazardState(); // both up and down are ---> OFF
 
   checkSwitch_PressedUp();
   checkSwitch_PressedDown();
