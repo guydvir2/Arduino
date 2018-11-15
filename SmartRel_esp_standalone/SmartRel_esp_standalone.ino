@@ -1,13 +1,15 @@
 //change deviceTopic !
 //###################################################
 
-#define deviceTopic "HomePi/Dvir/Windows/ESP_7"
+#define deviceTopic "HomePi/Dvir/Windows/FamilyRoom"
+#define OTAnick "FamilyRoom"
 
 // Service flags
 bool useNetwork = true;
 bool useWDT = true;
 bool useSerial = false;
 bool useOTA = true;
+bool runPbit = false;
 
 const char *ver = "ESP_WDT_OTA_2.1";
 
@@ -124,7 +126,9 @@ void setup() {
         if (useWDT) {
                 wdt.attach(1, feedTheDog); // Start WatchDog
         }
-        PBit(); // PowerOn Bit
+        if (runPbit) {
+                PBit(); // PowerOn Bit
+        }
 }
 
 void startGPIOs() {
@@ -174,7 +178,7 @@ void startOTA() {
         ArduinoOTA.setPort(8266);
 
         // Hostname defaults to esp8266-[ChipID]
-        ArduinoOTA.setHostname("Room1");
+        ArduinoOTA.setHostname(OTAnick);
 
         // No authentication by default
         // ArduinoOTA.setPassword("admin");
