@@ -6,11 +6,10 @@
 // Service flags
 bool useNetwork = true;
 bool useWDT = true;
-bool useSerial = true;
+bool useSerial = false;
 bool useOTA = true;
-bool useMQTT = true;
 
-const char *ver = "ESP_WDT_OTA_2.01";
+const char *ver = "ESP_WDT_OTA_2.1";
 
 //###################################################
 
@@ -84,7 +83,6 @@ int timeInt2Reset = 1500; // time between consq presses to init RESET cmd
 long MQTTtimeOut = (1000 * 60) * 5; //5 mins stop try to MQTT
 long WIFItimeOut = (1000 * 60) * 2; //2 mins try to connect WiFi
 int deBounceInt = 50; //
-
 volatile int wdtResetCounter = 0;
 int wdtMaxRetries = 10; //seconds to bITE
 // ############################
@@ -194,33 +192,39 @@ void startOTA() {
                 }
 
                 // NOTE: if updating SPIFFS this would be the place to unmount SPIFFS using SPIFFS.end()
-                Serial.println("Start updating " + type);
+                if (useSerial) {
+                        Serial.println("Start updating " + type);
+                }
                 // Serial.end();
         });
-        ArduinoOTA.onEnd([]() {
-                Serial.println("\nEnd");
-        });
-        ArduinoOTA.onProgress([](unsigned int progress, unsigned int total) {
-                Serial.printf("Progress: %u%%\r", (progress / (total / 100)));
-        });
-        ArduinoOTA.onError([](ota_error_t error) {
-                Serial.printf("Error[%u]: ", error);
-                if (error == OTA_AUTH_ERROR) {
-                        Serial.println("Auth Failed");
-                } else if (error == OTA_BEGIN_ERROR) {
-                        Serial.println("Begin Failed");
-                } else if (error == OTA_CONNECT_ERROR) {
-                        Serial.println("Connect Failed");
-                } else if (error == OTA_RECEIVE_ERROR) {
-                        Serial.println("Receive Failed");
-                } else if (error == OTA_END_ERROR) {
-                        Serial.println("End Failed");
-                }
-        });
+        if (useSerial) { // for debug
+                ArduinoOTA.onEnd([]() {
+                        Serial.println("\nEnd");
+                });
+                ArduinoOTA.onProgress([](unsigned int progress, unsigned int total) {
+                        Serial.printf("Progress: %u%%\r", (progress / (total / 100)));
+                });
+                ArduinoOTA.onError([](ota_error_t error) {
+                        Serial.printf("Error[%u]: ", error);
+                        if (error == OTA_AUTH_ERROR) {
+                                Serial.println("Auth Failed");
+                        } else if (error == OTA_BEGIN_ERROR) {
+                                Serial.println("Begin Failed");
+                        } else if (error == OTA_CONNECT_ERROR) {
+                                Serial.println("Connect Failed");
+                        } else if (error == OTA_RECEIVE_ERROR) {
+                                Serial.println("Receive Failed");
+                        } else if (error == OTA_END_ERROR) {
+                                Serial.println("End Failed");
+                        }
+                });
+                // ArduinoOTA.begin();
+                Serial.println("Ready");
+                Serial.print("IP address: ");
+                Serial.println(WiFi.localIP());
+        }
+
         ArduinoOTA.begin();
-        Serial.println("Ready");
-        Serial.print("IP address: ");
-        Serial.println(WiFi.localIP());
 }
 
 void startMQTT() {
@@ -351,18 +355,26 @@ void callback(char* topic, byte* payload, unsigned int length) {
                 switchIt("MQTT", incoming_msg);
         }
         else if (strcmp(incoming_msg, "boot") == 0 ) {
-                sprintf(msg, "Boot:[%s],", bootTime);
+                sprintf(msg, "Boot:[%s]", bootTime);
                 pub_msg(msg);
         }
         else if (strcmp(incoming_msg, "ver") == 0 ) {
                 sprintf(msg, "ver:[%s]", ver);
                 pub_msg(msg);
         }
+        else if (strcmp(incoming_msg, "pins") == 0 ) {
+                sprintf(msg, "Switch: Up[%d] Down[%d], Relay: Up[%d] Down[%d]", inputUpPin, inputDownPin, outputUpPin, outputDownPin);
+                pub_msg(msg);
+        }
         else if (strcmp(incoming_msg, "ip") == 0 ) {
                 char buf[16];
-                sprintf(buf, "IP:%d.%d.%d.%d", WiFi.localIP()[0], WiFi.localIP()[1], WiFi.localIP()[2], WiFi.localIP()[3] );
+                sprintf(buf, "%d.%d.%d.%d", WiFi.localIP()[0], WiFi.localIP()[1], WiFi.localIP()[2], WiFi.localIP()[3] );
                 sprintf(msg, "IP address:[%s]", buf);
                 pub_msg(msg);
+        }
+        else if (strcmp(incoming_msg, "pbit") == 0 ) {
+                pub_msg("PowerOnBit");
+                PBit();
         }
         else if (strcmp(incoming_msg, "reset") == 0 ) {
                 sendReset("MQTT");
@@ -607,19 +619,22 @@ void readGpioStates() {
 }
 
 void loop() {
+        // read GPIOs
         readGpioStates();
+        verifyNotHazardState(); // both up and down are ---> OFF
 
+        // Service updates
         if (useNetwork) {
                 verifyMQTTConnection();
         }
         if (useWDT) {
                 wdtResetCounter = 0;
-        } // reset WDT}
-        verifyNotHazardState(); // both up and down are ---> OFF
-
+        }
         if (useOTA) {
                 ArduinoOTA.handle();
         }
+
+        // react to commands (MQTT or local switch)
         checkSwitch_PressedUp();
         checkSwitch_PressedDown();
 
