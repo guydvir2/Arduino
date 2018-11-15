@@ -17,6 +17,13 @@
 //change deviceTopic !
 //###################################################
 #define deviceTopic "Dvir/Windows/GardenExit"
+
+// Service flags
+bool useNetwork = true;
+bool useWDT = true;
+bool useSerial = false;
+
+const char *ver = "ESP_AdruinoMaster_1.1";
 //###################################################
 
 // GPIO Pins for ESP8266
@@ -102,7 +109,7 @@ char msg[150];
 char timeStamp[50];
 char bootTime[50];
 bool firstRun = true;
-const char *ver = "Ard+slaveESP_1.1";
+// const char *ver = "Ard+laveESP_1.1";
 // ###################
 
 
@@ -285,14 +292,23 @@ void callback(char* topic, byte* payload, unsigned int length) {
                         lastResetPress = millis();
                         detectResetPresses();
                 }
-
         }
-        else if (strcmp(incoming_msg, "info") == 0 ) {
-                sprintf(msg, "info: boot:[%s],  Ver:[%s]", bootTime, ver);
+        else if (strcmp(incoming_msg, "boot") == 0 ) {
+                sprintf(msg, "Boot:[%s],", bootTime);
+                pub_msg(msg);
+        }
+        else if (strcmp(incoming_msg, "ver") == 0 ) {
+                sprintf(msg, "ver:[%s]", ver);
+                pub_msg(msg);
+        }
+        else if (strcmp(incoming_msg, "ip") == 0 ) {
+                char buf[16];
+                sprintf(buf, "IP:%d.%d.%d.%d", WiFi.localIP()[0], WiFi.localIP()[1], WiFi.localIP()[2], WiFi.localIP()[3] );
+                sprintf(msg, "IP address:[%s]", buf);
                 pub_msg(msg);
         }
         else if (strcmp(incoming_msg, "reset") == 0 ) {
-                sendReset();
+                sendReset("MQTT");
         }
 }
 
@@ -367,8 +383,8 @@ void detectResetPresses() {
         if (millis() - lastResetPress < timeInt2Reset) {
                 Serial.println(millis() - lastResetPress);
                 if (manResetCounter >= pressAmount2Reset) {
-                        sendReset();
-                        }
+                        sendReset("Manual operation");
+                }
                 else {
                         manResetCounter++;
                 }
@@ -378,8 +394,13 @@ void detectResetPresses() {
         }
 }
 
-void sendReset() {
+void sendReset(char *header) {
+        char temp[150];
+
         Serial.println("Sending Reset command");
+        sprintf(temp, "[%s] - Reset sent", header);
+        pub_msg(temp);
+        delay(100);
         ESP.restart();
 }
 
@@ -442,6 +463,7 @@ void checkSwitch_PressedUp() {
 
                         inputUp_lastState = digitalRead(inputUpPin);
                 }
+                
         }
 }
 
