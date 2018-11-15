@@ -1,14 +1,16 @@
 //change deviceTopic !
 //###################################################
 
-#define deviceTopic "HomePi/Dvir/Windows/FamilyRoom"
+#define deviceTopic "HomePi/Dvir/Windows/ESP_7"
 
 // Service flags
 bool useNetwork = true;
 bool useWDT = true;
-bool useSerial = false;
+bool useSerial = true;
+bool useOTA = true;
+bool useMQTT = true;
 
-const char *ver = "ESP_WDT_1.93";
+const char *ver = "ESP_WDT_OTA_2.01";
 
 //###################################################
 
@@ -17,11 +19,16 @@ const char *ver = "ESP_WDT_1.93";
 
 #include <Arduino.h>
 #include <ESP8266WiFi.h>
-#include <PubSubClient.h>
 #include <TimeLib.h>
 #include <NtpClientLib.h>
-#include <Ticker.h>
+#include <PubSubClient.h> //MQTT
+#include <Ticker.h> //WDT
 
+// OTA libraries
+#include <ESP8266mDNS.h>
+#include <WiFiUdp.h>
+#include <ArduinoOTA.h>
+// #######################
 
 // GPIO Pins for ESP8266
 const int inputUpPin = 4;
@@ -77,8 +84,9 @@ int timeInt2Reset = 1500; // time between consq presses to init RESET cmd
 long MQTTtimeOut = (1000 * 60) * 5; //5 mins stop try to MQTT
 long WIFItimeOut = (1000 * 60) * 2; //2 mins try to connect WiFi
 int deBounceInt = 50; //
+
 volatile int wdtResetCounter = 0;
-int wdtMaxRetries = 3;
+int wdtMaxRetries = 10; //seconds to bITE
 // ############################
 
 
@@ -98,21 +106,22 @@ bool firstRun = true;
 // ###################
 
 
-// ###################
-
 WiFiClient espClient;
 PubSubClient mqttClient(espClient);
 Ticker wdt;
 
 void setup() {
+        startGPIOs();
         if (useSerial) {
                 Serial.begin(9600);
                 Serial.println("SystemBoot");
                 delay(10);
         }
-        startGPIOs();
         if (useNetwork) {
                 startNetwork();
+        }
+        if(useOTA) {
+                startOTA();
         }
         if (useWDT) {
                 wdt.attach(1, feedTheDog); // Start WatchDog
@@ -138,6 +147,7 @@ void startNetwork() {
         }
 
         startWifiConnection = millis();
+        WiFi.mode(WIFI_STA); //OTA Added
         WiFi.begin(ssid, password);
         // in case of reboot - timeOUT to wifi
         while (WiFi.status() != WL_CONNECTED && millis() - startWifiConnection < WIFItimeOut) {
@@ -157,9 +167,60 @@ void startNetwork() {
 
         startMQTT();
         startNTP();
-
         get_timeStamp();
         strcpy(bootTime, timeStamp);
+}
+
+void startOTA() {
+        // Port defaults to 8266
+        ArduinoOTA.setPort(8266);
+
+        // Hostname defaults to esp8266-[ChipID]
+        ArduinoOTA.setHostname("Room1");
+
+        // No authentication by default
+        // ArduinoOTA.setPassword("admin");
+
+        // Password can be set with it's md5 value as well
+        // MD5(admin) = 21232f297a57a5a743894a0e4a801fc3
+        // ArduinoOTA.setPasswordHash("21232f297a57a5a743894a0e4a801fc3");
+
+        ArduinoOTA.onStart([]() {
+                String type;
+                if (ArduinoOTA.getCommand() == U_FLASH) {
+                        type = "sketch";
+                } else { // U_SPIFFS
+                        type = "filesystem";
+                }
+
+                // NOTE: if updating SPIFFS this would be the place to unmount SPIFFS using SPIFFS.end()
+                Serial.println("Start updating " + type);
+                // Serial.end();
+        });
+        ArduinoOTA.onEnd([]() {
+                Serial.println("\nEnd");
+        });
+        ArduinoOTA.onProgress([](unsigned int progress, unsigned int total) {
+                Serial.printf("Progress: %u%%\r", (progress / (total / 100)));
+        });
+        ArduinoOTA.onError([](ota_error_t error) {
+                Serial.printf("Error[%u]: ", error);
+                if (error == OTA_AUTH_ERROR) {
+                        Serial.println("Auth Failed");
+                } else if (error == OTA_BEGIN_ERROR) {
+                        Serial.println("Begin Failed");
+                } else if (error == OTA_CONNECT_ERROR) {
+                        Serial.println("Connect Failed");
+                } else if (error == OTA_RECEIVE_ERROR) {
+                        Serial.println("Receive Failed");
+                } else if (error == OTA_END_ERROR) {
+                        Serial.println("End Failed");
+                }
+        });
+        ArduinoOTA.begin();
+        Serial.println("Ready");
+        Serial.print("IP address: ");
+        Serial.println(WiFi.localIP());
 }
 
 void startMQTT() {
@@ -556,6 +617,9 @@ void loop() {
         } // reset WDT}
         verifyNotHazardState(); // both up and down are ---> OFF
 
+        if (useOTA) {
+                ArduinoOTA.handle();
+        }
         checkSwitch_PressedUp();
         checkSwitch_PressedDown();
 
