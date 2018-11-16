@@ -1,7 +1,7 @@
 //change deviceTopic !
 //###################################################
 
-#define deviceTopic "HomePi/Dvir/Windows/FamilyRoom"
+#define deviceTopic "HomePi/Dvir/Windows/Box_7"
 
 // Service flags
 bool useNetwork = true;
@@ -10,7 +10,7 @@ bool useSerial = false;
 bool useOTA = true;
 bool runPbit = true;
 
-const char *ver = "ESP_WDT_OTA_2.11";
+const char *ver = "ESP_WDT_OTA_2.2";
 
 //###################################################
 
@@ -80,12 +80,14 @@ bool inputDown_currentState;
 
 // time interval parameters
 const int clockUpdateInt = 1; // hrs to update clock
-int timeInt2Reset = 1500; // time between consq presses to init RESET cmd
-long MQTTtimeOut = (1000 * 60) * 5; //5 mins stop try to MQTT
-long WIFItimeOut = (1000 * 60) * 2; //2 mins try to connect WiFi
-int deBounceInt = 50; //
+const int timeInt2Reset = 1500; // time between consq presses to init RESET cmd
+const long MQTTtimeOut = (1000 * 60) * 5; //5 mins stop try to MQTT
+const long WIFItimeOut = (1000 * 60) * 2; //2 mins try to connect WiFi
+const long OTAtimeOut = (1000*60) * 1; // 1 minute to try OTA
+long OTAcounter =0;
+const int deBounceInt = 50; //
 volatile int wdtResetCounter = 0;
-int wdtMaxRetries = 10; //seconds to bITE
+const int wdtMaxRetries = 10; //seconds to bITE
 // ############################
 
 
@@ -181,6 +183,8 @@ void startOTA() {
                 OTAname[m + 1] = '\0';
                 m++;
         }
+
+        OTAcounter = millis();
 
         // Port defaults to 8266
         ArduinoOTA.setPort(8266);
@@ -387,6 +391,10 @@ void callback(char* topic, byte* payload, unsigned int length) {
         else if (strcmp(incoming_msg, "pbit") == 0 ) {
                 pub_msg("PowerOnBit");
                 PBit();
+        }
+        else if (strcmp(incoming_msg, "ota") == 0 ) {
+                pub_msg("OTA allowed for 60 seconds");
+                OTAcounter = millis();
         }
         else if (strcmp(incoming_msg, "reset") == 0 ) {
                 sendReset("MQTT");
@@ -623,6 +631,12 @@ void feedTheDog() {
         }
 }
 
+void acceptOTA() {
+  if (millis() - OTAcounter <= OTAtimeOut) {
+    ArduinoOTA.handle();
+  }
+}
+
 void readGpioStates() {
         outputUp_currentState = digitalRead(outputUpPin);
         outputDown_currentState = digitalRead(outputDownPin);
@@ -643,7 +657,7 @@ void loop() {
                 wdtResetCounter = 0;
         }
         if (useOTA) {
-                ArduinoOTA.handle();
+                acceptOTA();
         }
 
         // react to commands (MQTT or local switch)
