@@ -22,6 +22,8 @@
 bool useNetwork = true;
 bool useWDT = true;
 bool useSerial = false;
+bool runPbit = true;
+
 
 const char *ver = "ESP_AdruinoMaster_1.1";
 //###################################################
@@ -44,6 +46,12 @@ const char *ver = "ESP_AdruinoMaster_1.1";
 #include <TimeLib.h>
 #include <NtpClientLib.h>
 #include <Ticker.h>
+
+// OTA libraries
+#include <ESP8266mDNS.h>
+#include <WiFiUdp.h>
+#include <ArduinoOTA.h>
+// #######################
 
 
 //wifi creadentials
@@ -86,8 +94,9 @@ int WIFItimeOut = (1000 * 60) * 2; //2 mins try to connect WiFi
 int MQTTtimeOut_repost = 500; // 500 mil.seconds delay between switch post and MQTT command
 unsigned long repostCounter = 0;
 int deBounceInt = 100;
+
 volatile int wdtResetCounter = 0;
-int wdtMaxRetries = 3;
+int wdtMaxRetries = 5; // seconds before bITE
 // ############################
 
 // RESET parameters
@@ -119,13 +128,19 @@ Ticker wdt;
 
 
 void setup() {
-        Serial.begin(9600);
-
         startGPIOs();
-        startNetwork();
-        PBit(); // PowerOn Bit
-        wdt.attach(1, takeTheDog); // Start WatchDog
-
+        if (useSerial) {
+                Serial.begin(9600);
+        }
+        if (useNetwork) {
+                startNetwork();
+        }
+        if (runPbit) {
+                PBit(); // PowerOn Bit
+        }
+        if (useWDT) {
+                wdt.attach(1, takeTheDog);
+        }
 }
 
 void startGPIOs() {
@@ -139,24 +154,29 @@ void startGPIOs() {
 
 void startNetwork() {
         long startWifiConnection = 0;
-
-        Serial.println();
-        Serial.print("Connecting to ");
-        Serial.println(ssid);
+        if (useSerial) {
+                Serial.println();
+                Serial.print("Connecting to ");
+                Serial.println(ssid);
+        }
 
         startWifiConnection = millis();
         WiFi.begin(ssid, password);
         // in case of reboot - timeOUT to wifi
         while (WiFi.status() != WL_CONNECTED && millis() - startWifiConnection < WIFItimeOut) {
                 delay(500);
-                Serial.print(".");
+                if (useSerial) {
+                        Serial.print(".");
+                }
         }
 
         WiFi.setAutoReconnect(true);
-        Serial.println("");
-        Serial.println("WiFi connected");
-        Serial.print("IP address: ");
-        Serial.println(WiFi.localIP());
+        if (useSerial) {
+                Serial.println("");
+                Serial.println("WiFi connected");
+                Serial.print("IP address: ");
+                Serial.println(WiFi.localIP());
+        }
 
         startMQTT();
         startNTP();
@@ -179,12 +199,18 @@ void startNTP() {
 int connectMQTT() {
         // verify wifi connected
         if (WiFi.status() == WL_CONNECTED) {
-                Serial.println("have wifi, entering MQTT connection");
+                if (useSerial) {
+                        Serial.println("have wifi, entering MQTT connection");
+                }
                 while (!client.connected() && mqttFailCounter <= MQTTretries) {
-                        Serial.print("Attempting MQTT connection...");
+                        if (useSerial) {
+                                Serial.print("Attempting MQTT connection...");
+                        }
                         // Attempt to connect
                         if (client.connect(deviceName, user, passw, availTopic, 0, true, "offline")) {
-                                Serial.println("connected");
+                                if (useSerial) {
+                                        Serial.println("connected");
+                                }
                                 client.publish(availTopic, "online", true);
                                 if (firstRun == true) {
                                         client.publish(stateTopic, "off", true);
@@ -199,21 +225,29 @@ int connectMQTT() {
                                 return 1;
                         }
                         else {
-                                Serial.print("failed, rc=");
-                                Serial.print(client.state());
-                                Serial.println(" try again in 5 seconds");
+                                if (useSerial) {
+                                        Serial.print("failed, rc=");
+                                        Serial.print(client.state());
+                                        Serial.println(" try again in 5 seconds");
+                                }
                                 delay(5000);
-                                Serial.print("number of fails to reconnect MQTT");
-                                Serial.println(mqttFailCounter);
+                                if (useSerial) {
+                                        Serial.print("number of fails to reconnect MQTT");
+                                        Serial.println(mqttFailCounter);
+                                }
                                 mqttFailCounter++;
                         }
                 }
-                Serial.println("Exit without connecting MQTT");
+                if (useSerial) {
+                        Serial.println("Exit without connecting MQTT");
+                }
                 mqttFailCounter = 0;
                 return 0;
         }
         else {
-                Serial.println("Not connected to Wifi, abort try to connect MQTT broker");
+                if (useSerial) {
+                        Serial.println("Not connected to Wifi, abort try to connect MQTT broker");
+                }
                 return 0;
         }
 }
@@ -463,7 +497,7 @@ void checkSwitch_PressedUp() {
 
                         inputUp_lastState = digitalRead(inputUpPin);
                 }
-                
+
         }
 }
 
@@ -489,7 +523,7 @@ void verifyNotHazardState() {
                 switchIt("Button", "off");
                 Serial.println("Hazard state - both switches were ON");
                 pub_msg("HazradState - Reset");
-                sendReset();
+                sendReset("Hazard");
         }
 
 }
@@ -497,7 +531,7 @@ void verifyNotHazardState() {
 void takeTheDog() {
         wdtResetCounter++;
         if (wdtResetCounter >= wdtMaxRetries) {
-                sendReset();
+                sendReset("WDT");
         }
 }
 

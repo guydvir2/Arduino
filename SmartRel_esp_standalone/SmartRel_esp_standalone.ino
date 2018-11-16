@@ -2,16 +2,15 @@
 //###################################################
 
 #define deviceTopic "HomePi/Dvir/Windows/FamilyRoom"
-#define OTAnick "FamilyRoom"
 
 // Service flags
 bool useNetwork = true;
 bool useWDT = true;
 bool useSerial = false;
 bool useOTA = true;
-bool runPbit = false;
+bool runPbit = true;
 
-const char *ver = "ESP_WDT_OTA_2.1";
+const char *ver = "ESP_WDT_OTA_2.11";
 
 //###################################################
 
@@ -174,11 +173,20 @@ void startNetwork() {
 }
 
 void startOTA() {
+        char OTAname[100];
+        int m = 0;
+        // create OTAname from deviceTopic
+        for (int i = ((String)deviceTopic).lastIndexOf("/") + 1; i < strlen(deviceTopic); i++) {
+                OTAname[m] = deviceTopic[i];
+                OTAname[m + 1] = '\0';
+                m++;
+        }
+
         // Port defaults to 8266
         ArduinoOTA.setPort(8266);
 
         // Hostname defaults to esp8266-[ChipID]
-        ArduinoOTA.setHostname(OTAnick);
+        ArduinoOTA.setHostname(OTAname);
 
         // No authentication by default
         // ArduinoOTA.setPassword("admin");
