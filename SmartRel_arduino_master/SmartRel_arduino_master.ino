@@ -40,7 +40,6 @@ void setup() {
                 Serial.begin(9600);
                 Serial.println("Arduino Master- Begins");
         }
-
         startGPIOs();
 }
 
@@ -58,6 +57,7 @@ void startGPIOs() {
         pinMode(output_2_DownPin, OUTPUT);
 
         allOff();
+        read_inputCurrentState();
 }
 
 void allOff() {
@@ -65,7 +65,6 @@ void allOff() {
         digitalWrite(output_1_DownPin, !RelayOn);
         digitalWrite(output_2_UpPin, !RelayOn);
         digitalWrite(output_2_DownPin, !RelayOn);
-
 }
 
 void sendReset() {

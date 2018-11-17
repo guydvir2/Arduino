@@ -1,16 +1,16 @@
 //change deviceTopic !
 //###################################################
 
-#define deviceTopic "HomePi/Dvir/Windows/Box_7"
+#define deviceTopic "HomePi/Dvir/Windows/Box_5"
 
 // Service flags
 bool useNetwork = true;
 bool useWDT = true;
 bool useSerial = false;
 bool useOTA = true;
-bool runPbit = true;
+bool runPbit = false;
 
-const char *ver = "ESP_WDT_OTA_2.2";
+const char *ver = "ESP_WDT_OTA_2.21";
 
 //###################################################
 
@@ -87,7 +87,7 @@ const long OTAtimeOut = (1000*60) * 1; // 1 minute to try OTA
 long OTAcounter =0;
 const int deBounceInt = 50; //
 volatile int wdtResetCounter = 0;
-const int wdtMaxRetries = 10; //seconds to bITE
+const int wdtMaxRetries = 2; //seconds to bITE
 // ############################
 
 
@@ -115,8 +115,8 @@ void setup() {
         startGPIOs();
         if (useSerial) {
                 Serial.begin(9600);
-                Serial.println("SystemBoot");
                 delay(10);
+                Serial.println("SystemBoot");
         }
         if (useNetwork) {
                 startNetwork();
@@ -426,13 +426,15 @@ void msgSplitter( const char* msg_in, int max_msgSize, char *prefix, char *split
                                 tmp[i + pre_len] = (char)msg_in[i + k * max_chunk];
                                 tmp[i + 1 + pre_len] = '\0';
                         }
-                        mqttClient.publish(msgTopic, tmp);
+                        if (useNetwork) {
+                                mqttClient.publish(msgTopic, tmp);
+                        }
                 }
         }
-        else {
-                sprintf(tmp, "%s %s", prefix, msg_in);
-                mqttClient.publish(msgTopic, tmp);
-        }
+        else {  if (useNetwork) {
+                        sprintf(tmp, "%s %s", prefix, msg_in);
+                        mqttClient.publish(msgTopic, tmp);
+                }}
 }
 
 void get_timeStamp() {
@@ -508,8 +510,10 @@ void sendReset(char *header) {
         if (useSerial) {
                 Serial.println("Sending Reset command");
         }
-        sprintf(temp, "[%s] - Reset sent", header);
-        pub_msg(temp);
+        if (useNetwork) {
+                sprintf(temp, "[%s] - Reset sent", header);
+                pub_msg(temp);
+        }
         delay(100);
         ESP.restart();
 }
@@ -583,7 +587,9 @@ void checkSwitch_PressedUp() {
                 else { // for debug only
                         char tMsg [100];
                         sprintf(tMsg, "UP Bounce: cRead [%d] lRead[%d]", temp_inputUpPin, inputUp_lastState);
-                        pub_msg(tMsg);
+                        if (useNetwork) {
+                                pub_msg(tMsg);
+                        }
                 }
         }
 
@@ -606,9 +612,11 @@ void checkSwitch_PressedDown() {
                         }
                 }
                 else { // for debug only
-                        char tMsg [100];
-                        sprintf(tMsg, "Down Bounce: cRead[%d] lRead[%d]", temp_inputDownPin, inputDown_lastState);
-                        pub_msg(tMsg);
+                        if (useNetwork) {
+                                char tMsg [100];
+                                sprintf(tMsg, "Down Bounce: cRead[%d] lRead[%d]", temp_inputDownPin, inputDown_lastState);
+                                pub_msg(tMsg);
+                        }
                 }
         }
 }
@@ -632,9 +640,9 @@ void feedTheDog() {
 }
 
 void acceptOTA() {
-  if (millis() - OTAcounter <= OTAtimeOut) {
-    ArduinoOTA.handle();
-  }
+        if (millis() - OTAcounter <= OTAtimeOut) {
+                ArduinoOTA.handle();
+        }
 }
 
 void readGpioStates() {
