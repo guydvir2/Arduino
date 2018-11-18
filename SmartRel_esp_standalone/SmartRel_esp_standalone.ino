@@ -1,16 +1,16 @@
 //change deviceTopic !
 //###################################################
 
-#define deviceTopic "HomePi/Dvir/Windows/FamilyRoom"
+#define deviceTopic "HomePi/Dvir/Windows/Box_5"
 
 // Service flags
 bool useNetwork = true;
 bool useWDT = true;
 bool useSerial = false;
 bool useOTA = true;
-bool runPbit = true;
+bool runPbit = false;
 
-const char *ver = "ESP_WDT_OTA_2.11";
+const char *ver = "ESP_WDT_OTA_2.21";
 
 //###################################################
 
@@ -80,12 +80,14 @@ bool inputDown_currentState;
 
 // time interval parameters
 const int clockUpdateInt = 1; // hrs to update clock
-int timeInt2Reset = 1500; // time between consq presses to init RESET cmd
-long MQTTtimeOut = (1000 * 60) * 5; //5 mins stop try to MQTT
-long WIFItimeOut = (1000 * 60) * 2; //2 mins try to connect WiFi
-int deBounceInt = 50; //
+const int timeInt2Reset = 1500; // time between consq presses to init RESET cmd
+const long MQTTtimeOut = (1000 * 60) * 5; //5 mins stop try to MQTT
+const long WIFItimeOut = (1000 * 60) * 2; //2 mins try to connect WiFi
+const long OTAtimeOut = (1000*60) * 1; // 1 minute to try OTA
+long OTAcounter =0;
+const int deBounceInt = 50; //
 volatile int wdtResetCounter = 0;
-int wdtMaxRetries = 10; //seconds to bITE
+const int wdtMaxRetries = 2; //seconds to bITE
 // ############################
 
 
@@ -113,8 +115,8 @@ void setup() {
         startGPIOs();
         if (useSerial) {
                 Serial.begin(9600);
-                Serial.println("SystemBoot");
                 delay(10);
+                Serial.println("SystemBoot");
         }
         if (useNetwork) {
                 startNetwork();
@@ -181,6 +183,8 @@ void startOTA() {
                 OTAname[m + 1] = '\0';
                 m++;
         }
+
+        OTAcounter = millis();
 
         // Port defaults to 8266
         ArduinoOTA.setPort(8266);
@@ -388,6 +392,10 @@ void callback(char* topic, byte* payload, unsigned int length) {
                 pub_msg("PowerOnBit");
                 PBit();
         }
+        else if (strcmp(incoming_msg, "ota") == 0 ) {
+                pub_msg("OTA allowed for 60 seconds");
+                OTAcounter = millis();
+        }
         else if (strcmp(incoming_msg, "reset") == 0 ) {
                 sendReset("MQTT");
         }
@@ -418,13 +426,15 @@ void msgSplitter( const char* msg_in, int max_msgSize, char *prefix, char *split
                                 tmp[i + pre_len] = (char)msg_in[i + k * max_chunk];
                                 tmp[i + 1 + pre_len] = '\0';
                         }
-                        mqttClient.publish(msgTopic, tmp);
+                        if (useNetwork) {
+                                mqttClient.publish(msgTopic, tmp);
+                        }
                 }
         }
-        else {
-                sprintf(tmp, "%s %s", prefix, msg_in);
-                mqttClient.publish(msgTopic, tmp);
-        }
+        else {  if (useNetwork) {
+                        sprintf(tmp, "%s %s", prefix, msg_in);
+                        mqttClient.publish(msgTopic, tmp);
+                }}
 }
 
 void get_timeStamp() {
@@ -500,8 +510,10 @@ void sendReset(char *header) {
         if (useSerial) {
                 Serial.println("Sending Reset command");
         }
-        sprintf(temp, "[%s] - Reset sent", header);
-        pub_msg(temp);
+        if (useNetwork) {
+                sprintf(temp, "[%s] - Reset sent", header);
+                pub_msg(temp);
+        }
         delay(100);
         ESP.restart();
 }
@@ -575,7 +587,9 @@ void checkSwitch_PressedUp() {
                 else { // for debug only
                         char tMsg [100];
                         sprintf(tMsg, "UP Bounce: cRead [%d] lRead[%d]", temp_inputUpPin, inputUp_lastState);
-                        pub_msg(tMsg);
+                        if (useNetwork) {
+                                pub_msg(tMsg);
+                        }
                 }
         }
 
@@ -598,9 +612,11 @@ void checkSwitch_PressedDown() {
                         }
                 }
                 else { // for debug only
-                        char tMsg [100];
-                        sprintf(tMsg, "Down Bounce: cRead[%d] lRead[%d]", temp_inputDownPin, inputDown_lastState);
-                        pub_msg(tMsg);
+                        if (useNetwork) {
+                                char tMsg [100];
+                                sprintf(tMsg, "Down Bounce: cRead[%d] lRead[%d]", temp_inputDownPin, inputDown_lastState);
+                                pub_msg(tMsg);
+                        }
                 }
         }
 }
@@ -620,6 +636,12 @@ void feedTheDog() {
         wdtResetCounter++;
         if (wdtResetCounter >= wdtMaxRetries) {
                 sendReset("WatchDog");
+        }
+}
+
+void acceptOTA() {
+        if (millis() - OTAcounter <= OTAtimeOut) {
+                ArduinoOTA.handle();
         }
 }
 
@@ -643,7 +665,7 @@ void loop() {
                 wdtResetCounter = 0;
         }
         if (useOTA) {
-                ArduinoOTA.handle();
+                acceptOTA();
         }
 
         // react to commands (MQTT or local switch)

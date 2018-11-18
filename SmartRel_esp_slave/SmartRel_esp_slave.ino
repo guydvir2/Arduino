@@ -23,16 +23,16 @@ bool useNetwork = true;
 bool useWDT = true;
 bool useSerial = false;
 bool runPbit = true;
-
+bool useOTA = true;
 
 const char *ver = "ESP_AdruinoMaster_1.1";
 //###################################################
 
 // GPIO Pins for ESP8266
-#define inputUpPin 14
-#define inputDownPin 12
-#define outputUpPin 4
-#define outputDownPin 5
+#define inputUpPin 4
+#define inputDownPin 5
+#define outputUpPin 14
+#define outputDownPin 12
 //######################
 
 // Hw states
@@ -92,11 +92,13 @@ int timeInt2Reset = 1500; // time between consq presses to init RESET cmd
 int MQTTtimeOut = (1000 * 60) * 5; //5 mins stop try to MQTT
 int WIFItimeOut = (1000 * 60) * 2; //2 mins try to connect WiFi
 int MQTTtimeOut_repost = 500; // 500 mil.seconds delay between switch post and MQTT command
+const long OTAtimeOut = (1000*60) * 1; // 1 minute to try OTA
+long OTAcounter =0;
 unsigned long repostCounter = 0;
 int deBounceInt = 100;
 
 volatile int wdtResetCounter = 0;
-int wdtMaxRetries = 5; // seconds before bITE
+int wdtMaxRetries = 10; // seconds before bITE
 // ############################
 
 // RESET parameters
@@ -110,7 +112,7 @@ unsigned long resetTimer = 0;
 int mqttFailCounter = 0; // count tries to reconnect
 unsigned long firstNotConnected = 0; // time stamp of first try
 int connectionFlag = 0;
-int MQTTretries = 3; // retries to reconnect
+int MQTTretries = 5; // retries to reconnect
 // ######################
 
 // assorted
@@ -123,7 +125,7 @@ bool firstRun = true;
 
 
 WiFiClient espClient;
-PubSubClient client(espClient);
+PubSubClient mqttClient(espClient);
 Ticker wdt;
 
 
@@ -131,15 +133,20 @@ void setup() {
         startGPIOs();
         if (useSerial) {
                 Serial.begin(9600);
+                delay(10);
+                Serial.println("ESP8266 Boot_ as slave to Arduino");
         }
         if (useNetwork) {
                 startNetwork();
+        }
+        if(useOTA) {
+                startOTA();
         }
         if (runPbit) {
                 PBit(); // PowerOn Bit
         }
         if (useWDT) {
-                wdt.attach(1, takeTheDog);
+                wdt.attach(1, feedTheDog);
         }
 }
 
@@ -161,6 +168,7 @@ void startNetwork() {
         }
 
         startWifiConnection = millis();
+        WiFi.mode(WIFI_STA); //OTA Added
         WiFi.begin(ssid, password);
         // in case of reboot - timeOUT to wifi
         while (WiFi.status() != WL_CONNECTED && millis() - startWifiConnection < WIFItimeOut) {
@@ -180,15 +188,83 @@ void startNetwork() {
 
         startMQTT();
         startNTP();
-
         get_timeStamp();
         strcpy(bootTime, timeStamp);
 }
 
+void startOTA() {
+        char OTAname[100];
+        int m = 0;
+        // create OTAname from deviceTopic
+        for (int i = ((String)deviceTopic).lastIndexOf("/") + 1; i < strlen(deviceTopic); i++) {
+                OTAname[m] = deviceTopic[i];
+                OTAname[m + 1] = '\0';
+                m++;
+        }
+
+        OTAcounter = millis();
+
+        // Port defaults to 8266
+        ArduinoOTA.setPort(8266);
+
+        // Hostname defaults to esp8266-[ChipID]
+        ArduinoOTA.setHostname(OTAname);
+
+        // No authentication by default
+        // ArduinoOTA.setPassword("admin");
+
+        // Password can be set with it's md5 value as well
+        // MD5(admin) = 21232f297a57a5a743894a0e4a801fc3
+        // ArduinoOTA.setPasswordHash("21232f297a57a5a743894a0e4a801fc3");
+
+        ArduinoOTA.onStart([]() {
+                String type;
+                if (ArduinoOTA.getCommand() == U_FLASH) {
+                        type = "sketch";
+                } else { // U_SPIFFS
+                        type = "filesystem";
+                }
+
+                // NOTE: if updating SPIFFS this would be the place to unmount SPIFFS using SPIFFS.end()
+                if (useSerial) {
+                        Serial.println("Start updating " + type);
+                }
+                // Serial.end();
+        });
+        if (useSerial) { // for debug
+                ArduinoOTA.onEnd([]() {
+                        Serial.println("\nEnd");
+                });
+                ArduinoOTA.onProgress([](unsigned int progress, unsigned int total) {
+                        Serial.printf("Progress: %u%%\r", (progress / (total / 100)));
+                });
+                ArduinoOTA.onError([](ota_error_t error) {
+                        Serial.printf("Error[%u]: ", error);
+                        if (error == OTA_AUTH_ERROR) {
+                                Serial.println("Auth Failed");
+                        } else if (error == OTA_BEGIN_ERROR) {
+                                Serial.println("Begin Failed");
+                        } else if (error == OTA_CONNECT_ERROR) {
+                                Serial.println("Connect Failed");
+                        } else if (error == OTA_RECEIVE_ERROR) {
+                                Serial.println("Receive Failed");
+                        } else if (error == OTA_END_ERROR) {
+                                Serial.println("End Failed");
+                        }
+                });
+                // ArduinoOTA.begin();
+                Serial.println("Ready");
+                Serial.print("IP address: ");
+                Serial.println(WiFi.localIP());
+        }
+
+        ArduinoOTA.begin();
+}
+
 void startMQTT() {
         createTopics(deviceTopic, stateTopic, availTopic);
-        client.setServer(mqtt_server, 1883);
-        client.setCallback(callback);
+        mqttClient.setServer(mqtt_server, 1883);
+        mqttClient.setCallback(callback);
 }
 
 void startNTP() {
@@ -202,23 +278,23 @@ int connectMQTT() {
                 if (useSerial) {
                         Serial.println("have wifi, entering MQTT connection");
                 }
-                while (!client.connected() && mqttFailCounter <= MQTTretries) {
+                while (!mqttClient.connected() && mqttFailCounter <= MQTTretries) {
                         if (useSerial) {
                                 Serial.print("Attempting MQTT connection...");
                         }
                         // Attempt to connect
-                        if (client.connect(deviceName, user, passw, availTopic, 0, true, "offline")) {
+                        if (mqttClient.connect(deviceName, user, passw, availTopic, 0, true, "offline")) {
                                 if (useSerial) {
                                         Serial.println("connected");
                                 }
-                                client.publish(availTopic, "online", true);
+                                mqttClient.publish(availTopic, "online", true);
                                 if (firstRun == true) {
-                                        client.publish(stateTopic, "off", true);
+                                        mqttClient.publish(stateTopic, "off", true);
                                         firstRun = false;
                                 }
                                 pub_msg("Connected to MQTT server");
                                 for (int i = 0; i < sizeof(topicArry) / sizeof(char *); i++) {
-                                        client.subscribe(topicArry[i]);
+                                        mqttClient.subscribe(topicArry[i]);
                                         sprintf(msg, "Subscribed to %s", topicArry[i]);
                                 }
                                 mqttFailCounter = 0;
@@ -227,7 +303,7 @@ int connectMQTT() {
                         else {
                                 if (useSerial) {
                                         Serial.print("failed, rc=");
-                                        Serial.print(client.state());
+                                        Serial.print(mqttClient.state());
                                         Serial.println(" try again in 5 seconds");
                                 }
                                 delay(5000);
@@ -265,15 +341,21 @@ void callback(char* topic, byte* payload, unsigned int length) {
         char msg2[100];
 
         //      Display on Serial monitor only
-        Serial.print("Message arrived [");
-        Serial.print(topic);
-        Serial.print("] ");
+        if (useSerial) {
+                Serial.print("Message arrived [");
+                Serial.print(topic);
+                Serial.print("] ");
+        }
         for (int i = 0; i < length; i++) {
-                Serial.print((char)payload[i]);
+                if (useSerial) {
+                        Serial.print((char)payload[i]);
+                }
                 incoming_msg[i] = (char)payload[i];
         }
         incoming_msg[length] = 0;
-        Serial.println("");
+        if (useSerial) {
+                Serial.println("");
+        }
         //      ##############################
 
         //      status - via MQTT
@@ -335,11 +417,23 @@ void callback(char* topic, byte* payload, unsigned int length) {
                 sprintf(msg, "ver:[%s]", ver);
                 pub_msg(msg);
         }
+        else if (strcmp(incoming_msg, "pins") == 0 ) {
+                sprintf(msg, "Switch: Up[%d] Down[%d], Relay: Up[%d] Down[%d]", inputUpPin, inputDownPin, outputUpPin, outputDownPin);
+                pub_msg(msg);
+        }
         else if (strcmp(incoming_msg, "ip") == 0 ) {
                 char buf[16];
                 sprintf(buf, "IP:%d.%d.%d.%d", WiFi.localIP()[0], WiFi.localIP()[1], WiFi.localIP()[2], WiFi.localIP()[3] );
                 sprintf(msg, "IP address:[%s]", buf);
                 pub_msg(msg);
+        }
+        else if (strcmp(incoming_msg, "pbit") == 0 ) {
+                pub_msg("PowerOnBit");
+                PBit();
+        }
+        else if (strcmp(incoming_msg, "ota") == 0 ) {
+                pub_msg("OTA allowed for 60 seconds");
+                OTAcounter = millis();
         }
         else if (strcmp(incoming_msg, "reset") == 0 ) {
                 sendReset("MQTT");
@@ -369,14 +463,16 @@ void msgSplitter( const char* msg_in, int max_msgSize, char *prefix, char *split
                                 tmp[i + pre_len] = (char)msg_in[i + k * max_chunk];
                                 tmp[i + 1 + pre_len] = '\0';
                         }
-                        client.publish(msgTopic, tmp);
+                        if (useSerial) {
+                                mqttClient.publish(msgTopic, tmp);
+                        }
 
                 }
         }
-        else {
-                sprintf(tmp, "%s %s", prefix, msg_in);
-                client.publish(msgTopic, tmp);
-        }
+        else {  if(useNetwork) {
+                        sprintf(tmp, "%s %s", prefix, msg_in);
+                        mqttClient.publish(msgTopic, tmp);
+                }}
 }
 
 void get_timeStamp() {
@@ -401,21 +497,24 @@ void switchIt(char *type, char *dir) {
                 states[1] = !RelayOn;
         }
 
-        allOff();
+        allOff(); // reset of all output is needed
         delay(deBounceInt);
         digitalWrite(outputUpPin, states[0]);
         delay(deBounceInt);
         digitalWrite(outputDownPin, states[1]);
 
-        client.publish(stateTopic, dir, true); // post a Retained State
-
-        sprintf(mqttmsg, "[%s] switched [%s]", type, dir);
-        pub_msg(mqttmsg);
+        if (useNetwork == true) {
+                mqttClient.publish(stateTopic, dir, true);
+                sprintf(mqttmsg, "[%s] switched [%s]", type, dir);
+                pub_msg(mqttmsg);
+        }
 }
 
 void detectResetPresses() {
         if (millis() - lastResetPress < timeInt2Reset) {
-                Serial.println(millis() - lastResetPress);
+                if (useSerial) {
+                        Serial.println(millis() - lastResetPress);
+                }
                 if (manResetCounter >= pressAmount2Reset) {
                         sendReset("Manual operation");
                 }
@@ -431,9 +530,13 @@ void detectResetPresses() {
 void sendReset(char *header) {
         char temp[150];
 
-        Serial.println("Sending Reset command");
-        sprintf(temp, "[%s] - Reset sent", header);
-        pub_msg(temp);
+        if (useSerial) {
+                Serial.println("Sending Reset command");
+        }
+        if (useNetwork) {
+                sprintf(temp, "[%s] - Reset sent", header);
+                pub_msg(temp);
+        }
         delay(100);
         ESP.restart();
 }
@@ -455,25 +558,25 @@ void PBit() {
 
 void verifyMQTTConnection() {
         //  MQTT reconnection for first time or after first insuccess to reconnect
-        if (!client.connected() && firstNotConnected == 0) {
+        if (!mqttClient.connected() && firstNotConnected == 0) {
                 connectionFlag = connectMQTT();
                 //  still not connected
                 if (connectionFlag == 0 ) {
                         firstNotConnected = millis();
                 }
                 else {
-                        client.loop();
+                        mqttClient.loop();
                 }
         }
         // retry after fail - resume only after timeout
-        else if (!client.connected() && firstNotConnected != 0 && millis() - firstNotConnected > MQTTtimeOut) {
+        else if (!mqttClient.connected() && firstNotConnected != 0 && millis() - firstNotConnected > MQTTtimeOut) {
                 //    after cooling out period - try again
                 connectionFlag = connectMQTT();
                 firstNotConnected = 0;
                 Serial.println("trying again to reconnect");
         }
         else {
-                client.loop();
+                mqttClient.loop();
         }
 }
 
@@ -492,7 +595,9 @@ void checkSwitch_PressedUp() {
                 if (digitalRead(inputUpPin) != inputUp_lastState) {
                         sprintf(mqttmsg, "[%s] switched [%s]", "Button", digitalRead(inputUpPin) ? "up" : "off");
                         if (millis() - repostCounter >= MQTTtimeOut_repost) { // to avoid MQTT msg and Button msgs together
-                                pub_msg(mqttmsg);
+                                if (useNetwork) {
+                                        pub_msg(mqttmsg);
+                                }
                         }
 
                         inputUp_lastState = digitalRead(inputUpPin);
@@ -509,7 +614,9 @@ void checkSwitch_PressedDown() {
                 if (digitalRead(inputDownPin) != inputDown_lastState) {
                         sprintf(mqttmsg, "[%s] switched [%s]", "Button", digitalRead(inputDownPin) ? "down" : "off");
                         if (millis() - repostCounter >= MQTTtimeOut_repost) {
-                                pub_msg(mqttmsg);
+                                if (useNetwork) {
+                                        pub_msg(mqttmsg);
+                                }
                         }
 
                         inputDown_lastState = digitalRead(inputDownPin);
@@ -521,17 +628,27 @@ void checkSwitch_PressedDown() {
 void verifyNotHazardState() {
         if (outputUp_currentState == RelayOn && outputDown_currentState == RelayOn ) {
                 switchIt("Button", "off");
-                Serial.println("Hazard state - both switches were ON");
-                pub_msg("HazradState - Reset");
+                if (useSerial) {
+                        Serial.println("Hazard state - both switches were ON");
+                }
+                if (useNetwork) {
+                        pub_msg("HazradState - Reset");
+                }
                 sendReset("Hazard");
         }
 
 }
 
-void takeTheDog() {
+void feedTheDog() {
         wdtResetCounter++;
         if (wdtResetCounter >= wdtMaxRetries) {
                 sendReset("WDT");
+        }
+}
+
+void acceptOTA() {
+        if (millis() - OTAcounter <= OTAtimeOut) {
+                ArduinoOTA.handle();
         }
 }
 
@@ -543,10 +660,20 @@ void readGpioStates() {
 }
 
 void loop() {
-        wdtResetCounter = 0; // reset WDT
-        verifyMQTTConnection();
         readGpioStates();
         verifyNotHazardState(); // both up and down are ---> OFF
+
+        // Service updates
+        if (useNetwork) {
+                verifyMQTTConnection();
+        }
+        if (useWDT) {
+                wdtResetCounter = 0;
+        }
+        if (useOTA) {
+                acceptOTA();
+        }
+
         checkSwitch_PressedUp();
         checkSwitch_PressedDown();
 
