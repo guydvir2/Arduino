@@ -1,14 +1,14 @@
 //change deviceTopic !
 //###################################################
 
-#define deviceTopic "HomePi/Dvir/Windows/FamilyRoom"
+#define deviceTopic "HomePi/Dvir/Windows/Box_6"
 
 // Service flags
 bool useNetwork = true;
 bool useWDT = true;
 bool useSerial = false;
 bool useOTA = true;
-bool runPbit = true;
+bool runPbit = false;
 
 const char *ver = "ESP_WDT_OTA_2.21";
 
