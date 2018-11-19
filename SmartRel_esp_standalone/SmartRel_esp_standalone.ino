@@ -87,7 +87,7 @@ const long OTAtimeOut = (1000*60) * 1; // 1 minute to try OTA
 long OTAcounter =0;
 const int deBounceInt = 50; //
 volatile int wdtResetCounter = 0;
-const int wdtMaxRetries = 2; //seconds to bITE
+const int wdtMaxRetries = 10; //seconds to bITE
 // ############################
 
 
