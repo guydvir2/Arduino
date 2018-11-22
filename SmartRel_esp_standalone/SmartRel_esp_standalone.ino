@@ -1,7 +1,7 @@
 //change deviceTopic !
 //###################################################
 
-#define deviceTopic "HomePi/Dvir/Windows/Box_6"
+#define deviceTopic "HomePi/Dvir/Windows/Wemos_1"
 
 // Service flags
 bool useNetwork = true;
