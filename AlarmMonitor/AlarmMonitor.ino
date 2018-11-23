@@ -4,7 +4,6 @@
 #define deviceTopic "HomePi/Dvir/alarmMonitor"
 
 // Service flags
-bool useNetwork = true;
 bool useWDT = true;
 // bool useSerial = false;
 bool useOTA = true;
@@ -113,15 +112,10 @@ Ticker wdt;
 
 void setup() {
         startGPIOs();
-
-        // if (useSerial) {
         //         Serial.begin(9600);
         //         Serial.println("AlarmSystem Boot");
         //         delay(10);
-        // }
-        // if (useNetwork) {
         startNetwork();
-        // }
         if(useOTA) {
                 startOTA();
         }
@@ -135,19 +129,14 @@ void startGPIOs() {
         pinMode(systemState_alarm_Pin, INPUT_PULLUP);
         pinMode(armedHomePin, OUTPUT);
         pinMode(armedAwayPin, OUTPUT);
-
-        // systemState_armed_lastState = digitalRead(systemState_armed_Pin);
-        // systemState_alarm_lastState = digitalRead(systemState_alarm_Pin);
 }
 
 // From here- all functions are copied from other sketched without any changes
 void startNetwork() {
         long startWifiConnection = 0;
-        // if (useSerial) {
         //         Serial.println();
         //         Serial.print("Connecting to ");
         //         Serial.println(ssid);
-        // }
 
         startWifiConnection = millis();
         WiFi.mode(WIFI_STA); //OTA Added
@@ -155,18 +144,8 @@ void startNetwork() {
         // in case of reboot - timeOUT to wifi
         while (WiFi.status() != WL_CONNECTED && millis() - startWifiConnection < WIFItimeOut) {
                 delay(500);
-                // if (useSerial) {
-                //         Serial.print(".");
-                // }
         }
-
         WiFi.setAutoReconnect(true);
-        // if (useSerial) {
-        //         Serial.println("");
-        //         Serial.println("WiFi connected");
-        //         Serial.print("IP address: ");
-        //         Serial.println(WiFi.localIP());
-        // }
 
         startMQTT();
         startNTP();
@@ -257,18 +236,9 @@ void startNTP() {
 int connectMQTT() {
         // verify wifi connected
         if (WiFi.status() == WL_CONNECTED) {
-                // if (useSerial) {
-                //         Serial.println("have wifi, entering MQTT connection");
-                // }
                 while (!mqttClient.connected() && mqttFailCounter <= MQTTretries) {
-                        // if (useSerial) {
-                        //         Serial.print("Attempting MQTT connection...");
-                        // }
                         // Attempt to connect
                         if (mqttClient.connect(deviceName, user, passw, availTopic, 0, true, "offline")) {
-                                // if (useSerial) {
-                                //         Serial.println("connected");
-                                // }
                                 mqttClient.publish(availTopic, "online", true);
                                 if (firstRun == true) {
                                         mqttClient.publish(stateTopic, "disarmed", true);
@@ -283,29 +253,14 @@ int connectMQTT() {
                                 return 1;
                         }
                         else {
-                                // if (useSerial) {
-                                //         Serial.print("failed, rc=");
-                                //         Serial.print(mqttClient.state());
-                                //         Serial.println(" try again in 5 seconds");
-                                // }
                                 delay(5000);
-                                // if (useSerial) {
-                                //         Serial.print("number of fails to reconnect MQTT");
-                                //         Serial.println(mqttFailCounter);
-                                // }
                                 mqttFailCounter++;
                         }
                 }
-                // if (useSerial) {
-                //         Serial.println("Exit without connecting MQTT");
-                // }
                 mqttFailCounter = 0;
                 return 0;
         }
         else {
-                // if (useSerial) {
-                //         Serial.println("Not connected to Wifi, abort try to connect MQTT broker");
-                // }
                 return 0;
         }
 }
@@ -313,11 +268,9 @@ int connectMQTT() {
 void pub_msg(char *inmsg) {
         char tmpmsg[150];
 
-        // if (useNetwork == true) {
         get_timeStamp();
         sprintf(tmpmsg, "[%s] [%s]", timeStamp, deviceTopic );
         msgSplitter(inmsg, 95, tmpmsg, "#" );
-        // }
 }
 
 void createTopics(const char *devTopic, char *state, char *avail) {
@@ -357,9 +310,6 @@ void get_timeStamp() {
 void sendReset(char *header) {
         char temp[150];
 
-        // if (useSerial) {
-        //         Serial.println("Sending Reset command");
-        // }
         sprintf(temp, "[%s] - Reset sent", header);
         pub_msg(temp);
         delay(100);
@@ -383,9 +333,6 @@ void verifyMQTTConnection() {
                 //    after cooling out period - try again
                 connectionFlag = connectMQTT();
                 firstNotConnected = 0;
-                // if (useSerial) {
-                //         Serial.println("trying again to reconnect");
-                // }
         }
         else {
                 mqttClient.loop();
@@ -572,11 +519,9 @@ void switchIt(char *type, char *dir) {
                 }
         }
 
-        // if (useNetwork == true) {
         if (flag == true) {
                 mqttClient.publish(stateTopic, dir, true);
         }
-        // }
 }
 
 void allOff() {
@@ -609,10 +554,8 @@ void check_systemState_armed() {
 
                         if (temp_systemState_armed_Pin == SwitchOn) { // system is set to armed
                                 if (digitalRead(armedHomePin) == !RelayOn && digitalRead(armedAwayPin) == !RelayOn) {
-                                        // if (useNetwork == true) {
                                         pub_msg("[Manual] [Armed]");
                                         mqttClient.publish(stateTopic, "pending", true);
-                                        // }
                                 }
                                 else if (digitalRead(armedAwayPin) == RelayOn || digitalRead(armedHomePin) == RelayOn) {
                                         pub_msg("[Code] [Armed]");
@@ -621,19 +564,15 @@ void check_systemState_armed() {
 
                         else { // system Disarmed
                                 if (digitalRead(armedHomePin) == !RelayOn && digitalRead(armedAwayPin) == !RelayOn) {
-                                        // if (useNetwork == true) {
                                         pub_msg("[Disarmed]");
                                         mqttClient.publish(stateTopic, "disarmed", true);
-                                        // }
                                 }
                                 else {
                                         allOff();
                                         delay(systemPause);
                                         if (digitalRead(armedHomePin) == !RelayOn && digitalRead(armedAwayPin) == !RelayOn) {
-                                                // if (useNetwork == true) {
                                                 pub_msg("[Code] [Disarmed]");
                                                 mqttClient.publish(stateTopic, "disarmed", true);
-                                                // }
                                         }
                                         else {
                                                 pub_msg("failed to [Disarm]");
@@ -668,17 +607,11 @@ void check_systemState_alarming() {
 void verifyNotHazardState() {
         if (digitalRead(armedHomePin) == RelayOn && digitalRead(armedAwayPin) == RelayOn ) {
                 switchIt("MQTT", "disarmed");
-                // if (useSerial) {
-                //         Serial.println("Hazard state - Home and Away states were ON");
-                // }
                 sendReset("HazradState_1");
         }
         if (digitalRead(systemState_armed_Pin) == !SwitchOn) {
                 delay(systemPause);
                 if (digitalRead(armedHomePin) == RelayOn || digitalRead(armedAwayPin) == RelayOn) {
-                        // if (useSerial) {
-                        //         Serial.println("Hazard state - System Not armed, but states are switched on");
-                        // }
                         sendReset("HazradState_2");
 
                 }
@@ -700,9 +633,7 @@ void loop() {
         // verifyNotHazardState();
 
         // Service updates
-        // if (useNetwork) {
         verifyMQTTConnection();
-        // }
         if (useWDT) {
                 wdtResetCounter = 0;
         }
