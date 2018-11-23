@@ -9,7 +9,7 @@ bool useWDT = true;
 bool useSerial = false;
 bool useOTA = true;
 
-const char *ver = "ESP_WDT_OTA_1.0";
+const char *ver = "ESP_WDT_OTA_1.11";
 
 //###################################################
 
@@ -82,10 +82,10 @@ const int clockUpdateInt = 1; // hrs to update clock
 const int timeInt2Reset = 1500; // time between consq presses to init RESET cmd
 const long MQTTtimeOut = (1000 * 60) * 5; //5 mins stop try to MQTT
 const long WIFItimeOut = (1000 * 60) * 2; //2 mins try to connect WiFi
-const long OTAtimeOut = (1000*60) * 1; // 1 minute to try OTA
+const long OTAtimeOut = (1000*60) * 2; // 2 minute to try OTA
 long OTAcounter =0;
 const int deBounceInt = 50; //
-const int systemPause = 200; // seconds, delay to system react
+const int systemPause = 1000; // seconds, delay to system react
 volatile int wdtResetCounter = 0;
 const int wdtMaxRetries = 10; //seconds to bITE
 // ############################
@@ -337,22 +337,22 @@ void callback(char* topic, byte* payload, unsigned int length) {
 
         if (strcmp(incoming_msg, "status") == 0) {
                 // relays state
-                if (armedHome_currentState == RelayOn && armedAway_currentState == RelayOn) {
+                if (digitalRead(armedHomePin) == RelayOn && digitalRead(armedAwayPin) == RelayOn) {
                         sprintf(state, "invalid Relay State");
                 }
-                else if (armedHome_currentState == !RelayOn && armedAway_currentState == !RelayOn && systemState_armed_currentState == SwitchOn) {
+                else if (digitalRead(armedHomePin) == !RelayOn && digitalRead(armedAwayPin) == !RelayOn && digitalRead(systemState_armed_Pin) == SwitchOn) {
                         sprintf(state, "[Armed] Manual");
                 }
-                else if (armedHome_currentState == RelayOn && armedAway_currentState == !RelayOn && systemState_armed_currentState == SwitchOn) {
+                else if (digitalRead(armedHomePin) == RelayOn && digitalRead(armedAwayPin) == !RelayOn && digitalRead(systemState_armed_Pin) == SwitchOn) {
                         sprintf(state, "[Home Armed]");
                 }
-                else if (armedHome_currentState == !RelayOn && armedAway_currentState == RelayOn && systemState_armed_currentState == SwitchOn) {
+                else if (digitalRead(armedHomePin) == !RelayOn && digitalRead(armedAwayPin) == RelayOn && digitalRead(systemState_armed_Pin) == SwitchOn) {
                         sprintf(state, "[Away Armed]");
                 }
-                else if (systemState_armed_currentState == SwitchOn && systemState_alarm_currentState== SwitchOn) {
+                else if (digitalRead(systemState_armed_Pin) == SwitchOn && digitalRead(systemState_alarm_Pin)== SwitchOn) {
                         sprintf(state, "[Alarm]");
                 }
-                else if (systemState_armed_currentState == !SwitchOn && armedHome_currentState == !RelayOn && armedAway_currentState == !RelayOn) {
+                else if (digitalRead(systemState_armed_Pin) == !SwitchOn && digitalRead(armedHomePin) == !RelayOn && digitalRead(armedAwayPin) == !RelayOn) {
                         sprintf(state, "[Off]");
                 }
                 else {
@@ -384,7 +384,8 @@ void callback(char* topic, byte* payload, unsigned int length) {
                 pub_msg(msg);
         }
         else if (strcmp(incoming_msg, "ota") == 0 ) {
-                pub_msg("OTA allowed for 60 seconds");
+                sprintf(msg, "OTA allowed for %d seconds", OTAtimeOut/1000);
+                pub_msg(msg);
                 OTAcounter = millis();
         }
         else if (strcmp(incoming_msg, "reset") == 0 ) {
@@ -442,14 +443,14 @@ void switchIt(char *type, char *dir) {
 
         // // clear error states if exist
         // if (strcmp(dir, "armed_home") == 0 || strcmp(dir, "armed_away") == 0) {
-        //         if (systemState_armed_currentState == !SwitchOn) { // system is not armed
-        //                 if (armedAway_currentState==RelayOn || armedHome_currentState==RelayOn) { //error state
+        //         if (digitalRead(systemState_armed_Pin) == !SwitchOn) { // system is not armed
+        //                 if (digitalRead(armedAwayPin)==RelayOn || digitalRead(armedHomePin)==RelayOn) { //error state
         //                         allOff();
         //                         pub_msg("Reset_home #1");
         //                 }
         //         }
         //         else { // system is armed
-        //                 if (armedHome_currentState == !RelayOn && armedAway_currentState == !RelayOn) { // armed manualy
+        //                 if (digitalRead(armedHomePin) == !RelayOn && digitalRead(armedAwayPin) == !RelayOn) { // armed manualy
         //                         allOff();
         //                         pub_msg("was armed manualy--> switch OFF");
         //                 }
@@ -458,8 +459,8 @@ void switchIt(char *type, char *dir) {
         // // ##########################
 
         if (strcmp(dir, "armed_home") == 0 ) {
-                if (armedHome_currentState == !RelayOn) { // verify it is not in desired state already
-                        if ( armedAway_currentState == RelayOn) { // in armed away state
+                if (digitalRead(armedHomePin) == !RelayOn) { // verify it is not in desired state already
+                        if ( digitalRead(armedAwayPin) == RelayOn) { // in armed away state
                                 digitalWrite(armedAwayPin, !RelayOn);
                                 pub_msg("[Code] [Disarmed Away]");
                                 delay(systemPause);
@@ -468,7 +469,7 @@ void switchIt(char *type, char *dir) {
                         digitalWrite(armedHomePin, RelayOn);         // Now switch to armed_home
                         delay(systemPause);
 
-                        if (systemState_armed_currentState==SwitchOn) {
+                        if (digitalRead(systemState_armed_Pin)==SwitchOn) {
                                 pub_msg("[Code] [Armed Home]");
                                 flag=true;
                         }
@@ -485,8 +486,8 @@ void switchIt(char *type, char *dir) {
         }
 
         else if (strcmp(dir, "armed_away") == 0) {
-                if ( armedAway_currentState == !RelayOn) {
-                        if ( armedHome_currentState == RelayOn) { // armed home
+                if ( digitalRead(armedAwayPin) == !RelayOn) {
+                        if ( digitalRead(armedHomePin) == RelayOn) { // armed home
                                 digitalWrite(armedHomePin, !RelayOn);
                                 pub_msg("[Code] [Disarmed Home]");
                                 delay(systemPause);
@@ -495,7 +496,7 @@ void switchIt(char *type, char *dir) {
                         digitalWrite(armedAwayPin, RelayOn); // now switch to Away
                         delay(systemPause);
 
-                        if (systemState_armed_currentState==SwitchOn) {
+                        if (digitalRead(systemState_armed_Pin)==SwitchOn) {
                                 pub_msg("[Code] [Armed Away]");
                                 flag=true;
                         }
@@ -513,7 +514,7 @@ void switchIt(char *type, char *dir) {
         else if (strcmp(dir, "off") == 0) {
                 if (systemState_armed_lastState == SwitchOn) { // system is armed
                         allOff();
-                        if (systemState_armed_currentState==!SwitchOn && armedAway_currentState==!RelayOn && armedHome_currentState==!RelayOn) {
+                        if (digitalRead(systemState_armed_Pin)==!SwitchOn && digitalRead(armedAwayPin)==!RelayOn && digitalRead(armedHomePin)==!RelayOn) {
                                 pub_msg("[Code] [Disarmed]");
                                 flag=true;
                         }
@@ -571,6 +572,19 @@ void verifyMQTTConnection() {
         }
 }
 
+void feedTheDog() {
+        wdtResetCounter++;
+        if (wdtResetCounter >= wdtMaxRetries) {
+                sendReset("WatchDog");
+        }
+}
+
+void acceptOTA() {
+        if (millis() - OTAcounter <= OTAtimeOut) {
+                ArduinoOTA.handle();
+        }
+}
+
 void allOff() {
         digitalWrite(armedHomePin, !RelayOn);
         digitalWrite(armedAwayPin, !RelayOn);
@@ -596,25 +610,25 @@ void check_systemState_armed() {
 
         if (temp_systemState_armed_Pin != systemState_armed_lastState) {
                 delay(deBounceInt);
-                if (systemState_armed_currentState != systemState_armed_lastState) {
+                if (digitalRead(systemState_armed_Pin) != systemState_armed_lastState) {
                         delay(systemPause);
 
                         if (temp_systemState_armed_Pin == SwitchOn) { // system is set to armed
-                                if (armedHome_currentState == !RelayOn && armedAway_currentState == !RelayOn) {
+                                if (digitalRead(armedHomePin) == !RelayOn && digitalRead(armedAwayPin) == !RelayOn) {
                                         pub_msg("[Manual] [Armed]");
                                 }
-                                else if (armedAway_currentState == RelayOn || armedHome_currentState == RelayOn) {
+                                else if (digitalRead(armedAwayPin) == RelayOn || digitalRead(armedHomePin) == RelayOn) {
                                         pub_msg("[Code] [Armed]");
                                 }
                         }
 
                         else { // system Disarmed
-                                if (armedHome_currentState == !RelayOn && armedAway_currentState == !RelayOn) {
+                                if (digitalRead(armedHomePin) == !RelayOn && digitalRead(armedAwayPin) == !RelayOn) {
                                         pub_msg("[Manual] [Disarmed]");
                                 }
                                 else {
                                         allOff();
-                                        if (armedHome_currentState == !RelayOn && armedAway_currentState == !RelayOn) {
+                                        if (digitalRead(armedHomePin) == !RelayOn && digitalRead(armedAwayPin) == !RelayOn) {
                                                 pub_msg("[Code] [Disarmed]");
                                         }
                                         else {
@@ -624,7 +638,7 @@ void check_systemState_armed() {
 
 
                         }
-                        systemState_armed_lastState = systemState_armed_currentState;
+                        systemState_armed_lastState = digitalRead(systemState_armed_Pin);
                 }
 
                 // else { // for debug only
@@ -641,16 +655,16 @@ void check_systemState_alarming() {
 
         if (temp_systemState_alarm_Pin != systemState_alarm_lastState) {
                 delay(deBounceInt);
-                if (systemState_alarm_currentState != systemState_alarm_lastState) {
+                if (digitalRead(systemState_alarm_Pin) != systemState_alarm_lastState) {
                         delay(systemPause);
 
-                        if (systemState_alarm_currentState == SwitchOn) {
+                        if (digitalRead(systemState_alarm_Pin) == SwitchOn) {
                                 pub_msg("System is [Alarming!]");
                         }
-                        else if (systemState_alarm_currentState == !SwitchOn) {
+                        else if (digitalRead(systemState_alarm_Pin) == !SwitchOn) {
                                 pub_msg("System stopped [Alarming]");
                         }
-                        systemState_alarm_lastState = systemState_alarm_currentState;
+                        systemState_alarm_lastState = digitalRead(systemState_alarm_Pin);
                 }
                 // else { // for debug only
                 //         char tMsg [100];
@@ -679,19 +693,6 @@ void verifyNotHazardState() {
                 }
         }
 
-}
-
-void feedTheDog() {
-        wdtResetCounter++;
-        if (wdtResetCounter >= wdtMaxRetries) {
-                sendReset("WatchDog");
-        }
-}
-
-void acceptOTA() {
-        if (millis() - OTAcounter <= OTAtimeOut) {
-                ArduinoOTA.handle();
-        }
 }
 
 void readGpioStates() {
