@@ -85,7 +85,7 @@ const long WIFItimeOut = (1000 * 60) * 2; //2 mins try to connect WiFi
 const long OTAtimeOut = (1000*60) * 1; // 1 minute to try OTA
 long OTAcounter =0;
 const int deBounceInt = 50; //
-const int systemPause = 1000; // seconds, delay to system react
+const int systemPause = 200; // seconds, delay to system react
 volatile int wdtResetCounter = 0;
 const int wdtMaxRetries = 10; //seconds to bITE
 // ############################
@@ -340,19 +340,19 @@ void callback(char* topic, byte* payload, unsigned int length) {
                 if (armedHome_currentState == RelayOn && armedAway_currentState == RelayOn) {
                         sprintf(state, "invalid Relay State");
                 }
-                else if (armedHome_currentState == !RelayOn && armedAway_currentState == !RelayOn && digitalRead(systemState_armed_Pin) == SwitchOn) {
+                else if (armedHome_currentState == !RelayOn && armedAway_currentState == !RelayOn && systemState_armed_currentState == SwitchOn) {
                         sprintf(state, "[Armed] Manual");
                 }
-                else if (armedHome_currentState == RelayOn && armedAway_currentState == !RelayOn && digitalRead(systemState_armed_Pin) == SwitchOn) {
+                else if (armedHome_currentState == RelayOn && armedAway_currentState == !RelayOn && systemState_armed_currentState == SwitchOn) {
                         sprintf(state, "[Home Armed]");
                 }
-                else if (armedHome_currentState == !RelayOn && armedAway_currentState == RelayOn && digitalRead(systemState_armed_Pin) == SwitchOn) {
+                else if (armedHome_currentState == !RelayOn && armedAway_currentState == RelayOn && systemState_armed_currentState == SwitchOn) {
                         sprintf(state, "[Away Armed]");
                 }
-                else if (digitalRead(systemState_armed_Pin) == SwitchOn && digitalRead(systemState_alarm_Pin)== SwitchOn) {
+                else if (systemState_armed_currentState == SwitchOn && systemState_alarm_currentState== SwitchOn) {
                         sprintf(state, "[Alarm]");
                 }
-                else if (digitalRead(systemState_armed_Pin) == !SwitchOn && armedHome_currentState == !RelayOn && armedAway_currentState == !RelayOn) {
+                else if (systemState_armed_currentState == !SwitchOn && armedHome_currentState == !RelayOn && armedAway_currentState == !RelayOn) {
                         sprintf(state, "[Off]");
                 }
                 else {
@@ -440,22 +440,22 @@ void switchIt(char *type, char *dir) {
         bool states[2];
         bool flag=false;
 
-        // clear error states if exist
-        if (strcmp(dir, "armed_home") == 0 || strcmp(dir, "armed_away") == 0) {
-                if (digitalRead(systemState_armed_Pin) == !SwitchOn) { // system is not armed
-                        if (armedAway_currentState==RelayOn || armedHome_currentState==RelayOn) { //error state
-                                allOff();
-                                pub_msg("Reset_home #1");
-                        }
-                }
-                else { // system is armed
-                        if (armedHome_currentState == !RelayOn && armedAway_currentState == !RelayOn) { // armed manualy
-                                allOff();
-                                pub_msg("was armed manualy--> switch OFF");
-                        }
-                }
-        }
-        // ##########################
+        // // clear error states if exist
+        // if (strcmp(dir, "armed_home") == 0 || strcmp(dir, "armed_away") == 0) {
+        //         if (systemState_armed_currentState == !SwitchOn) { // system is not armed
+        //                 if (armedAway_currentState==RelayOn || armedHome_currentState==RelayOn) { //error state
+        //                         allOff();
+        //                         pub_msg("Reset_home #1");
+        //                 }
+        //         }
+        //         else { // system is armed
+        //                 if (armedHome_currentState == !RelayOn && armedAway_currentState == !RelayOn) { // armed manualy
+        //                         allOff();
+        //                         pub_msg("was armed manualy--> switch OFF");
+        //                 }
+        //         }
+        // }
+        // // ##########################
 
         if (strcmp(dir, "armed_home") == 0 ) {
                 if (armedHome_currentState == !RelayOn) { // verify it is not in desired state already
@@ -464,51 +464,57 @@ void switchIt(char *type, char *dir) {
                                 pub_msg("[Code] [Disarmed Away]");
                                 delay(systemPause);
                         }
-                        else{
-                                digitalWrite(armedHomePin, RelayOn); // Now switch to armed_home
-                                delay(systemPause);
 
-                                if (digitalRead(systemState_armed_Pin)==SwitchOn) {
-                                        pub_msg("[Code][Armed Home]");
-                                        flag=true;
-                                }
-                                else {
-                                        allReset();
-                                        pub_msg("failed to Arm. [Code][Disarmed]");
-                                }
+                        digitalWrite(armedHomePin, RelayOn);         // Now switch to armed_home
+                        delay(systemPause);
+
+                        if (systemState_armed_currentState==SwitchOn) {
+                                pub_msg("[Code] [Armed Home]");
+                                flag=true;
                         }
+                        else {
+                                allReset();
+                                pub_msg("failed to [Armed Home]. [Code] [Disarmed]");
+                        }
+
                 }
 
                 else {
-                  pub_msg("already in [Home Armed]");
+                        pub_msg("already in [Armed Home]");
                 }
         }
 
         else if (strcmp(dir, "armed_away") == 0) {
+                if ( armedAway_currentState == !RelayOn) {
+                        if ( armedHome_currentState == RelayOn) { // armed home
+                                digitalWrite(armedHomePin, !RelayOn);
+                                pub_msg("[Code] [Disarmed Home]");
+                                delay(systemPause);
+                        }
 
-                if ( armedHome_currentState == RelayOn) { // armed home
-                        digitalWrite(armedHomePin, !RelayOn);
-                        pub_msg("was armed_home--> switch OFF");
+                        digitalWrite(armedAwayPin, RelayOn); // now switch to Away
                         delay(systemPause);
-                }
 
-                digitalWrite(armedAwayPin, RelayOn); // now switch to Away
-                delay(systemPause);
-                if (digitalRead(systemState_armed_Pin)==SwitchOn) {
-                        pub_msg("System [Armed Away]");
-                        flag=true;
+                        if (systemState_armed_currentState==SwitchOn) {
+                                pub_msg("[Code] [Armed Away]");
+                                flag=true;
+                        }
+                        else {
+                                allReset();
+                                pub_msg("failed to [Away Home]. [Code] [Disarmed]");
+                        }
                 }
                 else {
-                        allOff();
-                        pub_msg("failed to Arm. System now [Disarmed]");
+                        pub_msg("already in [Away Home]");
                 }
+
         }
 
         else if (strcmp(dir, "off") == 0) {
                 if (systemState_armed_lastState == SwitchOn) { // system is armed
                         allOff();
-                        if (digitalRead(systemState_armed_Pin)==!SwitchOn && armedAway_currentState==!RelayOn && armedHome_currentState==!RelayOn) {
-                                pub_msg("System [Disarmed]");
+                        if (systemState_armed_currentState==!SwitchOn && armedAway_currentState==!RelayOn && armedHome_currentState==!RelayOn) {
+                                pub_msg("[Code] [Disarmed]");
                                 flag=true;
                         }
                 }
@@ -536,7 +542,7 @@ void sendReset(char *header) {
         sprintf(temp, "[%s] - Reset sent", header);
         pub_msg(temp);
         delay(100);
-        ESP.restart();
+        // ESP.restart();
 }
 
 void verifyMQTTConnection() {
@@ -590,7 +596,7 @@ void check_systemState_armed() {
 
         if (temp_systemState_armed_Pin != systemState_armed_lastState) {
                 delay(deBounceInt);
-                if (digitalRead(systemState_armed_Pin) != systemState_armed_lastState) {
+                if (systemState_armed_currentState != systemState_armed_lastState) {
                         delay(systemPause);
 
                         if (temp_systemState_armed_Pin == SwitchOn) { // system is set to armed
@@ -618,7 +624,7 @@ void check_systemState_armed() {
 
 
                         }
-                        systemState_armed_lastState = digitalRead(systemState_armed_Pin);
+                        systemState_armed_lastState = systemState_armed_currentState;
                 }
 
                 // else { // for debug only
@@ -635,16 +641,16 @@ void check_systemState_alarming() {
 
         if (temp_systemState_alarm_Pin != systemState_alarm_lastState) {
                 delay(deBounceInt);
-                if (digitalRead(systemState_alarm_Pin) != systemState_alarm_lastState) {
+                if (systemState_alarm_currentState != systemState_alarm_lastState) {
                         delay(systemPause);
 
-                        if (digitalRead(systemState_alarm_Pin) == SwitchOn) {
+                        if (systemState_alarm_currentState == SwitchOn) {
                                 pub_msg("System is [Alarming!]");
                         }
-                        else if (digitalRead(systemState_alarm_Pin) == !SwitchOn) {
+                        else if (systemState_alarm_currentState == !SwitchOn) {
                                 pub_msg("System stopped [Alarming]");
                         }
-                        systemState_alarm_lastState = digitalRead(systemState_alarm_Pin);
+                        systemState_alarm_lastState = systemState_alarm_currentState;
                 }
                 // else { // for debug only
                 //         char tMsg [100];
@@ -655,15 +661,16 @@ void check_systemState_alarming() {
 }
 
 void verifyNotHazardState() {
-        if (armedHome_currentState == RelayOn && armedAway_currentState == RelayOn ) {
+        if (digitalRead(armedHomePin) == RelayOn && digitalRead(armedAwayPin) == RelayOn ) {
                 switchIt("Button", "off");
                 if (useSerial) {
                         Serial.println("Hazard state - Home and Away states were ON");
                 }
                 sendReset("HazradState_1");
         }
-        if (systemState_armed_currentState == !SwitchOn) {
-                if (armedHome_currentState == RelayOn || armedAway_currentState == RelayOn) {
+        if (digitalRead(systemState_armed_Pin) == !SwitchOn) {
+                delay(systemPause*5);
+                if (digitalRead(armedHomePin) == RelayOn || digitalRead(armedAwayPin) == RelayOn) {
                         if (useSerial) {
                                 Serial.println("Hazard state - System Not armed, but states are switched on");
                         }
@@ -697,7 +704,7 @@ void readGpioStates() {
 void loop() {
         // read GPIOs
         readGpioStates();
-        verifyNotHazardState();
+        // verifyNotHazardState();
 
         // Service updates
         if (useNetwork) {
