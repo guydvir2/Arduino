@@ -4,11 +4,11 @@
 #define deviceTopic "HomePi/Dvir/alarmMonitor"
 
 // Service flags
-bool useWDT = true;
 // bool useSerial = false;
+bool useWDT = true;
 bool useOTA = true;
 
-const char *ver = "ESP_WDT_OTA_1.3";
+const char *ver = "ESP_WDT_OTA_1.41";
 
 //###################################################
 
@@ -129,6 +129,13 @@ void startGPIOs() {
         pinMode(systemState_alarm_Pin, INPUT_PULLUP);
         pinMode(armedHomePin, OUTPUT);
         pinMode(armedAwayPin, OUTPUT);
+
+        systemState_alarm_currentState = digitalRead(systemState_alarm_Pin);
+        systemState_armed_currentState = digitalRead(systemState_armed_Pin);
+        systemState_alarm_lastState = systemState_alarm_currentState ;
+        systemState_armed_lastState = systemState_armed_currentState;
+
+
 }
 
 // From here- all functions are copied from other sketched without any changes
@@ -353,6 +360,12 @@ void acceptOTA() {
 }
 // #############################
 
+
+
+
+
+
+
 // From here- functions are modified for this exact application
 void callback(char* topic, byte* payload, unsigned int length) {
         char incoming_msg[50];
@@ -461,11 +474,9 @@ void switchIt(char *type, char *dir) {
                                 flag=true;
                         }
                         else {
-                                // allReset();
+                                allOff();
                                 pub_msg("failed to [Armed Home]. [Code] [Disarmed]");
                         }
-
-
                 }
                 else {
                         pub_msg("already in [Armed Home]");
@@ -488,12 +499,12 @@ void switchIt(char *type, char *dir) {
                                 flag=true;
                         }
                         else {
-                                // allReset();
-                                pub_msg("failed to [Away Home]. [Code] [Disarmed]");
+                                allOff();
+                                pub_msg("failed to [Armed Away]. [Code] [Disarmed]");
                         }
                 }
                 else {
-                        pub_msg("already in [Away Home]");
+                        pub_msg("already in [Armed Away]");
                 }
         }
 
@@ -501,19 +512,20 @@ void switchIt(char *type, char *dir) {
                 if (systemState_armed_lastState == SwitchOn) { // system is armed
                         if (digitalRead(armedAwayPin)==RelayOn || digitalRead(armedHomePin)==RelayOn) { // case of Remote operation
                                 allOff();
+                                flag=true;
                         }
                         else { // case of manual operation
+                                // initiate any arm state in order to disarm
                                 digitalWrite(armedHomePin, RelayOn);
-                                delay(systemPause/5);
-                                digitalWrite(armedHomePin, !RelayOn);
                                 delay(systemPause);
+                                allOff();
                         }
                         if (digitalRead(systemState_armed_Pin)==!SwitchOn && digitalRead(armedAwayPin)==!RelayOn && digitalRead(armedHomePin)==!RelayOn) {
                                 pub_msg("[Disarmed]");
-                                mqttClient.publish(stateTopic, dir, true);
                                 flag=true;
                         }
                         else {
+                                // allReset();
                                 pub_msg("error trying to [Disarm]");
                         }
                 }
@@ -554,24 +566,23 @@ void check_systemState_armed() {
 
                         if (temp_systemState_armed_Pin == SwitchOn) { // system is set to armed
                                 if (digitalRead(armedHomePin) == !RelayOn && digitalRead(armedAwayPin) == !RelayOn) {
-                                        pub_msg("[Manual] [Armed]");
+                                        pub_msg("detected: [Manual] [Armed]");
                                         mqttClient.publish(stateTopic, "pending", true);
                                 }
                                 else if (digitalRead(armedAwayPin) == RelayOn || digitalRead(armedHomePin) == RelayOn) {
-                                        pub_msg("[Code] [Armed]");
+                                        pub_msg("detected: [Code] [Armed]");
                                 }
                         }
 
                         else { // system Disarmed
                                 if (digitalRead(armedHomePin) == !RelayOn && digitalRead(armedAwayPin) == !RelayOn) {
-                                        pub_msg("[Disarmed]");
+                                        pub_msg("detected: [Manual] [Disarmed]");
                                         mqttClient.publish(stateTopic, "disarmed", true);
                                 }
                                 else {
                                         allOff();
-                                        delay(systemPause);
                                         if (digitalRead(armedHomePin) == !RelayOn && digitalRead(armedAwayPin) == !RelayOn) {
-                                                pub_msg("[Code] [Disarmed]");
+                                                pub_msg("detected: [Code] [Disarmed]");
                                                 mqttClient.publish(stateTopic, "disarmed", true);
                                         }
                                         else {
@@ -593,11 +604,30 @@ void check_systemState_alarming() {
                 if (digitalRead(systemState_alarm_Pin) != systemState_alarm_lastState) {
                         delay(systemPause);
 
+                        // alarm set off
                         if (digitalRead(systemState_alarm_Pin) == SwitchOn) {
                                 pub_msg("System is [Alarming!]");
+                                mqttClient.publish(stateTopic, "triggered", true);
                         }
+                        // #######
+
+                        // alarm ended
                         else if (digitalRead(systemState_alarm_Pin) == !SwitchOn) {
                                 pub_msg("System stopped [Alarming]");
+                                if (digitalRead(systemState_armed_Pin)==SwitchOn) {
+                                        if (digitalRead(armedAwayPin)==RelayOn) {
+                                                mqttClient.publish(stateTopic, "armed_away", true);
+                                        }
+                                        else if (digitalRead(armedHomePin)==RelayOn) {
+                                                mqttClient.publish(stateTopic, "armed_home", true);
+                                        }
+                                        else{
+                                                mqttClient.publish(stateTopic, "pending", true);
+                                        }
+                                }
+                                else{
+                                        mqttClient.publish(stateTopic, "disarmed", true);
+                                }
                         }
                         systemState_alarm_lastState = digitalRead(systemState_alarm_Pin);
                 }
