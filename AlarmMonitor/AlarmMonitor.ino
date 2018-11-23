@@ -9,7 +9,7 @@ bool useWDT = true;
 bool useSerial = false;
 bool useOTA = true;
 
-const char *ver = "ESP_WDT_OTA_1.11";
+const char *ver = "ESP_WDT_OTA_1.2";
 
 //###################################################
 
@@ -32,8 +32,8 @@ const char *ver = "ESP_WDT_OTA_1.11";
 // GPIO Pins for ESP8266
 const int systemState_armed_Pin = 4;
 const int systemState_alarm_Pin = 5;
-const int armedHomePin = 14;
-const int armedAwayPin = 12;
+const int armedHomePin = 12;
+const int armedAwayPin = 14;
 //##########################
 
 
@@ -267,7 +267,7 @@ int connectMQTT() {
                                 }
                                 mqttClient.publish(availTopic, "online", true);
                                 if (firstRun == true) {
-                                        mqttClient.publish(stateTopic, "off", true);
+                                        mqttClient.publish(stateTopic, "disarmed", true);
                                         firstRun = false;
                                 }
                                 pub_msg("Connected to MQTT server");
@@ -338,7 +338,7 @@ void callback(char* topic, byte* payload, unsigned int length) {
         if (strcmp(incoming_msg, "status") == 0) {
                 // relays state
                 if (digitalRead(armedHomePin) == RelayOn && digitalRead(armedAwayPin) == RelayOn) {
-                        sprintf(state, "invalid Relay State");
+                        sprintf(state, "invalid [Armed] and [Away] State");
                 }
                 else if (digitalRead(armedHomePin) == !RelayOn && digitalRead(armedAwayPin) == !RelayOn && digitalRead(systemState_armed_Pin) == SwitchOn) {
                         sprintf(state, "[Armed] Manual");
@@ -353,7 +353,7 @@ void callback(char* topic, byte* payload, unsigned int length) {
                         sprintf(state, "[Alarm]");
                 }
                 else if (digitalRead(systemState_armed_Pin) == !SwitchOn && digitalRead(armedHomePin) == !RelayOn && digitalRead(armedAwayPin) == !RelayOn) {
-                        sprintf(state, "[Off]");
+                        sprintf(state, "[disarmed]");
                 }
                 else {
                         sprintf(state, "[notDefined]");
@@ -362,7 +362,7 @@ void callback(char* topic, byte* payload, unsigned int length) {
 
                 pub_msg(state);
         }
-        else if (strcmp(incoming_msg, "armed_home") == 0 || strcmp(incoming_msg, "armed_away") == 0 || strcmp(incoming_msg, "off") == 0) {
+        else if (strcmp(incoming_msg, "armed_home") == 0 || strcmp(incoming_msg, "armed_away") == 0 || strcmp(incoming_msg, "disarmed") == 0) {
                 switchIt("MQTT", incoming_msg);
         }
         else if (strcmp(incoming_msg, "boot") == 0 ) {
@@ -441,23 +441,6 @@ void switchIt(char *type, char *dir) {
         bool states[2];
         bool flag=false;
 
-        // // clear error states if exist
-        // if (strcmp(dir, "armed_home") == 0 || strcmp(dir, "armed_away") == 0) {
-        //         if (digitalRead(systemState_armed_Pin) == !SwitchOn) { // system is not armed
-        //                 if (digitalRead(armedAwayPin)==RelayOn || digitalRead(armedHomePin)==RelayOn) { //error state
-        //                         allOff();
-        //                         pub_msg("Reset_home #1");
-        //                 }
-        //         }
-        //         else { // system is armed
-        //                 if (digitalRead(armedHomePin) == !RelayOn && digitalRead(armedAwayPin) == !RelayOn) { // armed manualy
-        //                         allOff();
-        //                         pub_msg("was armed manualy--> switch OFF");
-        //                 }
-        //         }
-        // }
-        // // ##########################
-
         if (strcmp(dir, "armed_home") == 0 ) {
                 if (digitalRead(armedHomePin) == !RelayOn) { // verify it is not in desired state already
                         if ( digitalRead(armedAwayPin) == RelayOn) { // in armed away state
@@ -467,19 +450,19 @@ void switchIt(char *type, char *dir) {
                         }
 
                         digitalWrite(armedHomePin, RelayOn);         // Now switch to armed_home
-                        delay(systemPause);
+                        delay(systemPause*4);
 
                         if (digitalRead(systemState_armed_Pin)==SwitchOn) {
                                 pub_msg("[Code] [Armed Home]");
                                 flag=true;
                         }
                         else {
-                                allReset();
+                                // allReset();
                                 pub_msg("failed to [Armed Home]. [Code] [Disarmed]");
                         }
 
-                }
 
+                }
                 else {
                         pub_msg("already in [Armed Home]");
                 }
@@ -494,26 +477,26 @@ void switchIt(char *type, char *dir) {
                         }
 
                         digitalWrite(armedAwayPin, RelayOn); // now switch to Away
-                        delay(systemPause);
+                        delay(systemPause*2);
 
                         if (digitalRead(systemState_armed_Pin)==SwitchOn) {
                                 pub_msg("[Code] [Armed Away]");
                                 flag=true;
                         }
                         else {
-                                allReset();
+                                // allReset();
                                 pub_msg("failed to [Away Home]. [Code] [Disarmed]");
                         }
                 }
                 else {
                         pub_msg("already in [Away Home]");
                 }
-
         }
 
-        else if (strcmp(dir, "off") == 0) {
+        else if (strcmp(dir, "disarmed") == 0) {
                 if (systemState_armed_lastState == SwitchOn) { // system is armed
                         allOff();
+                        delay(systemPause*4);
                         if (digitalRead(systemState_armed_Pin)==!SwitchOn && digitalRead(armedAwayPin)==!RelayOn && digitalRead(armedHomePin)==!RelayOn) {
                                 pub_msg("[Code] [Disarmed]");
                                 flag=true;
@@ -524,13 +507,7 @@ void switchIt(char *type, char *dir) {
         if (useNetwork == true) {
                 if (flag == true) {
                         mqttClient.publish(stateTopic, dir, true);
-                        sprintf(mqttmsg, "[%s] switched [%s]", type, dir);
-                        pub_msg(mqttmsg);
                 }
-        }
-
-        if(useSerial == true) {
-                Serial.println(dir);
         }
 }
 
@@ -543,7 +520,7 @@ void sendReset(char *header) {
         sprintf(temp, "[%s] - Reset sent", header);
         pub_msg(temp);
         delay(100);
-        // ESP.restart();
+        ESP.restart();
 }
 
 void verifyMQTTConnection() {
@@ -624,12 +601,12 @@ void check_systemState_armed() {
 
                         else { // system Disarmed
                                 if (digitalRead(armedHomePin) == !RelayOn && digitalRead(armedAwayPin) == !RelayOn) {
-                                        pub_msg("[Manual] [Disarmed]");
+                                        pub_msg("[Disarmed]");
                                 }
                                 else {
                                         allOff();
                                         if (digitalRead(armedHomePin) == !RelayOn && digitalRead(armedAwayPin) == !RelayOn) {
-                                                pub_msg("[Code] [Disarmed]");
+                                                pub_msg("after retry- [Code] [Disarmed]");
                                         }
                                         else {
                                                 pub_msg("failed to [Disarm]");
@@ -640,14 +617,7 @@ void check_systemState_armed() {
                         }
                         systemState_armed_lastState = digitalRead(systemState_armed_Pin);
                 }
-
-                // else { // for debug only
-                //         char tMsg [100];
-                //         sprintf(tMsg, "UP Bounce: cRead [%d] lRead[%d]", temp_systemState_armed_Pin, systemState_armed_lastState);
-                //         pub_msg(tMsg);
-                // }
         }
-
 }
 
 void check_systemState_alarming() {
@@ -666,17 +636,12 @@ void check_systemState_alarming() {
                         }
                         systemState_alarm_lastState = digitalRead(systemState_alarm_Pin);
                 }
-                // else { // for debug only
-                //         char tMsg [100];
-                //         sprintf(tMsg, "Down Bounce: cRead[%d] lRead[%d]", temp_systemState_alarm_Pin, systemState_alarm_lastState);
-                //         pub_msg(tMsg);
-                // }
         }
 }
 
 void verifyNotHazardState() {
         if (digitalRead(armedHomePin) == RelayOn && digitalRead(armedAwayPin) == RelayOn ) {
-                switchIt("Button", "off");
+                switchIt("MQTT", "disarmed");
                 if (useSerial) {
                         Serial.println("Hazard state - Home and Away states were ON");
                 }
