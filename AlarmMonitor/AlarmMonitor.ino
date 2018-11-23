@@ -450,7 +450,7 @@ void switchIt(char *type, char *dir) {
                         }
 
                         digitalWrite(armedHomePin, RelayOn);         // Now switch to armed_home
-                        delay(systemPause*4);
+                        delay(systemPause);
 
                         if (digitalRead(systemState_armed_Pin)==SwitchOn) {
                                 pub_msg("[Code] [Armed Home]");
@@ -477,7 +477,7 @@ void switchIt(char *type, char *dir) {
                         }
 
                         digitalWrite(armedAwayPin, RelayOn); // now switch to Away
-                        delay(systemPause*2);
+                        delay(systemPause);
 
                         if (digitalRead(systemState_armed_Pin)==SwitchOn) {
                                 pub_msg("[Code] [Armed Away]");
@@ -496,7 +496,7 @@ void switchIt(char *type, char *dir) {
         else if (strcmp(dir, "disarmed") == 0) {
                 if (systemState_armed_lastState == SwitchOn) { // system is armed
                         allOff();
-                        delay(systemPause*4);
+                        delay(systemPause);
                         if (digitalRead(systemState_armed_Pin)==!SwitchOn && digitalRead(armedAwayPin)==!RelayOn && digitalRead(armedHomePin)==!RelayOn) {
                                 pub_msg("[Code] [Disarmed]");
                                 flag=true;
@@ -648,7 +648,7 @@ void verifyNotHazardState() {
                 sendReset("HazradState_1");
         }
         if (digitalRead(systemState_armed_Pin) == !SwitchOn) {
-                delay(systemPause*5);
+                delay(systemPause);
                 if (digitalRead(armedHomePin) == RelayOn || digitalRead(armedAwayPin) == RelayOn) {
                         if (useSerial) {
                                 Serial.println("Hazard state - System Not armed, but states are switched on");
