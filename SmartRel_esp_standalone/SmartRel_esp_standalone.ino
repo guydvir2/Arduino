@@ -1,16 +1,16 @@
 //change deviceTopic !
 //###################################################
 
-#define deviceTopic "HomePi/Dvir/Windows/Wemos_1"
+#define deviceTopic "HomePi/Dvir/Windows/GardenExit"
 
 // Service flags
 bool useNetwork = true;
 bool useWDT = true;
 bool useSerial = false;
 bool useOTA = true;
-bool runPbit = false;
+bool runPbit = true;
 
-const char *ver = "ESP_WDT_OTA_2.21";
+const char *ver = "ESP_WDT_OTA_2.22";
 
 //###################################################
 
@@ -39,13 +39,13 @@ const int outputDownPin = 12;
 
 
 //wifi creadentials
-const char* ssid = "HomeNetwork_2.4G";
+const char* ssid = "Xiaomi_D6C8";
 const char* password = "guyd5161";
 //###################################
 
 
 //MQTT broker parameters
-const char* mqtt_server = "192.168.2.200";
+const char* mqtt_server = "192.168.3.200";
 const char* user = "guy";
 const char* passw = "kupelu9e";
 // ######################################
@@ -83,7 +83,7 @@ const int clockUpdateInt = 1; // hrs to update clock
 const int timeInt2Reset = 1500; // time between consq presses to init RESET cmd
 const long MQTTtimeOut = (1000 * 60) * 5; //5 mins stop try to MQTT
 const long WIFItimeOut = (1000 * 60) * 2; //2 mins try to connect WiFi
-const long OTAtimeOut = (1000*60) * 1; // 1 minute to try OTA
+const long OTAtimeOut = (1000*60) * 2; // 2 minute to try OTA
 long OTAcounter =0;
 const int deBounceInt = 50; //
 volatile int wdtResetCounter = 0;
@@ -393,7 +393,8 @@ void callback(char* topic, byte* payload, unsigned int length) {
                 PBit();
         }
         else if (strcmp(incoming_msg, "ota") == 0 ) {
-                pub_msg("OTA allowed for 60 seconds");
+                sprintf(msg, "OTA is enables for next %d seconds", OTAtimeOut/1000);
+                pub_msg(msg);
                 OTAcounter = millis();
         }
         else if (strcmp(incoming_msg, "reset") == 0 ) {
