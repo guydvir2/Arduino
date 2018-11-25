@@ -4,7 +4,6 @@
 #define deviceTopic "HomePi/Dvir/alarmMonitor"
 
 // Service flags
-// bool useSerial = false;
 bool useWDT = true;
 bool useOTA = true;
 
@@ -141,10 +140,6 @@ void startGPIOs() {
 // From here- all functions are copied from other sketched without any changes
 void startNetwork() {
         long startWifiConnection = 0;
-        //         Serial.println();
-        //         Serial.print("Connecting to ");
-        //         Serial.println(ssid);
-
         startWifiConnection = millis();
         WiFi.mode(WIFI_STA); //OTA Added
         WiFi.begin(ssid, password);
@@ -373,23 +368,10 @@ void callback(char* topic, byte* payload, unsigned int length) {
         char state2[5];
         char msg2[100];
 
-        //      Display on Serial monitor only
-        // if (useSerial) {
-        //         Serial.print("Message arrived [");
-        //         Serial.print(topic);
-        //         Serial.print("] ");
-        // }
         for (int i = 0; i < length; i++) {
-                // if (useSerial) {
-                //         Serial.print((char)payload[i]);
-                // }
                 incoming_msg[i] = (char)payload[i];
         }
         incoming_msg[length] = 0;
-        // if (useSerial) {
-        //         Serial.println("");
-        // }
-        //      ##############################
 
         if (strcmp(incoming_msg, "status") == 0) {
                 // relays state

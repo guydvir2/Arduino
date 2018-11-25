@@ -1,7 +1,7 @@
 //change deviceTopic !
 //###################################################
 
-#define deviceTopic "HomePi/Dvir/Windows/Garden"
+#define deviceTopic "HomePi/Dvir/Windows/FamilyRoom"
 
 // Service flags
 bool useNetwork = true;
@@ -10,7 +10,7 @@ bool useSerial = false;
 bool useOTA = true;
 bool runPbit = true;
 
-const char *ver = "ESP_WDT_OTA_2.22";
+const char *ver = "ESP_WDT_OTA_2.21";
 
 //###################################################
 
@@ -393,8 +393,7 @@ void callback(char* topic, byte* payload, unsigned int length) {
                 PBit();
         }
         else if (strcmp(incoming_msg, "ota") == 0 ) {
-                sprintf(msg, "OTA is enables for next %d seconds", OTAtimeOut/1000);
-                pub_msg(msg);
+                pub_msg("OTA allowed for 60 seconds");
                 OTAcounter = millis();
         }
         else if (strcmp(incoming_msg, "reset") == 0 ) {
