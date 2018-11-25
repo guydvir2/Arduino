@@ -1,14 +1,14 @@
 //change deviceTopic !
 //###################################################
 
-#define deviceTopic "HomePi/Dvir/Windows/Wemos_1"
+#define deviceTopic "HomePi/Dvir/Windows/GardenExit"
 
 // Service flags
 bool useNetwork = true;
 bool useWDT = true;
 bool useSerial = false;
 bool useOTA = true;
-bool runPbit = false;
+bool runPbit = true;
 
 const char *ver = "ESP_WDT_OTA_2.21";
 
@@ -39,13 +39,13 @@ const int outputDownPin = 12;
 
 
 //wifi creadentials
-const char* ssid = "HomeNetwork_2.4G";
+const char* ssid = "Xiaomi_D6C8";
 const char* password = "guyd5161";
 //###################################
 
 
 //MQTT broker parameters
-const char* mqtt_server = "192.168.2.200";
+const char* mqtt_server = "192.168.3.200";
 const char* user = "guy";
 const char* passw = "kupelu9e";
 // ######################################

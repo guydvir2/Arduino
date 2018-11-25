@@ -8,7 +8,7 @@
 bool useWDT = true;
 bool useOTA = true;
 
-const char *ver = "ESP_WDT_OTA_1.41";
+const char *ver = "ESP_WDT_OTA_1.42";
 
 //###################################################
 
@@ -132,7 +132,7 @@ void startGPIOs() {
 
         systemState_alarm_currentState = digitalRead(systemState_alarm_Pin);
         systemState_armed_currentState = digitalRead(systemState_armed_Pin);
-        systemState_alarm_lastState = systemState_alarm_currentState ;
+        systemState_alarm_lastState = systemState_alarm_currentState;
         systemState_armed_lastState = systemState_armed_currentState;
 
 
@@ -394,25 +394,25 @@ void callback(char* topic, byte* payload, unsigned int length) {
         if (strcmp(incoming_msg, "status") == 0) {
                 // relays state
                 if (digitalRead(armedHomePin) == RelayOn && digitalRead(armedAwayPin) == RelayOn) {
-                        sprintf(state, "invalid [Armed] and [Away] State");
+                        sprintf(state, "Status: invalid [Armed] and [Away] State");
                 }
                 else if (digitalRead(armedHomePin) == !RelayOn && digitalRead(armedAwayPin) == !RelayOn && digitalRead(systemState_armed_Pin) == SwitchOn) {
-                        sprintf(state, "[Armed] Manual");
+                        sprintf(state, "Status: Manual [Armed]");
                 }
                 else if (digitalRead(armedHomePin) == RelayOn && digitalRead(armedAwayPin) == !RelayOn && digitalRead(systemState_armed_Pin) == SwitchOn) {
-                        sprintf(state, "[Home Armed]");
+                        sprintf(state, "Status: [Code] [Home Armed]");
                 }
                 else if (digitalRead(armedHomePin) == !RelayOn && digitalRead(armedAwayPin) == RelayOn && digitalRead(systemState_armed_Pin) == SwitchOn) {
-                        sprintf(state, "[Away Armed]");
+                        sprintf(state, "Status: [Code] [Armed Away]");
                 }
                 else if (digitalRead(systemState_armed_Pin) == SwitchOn && digitalRead(systemState_alarm_Pin)== SwitchOn) {
-                        sprintf(state, "[Alarm]");
+                        sprintf(state, "Status: [Alarm]");
                 }
                 else if (digitalRead(systemState_armed_Pin) == !SwitchOn && digitalRead(armedHomePin) == !RelayOn && digitalRead(armedAwayPin) == !RelayOn) {
-                        sprintf(state, "[disarmed]");
+                        sprintf(state, "Status: [disarmed]");
                 }
                 else {
-                        sprintf(state, "[notDefined]");
+                        sprintf(state, "Status: [notDefined]");
 
                 }
 
@@ -519,6 +519,7 @@ void switchIt(char *type, char *dir) {
                                 digitalWrite(armedHomePin, RelayOn);
                                 delay(systemPause);
                                 allOff();
+                                delay(systemPause);
                         }
                         if (digitalRead(systemState_armed_Pin)==!SwitchOn && digitalRead(armedAwayPin)==!RelayOn && digitalRead(armedHomePin)==!RelayOn) {
                                 pub_msg("[Disarmed]");
