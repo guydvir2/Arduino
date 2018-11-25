@@ -1,7 +1,7 @@
 //change deviceTopic !
 //###################################################
 
-#define deviceTopic "HomePi/Dvir/Windows/GardenExit"
+#define deviceTopic "HomePi/Dvir/Windows/Garden"
 
 // Service flags
 bool useNetwork = true;
@@ -10,7 +10,7 @@ bool useSerial = false;
 bool useOTA = true;
 bool runPbit = true;
 
-const char *ver = "ESP_WDT_OTA_2.21";
+const char *ver = "ESP_WDT_OTA_2.22";
 
 //###################################################
 
@@ -83,7 +83,7 @@ const int clockUpdateInt = 1; // hrs to update clock
 const int timeInt2Reset = 1500; // time between consq presses to init RESET cmd
 const long MQTTtimeOut = (1000 * 60) * 5; //5 mins stop try to MQTT
 const long WIFItimeOut = (1000 * 60) * 2; //2 mins try to connect WiFi
-const long OTAtimeOut = (1000*60) * 1; // 1 minute to try OTA
+const long OTAtimeOut = (1000*60) * 2; // 2 minute to try OTA
 long OTAcounter =0;
 const int deBounceInt = 50; //
 volatile int wdtResetCounter = 0;
@@ -393,7 +393,8 @@ void callback(char* topic, byte* payload, unsigned int length) {
                 PBit();
         }
         else if (strcmp(incoming_msg, "ota") == 0 ) {
-                pub_msg("OTA allowed for 60 seconds");
+                sprintf(msg, "OTA is enables for next %d seconds", OTAtimeOut/1000);
+                pub_msg(msg);
                 OTAcounter = millis();
         }
         else if (strcmp(incoming_msg, "reset") == 0 ) {
