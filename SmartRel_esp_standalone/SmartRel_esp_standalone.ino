@@ -1,14 +1,15 @@
 //change deviceTopic !
 //###################################################
 
-#define deviceTopic "HomePi/Dvir/Windows/FamilyRoom"
+#define deviceTopic "HomePi/Dvir/Windows/SaloonDual"
 
 // Service flags
 bool useNetwork = true;
 bool useWDT = true;
 bool useSerial = false;
 bool useOTA = true;
-bool runPbit = true;
+bool runPbit = false;
+int networkID = 1;  // 0 or 1
 
 const char *ver = "ESP_WDT_OTA_2.21";
 
@@ -39,13 +40,17 @@ const int outputDownPin = 12;
 
 
 //wifi creadentials
-const char* ssid = "Xiaomi_D6C8";
+const char* ssid;
+const char* ssid_0 = "HomeNetwork_2.4G";
+const char* ssid_1 = "Xiaomi_D6C8";
 const char* password = "guyd5161";
 //###################################
 
 
 //MQTT broker parameters
-const char* mqtt_server = "192.168.3.200";
+const char* mqtt_server;
+const char* mqtt_server_0 = "192.168.2.200";
+const char* mqtt_server_1 = "192.168.3.200";
 const char* user = "guy";
 const char* passw = "kupelu9e";
 // ######################################
@@ -113,6 +118,7 @@ Ticker wdt;
 
 void setup() {
         startGPIOs();
+        selectNetwork();
         if (useSerial) {
                 Serial.begin(9600);
                 delay(10);
@@ -139,6 +145,18 @@ void startGPIOs() {
         pinMode(outputDownPin, OUTPUT);
 
         allOff();
+}
+
+void selectNetwork() {
+  if (networkID == 1 ){
+    ssid = ssid_1;
+    mqtt_server = mqtt_server_1;
+  }
+  else {
+    ssid = ssid_0;
+    mqtt_server = mqtt_server_0;
+    
+  }
 }
 
 void startNetwork() {
@@ -393,7 +411,8 @@ void callback(char* topic, byte* payload, unsigned int length) {
                 PBit();
         }
         else if (strcmp(incoming_msg, "ota") == 0 ) {
-                pub_msg("OTA allowed for 60 seconds");
+                sprintf(msg, "OTA allowed for %d seconds", OTAtimeOut/1000);
+                pub_msg(msg);
                 OTAcounter = millis();
         }
         else if (strcmp(incoming_msg, "reset") == 0 ) {

@@ -6,8 +6,9 @@
 // Service flags
 bool useWDT = true;
 bool useOTA = true;
+int networkID = 1;  // 0: HomeNetwork,  1:Xiaomi_D6C8
 
-const char *ver = "ESP_WDT_OTA_1.42";
+const char *ver = "ESP_WDT_OTA_1.5";
 
 //###################################################
 
@@ -18,7 +19,7 @@ const char *ver = "ESP_WDT_OTA_1.42";
 #include <ESP8266WiFi.h>
 #include <TimeLib.h>
 #include <NtpClientLib.h>
-#include <PubSubClient.h> //MQTT
+#include <PubSubClient.h>
 #include <Ticker.h> //WDT
 
 // OTA libraries
@@ -36,13 +37,17 @@ const int armedAwayPin = 14;
 
 
 //wifi creadentials
-const char* ssid = "HomeNetwork_2.4G";
+const char* ssid;
+const char* ssid_0 = "HomeNetwork_2.4G";
+const char* ssid_1 = "Xiaomi_D6C8";
 const char* password = "guyd5161";
 //###################################
 
 
 //MQTT broker parameters
-const char* mqtt_server = "192.168.2.200";
+const char* mqtt_server;
+const char* mqtt_server_0 = "192.168.2.200";
+const char* mqtt_server_1 = "192.168.3.200";
 const char* user = "guy";
 const char* passw = "kupelu9e";
 // ######################################
@@ -111,6 +116,7 @@ Ticker wdt;
 
 void setup() {
         startGPIOs();
+        selectNetwork();
         //         Serial.begin(9600);
         //         Serial.println("AlarmSystem Boot");
         //         delay(10);
@@ -138,6 +144,18 @@ void startGPIOs() {
 }
 
 // From here- all functions are copied from other sketched without any changes
+void selectNetwork() {
+  if (networkID == 1 ){
+    ssid = ssid_1;
+    mqtt_server = mqtt_server_1;
+  }
+  else {
+    ssid = ssid_0;
+    mqtt_server = mqtt_server_0;
+
+  }
+}
+
 void startNetwork() {
         long startWifiConnection = 0;
         startWifiConnection = millis();
@@ -559,7 +577,7 @@ void check_systemState_armed() {
 
                         else { // system Disarmed
                                 if (digitalRead(armedHomePin) == !RelayOn && digitalRead(armedAwayPin) == !RelayOn) {
-                                        pub_msg("detected: [Manual] [Disarmed]");
+                                        pub_msg("detected: [Disarmed]");
                                         mqttClient.publish(stateTopic, "disarmed", true);
                                 }
                                 else {
