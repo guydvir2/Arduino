@@ -3,12 +3,12 @@
 
 #define deviceTopic "HomePi/Dvir/gardenFlowMeter"
 
-// Service flags
-bool useWDT = true;
-bool useOTA = true;
-int networkID = 1;  // 0: HomeNetwork,  1:Xiaomi_D6C8
-bool useNetwork = true;
-bool useSerial = true;
+//// Service flags
+//bool useWDT = true;
+//bool useOTA = true;
+//int networkID = 1;  // 0: HomeNetwork,  1:Xiaomi_D6C8
+//bool useNetwork = true;
+//bool useSerial = true;
 
 const char *ver = "ESP_WDT_OTA_0.1";
 
@@ -18,7 +18,7 @@ const char *ver = "ESP_WDT_OTA_0.1";
 bool useWDT = false;
 bool useOTA = false;
 int networkID = 1;  // 0: HomeNetwork,  1:Xiaomi_D6C8
-bool useNetwork = false;
+bool useNetwork = true;
 bool useSerial = true;
 
 #define LEDoff HIGH

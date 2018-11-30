@@ -1,5 +1,5 @@
 //###################################################
-#define deviceTopic "HomePi/Dvir/Windows/SaloonDual"
+#define deviceTopic "HomePi/Dvir/Windows/KidsRoom"
 const char *ver = "ESP_WDT_OTA_2.2";
 //###################################################
 
