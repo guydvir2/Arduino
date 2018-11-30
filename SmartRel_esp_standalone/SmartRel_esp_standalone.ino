@@ -1,7 +1,7 @@
-//change deviceTopic !
 //###################################################
-
 #define deviceTopic "HomePi/Dvir/Windows/SaloonDual"
+const char *ver = "ESP_WDT_OTA_2.2";
+//###################################################
 
 // Service flags
 bool useNetwork = true;
@@ -9,14 +9,7 @@ bool useWDT = true;
 bool useSerial = false;
 bool useOTA = true;
 bool runPbit = false;
-int networkID = 1;  // 0 or 1
-
-const char *ver = "ESP_WDT_OTA_2.21";
-
-//###################################################
-
-#define RelayOn LOW
-#define SwitchOn LOW
+int networkID = 1;  // 0: HomeNetwork,  1:Xiaomi_D6C8
 
 #include <Arduino.h>
 #include <ESP8266WiFi.h>
@@ -30,13 +23,6 @@ const char *ver = "ESP_WDT_OTA_2.21";
 #include <WiFiUdp.h>
 #include <ArduinoOTA.h>
 // #######################
-
-// GPIO Pins for ESP8266
-const int inputUpPin = 4;
-const int inputDownPin = 5;
-const int outputUpPin = 14;
-const int outputDownPin = 12;
-//##########################
 
 
 //wifi creadentials
@@ -73,16 +59,6 @@ int MQTTretries = 5; // allowed tries to reconnect
 // ######################
 
 
-// GPIO status flags
-bool outputUp_currentState;
-bool outputDown_currentState;
-bool inputUp_lastState;
-bool inputDown_lastState;
-bool inputUp_currentState;
-bool inputDown_currentState;
-// ###########################
-
-
 // time interval parameters
 const int clockUpdateInt = 1; // hrs to update clock
 const int timeInt2Reset = 1500; // time between consq presses to init RESET cmd
@@ -116,8 +92,33 @@ WiFiClient espClient;
 PubSubClient mqttClient(espClient);
 Ticker wdt;
 
+// Code Specific #####################################
+
+// GPIO Pins for ESP8266
+const int inputUpPin = 4;
+const int inputDownPin = 5;
+const int outputUpPin = 14;
+const int outputDownPin = 12;
+//##########################
+
+// GPIO status flags
+bool outputUp_currentState;
+bool outputDown_currentState;
+bool inputUp_lastState;
+bool inputDown_lastState;
+bool inputUp_currentState;
+bool inputDown_currentState;
+// ###########################
+
+// device state definitions
+#define RelayOn LOW
+#define SwitchOn LOW
+
+// #####################################################
+
 void setup() {
-        startGPIOs();
+        startGPIOs();// <------------ Need to be changed
+
         selectNetwork();
         if (useSerial) {
                 Serial.begin(9600);
@@ -139,6 +140,7 @@ void setup() {
 }
 
 void startGPIOs() {
+        // <------------ Need to be changed
         pinMode(inputUpPin, INPUT_PULLUP);
         pinMode(inputDownPin, INPUT_PULLUP);
         pinMode(outputUpPin, OUTPUT);
@@ -147,16 +149,17 @@ void startGPIOs() {
         allOff();
 }
 
+// Common ##############
 void selectNetwork() {
-  if (networkID == 1 ){
-    ssid = ssid_1;
-    mqtt_server = mqtt_server_1;
-  }
-  else {
-    ssid = ssid_0;
-    mqtt_server = mqtt_server_0;
-    
-  }
+        if (networkID == 1 ) {
+                ssid = ssid_1;
+                mqtt_server = mqtt_server_1;
+        }
+        else {
+                ssid = ssid_0;
+                mqtt_server = mqtt_server_0;
+
+        }
 }
 
 void startNetwork() {
@@ -328,6 +331,32 @@ int connectMQTT() {
         }
 }
 
+void verifyMQTTConnection() {
+        //  MQTT reconnection for first time or after first insuccess to reconnect
+        if (!mqttClient.connected() && firstNotConnected == 0) {
+                connectionFlag = connectMQTT();
+                //  still not connected
+                if (connectionFlag == 0 ) {
+                        firstNotConnected = millis();
+                }
+                else {
+                        mqttClient.loop();
+                }
+        }
+        // retry after fail - resume only after timeout
+        else if (!mqttClient.connected() && firstNotConnected != 0 && millis() - firstNotConnected > MQTTtimeOut) {
+                //    after cooling out period - try again
+                connectionFlag = connectMQTT();
+                firstNotConnected = 0;
+                if (useSerial) {
+                        Serial.println("trying again to reconnect");
+                }
+        }
+        else {
+                mqttClient.loop();
+        }
+}
+
 void createTopics(const char *devTopic, char *state, char *avail) {
         sprintf(state, "%s/State", devTopic);
         sprintf(avail, "%s/Avail", devTopic);
@@ -461,6 +490,38 @@ void get_timeStamp() {
         sprintf(timeStamp, "%02d-%02d-%02d %02d:%02d:%02d", year(t), month(t), day(t), hour(t), minute(t), second(t));
 }
 
+void sendReset(char *header) {
+        char temp[150];
+
+        if (useSerial) {
+                Serial.println("Sending Reset command");
+        }
+        if (useNetwork) {
+                sprintf(temp, "[%s] - Reset sent", header);
+                pub_msg(temp);
+        }
+        delay(100);
+        ESP.restart();
+}
+
+void feedTheDog() {
+        wdtResetCounter++;
+        if (wdtResetCounter >= wdtMaxRetries) {
+                sendReset("WatchDog");
+        }
+}
+
+void acceptOTA() {
+        if (millis() - OTAcounter <= OTAtimeOut) {
+                ArduinoOTA.handle();
+        }
+}
+
+// END Common ############
+
+
+
+// Code specific #######################
 void switchIt(char *type, char *dir) {
         char mqttmsg[50];
         bool states[2];
@@ -523,20 +584,6 @@ void detectResetPresses() {
         }
 }
 
-void sendReset(char *header) {
-        char temp[150];
-
-        if (useSerial) {
-                Serial.println("Sending Reset command");
-        }
-        if (useNetwork) {
-                sprintf(temp, "[%s] - Reset sent", header);
-                pub_msg(temp);
-        }
-        delay(100);
-        ESP.restart();
-}
-
 void PBit() {
         int pause = 2 * 5 * deBounceInt;
         allOff();
@@ -549,32 +596,6 @@ void PBit() {
         delay(pause);
         allOff();
 
-}
-
-void verifyMQTTConnection() {
-        //  MQTT reconnection for first time or after first insuccess to reconnect
-        if (!mqttClient.connected() && firstNotConnected == 0) {
-                connectionFlag = connectMQTT();
-                //  still not connected
-                if (connectionFlag == 0 ) {
-                        firstNotConnected = millis();
-                }
-                else {
-                        mqttClient.loop();
-                }
-        }
-        // retry after fail - resume only after timeout
-        else if (!mqttClient.connected() && firstNotConnected != 0 && millis() - firstNotConnected > MQTTtimeOut) {
-                //    after cooling out period - try again
-                connectionFlag = connectMQTT();
-                firstNotConnected = 0;
-                if (useSerial) {
-                        Serial.println("trying again to reconnect");
-                }
-        }
-        else {
-                mqttClient.loop();
-        }
 }
 
 void allOff() {
@@ -649,19 +670,6 @@ void verifyNotHazardState() {
                 sendReset("HazradState");
         }
 
-}
-
-void feedTheDog() {
-        wdtResetCounter++;
-        if (wdtResetCounter >= wdtMaxRetries) {
-                sendReset("WatchDog");
-        }
-}
-
-void acceptOTA() {
-        if (millis() - OTAcounter <= OTAtimeOut) {
-                ArduinoOTA.handle();
-        }
 }
 
 void readGpioStates() {
