@@ -8,7 +8,7 @@ bool useWDT = true;
 bool useOTA = true;
 int networkID = 1;  // 0: HomeNetwork,  1:Xiaomi_D6C8
 bool useNetwork = true;
-bool useSerial = false;
+bool useSerial = true;
 
 const char *ver = "ESP_WDT_OTA_0.1";
 
@@ -110,6 +110,7 @@ float flowRate = 0;
 unsigned int flow_milLiters = 0;
 unsigned long total_milLitres = 0;
 unsigned long oldTime = 0;
+const char* systemStates[] = {"idle", "flowing"};
 
 void setup(){
 
@@ -143,15 +144,15 @@ void startGPIOs(){
 
 // From here- all functions are copied from other sketched without any changes
 void selectNetwork() {
-  if (networkID == 1 ){
-    ssid = ssid_1;
-    mqtt_server = mqtt_server_1;
-  }
-  else {
-    ssid = ssid_0;
-    mqtt_server = mqtt_server_0;
+        if (networkID == 1 ) {
+                ssid = ssid_1;
+                mqtt_server = mqtt_server_1;
+        }
+        else {
+                ssid = ssid_0;
+                mqtt_server = mqtt_server_0;
 
-  }
+        }
 }
 
 void startNetwork() {
@@ -381,92 +382,67 @@ void callback(char* topic, byte* payload, unsigned int length) {
         char state2[5];
         char msg2[100];
 
-        // for (int i = 0; i < length; i++) {
-        //         incoming_msg[i] = (char)payload[i];
-        // }
-        // incoming_msg[length] = 0;
+        for (int i = 0; i < length; i++) {
+                incoming_msg[i] = (char)payload[i];
+        }
+        incoming_msg[length] = 0;
         //
-        // if (strcmp(incoming_msg, "status") == 0) {
-        //         // relays state
-        //         if (digitalRead(armedHomePin) == RelayOn && digitalRead(armedAwayPin) == RelayOn) {
-        //                 sprintf(state, "Status: invalid [Armed] and [Away] State");
-        //         }
-        //         else if (digitalRead(armedHomePin) == !RelayOn && digitalRead(armedAwayPin) == !RelayOn && digitalRead(systemState_armed_Pin) == SwitchOn) {
-        //                 sprintf(state, "Status: Manual [Armed]");
-        //         }
-        //         else if (digitalRead(armedHomePin) == RelayOn && digitalRead(armedAwayPin) == !RelayOn && digitalRead(systemState_armed_Pin) == SwitchOn) {
-        //                 sprintf(state, "Status: [Code] [Home Armed]");
-        //         }
-        //         else if (digitalRead(armedHomePin) == !RelayOn && digitalRead(armedAwayPin) == RelayOn && digitalRead(systemState_armed_Pin) == SwitchOn) {
-        //                 sprintf(state, "Status: [Code] [Armed Away]");
-        //         }
-        //         else if (digitalRead(systemState_armed_Pin) == SwitchOn && digitalRead(systemState_alarm_Pin)== SwitchOn) {
-        //                 sprintf(state, "Status: [Alarm]");
-        //         }
-        //         else if (digitalRead(systemState_armed_Pin) == !SwitchOn && digitalRead(armedHomePin) == !RelayOn && digitalRead(armedAwayPin) == !RelayOn) {
-        //                 sprintf(state, "Status: [disarmed]");
-        //         }
-        //         else {
-        //                 sprintf(state, "Status: [notDefined]");
-        //
-        //         }
-        //
-        //         pub_msg(state);
-        // }
-        // else if (strcmp(incoming_msg, "armed_home") == 0 || strcmp(incoming_msg, "armed_away") == 0 || strcmp(incoming_msg, "disarmed") == 0) {
-        //         switchIt("MQTT", incoming_msg);
-        // }
-        // else if (strcmp(incoming_msg, "boot") == 0 ) {
-        //         sprintf(msg, "Boot:[%s]", bootTime);
-        //         pub_msg(msg);
-        // }
-        // else if (strcmp(incoming_msg, "ver") == 0 ) {
-        //         sprintf(msg, "ver:[%s]", ver);
-        //         pub_msg(msg);
-        // }
+        if (strcmp(incoming_msg, "status") == 0) {
+                //         // relays state
+
+                //
+                //         pub_msg(state);
+        }
+        else if (strcmp(incoming_msg, "boot") == 0 ) {
+                sprintf(msg, "Boot:[%s]", bootTime);
+                pub_msg(msg);
+        }
+        else if (strcmp(incoming_msg, "ver") == 0 ) {
+                sprintf(msg, "ver:[%s]", ver);
+                pub_msg(msg);
+        }
         // else if (strcmp(incoming_msg, "pins") == 0 ) {
         //         sprintf(msg, "Switch: input1[%d] input2[%d], Relay: output_home[%d] output_full[%d]", systemState_armed_Pin, systemState_alarm_Pin, armedHomePin, armedAwayPin);
         //         pub_msg(msg);
         // }
-        // else if (strcmp(incoming_msg, "ip") == 0 ) {
-        //         char buf[16];
-        //         sprintf(buf, "%d.%d.%d.%d", WiFi.localIP()[0], WiFi.localIP()[1], WiFi.localIP()[2], WiFi.localIP()[3] );
-        //         sprintf(msg, "IP address:[%s]", buf);
-        //         pub_msg(msg);
-        // }
-        // else if (strcmp(incoming_msg, "ota") == 0 ) {
-        //         sprintf(msg, "OTA allowed for %d seconds", OTAtimeOut/1000);
-        //         pub_msg(msg);
-        //         OTAcounter = millis();
-        // }
-        // else if (strcmp(incoming_msg, "reset") == 0 ) {
-        //         sendReset("MQTT");
-        // }
-        // else if (strcmp(incoming_msg, "clear") == 0 ) {
-        //         allReset();
-        //         sendReset("clear");
-        // }
+        else if (strcmp(incoming_msg, "ip") == 0 ) {
+                char buf[16];
+                sprintf(buf, "%d.%d.%d.%d", WiFi.localIP()[0], WiFi.localIP()[1], WiFi.localIP()[2], WiFi.localIP()[3] );
+                sprintf(msg, "IP address:[%s]", buf);
+                pub_msg(msg);
+        }
+        else if (strcmp(incoming_msg, "ota") == 0 ) {
+                sprintf(msg, "OTA allowed for %d seconds", OTAtimeOut/1000);
+                pub_msg(msg);
+                OTAcounter = millis();
+        }
+        else if (strcmp(incoming_msg, "reset") == 0 ) {
+                sendReset("MQTT");
+        }
+
 }
 
 void print_OL_readings(){
-        unsigned int frac;
-        // Print the flow rate for this second in litres / minute
-        Serial.print("Flow rate: ");
-        Serial.print(int(flowRate)); // Print the integer part of the variable
-        Serial.print("."); // Print the decimal point
-        // Determine the fractional part. The 10 multiplier gives us 1 decimal place.
-        frac = (flowRate - int(flowRate)) * 10;
-        Serial.print(frac, DEC); // Print the fractional part of the variable
-        Serial.print("L/min");
-        // Print the number of litres flowed in this second
-        Serial.print("  Current Liquid Flowing: "); // Output separator
-        Serial.print(flow_milLiters);
-        Serial.print("mL/Sec");
+        if (useSerial == true) {
+                unsigned int frac;
+                // Print the flow rate for this second in litres / minute
+                Serial.print("Flow rate: ");
+                Serial.print(int(flowRate)); // Print the integer part of the variable
+                Serial.print("."); // Print the decimal point
+                // Determine the fractional part. The 10 multiplier gives us 1 decimal place.
+                frac = (flowRate - int(flowRate)) * 10;
+                Serial.print(frac, DEC); // Print the fractional part of the variable
+                Serial.print("L/min");
+                // Print the number of litres flowed in this second
+                Serial.print("  Current Liquid Flowing: "); // Output separator
+                Serial.print(flow_milLiters);
+                Serial.print("mL/Sec");
 
-        // Print the cumulative total of litres flowed since starting
-        Serial.print("  Output Liquid Quantity: "); // Output separator
-        Serial.print(total_milLitres);
-        Serial.println("mL");
+                // Print the cumulative total of litres flowed since starting
+                Serial.print("  Output Liquid Quantity: "); // Output separator
+                Serial.print(total_milLitres);
+                Serial.println("mL");
+        }
 }
 
 void pulseCounter(){
@@ -493,6 +469,13 @@ void measureFlow(){
                 attachInterrupt(sensorInterrupt, pulseCounter, FALLING);
         }
 
+}
+
+void detectState(){
+  int threshold = 0;
+  if (flowRate > threshold) {
+    mqttClient.publish(stateTopic, systemStates[1], true);
+  }
 }
 
 void loop(){
