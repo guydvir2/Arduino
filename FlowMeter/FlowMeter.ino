@@ -14,6 +14,13 @@ const char *ver = "ESP_WDT_OTA_0.1";
 
 //###################################################
 
+// Service flags
+bool useWDT = false;
+bool useOTA = false;
+int networkID = 1;  // 0: HomeNetwork,  1:Xiaomi_D6C8
+bool useNetwork = false;
+bool useSerial = true;
+
 #define LEDoff HIGH
 
 #include <Arduino.h>
@@ -112,6 +119,16 @@ unsigned long total_milLitres = 0;
 unsigned long oldTime = 0;
 const char* systemStates[] = {"idle", "flowing"};
 
+byte currentDay;
+byte currentMonth;
+unsigned int currentDay_flow=0; //liters
+unsigned int lastDay_flow=0; //liters
+unsigned int monthly_consumption [12] = {0,0,0,0,0,0,0,0,0,0,0,0}; //liters
+const char months []= {'Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'};
+unsigned int adHoc_flow =0; //liters
+bool adHoc_flag=false;
+
+
 void setup(){
 
         startGPIOs();
@@ -131,6 +148,10 @@ void setup(){
         if (useWDT) {
                 wdt.attach(1, feedTheDog); // Start WatchDog
         }
+
+        time_t t = now();
+        currentDay = day(t);
+        currentMonth = month(t);
 
         attachInterrupt(sensorInterrupt, pulseCounter, FALLING);
 }
@@ -386,14 +407,8 @@ void callback(char* topic, byte* payload, unsigned int length) {
                 incoming_msg[i] = (char)payload[i];
         }
         incoming_msg[length] = 0;
-        //
-        if (strcmp(incoming_msg, "status") == 0) {
-                //         // relays state
 
-                //
-                //         pub_msg(state);
-        }
-        else if (strcmp(incoming_msg, "boot") == 0 ) {
+        if (strcmp(incoming_msg, "boot") == 0 ) {
                 sprintf(msg, "Boot:[%s]", bootTime);
                 pub_msg(msg);
         }
@@ -401,10 +416,6 @@ void callback(char* topic, byte* payload, unsigned int length) {
                 sprintf(msg, "ver:[%s]", ver);
                 pub_msg(msg);
         }
-        // else if (strcmp(incoming_msg, "pins") == 0 ) {
-        //         sprintf(msg, "Switch: input1[%d] input2[%d], Relay: output_home[%d] output_full[%d]", systemState_armed_Pin, systemState_alarm_Pin, armedHomePin, armedAwayPin);
-        //         pub_msg(msg);
-        // }
         else if (strcmp(incoming_msg, "ip") == 0 ) {
                 char buf[16];
                 sprintf(buf, "%d.%d.%d.%d", WiFi.localIP()[0], WiFi.localIP()[1], WiFi.localIP()[2], WiFi.localIP()[3] );
@@ -420,6 +431,28 @@ void callback(char* topic, byte* payload, unsigned int length) {
                 sendReset("MQTT");
         }
 
+        else if (strcmp(incoming_msg, "flow") == 0 ) {
+                float f_lit = (float)total_milLitres/1000;
+                sprintf(msg, "Total: %.02f liters",f_lit );
+                pub_msg(msg);
+        }
+        else if (strcmp(incoming_msg, "start_count") == 0 ) {
+                adHoc_flag = true;
+                adHoc_flow = 0;
+                pub_msg("Start counter");
+        }
+        else if (strcmp(incoming_msg, "stop_count") == 0 ) {
+                adHoc_flag = false;
+                pub_msg("Stop counter");
+        }
+        else if (strcmp(incoming_msg, "show_count") == 0 ) {
+                sprintf(msg, "Flow count: %.02f liters",adHoc_flow);
+                pub_msg(msg);
+        }
+        else if (strcmp(incoming_msg, "reset_count") == 0 ) {
+                adHoc_flow = 0;
+                pub_msg("Reset counter");
+        }
 }
 
 void print_OL_readings(){
@@ -451,7 +484,7 @@ void pulseCounter(){
 }
 
 void measureFlow(){
-        if((millis() - oldTime) > 1000) { // calc cycle
+        if((millis() - oldTime) > 1000 && pulseCount >0) { // calc cycle
                 // Disable the interrupt while calculating flow rate
                 detachInterrupt(sensorInterrupt);
                 flowRate = ((1000.0 / (millis() - oldTime)) * pulseCount) / calibrationFactor;
@@ -460,7 +493,7 @@ void measureFlow(){
                 flow_milLiters = (flowRate / 60) * 1000;
                 // Add the millilitres passed in this second to the cumulative total
                 total_milLitres += flow_milLiters;
-
+                cummDay();
                 print_OL_readings();
                 // Reset the pulse counter- for next cycle
                 pulseCount = 0;
@@ -468,6 +501,42 @@ void measureFlow(){
                 // Enable the interrupt again now that we've finished sending output
                 attachInterrupt(sensorInterrupt, pulseCounter, FALLING);
         }
+}
+
+void cummDay(){
+        time_t t = now();
+
+        if (day(t)==currentDay) {
+                currentDay_flow += flow_milLiters/1000;
+        }
+        else {
+                lastDay_flow = currentDay_flow;
+                currentDay_flow = 0;
+                currentDay = day(t);
+                currentDay_flow += flow_milLiters/1000;
+        }
+
+        if (adHoc_flag == true) {
+                adHoc_flow += flow_milLiters/1000;
+        }
+
+        monthly_consumption[month(t)] = monthly_consumption[month(t)] +flow_milLiters/1000;
+        if (useSerial) {
+                Serial.print("Current Day:");
+                Serial.println(currentDay_flow);
+
+                Serial.print("Months: ");
+                for (int i=0; i<=11;i++) {
+                        Serial.print(months[i]);
+                        Serial.print(": ");
+                        Serial.println(monthly_consumption[i]);
+                }
+
+                Serial.print("Counter: ");
+                Serial.println(adHoc_flow);
+        }
+
+
 
 }
 
