@@ -1,12 +1,12 @@
 //###################################################
-#define deviceTopic "HomePi/Dvir/Windows/KidsRoom"
+#define deviceTopic "HomePi/Dvir/Windows/test"
 const char *ver = "ESP_WDT_OTA_2.2";
 //###################################################
 
 // Service flags
 bool useNetwork = true;
 bool useWDT = true;
-bool useSerial = false;
+bool useSerial = true;
 bool useOTA = true;
 bool runPbit = false;
 int networkID = 1;  // 0: HomeNetwork,  1:Xiaomi_D6C8
@@ -62,8 +62,8 @@ int MQTTretries = 5; // allowed tries to reconnect
 // time interval parameters
 const int clockUpdateInt = 1; // hrs to update clock
 const int timeInt2Reset = 1500; // time between consq presses to init RESET cmd
-const long MQTTtimeOut = (1000 * 60) * 5; //5 mins stop try to MQTT
-const long WIFItimeOut = (1000 * 60) * 2; //2 mins try to connect WiFi
+const long MQTTtimeOut = (1000 * 60) * 0.2; //5 mins stop try to MQTT
+const long WIFItimeOut = (1000 * 60) * 0.5; // 1/2 mins try to connect WiFi
 const long OTAtimeOut = (1000*60) * 2; // 2 minute to try OTA
 long OTAcounter =0;
 const int deBounceInt = 50; //
@@ -118,11 +118,11 @@ bool inputDown_currentState;
 
 void setup() {
         startGPIOs();// <------------ Need to be changed
-
         selectNetwork();
+
         if (useSerial) {
                 Serial.begin(9600);
-                delay(10);
+                delay(1000);
                 Serial.println("SystemBoot");
         }
         if (useNetwork) {
@@ -158,21 +158,21 @@ void selectNetwork() {
         else {
                 ssid = ssid_0;
                 mqtt_server = mqtt_server_0;
-
         }
 }
 
 void startNetwork() {
-        long startWifiConnection = 0;
+        long startWifiConnection = millis();
         if (useSerial) {
                 Serial.println();
                 Serial.print("Connecting to ");
                 Serial.println(ssid);
         }
 
-        startWifiConnection = millis();
+        // startWifiConnection = millis();
         WiFi.mode(WIFI_STA); //OTA Added
         WiFi.begin(ssid, password);
+
         // in case of reboot - timeOUT to wifi
         while (WiFi.status() != WL_CONNECTED && millis() - startWifiConnection < WIFItimeOut) {
                 delay(500);
@@ -181,18 +181,27 @@ void startNetwork() {
                 }
         }
 
-        WiFi.setAutoReconnect(true);
-        if (useSerial) {
-                Serial.println("");
-                Serial.println("WiFi connected");
-                Serial.print("IP address: ");
-                Serial.println(WiFi.localIP());
+        if (WiFi.status() != WL_CONNECTED) { // case of no success - restart due to no wifi
+          if (useSerial) {
+                  Serial.println("reset- no wifi detected");
+          }
+                sendReset("null");
+
         }
 
-        startMQTT();
-        startNTP();
-        get_timeStamp();
-        strcpy(bootTime, timeStamp);
+        else { // if wifi is OK
+                WiFi.setAutoReconnect(true);
+                if (useSerial) {
+                        Serial.println("");
+                        Serial.println("WiFi connected");
+                        Serial.print("IP address: ");
+                        Serial.println(WiFi.localIP());
+                }
+                startMQTT();
+                startNTP();
+                get_timeStamp();
+                strcpy(bootTime, timeStamp);
+        }
 }
 
 void startOTA() {
@@ -276,12 +285,13 @@ void startNTP() {
 }
 
 int connectMQTT() {
+        long timeout = millis()+3000;
         // verify wifi connected
         if (WiFi.status() == WL_CONNECTED) {
                 if (useSerial) {
                         Serial.println("have wifi, entering MQTT connection");
                 }
-                while (!mqttClient.connected() && mqttFailCounter <= MQTTretries) {
+                while (!mqttClient.connected() && mqttFailCounter <= MQTTretries && millis()-timeout>3000) {
                         if (useSerial) {
                                 Serial.print("Attempting MQTT connection...");
                         }
@@ -303,20 +313,25 @@ int connectMQTT() {
                                 mqttFailCounter = 0;
                                 return 1;
                         }
-                        else {
+                        else { // fail to connect, but have few retries
                                 if (useSerial) {
                                         Serial.print("failed, rc=");
                                         Serial.print(mqttClient.state());
                                         Serial.println(" try again in 5 seconds");
                                 }
-                                delay(5000);
+                                // delay(5000);
+
                                 if (useSerial) {
-                                        Serial.print("number of fails to reconnect MQTT");
+                                        Serial.print("number of fails to reconnect MQTT :");
                                         Serial.println(mqttFailCounter);
                                 }
+
+                                timeout=millis();
                                 mqttFailCounter++;
                         }
                 }
+
+                // Failed to connect MQTT adter retries
                 if (useSerial) {
                         Serial.println("Exit without connecting MQTT");
                 }
@@ -332,28 +347,45 @@ int connectMQTT() {
 }
 
 void verifyMQTTConnection() {
-        //  MQTT reconnection for first time or after first insuccess to reconnect
-        if (!mqttClient.connected() && firstNotConnected == 0) {
-                connectionFlag = connectMQTT();
-                //  still not connected
-                if (connectionFlag == 0 ) {
-                        firstNotConnected = millis();
+        if (WiFi.status() == WL_CONNECTED) {
+                //  MQTT reconnection for first time or after first insuccess to reconnect
+                if (!mqttClient.connected() && firstNotConnected == 0) {
+                        connectionFlag = connectMQTT(); // few tries
+                        //  still not connected
+                        if (connectionFlag == 0 ) {
+                                firstNotConnected = millis();
+                        }
+                        else {
+                                mqttClient.loop();
+                        }
                 }
-                else {
+                // retry after fail - resume only after timeout
+                else if (!mqttClient.connected() && firstNotConnected != 0 && millis() - firstNotConnected > MQTTtimeOut) {
+                        //    after cooling out period - try again
+                        connectionFlag = connectMQTT();
+                        firstNotConnected = 0;
+                        if (useSerial) {
+                                Serial.println("trying again to reconnect");
+                        }
+                        if (connectionFlag==0){
+                          sendReset("null");
+                          if (useSerial) {
+                                  Serial.println("reset after no MQTT");
+                          }
+                        }
+                }
+
+                else if (mqttClient.connected()) {
                         mqttClient.loop();
                 }
         }
-        // retry after fail - resume only after timeout
-        else if (!mqttClient.connected() && firstNotConnected != 0 && millis() - firstNotConnected > MQTTtimeOut) {
-                //    after cooling out period - try again
-                connectionFlag = connectMQTT();
-                firstNotConnected = 0;
-                if (useSerial) {
-                        Serial.println("trying again to reconnect");
-                }
-        }
+
         else {
-                mqttClient.loop();
+          if (useSerial) {
+                  Serial.println("try to reconnect wifi");
+          }
+          startNetwork();
+
         }
 }
 
@@ -497,15 +529,18 @@ void sendReset(char *header) {
                 Serial.println("Sending Reset command");
         }
         if (useNetwork) {
-                sprintf(temp, "[%s] - Reset sent", header);
-                pub_msg(temp);
+                if (strcmp(header, "null")!=0) {
+                        sprintf(temp, "[%s] - Reset sent", header);
+                        pub_msg(temp);
+                }
         }
-        delay(100);
+        // delay(100);
         ESP.restart();
 }
 
 void feedTheDog() {
         wdtResetCounter++;
+        Serial.println(  wdtResetCounter);
         if (wdtResetCounter >= wdtMaxRetries) {
                 sendReset("WatchDog");
         }

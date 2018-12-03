@@ -3,21 +3,14 @@
 
 #define deviceTopic "HomePi/Dvir/gardenFlowMeter"
 
-//// Service flags
-//bool useWDT = true;
-//bool useOTA = true;
-//int networkID = 1;  // 0: HomeNetwork,  1:Xiaomi_D6C8
-//bool useNetwork = true;
-//bool useSerial = true;
-
 const char *ver = "ESP_WDT_OTA_0.1";
 
 //###################################################
 
 // Service flags
-bool useWDT = false;
-bool useOTA = false;
-int networkID = 1;  // 0: HomeNetwork,  1:Xiaomi_D6C8
+bool useWDT = true;
+bool useOTA = true;
+int networkID = 0;  // 0: HomeNetwork,  1:Xiaomi_D6C8
 bool useNetwork = true;
 bool useSerial = true;
 
@@ -66,7 +59,7 @@ char availTopic[50];
 // MQTT connection flags
 int mqttFailCounter = 0; // count tries to reconnect
 long firstNotConnected = 0; // time stamp of first try
-int connectionFlag = 0;
+bool mqttConnected = 0;
 int MQTTretries = 5; // allowed tries to reconnect
 // ######################
 
@@ -114,19 +107,20 @@ byte sensorPin = 2;
 float calibrationFactor = 4.5; // pulses per second per litre/minute of flow.
 volatile byte pulseCount = 0;
 float flowRate = 0;
-unsigned int flow_milLiters = 0;
-unsigned long total_milLitres = 0;
-unsigned long oldTime = 0;
-const char* systemStates[] = {"idle", "flowing"};
+int flow_milLiters = 0;
+long total_milLitres = 0;
+long oldTime = 0;
+char* systemStates[] = {"idle", "flowing"};
 
 byte currentDay;
 byte currentMonth;
-unsigned int currentDay_flow=0; //liters
-unsigned int lastDay_flow=0; //liters
-unsigned int monthly_consumption [12] = {0,0,0,0,0,0,0,0,0,0,0,0}; //liters
-const char months []= {'Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'};
-unsigned int adHoc_flow =0; //liters
+float currentDay_flow=0; //liters
+float lastDay_flow=0; //liters
+float monthly_consumption [12] = {0,0,0,0,0,0,0,0,0,0,0,0}; //liters
+const char *months []= {"Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"};
+float adHoc_flow =0; //liters
 bool adHoc_flag=false;
+bool lastDetectState=false;
 
 
 void setup(){
@@ -151,7 +145,7 @@ void setup(){
 
         time_t t = now();
         currentDay = day(t);
-        currentMonth = month(t);
+        currentMonth = month(t)-1;
 
         attachInterrupt(sensorInterrupt, pulseCounter, FALLING);
 }
@@ -281,7 +275,7 @@ int connectMQTT() {
                         if (mqttClient.connect(deviceName, user, passw, availTopic, 0, true, "offline")) {
                                 mqttClient.publish(availTopic, "online", true);
                                 if (firstRun == true) {
-                                        mqttClient.publish(stateTopic, "disarmed", true);
+                                        pub_state(systemStates[0]);
                                         firstRun = false;
                                 }
                                 pub_msg("Connected to MQTT server");
@@ -306,13 +300,20 @@ int connectMQTT() {
 }
 
 void pub_msg(char *inmsg) {
-        char tmpmsg[150];
+        if (mqttConnected ==true) {
+                char tmpmsg[150];
 
-        get_timeStamp();
-        sprintf(tmpmsg, "[%s] [%s]", timeStamp, deviceTopic );
-        msgSplitter(inmsg, 95, tmpmsg, "#" );
+                get_timeStamp();
+                sprintf(tmpmsg, "[%s] [%s]", timeStamp, deviceTopic );
+                msgSplitter(inmsg, 95, tmpmsg, "#" );
+        }
 }
 
+void pub_state(char *inmsg){
+        if (mqttConnected ==true) {
+                mqttClient.publish(stateTopic, inmsg, true);
+        }
+}
 void createTopics(const char *devTopic, char *state, char *avail) {
         sprintf(state, "%s/State", devTopic);
         sprintf(avail, "%s/Avail", devTopic);
@@ -356,26 +357,40 @@ void sendReset(char *header) {
         ESP.restart();
 }
 
-void verifyMQTTConnection() {
+int verifyMQTTConnection() {
         //  MQTT reconnection for first time or after first insuccess to reconnect
         if (!mqttClient.connected() && firstNotConnected == 0) {
-                connectionFlag = connectMQTT();
+                mqttConnected = connectMQTT();
                 //  still not connected
-                if (connectionFlag == 0 ) {
+                if (mqttConnected == 0 ) {
                         firstNotConnected = millis();
+                        return 0; //error connecting
                 }
                 else {
                         mqttClient.loop();
+                        return 1;
                 }
         }
+
         // retry after fail - resume only after timeout
         else if (!mqttClient.connected() && firstNotConnected != 0 && millis() - firstNotConnected > MQTTtimeOut) {
                 //    after cooling out period - try again
-                connectionFlag = connectMQTT();
-                firstNotConnected = 0;
+                mqttConnected = connectMQTT();
+                if (mqttConnected == 1) { //success
+                        firstNotConnected = 0;
+                        mqttClient.loop();
+                        return 1;
+                }
+                else {
+                        firstNotConnected = millis(); // start wait timeout
+                        return 0;
+                }
         }
-        else {
+
+        // all is good
+        if (mqttClient.connected()) {
                 mqttClient.loop();
+                return 1;
         }
 }
 
@@ -493,8 +508,10 @@ void measureFlow(){
                 flow_milLiters = (flowRate / 60) * 1000;
                 // Add the millilitres passed in this second to the cumulative total
                 total_milLitres += flow_milLiters;
+
                 cummDay();
                 print_OL_readings();
+
                 // Reset the pulse counter- for next cycle
                 pulseCount = 0;
 
@@ -506,56 +523,77 @@ void measureFlow(){
 void cummDay(){
         time_t t = now();
 
+        // Day use
         if (day(t)==currentDay) {
-                currentDay_flow += flow_milLiters/1000;
+                currentDay_flow += (float)flow_milLiters/1000;
         }
         else {
-                lastDay_flow = currentDay_flow;
-                currentDay_flow = 0;
+                lastDay_flow = (float)currentDay_flow;
+                currentDay_flow = (float)flow_milLiters/1000;
                 currentDay = day(t);
-                currentDay_flow += flow_milLiters/1000;
         }
 
+        // monthly use
+        if (month(t) == currentMonth) {
+                monthly_consumption[month(t)-1] = (float)monthly_consumption[month(t)-1] +(float)flow_milLiters/1000;
+        }
+        else{
+                monthly_consumption[month(t)-1] = (float)flow_milLiters/1000;
+                currentMonth = month(t);
+        }
+
+        // Counter use
         if (adHoc_flag == true) {
-                adHoc_flow += flow_milLiters/1000;
+                adHoc_flow += (float)flow_milLiters/1000;
         }
 
-        monthly_consumption[month(t)] = monthly_consumption[month(t)] +flow_milLiters/1000;
+        // Report
         if (useSerial) {
                 Serial.print("Current Day:");
                 Serial.println(currentDay_flow);
 
-                Serial.print("Months: ");
-                for (int i=0; i<=11;i++) {
+                for (int i=0; i<=11; i++) {
                         Serial.print(months[i]);
                         Serial.print(": ");
-                        Serial.println(monthly_consumption[i]);
+                        Serial.print(monthly_consumption[i]);
+                        Serial.println(" [liters]");
                 }
 
                 Serial.print("Counter: ");
                 Serial.println(adHoc_flow);
         }
-
-
-
 }
 
 void detectState(){
-  int threshold = 0;
-  if (flowRate > threshold) {
-    mqttClient.publish(stateTopic, systemStates[1], true);
-  }
+        int threshold = 10;
+        if (flowRate > (float)threshold) {
+                if(mqttConnected == 1 && lastDetectState != true) {
+                        pub_state(systemStates[1]);
+                        lastDetectState = true;
+                }
+        }
+        else {
+                if(mqttConnected == 1 && lastDetectState == true) {
+                        pub_state (systemStates[0]);
+                        lastDetectState = false;
+                }
+        }
 }
 
 void loop(){
         measureFlow();
+        // verifyMQTTConnection();
 
         // Service updates
-        verifyMQTTConnection();
+        if (verifyMQTTConnection()==1) {
+                detectState();
+        }
         if (useWDT) {
                 wdtResetCounter = 0;
         }
         if (useOTA) {
                 acceptOTA();
         }
+
+
 }
