@@ -1,12 +1,12 @@
 //###################################################
-#define deviceTopic "HomePi/Dvir/Windows/test"
-const char *ver = "ESP_WDT_OTA_2.3_alpha";
+#define deviceTopic "HomePi/Dvir/Windows/ParentsRoom"
+const char *ver = "ESP_WDT_OTA_2.5_beta";
 //###################################################
 
 // Service flags
 bool useNetwork = true;
 bool useWDT = true;
-bool useSerial = true;
+bool useSerial = false;
 bool useOTA = true;
 bool runPbit = false;
 int networkID = 1;  // 0: HomeNetwork,  1:Xiaomi_D6C8
@@ -53,8 +53,8 @@ char availTopic[50];
 
 // MQTT connection flags
 int mqttFailCounter = 0; // count tries to reconnect
-long firstNotConnected = 0; // time stamp of first try
-int connectionFlag = 0;
+// long firstNotConnected = 0; // time stamp of first try
+// int connectionFlag = 0;
 int MQTTretries = 2; // allowed tries to reconnect
 // ######################
 
@@ -62,28 +62,27 @@ int MQTTretries = 2; // allowed tries to reconnect
 // time interval parameters
 const int clockUpdateInt = 1; // hrs to update clock
 const int timeInt2Reset = 1500; // time between consq presses to init RESET cmd
-const long MQTTtimeOut = (1000 * 60) * 0.5; //5 mins stop try to MQTT
-const long WIFItimeOut = (1000 * 60) * 0.2; // 1/2 mins try to connect WiFi
+const long WIFItimeOut = (1000 * 60) * 0.5; // 1/2 mins try to connect WiFi
 const long OTAtimeOut = (1000*60) * 2; // 2 minute to try OTA
 const int time2Reset = (1000*60)*5; // minutues pass without any network
-const int time2tryConnect = (1000*60)*1;
-long OTAcounter =0;
+const int time2tryConnect = (1000*60)*1; // time between reconnection retries
+
 const int deBounceInt = 50; //
 volatile int wdtResetCounter = 0;
 const int wdtMaxRetries = 20; //seconds to bITE
-long noNetwork_Counter=0;
+long noNetwork_Counter=0; // clock
+long OTAcounter =0; // clock
 // ############################
 
 
-// RESET parameters
+// manual RESET parameters
 int manResetCounter = 0;  // reset press counter
 int pressAmount2Reset = 3; // time to press button to init Reset
 long lastResetPress = 0; // time stamp of last press
-// long resetTimer = 0;
 // ####################
 
 
-// assorted
+// hold informamtion
 char msg[150];
 char timeStamp[50];
 char bootTime[50];
@@ -152,6 +151,16 @@ void startGPIOs() {
 
 // Common ##############
 // ~~~~~~~ Network connectivity ~~~~~
+void selectNetwork() {
+        if (networkID == 1 ) {
+                ssid = ssid_1;
+                mqtt_server = mqtt_server_1;
+        }
+        else {
+                ssid = ssid_0;
+                mqtt_server = mqtt_server_0;
+        }
+}
 void startNetwork() {
         long startWifiConnection = millis();
 
@@ -194,7 +203,7 @@ void startNetwork() {
                 startNTP();
                 get_timeStamp();
                 strcpy(bootTime, timeStamp);
-                connectMQTT();
+                subscribeMQTT();
         }
 }
 int networkStatus(){
@@ -206,7 +215,6 @@ int networkStatus(){
         else {
                 if (noNetwork_Counter == 0) {
                         noNetwork_Counter = millis();
-                        useNetwork = false;
                 }
                 return 0;
         }
@@ -220,16 +228,6 @@ void network_check(){
                         startNetwork();
                         noNetwork_Counter = 0;
                 }
-        }
-}
-void selectNetwork() {
-        if (networkID == 1 ) {
-                ssid = ssid_1;
-                mqtt_server = mqtt_server_1;
-        }
-        else {
-                ssid = ssid_0;
-                mqtt_server = mqtt_server_0;
         }
 }
 
@@ -313,7 +311,7 @@ void startMQTT() {
         mqttClient.setServer(mqtt_server, 1883);
         mqttClient.setCallback(callback);
 }
-int connectMQTT() {
+int subscribeMQTT() {
         long startClock = millis();
 
         // verify wifi connected
@@ -350,7 +348,6 @@ int connectMQTT() {
                                 if (useSerial) {
                                         Serial.print("failed, rc=");
                                         Serial.print(mqttClient.state());
-                                        // Serial.println(" try again in 3 seconds");
                                         Serial.print("number of fails to reconnect MQTT :");
                                         Serial.println(mqttFailCounter);
                                 }
@@ -508,10 +505,10 @@ void sendReset(char *header) {
         if (useSerial) {
                 Serial.println("Sending Reset command");
         }
-                if (strcmp(header, "null")!=0) {
-                        sprintf(temp, "[%s] - Reset sent", header);
-                        pub_msg(temp);
-                }
+        if (strcmp(header, "null")!=0) {
+                sprintf(temp, "[%s] - Reset sent", header);
+                pub_msg(temp);
+        }
         ESP.reset();
 }
 void feedTheDog() {
@@ -550,7 +547,6 @@ void allOff() {
         inputUp_lastState = digitalRead(inputUpPin);
         inputDown_lastState = digitalRead(inputDownPin);
 }
-
 // ~~~~~~~~~ GPIO switching ~~~~~~~~~~~~~
 void switchIt(char *type, char *dir) {
         char mqttmsg[50];
@@ -634,7 +630,7 @@ void checkSwitch_PressedUp() {
                 else { // for debug only
                         char tMsg [100];
                         sprintf(tMsg, "UP Bounce: cRead [%d] lRead[%d]", temp_inputUpPin, inputUp_lastState);
-                                pub_msg(tMsg);
+                        pub_msg(tMsg);
                 }
         }
 
@@ -656,9 +652,9 @@ void checkSwitch_PressedDown() {
                         }
                 }
                 else { // for debug only
-                                char tMsg [100];
-                                sprintf(tMsg, "Down Bounce: cRead[%d] lRead[%d]", temp_inputDownPin, inputDown_lastState);
-                                pub_msg(tMsg);
+                        char tMsg [100];
+                        sprintf(tMsg, "Down Bounce: cRead[%d] lRead[%d]", temp_inputDownPin, inputDown_lastState);
+                        pub_msg(tMsg);
                 }
         }
 }
@@ -678,6 +674,9 @@ void readGpioStates() {
         inputDown_currentState = digitalRead(inputDownPin);
         inputUp_currentState = digitalRead(inputUpPin);
 }
+
+
+
 void loop() {
         // read GPIOs
         readGpioStates();
@@ -685,7 +684,7 @@ void loop() {
 
         // Service updates
         if (useNetwork) {
-          network_check();
+                network_check();
         }
         if (useWDT) {
                 wdtResetCounter = 0;
