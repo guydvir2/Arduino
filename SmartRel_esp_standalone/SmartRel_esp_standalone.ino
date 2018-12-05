@@ -171,8 +171,9 @@ void startNetwork() {
                 Serial.println(ssid);
         }
 
-        WiFi.mode(WIFI_STA); //OTA Added
+        WiFi.mode(WIFI_STA);
         WiFi.begin(ssid, password);
+        WiFi.setAutoReconnect(true);
 
         // in case of reboot - timeOUT to wifi
         while (WiFi.status() != WL_CONNECTED && millis() - startWifiConnection < WIFItimeOut) {
@@ -191,7 +192,6 @@ void startNetwork() {
 
         // if wifi is OK
         else {
-                WiFi.setAutoReconnect(true);
                 if (useSerial) {
                         Serial.println("");
                         Serial.println("WiFi connected");
