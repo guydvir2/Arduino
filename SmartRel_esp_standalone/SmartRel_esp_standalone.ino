@@ -1,17 +1,16 @@
 //###################################################
-#define deviceTopic "HomePi/Dvir/Windows/ParentsRoom"
-const char *ver = "ESP_WDT_OTA_2.5_beta";
+#define deviceTopic "HomePi/Dvir/Windows/LaundryRoom"
+const char *ver = "ESP_WDT_OTA_2.6";
 //###################################################
 
 // Service flags
 bool useNetwork = true;
 bool useWDT = true;
-bool useSerial = false;
+bool useSerial = true;
 bool useOTA = true;
 bool runPbit = false;
 int networkID = 1;  // 0: HomeNetwork,  1:Xiaomi_D6C8
 
-// #include <Arduino.h>
 #include <ESP8266WiFi.h>
 #include <TimeLib.h>
 #include <NtpClientLib.h>
@@ -53,19 +52,17 @@ char availTopic[50];
 
 // MQTT connection flags
 int mqttFailCounter = 0; // count tries to reconnect
-// long firstNotConnected = 0; // time stamp of first try
-// int connectionFlag = 0;
 int MQTTretries = 2; // allowed tries to reconnect
 // ######################
 
 
 // time interval parameters
-const int clockUpdateInt = 1; // hrs to update clock
-const int timeInt2Reset = 1500; // time between consq presses to init RESET cmd
+const int clockUpdateInt = 1; // hrs to update NTP
+const int timeInterval_resetPress = 1500; // time between consq presses to init RESET cmd
 const long WIFItimeOut = (1000 * 60) * 0.5; // 1/2 mins try to connect WiFi
-const long OTAtimeOut = (1000*60) * 2; // 2 minute to try OTA
-const int time2Reset = (1000*60)*5; // minutues pass without any network
-const int time2tryConnect = (1000*60)*1; // time between reconnection retries
+const long OTA_upload_interval = (1000*60) * 2; // 2 minute to try OTA
+const int time2Reset_noNetwork = (1000*60)*5; // minutues pass without any network
+const int time2_tryReconnect = (1000*60)*1; // time between reconnection retries
 
 const int deBounceInt = 50; //
 volatile int wdtResetCounter = 0;
@@ -221,10 +218,10 @@ int networkStatus(){
 }
 void network_check(){
         if ( networkStatus() == 0) {
-                if (millis()-noNetwork_Counter >= time2Reset) {
+                if (millis()-noNetwork_Counter >= time2Reset_noNetwork) {
                         sendReset("null");
                 }
-                if (millis()-noNetwork_Counter >= time2tryConnect) {
+                if (millis()-noNetwork_Counter >= time2_tryReconnect) {
                         startNetwork();
                         noNetwork_Counter = 0;
                 }
@@ -451,7 +448,7 @@ void callback(char* topic, byte* payload, unsigned int length) {
                 PBit();
         }
         else if (strcmp(incoming_msg, "ota") == 0 ) {
-                sprintf(msg, "OTA allowed for %d seconds", OTAtimeOut/1000);
+                sprintf(msg, "OTA allowed for %d seconds", OTA_upload_interval/1000);
                 pub_msg(msg);
                 OTAcounter = millis();
         }
@@ -514,11 +511,11 @@ void sendReset(char *header) {
 void feedTheDog() {
         wdtResetCounter++;
         if (wdtResetCounter >= wdtMaxRetries) {
-                sendReset("WatchDog");
+                sendReset("WatchDog woof");
         }
 }
 void acceptOTA() {
-        if (millis() - OTAcounter <= OTAtimeOut) {
+        if (millis() - OTAcounter <= OTA_upload_interval) {
                 ArduinoOTA.handle();
         }
 }
@@ -588,7 +585,7 @@ void switchIt(char *type, char *dir) {
         }
 }
 void detectResetPresses() {
-        if (millis() - lastResetPress < timeInt2Reset) {
+        if (millis() - lastResetPress < timeInterval_resetPress) {
                 if (useSerial) {
                         Serial.print("Time between Press: ");
                         Serial.println(millis() - lastResetPress);
