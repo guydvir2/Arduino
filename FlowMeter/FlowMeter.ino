@@ -1,10 +1,9 @@
 //change deviceTopic !
 //###################################################
 
-#define deviceTopic "HomePi/Dvir/gardenFlowMeter"
+#define deviceTopic "HomePi/Dvir/flowMeter"
 
-const char *ver = "ESP_WDT_OTA_0.1";
-
+const char *ver = "ESP_WDT_OTA_0.2";
 //###################################################
 
 // Service flags
@@ -56,6 +55,7 @@ char availTopic[50];
 // MQTT connection flags
 int mqttFailCounter = 0; // count tries to reconnect
 int MQTTretries = 2; // allowed tries to reconnect
+bool mqttConnected = 0;
 // ######################
 
 
@@ -95,22 +95,25 @@ PubSubClient mqttClient(espClient);
 Ticker wdt;
 
 // Code Specific #####################################
-
-//  Pins to Flow_Meter
+//  ~~~~~Pins to Flow_Meter
 byte statusLed = 13;
 byte sensorInterrupt = 0;  // 0 = digital pin 2
 byte sensorPin = 2;
 // ######################
 
+// ~~~~~ OnLine measuring ~~~~~~~
 float calibrationFactor = 4.5; // pulses per second per litre/minute of flow.
 volatile byte pulseCount = 0;
 float flowRate = 0;
 int flow_milLiters = 0;
 long total_milLitres = 0;
 long oldTime = 0;
-char* systemStates[] = {"idle", "flowing"};
-bool mqttConnected = 0;
 
+// ~~~~~ MQTT messaging ~~~~~~~
+char* systemStates[] = {"idle", "flowing"};
+
+
+// ~~~~~ Cumalatibe consumption
 byte currentDay;
 byte currentMonth;
 float currentDay_flow=0; //liters
@@ -146,6 +149,7 @@ void setup(){
                 wdt.attach(1, feedTheDog); // Start WatchDog
         }
 
+        // ~~~ time on Boot ~~~~~
         time_t t = now();
         currentDay = day(t);
         currentMonth = month(t)-1;
@@ -221,12 +225,14 @@ int networkStatus(){
         if (WiFi.status() == WL_CONNECTED && mqttClient.connected()) {
                 mqttClient.loop();
                 // noNetwork_Counter = 0;
+                mqttConnected = 1;
                 return 1;
         }
         else {
                 if (noNetwork_Counter == 0) {
                         noNetwork_Counter = millis();
                 }
+                mqttConnected = 0;
                 return 0;
         }
 }
@@ -387,7 +393,7 @@ void createTopics(const char *devTopic, char *state, char *avail) {
 void pub_msg(char *inmsg) {
         char tmpmsg[150];
 
-        if (useNetwork == true) {
+        if (useNetwork == true && mqttConnected == true) {
                 get_timeStamp();
                 sprintf(tmpmsg, "[%s] [%s]", timeStamp, deviceTopic );
                 msgSplitter(inmsg, 95, tmpmsg, "#" );
@@ -408,12 +414,12 @@ void msgSplitter( const char* msg_in, int max_msgSize, char *prefix, char *split
                                 tmp[i + pre_len] = (char)msg_in[i + k * max_chunk];
                                 tmp[i + 1 + pre_len] = '\0';
                         }
-                        if (useNetwork) {
+                        if (useNetwork && mqttConnected == true) {
                                 mqttClient.publish(msgTopic, tmp);
                         }
                 }
         }
-        else {  if (useNetwork) {
+        else {  if (useNetwork && mqttConnected == true) {
                         sprintf(tmp, "%s %s", prefix, msg_in);
                         mqttClient.publish(msgTopic, tmp);
                 }}
@@ -450,7 +456,7 @@ void acceptOTA() {
 // END Common ############
 
 
-//  ~~~~ MQTT ADHOC messages ~~~~~~~
+//  ~~~~ MQTT messages ~~~~~~~
 void pub_state(char *inmsg){
         if (mqttConnected ==true) {
                 mqttClient.publish(stateTopic, inmsg, true);
@@ -513,7 +519,7 @@ void callback(char* topic, byte* payload, unsigned int length) {
                 pub_msg("Reset counter");
         }
 }
-void detectFlow(){
+void notifyFlow_state(){
         int threshold = 10;
         if (flowRate > (float)threshold) {
                 if(mqttConnected == 1 && lastDetectState != true) {
@@ -567,7 +573,7 @@ void measureFlow(){
                 // Add the millilitres passed in this second to the cumulative total
                 total_milLitres += flow_milLiters;
 
-                cummDay();
+                totalFlow_counter();
                 print_OL_readings();
 
                 // Reset the pulse counter- for next cycle
@@ -577,7 +583,7 @@ void measureFlow(){
                 attachInterrupt(sensorInterrupt, pulseCounter, FALLING);
         }
 }
-void cummDay(){
+void totalFlow_counter(){
         time_t t = now();
 
         // Day use
@@ -628,7 +634,7 @@ void loop(){
         // Service updates
         if (useNetwork) {
                 network_check();
-                detectState();
+                notifyFlow_state();
         }
         if (useWDT) {
                 wdtResetCounter = 0;
