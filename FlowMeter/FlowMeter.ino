@@ -8,15 +8,12 @@ const char *ver = "ESP_WDT_OTA_0.1";
 //###################################################
 
 // Service flags
-bool useWDT = true;
-bool useOTA = true;
-int networkID = 0;  // 0: HomeNetwork,  1:Xiaomi_D6C8
 bool useNetwork = true;
+bool useWDT = true;
 bool useSerial = true;
+bool useOTA = true;
+int networkID = 1;  // 0: HomeNetwork,  1:Xiaomi_D6C8
 
-#define LEDoff HIGH
-
-#include <Arduino.h>
 #include <ESP8266WiFi.h>
 #include <TimeLib.h>
 #include <NtpClientLib.h>
@@ -58,34 +55,34 @@ char availTopic[50];
 
 // MQTT connection flags
 int mqttFailCounter = 0; // count tries to reconnect
-long firstNotConnected = 0; // time stamp of first try
-bool mqttConnected = 0;
-int MQTTretries = 5; // allowed tries to reconnect
+int MQTTretries = 2; // allowed tries to reconnect
 // ######################
 
 
 // time interval parameters
-const int clockUpdateInt = 1; // hrs to update clock
-const int timeInt2Reset = 1500; // time between consq presses to init RESET cmd
-const long MQTTtimeOut = (1000 * 60) * 5; //5 mins stop try to MQTT
-const long WIFItimeOut = (1000 * 60) * 2; //2 mins try to connect WiFi
-const long OTAtimeOut = (1000*60) * 2; // 2 minute to try OTA
-long OTAcounter =0;
+const int clockUpdateInt = 1; // hrs to update NTP
+const int timeInterval_resetPress = 1500; // time between consq presses to init RESET cmd
+const long WIFItimeOut = (1000 * 60) * 0.5; // 1/2 mins try to connect WiFi
+const long OTA_upload_interval = (1000*60) * 2; // 2 minute to try OTA
+const int time2Reset_noNetwork = (1000*60)*5; // minutues pass without any network
+const int time2_tryReconnect = (1000*60)*1; // time between reconnection retries
+
 const int deBounceInt = 50; //
 volatile int wdtResetCounter = 0;
-const int wdtMaxRetries = 10; //seconds to bITE
+const int wdtMaxRetries = 20; //seconds to bITE
+long noNetwork_Counter=0; // clock
+long OTAcounter =0; // clock
 // ############################
 
 
-// RESET parameters
+// manual RESET parameters
 int manResetCounter = 0;  // reset press counter
 int pressAmount2Reset = 3; // time to press button to init Reset
 long lastResetPress = 0; // time stamp of last press
-long resetTimer = 0;
 // ####################
 
 
-// assorted
+// hold informamtion
 char msg[150];
 char timeStamp[50];
 char bootTime[50];
@@ -97,6 +94,7 @@ WiFiClient espClient;
 PubSubClient mqttClient(espClient);
 Ticker wdt;
 
+// Code Specific #####################################
 
 //  Pins to Flow_Meter
 byte statusLed = 13;
@@ -111,6 +109,7 @@ int flow_milLiters = 0;
 long total_milLitres = 0;
 long oldTime = 0;
 char* systemStates[] = {"idle", "flowing"};
+bool mqttConnected = 0;
 
 byte currentDay;
 byte currentMonth;
@@ -121,6 +120,10 @@ const char *months []= {"Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","O
 float adHoc_flow =0; //liters
 bool adHoc_flag=false;
 bool lastDetectState=false;
+
+
+// device state definitions
+#define LEDoff HIGH
 
 
 void setup(){
@@ -151,13 +154,14 @@ void setup(){
 }
 
 void startGPIOs(){
-        pinMode(statusLed, OUTPUT);
         pinMode(sensorPin, INPUT);
         digitalWrite(statusLed, LEDoff); // We have an active-low LED attached
         digitalWrite(sensorPin, HIGH);
 }
 
-// From here- all functions are copied from other sketched without any changes
+
+// Common ##############
+// ~~~~~~~ Network connectivity ~~~~~
 void selectNetwork() {
         if (networkID == 1 ) {
                 ssid = ssid_1;
@@ -166,27 +170,83 @@ void selectNetwork() {
         else {
                 ssid = ssid_0;
                 mqtt_server = mqtt_server_0;
-
         }
 }
-
 void startNetwork() {
-        long startWifiConnection = 0;
-        startWifiConnection = millis();
-        WiFi.mode(WIFI_STA); //OTA Added
+        long startWifiConnection = millis();
+
+        selectNetwork();
+        if (useSerial) {
+                Serial.println();
+                Serial.print("Connecting to ");
+                Serial.println(ssid);
+        }
+
+        WiFi.mode(WIFI_STA);
         WiFi.begin(ssid, password);
+        WiFi.setAutoReconnect(true);
+
         // in case of reboot - timeOUT to wifi
         while (WiFi.status() != WL_CONNECTED && millis() - startWifiConnection < WIFItimeOut) {
                 delay(500);
+                if (useSerial) {
+                        Serial.print(".");
+                }
         }
-        WiFi.setAutoReconnect(true);
 
-        startMQTT();
-        startNTP();
-        get_timeStamp();
-        strcpy(bootTime, timeStamp);
+        // case of no success - restart due to no wifi
+        if (WiFi.status() != WL_CONNECTED) {
+                if (useSerial) {
+                        Serial.println("no wifi detected");
+                }
+        }
+
+        // if wifi is OK
+        else {
+                if (useSerial) {
+                        Serial.println("");
+                        Serial.println("WiFi connected");
+                        Serial.print("IP address: ");
+                        Serial.println(WiFi.localIP());
+                }
+
+                startMQTT();
+                startNTP();
+                get_timeStamp();
+                strcpy(bootTime, timeStamp);
+                subscribeMQTT();
+        }
+}
+int networkStatus(){
+        if (WiFi.status() == WL_CONNECTED && mqttClient.connected()) {
+                mqttClient.loop();
+                // noNetwork_Counter = 0;
+                return 1;
+        }
+        else {
+                if (noNetwork_Counter == 0) {
+                        noNetwork_Counter = millis();
+                }
+                return 0;
+        }
+}
+void network_check(){
+        if ( networkStatus() == 0) {
+                if (millis()-noNetwork_Counter >= time2Reset_noNetwork) {
+                        sendReset("null");
+                }
+                if (millis()-noNetwork_Counter >= time2_tryReconnect) {
+                        startNetwork();
+                        noNetwork_Counter = 0;
+                }
+        }
 }
 
+// ~~~~ Services ~~~~~~
+void startNTP() {
+        NTP.begin("pool.ntp.org", 2, true);
+        NTP.setInterval(1000 * 3600 * clockUpdateInt);
+}
 void startOTA() {
         char OTAname[100];
         int m = 0;
@@ -221,61 +281,68 @@ void startOTA() {
                 }
 
                 // NOTE: if updating SPIFFS this would be the place to unmount SPIFFS using SPIFFS.end()
-                // if (useSerial) {
-                //         Serial.println("Start updating " + type);
-                // }
+                if (useSerial) {
+                        Serial.println("Start updating " + type);
+                }
                 // Serial.end();
         });
-        // if (useSerial) { // for debug
-        //         ArduinoOTA.onEnd([]() {
-        //                 Serial.println("\nEnd");
-        //         });
-        //         ArduinoOTA.onProgress([](unsigned int progress, unsigned int total) {
-        //                 Serial.printf("Progress: %u%%\r", (progress / (total / 100)));
-        //         });
-        //         ArduinoOTA.onError([](ota_error_t error) {
-        //                 Serial.printf("Error[%u]: ", error);
-        //                 if (error == OTA_AUTH_ERROR) {
-        //                         Serial.println("Auth Failed");
-        //                 } else if (error == OTA_BEGIN_ERROR) {
-        //                         Serial.println("Begin Failed");
-        //                 } else if (error == OTA_CONNECT_ERROR) {
-        //                         Serial.println("Connect Failed");
-        //                 } else if (error == OTA_RECEIVE_ERROR) {
-        //                         Serial.println("Receive Failed");
-        //                 } else if (error == OTA_END_ERROR) {
-        //                         Serial.println("End Failed");
-        //                 }
-        //         });
-        //         // ArduinoOTA.begin();
-        //         Serial.println("Ready");
-        //         Serial.print("IP address: ");
-        //         Serial.println(WiFi.localIP());
-        // }
+        if (useSerial) { // for debug
+                ArduinoOTA.onEnd([]() {
+                        Serial.println("\nEnd");
+                });
+                ArduinoOTA.onProgress([](unsigned int progress, unsigned int total) {
+                        Serial.printf("Progress: %u%%\r", (progress / (total / 100)));
+                });
+                ArduinoOTA.onError([](ota_error_t error) {
+                        Serial.printf("Error[%u]: ", error);
+                        if (error == OTA_AUTH_ERROR) {
+                                Serial.println("Auth Failed");
+                        } else if (error == OTA_BEGIN_ERROR) {
+                                Serial.println("Begin Failed");
+                        } else if (error == OTA_CONNECT_ERROR) {
+                                Serial.println("Connect Failed");
+                        } else if (error == OTA_RECEIVE_ERROR) {
+                                Serial.println("Receive Failed");
+                        } else if (error == OTA_END_ERROR) {
+                                Serial.println("End Failed");
+                        }
+                });
+                // ArduinoOTA.begin();
+                Serial.println("Ready");
+                Serial.print("IP address: ");
+                Serial.println(WiFi.localIP());
+        }
 
         ArduinoOTA.begin();
 }
 
+// ~~~~~~~ MQTT functions ~~~~~~~
 void startMQTT() {
         createTopics(deviceTopic, stateTopic, availTopic);
         mqttClient.setServer(mqtt_server, 1883);
         mqttClient.setCallback(callback);
 }
+int subscribeMQTT() {
+        long startClock = millis();
 
-void startNTP() {
-        NTP.begin("pool.ntp.org", 2, true);
-        NTP.setInterval(1000 * 3600 * clockUpdateInt);
-}
-
-int connectMQTT() {
         // verify wifi connected
         if (WiFi.status() == WL_CONNECTED) {
+                if (useSerial) {
+                        Serial.println("have wifi, entering MQTT connection");
+                }
                 while (!mqttClient.connected() && mqttFailCounter <= MQTTretries) {
+                        if (useSerial) {
+                                Serial.print("Attempting MQTT connection...");
+                        }
+
                         // Attempt to connect
                         if (mqttClient.connect(deviceName, user, passw, availTopic, 0, true, "offline")) {
+                                if (useSerial) {
+                                        Serial.println("connected");
+                                }
                                 mqttClient.publish(availTopic, "online", true);
                                 if (firstRun == true) {
-                                        pub_state(systemStates[0]);
+                                        mqttClient.publish(stateTopic, "off", true);
                                         firstRun = false;
                                 }
                                 pub_msg("Connected to MQTT server");
@@ -286,39 +353,46 @@ int connectMQTT() {
                                 mqttFailCounter = 0;
                                 return 1;
                         }
+
+                        // fail to connect, but have few retries
                         else {
-                                delay(5000);
+                                if (useSerial) {
+                                        Serial.print("failed, rc=");
+                                        Serial.print(mqttClient.state());
+                                        Serial.print("number of fails to reconnect MQTT :");
+                                        Serial.println(mqttFailCounter);
+                                }
                                 mqttFailCounter++;
                         }
+                }
+
+                // Failed to connect MQTT adter retries
+                if (useSerial) {
+                        Serial.println("Exit without connecting MQTT");
                 }
                 mqttFailCounter = 0;
                 return 0;
         }
         else {
+                if (useSerial) {
+                        Serial.println("Not connected to Wifi, abort try to connect MQTT broker");
+                }
                 return 0;
-        }
-}
-
-void pub_msg(char *inmsg) {
-        if (mqttConnected ==true) {
-                char tmpmsg[150];
-
-                get_timeStamp();
-                sprintf(tmpmsg, "[%s] [%s]", timeStamp, deviceTopic );
-                msgSplitter(inmsg, 95, tmpmsg, "#" );
-        }
-}
-
-void pub_state(char *inmsg){
-        if (mqttConnected ==true) {
-                mqttClient.publish(stateTopic, inmsg, true);
         }
 }
 void createTopics(const char *devTopic, char *state, char *avail) {
         sprintf(state, "%s/State", devTopic);
         sprintf(avail, "%s/Avail", devTopic);
 }
+void pub_msg(char *inmsg) {
+        char tmpmsg[150];
 
+        if (useNetwork == true) {
+                get_timeStamp();
+                sprintf(tmpmsg, "[%s] [%s]", timeStamp, deviceTopic );
+                msgSplitter(inmsg, 95, tmpmsg, "#" );
+        }
+}
 void msgSplitter( const char* msg_in, int max_msgSize, char *prefix, char *split_msg) {
         char tmp[120];
 
@@ -334,84 +408,54 @@ void msgSplitter( const char* msg_in, int max_msgSize, char *prefix, char *split
                                 tmp[i + pre_len] = (char)msg_in[i + k * max_chunk];
                                 tmp[i + 1 + pre_len] = '\0';
                         }
-                        mqttClient.publish(msgTopic, tmp);
+                        if (useNetwork) {
+                                mqttClient.publish(msgTopic, tmp);
+                        }
                 }
         }
-        else {
-                sprintf(tmp, "%s %s", prefix, msg_in);
-                mqttClient.publish(msgTopic, tmp);
-        }
+        else {  if (useNetwork) {
+                        sprintf(tmp, "%s %s", prefix, msg_in);
+                        mqttClient.publish(msgTopic, tmp);
+                }}
 }
-
 void get_timeStamp() {
         time_t t = now();
         sprintf(timeStamp, "%02d-%02d-%02d %02d:%02d:%02d", year(t), month(t), day(t), hour(t), minute(t), second(t));
 }
 
+// ~~~~~~ Reset and maintability ~~~~~~
 void sendReset(char *header) {
         char temp[150];
 
-        sprintf(temp, "[%s] - Reset sent", header);
-        pub_msg(temp);
-        delay(100);
-        ESP.restart();
+        if (useSerial) {
+                Serial.println("Sending Reset command");
+        }
+        if (strcmp(header, "null")!=0) {
+                sprintf(temp, "[%s] - Reset sent", header);
+                pub_msg(temp);
+        }
+        ESP.reset();
 }
-
-int verifyMQTTConnection() {
-        //  MQTT reconnection for first time or after first insuccess to reconnect
-        if (!mqttClient.connected() && firstNotConnected == 0) {
-                mqttConnected = connectMQTT();
-                //  still not connected
-                if (mqttConnected == 0 ) {
-                        firstNotConnected = millis();
-                        return 0; //error connecting
-                }
-                else {
-                        mqttClient.loop();
-                        return 1;
-                }
-        }
-
-        // retry after fail - resume only after timeout
-        else if (!mqttClient.connected() && firstNotConnected != 0 && millis() - firstNotConnected > MQTTtimeOut) {
-                //    after cooling out period - try again
-                mqttConnected = connectMQTT();
-                if (mqttConnected == 1) { //success
-                        firstNotConnected = 0;
-                        mqttClient.loop();
-                        return 1;
-                }
-                else {
-                        firstNotConnected = millis(); // start wait timeout
-                        return 0;
-                }
-        }
-
-        // all is good
-        if (mqttClient.connected()) {
-                mqttClient.loop();
-                return 1;
-        }
-}
-
 void feedTheDog() {
         wdtResetCounter++;
         if (wdtResetCounter >= wdtMaxRetries) {
-                sendReset("WatchDog");
+                sendReset("WatchDog woof");
         }
 }
-
 void acceptOTA() {
-        if (millis() - OTAcounter <= OTAtimeOut) {
+        if (millis() - OTAcounter <= OTA_upload_interval) {
                 ArduinoOTA.handle();
         }
 }
-// #############################
+// END Common ############
 
 
-
-
-
+//  ~~~~ MQTT ADHOC messages ~~~~~~~
+void pub_state(char *inmsg){
+        if (mqttConnected ==true) {
+                mqttClient.publish(stateTopic, inmsg, true);
+        }
+}
 void callback(char* topic, byte* payload, unsigned int length) {
         char incoming_msg[50];
         char state[5];
@@ -438,7 +482,7 @@ void callback(char* topic, byte* payload, unsigned int length) {
                 pub_msg(msg);
         }
         else if (strcmp(incoming_msg, "ota") == 0 ) {
-                sprintf(msg, "OTA allowed for %d seconds", OTAtimeOut/1000);
+                sprintf(msg, "OTA allowed for %d seconds", OTA_upload_interval/1000);
                 pub_msg(msg);
                 OTAcounter = millis();
         }
@@ -469,7 +513,21 @@ void callback(char* topic, byte* payload, unsigned int length) {
                 pub_msg("Reset counter");
         }
 }
-
+void detectFlow(){
+        int threshold = 10;
+        if (flowRate > (float)threshold) {
+                if(mqttConnected == 1 && lastDetectState != true) {
+                        pub_state(systemStates[1]);
+                        lastDetectState = true;
+                }
+        }
+        else {
+                if(mqttConnected == 1 && lastDetectState == true) {
+                        pub_state (systemStates[0]);
+                        lastDetectState = false;
+                }
+        }
+}
 void print_OL_readings(){
         if (useSerial == true) {
                 unsigned int frac;
@@ -493,11 +551,11 @@ void print_OL_readings(){
         }
 }
 
+// ~~~~~~~Measure flow ~~~~~~~~
 void pulseCounter(){
         // Increment the pulse counter
         pulseCount++;
 }
-
 void measureFlow(){
         if((millis() - oldTime) > 1000 && pulseCount >0) { // calc cycle
                 // Disable the interrupt while calculating flow rate
@@ -519,7 +577,6 @@ void measureFlow(){
                 attachInterrupt(sensorInterrupt, pulseCounter, FALLING);
         }
 }
-
 void cummDay(){
         time_t t = now();
 
@@ -564,28 +621,13 @@ void cummDay(){
         }
 }
 
-void detectState(){
-        int threshold = 10;
-        if (flowRate > (float)threshold) {
-                if(mqttConnected == 1 && lastDetectState != true) {
-                        pub_state(systemStates[1]);
-                        lastDetectState = true;
-                }
-        }
-        else {
-                if(mqttConnected == 1 && lastDetectState == true) {
-                        pub_state (systemStates[0]);
-                        lastDetectState = false;
-                }
-        }
-}
 
 void loop(){
         measureFlow();
-        // verifyMQTTConnection();
 
         // Service updates
-        if (verifyMQTTConnection()==1) {
+        if (useNetwork) {
+                network_check();
                 detectState();
         }
         if (useWDT) {
@@ -594,6 +636,5 @@ void loop(){
         if (useOTA) {
                 acceptOTA();
         }
-
 
 }
