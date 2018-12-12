@@ -3,14 +3,16 @@
 
 #define deviceTopic "HomePi/Dvir/flowMeter"
 
-const char *ver = "ESP_WDT_OTA_0.2";
+const char *ver = "ESP_WDT_OTA_0.3";
 //###################################################
+
 
 // Service flags
 bool useNetwork = true;
 bool useWDT = true;
 bool useSerial = true;
 bool useOTA = true;
+bool runPbit = false;
 int networkID = 1;  // 0: HomeNetwork,  1:Xiaomi_D6C8
 
 #include <ESP8266WiFi.h>
@@ -51,6 +53,7 @@ const char* topicArry[] = {deviceTopic, groupTopic};
 char stateTopic[50];
 char availTopic[50];
 // ##############################################
+
 
 // MQTT connection flags
 int mqttFailCounter = 0; // count tries to reconnect
@@ -93,6 +96,8 @@ bool firstRun = true;
 WiFiClient espClient;
 PubSubClient mqttClient(espClient);
 Ticker wdt;
+
+
 
 // Code Specific #####################################
 //  ~~~~~Pins to Flow_Meter
@@ -346,6 +351,7 @@ int subscribeMQTT() {
                                 if (useSerial) {
                                         Serial.println("connected");
                                 }
+                                mqttConnected = 1;
                                 mqttClient.publish(availTopic, "online", true);
                                 if (firstRun == true) {
                                         mqttClient.publish(stateTopic, "off", true);
@@ -519,18 +525,18 @@ void callback(char* topic, byte* payload, unsigned int length) {
                 pub_msg("Reset counter");
         }
 }
-void notifyFlow_state(){
-        int threshold = 10;
-        if (flowRate > (float)threshold) {
-                if(mqttConnected == 1 && lastDetectState != true) {
+void updateFlow_state(){
+        float threshold = 4.0;
+        if (flowRate > threshold) {
+                if(mqttConnected == 1 && lastDetectState != systemStates[1]) {
                         pub_state(systemStates[1]);
-                        lastDetectState = true;
+                        lastDetectState = systemStates[1];
                 }
         }
         else {
-                if(mqttConnected == 1 && lastDetectState == true) {
+                if(mqttConnected == 1 && lastDetectState != systemStates[0]) {
                         pub_state (systemStates[0]);
-                        lastDetectState = false;
+                        lastDetectState = systemStates[0];
                 }
         }
 }
@@ -559,7 +565,6 @@ void print_OL_readings(){
 
 // ~~~~~~~Measure flow ~~~~~~~~
 void pulseCounter(){
-        // Increment the pulse counter
         pulseCount++;
 }
 void measureFlow(){
@@ -574,6 +579,7 @@ void measureFlow(){
                 total_milLitres += flow_milLiters;
 
                 totalFlow_counter();
+                updateFlow_state();
                 print_OL_readings();
 
                 // Reset the pulse counter- for next cycle
@@ -634,7 +640,7 @@ void loop(){
         // Service updates
         if (useNetwork) {
                 network_check();
-                notifyFlow_state();
+                
         }
         if (useWDT) {
                 wdtResetCounter = 0;
