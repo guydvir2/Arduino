@@ -1,6 +1,4 @@
-__pycache__/
-*.py[cod]
+.clang_complete
+.gcc_flags.json
+.pioenvs/*
 .DS_Store
-*.log
-.idea/
-venv/
