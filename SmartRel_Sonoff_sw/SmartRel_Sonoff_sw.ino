@@ -108,8 +108,8 @@ const int ledPin = 13;
 
 // GPIO status flags
 bool outputPin_currentState;
-bool inputPin_lastState;
-bool inputLocalPin_lastState;
+bool inputPin_lastState = HIGH;
+bool inputLocalPin_lastState = HIGH;
 bool inputPin_currentState;
 bool inputLocalPin_currentState;
 // ###########################
@@ -577,25 +577,18 @@ void checkRemoteInput() {
 
 }
 void checkLocalInput() {
-        bool temp_inputLocalPin = digitalRead(inputLocalPin);
-
-        if (temp_inputLocalPin == SwitchOn) {
+        if (digitalRead(inputLocalPin) == SwitchOn) {
                 delay(deBounceInt);
                 if (digitalRead(inputLocalPin) == SwitchOn ){
-                        if (inputLocalPin_lastState == !SwitchOn) {
+                        if (inputLocalPin_lastState == SwitchOn) {
                                 switchIt("LocalButton", "off");
+                                inputLocalPin_lastState = !SwitchOn;
                         }
-                        else {
+                        else if (inputLocalPin_lastState == !SwitchOn){
                                 switchIt("LocalButton", "on");
+                                inputLocalPin_lastState = SwitchOn;
                         }
-                        inputLocalPin_lastState = !inputLocalPin_lastState;
                         delay(500);
-                }
-
-                else { // for debug only
-                        char tMsg [100];
-                        sprintf(tMsg, "UP Bounce: cRead [%d] lRead[%d]", temp_inputLocalPin, inputLocalPin_currentState);
-                        pub_msg(tMsg);
                 }
         }
 
