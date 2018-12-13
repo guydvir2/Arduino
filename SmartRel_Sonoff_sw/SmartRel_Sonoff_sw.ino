@@ -94,12 +94,7 @@ PubSubClient mqttClient(espClient);
 Ticker wdt;
 
 // Code Specific #####################################
-
 // GPIO Pins for SONOFF BASIC
-// LED = 13
-// Relay = 12
-// Ext_input = 14
-// Local_Input = 0
 const int inputPin = 14;
 const int inputLocalPin = 0;
 const int outputPin = 12;
@@ -148,6 +143,10 @@ void startGPIOs() {
         pinMode(inputLocalPin, INPUT_PULLUP);
         pinMode(outputPin, OUTPUT);
         pinMode(ledPin, OUTPUT);
+
+        inputLocalPin_lastState = digitalRead(inputLocalPin);
+
+
 }
 
 // Common ##############
