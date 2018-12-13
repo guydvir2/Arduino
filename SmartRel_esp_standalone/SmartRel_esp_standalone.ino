@@ -1,6 +1,6 @@
 //###################################################
-#define deviceTopic "HomePi/Dvir/Windows/LaundryRoom"
-const char *ver = "ESP_WDT_OTA_2.7";
+#define deviceTopic "HomePi/Dvir/Windows/Room"
+const char *ver = "ESP_WDT_OTA_2.71";
 //###################################################
 
 // Service flags
@@ -49,6 +49,7 @@ const char* topicArry[] = {deviceTopic, groupTopic};
 char stateTopic[50];
 char availTopic[50];
 // ##############################################
+
 
 // MQTT connection flags
 int mqttFailCounter = 0; // count tries to reconnect
@@ -150,7 +151,7 @@ void startGPIOs() {
 // Common ##############
 // ~~~~~~~ Network connectivity ~~~~~
 void selectNetwork() {
-        if (networkID == true ) {
+        if (networkID == 1 ) {
                 ssid = ssid_1;
                 mqtt_server = mqtt_server_1;
         }
@@ -208,7 +209,6 @@ int networkStatus(){
         if (WiFi.status() == WL_CONNECTED && mqttClient.connected()) {
                 mqttClient.loop();
                 mqttConnected = 1;
-
                 // noNetwork_Counter = 0;
                 return 1;
         }
@@ -330,6 +330,7 @@ int subscribeMQTT() {
                                 if (useSerial) {
                                         Serial.println("connected");
                                 }
+                                mqttConnected = 1;
                                 mqttClient.publish(availTopic, "online", true);
                                 if (firstRun == true) {
                                         mqttClient.publish(stateTopic, "off", true);

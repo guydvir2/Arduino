@@ -1,7 +1,7 @@
 //change deviceTopic !
 //###################################################
 #define deviceTopic "HomePi/Dvir/alarmMonitor"
-const char *ver = "ESP_WDT_OTA_2";
+const char *ver = "ESP_WDT_OTA_2.2";
 //###################################################
 
 // Service flags
@@ -54,6 +54,7 @@ char availTopic[50];
 // MQTT connection flags
 int mqttFailCounter = 0; // count tries to reconnect
 int MQTTretries = 2; // allowed tries to reconnect
+bool mqttConnected = 0;
 // ######################
 
 
@@ -144,7 +145,10 @@ void startGPIOs() {
         pinMode(armedHomePin, OUTPUT);
         pinMode(armedAwayPin, OUTPUT);
 
-        allOff();
+        systemState_alarm_currentState = digitalRead(systemState_alarm_Pin);
+        systemState_armed_currentState = digitalRead(systemState_armed_Pin);
+        systemState_alarm_lastState = systemState_alarm_currentState;
+        systemState_armed_lastState = systemState_armed_currentState;
 }
 
 // Common ##############
@@ -207,6 +211,7 @@ void startNetwork() {
 int networkStatus(){
         if (WiFi.status() == WL_CONNECTED && mqttClient.connected()) {
                 mqttClient.loop();
+                mqttConnected = 1;
                 // noNetwork_Counter = 0;
                 return 1;
         }
@@ -214,6 +219,7 @@ int networkStatus(){
                 if (noNetwork_Counter == 0) {
                         noNetwork_Counter = millis();
                 }
+                mqttConnected = 0;
                 return 0;
         }
 }
@@ -327,6 +333,7 @@ int subscribeMQTT() {
                                 if (useSerial) {
                                         Serial.println("connected");
                                 }
+                                mqttConnected = 1;
                                 mqttClient.publish(availTopic, "online", true);
                                 if (firstRun == true) {
                                         mqttClient.publish(stateTopic, "off", true);
@@ -446,7 +453,7 @@ void callback(char* topic, byte* payload, unsigned int length) {
 void pub_msg(char *inmsg) {
         char tmpmsg[150];
 
-        if (useNetwork == true) {
+        if (useNetwork == true && mqttConnected == true) {
                 get_timeStamp();
                 sprintf(tmpmsg, "[%s] [%s]", timeStamp, deviceTopic );
                 msgSplitter(inmsg, 95, tmpmsg, "#" );
@@ -467,12 +474,12 @@ void msgSplitter( const char* msg_in, int max_msgSize, char *prefix, char *split
                                 tmp[i + pre_len] = (char)msg_in[i + k * max_chunk];
                                 tmp[i + 1 + pre_len] = '\0';
                         }
-                        if (useNetwork) {
+                        if (useNetwork && mqttConnected == true) {
                                 mqttClient.publish(msgTopic, tmp);
                         }
                 }
         }
-        else {  if (useNetwork) {
+        else {  if (useNetwork && mqttConnected == true) {
                         sprintf(tmp, "%s %s", prefix, msg_in);
                         mqttClient.publish(msgTopic, tmp);
                 }}
@@ -514,10 +521,10 @@ void acceptOTA() {
 // Code specific #######################
 // ~~~~ maintability ~~~~~~
 void allOff() {
-        systemState_alarm_currentState = digitalRead(systemState_alarm_Pin);
-        systemState_armed_currentState = digitalRead(systemState_armed_Pin);
-        systemState_alarm_lastState = systemState_alarm_currentState;
-        systemState_armed_lastState = systemState_armed_currentState;
+        digitalWrite(armedHomePin, !RelayOn);
+        digitalWrite(armedAwayPin, !RelayOn);
+        delay(systemPause);
+        readGpioStates();
 }
 void allReset() {
         digitalWrite(armedHomePin, RelayOn);
