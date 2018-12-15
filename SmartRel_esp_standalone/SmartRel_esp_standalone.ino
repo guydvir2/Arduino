@@ -1,12 +1,12 @@
 //###################################################
-#define deviceTopic "HomePi/Dvir/Windows/Room"
+#define deviceTopic "HomePi/Dvir/Windows/Saloon1"
 const char *ver = "ESP_WDT_OTA_2.71";
 //###################################################
 
 // Service flags
 bool useNetwork = true;
 bool useWDT = true;
-bool useSerial = true;
+bool useSerial = false;
 bool useOTA = true;
 bool runPbit = false;
 int networkID = 1;  // 0: HomeNetwork,  1:Xiaomi_D6C8
@@ -493,8 +493,7 @@ void msgSplitter( const char* msg_in, int max_msgSize, char *prefix, char *split
         else {  if (useNetwork && mqttConnected == true) {
                         sprintf(tmp, "%s %s", prefix, msg_in);
                         mqttClient.publish(msgTopic, tmp);
-                }
-              }
+                }}
 }
 void get_timeStamp() {
         time_t t = now();

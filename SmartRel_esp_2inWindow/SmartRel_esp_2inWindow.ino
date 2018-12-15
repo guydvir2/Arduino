@@ -1,6 +1,6 @@
 //###################################################
-#define deviceTopic "HomePi/Dvir/Lights/Stove"
-const char *ver = "SONOFF_WDT_OTA_1.1";
+#define deviceTopic "HomePi/Dvir/Windows/SaloonExit"
+const char *ver = "ESP_WDT_OTA_2.71";
 //###################################################
 
 // Service flags
@@ -9,7 +9,6 @@ bool useWDT = true;
 bool useSerial = false;
 bool useOTA = true;
 bool runPbit = false;
-bool OnAtBoot = true;
 int networkID = 1;  // 0: HomeNetwork,  1:Xiaomi_D6C8
 
 #include <ESP8266WiFi.h>
@@ -95,35 +94,41 @@ PubSubClient mqttClient(espClient);
 Ticker wdt;
 
 // Code Specific #####################################
-// GPIO Pins for SONOFF BASIC
-const int inputPin = 14;
-const int inputLocalPin = 0;
-const int outputPin = 12;
-const int ledPin = 13;
+
+// GPIO Pins for ESP8266
+//~~~~Internal Switch ~~~~~~
+const int inputUpPin = 4;
+const int inputDownPin = 5;
+const int outputUpPin = 14;
+const int outputDownPin = 12;
+//~~~~External Input ~~~~~~~
+const int inputUpExtPin = 0;
+const int inputDownExtPin = 2;
 //##########################
 
 // GPIO status flags
-bool outputPin_currentState;
-bool inputPin_lastState;
-bool inputLocalPin_lastState;
-bool inputPin_currentState;
-bool inputLocalPin_currentState;
+//~~~~Internal Switch ~~~~~~
+bool outputUp_currentState;
+bool outputDown_currentState;
+bool inputUp_lastState;
+bool inputDown_lastState;
+bool inputUp_currentState;
+bool inputDown_currentState;
+//~~~~External Input ~~~~~~~
+bool inputUpExt_lastState;
+bool inputDownExt_lastState;
+bool inputUpExt_currentState;
+bool inputDownExt_currentState;
 // ###########################
 
 // device state definitions
-#define RelayOn HIGH
+#define RelayOn LOW
 #define SwitchOn LOW
 
 // #####################################################
 // ~~~~~ setup & definitions ~~~~
 void setup() {
         startGPIOs();// <------------ Need to be changed
-        if (OnAtBoot == true ){
-          digitalWrite(outputPin,RelayOn);
-        }
-        else {
-          digitalWrite(outputPin,!RelayOn);
-        }
 
         if (useSerial) {
                 Serial.begin(9600);
@@ -145,13 +150,14 @@ void setup() {
 }
 void startGPIOs() {
         // <------------ Need to be changed
-        pinMode(inputPin, INPUT_PULLUP);
-        pinMode(inputLocalPin, INPUT_PULLUP);
-        pinMode(outputPin, OUTPUT);
-        pinMode(ledPin, OUTPUT);
+        pinMode(inputUpPin, INPUT_PULLUP);
+        pinMode(inputDownPin, INPUT_PULLUP);
+        pinMode(inputUpExtPin, INPUT_PULLUP);
+        pinMode(inputDownExtPin, INPUT_PULLUP);
+        pinMode(outputUpPin, OUTPUT);
+        pinMode(outputDownPin, OUTPUT);
 
-        inputLocalPin_lastState = digitalRead(inputLocalPin);
-        inputPin_lastState = digitalRead(inputPin);
+        allOff();
 }
 
 // Common ##############
@@ -407,25 +413,33 @@ void callback(char* topic, byte* payload, unsigned int length) {
 
         if (strcmp(incoming_msg, "status") == 0) {
                 // relays state
-                if (outputPin_currentState == RelayOn) {
-                        sprintf(state, "On");
+                if (outputUp_currentState == RelayOn && outputDown_currentState == RelayOn) {
+                        sprintf(state, "invalid Relay State");
                 }
-                else if (outputPin_currentState == !RelayOn ) {
-                        sprintf(state, "Off");
+                else if (outputUp_currentState == !RelayOn && outputDown_currentState == RelayOn) {
+                        sprintf(state, "DOWN");
+                }
+                else if (outputUp_currentState == RelayOn && outputDown_currentState == !RelayOn) {
+                        sprintf(state, "UP");
+                }
+                else {
+                        sprintf(state, "OFF");
                 }
 
                 // switch state
-                if (inputPin_lastState == !RelayOn ) {
+                if (inputUp_lastState == !RelayOn && inputDown_lastState == !RelayOn) {
                         sprintf(state2, "OFF");
                 }
-                else if (inputPin_lastState == RelayOn) {
-                        sprintf(state2, "ON");
+                else if (inputUp_lastState == RelayOn && inputDown_lastState == !RelayOn) {
+                        sprintf(state2, "UP");
                 }
-
+                else if (inputUp_lastState == !RelayOn && inputDown_lastState == RelayOn) {
+                        sprintf(state2, "DOWN");
+                }
                 sprintf(msg, "Status: Relay:[%s], Switch:[%s]", state, state2);
                 pub_msg(msg);
         }
-        else if (strcmp(incoming_msg, "on") == 0 || strcmp(incoming_msg, "off") == 0) {
+        else if (strcmp(incoming_msg, "up") == 0 || strcmp(incoming_msg, "down") == 0 || strcmp(incoming_msg, "off") == 0) {
                 switchIt("MQTT", incoming_msg);
         }
         else if (strcmp(incoming_msg, "boot") == 0 ) {
@@ -436,10 +450,10 @@ void callback(char* topic, byte* payload, unsigned int length) {
                 sprintf(msg, "ver:[%s]", ver);
                 pub_msg(msg);
         }
-//        else if (strcmp(incoming_msg, "pins") == 0 ) {
-//                sprintf(msg, "Switch: Up[%d] Down[%d], Relay: Up[%d] ", inputPin, inputLocalPin, outputPin);
-//                pub_msg(msg);
-//        }
+        else if (strcmp(incoming_msg, "pins") == 0 ) {
+                sprintf(msg, "Switch: Up[%d] Down[%d], Relay: Up[%d] Down[%d]", inputUpPin, inputDownPin, outputUpPin, outputDownPin);
+                pub_msg(msg);
+        }
         else if (strcmp(incoming_msg, "ip") == 0 ) {
                 char buf[16];
                 sprintf(buf, "%d.%d.%d.%d", WiFi.localIP()[0], WiFi.localIP()[1], WiFi.localIP()[2], WiFi.localIP()[3] );
@@ -530,22 +544,57 @@ void acceptOTA() {
 // ~~~~ maintability ~~~~~~
 void PBit() {
         int pause = 2 * 5 * deBounceInt;
-        digitalWrite(outputPin, RelayOn);
+        allOff();
         delay(pause);
-        digitalWrite(outputPin, !RelayOn);
+        digitalWrite(outputUpPin, RelayOn);
         delay(pause);
+        digitalWrite(outputUpPin, !RelayOn);
+        delay(pause);
+        digitalWrite(outputDownPin, RelayOn);
+        delay(pause);
+        allOff();
+
+}
+void allOff() {
+        digitalWrite(outputUpPin, !RelayOn);
+        digitalWrite(outputDownPin, !RelayOn);
+
+        inputUp_lastState = digitalRead(inputUpPin);
+        inputDown_lastState = digitalRead(inputDownPin);
+        inputUpExt_lastState = digitalRead(inputUpExtPin);
+        inputDownExt_lastState = digitalRead(inputDownExtPin);
 }
 // ~~~~~~~~~ GPIO switching ~~~~~~~~~~~~~
 void switchIt(char *type, char *dir) {
         char mqttmsg[50];
-
-        if (strcmp(dir, "on") == 0) {
-                digitalWrite(outputPin,RelayOn);
+        bool states[2];
+        // system states: up, down, off
+        if (strcmp(dir, "up") == 0) {
+                states[0] = RelayOn;
+                states[1] = !RelayOn;
+        }
+        else if (strcmp(dir, "down") == 0) {
+                states[0] = !RelayOn;
+                states[1] = RelayOn;
         }
         else if (strcmp(dir, "off") == 0) {
-                digitalWrite(outputPin,!RelayOn);
+                states[0] = !RelayOn;
+                states[1] = !RelayOn;
         }
 
+        // Case that both realys need to change state ( Up --> Down or Down --> Up )
+        if (outputUp_currentState != states[0] && outputDown_currentState != states[1]) {
+                allOff();
+
+                delay(deBounceInt * 2);
+                digitalWrite(outputUpPin, states[0]);
+                digitalWrite(outputDownPin, states[1]);
+        }
+        // Case that one relay changes from/to off --> on
+        else if (outputUp_currentState != states[0] || outputDown_currentState != states[1]) {
+                digitalWrite(outputUpPin, states[0]);
+                digitalWrite(outputDownPin, states[1]);
+        }
         if (useNetwork == true && mqttConnected == true) {
                 mqttClient.publish(stateTopic, dir, true);
                 sprintf(mqttmsg, "[%s] switched [%s]", type, dir);
@@ -555,64 +604,150 @@ void switchIt(char *type, char *dir) {
                 Serial.println(dir);
         }
 }
-void checkRemoteInput() {
-        bool temp_inputPin = digitalRead(inputPin);
-
-        if (temp_inputPin != inputPin_lastState) {
-                delay(deBounceInt);
-                if (digitalRead(inputPin) != inputPin_lastState) {
-                          pub_msg("RE");
-
-                        if (digitalRead(inputPin) == SwitchOn) {
-                                switchIt("Button", "on");
-                                inputPin_lastState = digitalRead(inputPin);
-
+void detectResetPresses() {
+        if (millis() - lastResetPress < timeInterval_resetPress) {
+                if (useSerial) {
+                        Serial.print("Time between Press: ");
+                        Serial.println(millis() - lastResetPress);
+                }
+                if (manResetCounter >= pressAmount2Reset) {
+                        sendReset("Manual operation");
+                        if (useSerial) {
+                                Serial.println("Manual Reset initiated");
                         }
-                        else if (digitalRead(inputPin) == !SwitchOn) {
-                                switchIt("Button", "off");
-                                inputPin_lastState = digitalRead(inputPin);
+                        manResetCounter = 0;
+                }
+                else {
+                        manResetCounter++;
+                }
+        }
+        else {
+                manResetCounter = 0;
+        }
+}
+void checkSwitch_PressedUp() {
+        bool temp_inputUpPin = digitalRead(inputUpPin);
+
+        if (temp_inputUpPin != inputUp_lastState) {
+                delay(deBounceInt);
+                if (digitalRead(inputUpPin) != inputUp_lastState) {
+                        if (digitalRead(inputUpPin) == SwitchOn) {
+                                switchIt("inButton", "up");
+                                inputUp_lastState = digitalRead(inputUpPin);
+
+                                detectResetPresses();
+                                lastResetPress = millis();
+                        }
+                        else if (digitalRead(inputUpPin) == !SwitchOn) {
+                                switchIt("inButton", "off");
+                                inputUp_lastState = digitalRead(inputUpPin);
                         }
                 }
 
                 else { // for debug only
                         char tMsg [100];
-                        sprintf(tMsg, "UP Bounce: cRead [%d] lRead[%d]", temp_inputPin, inputPin_lastState);
+                        sprintf(tMsg, "UP Bounce: cRead [%d] lRead[%d]", temp_inputUpPin, inputUp_lastState);
                         pub_msg(tMsg);
                 }
         }
 
 }
-void checkLocalInput() {
-        if (digitalRead(inputLocalPin) == SwitchOn) {
-                delay(deBounceInt);
-                if (digitalRead(inputLocalPin) == SwitchOn ) {
-                        if (inputLocalPin_lastState == SwitchOn) {
-                                switchIt("localButton", "off");
-                                inputLocalPin_lastState = !SwitchOn;
-                        }
-                        else if (inputLocalPin_lastState == !SwitchOn) {
-                                switchIt("localButton", "on");
-                                inputLocalPin_lastState = SwitchOn;
-                        }
-                        while (digitalRead(inputLocalPin) == SwitchOn) {
-                                delay(50);
-                        }
+void checkSwitch_PressedUpExt() {
+        bool temp_inputUpExtPin = digitalRead(inputUpExtPin);
 
+        if (temp_inputUpExtPin != inputUpExt_lastState) {
+                delay(deBounceInt);
+                if (digitalRead(inputUpExtPin) != inputUpExt_lastState) {
+                        if (digitalRead(inputUpExtPin) == SwitchOn) {
+                                switchIt("extButton", "up");
+                                inputUpExt_lastState = digitalRead(inputUpExtPin);
+
+//                                detectResetPresses();
+//                                lastResetPress = millis();
+                        }
+                        else if (digitalRead(inputUpExtPin) == !SwitchOn) {
+                                switchIt("extButton", "off");
+                                inputUpExt_lastState = digitalRead(inputUpExtPin);
+                        }
+                }
+
+                else { // for debug only
+                        char tMsg [100];
+                        sprintf(tMsg, "extUP Bounce: cRead [%d] lRead[%d]", temp_inputUpExtPin, inputUpExt_lastState);
+                        pub_msg(tMsg);
                 }
         }
 
+}
+void checkSwitch_PressedDown() {
+        bool temp_inputDownPin = digitalRead(inputDownPin);
+
+        if (temp_inputDownPin != inputDown_lastState) {
+                delay(deBounceInt);
+                if (digitalRead(inputDownPin) != inputDown_lastState) {
+
+                        if (digitalRead(inputDownPin) == SwitchOn) {
+                                switchIt("inButton", "down");
+                                inputDown_lastState = digitalRead(inputDownPin);
+                        }
+                        else if (digitalRead(inputDownPin) == !SwitchOn) {
+                                switchIt("inButton", "off");
+                                inputDown_lastState = digitalRead(inputDownPin);
+                        }
+                }
+                else { // for debug only
+                        char tMsg [100];
+                        sprintf(tMsg, "Down Bounce: cRead[%d] lRead[%d]", temp_inputDownPin, inputDown_lastState);
+                        pub_msg(tMsg);
+                }
+        }
+}
+void checkSwitch_PressedDownExt() {
+        bool temp_inputDownExtPin = digitalRead(inputDownExtPin);
+
+        if (temp_inputDownExtPin != inputDownExt_lastState) {
+                delay(deBounceInt);
+                if (digitalRead(inputDownExtPin) != inputDownExt_lastState) {
+
+                        if (digitalRead(inputDownExtPin) == SwitchOn) {
+                                switchIt("extButton", "down");
+                                inputDownExt_lastState = digitalRead(inputDownExtPin);
+                        }
+                        else if (digitalRead(inputDownExtPin) == !SwitchOn) {
+                                switchIt("extButton", "off");
+                                inputDownExt_lastState = digitalRead(inputDownExtPin);
+                        }
+                }
+                else { // for debug only
+                        char tMsg [100];
+                        sprintf(tMsg, "extDown Bounce: cRead[%d] lRead[%d]", temp_inputDownExtPin, inputDownExt_lastState);
+                        pub_msg(tMsg);
+                }
+        }
+}
+void verifyNotHazardState() {
+        if (outputUp_currentState == RelayOn && outputDown_currentState == RelayOn ) {
+                switchIt("Button", "off");
+                if (useSerial) {
+                        Serial.println("Hazard state - both switches were ON");
+                }
+                sendReset("HazradState");
+        }
 
 }
 void readGpioStates() {
-        outputPin_currentState = digitalRead(outputPin);
-        inputLocalPin_currentState = digitalRead(inputLocalPin);
-        inputPin_currentState = digitalRead(inputPin);
+        outputUp_currentState = digitalRead(outputUpPin);
+        outputDown_currentState = digitalRead(outputDownPin);
+        inputDown_currentState = digitalRead(inputDownPin);
+        inputUp_currentState = digitalRead(inputUpPin);
 }
+
+
 
 void loop() {
         // read GPIOs
         readGpioStates();
-        digitalWrite(ledPin, !digitalRead(outputPin));
+        verifyNotHazardState(); // both up and down are ---> OFF
 
         // Service updates
         if (useNetwork) {
@@ -626,8 +761,10 @@ void loop() {
         }
 
         // react to commands (MQTT or local switch)
-        checkRemoteInput();
-        checkLocalInput();
+        checkSwitch_PressedUp();
+        checkSwitch_PressedDown();
+        checkSwitch_PressedUpExt();
+        checkSwitch_PressedDownExt();
 
         delay(50);
 }
