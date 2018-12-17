@@ -1,7 +1,7 @@
 //change deviceTopic !
 //###################################################
 #define deviceTopic "HomePi/Dvir/alarmMonitor"
-const char *ver = "ESP_WDT_OTA_2.2";
+const char *ver = "ESP_WDT_OTA_2.4";
 //###################################################
 
 // Service flags
@@ -147,8 +147,8 @@ void startGPIOs() {
 
         systemState_alarm_currentState = digitalRead(systemState_alarm_Pin);
         systemState_armed_currentState = digitalRead(systemState_armed_Pin);
-        systemState_alarm_lastState = systemState_alarm_currentState;
-        systemState_armed_lastState = systemState_armed_currentState;
+//        systemState_alarm_lastState = systemState_alarm_currentState;
+//        systemState_armed_lastState = systemState_armed_currentState;
 }
 
 // Common ##############
@@ -336,7 +336,7 @@ int subscribeMQTT() {
                                 mqttConnected = 1;
                                 mqttClient.publish(availTopic, "online", true);
                                 if (firstRun == true) {
-                                        mqttClient.publish(stateTopic, "off", true);
+                                  mqttClient.publish(stateTopic, "boot", true);
                                         firstRun = false;
                                 }
                                 pub_msg("Connected to MQTT server");
