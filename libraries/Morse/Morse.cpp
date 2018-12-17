@@ -71,7 +71,7 @@ char timeStamp[50];
 char bootTime[50];
 bool firstRun = true;
 // ###################
-
+int _pin;
 
 
 Morse::Morse(int pin)

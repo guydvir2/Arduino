@@ -19,7 +19,7 @@ class Morse
     void dash();
     bool run();
   private:
-    int _pin;
+    // int _pin;
 };
 
 #endif

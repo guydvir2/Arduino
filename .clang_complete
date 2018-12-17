@@ -35,8 +35,8 @@
 -I/Users/guy/.platformio/packages/toolchain-atmelavr/lib/gcc/avr/5.4.0/include
 -I/Users/guy/.platformio/packages/toolchain-atmelavr/lib/gcc/avr/5.4.0/include-fixed
 -I/Users/guy/.platformio/packages/tool-unity
--I/Volumes/Guy/github/HomePi/Arduino/include
--I/Volumes/Guy/github/HomePi/Arduino/src
+-I/Volumes/Guy-1/github/HomePi/Arduino/include
+-I/Volumes/Guy-1/github/HomePi/Arduino/src
 -DPLATFORMIO=30603
 -DARDUINO_AVR_NANO
 -DF_CPU=16000000L

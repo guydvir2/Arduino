@@ -1,9 +1,9 @@
-#include <Morse.h>
+#include <iot.h>
 
-Morse guy(13);
+iot guy("HomePi/Dvir/Windows/Saloon2");
 void setup() {
   // put your setup code here, to run once:
-  guy.dot();
+//  guy.startNetwork();
 
 }
 
