@@ -6,7 +6,10 @@
 #ifndef Morse_h
 #define Morse_h
 
+
+
 #include "Arduino.h"
+
 
 class Morse
 {
@@ -14,6 +17,7 @@ class Morse
     Morse(int pin);
     void dot();
     void dash();
+    bool run();
   private:
     int _pin;
 };

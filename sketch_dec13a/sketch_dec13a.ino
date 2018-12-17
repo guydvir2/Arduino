@@ -1,9 +1,9 @@
 #include <Morse.h>
 
-Morse guy(13);
+Morse guy("guy","dvir");
 void setup() {
   // put your setup code here, to run once:
-  guy.dot();
+  guy.startNetwork();
 
 }
 
