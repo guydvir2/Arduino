@@ -1,18 +1,25 @@
-/*
-  by_guy
-*/
 #ifndef iot_h
 #define iot_h
 
+#define deviceTopic "HomePi/Dvir/Windows/Saloon1"
 
 #include "Arduino.h"
+#include <ESP8266WiFi.h>
+#include <TimeLib.h>
+#include <NtpClientLib.h>
+#include <PubSubClient.h> //MQTT
+#include <Ticker.h> //WDT
+
+// OTA libraries
+#include <ESP8266mDNS.h>
+#include <WiFiUdp.h>
+#include <ArduinoOTA.h>
+// #######################
 
 class iot
 {
   public:
-    iot(int pin);
-    void dot();
-    void dash();
+    iot( int ssid,  int pwd);
   private:
     // Service flags
     bool useNetwork = true;
@@ -44,18 +51,16 @@ class iot
     const char* msgTopic = "HomePi/Dvir/Messages";
     const char* groupTopic = "HomePi/Dvir/All";
     const char* deviceName = deviceTopic;
-    const char* topicArry[] = {deviceTopic, groupTopic};
+    const char* topicArry[2] = {deviceTopic, groupTopic};
     char stateTopic[50];
     char availTopic[50];
     // ##############################################
-
 
     // MQTT connection flags
     int mqttFailCounter = 0; // count tries to reconnect
     int MQTTretries = 2; // allowed tries to reconnect
     bool mqttConnected = 0;
     // ######################
-
 
     // time interval parameters
     const int clockUpdateInt = 1; // hrs to update NTP
@@ -72,7 +77,6 @@ class iot
     long OTAcounter =0; // clock
     // ############################
 
-
     // manual RESET parameters
     int manResetCounter = 0;  // reset press counter
     int pressAmount2Reset = 3; // time to press button to init Reset
@@ -87,10 +91,23 @@ class iot
     bool firstRun = true;
     // ###################
 
+    void startNetwork();
+    void startMQTT();
+    void createTopics(const char *devTopic, char *state, char *avail);
+    void startNTP();
+    int subscribeMQTT();
+    void pub_msg(char *inmsg);
+    void msgSplitter( const char* msg_in, int max_msgSize, char *prefix, char *split_msg);
+    void get_timeStamp();
+    void sendReset(char *header);
+    void feedTheDog();
+    void acceptOTA();
 
-    WiFiClient espClient;
-    PubSubClient mqttClient(espClient);
-    Ticker wdt;
+    int _pin;
+    int _SSID;
+    int _PWD;
+
+
 };
 
 #endif
