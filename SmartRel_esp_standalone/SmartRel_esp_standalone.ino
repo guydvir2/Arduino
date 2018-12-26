@@ -1,6 +1,6 @@
 //###################################################
-#define deviceTopic "HomePi/Dvir/Windows/Saloon1"
-const char *ver = "ESP_WDT_OTA_2.71";
+#define deviceTopic "HomePi/Dvir/Windows/wemos1"
+const char *ver = "WEMOS_WDT_OTA_2.71";
 //###################################################
 
 // Service flags

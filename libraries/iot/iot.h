@@ -1,14 +1,14 @@
 #ifndef iot_h
 #define iot_h
 
-#define deviceTopic "HomePi/Dvir/Windows/Saloon1"
+#define deviceTopic "HomePi/Dvir/Windows/Saloon12"
 
 #include "Arduino.h"
 #include <ESP8266WiFi.h>
 #include <TimeLib.h>
 #include <NtpClientLib.h>
 #include <PubSubClient.h> //MQTT
-#include <Ticker.h> //WDT
+// #include <Ticker.h> //WDT
 
 // OTA libraries
 #include <ESP8266mDNS.h>
@@ -19,7 +19,8 @@
 class iot
 {
   public:
-    iot( int ssid,  int pwd);
+    iot();
+    void network_check();
   private:
     // Service flags
     bool useNetwork = true;
@@ -92,6 +93,9 @@ class iot
     // ###################
 
     void startNetwork();
+    int networkStatus();
+    void selectNetwork();
+    void startOTA();
     void startMQTT();
     void createTopics(const char *devTopic, char *state, char *avail);
     void startNTP();
@@ -103,9 +107,6 @@ class iot
     void feedTheDog();
     void acceptOTA();
 
-    int _pin;
-    int _SSID;
-    int _PWD;
 
 
 };
