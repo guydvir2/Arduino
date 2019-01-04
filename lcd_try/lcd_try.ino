@@ -9,6 +9,8 @@
 // include the library code
 #include <Wire.h> 
 #include <LiquidCrystal_I2C.h>
+#include <TimeLib.h>
+
 /**********************************************************/
 char array1[]=" SunFounder               "; //the string to print on the LCD
 char array2[]="hello, world!             "; //the string to print on the LCD
@@ -24,11 +26,15 @@ void setup()
 /*********************************************************/
 void loop() 
 {
+  time_t t = now()+5000;
+  char timeStamp [50];
+  sprintf(timeStamp, "%02d-%02d-%02d %02d:%02d:%02d", year(t)+5, month(t), day(t), hour(t), minute(t), second(t));
+
   lcd.setCursor(15,0); // set the cursor to column 15, line 0
   for (int positionCounter1 = 0; positionCounter1 < 26; positionCounter1++)
   {
     lcd.scrollDisplayLeft(); //Scrolls the contents of the display one space to the left.
-    lcd.print(array1[positionCounter1]); // Print a message to the LCD.
+    lcd.print(timeStamp[positionCounter1]); // Print a message to the LCD.
     delay(tim); //wait for 250 microseconds
   }
   lcd.clear(); //Clears the LCD screen and positions the cursor in the upper-left  corner.
