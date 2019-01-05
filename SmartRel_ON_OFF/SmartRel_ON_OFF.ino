@@ -445,6 +445,15 @@ void acceptOTA() {
 // END Common ############
 
 
+
+
+
+
+
+
+
+
+
 // Code specific #######################
 #include <Wire.h>
 #include <LiquidCrystal_I2C.h>
@@ -509,17 +518,6 @@ void setup() {
 }
 
 // ~~~~ LCD ~~~~~~~
-void startLCD() {
-  lcd.init(); //initialize the lcd
-  lcd.backlight(); //open the backligh
-  lcd.setCursor(0, 0);
-}
-void clockString() {
-  t = now();
-  sprintf(dateStamp2, "%02d-%02d-%02d", year(t), month(t), day(t));
-  sprintf(timeStamp2, "%02d:%02d:%02d", hour(t), minute(t), second(t));
-
-}
 void printCenter(char *string, int i = 0) {
   lcd.setCursor((int)(16 - strlen(string)) / 2, i);
   lcd.print(string);
@@ -537,6 +535,7 @@ void update_LCD() {
   clockString();
   char time_on_char[20];
   char time2Off_char[20];
+
   if (changeState) {
     lcd.clear();
     changeState = false;
@@ -549,20 +548,21 @@ void update_LCD() {
       printCenter(timeStamp2, 0);
       printCenter(time_on_char, 1);
     }
-    else if ( timeInc_counter > 1 ) {
+    else if ( timeInc_counter > 1 ) { /// ON + Timer
       int timeLeft = endTime - millis();
       sec2clock(timeLeft, "Remain: ", time2Off_char);
       printCenter(time_on_char, 0);
       printCenter(time2Off_char, 1);
     }
   }
-  else {
+  else { // OFF state - clock only
     printCenter(timeStamp2, 0);
     printCenter(dateStamp2, 1);
   }
 }
 // ~~~~~~~~~~~~~~~
 
+// ~~~~~ Services ~~~~~~~~
 void startGPIOs() {
   pinMode(input_1Pin, INPUT_PULLUP);
   pinMode(output_1Pin, OUTPUT);
@@ -573,6 +573,12 @@ void startGPIOs() {
 
   allOff();
 }
+void startLCD() {
+  lcd.init(); //initialize the lcd
+  lcd.backlight(); //open the backligh
+  lcd.setCursor(0, 0);
+}
+//~~~~~~~~~~~~~~~~~~~~~~~~
 
 // ~~~~ maintability ~~~~~~
 void PBit() {
@@ -589,16 +595,23 @@ void allOff() {
   digitalWrite(output_2Pin, !relayON);
 }
 void sec2clock(int sec, char* text, char* output_text) {
-  int h = (int)(sec / (1000 * 60 * 60));
-  int m = (int)(sec - h * 3600) / (1000 * 60);
-  int s = (int)(sec - h * 1000 * 60 * 60 - m * 1000 * 60) / 1000;
+  int h = ((int)(sec) / (1000 * 60 * 60));
+  int m = ((int)(sec) - h * 1000 * 60 * 60) / (1000 * 60);
+  int s = ((int)(sec) - h * 1000 * 60 * 60 - m * 1000 * 60) / 1000;
   sprintf(output_text, "%s %01d:%02d:%02d", text, h, m, s);
+}
+void clockString() {
+  t = now();
+  sprintf(dateStamp2, "%02d-%02d-%02d", year(t), month(t), day(t));
+  sprintf(timeStamp2, "%02d:%02d:%02d", hour(t), minute(t), second(t));
+
 }
 
 // ~~~~~~~~~ GPIO switching ~~~~~~~~~~~~~
 void switchIt(char *type, char *dir) {
   char mqttmsg[50];
   bool states[2];
+
   // system states:
   changeState = true;
   if (strcmp(dir, "1,on") == 0) {
@@ -622,34 +635,32 @@ void checkSwitch_1() {
   if (digitalRead(input_1Pin) == buttonPressed) {
     delay(deBounceInt);
     if (digitalRead(input_1Pin) == buttonPressed && millis() - pressTO_input1 > delayBetweenPress) {
-      if ( timeInc_counter == 0 ) { // first press turns on
-        if (output1_currentState == !relayON ) {
-          switchIt("Button", "1,on");
-          timeInc_counter += 1;
-          startTime = millis();
-        }
+      if ( timeInc_counter == 0 && output1_currentState == !relayON ) { // first press turns on
+        switchIt("Button", "1,on");
+        timeInc_counter += 1;
+        startTime = millis();
       }
-      else if (timeInc_counter <= maxTO / timeIncrements - 1 && millis() - pressTO_input1 < 3000 ) { // additional presses update timer countdown
+
+      else if (timeInc_counter < (maxTO / timeIncrements) && (millis() - pressTO_input1) < 3000 ) { // additional presses update timer countdown
+        endTime = timeInc_counter * timeIncrements * 1000 * 60 + startTime;
+        timeInc_counter += 1; // Adding time Qouta
         sec2clock(timeInc_counter * timeIncrements * 1000 * 60, "Added Timeout: +", msg);
         pub_msg(msg);
-        endTime = timeInc_counter * timeIncrements * 1000 * 60 + startTime;
-        timeInc_counter += 1;
       }
-      else if (timeInc_counter == maxTO / timeIncrements || millis() - pressTO_input1 > 3000) {
+      else if (timeInc_counter >= (maxTO / timeIncrements) || (millis() - pressTO_input1) > 3000) { // Turn OFF
         switchIt("Button", "1,off");
         timeInc_counter = 0;
         endTime = 0;
         startTime = 0;
       }
       pressTO_input1 = millis();
-      if ( useManReset ) {
+      if ( useManReset ) { // to create an on-demand reset after number of presses / disabled due to conflict with TO presses
         detectResetPresses();
+        lastResetPress = millis();
       }
-      lastResetPress = millis();
     }
   }
 }
-
 void checkSwitch_2() {
   if (digitalRead(input_2Pin) == buttonPressed) {
     delay(deBounceInt);
@@ -693,84 +704,66 @@ void readGpioStates() {
 void addiotnalMQTT(char *incoming_msg) {
   int swNum;
   char cmd[8];
-  bool allDigits
+  char tempcmd[20];
 
-  //      status - via MQTT
-  if (strcmp(incoming_msg, "status") == 0) {
-    // relays state
-    sprintf(msg, "Status: bootTime:[%s], Relay#1:[%d], Relay#2[%d], Ver:[%s]", bootTime, digitalRead(output_1Pin), digitalRead(output_1Pin), ver);
-    pub_msg(msg);
-  }
-  //      switch commands via MQTT
-  else if (isDigit(incoming_msg[0])) {
+  // switch commands via MQTT
+  if (isDigit(incoming_msg[0])) {
     if (isPunct(incoming_msg[1])) {
-      swNum = incoming_msg[0]-48; 
+      swNum = incoming_msg[0] - 48;
       for (int i = 2; i < strlen(incoming_msg); i++) {
         cmd[i - 2] = incoming_msg[i];
         cmd[i - 1] = '\0';
       }
       if (strcmp(cmd, "on") == 0 || strcmp(cmd, "off") == 0 ) { // on off command
-        char tempcmd[20];
-        sprintf(tempcmd, "%d,%s",swNum,cmd);
-        switchIt("MQTT",tempcmd);
+        sprintf(tempcmd, "%d,%s", swNum, cmd);
+        switchIt("MQTT", tempcmd);
+        if (strlen(cmd) == 2) {
+          timeInc_counter = 1; // ON only
+          if (startTime == 0) {
+            startTime = millis();
+          }
+        }
+        else {
+          changeState = true;
+          timeInc_counter = 0; // OFF
+          endTime = 0;
+          startTime = 0;
+        }
       }
-      else if (atoi(cmd) > 0){
-        Serial.println(atoi(cmd));
+      else {
+        timeInc_counter = atoi(cmd) / timeIncrements; // ON + Timer
+        if (startTime == 0) {
+          startTime = millis();
+        }
+        changeState = true;
+        sprintf(tempcmd, "%d,%s", swNum, "on");
+        switchIt("MQTT", tempcmd);
+        delay(100);
+
+        sec2clock(timeInc_counter * timeIncrements * 1000 * 60, "Added Timeout: +", msg);
+        pub_msg(msg);
+        endTime = timeInc_counter * timeIncrements * 1000 * 60 + startTime;
       }
     }
   }
-//  else if (strcmp(incoming_msg, "1,on") == 0 ) {
-//    switchIt("MQTT", "1,on");
-//  }
-//  else if (strcmp(incoming_msg, "1,off") == 0) {
-//    switchIt("MQTT", "1,off");
-//  }
-//  else if (strcmp(incoming_msg, "2,on") == 0 ) {
-//    switchIt("MQTT", "2,on");
-//  }
-//  else if (strcmp(incoming_msg, "2,off") == 0) {
-//    switchIt("MQTT", "2,off");
-//  }
-  //  else {
-  //    char timer[8];
-  //    int strLength = strlen(incoming_msg);
-  //    int test;
-  //    for (int i = 2; i <= strLength - 1; i++) {
-  //      if (isDigit(incoming_msg[i])) {
-  //        timer[i-2]=incoming_msg[i];
-  //        timer[i-1] = '\0';
-  //      }
-  //    }
-  //    switchIt("MQTT", "1,on");
-  //    pressTO_input1 = millis();
-  //    delay(200);
-  //    changeState=true;
-  //test  = atoi(timer);
-  //    Serial.print("char:");
-  //    Serial.println(timer);
-  //    Serial.println(test);
-  //    Serial.print("int:");
-  //    Serial.println(timer);
-  //    timeInc_counter = (int)(timer);
-  //    Serial.println(timeInc_counter);
-  //  }
+
+  //status - via MQTT
+  else if (strcmp(incoming_msg, "status") == 0) {
+    // relays state
+    sprintf(msg, "Status: bootTime:[%s], Relay#1:[%d], Relay#2[%d], Ver:[%s]", bootTime, digitalRead(output_1Pin), digitalRead(output_1Pin), ver);
+    pub_msg(msg);
+  }
   //        else if (strcmp(incoming_msg, "pins") == 0 ) {
   //        sprintf(msg, "Switch: Up[%d] Down[%d], Relay: Up[%d] Down[%d]", inputUpPin, inputDownPin, outputUpPin, outputDownPin);
   //        pub_msg(msg);
   //        }
 
 }
-
-
 void switch_1_terminator() {
-  if ( endTime != 0 && endTime <= millis() ) {
-    switchIt("TimeOut", "1,off");
-    timeInc_counter = 0;
-    endTime = 0;
-    startTime = 0;
-    changeState = true;
-  }
+
 }
+
+// ~~~~~~ Loopers ~~~~~~~~~~
 void loop() {
   readGpioStates();
 
@@ -786,10 +779,10 @@ void loop() {
   }
 
   checkSwitch_1();
-  switch_1_terminator();
-
   if (numSwitches == 2) {
     checkSwitch_2();
   }
+
+  switch_1_terminator(); // For Timeout operations
   update_LCD();
 }
