@@ -1,8 +1,8 @@
 //###################################################
-#define deviceTopic "HomePi/Dvir/waterHeater"
-const char *ver = "WEMOS_WDT_OTA_2switches_2.92";
+#define deviceTopic "HomePi/Dvir/WaterBoiler"
+const char *ver = "WEMOS_WDT_OTA_2switches_2.95";
 // Switch 1 - MQTT, local switch only, including built in timer
-// Switch 2 - MQTT, local switch only
+// Switch 2 - MQTT, local switch only ---- deleted from code .
 //###################################################
 
 // Service flags
@@ -13,7 +13,7 @@ bool useOTA = true;
 bool runPbit = false;
 bool useManReset = false; // Manual reset ( user presses )
 int networkID = 1;  // 0: HomeNetwork,  1:Xiaomi_D6C8
-int numSwitches = 2; // amount of inputs and outputs ( 1 or 2 )
+//int numSwitches = 2; // amount of inputs and outputs ( 1 or 2 )
 
 #include <ESP8266WiFi.h>
 #include <TimeLib.h>
@@ -447,13 +447,6 @@ void acceptOTA() {
 
 
 
-
-
-
-
-
-
-
 // Code specific #######################
 #include <Wire.h>
 #include <LiquidCrystal_I2C.h>
@@ -466,14 +459,14 @@ LiquidCrystal_I2C lcd(0x27, 16, 2);
 
 // GPIO Pins for ESP8266/ WEMOs
 const int input_1Pin = D3;
-const int input_2Pin = D4;
 const int output_1Pin = D6;
-const int output_2Pin = D5;
+//const int input_2Pin = D4;
+//const int output_2Pin = D5;
 //##########################
 
 // GPIO status flags
 bool output1_currentState;
-bool output2_currentState;
+//bool output2_currentState;
 // ###########################
 
 // TimeOut Constants
@@ -484,7 +477,7 @@ unsigned long startTime = 0;
 unsigned long endTime = 0;
 int delayBetweenPress = 500; // consequtive presses to reset
 unsigned long pressTO_input1 = 0; // TimeOUT for next press
-unsigned long pressTO_input2 = 0; // TimeOUT for next press
+//unsigned long pressTO_input2 = 0; // TimeOUT for next press
 
 // ##########################
 
@@ -565,10 +558,6 @@ void update_LCD() {
 void startGPIOs() {
   pinMode(input_1Pin, INPUT_PULLUP);
   pinMode(output_1Pin, OUTPUT);
-  if (numSwitches == 2 ) {
-    pinMode(input_2Pin, INPUT_PULLUP);
-    pinMode(output_2Pin, OUTPUT);
-  }
 
   allOff();
 }
@@ -584,14 +573,14 @@ void PBit() {
   allOff();
   digitalWrite(output_1Pin, relayON);
   delay(10);
-  digitalWrite(output_2Pin, relayON);
-  delay(10);
+//  digitalWrite(output_2Pin, relayON);
+//  delay(10);
   allOff();
 
 }
 void allOff() {
   digitalWrite(output_1Pin, !relayON);
-  digitalWrite(output_2Pin, !relayON);
+//  digitalWrite(output_2Pin, !relayON);
 }
 void sec2clock(int sec, char* text, char* output_text) {
   int h = ((int)(sec) / (1000 * 60 * 60));
@@ -608,6 +597,8 @@ void clockString() {
 
 // ~~~~~~~~~ GPIO switching ~~~~~~~~~~~~~
 void switchIt(char *type, char *dir) {
+//  this method was constructed for multiple inputs- that is why
+// 1,on is ment for switch num one
   char mqttmsg[50];
   bool states[2];
 
@@ -618,12 +609,6 @@ void switchIt(char *type, char *dir) {
   }
   else if (strcmp(dir, "1,off") == 0) {
     digitalWrite(output_1Pin, !relayON);
-  }
-  else if (strcmp(dir, "2,on") == 0) {
-    digitalWrite(output_2Pin, relayON);
-  }
-  else if (strcmp(dir, "2,off") == 0) {
-    digitalWrite(output_2Pin, !relayON);
   }
 
   mqttClient.publish(stateTopic, dir, true);
@@ -660,21 +645,6 @@ void checkSwitch_1() {
     }
   }
 }
-void checkSwitch_2() {
-  if (digitalRead(input_2Pin) == buttonPressed) {
-    delay(deBounceInt);
-    if (digitalRead(input_2Pin) == buttonPressed && millis() - pressTO_input2 > delayBetweenPress) {
-      if (output2_currentState == !relayON) {
-        switchIt("Button", "2,on");
-      }
-      else {
-        switchIt("Button", "2,off");
-      }
-      pressTO_input2 = millis();
-    }
-
-  }
-}
 void detectResetPresses() {
   if (millis() - lastResetPress < timeInterval_resetPress) {
     if (useSerial) {
@@ -698,7 +668,7 @@ void detectResetPresses() {
 }
 void readGpioStates() {
   output1_currentState = digitalRead(output_1Pin);
-  output2_currentState = digitalRead(output_2Pin);
+//  output2_currentState = digitalRead(output_2Pin);
 }
 void addiotnalMQTT(char *incoming_msg) {
   int swNum;
@@ -748,12 +718,11 @@ void addiotnalMQTT(char *incoming_msg) {
 
   //status - via MQTT
   else if (strcmp(incoming_msg, "status") == 0) {
-    // relays state
-    sprintf(msg, "Status: Relay#1 [%d], Relay#2 [%d], Sw#1 [%d], Sw#2 [%d] ", digitalRead(output_1Pin), digitalRead(output_2Pin), digitalRead(input_1Pin), digitalRead(input_2Pin));
+    sprintf(msg, "Status: Relay:[%s], Sw:[%s]", digitalRead(output_1Pin) ?"Off":"On", digitalRead(input_1Pin) ? "Off":"On");
     pub_msg(msg);
   }
   else if (strcmp(incoming_msg, "pins") == 0 ) {
-    sprintf(msg, "Switches: 1[%d] 2[%d], Relays: 1[%d] 2[%d]", input_1Pin, input_1Pin, output_1Pin, output_2Pin);
+    sprintf(msg, "Switch: [%d], Relay: [%d]", input_1Pin, output_1Pin);
     pub_msg(msg);
   }
 }
@@ -782,10 +751,6 @@ void loop() {
   }
 
   checkSwitch_1();
-  if (numSwitches == 2) {
-    checkSwitch_2();
-  }
-
   switch_1_terminator(); // For Timeout operations
   update_LCD();
 }

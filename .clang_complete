@@ -1,4 +1,5 @@
 <<<<<<< HEAD
+<<<<<<< HEAD
 -I/Users/guy/.platformio/packages/framework-arduinoavr/cores/arduino
 -I/Users/guy/.platformio/packages/framework-arduinoavr/variants/eightanaloginputs
 -I/Users/guy/.platformio/lib/ESP8266_ID127
@@ -74,6 +75,42 @@
 -ID:\github\Arduino\include
 -ID:\github\Arduino\src
 >>>>>>> d503db23c0f8626d760da71ff1ac5091d2968880
+=======
+-I/home/guy/.platformio/packages/framework-arduinoavr/cores/arduino
+-I/home/guy/.platformio/packages/framework-arduinoavr/variants/eightanaloginputs
+-I/home/guy/.platformio/packages/framework-arduinoavr/libraries/__cores__/arduino/EEPROM/src
+-I/home/guy/.platformio/packages/framework-arduinoavr/libraries/__cores__/arduino/HID/src
+-I/home/guy/.platformio/packages/framework-arduinoavr/libraries/__cores__/arduino/SPI/src
+-I/home/guy/.platformio/packages/framework-arduinoavr/libraries/__cores__/arduino/SoftwareSerial/src
+-I/home/guy/.platformio/packages/framework-arduinoavr/libraries/__cores__/arduino/Wire/src
+-I/home/guy/.platformio/packages/framework-arduinoavr/libraries/Adafruit_CircuitPlayground
+-I/home/guy/.platformio/packages/framework-arduinoavr/libraries/Adafruit_CircuitPlayground/utility
+-I/home/guy/.platformio/packages/framework-arduinoavr/libraries/Bridge/src
+-I/home/guy/.platformio/packages/framework-arduinoavr/libraries/Esplora/src
+-I/home/guy/.platformio/packages/framework-arduinoavr/libraries/Ethernet/src
+-I/home/guy/.platformio/packages/framework-arduinoavr/libraries/Firmata
+-I/home/guy/.platformio/packages/framework-arduinoavr/libraries/Firmata/utility
+-I/home/guy/.platformio/packages/framework-arduinoavr/libraries/GSM/src
+-I/home/guy/.platformio/packages/framework-arduinoavr/libraries/Keyboard/src
+-I/home/guy/.platformio/packages/framework-arduinoavr/libraries/LiquidCrystal/src
+-I/home/guy/.platformio/packages/framework-arduinoavr/libraries/Mouse/src
+-I/home/guy/.platformio/packages/framework-arduinoavr/libraries/RobotIRremote/src
+-I/home/guy/.platformio/packages/framework-arduinoavr/libraries/Robot_Control/src
+-I/home/guy/.platformio/packages/framework-arduinoavr/libraries/Robot_Motor/src
+-I/home/guy/.platformio/packages/framework-arduinoavr/libraries/SD/src
+-I/home/guy/.platformio/packages/framework-arduinoavr/libraries/Servo/src
+-I/home/guy/.platformio/packages/framework-arduinoavr/libraries/SpacebrewYun/src
+-I/home/guy/.platformio/packages/framework-arduinoavr/libraries/Stepper/src
+-I/home/guy/.platformio/packages/framework-arduinoavr/libraries/TFT/src
+-I/home/guy/.platformio/packages/framework-arduinoavr/libraries/Temboo/src
+-I/home/guy/.platformio/packages/framework-arduinoavr/libraries/WiFi/src
+-I/home/guy/.platformio/packages/toolchain-atmelavr/avr/include
+-I/home/guy/.platformio/packages/toolchain-atmelavr/lib/gcc/avr/5.4.0/include-fixed
+-I/home/guy/.platformio/packages/toolchain-atmelavr/lib/gcc/avr/5.4.0/include
+-I/home/guy/.platformio/packages/tool-unity
+-I/home/guy/Guy@Cloud/github/HomePi/Arduino/include
+-I/home/guy/Guy@Cloud/github/HomePi/Arduino/src
+>>>>>>> update_to_library_iot
 -DPLATFORMIO=30603
 -DARDUINO_AVR_NANO
 -DF_CPU=16000000L

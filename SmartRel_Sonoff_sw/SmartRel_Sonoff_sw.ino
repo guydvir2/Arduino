@@ -1,5 +1,5 @@
 //###################################################
-#define deviceTopic "HomePi/Dvir/Lights/Stove"
+#define deviceTopic "HomePi/Dvir/Lights/SW2"
 const char *ver = "SONOFF_WDT_OTA_1.1";
 //###################################################
 
