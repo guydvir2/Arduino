@@ -7,26 +7,25 @@ typedef void (*cb_func)(char msg1[50]); // this define a generic functing with a
 class myIOT
 {
 public:
-myIOT();
+myIOT(char *devTopic);
 void looper();
 void startOTA();
 
 void sendReset(char *header);
-void start_services(char *ssid="Xiaomi_D6C8", char *password="guyd5161", char *mqtt_user="guy", char *mqtt_passw="kupelu9e", char *mqtt_broker="192.168.3.200");
+void start_services(cb_func funct, char *ssid="Xiaomi_D6C8", char *password="guyd5161", char *mqtt_user="guy", char *mqtt_passw="kupelu9e", char *mqtt_broker="192.168.3.200");
 void pub_state(char *inmsg);
 void pub_msg(char *inmsg);
-void setExtMQTTcommands(cb_func funct);
-cb_func ext_mqtt;
+// void setExtMQTTcommands(cb_func funct);
 
-
-bool useSerial = false;
+bool useSerial = true;
 bool mqttConnected = 0;
-char* deviceTopic = "HomePi/Dvir/test";
+char* deviceTopic = "";
+const char *ver = "iot_1.2";
 
 private:
-const char *ver = "iot_1.0";
 char* ssid;
 char* password;
+cb_func ext_mqtt;
 
 // time interval parameters
 const int clockUpdateInt = 1;     // hrs to update NTP
@@ -55,7 +54,7 @@ bool extDefine = false;
 // MQTT topics
 char* msgTopic = "HomePi/Dvir/Messages";
 char* groupTopic = "HomePi/Dvir/All";
-char* deviceName = deviceTopic;
+char* deviceName="";
 char* topicArry[2] = {deviceTopic, groupTopic};
 char stateTopic[50];
 char availTopic[50];

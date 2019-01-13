@@ -2,8 +2,9 @@
 #include <Arduino.h>
 
 //####################################################
-#define DEVICE_TOPIC "HomePi/Dvir/Windows/x123"
-#define VER "3.0"
+#define DEVICE_TOPIC "HomePi/Dvir/Windows/LaundryRoom_1"
+#define ADD_MQTT_FUNC addiotnalMQTT
+#define VER "3.25"
 //####################################################
 
 // state definitions
@@ -36,14 +37,12 @@ const int timeInterval_resetPress = 1500; // time between consq presses to init 
 const int deBounceInt = 50;
 // bool useSerial = true;
 
-myIOT iot;
+myIOT iot(DEVICE_TOPIC);
 
 void setup() {
         startGPIOs();
 
-        iot.deviceTopic = DEVICE_TOPIC;
-        iot.start_services(); // ssid,pswd,mqttuser,mqtt_pswd,broker
-        iot.setExtMQTTcommands(addiotnalMQTT);
+        iot.start_services(ADD_MQTT_FUNC); // additinalMQTTfucntion, ssid,pswd,mqttuser,mqtt_pswd,broker
         iot.startOTA();
 }
 
@@ -97,7 +96,6 @@ void switchIt(char *type, char *dir) {
         // Case that both realys need to change state ( Up --> Down or Down --> Up )
         if (outputUp_currentState != states[0] && outputDown_currentState != states[1]) {
                 allOff();
-
                 delay(deBounceInt * 2);
                 digitalWrite(outputUpPin, states[0]);
                 digitalWrite(outputDownPin, states[1]);
@@ -245,9 +243,13 @@ void addiotnalMQTT(char incoming_msg[50]){
                 iot.pub_msg("PowerOnBit");
                 PBit();
         }
+        else if (strcmp(incoming_msg, "ver") == 0 ) {
+                sprintf(msg, "ver:[%s], lib:[%s]", VER,iot.ver);
+                iot.pub_msg(msg);
+        }
 }
 void loop() {
-        iot.looper();
+        iot.looper(); // check wifi, mqtt, wdt
 
         readGpioStates();
         verifyNotHazardState(); // both up and down are ---> OFF

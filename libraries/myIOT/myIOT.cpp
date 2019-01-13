@@ -19,21 +19,23 @@ WiFiClient espClient;
 PubSubClient mqttClient(espClient);
 Ticker wdt;
 
-myIOT::myIOT() {
+myIOT::myIOT(char *devTopic) {
+  deviceTopic = devTopic;
+  deviceName = deviceTopic;
+  topicArry[0] = deviceTopic;
         // if ( useSerial ) {
         //         Serial.begin(9600);
         //         delay(10);
         // }
 }
-void myIOT::start_services(char *ssid, char *password, char *mqtt_user, char *mqtt_passw, char *mqtt_broker) {
+void myIOT::start_services(cb_func funct, char *ssid, char *password, char *mqtt_user, char *mqtt_passw, char *mqtt_broker) {
         startNetwork(ssid, password);
-        topicArry[0] = deviceTopic;
-
-        // Serial.println(deviceTopic);
-        startMQTT();
-        startWDT();
+        ext_mqtt = funct; //redirecting to ex-class function ( defined outside)
+        extDefine = true; // maing sure this ext_func was defined
         ssid = ssid;
         password = password;
+        startMQTT();
+        // startWDT();
 }
 void myIOT::looper(){
         network_check();
@@ -46,11 +48,11 @@ void myIOT::looper(){
 void myIOT::startNetwork(char *ssid, char *password) {
         long startWifiConnection = millis();
 
-        // if (useSerial) {
-        //         Serial.println();
-        //         Serial.print("Connecting to ");
-        //         Serial.println(ssid);
-        // }
+        if (useSerial) {
+                Serial.println();
+                Serial.print("Connecting to ");
+                Serial.println(ssid);
+        }
 
         WiFi.mode(WIFI_STA);
         WiFi.begin(ssid, password);
@@ -59,26 +61,26 @@ void myIOT::startNetwork(char *ssid, char *password) {
         // in case of reboot - timeOUT to wifi
         while (WiFi.status() != WL_CONNECTED && millis() - startWifiConnection < WIFItimeOut) {
                 delay(500);
-                // if (useSerial) {
-                //         Serial.print(".");
-                // }
+                if (useSerial) {
+                        Serial.print(".");
+                }
         }
 
         // case of no success - restart due to no wifi
         if (WiFi.status() != WL_CONNECTED) {
-                // if (useSerial) {
-                //         Serial.println("no wifi detected");
-                // }
+                if (useSerial) {
+                        Serial.println("no wifi detected");
+                }
         }
 
         // if wifi is OK
         else {
-                // if (useSerial) {
-                //         Serial.println("");
-                //         Serial.println("WiFi connected");
-                //         Serial.print("IP address: ");
-                //         Serial.println(WiFi.localIP());
-                // }
+                if (useSerial) {
+                        Serial.println("");
+                        Serial.println("WiFi connected");
+                        Serial.print("IP address: ");
+                        Serial.println(WiFi.localIP());
+                }
                 start_clock();
         }
 }
@@ -134,19 +136,19 @@ int myIOT::subscribeMQTT() {
 
         // verify wifi connected
         if (WiFi.status() == WL_CONNECTED) {
-                // if (useSerial) {
-                //         Serial.println("have wifi, entering MQTT connection");
-                // }
+                if (useSerial) {
+                        Serial.println("have wifi, entering MQTT connection");
+                }
                 while (!mqttClient.connected() && mqttFailCounter <= MQTTretries) {
-                        // if (useSerial) {
-                        //         Serial.print("Attempting MQTT connection...");
-                        // }
+                        if (useSerial) {
+                                Serial.print("Attempting MQTT connection...");
+                        }
 
                         // Attempt to connect
                         if (mqttClient.connect(deviceName, user, passw, availTopic, 0, true, "offline")) {
-                                // if (useSerial) {
-                                //         Serial.println("connected");
-                                // }
+                                if (useSerial) {
+                                        Serial.println("connected");
+                                }
                                 mqttConnected = 1;
                                 mqttClient.publish(availTopic, "online", true);
                                 if (firstRun == true) {
@@ -165,27 +167,27 @@ int myIOT::subscribeMQTT() {
 
                         // fail to connect, but have few retries
                         else {
-                                // if (useSerial) {
-                                //         Serial.print("failed, rc=");
-                                //         Serial.print(mqttClient.state());
-                                //         Serial.print("number of fails to reconnect MQTT :");
-                                //         Serial.println(mqttFailCounter);
-                                // }
+                                if (useSerial) {
+                                        Serial.print("failed, rc=");
+                                        Serial.print(mqttClient.state());
+                                        Serial.print("number of fails to reconnect MQTT :");
+                                        Serial.println(mqttFailCounter);
+                                }
                                 mqttFailCounter++;
                         }
                 }
 
                 // Failed to connect MQTT adter retries
-                // if (useSerial) {
-                //         Serial.println("Exit without connecting MQTT");
-                // }
+                if (useSerial) {
+                        Serial.println("Exit without connecting MQTT");
+                }
                 mqttFailCounter = 0;
                 return 0;
         }
         else {
-                // if (useSerial) {
-                //         Serial.println("Not connected to Wifi, abort try to connect MQTT broker");
-                // }
+                if (useSerial) {
+                        Serial.println("Not connected to Wifi, abort try to connect MQTT broker");
+                }
                 return 0;
         }
 }
@@ -213,10 +215,6 @@ void myIOT::callback(char* topic, byte* payload, unsigned int length) {
 
         if (strcmp(incoming_msg, "boot") == 0 ) {
                 sprintf(msg, "Boot:[%s]", bootTime);
-                pub_msg(msg);
-        }
-        else if (strcmp(incoming_msg, "ver") == 0 ) {
-                sprintf(msg, "ver:[%s]", ver);
                 pub_msg(msg);
         }
         else if (strcmp(incoming_msg, "ip") == 0 ) {
@@ -280,19 +278,15 @@ void myIOT::msgSplitter( const char* msg_in, int max_msgSize, char *prefix, char
                 }
         }
 }
-void myIOT::setExtMQTTcommands(cb_func funct){
-        ext_mqtt = funct; //redirecting to ex-class function ( defined outside)
-        extDefine = true; // maing sure this ext_func was defined
-}
 
 
 // ~~~~~~ Reset and maintability ~~~~~~
 void myIOT::sendReset(char *header) {
         char temp[150];
 
-        // if (useSerial) {
-        //         Serial.println("Sending Reset command");
-        // }
+        if (useSerial) {
+                Serial.println("Sending Reset command");
+        }
         if (strcmp(header, "null") != 0) {
                 sprintf(temp, "[%s] - Reset sent", header);
                 pub_msg(temp);
@@ -346,36 +340,36 @@ void myIOT::startOTA() {
 
                 // NOTE: if updating SPIFFS this would be the place to unmount SPIFFS using SPIFFS.end()
                 //    if (useSerial) {
-                // Serial.println("Start updating " + type);
+                Serial.println("Start updating " + type);
                 //    }
                 // Serial.end();
         });
-        // if (useSerial) { // for debug
-        //         ArduinoOTA.onEnd([]() {
-        //                 Serial.println("\nEnd");
-        //         });
-        //         ArduinoOTA.onProgress([](unsigned int progress, unsigned int total) {
-        //                 Serial.printf("Progress: %u%%\r", (progress / (total / 100)));
-        //         });
-        //         ArduinoOTA.onError([](ota_error_t error) {
-        //                 Serial.printf("Error[%u]: ", error);
-        //                 if (error == OTA_AUTH_ERROR) {
-        //                         Serial.println("Auth Failed");
-        //                 } else if (error == OTA_BEGIN_ERROR) {
-        //                         Serial.println("Begin Failed");
-        //                 } else if (error == OTA_CONNECT_ERROR) {
-        //                         Serial.println("Connect Failed");
-        //                 } else if (error == OTA_RECEIVE_ERROR) {
-        //                         Serial.println("Receive Failed");
-        //                 } else if (error == OTA_END_ERROR) {
-        //                         Serial.println("End Failed");
-        //                 }
-        //         });
-        //         // ArduinoOTA.begin();
-        //         Serial.println("Ready");
-        //         Serial.print("IP address: ");
-        //         Serial.println(WiFi.localIP());
-        // }
+        if (useSerial) { // for debug
+                ArduinoOTA.onEnd([]() {
+                        Serial.println("\nEnd");
+                });
+                ArduinoOTA.onProgress([](unsigned int progress, unsigned int total) {
+                        Serial.printf("Progress: %u%%\r", (progress / (total / 100)));
+                });
+                ArduinoOTA.onError([](ota_error_t error) {
+                        Serial.printf("Error[%u]: ", error);
+                        if (error == OTA_AUTH_ERROR) {
+                                Serial.println("Auth Failed");
+                        } else if (error == OTA_BEGIN_ERROR) {
+                                Serial.println("Begin Failed");
+                        } else if (error == OTA_CONNECT_ERROR) {
+                                Serial.println("Connect Failed");
+                        } else if (error == OTA_RECEIVE_ERROR) {
+                                Serial.println("Receive Failed");
+                        } else if (error == OTA_END_ERROR) {
+                                Serial.println("End Failed");
+                        }
+                });
+                // ArduinoOTA.begin();
+                Serial.println("Ready");
+                Serial.print("IP address: ");
+                Serial.println(WiFi.localIP());
+        }
 
         ArduinoOTA.begin();
 }
