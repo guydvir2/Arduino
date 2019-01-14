@@ -2,7 +2,7 @@
 #include <Arduino.h>
 
 //####################################################
-#define DEVICE_TOPIC "HomePi/Dvir/Windows/LaundryRoom_1"
+#define DEVICE_TOPIC "HomePi/Dvir/Windows/Box_5"
 #define ADD_MQTT_FUNC addiotnalMQTT
 #define VER "3.25"
 //####################################################

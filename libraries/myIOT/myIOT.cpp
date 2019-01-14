@@ -159,7 +159,7 @@ int myIOT::subscribeMQTT() {
                                 for (int i = 0; i < sizeof(topicArry) / sizeof(char *); i++) {
                                         mqttClient.subscribe(topicArry[i]);
                                         sprintf(msg, "Subscribed to %s", topicArry[i]);
-                                        pub_msg(msg);
+                                        //pub_msg(msg);
                                 }
                                 mqttFailCounter = 0;
                                 return 1;
