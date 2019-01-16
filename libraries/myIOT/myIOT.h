@@ -15,12 +15,14 @@ void sendReset(char *header);
 void start_services(cb_func funct, char *ssid="Xiaomi_D6C8", char *password="guyd5161", char *mqtt_user="guy", char *mqtt_passw="kupelu9e", char *mqtt_broker="192.168.3.200");
 void pub_state(char *inmsg);
 void pub_msg(char *inmsg);
-// void setExtMQTTcommands(cb_func funct);
 
 bool useSerial = true;
+bool useWDT = true;
+bool useOTA = true;
+
 bool mqttConnected = 0;
 char* deviceTopic = "";
-const char *ver = "iot_1.2";
+const char *ver = "iot_1.3";
 
 private:
 char* ssid;
@@ -29,12 +31,12 @@ cb_func ext_mqtt;
 
 // time interval parameters
 const int clockUpdateInt = 1;     // hrs to update NTP
-const long WIFItimeOut = (1000 * 60) * 0.5;     // 1/2 mins try to connect WiFi
+const long WIFItimeOut = (1000 * 60) * 1/6;     // 10 sec try to connect WiFi
 const long OTA_upload_interval = (1000 * 60) * 2;     // 2 minute to try OTA
 const int time2Reset_noNetwork = (1000 * 60) * 5;     // minutues pass without any network
 const int time2_tryReconnect = (1000 * 60) * 1;     // time between reconnection retries
 volatile int wdtResetCounter = 0;
-const int wdtMaxRetries = 5;     //seconds to bITE
+const int wdtMaxRetries = 20;     //seconds to bITE
 long noNetwork_Counter = 0;     // clock
 long OTAcounter = 0;     // clock
 // ############################
@@ -42,11 +44,9 @@ long OTAcounter = 0;     // clock
 
 
 //MQTT broker parameters
-const char* mqtt_server;
-const char* mqtt_server_0 = "192.168.2.200";
-const char* mqtt_server_1 = "192.168.3.200";
-const char* user = "guy";
-const char* passw = "kupelu9e";
+char* mqtt_server;
+char* user = "";
+char* passw = "";
 bool extDefine = false;
 // ######################################
 

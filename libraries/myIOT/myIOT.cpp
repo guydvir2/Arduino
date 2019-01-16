@@ -20,26 +20,36 @@ PubSubClient mqttClient(espClient);
 Ticker wdt;
 
 myIOT::myIOT(char *devTopic) {
-  deviceTopic = devTopic;
-  deviceName = deviceTopic;
-  topicArry[0] = deviceTopic;
-        // if ( useSerial ) {
-        //         Serial.begin(9600);
-        //         delay(10);
-        // }
+        deviceTopic = devTopic;
+        deviceName = deviceTopic;
+        topicArry[0] = deviceTopic;
 }
 void myIOT::start_services(cb_func funct, char *ssid, char *password, char *mqtt_user, char *mqtt_passw, char *mqtt_broker) {
-        startNetwork(ssid, password);
-        ext_mqtt = funct; //redirecting to ex-class function ( defined outside)
-        extDefine = true; // maing sure this ext_func was defined
+        mqtt_server = mqtt_broker;
+        user = mqtt_user;
+        passw = mqtt_passw;
         ssid = ssid;
         password = password;
-        startMQTT();
-        // startWDT();
+
+        ext_mqtt = funct; //redirecting to ex-class function ( defined outside)
+        extDefine = true; // maing sure this ext_func was defined
+        if ( useSerial ) {
+                Serial.begin(9600);
+                delay(10);
+        }
+        startNetwork(ssid, password);
+        if (useWDT) {
+                startWDT();
+        }
+        if (useOTA) {
+                startOTA();
+        }
 }
 void myIOT::looper(){
         network_check();
-        acceptOTA();
+        if (useOTA) {
+                acceptOTA();
+        }
         wdtResetCounter = 0;
 }
 
@@ -71,6 +81,7 @@ void myIOT::startNetwork(char *ssid, char *password) {
                 if (useSerial) {
                         Serial.println("no wifi detected");
                 }
+                sendReset("null");
         }
 
         // if wifi is OK
@@ -82,6 +93,7 @@ void myIOT::startNetwork(char *ssid, char *password) {
                         Serial.println(WiFi.localIP());
                 }
                 start_clock();
+                startMQTT();
         }
 }
 void myIOT::network_check() {
@@ -96,12 +108,22 @@ void myIOT::network_check() {
         }
 }
 int myIOT::networkStatus() {
-        if (WiFi.status() == WL_CONNECTED && mqttClient.connected()) {
-                mqttClient.loop();
-                mqttConnected = 1;
-                return 1;
+        if (WiFi.status() == WL_CONNECTED ) { // wifi is ok
+                if (mqttClient.connected()) { // mqtt is good
+                        mqttClient.loop();
+                        mqttConnected = 1;
+                        return 1;
+                }
+                else { // no MQTT
+                        if (subscribeMQTT() == 1) { //try reconnect mqtt
+                                return 1; //ok
+                        }
+                        else {
+                                return 0; // can't connect
+                        }
+                }
         }
-        else {
+        else { // no wifi
                 if (noNetwork_Counter == 0) {
                         noNetwork_Counter = millis();
                 }
@@ -127,7 +149,7 @@ void myIOT::get_timeStamp() {
 // ~~~~~~~ MQTT functions ~~~~~~~
 void myIOT::startMQTT() {
         createTopics(deviceTopic, stateTopic, availTopic);
-        mqttClient.setServer(mqtt_server_1, 1883);
+        mqttClient.setServer(mqtt_server, 1883);
         mqttClient.setCallback(std::bind(&myIOT::callback, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
         subscribeMQTT();
 }
@@ -155,11 +177,10 @@ int myIOT::subscribeMQTT() {
                                         mqttClient.publish(stateTopic, "off", true);
                                         firstRun = false;
                                 }
-                                pub_msg("Connected to MQTT server");
+                                pub_msg("<< Connected to MQTT >>");
                                 for (int i = 0; i < sizeof(topicArry) / sizeof(char *); i++) {
                                         mqttClient.subscribe(topicArry[i]);
                                         sprintf(msg, "Subscribed to %s", topicArry[i]);
-                                        //pub_msg(msg);
                                 }
                                 mqttFailCounter = 0;
                                 return 1;
@@ -175,6 +196,8 @@ int myIOT::subscribeMQTT() {
                                 }
                                 mqttFailCounter++;
                         }
+
+                        delay(1000);
                 }
 
                 // Failed to connect MQTT adter retries
@@ -232,9 +255,9 @@ void myIOT::callback(char* topic, byte* payload, unsigned int length) {
                 sendReset("MQTT");
         }
         else {
-          if (extDefine){ // if this function was define then:
-                ext_mqtt(incoming_msg);
-              }
+                if (extDefine) { // if this function was define then:
+                        ext_mqtt(incoming_msg);
+                }
         }
 }
 void myIOT::pub_msg(char *inmsg) {

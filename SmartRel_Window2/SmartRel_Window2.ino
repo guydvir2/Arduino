@@ -2,9 +2,12 @@
 #include <Arduino.h>
 
 //####################################################
-#define DEVICE_TOPIC "HomePi/Dvir/Windows/Box_5"
+#define DEVICE_TOPIC "HomePi/Dvir/Windows/ParentsRoom"
 #define ADD_MQTT_FUNC addiotnalMQTT
-#define VER "3.25"
+#define VER "3.4_NodeMCU_OTA_WDT"
+#define USE_SERIAL false
+#define USE_WDT true
+#define USE_OTA true
 //####################################################
 
 // state definitions
@@ -35,15 +38,16 @@ const int timeInterval_resetPress = 1500; // time between consq presses to init 
 // ####################
 
 const int deBounceInt = 50;
-// bool useSerial = true;
+
 
 myIOT iot(DEVICE_TOPIC);
 
 void setup() {
         startGPIOs();
-
+        iot.useSerial = USE_SERIAL;
+        iot.useWDT = USE_WDT;
+        iot.useOTA = USE_OTA;
         iot.start_services(ADD_MQTT_FUNC); // additinalMQTTfucntion, ssid,pswd,mqttuser,mqtt_pswd,broker
-        iot.startOTA();
 }
 
 // ~~~~~~~~~ StartUp ~~~~~~~~~~~~
