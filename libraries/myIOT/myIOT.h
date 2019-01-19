@@ -16,13 +16,13 @@ void start_services(cb_func funct, char *ssid="Xiaomi_D6C8", char *password="guy
 void pub_state(char *inmsg);
 void pub_msg(char *inmsg);
 
-bool useSerial = true;
+bool useSerial = false;
 bool useWDT = true;
 bool useOTA = true;
 
 bool mqttConnected = 0;
 char* deviceTopic = "";
-const char *ver = "iot_1.3";
+const char *ver = "iot_1.33";
 
 private:
 char* ssid;

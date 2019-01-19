@@ -2,9 +2,15 @@
 #include <Arduino.h>
 
 //####################################################
-#define DEVICE_TOPIC "HomePi/Dvir/Lights/xSW"
+#define DEVICE_TOPIC "HomePi/Dvir/Lights/PergolaLeds"
 #define ADD_MQTT_FUNC addiotnalMQTT
-#define VER "SONOFFsw_2.0"
+#define VER "SONOFFsw_2.2"
+
+#define ON_AT_BOOT true
+#define USE_SERIAL false
+#define USE_WDT true
+#define USE_OTA true
+#define USE_MAN_RESET false
 //####################################################
 
 // state definitions
@@ -19,7 +25,6 @@ const int ledPin = 13;
 //##########################
 
 // GPIO status flags
-bool outputPin_currentState;
 bool inputPin_lastState;
 bool inputLocalPin_lastState;
 bool inputPin_currentState;
@@ -35,21 +40,23 @@ const int timeInterval_resetPress = 1500; // time between consq presses to init 
 // ####################
 
 const int deBounceInt = 50;
-bool OnAtBoot = true;
+
 
 myIOT iot(DEVICE_TOPIC);
 
 void setup() {
         startGPIOs();
-        if (OnAtBoot == true ) {
+
+        if (ON_AT_BOOT == true ) {
                 digitalWrite(outputPin,RelayOn);
         }
         else {
                 digitalWrite(outputPin,!RelayOn);
         }
-
+        iot.useSerial = USE_SERIAL;
+        iot.useWDT = USE_WDT;
+        iot.useOTA = USE_OTA;
         iot.start_services(ADD_MQTT_FUNC);
-        iot.startOTA();
 }
 void startGPIOs() {
         pinMode(inputPin, INPUT_PULLUP);
@@ -68,10 +75,10 @@ void addiotnalMQTT(char incoming_msg[50]){
 
         if (strcmp(incoming_msg, "status") == 0) {
                 // relays state
-                if (outputPin_currentState == RelayOn) {
+                if (digitalRead(outputPin) == RelayOn) {
                         sprintf(state, "On");
                 }
-                else if (outputPin_currentState == !RelayOn ) {
+                else if (digitalRead(outputPin) == !RelayOn ) {
                         sprintf(state, "Off");
                 }
 
@@ -89,7 +96,7 @@ void addiotnalMQTT(char incoming_msg[50]){
                 switchIt("MQTT", incoming_msg);
         }
         else if (strcmp(incoming_msg, "ver") == 0 ) {
-                sprintf(msg, "ver:[%s], lib:[%s]", VER,iot.ver);
+                sprintf(msg, "ver:[%s], lib:[%s], WDT:[%d], OTA:[%d], SERIAL:[%d], MAN_RESET:[%d]", VER,iot.ver, USE_WDT, USE_OTA, USE_SERIAL,USE_MAN_RESET);
                 iot.pub_msg(msg);
         }
         else if (strcmp(incoming_msg, "pbit") == 0 ) {
@@ -142,7 +149,6 @@ void checkRemoteInput() {
                                 switchIt("Button", "off");
                         }
                         inputPin_lastState = digitalRead(inputPin);
-
                 }
                 else { // for debug only
                         char tMsg [100];
@@ -155,13 +161,19 @@ void checkLocalInput() {
         if (digitalRead(inputLocalPin) == SwitchOn) {
                 delay(deBounceInt);
                 if (digitalRead(inputLocalPin) == SwitchOn ) {
-                        if (inputLocalPin_lastState == SwitchOn) {
-                                switchIt("localButton", "on");
-                        }
-                        else  {
-                                switchIt("localButton", "off");
-                        }
-                        inputLocalPin_lastState = digitalRead(inputLocalPin);
+                  if (digitalRead(outputPin) == RelayOn ) {
+                    switchIt("localButton", "off");
+                  }
+                  else {
+                    switchIt("localButton", "on");
+                  }
+                        // if (inputLocalPin_lastState == SwitchOn) {
+                        //         switchIt("localButton", "on");
+                        // }
+                        // else  {
+                        //         switchIt("localButton", "off");
+                        // }
+                        // inputLocalPin_lastState = digitalRead(inputLocalPin);
                         while (digitalRead(inputLocalPin) == SwitchOn) {
                                 delay(50);
                         }
@@ -169,7 +181,7 @@ void checkLocalInput() {
         }
 }
 void readGpioStates() {
-        outputPin_currentState = digitalRead(outputPin);
+        // outputPin_currentState = digitalRead(outputPin);
         inputLocalPin_currentState = digitalRead(inputLocalPin);
         inputPin_currentState = digitalRead(inputPin);
 }
@@ -183,5 +195,5 @@ void loop() {
         checkRemoteInput();
         checkLocalInput();
 
-        delay(50);
+        delay(150);
 }

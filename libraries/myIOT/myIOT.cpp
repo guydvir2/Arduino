@@ -175,9 +175,14 @@ int myIOT::subscribeMQTT() {
                                 mqttClient.publish(availTopic, "online", true);
                                 if (firstRun == true) {
                                         mqttClient.publish(stateTopic, "off", true);
+                                        pub_msg("<< Connected to MQTT - Boot >>");
                                         firstRun = false;
                                 }
-                                pub_msg("<< Connected to MQTT >>");
+                                else {
+                                        sprintf(msg, "<< Connected to MQTT - Reload [%d]>> ", mqttFailCounter);
+                                        pub_msg(msg);
+
+                                }
                                 for (int i = 0; i < sizeof(topicArry) / sizeof(char *); i++) {
                                         mqttClient.subscribe(topicArry[i]);
                                         sprintf(msg, "Subscribed to %s", topicArry[i]);
@@ -313,8 +318,8 @@ void myIOT::sendReset(char *header) {
         if (strcmp(header, "null") != 0) {
                 sprintf(temp, "[%s] - Reset sent", header);
                 pub_msg(temp);
-                delay(1000);
         }
+        delay(1000);
         ESP.reset();
 }
 void myIOT::feedTheDog() {
