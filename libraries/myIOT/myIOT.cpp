@@ -14,7 +14,6 @@
 #include <ArduinoOTA.h>
 // #######################
 
-
 WiFiClient espClient;
 PubSubClient mqttClient(espClient);
 Ticker wdt;
@@ -30,9 +29,10 @@ void myIOT::start_services(cb_func funct, char *ssid, char *password, char *mqtt
         passw = mqtt_passw;
         ssid = ssid;
         password = password;
+        ext_mqtt = funct;   //redirecting to ex-class function ( defined outside)
+        extDefine = true;   // maing sure this ext_func was defined
 
-        ext_mqtt = funct; //redirecting to ex-class function ( defined outside)
-        extDefine = true; // maing sure this ext_func was defined
+
         if ( useSerial ) {
                 Serial.begin(9600);
                 delay(10);
@@ -180,7 +180,7 @@ int myIOT::subscribeMQTT() {
                                 }
                                 else {
                                         sprintf(msg, "<< Connected to MQTT - Reload [%d]>> ", mqttFailCounter);
-                                        pub_msg(msg);
+                                        // pub_msg(msg);
 
                                 }
                                 for (int i = 0; i < sizeof(topicArry) / sizeof(char *); i++) {
@@ -271,7 +271,7 @@ void myIOT::pub_msg(char *inmsg) {
         if (mqttConnected == true) {
                 get_timeStamp();
                 sprintf(tmpmsg, "[%s] [%s]", timeStamp, deviceTopic );
-                msgSplitter(inmsg, 95, tmpmsg, "#" );
+                msgSplitter(inmsg, 221, tmpmsg, "#" );
         }
 }
 void myIOT::pub_state(char *inmsg) {

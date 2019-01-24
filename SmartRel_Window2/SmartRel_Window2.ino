@@ -2,14 +2,17 @@
 #include <Arduino.h>
 
 //####################################################
-#define DEVICE_TOPIC "HomePi/Dvir/Windows/Box"
+#define DEVICE_TOPIC "HomePi/Dvir/Windows/LaundryRoom"
+//must be defined to use myIOT
 #define ADD_MQTT_FUNC addiotnalMQTT
-#define VER "NodeMCU_3.53"
-
+//~~~
 #define USE_SERIAL false
 #define USE_WDT true
 #define USE_OTA true
 #define USE_MAN_RESET true
+#define USE_BOUNCE_DEBUG true
+
+#define VER "NodeMCU_3.60"
 //####################################################
 
 // state definitions
@@ -147,7 +150,7 @@ void checkSwitch_PressedUp() {
                         }
                 }
 
-                else { // for debug only
+                else if (USE_BOUNCE_DEBUG) { // for debug only
                         char tMsg [100];
                         sprintf(tMsg, "UP Bounce: cRead [%d] lRead[%d]", digitalRead(inputUpPin), inputUp_lastState);
                         iot.pub_msg(tMsg);
@@ -168,7 +171,7 @@ void checkSwitch_PressedDown() {
                                 inputDown_lastState = digitalRead(inputDownPin);
                         }
                 }
-                else { // for debug only
+                else if (USE_BOUNCE_DEBUG) { // for debug only
                         char tMsg [100];
                         sprintf(tMsg, "Down Bounce: cRead[%d] lRead[%d]", digitalRead(inputDownPin), inputDown_lastState);
                         iot.pub_msg(tMsg);
@@ -178,9 +181,6 @@ void checkSwitch_PressedDown() {
 void verifyNotHazardState() {
         if (digitalRead(outputUpPin) == RelayOn && digitalRead(outputDownPin) == RelayOn ) {
                 switchIt("Button", "off");
-                inputDown_lastState = digitalRead(inputDownPin);
-                inputUp_lastState = digitalRead(inputUpPin);
-
                 iot.sendReset("HazradState");
         }
 
@@ -236,7 +236,6 @@ void addiotnalMQTT(char incoming_msg[50]){
         }
         else if (strcmp(incoming_msg, "ver") == 0 ) {
                 sprintf(msg, "ver:[%s], lib:[%s], WDT:[%d], OTA:[%d], SERIAL:[%d], MAN_RESET:[%d]", VER,iot.ver, USE_WDT, USE_OTA, USE_SERIAL,USE_MAN_RESET);
-                // sprintf(msg, "ver:[%s], lib:[%s]", VER,iot.ver);
                 iot.pub_msg(msg);
         }
 }
@@ -244,10 +243,10 @@ void loop() {
         iot.looper(); // check wifi, mqtt, wdt
 
         readGpioStates();
-        verifyNotHazardState(); // both up and down are ---> OFF
+        verifyNotHazardState(); // case both up and down are ---> OFF
 
         checkSwitch_PressedUp();
         checkSwitch_PressedDown();
 
-        // delay(50);
+         delay(100);
 }

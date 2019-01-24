@@ -19,10 +19,11 @@ void pub_msg(char *inmsg);
 bool useSerial = false;
 bool useWDT = true;
 bool useOTA = true;
+bool extDefine = false; // must to set to true in order to use EXtMQTT
 
 bool mqttConnected = 0;
 char* deviceTopic = "";
-const char *ver = "iot_1.33";
+const char *ver = "iot_1.34";
 
 private:
 char* ssid;
@@ -47,7 +48,6 @@ long OTAcounter = 0;     // clock
 char* mqtt_server;
 char* user = "";
 char* passw = "";
-bool extDefine = false;
 // ######################################
 
 

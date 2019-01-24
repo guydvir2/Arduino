@@ -4,9 +4,9 @@
 //####################################################
 #define DEVICE_TOPIC "HomePi/Dvir/Lights/PergolaLeds"
 #define ADD_MQTT_FUNC addiotnalMQTT
-#define VER "SONOFFsw_2.2"
+#define VER "SONOFFsw_2.3"
 
-#define ON_AT_BOOT true
+#define ON_AT_BOOT false
 #define USE_SERIAL false
 #define USE_WDT true
 #define USE_OTA true
@@ -51,7 +51,7 @@ void setup() {
                 digitalWrite(outputPin,RelayOn);
         }
         else {
-                digitalWrite(outputPin,!RelayOn);
+                digitalWrite(outputPin,digitalRead(inputPin));
         }
         iot.useSerial = USE_SERIAL;
         iot.useWDT = USE_WDT;
