@@ -2,7 +2,7 @@
 #include <Arduino.h>
 #include <Wire.h>
 #include <LiquidCrystal_I2C.h>
-#include <Time.h>
+#include <TimeLib.h>
 
 //####################################################
 #define DEVICE_TOPIC "HomePi/Dvir/WaterBoiler"
@@ -151,7 +151,6 @@ void clockString() {
         t = now();
         sprintf(dateStamp2, "%02d-%02d-%02d", year(t), month(t), day(t));
         sprintf(timeStamp2, "%02d:%02d:%02d", hour(t), minute(t), second(t));
-
 }
 
 // ~~~~~~~~~ GPIO switching ~~~~~~~~~~~~~
