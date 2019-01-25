@@ -2,7 +2,7 @@
 #include <Arduino.h>
 
 //####################################################
-#define DEVICE_TOPIC "HomePi/Dvir/Windows/LaundryRoom"
+#define DEVICE_TOPIC "HomePi/Dvir/Windows/ParentsRoom"
 //must be defined to use myIOT
 #define ADD_MQTT_FUNC addiotnalMQTT
 //~~~

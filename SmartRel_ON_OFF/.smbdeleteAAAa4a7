@@ -366,6 +366,17 @@ void switch_1_terminator() {
 void loop() {
   readGpioStates();
 
+  // Service updates
+  if (useNetwork) {
+    network_check();
+  }
+  if (useWDT) {
+    wdtResetCounter = 0;
+  }
+  if (useOTA) {
+    acceptOTA();
+  }
+
   checkSwitch_1();
   if (numSwitches == 2) {
     checkSwitch_2();

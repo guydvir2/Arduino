@@ -48,6 +48,7 @@ void setup() {
         iot.useOTA = USE_OTA;
         iot.start_services(ADD_MQTT_FUNC); // additinalMQTTfucntion, ssid,pswd,mqttuser,mqtt_pswd,broker
 }
+
 void startGPIOs() {
         pinMode(systemState_armed_Pin, INPUT_PULLUP);
         pinMode(systemState_alarm_Pin, INPUT_PULLUP);
@@ -57,6 +58,7 @@ void startGPIOs() {
         systemState_alarm_currentState = digitalRead(systemState_alarm_Pin);
         systemState_armed_currentState = digitalRead(systemState_armed_Pin);
 }
+
 void addiotnalMQTT(char incoming_msg[50]){
         char state[5];
         char state2[5];
@@ -136,6 +138,7 @@ void verifyNotHazardState() {
                 delay(systemPause);
                 if (digitalRead(armedHomePin) == RelayOn || digitalRead(armedAwayPin) == RelayOn) {
                         iot.sendReset("HazradState_2");
+
                 }
         }
 
