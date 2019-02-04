@@ -2,15 +2,16 @@
 #include <Arduino.h>
 
 //####################################################
-#define DEVICE_TOPIC "HomePi/Dvir/Lights/PergolaLeds"
+#define DEVICE_TOPIC "HomePi/Dvir/Lights/S2"
 #define ADD_MQTT_FUNC addiotnalMQTT
-#define VER "SONOFFsw_2.3"
+#define VER "SONOFFsw_2.5"
 
 #define ON_AT_BOOT false
 #define USE_SERIAL false
 #define USE_WDT true
 #define USE_OTA true
 #define USE_MAN_RESET false
+#define USE_BOUNCE_DEBUG false
 //####################################################
 
 // state definitions
@@ -131,7 +132,6 @@ void switchIt(char *type, char *dir) {
         else if (strcmp(dir, "off") == 0) {
                 digitalWrite(outputPin,!RelayOn);
         }
-
         if (iot.mqttConnected == true) {
                 iot.pub_state(dir);
                 sprintf(mqttmsg, "[%s] switched [%s]", type, dir);
@@ -151,9 +151,11 @@ void checkRemoteInput() {
                         inputPin_lastState = digitalRead(inputPin);
                 }
                 else { // for debug only
-                        char tMsg [100];
-                        sprintf(tMsg, "Bounce: cRead [%d] lRead[%d]", digitalRead(inputPin), inputPin_lastState);
-                        iot.pub_msg(tMsg);
+                        if(USE_BOUNCE_DEBUG) {
+                                char tMsg [100];
+                                sprintf(tMsg, "Bounce RemInput: cRead [%d] lRead[%d]", digitalRead(inputPin), inputPin_lastState);
+                                iot.pub_msg(tMsg);
+                        }
                 }
         }
 }
@@ -161,27 +163,26 @@ void checkLocalInput() {
         if (digitalRead(inputLocalPin) == SwitchOn) {
                 delay(deBounceInt);
                 if (digitalRead(inputLocalPin) == SwitchOn ) {
-                  if (digitalRead(outputPin) == RelayOn ) {
-                    switchIt("localButton", "off");
-                  }
-                  else {
-                    switchIt("localButton", "on");
-                  }
-                        // if (inputLocalPin_lastState == SwitchOn) {
-                        //         switchIt("localButton", "on");
-                        // }
-                        // else  {
-                        //         switchIt("localButton", "off");
-                        // }
-                        // inputLocalPin_lastState = digitalRead(inputLocalPin);
+                        if (digitalRead(outputPin) == RelayOn ) {
+                                switchIt("localButton", "off");
+                        }
+                        else {
+                                switchIt("localButton", "on");
+                        }
                         while (digitalRead(inputLocalPin) == SwitchOn) {
                                 delay(50);
+                        }
+                }
+                else { // for debug only
+                        if(USE_BOUNCE_DEBUG) {
+                                char tMsg [100];
+                                sprintf(tMsg, "Bounce LocInput: cRead [%d] lRead[%d]", digitalRead(inputPin), inputPin_lastState);
+                                iot.pub_msg(tMsg);
                         }
                 }
         }
 }
 void readGpioStates() {
-        // outputPin_currentState = digitalRead(outputPin);
         inputLocalPin_currentState = digitalRead(inputLocalPin);
         inputPin_currentState = digitalRead(inputPin);
 }

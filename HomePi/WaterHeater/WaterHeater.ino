@@ -43,7 +43,7 @@ const int timeInterval_resetPress = 1500; // time between consq presses to init 
 
 // TimeOut Constants
 int maxTO = 180; //minutes
-int timeIncrements = 1; //minutes
+int timeIncrements = 15; //minutes
 int timeInc_counter = 0; // counts number of presses to TO increments
 unsigned long startTime = 0;
 unsigned long endTime = 0;
@@ -314,5 +314,5 @@ void loop() {
         switch_1_terminator(); // For Timeout operations
         update_LCD();
 
-        delay(50);
+        // delay(50);
 }

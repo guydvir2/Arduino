@@ -223,6 +223,10 @@ void totalFlow_counter(){
                 Serial.println(adHoc_flow);
         }
 }
+void tStamp(char *retTime){
+        time_t t_1 = now();
+        sprintf(retTime, "%02d-%02d-%02d", year(t_1), month(t_1), day(t_1));
+}
 void loop(){
         iot.looper(); // check wifi, mqtt, wdt
         measureFlow();

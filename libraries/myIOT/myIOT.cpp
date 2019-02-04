@@ -101,10 +101,10 @@ void myIOT::network_check() {
                 if (millis() - noNetwork_Counter >= time2Reset_noNetwork) {
                         sendReset("null");
                 }
-                if (millis() - noNetwork_Counter >= time2_tryReconnect) {
-                        startNetwork(ssid, password);
-                        noNetwork_Counter = 0;
-                }
+                //if (millis() - noNetwork_Counter >= time2_tryReconnect) {
+                //      startNetwork(ssid, password);
+                //    noNetwork_Counter = 0;
+//                }
         }
 }
 int myIOT::networkStatus() {
@@ -112,6 +112,7 @@ int myIOT::networkStatus() {
                 if (mqttClient.connected()) { // mqtt is good
                         mqttClient.loop();
                         mqttConnected = 1;
+                        noNetwork_Counter = 0;
                         return 1;
                 }
                 else { // no MQTT

@@ -2,11 +2,11 @@
 #include <Arduino.h>
 
 //####################################################
-#define DEVICE_TOPIC "HomePi/Dvir/Windows/SaloonDual"
+#define DEVICE_TOPIC "HomePi/Dvir/Windows/LaundryRoom"
 //must be defined to use myIOT
 #define ADD_MQTT_FUNC addiotnalMQTT
 //~~~
-#define USE_SERIAL false
+#define USE_SERIAL true
 #define USE_WDT true
 #define USE_OTA true
 #define USE_MAN_RESET true
