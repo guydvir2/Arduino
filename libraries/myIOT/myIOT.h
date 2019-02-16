@@ -23,7 +23,7 @@ bool extDefine = false; // must to set to true in order to use EXtMQTT
 
 bool mqttConnected = 0;
 char* deviceTopic = "";
-const char *ver = "iot_1.35_alpha";
+const char *ver = "iot_1.37_alpha";
 
 private:
 char* ssid;

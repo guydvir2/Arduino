@@ -1,0 +1,470 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ChangeListManager">
+    <list default="true" id="2b76065b-0077-45d6-b96b-a0162a175ba9" name="Default Changelist" comment="">
+      <change beforePath="$PROJECT_DIR$/HomePi/windowShade/windowShade.ino" beforeDir="false" afterPath="$PROJECT_DIR$/HomePi/windowShade/windowShade.ino" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/FastLED/FastLED.h" beforeDir="false" afterPath="$PROJECT_DIR$/libraries/FastLED/FastLED.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/FastLED/lib8tion/math8.h" beforeDir="false" afterPath="$PROJECT_DIR$/libraries/FastLED/lib8tion/math8.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/FastLED/library.json" beforeDir="false" afterPath="$PROJECT_DIR$/libraries/FastLED/library.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/FastLED/library.properties" beforeDir="false" afterPath="$PROJECT_DIR$/libraries/FastLED/library.properties" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/FastLED/platforms.h" beforeDir="false" afterPath="$PROJECT_DIR$/libraries/FastLED/platforms.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/FastLED/platforms/arm/d21/fastpin_arm_d21.h" beforeDir="false" afterPath="$PROJECT_DIR$/libraries/FastLED/platforms/arm/d21/fastpin_arm_d21.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/FastLED/release_notes.md" beforeDir="false" afterPath="$PROJECT_DIR$/libraries/FastLED/release_notes.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/ArduinoJson.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/CHANGELOG.md" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/CMakeLists.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/CONTRIBUTING.md" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/LICENSE.md" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/README.md" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/SUPPORT.md" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/appveyor.yml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/banner.svg" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/examples/JsonConfigFile/JsonConfigFile.ino" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/examples/JsonGeneratorExample/JsonGeneratorExample.ino" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/examples/JsonHttpClient/JsonHttpClient.ino" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/examples/JsonParserExample/JsonParserExample.ino" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/examples/JsonServer/JsonServer.ino" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/examples/JsonUdpBeacon/JsonUdpBeacon.ino" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/examples/MsgPackParser/MsgPackParser.ino" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/examples/ProgmemExample/ProgmemExample.ino" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/examples/StringExample/StringExample.ino" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/fuzzing/CMakeLists.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/fuzzing/Makefile" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/fuzzing/fuzzer_main.cpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/fuzzing/json_corpus/.gitignore" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/fuzzing/json_fuzzer.cpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/fuzzing/json_seed_corpus/Comments.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/fuzzing/json_seed_corpus/EmptyArray.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/fuzzing/json_seed_corpus/EmptyObject.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/fuzzing/json_seed_corpus/ExcessiveNesting.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/fuzzing/json_seed_corpus/Numbers.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/fuzzing/json_seed_corpus/OpenWeatherMap.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/fuzzing/json_seed_corpus/Strings.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/fuzzing/json_seed_corpus/WeatherUnderground.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/fuzzing/msgpack_corpus/.gitignore" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/fuzzing/msgpack_fuzzer.cpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/fuzzing/msgpack_seed_corpus/array16" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/fuzzing/msgpack_seed_corpus/array32" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/fuzzing/msgpack_seed_corpus/false" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/fuzzing/msgpack_seed_corpus/fixarray" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/fuzzing/msgpack_seed_corpus/fixint_negative" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/fuzzing/msgpack_seed_corpus/fixint_positive" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/fuzzing/msgpack_seed_corpus/fixmap" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/fuzzing/msgpack_seed_corpus/fixstr" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/fuzzing/msgpack_seed_corpus/float32" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/fuzzing/msgpack_seed_corpus/float64" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/fuzzing/msgpack_seed_corpus/int16" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/fuzzing/msgpack_seed_corpus/int32" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/fuzzing/msgpack_seed_corpus/int64" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/fuzzing/msgpack_seed_corpus/int8" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/fuzzing/msgpack_seed_corpus/map16" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/fuzzing/msgpack_seed_corpus/map32" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/fuzzing/msgpack_seed_corpus/nil" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/fuzzing/msgpack_seed_corpus/str16" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/fuzzing/msgpack_seed_corpus/str32" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/fuzzing/msgpack_seed_corpus/str8" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/fuzzing/msgpack_seed_corpus/true" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/fuzzing/msgpack_seed_corpus/uint16" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/fuzzing/msgpack_seed_corpus/uint32" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/fuzzing/msgpack_seed_corpus/uint64" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/fuzzing/msgpack_seed_corpus/uint8" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/keywords.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/library.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/library.properties" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/scripts/build-arduino-package.sh" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/scripts/build-single-header.sh" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/scripts/create-build-envs.sh" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/scripts/oss-fuzz/.gitignore" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/scripts/oss-fuzz/Vagrantfile" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/scripts/publish-particle-library.sh" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/scripts/publish.sh" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/scripts/travis/arduino.sh" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/scripts/travis/cmake.sh" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/scripts/travis/coverage.sh" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/scripts/travis/fuzz.sh" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/scripts/travis/platformio.sh" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/scripts/wandbox/JsonGeneratorExample.cpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/scripts/wandbox/JsonParserExample.cpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/scripts/wandbox/MsgPackParserExample.cpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/scripts/wandbox/publish.sh" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/src/ArduinoJson.h" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/src/ArduinoJson.hpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/src/ArduinoJson/Array/ArrayFunctions.hpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/src/ArduinoJson/Array/ArrayImpl.hpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/src/ArduinoJson/Array/ArrayIterator.hpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/src/ArduinoJson/Array/ArrayRef.hpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/src/ArduinoJson/Array/ArraySubscript.hpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/src/ArduinoJson/Collection/CollectionData.hpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/src/ArduinoJson/Collection/CollectionImpl.hpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/src/ArduinoJson/Configuration.hpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/src/ArduinoJson/Deserialization/ArduinoStreamReader.hpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/src/ArduinoJson/Deserialization/CharPointerReader.hpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/src/ArduinoJson/Deserialization/DeserializationError.hpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/src/ArduinoJson/Deserialization/FlashStringReader.hpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/src/ArduinoJson/Deserialization/IteratorReader.hpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/src/ArduinoJson/Deserialization/StdStreamReader.hpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/src/ArduinoJson/Deserialization/deserialize.hpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/src/ArduinoJson/Document/DynamicJsonDocument.hpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/src/ArduinoJson/Document/JsonDocument.hpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/src/ArduinoJson/Document/StaticJsonDocument.hpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/src/ArduinoJson/Json/EscapeSequence.hpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/src/ArduinoJson/Json/IndentedPrint.hpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/src/ArduinoJson/Json/JsonDeserializer.hpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/src/ArduinoJson/Json/JsonSerializer.hpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/src/ArduinoJson/Json/JsonWriter.hpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/src/ArduinoJson/Json/PrettyJsonSerializer.hpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/src/ArduinoJson/Json/Prettyfier.hpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/src/ArduinoJson/Memory/Alignment.hpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/src/ArduinoJson/Memory/MemoryPool.hpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/src/ArduinoJson/Memory/StringBuilder.hpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/src/ArduinoJson/Memory/StringSlot.hpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/src/ArduinoJson/Misc/SerializedValue.hpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/src/ArduinoJson/Misc/Visitable.hpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/src/ArduinoJson/MsgPack/MsgPackDeserializer.hpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/src/ArduinoJson/MsgPack/MsgPackSerializer.hpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/src/ArduinoJson/MsgPack/endianess.hpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/src/ArduinoJson/MsgPack/ieee754.hpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/src/ArduinoJson/Namespace.hpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/src/ArduinoJson/Numbers/Float.hpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/src/ArduinoJson/Numbers/FloatParts.hpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/src/ArduinoJson/Numbers/FloatTraits.hpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/src/ArduinoJson/Numbers/Integer.hpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/src/ArduinoJson/Numbers/isFloat.hpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/src/ArduinoJson/Numbers/isInteger.hpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/src/ArduinoJson/Numbers/parseFloat.hpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/src/ArduinoJson/Numbers/parseInteger.hpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/src/ArduinoJson/Object/ObjectFunctions.hpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/src/ArduinoJson/Object/ObjectImpl.hpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/src/ArduinoJson/Object/ObjectIterator.hpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/src/ArduinoJson/Object/ObjectRef.hpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/src/ArduinoJson/Object/ObjectSubscript.hpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/src/ArduinoJson/Object/Pair.hpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/src/ArduinoJson/Operators/VariantCasts.hpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/src/ArduinoJson/Operators/VariantComparisons.hpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/src/ArduinoJson/Operators/VariantOperators.hpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/src/ArduinoJson/Operators/VariantOr.hpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/src/ArduinoJson/Operators/VariantSubscripts.hpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/src/ArduinoJson/Polyfills/assert.hpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/src/ArduinoJson/Polyfills/attributes.hpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/src/ArduinoJson/Polyfills/ctype.hpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/src/ArduinoJson/Polyfills/math.hpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/src/ArduinoJson/Polyfills/mpl/max.hpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/src/ArduinoJson/Polyfills/type_traits.hpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/src/ArduinoJson/Polyfills/type_traits/conditional.hpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/src/ArduinoJson/Polyfills/type_traits/enable_if.hpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/src/ArduinoJson/Polyfills/type_traits/integral_constant.hpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/src/ArduinoJson/Polyfills/type_traits/is_array.hpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/src/ArduinoJson/Polyfills/type_traits/is_base_of.hpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/src/ArduinoJson/Polyfills/type_traits/is_const.hpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/src/ArduinoJson/Polyfills/type_traits/is_floating_point.hpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/src/ArduinoJson/Polyfills/type_traits/is_integral.hpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/src/ArduinoJson/Polyfills/type_traits/is_same.hpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/src/ArduinoJson/Polyfills/type_traits/is_signed.hpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/src/ArduinoJson/Polyfills/type_traits/is_unsigned.hpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/src/ArduinoJson/Polyfills/type_traits/remove_const.hpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/src/ArduinoJson/Polyfills/type_traits/remove_reference.hpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/src/ArduinoJson/Polyfills/utility.hpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/src/ArduinoJson/Serialization/DummyWriter.hpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/src/ArduinoJson/Serialization/DynamicStringWriter.hpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/src/ArduinoJson/Serialization/StaticStringWriter.hpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/src/ArduinoJson/Serialization/StreamWriter.hpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/src/ArduinoJson/Serialization/measure.hpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/src/ArduinoJson/Serialization/serialize.hpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/src/ArduinoJson/StringStorage/StringCopier.hpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/src/ArduinoJson/StringStorage/StringMover.hpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/src/ArduinoJson/StringStorage/StringStorage.hpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/src/ArduinoJson/Strings/ArduinoStringWrapper.hpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/src/ArduinoJson/Strings/ConstRamStringWrapper.hpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/src/ArduinoJson/Strings/FlashStringWrapper.hpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/src/ArduinoJson/Strings/RamStringWrapper.hpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/src/ArduinoJson/Strings/SizedFlashStringWrapper.hpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/src/ArduinoJson/Strings/SizedRamStringWrapper.hpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/src/ArduinoJson/Strings/StlStringWrapper.hpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/src/ArduinoJson/Strings/String.hpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/src/ArduinoJson/Strings/StringWrappers.hpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/src/ArduinoJson/Variant/SlotFunctions.hpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/src/ArduinoJson/Variant/VariantAs.hpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/src/ArduinoJson/Variant/VariantAsImpl.hpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/src/ArduinoJson/Variant/VariantContent.hpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/src/ArduinoJson/Variant/VariantData.hpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/src/ArduinoJson/Variant/VariantFunctions.hpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/src/ArduinoJson/Variant/VariantImpl.hpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/src/ArduinoJson/Variant/VariantRef.hpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/src/ArduinoJson/Variant/VariantSlot.hpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/src/ArduinoJson/Variant/VariantTo.hpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/src/ArduinoJson/version.hpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/test/CMakeLists.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/test/IntegrationTests/CMakeLists.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/test/IntegrationTests/gbathree.cpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/test/IntegrationTests/issue772.cpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/test/IntegrationTests/round_trip.cpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/test/JsonArray/CMakeLists.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/test/JsonArray/add.cpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/test/JsonArray/copyFrom.cpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/test/JsonArray/copyTo.cpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/test/JsonArray/createNested.cpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/test/JsonArray/equals.cpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/test/JsonArray/get.cpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/test/JsonArray/isNull.cpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/test/JsonArray/iterator.cpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/test/JsonArray/remove.cpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/test/JsonArray/size.cpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/test/JsonArray/std_string.cpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/test/JsonArray/subscript.cpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/test/JsonArray/undefined.cpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/test/JsonDeserializer/CMakeLists.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/test/JsonDeserializer/DeserializationError.cpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/test/JsonDeserializer/deserializeJsonArray.cpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/test/JsonDeserializer/deserializeJsonArrayStatic.cpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/test/JsonDeserializer/deserializeJsonObject.cpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/test/JsonDeserializer/deserializeJsonObjectStatic.cpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/test/JsonDeserializer/deserializeJsonValue.cpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/test/JsonDeserializer/input_types.cpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/test/JsonDeserializer/nestingLimit.cpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/test/JsonDocument/CMakeLists.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/test/JsonDocument/DynamicJsonDocument.cpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/test/JsonDocument/StaticJsonDocument.cpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/test/JsonObject/CMakeLists.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/test/JsonObject/containsKey.cpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/test/JsonObject/copy.cpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/test/JsonObject/createNestedArray.cpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/test/JsonObject/createNestedObject.cpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/test/JsonObject/equals.cpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/test/JsonObject/invalid.cpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/test/JsonObject/isNull.cpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/test/JsonObject/iterator.cpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/test/JsonObject/remove.cpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/test/JsonObject/size.cpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/test/JsonObject/std_string.cpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/test/JsonObject/subscript.cpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/test/JsonSerializer/CMakeLists.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/test/JsonSerializer/JsonArray.cpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/test/JsonSerializer/JsonArrayPretty.cpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/test/JsonSerializer/JsonObject.cpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/test/JsonSerializer/JsonObjectPretty.cpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/test/JsonSerializer/JsonVariant.cpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/test/JsonSerializer/misc.cpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/test/JsonSerializer/std_stream.cpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/test/JsonSerializer/std_string.cpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/test/JsonVariant/CMakeLists.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/test/JsonVariant/as.cpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/test/JsonVariant/compare.cpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/test/JsonVariant/copy.cpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/test/JsonVariant/get.cpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/test/JsonVariant/is.cpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/test/JsonVariant/isnull.cpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/test/JsonVariant/misc.cpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/test/JsonVariant/or.cpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/test/JsonVariant/set.cpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/test/JsonVariant/subscript.cpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/test/JsonVariant/undefined.cpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/test/JsonWriter/CMakeLists.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/test/JsonWriter/writeFloat.cpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/test/JsonWriter/writeString.cpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/test/MemoryPool/CMakeLists.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/test/MemoryPool/StringBuilder.cpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/test/MemoryPool/allocString.cpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/test/MemoryPool/allocVariant.cpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/test/MemoryPool/clear.cpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/test/MemoryPool/size.cpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/test/Misc/CMakeLists.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/test/Misc/FloatParts.cpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/test/Misc/StringWriter.cpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/test/Misc/TypeTraits.cpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/test/Misc/unsigned_char.cpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/test/Misc/version.cpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/test/MixedConfiguration/CMakeLists.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/test/MixedConfiguration/use_double_0.cpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/test/MixedConfiguration/use_double_1.cpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/test/MixedConfiguration/use_long_long_0.cpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/test/MixedConfiguration/use_long_long_1.cpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/test/MsgPackDeserializer/CMakeLists.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/test/MsgPackDeserializer/deserializeArray.cpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/test/MsgPackDeserializer/deserializeObject.cpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/test/MsgPackDeserializer/deserializeStaticVariant.cpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/test/MsgPackDeserializer/deserializeVariant.cpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/test/MsgPackDeserializer/doubleToFloat.cpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/test/MsgPackDeserializer/incompleteInput.cpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/test/MsgPackDeserializer/input_types.cpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/test/MsgPackDeserializer/nestingLimit.cpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/test/MsgPackDeserializer/notSupported.cpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/test/MsgPackSerializer/CMakeLists.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/test/MsgPackSerializer/destination_types.cpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/test/MsgPackSerializer/measure.cpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/test/MsgPackSerializer/misc.cpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/test/MsgPackSerializer/serializeArray.cpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/test/MsgPackSerializer/serializeObject.cpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/test/MsgPackSerializer/serializeVariant.cpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/test/Numbers/CMakeLists.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/test/Numbers/isFloat.cpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/test/Numbers/isInteger.cpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/test/Numbers/parseFloat.cpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/test/Numbers/parseInteger.cpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/third-party/catch/CMakeLists.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/third-party/catch/catch.cpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/arduino_765887/third-party/catch/catch.hpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/myIOT/myIOT.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/libraries/myIOT/myIOT.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/libraries/myIOT/myIOT.h" beforeDir="false" afterPath="$PROJECT_DIR$/libraries/myIOT/myIOT.h" afterDir="false" />
+    </list>
+    <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="FUSProjectUsageTrigger">
+    <session id="-2043969670">
+      <usages-collector id="statistics.lifecycle.project">
+        <counts>
+          <entry key="project.closed" value="1" />
+          <entry key="project.open.time.3" value="2" />
+          <entry key="project.opened" value="2" />
+        </counts>
+      </usages-collector>
+      <usages-collector id="statistics.file.extensions.open">
+        <counts>
+          <entry key="cpp" value="1" />
+        </counts>
+      </usages-collector>
+      <usages-collector id="statistics.file.types.open">
+        <counts>
+          <entry key="C++" value="1" />
+        </counts>
+      </usages-collector>
+    </session>
+  </component>
+  <component name="FileEditorManager">
+    <leaf SIDE_TABS_SIZE_LIMIT_KEY="300">
+      <file pinned="false" current-in-tab="true">
+        <entry file="file://$PROJECT_DIR$/libraries/myIOT/myIOT.cpp">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="430">
+              <caret line="104" column="17" selection-start-line="104" selection-start-column="17" selection-end-line="104" selection-end-column="17" />
+            </state>
+          </provider>
+        </entry>
+      </file>
+    </leaf>
+  </component>
+  <component name="FindInProjectRecents">
+    <findStrings>
+      <find>noNetw</find>
+    </findStrings>
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="ProjectFrameBounds" extendedState="6">
+    <option name="y" value="23" />
+    <option name="width" value="1440" />
+    <option name="height" value="826" />
+  </component>
+  <component name="ProjectLevelVcsManager" settingsEditedManually="true" />
+  <component name="ProjectView">
+    <navigator proportions="" version="1">
+      <foldersAlwaysOnTop value="true" />
+    </navigator>
+    <panes>
+      <pane id="ProjectPane">
+        <subPane>
+          <expand>
+            <path>
+              <item name="Arduino" type="b2602c69:ProjectViewProjectNode" />
+              <item name="Arduino" type="462c0819:PsiDirectoryNode" />
+            </path>
+            <path>
+              <item name="Arduino" type="b2602c69:ProjectViewProjectNode" />
+              <item name="Arduino" type="462c0819:PsiDirectoryNode" />
+              <item name="HomePi" type="462c0819:PsiDirectoryNode" />
+            </path>
+            <path>
+              <item name="Arduino" type="b2602c69:ProjectViewProjectNode" />
+              <item name="Arduino" type="462c0819:PsiDirectoryNode" />
+              <item name="HomePi" type="462c0819:PsiDirectoryNode" />
+              <item name="windowShade" type="462c0819:PsiDirectoryNode" />
+            </path>
+            <path>
+              <item name="Arduino" type="b2602c69:ProjectViewProjectNode" />
+              <item name="Arduino" type="462c0819:PsiDirectoryNode" />
+              <item name="libraries" type="462c0819:PsiDirectoryNode" />
+            </path>
+            <path>
+              <item name="Arduino" type="b2602c69:ProjectViewProjectNode" />
+              <item name="Arduino" type="462c0819:PsiDirectoryNode" />
+              <item name="libraries" type="462c0819:PsiDirectoryNode" />
+              <item name="myIOT" type="462c0819:PsiDirectoryNode" />
+            </path>
+          </expand>
+          <select />
+        </subPane>
+      </pane>
+      <pane id="Scope" />
+    </panes>
+  </component>
+  <component name="PropertiesComponent">
+    <property name="last_opened_file_path" value="$PROJECT_DIR$" />
+    <property name="settings.editor.selected.configurable" value="com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable" />
+  </component>
+  <component name="RunDashboard">
+    <option name="ruleStates">
+      <list>
+        <RuleState>
+          <option name="name" value="ConfigurationTypeDashboardGroupingRule" />
+        </RuleState>
+        <RuleState>
+          <option name="name" value="StatusDashboardGroupingRule" />
+        </RuleState>
+      </list>
+    </option>
+  </component>
+  <component name="SvnConfiguration">
+    <configuration />
+  </component>
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="2b76065b-0077-45d6-b96b-a0162a175ba9" name="Default Changelist" comment="" />
+      <created>1550341432428</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1550341432428</updated>
+    </task>
+    <servers />
+  </component>
+  <component name="ToolWindowManager">
+    <frame x="0" y="23" width="1440" height="831" extended-state="6" />
+    <layout>
+      <window_info active="true" content_ui="combo" id="Project" order="0" visible="true" weight="0.24947146" />
+      <window_info id="Structure" order="1" side_tool="true" weight="0.25" />
+      <window_info id="Favorites" order="2" side_tool="true" />
+      <window_info anchor="bottom" id="Message" order="0" />
+      <window_info anchor="bottom" id="Find" order="1" />
+      <window_info anchor="bottom" id="Run" order="2" />
+      <window_info anchor="bottom" id="Debug" order="3" weight="0.4" />
+      <window_info anchor="bottom" id="Cvs" order="4" weight="0.25" />
+      <window_info anchor="bottom" id="Inspection" order="5" weight="0.4" />
+      <window_info anchor="bottom" id="TODO" order="6" />
+      <window_info anchor="bottom" id="Version Control" order="7" show_stripe_button="false" />
+      <window_info anchor="bottom" id="Terminal" order="8" />
+      <window_info anchor="bottom" id="Event Log" order="9" side_tool="true" />
+      <window_info anchor="bottom" id="Python Console" order="10" />
+      <window_info anchor="right" id="Commander" order="0" weight="0.4" />
+      <window_info anchor="right" id="Ant Build" order="1" weight="0.25" />
+      <window_info anchor="right" content_ui="combo" id="Hierarchy" order="2" weight="0.25" />
+    </layout>
+  </component>
+  <component name="VcsContentAnnotationSettings">
+    <option name="myLimit" value="2678400000" />
+  </component>
+  <component name="editorHistoryManager">
+    <entry file="file://$PROJECT_DIR$/HomePi/windowShade/windowShade.ino">
+      <provider selected="true" editor-type-id="text-editor" />
+    </entry>
+    <entry file="file://$PROJECT_DIR$/libraries/myIOT/myIOT.cpp">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="430">
+          <caret line="104" column="17" selection-start-line="104" selection-start-column="17" selection-end-line="104" selection-end-column="17" />
+        </state>
+      </provider>
+    </entry>
+  </component>
+</project>

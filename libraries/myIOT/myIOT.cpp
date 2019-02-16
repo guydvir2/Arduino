@@ -98,13 +98,11 @@ void myIOT::startNetwork(char *ssid, char *password) {
 }
 void myIOT::network_check() {
         if ( networkStatus() == 0) {
-                if (millis() - noNetwork_Counter >= time2Reset_noNetwork) {
-                        sendReset("null");
+                if(noNetwork_Counter != 0) {
+                        if (millis() - noNetwork_Counter >= time2Reset_noNetwork) {
+                                // sendReset("null");
+                        }
                 }
-                //if (millis() - noNetwork_Counter >= time2_tryReconnect) {
-                //      startNetwork(ssid, password);
-                //    noNetwork_Counter = 0;
-//                }
         }
 }
 int myIOT::networkStatus() {
@@ -117,19 +115,17 @@ int myIOT::networkStatus() {
                 }
                 else { // no MQTT
                         if (subscribeMQTT() == 1) { //try reconnect mqtt
+                                noNetwork_Counter = 0;
                                 return 1; //ok
                         }
-                        else {
+                        else { // fail connect to MQTT server
+                                if (noNetwork_Counter == 0) {
+                                        noNetwork_Counter = millis();
+                                }
+                                mqttConnected = 0;
                                 return 0; // can't connect
                         }
                 }
-        }
-        else { // no wifi
-                if (noNetwork_Counter == 0) {
-                        noNetwork_Counter = millis();
-                }
-                mqttConnected = 0;
-                return 0;
         }
 }
 void myIOT::start_clock() {
