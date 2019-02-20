@@ -2,17 +2,17 @@
 #include <Arduino.h>
 
 //####################################################
-#define DEVICE_TOPIC "HomePi/Dvir/Windows/LAB"
+#define DEVICE_TOPIC "HomePi/Dvir/Windows/ParentsRoom"
 //must be defined to use myIOT
 #define ADD_MQTT_FUNC addiotnalMQTT
 //~~~
-#define USE_SERIAL true
+#define USE_SERIAL false
 #define USE_WDT true
 #define USE_OTA true
 #define USE_MAN_RESET true
-#define USE_BOUNCE_DEBUG true
+#define USE_BOUNCE_DEBUG false
 
-#define VER "NodeMCU_3.63"
+#define VER "NodeMCU_3.7"
 //####################################################
 
 // state definitions
@@ -243,10 +243,10 @@ void loop() {
         iot.looper(); // check wifi, mqtt, wdt
 
         readGpioStates();
-//        verifyNotHazardState(); // case both up and down are ---> OFF
+        verifyNotHazardState(); // case both up and down are ---> OFF
 
         checkSwitch_PressedUp();
         checkSwitch_PressedDown();
 
-         delay(100);
+        delay(50);
 }

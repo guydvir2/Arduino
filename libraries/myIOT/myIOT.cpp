@@ -100,7 +100,7 @@ void myIOT::network_check() {
         if ( networkStatus() == 0) {
                 if(noNetwork_Counter != 0) {
                         if (millis() - noNetwork_Counter >= time2Reset_noNetwork) {
-                                // sendReset("null");
+                                sendReset("null");
                         }
                 }
         }
