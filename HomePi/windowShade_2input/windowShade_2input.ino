@@ -10,9 +10,9 @@
 #define USE_WDT true
 #define USE_OTA true
 #define USE_MAN_RESET true
-#define USE_BOUNCE_DEBUG true
+#define USE_BOUNCE_DEBUG false
 
-#define VER "NodeMCU_2.0"
+#define VER "NodeMCU_2.1"
 //####################################################
 // device state definitions
 #define RelayOn LOW
@@ -308,9 +308,8 @@ void readGpioStates() {
 }
 
 void loop() {
-        // read GPIOs
-        readGpioStates();
         iot.looper();
+        readGpioStates();
         verifyNotHazardState(); // both up and down are ---> OFF
 
         // react to commands (MQTT or local switch)
@@ -319,5 +318,5 @@ void loop() {
         checkSwitch_PressedUpExt();
         checkSwitch_PressedDownExt();
 
-        delay(100);
+        delay(50);
 }
