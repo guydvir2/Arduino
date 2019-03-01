@@ -49,7 +49,6 @@ void turn_leds_on(int col_indx, int bright_1 = BRIGHTNESS, int del_1 = 5, bool d
   }
 }
 
-
 void splitter(char *inputstr, int x, char *output[]) {
   //  char str[] = "- This, a sample string.";
   char * pch;
@@ -75,7 +74,6 @@ void setup() {
   iot.start_services(ADD_MQTT_FUNC); // additinalMQTTfucntion, ssid,pswd,mqttuser,mqtt_pswd,broker
 
 }
-
 
 void addiotnalMQTT(char incoming_msg[50]) {
   char state[5];
