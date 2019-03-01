@@ -3,7 +3,7 @@
 #include <FastLED.h>
 
 //####################################################
-#define DEVICE_TOPIC "HomePi/Dvir/Lights/LedStrip2"
+#define DEVICE_TOPIC "HomePi/Dvir/Lights/LedStrip"
 //must be defined to use myIOT
 #define ADD_MQTT_FUNC addiotnalMQTT
 //~~~
@@ -21,7 +21,7 @@
 #define WAVE false
 #define PARAM_AMOUNT 4
 
-#define VER "Wemos.Mini.1.2"
+#define VER "Wemos.Mini.1.3"
 //####################################################
 
 
@@ -31,7 +31,7 @@ CRGB leds[NUM_LEDS];
 myIOT iot(DEVICE_TOPIC);
 
 const int tot_colors = int(sizeof(colors) / sizeof(colors[0]));
-char *parameters[PARAM_AMOUNT];
+char *parameters[PARAM_AMOUNT] = {"A", "A", "A", "A"};
 int param_def[] = {COLOR, BRIGHTNESS, LED_DELAY, LED_DIRECTION};
 
 void turn_leds_on(int col_indx = COLOR, int bright_1 = BRIGHTNESS, int del_1 = LED_DELAY, bool dir_1 = LED_DIRECTION) {
@@ -66,24 +66,28 @@ void splitter(char *inputstr, int x, char *output[]) {
   while (pch != NULL)
   {
     output[i] = pch;
+    Serial.println(output[i]);
     pch = strtok (NULL, " ,.-");
     i++;
   }
-
   //  update default values
-//  for (int x = i ; x <= PARAM_AMOUNT - 1; x++) {
-//    sprintf(parameters[x], "%d", param_def[x]);
-//  }
+  for (int x = i ; x <= PARAM_AMOUNT - 1; x++) {
+    sprintf(parameters[x], "%d", param_def[x]);
+    Serial.println(parameters[x]);
+  }
 }
 
 void setup() {
-  FastLED.addLeds<NEOPIXEL, DATA_PIN>(leds, NUM_LEDS);
-  turn_leds_on(1, 50, 20, 1);
-
   iot.useSerial = USE_SERIAL;
   iot.useWDT = USE_WDT;
   iot.useOTA = USE_OTA;
   iot.start_services(ADD_MQTT_FUNC); // additinalMQTTfucntion, ssid,pswd,mqttuser,mqtt_pswd,broker
+
+  for (int x = 0 ; x <= PARAM_AMOUNT - 1; x++) { //def values
+    sprintf(parameters[x], "%d", param_def[x]);
+  }
+  FastLED.addLeds<NEOPIXEL, DATA_PIN>(leds, NUM_LEDS);
+  turn_leds_on(); // run on def values
 }
 
 
@@ -109,13 +113,12 @@ void addiotnalMQTT(char incoming_msg[50]) {
     //      if (atoi(parameters[1]) <= 100 && isDigit(*parameters[1])) { //brightness
     //        if (atoi(parameters[2]) <= 100 && isDigit(*parameters[2])) { //delay between leds
     //          if (atoi(parameters[3]) <= 1 && isDigit(*parameters[3])) { //direction
-    Serial.println(parameters[0]);
-    Serial.println(parameters[1]);
-    Serial.println(parameters[2]);
-    Serial.println(parameters[3]);
-    
+    //    Serial.println(parameters[0]);
+    //    Serial.println(parameters[1]);
+    //    Serial.println(parameters[2]);
+    //    Serial.println(parameters[3]);
+
     turn_leds_on(atoi(parameters[0]), atoi(parameters[1]), atoi(parameters[2]), atoi(parameters[3]));
-    //
     sprintf(msg, "TurnOn: Color:[%s], Brightness:[%d]", color_names[atoi(parameters[0])], atoi(parameters[1]));
     iot.pub_msg(msg);
     //          }
@@ -127,8 +130,8 @@ void addiotnalMQTT(char incoming_msg[50]) {
 }
 
 
-  void loop() {
-    iot.looper(); // check wifi, mqtt, wdt
+void loop() {
+  iot.looper(); // check wifi, mqtt, wdt
 
-    delay(50);
-  }
+  delay(50);
+}
