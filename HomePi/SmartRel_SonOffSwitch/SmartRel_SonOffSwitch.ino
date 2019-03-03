@@ -2,9 +2,9 @@
 #include <Arduino.h>
 
 //####################################################
-#define DEVICE_TOPIC "HomePi/Dvir/Lights/S2"
+#define DEVICE_TOPIC "HomePi/Dvir/Lights/Stove"
 #define ADD_MQTT_FUNC addiotnalMQTT
-#define VER "SONOFFsw_2.5"
+#define VER "SONOFFsw_2.6"
 
 #define ON_AT_BOOT false
 #define USE_SERIAL false
