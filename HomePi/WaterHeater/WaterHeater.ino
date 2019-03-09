@@ -5,7 +5,7 @@
 #include <TimeLib.h>
 
 //####################################################
-#define DEVICE_TOPIC "HomePi/Dvir/WaterBoiler"
+#define DEVICE_TOPIC "HomePi/Dvir/WaterBoiler3"
 //must be defined to use myIOT
 #define ADD_MQTT_FUNC addiotnalMQTT
 //~~~
@@ -20,13 +20,16 @@
 
 // state definitions
 #define buttonPressed  LOW
-#define relayON  LOW
+#define relayON  HIGH
 #define ledON LOW
 
 // GPIO Pins for ESP8266/ WEMOs
-const int input_1Pin = D3;
-const int output_1Pin = D6;
-const int ledPin = D5;
+//const int input_1Pin = D3;
+//const int output_1Pin = D6;
+//const int ledPin = D5;
+const int input_1Pin = D7;
+const int output_1Pin = D5;
+const int ledPin = D6;
 //##########################
 
 // GPIO status flags

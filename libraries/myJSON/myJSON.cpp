@@ -1,28 +1,39 @@
+#include "Arduino.h"
+#include "myJSON.h"
 
 #include <ArduinoJson.h>
 #include "FS.h"
 
 
-#define FILE_NAME "/test.json"
-//const *char key_1= "Name";
-//const *char value_1="GuyDvir";
-void setup() {
-  // put your setup code here, to run once:
-  Serial.begin(9600);
-  delay(1000);
 
-   if (!SPIFFS.begin()) {
-    Serial.println("Failed to mount file system");
-    return;
-  }
-  
-  readFile(FILE_NAME,"name");
-//saveFile(FILE_NAME,"name","guyDvir");
-  
+myJSON::myJSON() {
+  if (!SPIFFS.begin()) {
+   Serial.println("Failed to mount file system");
+}
+void myIOT::start_services(char *filename) {
+        mqtt_server = mqtt_broker;
+        user = mqtt_user;
+        passw = mqtt_passw;
+        ssid = ssid;
+        password = password;
+        ext_mqtt = funct;   //redirecting to ex-class function ( defined outside)
+        extDefine = true;   // maing sure this ext_func was defined
 
+
+        if ( useSerial ) {
+                Serial.begin(9600);
+                delay(10);
+        }
+        startNetwork(ssid, password);
+        if (useWDT) {
+                startWDT();
+        }
+        if (useOTA) {
+                startOTA();
+        }
 }
 
-bool readFile(char *filename, char *key) {
+bool myJSON::ReadValue(char *filename, char *key){
   File openFile = SPIFFS.open(filename, "r");
   if (!openFile) {
     Serial.println("Failed to open config file");
@@ -60,25 +71,6 @@ bool readFile(char *filename, char *key) {
   Serial.print(key);
   Serial.print(": ");
   Serial.println(value);
-  return true;
-}
-
-bool saveFile(char *filename, char key[10], char value[10]) {
-  StaticJsonBuffer<200> jsonBuffer;
-  JsonObject& json = jsonBuffer.createObject();
-  json[key] = value;
-
-  File writeFile = SPIFFS.open(filename, "w");
-  if (!writeFile) {
-    Serial.println("Failed to open config file for writing");
-    return false;
-  }
-
-  json.printTo(writeFile);
-  return true;
-}
-
-void loop() {
-  // put your main code here, to run repeatedly:
+  return true;                           bb5
 
 }

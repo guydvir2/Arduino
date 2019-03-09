@@ -3,7 +3,7 @@
 #include <FastLED.h>
 
 //####################################################
-#define DEVICE_TOPIC "HomePi/Dvir/Lights/LedStrip2"
+#define DEVICE_TOPIC "HomePi/Dvir/Lights/LedStrip3"
 //must be defined to use myIOT
 #define ADD_MQTT_FUNC addiotnalMQTT
 //~~~
@@ -12,7 +12,7 @@
 #define USE_OTA true
 
 #define NUM_LEDS 150
-#define DATA_PIN D4
+#define DATA_PIN 7
 
 #define COLOR 1
 #define LED_DELAY 20

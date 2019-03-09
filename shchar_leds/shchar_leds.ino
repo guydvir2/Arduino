@@ -1,10 +1,18 @@
-int redPin = 13;
-int yellowPin = 12;
-int greenPin = 11;
+int redPin = 5;
+int yellowPin = 6;
+int greenPin = 7;
 
-int greenButton = 8;
-int redButton = 10;
-int yellowButton = 9;
+int greenButton = 2;
+int redButton = 3;
+int yellowButton = 4;
+
+//#define redPin 1;
+//#define yellowPin D3;
+//#define greenPin D4;
+//
+//#define greenButton D5;
+//#define redButton D6;
+//#define yellowButton D7;
 
 bool greenFlag = false;
 bool yellowFlag = false;
@@ -13,7 +21,7 @@ bool redFlag = false;
 
 void setup() {
   // put your setup code here, to run once:
-  //  Serial.begin(9600);
+    Serial.begin(9600);
   pinMode(redPin, OUTPUT);
   pinMode(yellowPin, OUTPUT);
   pinMode(greenPin, OUTPUT);
@@ -50,6 +58,7 @@ void loop() {
   //##########
   if (digitalRead(greenButton) == LOW) { // button is pressed
     digitalWrite(greenPin, HIGH);
+    Serial.println("Green");
   }
   else { // button is released
     digitalWrite(greenPin, LOW);

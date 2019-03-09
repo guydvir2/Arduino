@@ -2,7 +2,7 @@
 #include <Arduino.h>
 
 //####################################################
-#define DEVICE_TOPIC "HomePi/Dvir/Windows/ParentsRoom"
+#define DEVICE_TOPIC "HomePi/Dvir/Windows/TestBed"
 //must be defined to use myIOT
 #define ADD_MQTT_FUNC addiotnalMQTT
 //~~~
@@ -21,7 +21,7 @@
 
 // GPIO Pins for ESP8266
 const int inputUpPin = 4;
-const int inputDownPin = 5;
+const int inputDownPin =5;
 const int outputUpPin = 14;
 const int outputDownPin = 12;
 //##########################
