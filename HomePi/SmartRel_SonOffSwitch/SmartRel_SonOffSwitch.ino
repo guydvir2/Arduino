@@ -2,17 +2,17 @@
 #include <Arduino.h>
 
 //####################################################
-#define DEVICE_TOPIC "HomePi/Dvir/Lights/Pergola_ledStrips"
+#define DEVICE_TOPIC "HomePi/Dvir/Lights/Pergola_Projector"
 #define ADD_MQTT_FUNC addiotnalMQTT
 #define VER "SONOFFsw_2.7"
 
-#define ON_AT_BOOT false
+#define ON_AT_BOOT true
 #define USE_SERIAL false
 #define USE_WDT true
 #define USE_OTA true
 #define USE_MAN_RESET false
 #define USE_BOUNCE_DEBUG false
-#define USE_TIMEOUT false
+#define USE_TIMEOUT true
 #define TIME_OUT_VALUE 30
 //####################################################
 
@@ -67,9 +67,9 @@ void setup() {
   iot.useWDT = USE_WDT;
   iot.useOTA = USE_OTA;
   iot.start_services(ADD_MQTT_FUNC);
- if ( USE_TIMEOUT == true ) {
-  switchIt("TimeOut", "on");
- }
+  if ( USE_TIMEOUT == true ) {
+    switchIt("TimeOut", "on");
+  }
 }
 void startGPIOs() {
   pinMode(inputPin, INPUT_PULLUP);
@@ -202,18 +202,18 @@ void readGpioStates() {
 void loop() {
   iot.looper(); // check wifi, mqtt, wdt
   readGpioStates();
-  digitalWrite(ledPin, !digitalRead(outputPin));
+//  digitalWrite(ledPin, !digitalRead(outputPin));
 
   // react to commands (MQTT or local switch)
   checkRemoteInput();
   checkLocalInput();
 
-  if (USE_TIMEOUT == true && startTime !=0 ) {
+  if (USE_TIMEOUT == true && startTime != 0 ) {
     if ((millis() - startTime ) > TIME_OUT_VALUE * 1000 * 60 ) {
       switchIt("TimeOut", "off");
       startTime = 0;
     }
   }
 
-  delay(150);
+  delay(50);
 }

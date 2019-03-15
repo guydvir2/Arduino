@@ -134,8 +134,13 @@ void myIOT::start_clock() {
         strcpy(bootTime, timeStamp);
 }
 void myIOT::startNTP() {
-        NTP.begin("pool.ntp.org", 2, true);
-        NTP.setInterval(1000 * 3600 * clockUpdateInt);
+        // NTP.begin("pool.ntp.org", 2, true);
+        int counter = 0;
+        while (!NTP.begin("asia.pool.ntp.org", 2, true) && counter <=2){
+          delay(1000);
+        };
+        NTP.setInterval(clockUpdateInt); // in seconds
+        // NTP.setInterval(1000 * 3600 * clockUpdateInt); //
 }
 void myIOT::get_timeStamp() {
         time_t t = now();

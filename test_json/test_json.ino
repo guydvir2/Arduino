@@ -15,10 +15,10 @@ void setup() {
     Serial.println("Failed to mount file system");
     return;
   }
-  
+
   readFile(FILE_NAME,"name");
 //saveFile(FILE_NAME,"name","guyDvir");
-  
+
 
 }
 
@@ -76,9 +76,4 @@ bool saveFile(char *filename, char key[10], char value[10]) {
 
   json.printTo(writeFile);
   return true;
-}
-
-void loop() {
-  // put your main code here, to run repeatedly:
-
 }
