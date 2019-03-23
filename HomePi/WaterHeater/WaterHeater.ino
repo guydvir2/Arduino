@@ -1,8 +1,13 @@
 #include <myIOT.h>
 #include <Arduino.h>
 #include <Wire.h>
-#include <LiquidCrystal_I2C.h>
+//#include <LiquidCrystal_I2C.h>
 #include <TimeLib.h>
+#include <SPI.h>
+#include <Wire.h>
+#include <Adafruit_GFX.h>
+#include <Adafruit_SSD1306.h>
+
 
 //####################################################
 #define DEVICE_TOPIC "HomePi/Dvir/WaterBoiler3"
@@ -15,13 +20,15 @@
 #define USE_MAN_RESET false
 #define USE_BOUNCE_DEBUG false
 
-#define VER "NodeMCU_2.0"
+#define VER "Wemos_3.0"
 //####################################################
 
 // state definitions
 #define buttonPressed  LOW
 #define relayON  HIGH
 #define ledON LOW
+
+#define OLED_RESET LED_BUILTIN  //4
 
 // GPIO Pins for ESP8266/ WEMOs
 //const int input_1Pin = D3;
@@ -61,12 +68,15 @@ bool changeState;
 const int deBounceInt = 50;
 char msg[150];
 
-LiquidCrystal_I2C lcd(0x27, 16, 2);
+//LiquidCrystal_I2C lcd(0x27, 16, 2);
+Adafruit_SSD1306 display(OLED_RESET);
+char text_lines[2][20];
+
 myIOT iot(DEVICE_TOPIC);
 
 void setup() {
         startGPIOs();
-        startLCD();
+        startOLED();
         iot.useSerial = USE_SERIAL;
         iot.useWDT = USE_WDT;
         iot.useOTA = USE_OTA;
@@ -74,45 +84,70 @@ void setup() {
 }
 
 // ~~~~ LCD ~~~~~~~
-void printCenter(char *string, int i = 0) {
-        lcd.setCursor((int)(16 - strlen(string)) / 2, i);
-        lcd.print(string);
+void startOLED(){
+        display.begin(SSD1306_SWITCHCAPVCC, 0x3C);
+        display.clearDisplay();
 }
-void printLeft(char *string, int i = 0) {
-        lcd.setCursor(0, i);
-        lcd.print(string);
+
+void centeredTxtOLED(char *text, int line, int text_size = 1) {
+        int line_length [2];
+        float coeff;
+        strcpy(text_lines[line], text);
+        display.setTextSize(text_size);
+        display.setTextColor(WHITE);
+
+        display.clearDisplay();
+        for (int i = 0; i <= 1; i++) {
+                line_length[i] = strlen(text_lines[i]);
+                if (text_size == 1) {
+                        coeff=21.0;
+                }
+                else if (text_size == 2) {
+                        coeff=10.0;
+                }
+                display.setCursor(((coeff - line_length[i]) *(128/coeff)/ 2), i * 16);
+                display.println(text_lines[i]);
+        }
+        display.display();
 }
-void printRight(char *string, int i = 0) {
-        lcd.setCursor(16 - strlen(string), i);
-        lcd.print(string);
-}
-void update_LCD() {
+
+void upadteOLED_display() {
         clockString();
         char time_on_char[20];
         char time2Off_char[20];
 
         if (changeState) {
-                lcd.clear();
+//                lcd.clear();
+                display.clearDisplay();
                 changeState = false;
+                if (output1_currentState == relayON ) {
+                        centeredTxtOLED("ON", 0,2);
+                        delay(2000);
+                }
+                if (output1_currentState == !relayON ) {
+                        centeredTxtOLED("OFF", 0,2);
+                        delay(2000);
+                }
+
         }
 
         if (output1_currentState == relayON ) {
                 int timeON = millis() - startTime;
-                sec2clock(timeON, "On: ", time_on_char);
+                sec2clock(timeON, "On:", time_on_char);
                 if ( timeInc_counter == 1 ) { // ~~~~ON, no timer ~~~~~~~
-                        printCenter(timeStamp2, 0);
-                        printCenter(time_on_char, 1);
+                        centeredTxtOLED(timeStamp2, 0,1);
+                        centeredTxtOLED(time_on_char, 1,1);
                 }
                 else if ( timeInc_counter > 1 ) { /// ON + Timer
                         int timeLeft = endTime - millis();
-                        sec2clock(timeLeft, "Remain: ", time2Off_char);
-                        printCenter(time_on_char, 0);
-                        printCenter(time2Off_char, 1);
+                        sec2clock(timeLeft, "Off:", time2Off_char);
+                        centeredTxtOLED(time_on_char, 0,1);
+                        centeredTxtOLED(time2Off_char, 1,1);
                 }
         }
         else { // OFF state - clock only
-                printCenter(timeStamp2, 0);
-                printCenter(dateStamp2, 1);
+                centeredTxtOLED(timeStamp2, 0,2);
+                centeredTxtOLED(dateStamp2, 1,2);
         }
 }
 // ~~~~~~~~~~~~~~~
@@ -124,11 +159,6 @@ void startGPIOs() {
         pinMode(ledPin, OUTPUT);
 
         allOff();
-}
-void startLCD() {
-        lcd.init(); //initialize the lcd
-        lcd.backlight(); //open the backligh
-        lcd.setCursor(0, 0);
 }
 //~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -149,9 +179,10 @@ void sec2clock(int sec, char* text, char* output_text) {
         int m = ((int)(sec) - h * 1000 * 60 * 60) / (1000 * 60);
         int s = ((int)(sec) - h * 1000 * 60 * 60 - m * 1000 * 60) / 1000;
         sprintf(output_text, "%s %01d:%02d:%02d", text, h, m, s);
+//         sprintf(output_text, "%s %01d:%02d", text, h, m);
 }
 void clockString() {
-        t = now();
+        t=now();
         sprintf(dateStamp2, "%02d-%02d-%02d", year(t), month(t), day(t));
         sprintf(timeStamp2, "%02d:%02d:%02d", hour(t), minute(t), second(t));
 }
@@ -300,11 +331,18 @@ void addiotnalMQTT(char *incoming_msg) {
         }
 }
 void switch_1_terminator() {
-        if ( endTime != 0 && endTime <= millis() ) {
-                switchIt("TimeOut", "1,off");
-                timeInc_counter = 0;
-                endTime = 0;
-                startTime = 0;
+        if (output1_currentState == relayON ) {
+                if ( endTime != 0 && endTime <= millis() ) {
+                        switchIt("TimeOut", "1,off");
+                        timeInc_counter = 0;
+                        endTime = 0;
+                        startTime = 0;
+                }
+                if(startTime>=maxTO*60*1000) {
+                        switchIt("Overide TimeOut", "1,off");
+                        startTime = 0;
+
+                }
         }
 }
 
@@ -315,7 +353,7 @@ void loop() {
 
         checkSwitch_1();
         switch_1_terminator(); // For Timeout operations
-        update_LCD();
+        upadteOLED_display();
 
         // delay(50);
 }

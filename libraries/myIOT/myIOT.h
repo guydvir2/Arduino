@@ -10,6 +10,8 @@ public:
 myIOT(char *devTopic);
 void looper();
 void startOTA();
+void getTime(time_t t);
+void get_timeStamp();
 
 void sendReset(char *header);
 void start_services(cb_func funct, char *ssid="Xiaomi_D6C8", char *password="guyd5161", char *mqtt_user="guy", char *mqtt_passw="kupelu9e", char *mqtt_broker="192.168.3.200");
@@ -23,7 +25,7 @@ bool extDefine = false; // must to set to true in order to use EXtMQTT
 
 bool mqttConnected = 0;
 char* deviceTopic = "";
-const char *ver = "iot_1.38";
+const char *ver = "iot_1.39";
 
 private:
 char* ssid;
@@ -31,7 +33,7 @@ char* password;
 cb_func ext_mqtt;
 
 // time interval parameters
-const int clockUpdateInt = (60*60)*1;     // hrs to update NTP
+const int clockUpdateInt = (60*30);     // seconds to update NTP
 const int WIFItimeOut = (1000 * 60) * 1/3;     // 20 sec try to connect WiFi
 const int OTA_upload_interval = (1000 * 60) * 2;     // 2 minute to try OTA
 const int time2Reset_noNetwork = (1000 * 60) * 5;     // minutues pass without any network
@@ -78,7 +80,7 @@ bool firstRun = true;
 // ~~~~~~~~~~~~~~WIFI ~~~~~~~~~~~~~~~~~~~~~
 void startNetwork(char *ssid, char *password);
 void startNTP();
-void get_timeStamp();
+
 void start_clock();
 int networkStatus();
 void network_check();
@@ -96,7 +98,6 @@ void msgSplitter( const char* msg_in, int max_msgSize, char *prefix, char *split
 void feedTheDog();
 void startWDT();
 void acceptOTA();
-
 };
 
 #endif
