@@ -2,10 +2,10 @@
 #include <Arduino.h>
 
 //####################################################
-#define DEVICE_TOPIC "HomePi/Dvir/Lights/PergolaExit"
+#define DEVICE_TOPIC "HomePi/Dvir/Lights/test"
 
 //~~~Services
-#define USE_SERIAL       false
+#define USE_SERIAL       true
 #define USE_WDT          true
 #define USE_OTA          true
 #define USE_MAN_RESET    false

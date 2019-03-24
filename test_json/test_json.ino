@@ -77,3 +77,8 @@ bool saveFile(char *filename, char key[10], char value[10]) {
   json.printTo(writeFile);
   return true;
 }
+
+void loop() {
+  // put your main code here, to run repeatedly:
+
+}

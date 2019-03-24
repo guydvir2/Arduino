@@ -7,7 +7,6 @@
 #include <PubSubClient.h> //MQTT
 #include <Ticker.h> //WDT
 
-
 // OTA libraries
 #include <ESP8266mDNS.h>
 #include <WiFiUdp.h>
@@ -17,6 +16,7 @@
 WiFiClient espClient;
 PubSubClient mqttClient(espClient);
 Ticker wdt;
+
 
 myIOT::myIOT(char *devTopic) {
         deviceTopic = devTopic;
@@ -133,31 +133,13 @@ void myIOT::start_clock() {
         get_timeStamp();
         strcpy(bootTime, timeStamp);
 }
-// void myIOT::startNTP() {
-//         // NTP.begin("pool.ntp.org", 2, true);
-//         int counter = 0;
-//         // Serial.println("ENTER NTP");
-//         while ( !NTP.begin("pool.ntp.org", 2, true) && counter <=2){
-//           // Serial.print("NTP CHECK: #");
-//           // Serial.println(counter);
-//           counter +=1;
-//           delay(1000);
-//         };
-//         NTP.setInterval(clockUpdateInt); // in seconds
-//         // NTP.setInterval(1000 * 3600 * clockUpdateInt); //
-// }
 void myIOT::startNTP() {
-    NTP.begin("pool.ntp.org", 2, true);
-    NTP.setInterval(clockUpdateInt); // in seconds
+        NTP.begin("pool.ntp.org", 2, true);
+        NTP.setInterval(clockUpdateInt);
 }
 void myIOT::get_timeStamp() {
-        time_t t;
-        getTime(t);
+        time_t t = now();
         sprintf(timeStamp, "%02d-%02d-%02d %02d:%02d:%02d", year(t), month(t), day(t), hour(t), minute(t), second(t));
-}
-
-void myIOT::getTime(time_t T){
-  T=now();
 }
 
 

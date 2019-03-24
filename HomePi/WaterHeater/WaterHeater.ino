@@ -1,21 +1,21 @@
 #include <myIOT.h>
 #include <Arduino.h>
 #include <Wire.h>
-#include <TimeLib.h>
+// #include <TimeLib.h>
 #include <SPI.h>
-#include <Wire.h>
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
 
 
 //####################################################
-#define DEVICE_TOPIC "HomePi/Dvir/WaterBoiler3"
+#define DEVICE_TOPIC "HomePi/Dvir/Water"
+#define USE_SERIAL       true
+#define USE_WDT          true
+#define USE_OTA          true
 
-#define USE_SERIAL false
-#define USE_WDT true
-#define USE_OTA true
-#define USE_MAN_RESET false
+#define USE_MAN_RESET    false
 #define USE_BOUNCE_DEBUG false
+#define USE_OLED         true
 
 #define VER "Wemos_3.0"
 //####################################################
@@ -49,7 +49,7 @@ int delayBetweenPress        = 500; // consequtive presses to reset
 unsigned long pressTO_input1 = 0; // TimeOUT for next press
 // ##########################
 
-time_t t;
+time_t t_tuple;
 char timeStamp [50];
 char dateStamp [50];
 bool sys_stateChange;
@@ -57,15 +57,17 @@ const int deBounceInt = 50;
 char msg[150];
 
 // OLED services ~~~~~
+#if (USE_OLED)
 #define OLED_RESET LED_BUILTIN  //4
 Adafruit_SSD1306 display(OLED_RESET);
 char text_lines[2][20];
+#endif
 // ~~~~~~~~~~~~~~~~~~~
-
-// IOT services ~~~~~
+//
+// // IOT services ~~~~~
 #define ADD_MQTT_FUNC addiotnalMQTT
 myIOT iot(DEVICE_TOPIC);
-// ~~~~~~~~~~~~~~~~~~~
+// // ~~~~~~~~~~~~~~~~~~~
 
 void setup() {
         startGPIOs();
@@ -78,14 +80,17 @@ void setup() {
 
 // ~~~~ LCD ~~~~~~~
 void startOLED(){
+        #if (USE_OLED)
         display.begin(SSD1306_SWITCHCAPVCC, 0x3C);
         display.clearDisplay();
+        #endif
 }
 
 void centeredTxtOLED(char *text, int line, int text_size = 1) {
+        #if (USE_OLED)
         int line_length [2];
-        int coeff_1; //adj width
-        int coeff_2; //adj hight
+        int coeff_1;         //adj width
+        int coeff_2;         //adj hight
 
         strcpy(text_lines[line], text);
         display.setTextSize(text_size);
@@ -106,15 +111,16 @@ void centeredTxtOLED(char *text, int line, int text_size = 1) {
                 display.println(text_lines[i]);
         }
         display.display();
+        #endif
 }
 
 void upadteOLED_display() {
+        #if (USE_OLED)
         clockString();
         char time_on_char[20];
         char time2Off_char[20];
 
         if (sys_stateChange) {
-//                lcd.clear();
                 display.clearDisplay();
                 sys_stateChange = false;
                 if (relayState == relayON ) {
@@ -131,21 +137,22 @@ void upadteOLED_display() {
         if (relayState == relayON ) {
                 int timeON = millis() - startTime;
                 sec2clock(timeON, "On:", time_on_char);
-                if ( timeInc_counter == 1 ) { // ~~~~ON, no timer ~~~~~~~
+                if ( timeInc_counter == 1 ) {         // ~~~~ON, no timer ~~~~~~~
                         centeredTxtOLED(timeStamp, 0,1);
                         centeredTxtOLED(time_on_char, 1,1);
                 }
-                else if ( timeInc_counter > 1 ) { /// ON + Timer
+                else if ( timeInc_counter > 1 ) {         /// ON + Timer
                         int timeLeft = endTime - millis();
                         sec2clock(timeLeft, "Off:", time2Off_char);
                         centeredTxtOLED(time_on_char, 0,1);
                         centeredTxtOLED(time2Off_char, 1,1);
                 }
         }
-        else { // OFF state - clock only
+        else {         // OFF state - clock only
                 centeredTxtOLED(timeStamp, 0,2);
                 centeredTxtOLED(dateStamp, 1,2);
         }
+        #endif
 }
 // ~~~~~~~~~~~~~~~
 
@@ -179,9 +186,9 @@ void sec2clock(int sec, char* text, char* output_text) {
 //         sprintf(output_text, "%s %01d:%02d", text, h, m);
 }
 void clockString() {
-        t=now();
-        sprintf(dateStamp, "%02d-%02d-%02d", year(t), month(t), day(t));
-        sprintf(timeStamp, "%02d:%02d:%02d", hour(t), minute(t), second(t));
+        // t_tuple=now();
+        // sprintf(dateStamp, "%02d-%02d-%02d", year(t_tuple), month(t_tuple), day(t_tuple));
+        // sprintf(timeStamp, "%02d:%02d:%02d", hour(t_tuple), minute(t_tuple), second(t_tuple));
 }
 
 // ~~~~~~~~~ GPIO switching ~~~~~~~~~~~~~
@@ -323,7 +330,7 @@ void addiotnalMQTT(char *incoming_msg) {
                 PBit();
         }
         else if (strcmp(incoming_msg, "ver") == 0 ) {
-                sprintf(msg, "ver:[%s], lib:[%s], WDT:[%d], OTA:[%d], SERIAL:[%d], MAN_RESET:[%d]", VER, iot.ver, USE_WDT, USE_OTA, USE_SERIAL, USE_MAN_RESET);
+                sprintf(msg, "ver:[%s], lib:[%s], WDT:[%d], OTA:[%d], SERIAL:[%d], MAN_RESET:[%d], OLED[%d]", VER, iot.ver, USE_WDT, USE_OTA, USE_SERIAL, USE_MAN_RESET, USE_OLED);
                 iot.pub_msg(msg);
         }
 }

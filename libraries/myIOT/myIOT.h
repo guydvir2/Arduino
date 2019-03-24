@@ -10,7 +10,6 @@ public:
 myIOT(char *devTopic);
 void looper();
 void startOTA();
-void getTime(time_t t);
 void get_timeStamp();
 
 void sendReset(char *header);
@@ -25,15 +24,16 @@ bool extDefine = false; // must to set to true in order to use EXtMQTT
 
 bool mqttConnected = 0;
 char* deviceTopic = "";
-const char *ver = "iot_1.39";
+const char *ver = "iot_1.40";
 
 private:
 char* ssid;
 char* password;
 cb_func ext_mqtt;
 
+
 // time interval parameters
-const int clockUpdateInt = (60*30);     // seconds to update NTP
+const int clockUpdateInt = (60*5);     // seconds to update NTP
 const int WIFItimeOut = (1000 * 60) * 1/3;     // 20 sec try to connect WiFi
 const int OTA_upload_interval = (1000 * 60) * 2;     // 2 minute to try OTA
 const int time2Reset_noNetwork = (1000 * 60) * 5;     // minutues pass without any network
