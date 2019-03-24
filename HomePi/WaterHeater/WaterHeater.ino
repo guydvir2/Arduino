@@ -1,7 +1,6 @@
 #include <myIOT.h>
 #include <Arduino.h>
 #include <Wire.h>
-//#include <LiquidCrystal_I2C.h>
 #include <TimeLib.h>
 #include <SPI.h>
 #include <Wire.h>
@@ -11,9 +10,7 @@
 
 //####################################################
 #define DEVICE_TOPIC "HomePi/Dvir/WaterBoiler3"
-//must be defined to use myIOT
-#define ADD_MQTT_FUNC addiotnalMQTT
-//~~~
+
 #define USE_SERIAL false
 #define USE_WDT true
 #define USE_OTA true
@@ -25,54 +22,50 @@
 
 // state definitions
 #define buttonPressed  LOW
-#define relayON  HIGH
-#define ledON LOW
+#define relayON        HIGH
+#define ledON          LOW
 
-#define OLED_RESET LED_BUILTIN  //4
-
-// GPIO Pins for ESP8266/ WEMOs
-//const int input_1Pin = D3;
-//const int output_1Pin = D6;
-//const int ledPin = D5;
-const int input_1Pin = D7;
+const int input_1Pin  = D7;
 const int output_1Pin = D5;
-const int ledPin = D6;
+const int ledPin      = D6;
+bool relayState;
 //##########################
 
-// GPIO status flags
-bool output1_currentState;
-// ###########################
-
 // manual RESET parameters
-int manResetCounter = 0;  // reset press counter
-int pressAmount2Reset = 3; // time to press button to init Reset
-long lastResetPress = 0; // time stamp of last press
+int manResetCounter               = 0;  // reset press counter
+int pressAmount2Reset             = 3; // time to press button to init Reset
+long lastResetPress               = 0; // time stamp of last press
 const int timeInterval_resetPress = 1500; // time between consq presses to init RESET cmd
 // ####################
 
 
 // TimeOut Constants
-int maxTO = 180; //minutes
-int timeIncrements = 15; //minutes
-int timeInc_counter = 0; // counts number of presses to TO increments
-unsigned long startTime = 0;
-unsigned long endTime = 0;
-int delayBetweenPress = 500; // consequtive presses to reset
+int maxTO                    = 180; //minutes
+int timeIncrements           = 15; //minutes
+int timeInc_counter          = 0; // counts number of presses to TO increments
+unsigned long startTime      = 0;
+unsigned long endTime        = 0;
+int delayBetweenPress        = 500; // consequtive presses to reset
 unsigned long pressTO_input1 = 0; // TimeOUT for next press
 // ##########################
 
 time_t t;
-char timeStamp2 [50];
-char dateStamp2 [50];
-bool changeState;
+char timeStamp [50];
+char dateStamp [50];
+bool sys_stateChange;
 const int deBounceInt = 50;
 char msg[150];
 
-//LiquidCrystal_I2C lcd(0x27, 16, 2);
+// OLED services ~~~~~
+#define OLED_RESET LED_BUILTIN  //4
 Adafruit_SSD1306 display(OLED_RESET);
 char text_lines[2][20];
+// ~~~~~~~~~~~~~~~~~~~
 
+// IOT services ~~~~~
+#define ADD_MQTT_FUNC addiotnalMQTT
 myIOT iot(DEVICE_TOPIC);
+// ~~~~~~~~~~~~~~~~~~~
 
 void setup() {
         startGPIOs();
@@ -91,7 +84,9 @@ void startOLED(){
 
 void centeredTxtOLED(char *text, int line, int text_size = 1) {
         int line_length [2];
-        float coeff;
+        int coeff_1; //adj width
+        int coeff_2; //adj hight
+
         strcpy(text_lines[line], text);
         display.setTextSize(text_size);
         display.setTextColor(WHITE);
@@ -100,12 +95,14 @@ void centeredTxtOLED(char *text, int line, int text_size = 1) {
         for (int i = 0; i <= 1; i++) {
                 line_length[i] = strlen(text_lines[i]);
                 if (text_size == 1) {
-                        coeff=21.0;
+                        coeff_1 = 21;
+                        coeff_2 = 8;
                 }
                 else if (text_size == 2) {
-                        coeff=10.0;
+                        coeff_1 = 10;
+                        coeff_2 = 16;
                 }
-                display.setCursor(((coeff - line_length[i]) *(128/coeff)/ 2), i * 16);
+                display.setCursor(((coeff_1 - line_length[i]) *(128/coeff_1)/ 2), i * coeff_2);
                 display.println(text_lines[i]);
         }
         display.display();
@@ -116,26 +113,26 @@ void upadteOLED_display() {
         char time_on_char[20];
         char time2Off_char[20];
 
-        if (changeState) {
+        if (sys_stateChange) {
 //                lcd.clear();
                 display.clearDisplay();
-                changeState = false;
-                if (output1_currentState == relayON ) {
+                sys_stateChange = false;
+                if (relayState == relayON ) {
                         centeredTxtOLED("ON", 0,2);
                         delay(2000);
                 }
-                if (output1_currentState == !relayON ) {
+                if (relayState == !relayON ) {
                         centeredTxtOLED("OFF", 0,2);
                         delay(2000);
                 }
 
         }
 
-        if (output1_currentState == relayON ) {
+        if (relayState == relayON ) {
                 int timeON = millis() - startTime;
                 sec2clock(timeON, "On:", time_on_char);
                 if ( timeInc_counter == 1 ) { // ~~~~ON, no timer ~~~~~~~
-                        centeredTxtOLED(timeStamp2, 0,1);
+                        centeredTxtOLED(timeStamp, 0,1);
                         centeredTxtOLED(time_on_char, 1,1);
                 }
                 else if ( timeInc_counter > 1 ) { /// ON + Timer
@@ -146,8 +143,8 @@ void upadteOLED_display() {
                 }
         }
         else { // OFF state - clock only
-                centeredTxtOLED(timeStamp2, 0,2);
-                centeredTxtOLED(dateStamp2, 1,2);
+                centeredTxtOLED(timeStamp, 0,2);
+                centeredTxtOLED(dateStamp, 1,2);
         }
 }
 // ~~~~~~~~~~~~~~~
@@ -183,8 +180,8 @@ void sec2clock(int sec, char* text, char* output_text) {
 }
 void clockString() {
         t=now();
-        sprintf(dateStamp2, "%02d-%02d-%02d", year(t), month(t), day(t));
-        sprintf(timeStamp2, "%02d:%02d:%02d", hour(t), minute(t), second(t));
+        sprintf(dateStamp, "%02d-%02d-%02d", year(t), month(t), day(t));
+        sprintf(timeStamp, "%02d:%02d:%02d", hour(t), minute(t), second(t));
 }
 
 // ~~~~~~~~~ GPIO switching ~~~~~~~~~~~~~
@@ -195,7 +192,7 @@ void switchIt(char *type, char *dir) {
         char mqttmsg[50];
 
         // system states:
-        changeState = true;
+        sys_stateChange = true;
         if (strcmp(dir, "1,on") == 0) {
                 digitalWrite(output_1Pin, relayON);
                 digitalWrite(ledPin, ledON);
@@ -214,7 +211,7 @@ void checkSwitch_1() {
                 // CASE #1 : Button is pressed. Delay creates a delay when buttons is pressed constantly
                 if (digitalRead(input_1Pin) == buttonPressed && millis() - pressTO_input1 > delayBetweenPress) {
                         // CASE of it is first press and Relay was off - switch it ON, no timer.
-                        if ( timeInc_counter == 0 && output1_currentState == !relayON ) { // first press turns on
+                        if ( timeInc_counter == 0 && relayState == !relayON ) { // first press turns on
                                 switchIt("Button", "1,on");
                                 timeInc_counter += 1;
                                 startTime = millis();
@@ -263,7 +260,7 @@ void detectResetPresses() {
         }
 }
 void readGpioStates() {
-        output1_currentState = digitalRead(output_1Pin);
+        relayState = digitalRead(output_1Pin);
 }
 void addiotnalMQTT(char *incoming_msg) {
         int swNum;
@@ -289,7 +286,7 @@ void addiotnalMQTT(char *incoming_msg) {
                                         }
                                 }
                                 else {
-                                        changeState = true;
+                                        sys_stateChange = true;
                                         timeInc_counter = 0; // OFF
                                         endTime = 0;
                                         startTime = 0;
@@ -300,7 +297,7 @@ void addiotnalMQTT(char *incoming_msg) {
                                 if (startTime == 0) {
                                         startTime = millis();
                                 }
-                                changeState = true;
+                                sys_stateChange = true;
                                 sprintf(tempcmd, "%d,%s", swNum, "on");
                                 switchIt("MQTT", tempcmd);
                                 delay(100);
@@ -331,7 +328,7 @@ void addiotnalMQTT(char *incoming_msg) {
         }
 }
 void switch_1_terminator() {
-        if (output1_currentState == relayON ) {
+        if (relayState == relayON ) {
                 if ( endTime != 0 && endTime <= millis() ) {
                         switchIt("TimeOut", "1,off");
                         timeInc_counter = 0;
@@ -341,19 +338,18 @@ void switch_1_terminator() {
                 if(startTime>=maxTO*60*1000) {
                         switchIt("Overide TimeOut", "1,off");
                         startTime = 0;
-
                 }
         }
 }
 
 // ~~~~~~ Loopers ~~~~~~~~~~
 void loop() {
-        iot.looper(); // check wifi, mqtt, wdt
+        iot.looper();
         readGpioStates();
 
         checkSwitch_1();
         switch_1_terminator(); // For Timeout operations
         upadteOLED_display();
 
-        // delay(50);
+        delay(100);
 }
