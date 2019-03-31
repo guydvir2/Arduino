@@ -1,35 +1,45 @@
 #include <myIOT.h>
 #include <Arduino.h>
-#include <Wire.h>
-// #include <TimeLib.h>
-#include <SPI.h>
-#include <Adafruit_GFX.h>
-#include <Adafruit_SSD1306.h>
-
 
 //####################################################
-#define DEVICE_TOPIC "HomePi/Dvir/Water"
-#define USE_SERIAL       true
-#define USE_WDT          true
-#define USE_OTA          true
+#define DEVICE_TOPIC "HomePi/Dvir/Water2"
+#define USE_SERIAL        false
+#define USE_WDT           true
+#define USE_OTA           true
 
-#define USE_MAN_RESET    false
-#define USE_BOUNCE_DEBUG false
-#define USE_OLED         true
+#define USE_MAN_RESET     false
+#define USE_BOUNCE_DEBUG  false
+#define USE_OLED          true
 
-#define VER "Wemos_3.0"
+#define VER "Wemos_3.3"
 //####################################################
 
 // state definitions
 #define buttonPressed  LOW
-#define relayON        HIGH
+#define relayON        LOW
 #define ledON          LOW
 
 const int input_1Pin  = D7;
-const int output_1Pin = D5;
-const int ledPin      = D6;
+const int output_1Pin = D6;
+const int ledPin      = D8;
+
 bool relayState;
 //##########################
+
+
+#if USE_OLED
+#include <Wire.h>
+#include <SPI.h>
+#include <Adafruit_GFX.h>
+#include <Adafruit_SSD1306.h>
+
+#define OLED_RESET LED_BUILTIN
+const int SCLpin      = D1;
+const int SDApin      = D2;
+
+Adafruit_SSD1306 display(OLED_RESET);
+char text_lines[2][20];
+#endif
 
 // manual RESET parameters
 int manResetCounter               = 0;  // reset press counter
@@ -40,8 +50,8 @@ const int timeInterval_resetPress = 1500; // time between consq presses to init 
 
 
 // TimeOut Constants
-int maxTO                    = 180; //minutes
-int timeIncrements           = 15; //minutes
+int maxTO                    = 150; //minutes
+int timeIncrements           = 15; //minutes each button press
 int timeInc_counter          = 0; // counts number of presses to TO increments
 unsigned long startTime      = 0;
 unsigned long endTime        = 0;
@@ -49,21 +59,13 @@ int delayBetweenPress        = 500; // consequtive presses to reset
 unsigned long pressTO_input1 = 0; // TimeOUT for next press
 // ##########################
 
-time_t t_tuple;
 char timeStamp [50];
 char dateStamp [50];
-bool sys_stateChange;
 const int deBounceInt = 50;
 char msg[150];
+char parameters [2][4];
 
-// OLED services ~~~~~
-#if (USE_OLED)
-#define OLED_RESET LED_BUILTIN  //4
-Adafruit_SSD1306 display(OLED_RESET);
-char text_lines[2][20];
-#endif
-// ~~~~~~~~~~~~~~~~~~~
-//
+
 // // IOT services ~~~~~
 #define ADD_MQTT_FUNC addiotnalMQTT
 myIOT iot(DEVICE_TOPIC);
@@ -77,86 +79,6 @@ void setup() {
         iot.useOTA = USE_OTA;
         iot.start_services(ADD_MQTT_FUNC); // additinalMQTTfucntion, ssid,pswd,mqttuser,mqtt_pswd,broker
 }
-
-// ~~~~ LCD ~~~~~~~
-void startOLED(){
-        #if (USE_OLED)
-        display.begin(SSD1306_SWITCHCAPVCC, 0x3C);
-        display.clearDisplay();
-        #endif
-}
-
-void centeredTxtOLED(char *text, int line, int text_size = 1) {
-        #if (USE_OLED)
-        int line_length [2];
-        int coeff_1;         //adj width
-        int coeff_2;         //adj hight
-
-        strcpy(text_lines[line], text);
-        display.setTextSize(text_size);
-        display.setTextColor(WHITE);
-
-        display.clearDisplay();
-        for (int i = 0; i <= 1; i++) {
-                line_length[i] = strlen(text_lines[i]);
-                if (text_size == 1) {
-                        coeff_1 = 21;
-                        coeff_2 = 8;
-                }
-                else if (text_size == 2) {
-                        coeff_1 = 10;
-                        coeff_2 = 16;
-                }
-                display.setCursor(((coeff_1 - line_length[i]) *(128/coeff_1)/ 2), i * coeff_2);
-                display.println(text_lines[i]);
-        }
-        display.display();
-        #endif
-}
-
-void upadteOLED_display() {
-        #if (USE_OLED)
-        clockString();
-        char time_on_char[20];
-        char time2Off_char[20];
-
-        if (sys_stateChange) {
-                display.clearDisplay();
-                sys_stateChange = false;
-                if (relayState == relayON ) {
-                        centeredTxtOLED("ON", 0,2);
-                        delay(2000);
-                }
-                if (relayState == !relayON ) {
-                        centeredTxtOLED("OFF", 0,2);
-                        delay(2000);
-                }
-
-        }
-
-        if (relayState == relayON ) {
-                int timeON = millis() - startTime;
-                sec2clock(timeON, "On:", time_on_char);
-                if ( timeInc_counter == 1 ) {         // ~~~~ON, no timer ~~~~~~~
-                        centeredTxtOLED(timeStamp, 0,1);
-                        centeredTxtOLED(time_on_char, 1,1);
-                }
-                else if ( timeInc_counter > 1 ) {         /// ON + Timer
-                        int timeLeft = endTime - millis();
-                        sec2clock(timeLeft, "Off:", time2Off_char);
-                        centeredTxtOLED(time_on_char, 0,1);
-                        centeredTxtOLED(time2Off_char, 1,1);
-                }
-        }
-        else {         // OFF state - clock only
-                centeredTxtOLED(timeStamp, 0,2);
-                centeredTxtOLED(dateStamp, 1,2);
-        }
-        #endif
-}
-// ~~~~~~~~~~~~~~~
-
-// ~~~~~ Services ~~~~~~~~
 void startGPIOs() {
         pinMode(input_1Pin, INPUT_PULLUP);
         pinMode(output_1Pin, OUTPUT);
@@ -164,53 +86,142 @@ void startGPIOs() {
 
         allOff();
 }
-//~~~~~~~~~~~~~~~~~~~~~~~~
 
-// ~~~~ maintability ~~~~~~
-void PBit() {
-        allOff();
-        digitalWrite(output_1Pin, relayON);
-        delay(10);
-        allOff();
+// ~~~~ OLED ~~~~~~~
+void startOLED(){
+        #if (USE_OLED)
+        display.begin(SSD1306_SWITCHCAPVCC, 0x3C);
+        display.clearDisplay();
+        #endif
+}
+void OLED_CenterTXT(int i, char *line1, char *line2 = "", char *line3 = "", char *line4 = "", byte shift = 0) {
+  #if (USE_OLED)
+        char *Lines[] = {line1, line2, line3, line4};
+        display.clearDisplay();
+        display.setTextSize(i);
+        display.setTextColor(WHITE);
+        byte line_space = pow(2, (2 + i));
 
+        for (int n = 0; n < 4; n++) {
+                if (strcmp(Lines[n], "") != 0) {
+                        int strLength = strlen(Lines[n]);
+                        display.setCursor((ceil)((21 / i - strLength) / 2 * (128 / (21 / i))) + shift,  line_space * n);
+                        display.print(Lines[n]);
+                }
+        }
+        display.display();
+  #endif
 }
-void allOff() {
-        digitalWrite(output_1Pin, !relayON);
-        digitalWrite(ledPin, !ledON);
+void OLED_SideTXT(int i, char *line1, char *line2 = "", char *line3 = "", char *line4 = "") {
+  #if (USE_OLED)
+        char *Lines[] = {line1, line2, line3, line4};
+        display.clearDisplay();
+        display.setTextSize(i);
+        byte line_space = pow(2, (2 + i));
+
+        for (int n = 0; n < 4; n++) {
+                if (strcmp(Lines[n], "") != 0) {
+                        if (n==1 || n == 3) {
+                                display.setTextColor(WHITE);
+                                int strLength = strlen(Lines[n]);
+                                display.setCursor((ceil)((21 / i - strLength) * (128 / (21 / i))),  line_space * n);
+                                display.print(Lines[n]);
+                        }
+                        else{
+                                display.setTextColor(BLACK,WHITE);
+                                display.setCursor(0, line_space * n);
+                                display.print(Lines[n]);
+                        }
+                }
+        }
+        display.display();
+  #endif
 }
+void OLEDlooper() {
+        #if (USE_OLED)
+        char time_on_char[20];
+        char time2Off_char[20];
+
+        if (relayState == relayON ) {
+                int timeON = millis() - startTime;
+                sec2clock(timeON, "", time_on_char);
+                if ( timeInc_counter == 1 ) {         // ~~~~ON, no timer ~~~~~~~
+                        OLED_SideTXT(1,"On Time:",time_on_char);
+                }
+                else if ( timeInc_counter > 1 ) {         /// ON + Timer
+                        int timeLeft = endTime - millis();
+                        sec2clock(timeLeft, "", time2Off_char);
+                        OLED_SideTXT(1,"On Time:",time_on_char,"Remain Time:",time2Off_char);
+                }
+        }
+        else {         // OFF state - clock only
+                iot.return_clock(timeStamp);
+                iot.return_date(dateStamp);
+                OLED_CenterTXT(2,timeStamp, dateStamp);
+        }
+        #endif
+}
+// ~~~~~~~~~~~~~~~
+
+// ~~~~ string creation ~~~~~~
 void sec2clock(int sec, char* text, char* output_text) {
         int h = ((int)(sec) / (1000 * 60 * 60));
         int m = ((int)(sec) - h * 1000 * 60 * 60) / (1000 * 60);
         int s = ((int)(sec) - h * 1000 * 60 * 60 - m * 1000 * 60) / 1000;
         sprintf(output_text, "%s %01d:%02d:%02d", text, h, m, s);
-//         sprintf(output_text, "%s %01d:%02d", text, h, m);
 }
-void clockString() {
-        // t_tuple=now();
-        // sprintf(dateStamp, "%02d-%02d-%02d", year(t_tuple), month(t_tuple), day(t_tuple));
-        // sprintf(timeStamp, "%02d:%02d:%02d", hour(t_tuple), minute(t_tuple), second(t_tuple));
+int splitter(char *inputstr) {
+        char * pch;
+        int i = 0;
+
+        pch = strtok (inputstr, " ,.-");
+        while (pch != NULL)
+        {
+                sprintf(parameters[i], "%s", pch);
+                pch = strtok (NULL, " ,.-");
+                i++;
+        }
+        return i;
 }
 
 // ~~~~~~~~~ GPIO switching ~~~~~~~~~~~~~
+void allOff() {
+        digitalWrite(output_1Pin, !relayON);
+        digitalWrite(ledPin, !ledON);
+}
 void switchIt(char *type, char *dir) {
-        //  this method was constructed for multiple inputs- that is why
-        // 1,on is ment for switch num one
         bool states[2];
+        bool suc_flag = false;
         char mqttmsg[50];
 
-        // system states:
-        sys_stateChange = true;
-        if (strcmp(dir, "1,on") == 0) {
-                digitalWrite(output_1Pin, relayON);
-                digitalWrite(ledPin, ledON);
+        if (strcmp(dir, "on") == 0) {
+                if(digitalRead(output_1Pin)!=relayON) { // was not ON
+                        digitalWrite(output_1Pin, relayON);
+                        digitalWrite(ledPin, ledON);
+                        if (startTime == 0) {
+                                startTime = millis();
+                        }
+                }
+                else{ // case of switching from TO mode to normal ON
+                        endTime = 0;
+                }
+                suc_flag = true;
         }
-        else if (strcmp(dir, "1,off") == 0) {
+        else if (strcmp(dir, "off") == 0 && digitalRead(output_1Pin)==relayON) {
                 digitalWrite(output_1Pin, !relayON);
                 digitalWrite(ledPin, !ledON);
+                startTime = 0;
+                timeInc_counter = 0;
+                endTime = 0;
+
+                suc_flag = true;
         }
-        iot.pub_state(dir);
-        sprintf(mqttmsg, "[%s] switched [%s]", type, dir);
-        iot.pub_msg(mqttmsg);
+
+        if (suc_flag) {
+                iot.pub_state(dir);
+                sprintf(mqttmsg, "[%s] switched [%s]", type, dir);
+                iot.pub_msg(mqttmsg);
+        }
 }
 void checkSwitch_1() {
         if (digitalRead(input_1Pin) == buttonPressed) {
@@ -219,23 +230,19 @@ void checkSwitch_1() {
                 if (digitalRead(input_1Pin) == buttonPressed && millis() - pressTO_input1 > delayBetweenPress) {
                         // CASE of it is first press and Relay was off - switch it ON, no timer.
                         if ( timeInc_counter == 0 && relayState == !relayON ) { // first press turns on
-                                switchIt("Button", "1,on");
+                                switchIt("Button", "on");
                                 timeInc_counter += 1;
-                                startTime = millis();
                         }
                         // CASE of already on, and insde interval of time - to add timer Qouta
-                        else if (timeInc_counter < (maxTO / timeIncrements) && (millis() - pressTO_input1) < 3000 ) { // additional presses update timer countdown
+                        else if (timeInc_counter < (maxTO / timeIncrements) && (millis() - pressTO_input1) < 2500 ) { // additional presses update timer countdown
                                 endTime = timeInc_counter * timeIncrements * 1000 * 60 + startTime;
                                 timeInc_counter += 1; // Adding time Qouta
                                 sec2clock((timeInc_counter - 1) * timeIncrements * 1000 * 60, "Added Timeout: +", msg);
                                 iot.pub_msg(msg);
                         }
                         // CASE of time is begger that time out-  sets it OFF
-                        else if (timeInc_counter >= (maxTO / timeIncrements) || (millis() - pressTO_input1) > 3000) { // Turn OFF
-                                switchIt("Button", "1,off");
-                                timeInc_counter = 0;
-                                endTime = 0;
-                                startTime = 0;
+                        else if (timeInc_counter >= (maxTO / timeIncrements) || (millis() - pressTO_input1) > 2500) { // Turn OFF
+                                switchIt("Button", "off");
                         }
                         pressTO_input1 = millis();
                         // Disabled for now- to avoid resets by user
@@ -270,54 +277,9 @@ void readGpioStates() {
         relayState = digitalRead(output_1Pin);
 }
 void addiotnalMQTT(char *incoming_msg) {
-        int swNum;
-        char cmd[8];
-        char tempcmd[20];
         char msg[100];
 
-        // switch commands via MQTT
-        if (isDigit(incoming_msg[0])) {
-                if (incoming_msg[1] == ',') {
-                        swNum = incoming_msg[0] - 48;
-                        for (int i = 2; i < strlen(incoming_msg); i++) {
-                                cmd[i - 2] = incoming_msg[i];
-                                cmd[i - 1] = '\0';
-                        }
-                        if (strcmp(cmd, "on") == 0 || strcmp(cmd, "off") == 0 ) { // on/ off command only
-                                sprintf(tempcmd, "%d,%s", swNum, cmd);
-                                switchIt("MQTT", tempcmd);
-                                if (strlen(cmd) == 2) {
-                                        timeInc_counter = 1; // ON only
-                                        if (startTime == 0) {
-                                                startTime = millis();
-                                        }
-                                }
-                                else {
-                                        sys_stateChange = true;
-                                        timeInc_counter = 0; // OFF
-                                        endTime = 0;
-                                        startTime = 0;
-                                }
-                        }
-                        else {
-                                timeInc_counter = atoi(cmd) / timeIncrements; // ON + Timer
-                                if (startTime == 0) {
-                                        startTime = millis();
-                                }
-                                sys_stateChange = true;
-                                sprintf(tempcmd, "%d,%s", swNum, "on");
-                                switchIt("MQTT", tempcmd);
-                                delay(100);
-
-                                sec2clock(timeInc_counter * timeIncrements * 1000 * 60, "Added Timeout: +", msg);
-                                iot.pub_msg(msg);
-                                endTime = timeInc_counter * timeIncrements * 1000 * 60 + startTime;
-                        }
-                }
-        }
-
-        //status - via MQTT
-        else if (strcmp(incoming_msg, "status") == 0) {
+        if (strcmp(incoming_msg, "status") == 0) {
                 sprintf(msg, "Status: Relay:[%s], Sw:[%s]", digitalRead(output_1Pin) ? "Off" : "On", digitalRead(input_1Pin) ? "Off" : "On");
                 iot.pub_msg(msg);
         }
@@ -325,38 +287,55 @@ void addiotnalMQTT(char *incoming_msg) {
                 sprintf(msg, "Switch: [%d], Relay: [%d], Led: [%d]", input_1Pin, output_1Pin, ledPin);
                 iot.pub_msg(msg);
         }
-        else if (strcmp(incoming_msg, "pbit") == 0 ) {
-                iot.pub_msg("PowerOnBit");
-                PBit();
-        }
         else if (strcmp(incoming_msg, "ver") == 0 ) {
                 sprintf(msg, "ver:[%s], lib:[%s], WDT:[%d], OTA:[%d], SERIAL:[%d], MAN_RESET:[%d], OLED[%d]", VER, iot.ver, USE_WDT, USE_OTA, USE_SERIAL, USE_MAN_RESET, USE_OLED);
                 iot.pub_msg(msg);
+        }
+        else if (strcmp(incoming_msg, "on") == 0 ) {
+                switchIt("MQTT", incoming_msg);
+                timeInc_counter = 1;   // ON only
+        }
+        else if (strcmp(incoming_msg, "off") == 0 ) {
+                switchIt("MQTT", incoming_msg);
+        }
+        else if (strcmp(incoming_msg, "remain") == 0 ) {
+                char remTime[40];
+                if (endTime == 0) {
+                        sec2clock(0,"Remain Time: ",remTime);
+                }
+                else if (endTime > 0) {
+                        sec2clock(endTime-millis(),"Remain Time: ",remTime);
+                }
+                iot.pub_msg(remTime);
+        }
+        else {
+                int len = splitter (incoming_msg);
+                if (len == 2 && strcmp(parameters[0], "on") == 0 && atoi(parameters[1])) {
+                        timeInc_counter = atoi(parameters[1]); /// timeIncrements; // ON + Timer
+                        switchIt("MQTT", "on");
+                        sec2clock(timeInc_counter * 1000 * 60, "Added Timeout: +", msg);
+                        iot.pub_msg(msg);
+                        endTime = timeInc_counter * 1000 * 60 + startTime;
+                }
         }
 }
 void switch_1_terminator() {
         if (relayState == relayON ) {
                 if ( endTime != 0 && endTime <= millis() ) {
-                        switchIt("TimeOut", "1,off");
-                        timeInc_counter = 0;
-                        endTime = 0;
-                        startTime = 0;
+                        switchIt("TimeOut", "off");
                 }
-                if(startTime>=maxTO*60*1000) {
-                        switchIt("Overide TimeOut", "1,off");
-                        startTime = 0;
+                if((millis()-startTime) >= maxTO*60*1000) {
+                        switchIt("Overide TimeOut", "off");
                 }
         }
 }
 
 // ~~~~~~ Loopers ~~~~~~~~~~
 void loop() {
-        iot.looper();
         readGpioStates();
-
         checkSwitch_1();
         switch_1_terminator(); // For Timeout operations
-        upadteOLED_display();
-
+        OLEDlooper();
+        iot.looper();
         delay(100);
 }

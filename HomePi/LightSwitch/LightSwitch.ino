@@ -13,17 +13,15 @@
 #define USE_EXT_BUTTONS  false
 
 //~~~Selecto Board
-#define SONOFF_DUAL      false
+#define SONOFF_DUAL      true
 #define SONOFF_BASIC     true
 #define WEMOS            false
 // ~~~
 
-//~~~ Select Switches
-#define NUM_SWITCHES 1
-int relay_timeout[] = {-1, 60}; // -1:on, 0:off <0:timeout mins
+int relay_timeout[] = {120, 60}; // -1:on, 0:off <0:timeout mins
 //~~~
 
-#define VER "SonoffDual_1.4"
+#define VER "SonoffDual_1.5"
 //####################################################
 
 
@@ -42,6 +40,7 @@ int relay_timeout[] = {-1, 60}; // -1:on, 0:off <0:timeout mins
 #define INPUT1  9
 #define INPUT2  0
 #define BUTTON  10
+#define NUM_SWITCHES 2
 
 #endif
 
@@ -60,6 +59,7 @@ int relay_timeout[] = {-1, 60}; // -1:on, 0:off <0:timeout mins
 #define INPUT1  14
 #define INPUT2  -1
 #define BUTTON  0
+#define NUM_SWITCHES 1
 
 #endif
 
@@ -122,7 +122,6 @@ void startGPIOs() {
         }
 
 }
-
 void timeout_atBoot() {
         for (int i = 0; i < NUM_SWITCHES; i++) {
                 if (relay_timeout[i] > 0) {
@@ -131,7 +130,6 @@ void timeout_atBoot() {
                 }
         }
 }
-
 void timeoutLoop() {
         for (int i = 0; i < NUM_SWITCHES; i++) {
                 if (start_timeout[i] != 0 ) {
@@ -159,14 +157,12 @@ void PBit() {
 
         allOff();
 }
-
 void allOff() {
         for (int i = 0; i < NUM_SWITCHES; i++) {
                 digitalWrite(relays[i], !RelayOn);
                 inputs_lastState[i] = digitalRead(inputs[i]);
         }
 }
-
 void switchIt(char *type, int sw_num, char *dir) {
         char mqttmsg[50];
         char states[150];
@@ -211,7 +207,6 @@ void detectResetPresses() {
                 manResetCounter = 0;
         }
 }
-
 void checkSwitch_Pressed() {
         for (int i = 0; i < NUM_SWITCHES; i++) {
                 if (digitalRead(inputs[i]) != inputs_lastState[i]) {
@@ -240,7 +235,6 @@ void checkSwitch_Pressed() {
                 }
         }
 }
-
 void splitter(char *inputstr) {
         char * pch;
         int i = 0;
@@ -253,7 +247,6 @@ void splitter(char *inputstr) {
                 i++;
         }
 }
-
 void addiotnalMQTT(char incoming_msg[50]) {
         char state[25];
         char msg[100];
@@ -304,7 +297,6 @@ void addiotnalMQTT(char incoming_msg[50]) {
                 }
         }
 }
-
 void loop() {
         iot.looper(); // check wifi, mqtt, wdt
         timeoutLoop();

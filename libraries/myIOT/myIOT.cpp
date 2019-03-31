@@ -141,7 +141,14 @@ void myIOT::get_timeStamp() {
         time_t t = now();
         sprintf(timeStamp, "%02d-%02d-%02d %02d:%02d:%02d", year(t), month(t), day(t), hour(t), minute(t), second(t));
 }
-
+void myIOT::return_clock(char ret_tuple[20]){
+        time_t t = now();
+        sprintf(ret_tuple, "%02d:%02d:%02d", hour(t), minute(t), second(t));
+}
+void myIOT::return_date(char ret_tuple[20]){
+        time_t t = now();
+        sprintf(ret_tuple, "%02d-%02d-%02d", year(t), month(t), day(t));
+}
 
 // ~~~~~~~ MQTT functions ~~~~~~~
 void myIOT::startMQTT() {

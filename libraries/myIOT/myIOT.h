@@ -11,6 +11,8 @@ myIOT(char *devTopic);
 void looper();
 void startOTA();
 void get_timeStamp();
+void return_clock(char ret_tuple[20]);
+void return_date(char ret_tuple[20]);
 
 void sendReset(char *header);
 void start_services(cb_func funct, char *ssid="Xiaomi_D6C8", char *password="guyd5161", char *mqtt_user="guy", char *mqtt_passw="kupelu9e", char *mqtt_broker="192.168.3.200");
@@ -24,7 +26,8 @@ bool extDefine = false; // must to set to true in order to use EXtMQTT
 
 bool mqttConnected = 0;
 char* deviceTopic = "";
-const char *ver = "iot_1.40";
+const char *ver = "iot_1.41";
+char timeStamp[50];
 
 private:
 char* ssid;
@@ -71,7 +74,7 @@ int MQTTretries = 2;     // allowed tries to reconnect
 
 // holds informamtion
 char msg[150];
-char timeStamp[50];
+// char timeStamp[50];
 char bootTime[50];
 bool firstRun = true;
 // ###################
