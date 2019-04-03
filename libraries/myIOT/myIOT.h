@@ -20,13 +20,13 @@ void pub_state(char *inmsg);
 void pub_msg(char *inmsg);
 
 bool useSerial = false;
-bool useWDT = true;
-bool useOTA = true;
+bool useWDT    = true;
+bool useOTA    = true;
 bool extDefine = false; // must to set to true in order to use EXtMQTT
 
-bool mqttConnected = 0;
-char* deviceTopic = "";
-const char *ver = "iot_1.42_alpha";
+bool mqttConnected  = 0;
+char* deviceTopic   = "";
+const char *ver     = "iot_1.42_alpha";
 char timeStamp[50];
 
 private:
@@ -36,15 +36,16 @@ cb_func ext_mqtt;
 
 
 // time interval parameters
-const int clockUpdateInt = (60*5);     // seconds to update NTP
-const int WIFItimeOut = (1000 * 60) * 1/3;     // 20 sec try to connect WiFi
-const int OTA_upload_interval = (1000 * 60) * 2;     // 2 minute to try OTA
-const int time2Reset_noNetwork = (1000 * 60) * 0.5;     // minutues pass without any network
-const int time2_tryReconnect = (1000 * 60) * 0.1;     // time between reconnection retries
-volatile int wdtResetCounter = 0;
-const int wdtMaxRetries = 20;     //seconds to bITE
-long noNetwork_Counter = 0;     // clock
-long OTAcounter = 0;     // clock
+const int clockUpdateInt        = (60*5);     // seconds to update NTP
+const int WIFItimeOut           = (1000 * 60) * 1/3;     // 20 sec try to connect WiFi
+const int OTA_upload_interval   = (1000 * 60) * 2;     // 2 minute to try OTA
+const int time2Reset_noNetwork  = (1000 * 60) * 5;     // minutues pass without any network
+const int time2_tryReconnect    = (1000 * 60) * 2;     // time between reconnection retries
+volatile int wdtResetCounter    = 0;
+const int wdtMaxRetries         = 20;     //seconds to bITE
+long noNetwork_Counter          = 0;     // clock
+long OTAcounter                 = 0;     // clock
+long lastReconnectTry           = 0;
 // ############################
 
 
@@ -57,9 +58,9 @@ char* passw = "";
 
 
 // MQTT topics
-char* msgTopic = "HomePi/Dvir/Messages";
-char* groupTopic = "HomePi/Dvir/All";
-char* deviceName="";
+char* msgTopic     = "HomePi/Dvir/Messages";
+char* groupTopic   = "HomePi/Dvir/All";
+char* deviceName   = "";
 char* topicArry[2] = {deviceTopic, groupTopic};
 char stateTopic[50];
 char availTopic[50];
@@ -68,13 +69,12 @@ char availTopic[50];
 
 // MQTT connection flags
 int mqttFailCounter = 0;     // count tries to reconnect
-int MQTTretries = 2;     // allowed tries to reconnect
+int MQTTretries     = 2;     // allowed tries to reconnect
 // ######################
 
 
 // holds informamtion
 char msg[150];
-// char timeStamp[50];
 char bootTime[50];
 bool firstRun = true;
 // ###################
@@ -83,10 +83,8 @@ bool firstRun = true;
 // ~~~~~~~~~~~~~~WIFI ~~~~~~~~~~~~~~~~~~~~~
 void startNetwork(char *ssid, char *password);
 void startNTP();
-
 void start_clock();
-int networkStatus();
-void network_check();
+void networkStatus();
 
 
 // ~~~~~~~ MQTT ~~~~~~~~~~~~~~~~~~~~~~~~~~~~

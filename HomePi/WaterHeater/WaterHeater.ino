@@ -2,8 +2,8 @@
 #include <Arduino.h>
 
 //####################################################
-#define DEVICE_TOPIC "HomePi/Dvir/Water2"
-#define USE_SERIAL        true
+#define DEVICE_TOPIC "HomePi/Dvir/WaterBoil"
+#define USE_SERIAL        false
 #define USE_WDT           true
 #define USE_OTA           true
 
@@ -17,7 +17,7 @@
 // state definitions
 #define buttonPressed  LOW
 #define relayON        LOW
-#define ledON          LOW
+#define ledON          HIGH
 
 const int input_1Pin  = D7;
 const int output_1Pin = D6;
@@ -77,7 +77,7 @@ void setup() {
         iot.useSerial = USE_SERIAL;
         iot.useWDT = USE_WDT;
         iot.useOTA = USE_OTA;
-        iot.start_services(ADD_MQTT_FUNC,"Xiaomi_D6C8","guyd5161", "guy", "kupelu9e", "192.168.3.204"); // additinalMQTTfucntion, ssid,pswd,mqttuser,mqtt_pswd,broker
+        iot.start_services(ADD_MQTT_FUNC);//,"Xiaomi_D6C8","guyd5161", "guy", "kupelu9e", "192.168.3.202"); // additinalMQTTfucntion, ssid,pswd,mqttuser,mqtt_pswd,broker
 }
 void startGPIOs() {
         pinMode(input_1Pin, INPUT_PULLUP);
