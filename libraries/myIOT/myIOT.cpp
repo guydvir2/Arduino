@@ -107,6 +107,7 @@ void myIOT::network_check() {
         }
 }
 int myIOT::networkStatus() {
+
         if (WiFi.status() == WL_CONNECTED ) { // wifi is ok
                 if (mqttClient.connected()) { // mqtt is good
                         mqttClient.loop();
@@ -115,24 +116,37 @@ int myIOT::networkStatus() {
                         return 1;
                 }
                 else { // WIFI OK, no MQTT
-                        if (subscribeMQTT() == 1) { //try reconnect mqtt
-                                noNetwork_Counter = 0;
-                                return 1; //ok
+                        if  (millis() - noNetwork_Counter >= time2Reset_noNetwork) { // reset due to long no MQTT
+                                sendReset("null");
                         }
-                        else { // fail connect to MQTT server
-                                if (noNetwork_Counter == 0) { // first time no MQTT  - start timeout counter
-                                        noNetwork_Counter = millis();
+                        else if (millis()- noNetwork_Counter >= time2_tryReconnect) { // time interval to try again to connect MQTT
+                                if (subscribeMQTT() == 1) {         //try successfully reconnect mqtt
+                                        noNetwork_Counter = 0;
+                                        return 1;         //ok
                                 }
-                                mqttConnected = 0;
-                                return 0; // can't connect
+                                else {         // fail connect to MQTT server
+                                        if (noNetwork_Counter == 0) {         // first time no MQTT  - start timeout counter
+                                                noNetwork_Counter = millis();
+                                        }
+                                        mqttConnected = 0;
+                                        return 0;         // can't connect
+                                }
+                        }
+                        else {
+                                return 0;
                         }
                 }
         }
-        else {             // CHANGE V1 - add this condition
-                if (noNetwork_Counter !=0) {
+
+
+        else {             // CHANGE V1 - add this condition - NO WIFI
+                if (noNetwork_Counter !=0) { // first time when NO NETWORK  
                         noNetwork_Counter=millis();
+                        return 0;
                 }
-                return 0;
+                if  (millis() - noNetwork_Counter >= time2Reset_noNetwork) {
+                        sendReset("null");
+                }
         }
 }
 void myIOT::start_clock() {
@@ -211,7 +225,7 @@ int myIOT::subscribeMQTT() {
                                 mqttFailCounter++;
                         }
 
-                        delay(1000);
+                        delay(500);
                 }
 
                 // Failed to connect MQTT adter retries
