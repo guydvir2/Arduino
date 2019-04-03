@@ -3,7 +3,7 @@
 
 //####################################################
 #define DEVICE_TOPIC "HomePi/Dvir/Water2"
-#define USE_SERIAL        false
+#define USE_SERIAL        true
 #define USE_WDT           true
 #define USE_OTA           true
 
@@ -77,7 +77,7 @@ void setup() {
         iot.useSerial = USE_SERIAL;
         iot.useWDT = USE_WDT;
         iot.useOTA = USE_OTA;
-        iot.start_services(ADD_MQTT_FUNC); // additinalMQTTfucntion, ssid,pswd,mqttuser,mqtt_pswd,broker
+        iot.start_services(ADD_MQTT_FUNC,"Xiaomi_D6C8","guyd5161", "guy", "kupelu9e", "192.168.3.204"); // additinalMQTTfucntion, ssid,pswd,mqttuser,mqtt_pswd,broker
 }
 void startGPIOs() {
         pinMode(input_1Pin, INPUT_PULLUP);

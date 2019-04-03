@@ -81,7 +81,8 @@ void myIOT::startNetwork(char *ssid, char *password) {
                 if (useSerial) {
                         Serial.println("no wifi detected");
                 }
-                sendReset("null");
+                // sendReset("null");         // CHANGE V1
+                noNetwork_Counter = millis(); // CHANGE V1
         }
 
         // if wifi is OK
@@ -113,19 +114,25 @@ int myIOT::networkStatus() {
                         noNetwork_Counter = 0;
                         return 1;
                 }
-                else { // no MQTT
+                else { // WIFI OK, no MQTT
                         if (subscribeMQTT() == 1) { //try reconnect mqtt
                                 noNetwork_Counter = 0;
                                 return 1; //ok
                         }
                         else { // fail connect to MQTT server
-                                if (noNetwork_Counter == 0) {
+                                if (noNetwork_Counter == 0) { // first time no MQTT  - start timeout counter
                                         noNetwork_Counter = millis();
                                 }
                                 mqttConnected = 0;
                                 return 0; // can't connect
                         }
                 }
+        }
+        else {             // CHANGE V1 - add this condition
+                if (noNetwork_Counter !=0) {
+                        noNetwork_Counter=millis();
+                }
+                return 0;
         }
 }
 void myIOT::start_clock() {
@@ -158,8 +165,6 @@ void myIOT::startMQTT() {
         subscribeMQTT();
 }
 int myIOT::subscribeMQTT() {
-        long startClock = millis();
-
         // verify wifi connected
         if (WiFi.status() == WL_CONNECTED) {
                 if (useSerial) {
