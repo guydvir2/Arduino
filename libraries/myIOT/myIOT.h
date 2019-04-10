@@ -39,8 +39,8 @@ cb_func ext_mqtt;
 const int clockUpdateInt        = (60*5);     // seconds to update NTP
 const int WIFItimeOut           = (1000 * 60) * 1/3;     // 20 sec try to connect WiFi
 const int OTA_upload_interval   = (1000 * 60) * 2;     // 2 minute to try OTA
-const int time2Reset_noNetwork  = (1000 * 60) * 5;     // minutues pass without any network
-const int time2_tryReconnect    = (1000 * 60) * 2;     // time between reconnection retries
+const int time2Reset_noNetwork  = (1000 * 60) * 10;     // minutues pass without any network
+const int time2_tryReconnect    = (1000 * 60) * 5;     // time between reconnection retries
 volatile int wdtResetCounter    = 0;
 const int wdtMaxRetries         = 20;     //seconds to bITE
 long noNetwork_Counter          = 0;     // clock

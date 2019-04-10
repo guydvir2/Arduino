@@ -3,25 +3,27 @@
 #include <FastLED.h>
 
 //####################################################
-#define DEVICE_TOPIC "HomePi/Dvir/Lights/Kitchen_LedStrip"
+#define DEVICE_TOPIC "HomePi/Dvir/Lights/LEDstrip"
 //must be defined to use myIOT
 #define ADD_MQTT_FUNC addiotnalMQTT
 //~~~
-#define USE_SERIAL false
-#define USE_WDT true
-#define USE_OTA true
-#define USE_IR_REMOTE true
+#define USE_SERIAL    false
+#define USE_WDT       true
+#define USE_OTA       true
+#define USE_IR_REMOTE false
 
 #define NUM_LEDS 150
 #define DATA_PIN D4 // 7 for NodeMCU
-
+//#define DATA_PIN 10 // D4 for WemosMini
 #define COLOR 1
 #define LED_DELAY 10
-#define BRIGHTNESS  50
+#define BRIGHTNESS  70
 #define LED_DIRECTION 0
 #define PARAM_AMOUNT 4
+#define MAX_BRIGHT 80
 
-#define VER "Wemos.Mini.2.0"
+//#define VER "Wemos.Mini.2.0"
+#define VER "NodeMCU.2.0"
 //####################################################
 
 //~~~~~~~~~~~~~~~~~~~~IR Remote ~~~~~~~~~~~~~~~~~~~~~
@@ -29,16 +31,17 @@
 #include <IRremoteESP8266.h>
 #include <IRutils.h>
 
-const uint16_t kRecvPin = 14; // D5 on a NodeMCU board
-const uint32_t kBaudRate = 115200;
+const uint16_t kRecvPin        = 14; // D5 on a NodeMCU board
+const uint32_t kBaudRate       = 115200;
 const uint16_t kMinUnknownSize = 12;
-unsigned long key_value = 0;
-#define MAX_BRIGHT 90
+unsigned long key_value        = 0;
 
 IRrecv irrecv(kRecvPin);//, kCaptureBufferSize, kTimeout, true);
 decode_results results;
 #endif
+
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 
 //~~~~~~~~~~~~~~~~~~~~LEDS defs ~~~~~~~~~~~~~~~~~~~~~
 CRGB colors[] = {0x000000, 0xFFFFFF, 0xFF0000, 0x008000, 0x0000FF, 0xFFD700, 0xFFDEAD}; // black, white,r,g,b
@@ -49,7 +52,7 @@ const int tot_colors = int(sizeof(colors) / sizeof(colors[0]));
 char parameters[PARAM_AMOUNT][4];
 int param_def[] = {COLOR, BRIGHTNESS, LED_DELAY, LED_DIRECTION};
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
+//int DATA_PIN=13;
 myIOT iot(DEVICE_TOPIC);
 
 void turn_leds_on(int col_indx = COLOR, int bright_1 = BRIGHTNESS, int del_1 = LED_DELAY, bool dir_1 = LED_DIRECTION) {
@@ -64,7 +67,7 @@ void turn_leds_on(int col_indx = COLOR, int bright_1 = BRIGHTNESS, int del_1 = L
     Serial.println(dir_1);
   }
 
-  if ( col_indx <= tot_colors && bright_1 <= 100 && del_1 <= 1000 && dir_1 <= 1) {
+  if ( col_indx <= tot_colors && bright_1 <= MAX_BRIGHT && del_1 <= 1000 && dir_1 <= 1) {
     if (dir_1 == true ) { // start to end
       FastLED.setBrightness(bright_1 * 255 / 100);
       for (int i = 0; i < NUM_LEDS; i++) {
@@ -102,7 +105,6 @@ void dec_brightness() {
 }
 
 void change_color(int i) {
-//  Serial.println(i);
   sprintf(parameters[0], "%d", i);
   turn_leds_on(i);
 }
@@ -209,12 +211,13 @@ void recvIRinputs() {
 }
 
 void start_IR() {
-
+#if USE_IR_REMOTE
 #if DECODE_HASH
   // Ignore messages with less than minimum on or off pulses.
   irrecv.setUnknownThreshold(kMinUnknownSize);
 #endif                  // DECODE_HASH
   irrecv.enableIRIn();  // Start the receiver
+#endif
 }
 
 void start_LEDS() {
@@ -222,10 +225,12 @@ void start_LEDS() {
     sprintf(parameters[x], "%d", param_def[x]);
   }
   FastLED.addLeds<NEOPIXEL, DATA_PIN>(leds, NUM_LEDS);
+  
   turn_leds_on(); // run on def values
 }
 
 void setup() {
+  
   // ~~~~~~~~Start IOT sevices~~~~~~~~
   iot.useSerial = USE_SERIAL;
   iot.useWDT = USE_WDT;

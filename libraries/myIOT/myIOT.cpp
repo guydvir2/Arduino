@@ -17,7 +17,6 @@ WiFiClient espClient;
 PubSubClient mqttClient(espClient);
 Ticker wdt;
 
-
 myIOT::myIOT(char *devTopic) {
         deviceTopic = devTopic;
         deviceName = deviceTopic;
@@ -52,7 +51,6 @@ void myIOT::looper(){
         }
         wdtResetCounter = 0;
 }
-
 
 // ~~~~~~~ Wifi functions ~~~~~~~
 void myIOT::startNetwork(char *ssid, char *password) {

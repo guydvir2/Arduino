@@ -1,6 +1,10 @@
+/*  Black wire- vin 6-30v
+ *  Brown wire - analog read
+ *  Blue wire - gnd
+ */
 float metalDetected;
 int readValue;
-int sensorPin = A1;
+int sensorPin = A0;
 int ledPin= 3;
 
 void setup() {

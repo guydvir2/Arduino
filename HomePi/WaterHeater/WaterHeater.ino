@@ -19,9 +19,9 @@
 #define relayON        LOW
 #define ledON          HIGH
 
-const int input_1Pin  = D7;
-const int output_1Pin = D6;
-const int ledPin      = D8;
+const int Button_Pin     = D7;
+const int Relay_Pin      = D6;
+const int buttonLED_Pin  = D8;
 
 bool relayState;
 //##########################
@@ -50,7 +50,7 @@ const int timeInterval_resetPress = 1500; // time between consq presses to init 
 
 
 // TimeOut Constants
-int maxTO                    = 150; //minutes
+int maxTO                    = 150; //minutes to timeout even in ON state
 int timeIncrements           = 15; //minutes each button press
 int timeInc_counter          = 0; // counts number of presses to TO increments
 unsigned long startTime      = 0;
@@ -75,14 +75,14 @@ void setup() {
         startGPIOs();
         startOLED();
         iot.useSerial = USE_SERIAL;
-        iot.useWDT = USE_WDT;
-        iot.useOTA = USE_OTA;
-        iot.start_services(ADD_MQTT_FUNC);//,"Xiaomi_D6C8","guyd5161", "guy", "kupelu9e", "192.168.3.202"); // additinalMQTTfucntion, ssid,pswd,mqttuser,mqtt_pswd,broker
+        iot.useWDT    = USE_WDT;
+        iot.useOTA    = USE_OTA;
+        iot.start_services(ADD_MQTT_FUNC);
 }
 void startGPIOs() {
-        pinMode(input_1Pin, INPUT_PULLUP);
-        pinMode(output_1Pin, OUTPUT);
-        pinMode(ledPin, OUTPUT);
+        pinMode(Button_Pin, INPUT_PULLUP);
+        pinMode(Relay_Pin, OUTPUT);
+        pinMode(buttonLED_Pin, OUTPUT);
 
         allOff();
 }
@@ -126,16 +126,7 @@ void OLED_SideTXT(int i, char *line1, char *line2 = "", char *line3 = "", char *
                                 int strLength = strlen(Lines[n]);
                                 display.setCursor((ceil)((21 / i - strLength) * (128 / (21 / i))),  line_space * n);
                                 display.print(Lines[n]);
-                        }
-                        else{
-                                display.setTextColor(BLACK,WHITE);
-                                display.setCursor(0, line_space * n);
-                                display.print(Lines[n]);
-                        }
-                }
-        }
-        display.display();
-  #endif
+    #endif
 }
 void OLEDlooper() {
         #if (USE_OLED)
@@ -186,8 +177,8 @@ int splitter(char *inputstr) {
 
 // ~~~~~~~~~ GPIO switching ~~~~~~~~~~~~~
 void allOff() {
-        digitalWrite(output_1Pin, !relayON);
-        digitalWrite(ledPin, !ledON);
+        digitalWrite(Relay_Pin, !relayON);
+        digitalWrite(buttonLED_Pin, !ledON);
 }
 void switchIt(char *type, char *dir) {
         bool states[2];
@@ -195,9 +186,9 @@ void switchIt(char *type, char *dir) {
         char mqttmsg[50];
 
         if (strcmp(dir, "on") == 0) {
-                if(digitalRead(output_1Pin)!=relayON) { // was not ON
-                        digitalWrite(output_1Pin, relayON);
-                        digitalWrite(ledPin, ledON);
+                if(digitalRead(Relay_Pin)!=relayON) { // was not ON
+                        digitalWrite(Relay_Pin, relayON);
+                        digitalWrite(buttonLED_Pin, ledON);
                         if (startTime == 0) {
                                 startTime = millis();
                         }
@@ -207,9 +198,9 @@ void switchIt(char *type, char *dir) {
                 }
                 suc_flag = true;
         }
-        else if (strcmp(dir, "off") == 0 && digitalRead(output_1Pin)==relayON) {
-                digitalWrite(output_1Pin, !relayON);
-                digitalWrite(ledPin, !ledON);
+        else if (strcmp(dir, "off") == 0 && digitalRead(Relay_Pin)==relayON) {
+                digitalWrite(Relay_Pin, !relayON);
+                digitalWrite(buttonLED_Pin, !ledON);
                 startTime = 0;
                 timeInc_counter = 0;
                 endTime = 0;
@@ -224,10 +215,10 @@ void switchIt(char *type, char *dir) {
         }
 }
 void checkSwitch_1() {
-        if (digitalRead(input_1Pin) == buttonPressed) {
+        if (digitalRead(Button_Pin) == buttonPressed) {
                 delay(deBounceInt);
                 // CASE #1 : Button is pressed. Delay creates a delay when buttons is pressed constantly
-                if (digitalRead(input_1Pin) == buttonPressed && millis() - pressTO_input1 > delayBetweenPress) {
+                if (digitalRead(Button_Pin) == buttonPressed && millis() - pressTO_input1 > delayBetweenPress) {
                         // CASE of it is first press and Relay was off - switch it ON, no timer.
                         if ( timeInc_counter == 0 && relayState == !relayON ) { // first press turns on
                                 switchIt("Button", "on");
@@ -274,17 +265,17 @@ void detectResetPresses() {
         }
 }
 void readGpioStates() {
-        relayState = digitalRead(output_1Pin);
+        relayState = digitalRead(Relay_Pin);
 }
 void addiotnalMQTT(char *incoming_msg) {
         char msg[100];
 
         if (strcmp(incoming_msg, "status") == 0) {
-                sprintf(msg, "Status: Relay:[%s], Sw:[%s]", digitalRead(output_1Pin) ? "Off" : "On", digitalRead(input_1Pin) ? "Off" : "On");
+                sprintf(msg, "Status: Relay:[%s], Sw:[%s]", digitalRead(Relay_Pin) ? "Off" : "On", digitalRead(Button_Pin) ? "Off" : "On");
                 iot.pub_msg(msg);
         }
         else if (strcmp(incoming_msg, "pins") == 0 ) {
-                sprintf(msg, "Switch: [%d], Relay: [%d], Led: [%d]", input_1Pin, output_1Pin, ledPin);
+                sprintf(msg, "Switch: [%d], Relay: [%d], Led: [%d]", input_1Pin, Relay_Pin, buttonLED_Pin);
                 iot.pub_msg(msg);
         }
         else if (strcmp(incoming_msg, "ver") == 0 ) {

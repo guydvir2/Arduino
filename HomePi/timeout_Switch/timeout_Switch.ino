@@ -2,44 +2,49 @@
 #include <Arduino.h>
 
 //####################################################
-#define DEVICE_TOPIC "HomePi/Dvir/Lights/test"
+#define DEVICE_TOPIC "HomePi/Dvir/Lights/GardenExit"
 
-//~~~Services
-#define USE_SERIAL       true
+//~~~Services~~~~~~~~~~~
+#define USE_SERIAL       false
 #define USE_WDT          true
 #define USE_OTA          true
 #define USE_MAN_RESET    false
 #define USE_BOUNCE_DEBUG false
 #define USE_EXT_BUTTONS  false
 
-//~~~Selecto Board
+//~~~Select Board~~~~~~~
 #define SONOFF_DUAL      true
-#define SONOFF_BASIC     true
+#define SONOFF_BASIC     false
 #define WEMOS            false
 // ~~~
 
-int relay_timeout[] = {120, 60}; // -1:on, 0:off <0:timeout mins
-//~~~
+// ~~~ define onBoot timeout in [minutes] ~~~~
+/* -1 ==  on
+    0 ==  off
+    >0 == timeout
+ */
+int relay_timeout[] = {150,60}; //
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-#define VER "SonoffDual_1.5"
+#define VER "SonoffDual_1.8"
 //####################################################
 
 
 #if (SONOFF_DUAL)
 
 // state definitions
-#define RelayOn       LOW
+#define RelayOn       HIGH
 #define SwitchOn      LOW
 #define LedOn         LOW
 #define ButtonPressed LOW
 
-#define RELAY1  5
-#define RELAY2  12
-#define BLUEled 13
+#define RELAY1           5
+#define RELAY2           12
+#define wifiOn_statusLED 13
 
-#define INPUT1  9
-#define INPUT2  0
-#define BUTTON  10
+#define INPUT1       9
+#define INPUT2       0
+#define BUTTON       10
 #define NUM_SWITCHES 2
 
 #endif
@@ -52,21 +57,42 @@ int relay_timeout[] = {120, 60}; // -1:on, 0:off <0:timeout mins
 #define LedOn         LOW
 #define ButtonPressed LOW
 
-#define RELAY1  12
-#define RELAY2  -1
-#define BLUEled 13
+#define RELAY1           12
+#define RELAY2           0
+#define wifiOn_statusLED 13
 
-#define INPUT1  14
-#define INPUT2  -1
-#define BUTTON  0
+#define INPUT1       14
+#define INPUT2       0
+#define BUTTON       0
 #define NUM_SWITCHES 1
 
 #endif
 
+
+#if (WEMOS)
+
+// state definitions
+#define RelayOn       HIGH
+#define SwitchOn      LOW
+#define LedOn         LOW
+#define ButtonPressed LOW
+
+#define RELAY1           14
+#define RELAY2           12
+#define wifiOn_statusLED 13
+
+#define INPUT1       4
+#define INPUT2       5
+#define BUTTON       10
+#define NUM_SWITCHES 2
+
+#endif
+
+
 int relays[] = {RELAY1, RELAY2};
 byte inputs[] = {INPUT1, INPUT2};
 int inputs_lastState[NUM_SWITCHES];
-long start_timeout[] = {0, 0}; // store clock start
+long start_timeout[] = {0, 0}; // store clock start for TO
 
 // manual RESET parameters
 int manResetCounter =               0;  // reset press counter
@@ -83,32 +109,37 @@ myIOT iot(DEVICE_TOPIC);
 
 void setup() {
         startGPIOs();
-        timeout_atBoot();
 
-        iot.useSerial = USE_SERIAL;
-        iot.useWDT = USE_WDT;
-        iot.useOTA = USE_OTA;
-        iot.start_services(ADD_MQTT_FUNC); // additinalMQTTfucntion, ssid,pswd,mqttuser,mqtt_pswd,broker
+         iot.useSerial = USE_SERIAL;
+         iot.useWDT = USE_WDT;
+         iot.useOTA = USE_OTA;
+         iot.start_services(ADD_MQTT_FUNC); // additinalMQTTfucntion, ssid,pswd,mqttuser,mqtt_pswd,broker
 
+         // ~~~~~~~~~~~~~ susing switchIt just to notify MQTT  ~~~~~~~
         for (int i = 0; i < NUM_SWITCHES; i++) {
-                if (relay_timeout[i] > 0 ) {
-                        switchIt("TimeOut", i, "on");
-                }
-                else if (relay_timeout[i] == -1 ) {
-                        switchIt("atBoot", i, "on");
-                }
+        if (relay_timeout[i] > 0 ) {
+                switchIt("TimeOut@Boot", i, "on");
         }
+        else if (relay_timeout[i] == -1 ) {
+                switchIt("on@Boot", i, "on");
+        }
+}
+        // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 }
 
 // ~~~~~~~~~ StartUp ~~~~~~~~~~~~
 void startGPIOs() {
         for (int i = 0; i < NUM_SWITCHES; i++) {
                 pinMode(relays[i], OUTPUT);
-                if (relay_timeout[i] == 0) {
+                if (relay_timeout[i] == 0) {  // OFF STATE
+                        digitalWrite(relays[i], !RelayOn);
+                }
+                else if ( relay_timeout[i] == -1) { // ON STATE
                         digitalWrite(relays[i], RelayOn);
                 }
-                else if ( relay_timeout[i] == -1) {
-                        digitalWrite(relays[i], !RelayOn);
+                else if (relay_timeout[i] > 0) { // TimeOut STATE [minuntes]
+                        digitalWrite(relays[i], RelayOn);
+                        start_timeout[i] = millis();
                 }
 
                 pinMode(inputs[i], INPUT_PULLUP);
@@ -117,19 +148,12 @@ void startGPIOs() {
 
         if (SONOFF_DUAL) {
                 pinMode(BUTTON, INPUT_PULLUP);
-                pinMode(BLUEled, OUTPUT);
-                digitalWrite(BLUEled,!LedOn);
+                pinMode(wifiOn_statusLED, OUTPUT);
+                digitalWrite(wifiOn_statusLED, LedOn);
         }
 
 }
-void timeout_atBoot() {
-        for (int i = 0; i < NUM_SWITCHES; i++) {
-                if (relay_timeout[i] > 0) {
-                        digitalWrite(relays[i], RelayOn);
-                        start_timeout[i] = millis();
-                }
-        }
-}
+
 void timeoutLoop() {
         for (int i = 0; i < NUM_SWITCHES; i++) {
                 if (start_timeout[i] != 0 ) {
@@ -149,9 +173,9 @@ void PBit() {
         delay(pause);
 
         for (int i = 0; i < NUM_SWITCHES; i++) {
-                digitalWrite(relays[i], RelayOn);
+                switchIt("PBit", i, "on");
                 delay(pause);
-                digitalWrite(relays[i], !RelayOn);
+                switchIt("PBit", i, "off");
                 delay(pause);
         }
 
@@ -165,15 +189,15 @@ void allOff() {
 }
 void switchIt(char *type, int sw_num, char *dir) {
         char mqttmsg[50];
-        char states[150];
-        char tempstr[150];
+        char states[50];
+        char tempstr[50];
 
         if (sw_num < NUM_SWITCHES && sw_num >= 0) {
                 if (strcmp(dir, "on") == 0) {
-                        digitalWrite(relays[sw_num], !RelayOn);
+                        digitalWrite(relays[sw_num], RelayOn);
                 }
                 else if (strcmp(dir, "off") == 0) {
-                        digitalWrite(relays[sw_num], RelayOn);
+                        digitalWrite(relays[sw_num], !RelayOn);
                 }
 
                 if (iot.mqttConnected == true) {
@@ -182,17 +206,17 @@ void switchIt(char *type, int sw_num, char *dir) {
                                 sprintf(tempstr, " [%d min.]", relay_timeout[sw_num]);
                                 strcat(mqttmsg, tempstr);
                         }
+
+                        sprintf(states,"");
                         for (int i = 0; i < NUM_SWITCHES; i++) {
-                                sprintf(tempstr, "Switch#[%d] [%s] ", i + 1, !digitalRead(relays[i]) ? "On" : "Off");
+                                sprintf(tempstr, "[%s]", !digitalRead(relays[i]) ? "On" : "Off");
                                 strcat(states, tempstr);
                         }
-
                         iot.pub_state(states);
                         iot.pub_msg(mqttmsg);
                 }
         }
 }
-
 void detectResetPresses() {
         if (millis() - lastResetPress < timeInterval_resetPress) {
                 if (manResetCounter >= pressAmount2Reset) {
@@ -221,7 +245,7 @@ void checkSwitch_Pressed() {
                                         }
                                 }
                                 else if (digitalRead(inputs[i]) == !SwitchOn) {
-                                        switchIt("Button", 1, "off");
+                                        switchIt("Button", i, "off");
                                         inputs_lastState[i] = digitalRead(inputs[i]);
                                 }
                         }
@@ -230,7 +254,7 @@ void checkSwitch_Pressed() {
 
                 else if (USE_BOUNCE_DEBUG) { // for debug only
                         char tMsg [100];
-                        //      sprintf(tMsg, "1 Bounce: cRead [%d] lRead[%d]", digitalRead(inputPin_1), input1_lastState);
+                        sprintf(tMsg, "input [%d] Bounce: current state[%d] last state[%d]", i, digitalRead(inputs[i]), inputs_lastState[i]);
                         iot.pub_msg(tMsg);
                 }
         }
@@ -297,19 +321,20 @@ void addiotnalMQTT(char incoming_msg[50]) {
                 }
         }
 }
+
 void loop() {
         iot.looper(); // check wifi, mqtt, wdt
         timeoutLoop();
 
         if (iot.mqttConnected) {
-                digitalWrite(BLUEled, LedOn);
+                digitalWrite(wifiOn_statusLED, !LedOn);
         }
 
         if (USE_EXT_BUTTONS) {
                 checkSwitch_Pressed();
         }
 
-        if (digitalRead(BUTTON) == ButtonPressed) {
+        if (SONOFF_DUAL && digitalRead(BUTTON) == ButtonPressed) {
                 iot.sendReset("Reset by Button");
         }
 
