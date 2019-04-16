@@ -2,19 +2,24 @@
 #define myJSON_h
 
 #include "Arduino.h"
-// #include <ArduinoJson.h>
-// #include "FS.h"
+#include <ArduinoJson.h>
+#include "FS.h"
 
 class myJSON
 {
 public:
-// const char *ver = "json_0.1";
-myJSON();
-void ReadValue();
-void saveFile();
+
+myJSON(char *filename, bool useserial=false);
+bool ReadVal(char* key, char *ret_value);
+bool SaveVal(char *key, char *value);
+bool parser(char *json_data);
+bool exists(char *path);
+bool remove(char *path);
+bool format ();
 
 private:
-int x=0;
+bool useSerial;
+char _filename[30];
 
 };
 #endif

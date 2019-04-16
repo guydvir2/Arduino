@@ -26,7 +26,7 @@ bool extDefine = false; // must to set to true in order to use EXtMQTT
 
 bool mqttConnected  = 0;
 char* deviceTopic   = "";
-const char *ver     = "iot_1.42_alpha";
+const char *ver     = "iot_1.43";
 char timeStamp[50];
 
 private:
@@ -38,7 +38,7 @@ cb_func ext_mqtt;
 // time interval parameters
 const int clockUpdateInt        = (60*5);     // seconds to update NTP
 const int WIFItimeOut           = (1000 * 60) * 1/3;     // 20 sec try to connect WiFi
-const int OTA_upload_interval   = (1000 * 60) * 2;     // 2 minute to try OTA
+const int OTA_upload_interval   = (1000 * 60) * 5;     // 5 minute to try OTA
 const int time2Reset_noNetwork  = (1000 * 60) * 10;     // minutues pass without any network
 const int time2_tryReconnect    = (1000 * 60) * 5;     // time between reconnection retries
 volatile int wdtResetCounter    = 0;

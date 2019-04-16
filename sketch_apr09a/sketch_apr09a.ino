@@ -1,45 +1,35 @@
-// #include <EEPROM.h>
-//
-// void setup()
-// {
-//   for (int i = 0; i < 255; i++)
-//     EEPROM.write(i, i);
-// }
-//
-// void loop()
-// {
-// }
+#include <myJSON.h>
+#define FILENAME "guyfile.txt"
+myJSON JSONfile(FILENAME,true);
+char b[20];
+char json[] =
+      "{\"sensor\":\"gps\",\"time\":1351824120,\"data\":[48.756080,2.302038]}";
 
 
-#include <EEPROM.h>
+void setup(){
+        // Serial.print("Format: ");
+        // Serial.println(JSONfile.format());
+        //
+        // JSONfile.SaveVal("name1","guy");
+        // JSONfile.SaveVal("name2","guy");
 
-int a = 0;
-int value;
+        // JSONfile.ReadVal("name",b);
+        // Serial.println(b);
+        //
+        // Serial.print("file exists: ");
+        // Serial.println(JSONfile.exists(FILENAME));
+        //
+        // Serial.print("Remove file : ");
+        // Serial.println(JSONfile.remove(FILENAME));
+        // JSONfile.parser(json);
+        JSONfile.ReadVal("name2",b);
+        Serial.println(b);
+        // JSONfile.ReadVal("name2",b);
+        // Serial.println(b);
 
-void setup()
-{
-  Serial.begin(9600);
-  // EEPROM.begin(512);
-  //
-  // for( int i=0; i<512; i++){
-  //   EEPROM.write(i,i*2);
-  // }
-  // EEPROM.commit();
+
 }
 
-void loop()
-{
-  value = EEPROM.read(a);
+void loop() {
 
-  Serial.print(a);
-  Serial.print("\t");
-  Serial.print(value);
-  Serial.println();
-
-  a = a + 1;
-
-  if (a == 512)
-    a = 0;
-
-  delay(500);
 }

@@ -2,7 +2,7 @@
 #include <Arduino.h>
 
 //####################################################
-#define DEVICE_TOPIC "HomePi/Dvir/Lights/GardenExit"
+#define DEVICE_TOPIC "HomePi/Dvir/Lights/sonoffbasic_33"
 
 //~~~Services~~~~~~~~~~~
 #define USE_SERIAL       false
@@ -13,8 +13,8 @@
 #define USE_EXT_BUTTONS  false
 
 //~~~Select Board~~~~~~~
-#define SONOFF_DUAL      true
-#define SONOFF_BASIC     false
+#define SONOFF_DUAL      false
+#define SONOFF_BASIC     true
 #define WEMOS            false
 // ~~~
 
@@ -26,7 +26,7 @@
 int relay_timeout[] = {150,60}; //
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-#define VER "SonoffDual_1.8"
+#define VER "SonoffBasic_1.8"
 //####################################################
 
 
