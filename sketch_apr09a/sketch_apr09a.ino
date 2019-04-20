@@ -7,13 +7,16 @@ char json[] =
 
 
 void setup(){
+  Serial.begin(9600);
+  Serial.println("Start");
         // Serial.print("Format: ");
         // Serial.println(JSONfile.format());
         //
-        // JSONfile.SaveVal("name1","guy");
+        JSONfile.SaveVal("name1","guy");
+        JSONfile.getJSON();
         // JSONfile.SaveVal("name2","guy");
 
-        // JSONfile.ReadVal("name",b);
+        // JSONfile.ReadVal("gps",b);
         // Serial.println(b);
         //
         // Serial.print("file exists: ");
@@ -21,9 +24,9 @@ void setup(){
         //
         // Serial.print("Remove file : ");
         // Serial.println(JSONfile.remove(FILENAME));
-        // JSONfile.parser(json);
-        JSONfile.ReadVal("name2",b);
-        Serial.println(b);
+        // Serial.println(JSONfile.parser(json, "time"));
+        // JSONfile.ReadVal("name2",b);
+        // Serial.println(b);
         // JSONfile.ReadVal("name2",b);
         // Serial.println(b);
 

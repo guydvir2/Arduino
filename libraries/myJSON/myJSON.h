@@ -12,10 +12,11 @@ public:
 myJSON(char *filename, bool useserial=false);
 bool ReadVal(char* key, char *ret_value);
 bool SaveVal(char *key, char *value);
-bool parser(char *json_data);
+const char *parser(char *json_data, const char *key);
 bool exists(char *path);
 bool remove(char *path);
 bool format ();
+char getJSON();
 
 private:
 bool useSerial;

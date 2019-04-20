@@ -6,10 +6,10 @@
 #define DEVICE_TOPIC "HomePi/Dvir/Lights/CorridorLEDs"
 
 //~~~~~ Services ~~~~~~~~~~~
-#define USE_SERIAL    false
+#define USE_SERIAL    true
 #define USE_WDT       true
 #define USE_OTA       true
-#define USE_IR_REMOTE false
+#define USE_IR_REMOTE true
 
 #define NUM_LEDS 300 // <--- Verify if need to Change
 #define DATA_PIN D4
@@ -19,7 +19,7 @@
 #define LED_DELAY     10 // ms
 #define BRIGHTNESS    20 // [0,100]
 #define LED_DIRECTION 1  // [0,1]
-#define PARAM_AMOUNT  5  // splitter 
+#define PARAM_AMOUNT  5  // splitter
 #define MAX_BRIGHT    100
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -31,7 +31,7 @@
 #include <IRremoteESP8266.h>
 #include <IRutils.h>
 
-const uint16_t kRecvPin        = 14;
+const uint16_t kRecvPin        = D3;
 const uint32_t kBaudRate       = 115200;
 const uint16_t kMinUnknownSize = 12;
 unsigned long key_value        = 0;
@@ -93,6 +93,7 @@ myIOT iot(DEVICE_TOPIC);
 
 // ~~~~~~~~~~~~ LED Operations ~~~~~~~~~~~~~~~~~~~~~~
 void turn_leds_on(int col_indx = COLOR, int bright_1 = BRIGHTNESS, int del_1 = LED_DELAY, bool dir_1 = LED_DIRECTION, int mode_1 = 0) {
+        char msg[100];
         if ( col_indx <= tot_colors && bright_1 <= MAX_BRIGHT && del_1 <= 1000 && dir_1 <= 1) {
                 FastLED.setBrightness(bright_1 * 255 / 100);
                 if (dir_1 == true ) { // start to end
@@ -121,13 +122,12 @@ void turn_leds_on(int col_indx = COLOR, int bright_1 = BRIGHTNESS, int del_1 = L
                                 delay(del_1);
                         }
                 }
+
+                sprintf(msg, "Status: Color:[%s], Brightness:[%d], Delay[%d]ms, Direction[%d], Mode[%d]", color_names[col_indx], bright_1, del_1, dir_1, mode_1);
+                iot.pub_msg(msg);
         }
+
 }
-
-// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-
-// ~~~~~~~~~~~~~ IR Commands ~~~~~~~
 void inc_brightness() {
         int currentBright = atoi(parameters[1]) + 10;
         if ( currentBright <= MAX_BRIGHT) {
@@ -142,10 +142,62 @@ void dec_brightness() {
                 turn_leds_on(atoi(parameters[0]), atoi(parameters[1]), 1);
         }
 }
+void nextColor(){
+        int currentColor = atoi(parameters[0]);
+        if ( currentColor < tot_colors - 1) {
+                sprintf(parameters[0], "%d", currentColor + 1);
+                turn_leds_on(atoi(parameters[0]));
+        }
+
+        else {
+                sprintf(parameters[0], "%d", 1);
+                turn_leds_on(atoi(parameters[0]));
+        }
+
+}
+void previousColor(){
+        int currentColor = atoi(parameters[0]);
+        if ( currentColor >= 2) {
+                sprintf(parameters[0], "%d", currentColor - 1);
+                turn_leds_on(atoi(parameters[0]));
+        }
+
+        else {
+                sprintf(parameters[0], "%d", tot_colors - 1);
+                turn_leds_on(atoi(parameters[0]));
+        }
+}
+void nextMode(){
+        int currentMode = atoi(parameters[4]);
+        if ( currentMode < 2) {
+                sprintf(parameters[4], "%d", currentMode + 1);
+                turn_leds_on(atoi(parameters[0]),atoi(parameters[1]),atoi(parameters[2]),atoi(parameters[3]),atoi(parameters[4]));
+        }
+        else {
+                sprintf(parameters[4], "%d", 0);
+                turn_leds_on(atoi(parameters[0]),atoi(parameters[1]),atoi(parameters[2]),atoi(parameters[3]),atoi(parameters[4]));
+        }
+}
+void previousMode(){
+        int currentMode = atoi(parameters[4]);
+        if ( currentMode <=2 && currentMode >=1) {
+                sprintf(parameters[4], "%d", currentMode - 1);
+                turn_leds_on(atoi(parameters[0]),atoi(parameters[1]),atoi(parameters[2]),atoi(parameters[3]),atoi(parameters[4]));
+        }
+        else {
+                sprintf(parameters[4], "%d", 2);
+                turn_leds_on(atoi(parameters[0]),atoi(parameters[1]),atoi(parameters[2]),atoi(parameters[3]),atoi(parameters[4]));
+        }
+}
+
 void change_color(int i) {
         sprintf(parameters[0], "%d", i);
         turn_leds_on(i);
 }
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+// ~~~~~~~~~~~~~ IR Commands ~~~~~~~
 void recvIRinputs() {
 #if USE_IR_REMOTE
         if (irrecv.decode(&results)) {
@@ -156,18 +208,23 @@ void recvIRinputs() {
                 switch (results.value) {
                 case 0xFFA25D:
                         //Serial.println("CH-");
+                        previousMode();
                         break;
                 case 0xFF629D:
                         //Serial.println("CH");
+                        iot.sendReset("Remote");
                         break;
                 case 0xFFE21D:
                         //Serial.println("CH+");
+                        nextMode();
                         break;
                 case 0xFF22DD:
                         //Serial.println("|<<");
+                        previousColor();
                         break;
                 case 0xFF02FD:
                         //Serial.println(">>|");
+                        nextColor();
                         break;
                 case 0xFFC23D:
                         //Serial.println(">|");
@@ -212,15 +269,19 @@ void recvIRinputs() {
                         break;
                 case 0xFF5AA5:
                         //Serial.println("6");
+                        change_color(6);
                         break;
                 case 0xFF42BD:
                         //Serial.println("7");
+                        change_color(7);
                         break;
                 case 0xFF4AB5:
                         //Serial.println("8");
+                        change_color(8);
                         break;
                 case 0xFF52AD:
                         //Serial.println("9");
+                        change_color(9);
                         break;
                 }
                 key_value = results.value;
@@ -228,9 +289,6 @@ void recvIRinputs() {
         }
 #endif
 }
-// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-// ~~~~~~~~~~~~~ Start Services ~~~~
 void start_IR() {
 #if USE_IR_REMOTE
 #if DECODE_HASH
@@ -274,8 +332,8 @@ void addiotnalMQTT(char incoming_msg[50]) {
         char msg2[100];
 
         if (strcmp(incoming_msg, "status") == 0) {
-                // sprintf(msg, "Status: Color:[%s], Brightness:[%d]", color_names[atoi(parameters[0])], atoi(parameters[1]));
-                sprintf(msg, "Status: Color:[%s], Brightness:[%d]", parameters[0], atoi(parameters[1]));
+                sprintf(msg, "Status: Color:[%s], Brightness:[%d]", color_names[atoi(parameters[0])], atoi(parameters[1]));
+                // sprintf(msg, "Status: Color:[%s], Brightness:[%d]", parameters[0], atoi(parameters[1]));
                 iot.pub_msg(msg);
         }
         else if (strcmp(incoming_msg, "ver") == 0 ) {
@@ -285,14 +343,13 @@ void addiotnalMQTT(char incoming_msg[50]) {
         else {
                 splitter(incoming_msg);
                 turn_leds_on(atoi(parameters[0]), atoi(parameters[1]), atoi(parameters[2]), atoi(parameters[3]), atoi(parameters[4]));
-                sprintf(msg, "TurnOn: Color:[%s], Brightness:[%d]", color_names[atoi(parameters[0])], atoi(parameters[1]));
+                sprintf(msg, "TurnOn: Color:[%s], Brightness:[%s]", color_names[atoi(parameters[0])], atoi(parameters[1]));
                 // sprintf(msg, "TurnOn: Color:[%s], Brightness:[%d]", parameters[0], atoi(parameters[1]));
                 iot.pub_msg(msg);
 
         }
 }
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
 
 void setup() {
 
@@ -319,5 +376,5 @@ void loop() {
         iot.looper(); // check wifi, mqtt, wdt
         recvIRinputs();
 
-        delay(100);
+        delay(50);
 }

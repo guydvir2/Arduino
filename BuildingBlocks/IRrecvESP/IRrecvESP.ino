@@ -3,16 +3,16 @@
 #include <IRutils.h>
 
 // ==================== start of TUNEABLE PARAMETERS ====================
-const uint16_t kRecvPin = 14; // D5 on a NodeMCU board
+const uint16_t kRecvPin = D3; // D5 on a NodeMCU board
 const uint32_t kBaudRate = 115200;
-//const uint16_t kCaptureBufferSize = 128; 
+//const uint16_t kCaptureBufferSize = 128;
 const uint16_t kMinUnknownSize = 12;
 // ==================== end of TUNEABLE PARAMETERS ====================
 
 unsigned long key_value = 0;
 
 IRrecv irrecv(kRecvPin);//, kCaptureBufferSize, kTimeout, true);
-decode_results results;  
+decode_results results;
 
 void setup() {
   Serial.begin(kBaudRate);//, SERIAL_8N1, SERIAL_TX_ONLY);

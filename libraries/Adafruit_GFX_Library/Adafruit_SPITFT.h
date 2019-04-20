@@ -187,6 +187,8 @@ class Adafruit_SPITFT : public Adafruit_GFX {
     void         startWrite(void);
     // Chip deselect and/or hardware SPI transaction end as needed:
     void         endWrite(void);
+    void         sendCommand(uint8_t commandByte, uint8_t *dataBytes = NULL, uint8_t numDataBytes = 0);
+    void         sendCommand(uint8_t commandByte, const uint8_t *dataBytes, uint8_t numDataBytes);
 
     // These functions require a chip-select and/or SPI transaction
     // around them. Higher-level graphics primitives might start a
@@ -195,7 +197,8 @@ class Adafruit_SPITFT : public Adafruit_GFX {
     // before ending the transaction. It's more efficient than starting a
     // transaction every time.
     void         writePixel(int16_t x, int16_t y, uint16_t color);
-    void         writePixels(uint16_t *colors, uint32_t len, bool block=true);
+    void         writePixels(uint16_t *colors, uint32_t len,
+                   bool block=true, bool bigEndian=false);
     void         writeColor(uint16_t color, uint32_t len);
     void         writeFillRect(int16_t x, int16_t y, int16_t w, int16_t h,
                    uint16_t color);
