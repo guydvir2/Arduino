@@ -1,0 +1,24 @@
+#######################################
+# Syntax Coloring Map For Blink
+#######################################
+
+#######################################
+# Datatypes (KEYWORD1)
+#######################################
+myJSON KEYWORD1
+
+#######################################
+# Methods and Functions (KEYWORD2)
+#######################################
+file_exists     KEYWORD2
+file_remove     KEYWORD2
+format          KEYWORD2
+FS_ok           KEYWORD2
+saveJSON2file   KEYWORD2
+readJSON_file   KEYWORD2
+printJSON       KEYWORD2
+PrettyprintJSON KEYWORD2
+
+#######################################
+# Constants (LITERAL1)
+#######################################

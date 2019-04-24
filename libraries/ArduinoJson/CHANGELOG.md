@@ -1,6 +1,13 @@
 ArduinoJson: change log
 =======================
 
+v6.10.1 (2019-04-23)
+-------
+
+* Fixed error "attributes are not allowed on a function-definition"
+* Fixed `deserializeJson()` not being picky enough (issue #969)
+* Fixed error "no matching function for call to write(uint8_t)" (issue #972)
+
 v6.10.0 (2019-03-22)
 -------
 

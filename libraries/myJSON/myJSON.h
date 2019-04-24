@@ -5,22 +5,27 @@
 #include <ArduinoJson.h>
 #include "FS.h"
 
+
 class myJSON
 {
-public:
-
-myJSON(char *filename, bool useserial=false);
-bool ReadVal(char* key, char *ret_value);
-bool SaveVal(char *key, char *value);
-const char *parser(char *json_data, const char *key);
-bool exists(char *path);
-bool remove(char *path);
-bool format ();
-char getJSON();
-
 private:
-bool useSerial;
+bool _useSerial=false;
 char _filename[30];
+
+public:
+char *ver="myJSON_v1.0";
+myJSON(char *filename, bool useserial=false);
+
+bool file_exists();
+bool file_remove();
+bool format ();
+bool FS_ok();
+
+void saveJSON2file(JsonDocument& _doc);
+void readJSON_file(JsonDocument& _doc);
+
+void printJSON(JsonDocument& _doc);
+void PrettyprintJSON(JsonDocument& _doc);
 
 };
 #endif
