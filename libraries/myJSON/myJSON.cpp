@@ -31,7 +31,19 @@ bool myJSON::file_remove(){
 }
 bool myJSON::format(){
         if(SPIFFS.begin()) {
-                return SPIFFS.format();
+                if (_useSerial) {
+                        Serial.print("Formating...");
+                }
+                bool flag = SPIFFS.format();
+                if (_useSerial) {
+                        if (flag) {
+                                Serial.println("Done");
+                        }
+                        else {
+                                Serial.println("Failed");
+                        }
+                }
+                return flag;
         }
 }
 bool myJSON::FS_ok(){
