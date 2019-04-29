@@ -17,7 +17,6 @@ myJSON::myJSON(char *filename, bool useserial) {
         }
 }
 
-
 // ~~~~~~~~~~~~~~ File Functions ~~~~~~~~~~~
 bool myJSON::file_exists(){
         if(SPIFFS.begin()) {
@@ -69,6 +68,18 @@ void myJSON::readJSON_file(JsonDocument& _doc) {
                 Serial.println("JSON file read OK");
         }
 }
+// void myJSON::removeVal(JsonDocument& _doc) {
+//         File readFile = SPIFFS.open(_filename, "r");
+//         DeserializationError error = deserializeJson(_doc, readFile);
+//         if (error) {
+//                 Serial.println(F("Failed to read file"));
+//         }
+//         else{
+//                 serializeJson(_doc, readFile);
+//                 Serial.println("JSON file read OK");
+//         }
+// }
+
 void myJSON::printJSON(JsonDocument& _doc) {
         serializeJson(_doc, Serial);
 }
@@ -76,3 +87,10 @@ void myJSON::PrettyprintJSON(JsonDocument& _doc) {
         serializeJsonPretty(_doc, Serial);
 }
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+const char myJSON::*getValue (char *key){
+        StaticJsonDocument<512> tempJDOC;
+        myJSON::readJSON_file(tempJDOC);
+        const char *a = tempJDOC[key];
+        return a;
+}

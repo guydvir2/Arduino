@@ -4,7 +4,8 @@
 
 myJSON json(file, true);
 
-void updateArray(char* array_key, int val) {
+template <typename T1>
+void updateArray(char* array_key, T1 val) {
         StaticJsonDocument<512> tempJDOC;
         json.readJSON_file(tempJDOC);
 
@@ -26,7 +27,8 @@ void updateArray(char* array_key, int val) {
         json.PrettyprintJSON(tempJDOC);
 }
 
-void setValue(char *key, char* value){
+template <typename T>
+void setValue(const char *key, T value){
         StaticJsonDocument<512> tempJDOC;
         json.readJSON_file(tempJDOC);
         tempJDOC[key]=value;
@@ -34,23 +36,28 @@ void setValue(char *key, char* value){
         json.PrettyprintJSON(tempJDOC);
 }
 
-void getValue (char *key, char ret_val[100]){
-        StaticJsonDocument<512> tempJDOC;
-        json.readJSON_file(tempJDOC);
-        strcpy(ret_val, tempJDOC[key]);
-}
+// const char *getValue (char *key){
+//         StaticJsonDocument<512> tempJDOC;
+//         json.readJSON_file(tempJDOC);
+//         const char *a = tempJDOC[key];
+//         // char ret_val[100];
+//         // strcpy(ret_val, a);
+//         return a;
+// }
 
 void setup() {
         Serial.println("");
-        // json.format();
-        // setValue("temp","HIGH");
-        char a[20];
-        getValue("temp", a);
-        Serial.println(a);
+        json.format();
+        // setValue("temp",1);
+        // setValue("Name","Guy");
+
+        // char a[100];
+        // a=getValue("temp");
+        // Serial.println(getValue("temp"));
         // setValue("T",(char)1234);
 
-        // updateArray("data", random(1, 50));
         // updateArray("data_1", random(1, 50));
+        // updateArray("data", "test");
 
         //  Serial.println("");
         //  json.saveJSON2file(doc);

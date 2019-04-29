@@ -27,5 +27,7 @@ void readJSON_file(JsonDocument& _doc);
 void printJSON(JsonDocument& _doc);
 void PrettyprintJSON(JsonDocument& _doc);
 
+const char *getValue (char *key);
+
 };
 #endif
