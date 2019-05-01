@@ -3,7 +3,6 @@
 #include "FS.h"
 #include <ArduinoJson.h>
 
-
 myJSON::myJSON(char *filename, bool useserial) {
         _useSerial = useserial;
         sprintf(_filename,"%s",filename);
@@ -68,18 +67,6 @@ void myJSON::readJSON_file(JsonDocument& _doc) {
                 Serial.println("JSON file read OK");
         }
 }
-// void myJSON::removeVal(JsonDocument& _doc) {
-//         File readFile = SPIFFS.open(_filename, "r");
-//         DeserializationError error = deserializeJson(_doc, readFile);
-//         if (error) {
-//                 Serial.println(F("Failed to read file"));
-//         }
-//         else{
-//                 serializeJson(_doc, readFile);
-//                 Serial.println("JSON file read OK");
-//         }
-// }
-
 void myJSON::printJSON(JsonDocument& _doc) {
         serializeJson(_doc, Serial);
 }
@@ -88,9 +75,84 @@ void myJSON::PrettyprintJSON(JsonDocument& _doc) {
 }
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-const char myJSON::*getValue (char *key){
-        StaticJsonDocument<512> tempJDOC;
+// ~~~ User Functions : JSON + file saving ~~~~~~~~~~~
+const char *myJSON::getValue (const char *key){
+        StaticJsonDocument<DOC_SIZE> tempJDOC;
         myJSON::readJSON_file(tempJDOC);
         const char *a = tempJDOC[key];
         return a;
 }
+void myJSON::setValue(const char *key, char *value){
+        StaticJsonDocument<512> tempJDOC;
+        myJSON::readJSON_file(tempJDOC);
+        tempJDOC[key]=value;
+        myJSON::saveJSON2file(tempJDOC);
+}
+void myJSON::setValue(const char *key, int value){
+        StaticJsonDocument<512> tempJDOC;
+        myJSON::readJSON_file(tempJDOC);
+        tempJDOC[key]=value;
+        myJSON::saveJSON2file(tempJDOC);
+}
+void myJSON::updateArray(char* array_key, char *val) {
+        StaticJsonDocument<DOC_SIZE> tempJDOC;
+        myJSON::readJSON_file(tempJDOC);
+
+        JsonVariant data_key = tempJDOC[array_key];
+        if (data_key.isNull()) { // create for the first time
+                JsonArray data = tempJDOC.createNestedArray(array_key);
+                data.add(val);
+        }
+        else if (tempJDOC[array_key].size() < LOG_LENGTH) {
+                tempJDOC[array_key].add(val);
+        }
+        else if (tempJDOC[array_key].size() >= LOG_LENGTH) {
+                for (int n = 0; n < LOG_LENGTH - 1; n++) {
+                        tempJDOC[array_key][n] = tempJDOC[array_key][n + 1];
+                }
+                tempJDOC[array_key][LOG_LENGTH - 1] = val;
+        }
+        myJSON::saveJSON2file(tempJDOC);
+}
+void myJSON::updateArray(char* array_key, int val) {
+        StaticJsonDocument<DOC_SIZE> tempJDOC;
+        myJSON::readJSON_file(tempJDOC);
+
+        JsonVariant data_key = tempJDOC[array_key];
+        if (data_key.isNull()) { // create for the first time
+                JsonArray data = tempJDOC.createNestedArray(array_key);
+                data.add(val);
+        }
+        else if (tempJDOC[array_key].size() < LOG_LENGTH) {
+                tempJDOC[array_key].add(val);
+        }
+        else if (tempJDOC[array_key].size() >= LOG_LENGTH) {
+                for (int n = 0; n < LOG_LENGTH - 1; n++) {
+                        tempJDOC[array_key][n] = tempJDOC[array_key][n + 1];
+                }
+                tempJDOC[array_key][LOG_LENGTH - 1] = val;
+        }
+        myJSON::saveJSON2file(tempJDOC);
+}
+void myJSON::eraseArray(char* array_key) {
+        StaticJsonDocument<DOC_SIZE> tempJDOC;
+        myJSON::readJSON_file(tempJDOC);
+
+        JsonVariant data_key = tempJDOC[array_key];
+        JsonArray data = tempJDOC.createNestedArray(array_key);
+        myJSON::saveJSON2file(tempJDOC);
+}
+void myJSON::removeValue(const char *key){
+        StaticJsonDocument<DOC_SIZE> tempJDOC;
+        myJSON::readJSON_file(tempJDOC);
+        tempJDOC.remove(key);
+        myJSON::saveJSON2file(tempJDOC);
+}
+void myJSON::printFile(){
+        StaticJsonDocument<DOC_SIZE> tempJDOC;
+        myJSON::readJSON_file(tempJDOC);
+        serializeJsonPretty(tempJDOC, Serial);
+
+
+}
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
