@@ -136,6 +136,38 @@ void IRTecoAc::setSleep(const bool on) {
 
 bool IRTecoAc::getSleep(void) { return remote_state & kTecoSleep; }
 
+// Convert a standard A/C mode into its native mode.
+uint8_t IRTecoAc::convertMode(const stdAc::opmode_t mode) {
+  switch (mode) {
+    case stdAc::opmode_t::kCool:
+      return kTecoCool;
+    case stdAc::opmode_t::kHeat:
+      return kTecoHeat;
+    case stdAc::opmode_t::kDry:
+      return kTecoDry;
+    case stdAc::opmode_t::kFan:
+      return kTecoFan;
+    default:
+      return kTecoAuto;
+  }
+}
+
+// Convert a standard A/C Fan speed into its native fan speed.
+uint8_t IRTecoAc::convertFan(const stdAc::fanspeed_t speed) {
+  switch (speed) {
+    case stdAc::fanspeed_t::kMin:
+    case stdAc::fanspeed_t::kLow:
+      return kTecoFanLow;
+    case stdAc::fanspeed_t::kMedium:
+      return kTecoFanMed;
+    case stdAc::fanspeed_t::kHigh:
+    case stdAc::fanspeed_t::kMax:
+      return kTecoFanHigh;
+    default:
+      return kTecoFanAuto;
+  }
+}
+
 // Convert the internal state into a human readable string.
 #ifdef ARDUINO
 String IRTecoAc::toString(void) {
@@ -144,50 +176,53 @@ String IRTecoAc::toString(void) {
 std::string IRTecoAc::toString(void) {
   std::string result = "";
 #endif  // ARDUINO
-  result += "Power: ";
-  result += (this->getPower() ? "On" : "Off");
-  result += ", Mode: " + uint64ToString(this->getMode());
+  result += F("Power: ");
+  result += (this->getPower() ? F("On") : F("Off"));
+  result += F(", Mode: ");
+  result += uint64ToString(this->getMode());
   switch (this->getMode()) {
     case kTecoAuto:
-      result += " (AUTO)";
+      result += F(" (AUTO)");
       break;
     case kTecoCool:
-      result += " (COOL)";
+      result += F(" (COOL)");
       break;
     case kTecoHeat:
-      result += " (HEAT)";
+      result += F(" (HEAT)");
       break;
     case kTecoDry:
-      result += " (DRY)";
+      result += F(" (DRY)");
       break;
     case kTecoFan:
-      result += " (FAN)";
+      result += F(" (FAN)");
       break;
     default:
-      result += " (UNKNOWN)";
+      result += F(" (UNKNOWN)");
   }
-  result += ", Temp: " + uint64ToString(this->getTemp()) + "C";
-  result += ", Fan: " + uint64ToString(this->getFan());
+  result += F(", Temp: ");
+  result += uint64ToString(getTemp());
+  result += F("C, Fan: ");
+  result += uint64ToString(getFan());
   switch (this->getFan()) {
     case kTecoFanAuto:
-      result += " (Auto)";
+      result += F(" (Auto)");
       break;
     case kTecoFanHigh:
-      result += " (High)";
+      result += F(" (High)");
       break;
     case kTecoFanLow:
-      result += " (Low)";
+      result += F(" (Low)");
       break;
     case kTecoFanMed:
-      result += " (Med)";
+      result += F(" (Med)");
       break;
     default:
-      result += " (UNKNOWN)";
+      result += F(" (UNKNOWN)");
   }
-  result += ", Sleep: ";
-  result += (this->getSleep() ? "On" : "Off");
-  result += ", Swing: ";
-  result += (this->getSwing() ? "On" : "Off");
+  result += F(", Sleep: ");
+  result += (this->getSleep() ? F("On") : F("Off"));
+  result += F(", Swing: ");
+  result += (this->getSwing() ? F("On") : F("Off"));
   return result;
 }
 

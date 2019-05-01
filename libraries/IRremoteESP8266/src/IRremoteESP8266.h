@@ -50,7 +50,7 @@
 #endif
 
 // Library Version
-#define _IRREMOTEESP8266_VERSION_ "2.5.6"
+#define _IRREMOTEESP8266_VERSION_ "2.6.0"
 // Supported IR protocols
 // Each protocol you include costs memory and, during decode, costs time
 // Disable (set to false) all the protocols you do not need/want!
@@ -213,8 +213,17 @@
 #define DECODE_TECO            true
 #define SEND_TECO              true
 
-#define DECODE_TCL112AC       true
-#define SEND_TCL112AC         true
+#define DECODE_TCL112AC        true
+#define SEND_TCL112AC          true
+
+#define DECODE_LEGOPF          true
+#define SEND_LEGOPF            true
+
+#define DECODE_MITSUBISHIHEAVY true
+#define SEND_MITSUBISHIHEAVY   true
+
+#define DECODE_DAIKIN216       true
+#define SEND_DAIKIN216         true
 
 #if (DECODE_ARGO || DECODE_DAIKIN || DECODE_FUJITSU_AC || DECODE_GREE || \
      DECODE_KELVINATOR || DECODE_MITSUBISHI_AC || DECODE_TOSHIBA_AC || \
@@ -222,7 +231,8 @@
      DECODE_HITACHI_AC1 || DECODE_HITACHI_AC2 || DECODE_HAIER_AC_YRW02 || \
      DECODE_WHIRLPOOL_AC || DECODE_SAMSUNG_AC || DECODE_ELECTRA_AC || \
      DECODE_PANASONIC_AC || DECODE_MWM || DECODE_DAIKIN2 || \
-     DECODE_VESTEL_AC || DECODE_TCL112AC)
+     DECODE_VESTEL_AC || DECODE_TCL112AC || DECODE_MITSUBISHIHEAVY || \
+     DECODE_DAIKIN216)
 #define DECODE_AC true  // We need some common infrastructure for decoding A/Cs.
 #else
 #define DECODE_AC false   // We don't need that infrastructure.
@@ -299,6 +309,12 @@ enum decode_type_t {
   TECO,  // (55)
   SAMSUNG36,
   TCL112AC,
+  LEGOPF,
+  MITSUBISHI_HEAVY_88,
+  MITSUBISHI_HEAVY_152,  // 60
+  DAIKIN216,
+  // Add new entries before this one, and update it to point to the last entry.
+  kLastDecodeType = DAIKIN216,
 };
 
 // Message lengths & required repeat values
@@ -313,14 +329,17 @@ const uint16_t kCoolixBits = 24;
 const uint16_t kCoolixDefaultRepeat = 1;
 const uint16_t kCarrierAcBits = 32;
 const uint16_t kCarrierAcMinRepeat = kNoRepeat;
-// Daikin has a lot of static stuff that is discarded
-const uint16_t kDaikinRawBits = 583;
-const uint16_t kDaikinStateLength = 27;
+const uint16_t kDaikinStateLength = 35;
 const uint16_t kDaikinBits = kDaikinStateLength * 8;
+const uint16_t kDaikinStateLengthShort = kDaikinStateLength - 8;
+const uint16_t kDaikinBitsShort = kDaikinStateLengthShort * 8;
 const uint16_t kDaikinDefaultRepeat = kNoRepeat;
 const uint16_t kDaikin2StateLength = 39;
 const uint16_t kDaikin2Bits = kDaikin2StateLength * 8;
 const uint16_t kDaikin2DefaultRepeat = kNoRepeat;
+const uint16_t kDaikin216StateLength = 27;
+const uint16_t kDaikin216Bits = kDaikin216StateLength * 8;
+const uint16_t kDaikin216DefaultRepeat = kNoRepeat;
 const uint16_t kDenonBits = 15;
 const uint16_t kDenonLegacyBits = 14;
 const uint16_t kDishBits = 16;
@@ -356,6 +375,8 @@ const uint16_t kKelvinatorBits = kKelvinatorStateLength * 8;
 const uint16_t kKelvinatorDefaultRepeat = kNoRepeat;
 const uint16_t kLasertagBits = 13;
 const uint16_t kLasertagMinRepeat = kNoRepeat;
+const uint16_t kLegoPfBits = 16;
+const uint16_t kLegoPfMinRepeat = kNoRepeat;
 const uint16_t kLgBits = 28;
 const uint16_t kLg32Bits = 32;
 const uint16_t kLutronBits = 35;
@@ -369,6 +390,12 @@ const uint16_t kMitsubishiMinRepeat = kSingleRepeat;
 const uint16_t kMitsubishiACStateLength = 18;
 const uint16_t kMitsubishiACBits = kMitsubishiACStateLength * 8;
 const uint16_t kMitsubishiACMinRepeat = kSingleRepeat;
+const uint16_t kMitsubishiHeavy88StateLength = 11;
+const uint16_t kMitsubishiHeavy88Bits = kMitsubishiHeavy88StateLength * 8;
+const uint16_t kMitsubishiHeavy88MinRepeat = kNoRepeat;
+const uint16_t kMitsubishiHeavy152StateLength = 19;
+const uint16_t kMitsubishiHeavy152Bits = kMitsubishiHeavy152StateLength * 8;
+const uint16_t kMitsubishiHeavy152MinRepeat = kNoRepeat;
 const uint16_t kNikaiBits = 24;
 const uint16_t kNECBits = 32;
 const uint16_t kPanasonicBits = 48;
@@ -422,7 +449,7 @@ const uint16_t kWhirlpoolAcStateLength = 21;
 const uint16_t kWhirlpoolAcBits = kWhirlpoolAcStateLength * 8;
 const uint16_t kWhirlpoolAcDefaultRepeat = kNoRepeat;
 const uint16_t kWhynterBits = 32;
-const uint8_t kVestelAcBits = 56;
+const uint8_t  kVestelAcBits = 56;
 
 
 // Legacy defines. (Deprecated)
@@ -495,5 +522,15 @@ const uint8_t kVestelAcBits = 56;
 #define DPRINT(x)
 #define DPRINTLN(x)
 #endif  // DEBUG
+
+#ifdef UNIT_TEST
+#ifndef F
+// Create a no-op F() macro so the code base still compiles outside of the
+// Arduino framework. Thus we can safely use the Arduino 'F()' macro through-out
+// the code base. That macro stores constants in Flash (PROGMEM) memory.
+// See: https://github.com/markszabo/IRremoteESP8266/issues/667
+#define F(x) x
+#endif  // F
+#endif  // UNIT_TEST
 
 #endif  // IRREMOTEESP8266_H_
