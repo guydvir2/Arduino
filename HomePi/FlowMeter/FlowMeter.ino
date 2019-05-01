@@ -4,9 +4,7 @@
 
 //####################################################
 #define DEVICE_TOPIC "HomePi/Dvir/flowMeter"
-//must be defined to use myIOT
-#define ADD_MQTT_FUNC addiotnalMQTT
-//~~~
+
 #define USE_SERIAL false
 #define USE_WDT true
 #define USE_OTA true
@@ -47,6 +45,7 @@ bool adHoc_flag=false;
 char* lastDetectState="";
 // ~~~~~~~~~~~~~~~~~
 
+#define ADD_MQTT_FUNC addiotnalMQTT
 myIOT iot(DEVICE_TOPIC);
 
 void setup(){
