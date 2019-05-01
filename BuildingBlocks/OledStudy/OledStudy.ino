@@ -8,14 +8,14 @@
 #include <Adafruit_SSD1306.h>
 
 #define SCREEN_WIDTH 128
-#define SCREEN_HEIGHT 32
+#define SCREEN_HEIGHT 64
 #define OLED_RESET LED_BUILTIN
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 //~~~~~~~~~~~~~~ myIOT  ~~~~~~~~~~~~~~~~~~~~~
 #define DEVICE_TOPIC "HomePi/Dvir/OLED_Clock"
 #define ADD_MQTT_FUNC addiotnalMQTT
-#define USE_SERIAL       true
+#define USE_SERIAL       false
 #define USE_WDT          true
 #define USE_OTA          true
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -85,9 +85,7 @@ void loop() {
   iot.return_clock(a);
   char b[12];
   iot.return_date(b);
-  center_text(2,a, b, "","");
-
-//  display.display();
+  center_text(2,a, b,"Guy","Oz");
 
   iot.looper();
 

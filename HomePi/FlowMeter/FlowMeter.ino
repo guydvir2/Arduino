@@ -4,13 +4,11 @@
 
 //####################################################
 #define DEVICE_TOPIC "HomePi/Dvir/flowMeter"
-//must be defined to use myIOT
-#define ADD_MQTT_FUNC addiotnalMQTT
-//~~~
-#define USE_SERIAL false
+
+#define USE_SERIAL true
 #define USE_WDT true
 #define USE_OTA true
-#define VER "NodeMCU_2.0"
+#define VER "NodeMCU_2.1"
 //####################################################
 
 
@@ -19,7 +17,7 @@
 
 // GPIO Pins for ESP8266
 // byte statusLed = D4;
-byte sensorInterrupt = 13;  // 0 = digital pin 2
+int sensorInterrupt = D1;  // 0 = digital pin 2
 // byte sensorPin = 12;
 //##########################
 
@@ -47,6 +45,7 @@ bool adHoc_flag=false;
 char* lastDetectState="";
 // ~~~~~~~~~~~~~~~~~
 
+#define ADD_MQTT_FUNC addiotnalMQTT
 myIOT iot(DEVICE_TOPIC);
 
 void setup(){
@@ -55,18 +54,18 @@ void setup(){
         iot.useSerial = USE_SERIAL;
         iot.useWDT = USE_WDT;
         iot.useOTA = USE_OTA;
-        iot.start_services(ADD_MQTT_FUNC); // additinalMQTTfucntion, ssid,pswd,mqttuser,mqtt_pswd,broker
+        iot.start_services(ADD_MQTT_FUNC);
 
         // ~~~ time on Boot ~~~~~
         time_t t = now();
         currentDay = day(t);
         currentMonth = month(t)-1;
-
-        attachInterrupt(digitalPinToInterrupt(sensorInterrupt), pulseCounter, FALLING);
 }
 void startGPIOs(){
         // pinMode(sensorPin, INPUT);
         pinMode(sensorInterrupt,INPUT_PULLUP);
+        pinMode(sensorInterrupt, HIGH);
+        attachInterrupt(digitalPinToInterrupt(sensorInterrupt), pulseCounter, FALLING);
         // digitalWrite(statusLed, !ledON); // We have an active-low LED attached
         //digitalWrite(sensorPin, HIGH);
 }
@@ -169,8 +168,8 @@ void measureFlow(){
                 // Add the millilitres passed in this second to the cumulative total
                 total_milLitres += flow_milLiters;
 
-                totalFlow_counter();
-                updateFlow_state();
+                // totalFlow_counter();
+                // updateFlow_state();
                 print_OL_readings();
 
                 // Reset the pulse counter- for next cycle
@@ -223,10 +222,10 @@ void totalFlow_counter(){
                 Serial.println(adHoc_flow);
         }
 }
-void tStamp(char *retTime){
-        time_t t_1 = now();
-        sprintf(retTime, "%02d-%02d-%02d", year(t_1), month(t_1), day(t_1));
-}
+// void tStamp(char *retTime){
+//         time_t t_1 = now();
+//         sprintf(retTime, "%02d-%02d-%02d", year(t_1), month(t_1), day(t_1));
+// }
 void loop(){
         iot.looper(); // check wifi, mqtt, wdt
         measureFlow();

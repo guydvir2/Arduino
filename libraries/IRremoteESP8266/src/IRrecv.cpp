@@ -402,6 +402,10 @@ bool IRrecv::decode(decode_results *results, irparams_t *save) {
   DPRINTLN("Attempting Daikin2 decode");
   if (decodeDaikin2(results)) return true;
 #endif
+#if DECODE_DAIKIN216
+  DPRINTLN("Attempting Daikin216 decode");
+  if (decodeDaikin216(results)) return true;
+#endif
 #if DECODE_TOSHIBA_AC
   DPRINTLN("Attempting Toshiba AC decode");
   if (decodeToshibaAC(results)) return true;
@@ -508,6 +512,16 @@ bool IRrecv::decode(decode_results *results, irparams_t *save) {
 #if DECODE_TECO
   DPRINTLN("Attempting Teco decode");
   if (decodeTeco(results)) return true;
+#endif
+#if DECODE_LEGOPF
+  DPRINTLN("Attempting LEGOPF decode");
+  if (decodeLegoPf(results)) return true;
+#endif
+#if DECODE_MITSUBISHIHEAVY
+  DPRINTLN("Attempting MITSUBISHIHEAVY (152 bit) decode");
+  if (decodeMitsubishiHeavy(results, kMitsubishiHeavy152Bits)) return true;
+  DPRINTLN("Attempting MITSUBISHIHEAVY (88 bit) decode");
+  if (decodeMitsubishiHeavy(results, kMitsubishiHeavy88Bits)) return true;
 #endif
 #if DECODE_HASH
   // decodeHash returns a hash on any input.

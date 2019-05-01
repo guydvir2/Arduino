@@ -181,6 +181,10 @@ class IRrecv {
                           uint16_t nbits = kMitsubishiACBits,
                           bool strict = false);
 #endif
+#if DECODE_MITSUBISHIHEAVY
+  bool decodeMitsubishiHeavy(decode_results *results, const uint16_t nbits,
+                             const bool strict = true);
+#endif
 #if (DECODE_RC5 || DECODE_R6 || DECODE_LASERTAG || DECODE_MWM)
   int16_t getRClevel(decode_results *results, uint16_t *offset, uint16_t *used,
                      uint16_t bitTime, uint8_t tolerance = kTolerance,
@@ -262,12 +266,17 @@ class IRrecv {
                         uint16_t nbits = kKelvinatorBits, bool strict = true);
 #endif
 #if DECODE_DAIKIN
-  bool decodeDaikin(decode_results *results, uint16_t nbits = kDaikinRawBits,
-                    bool strict = true);
+  bool decodeDaikin(decode_results *results, const uint16_t nbits = kDaikinBits,
+                    const bool strict = true);
 #endif
 #if DECODE_DAIKIN2
   bool decodeDaikin2(decode_results *results, uint16_t nbits = kDaikin2Bits,
                      bool strict = true);
+#endif
+#if DECODE_DAIKIN216
+  bool decodeDaikin216(decode_results *results,
+                       const uint16_t nbits = kDaikin216Bits,
+                       const bool strict = true);
 #endif
 #if DECODE_TOSHIBA_AC
   bool decodeToshibaAC(decode_results *results,
@@ -350,6 +359,10 @@ class IRrecv {
 #if DECODE_TECO
   bool decodeTeco(decode_results *results, uint16_t nbits = kTecoBits,
                   bool strict = false);
+#endif
+#if DECODE_LEGOPF
+  bool decodeLegoPf(decode_results *results, const uint16_t nbits = kLegoPfBits,
+                    const bool strict = true);
 #endif
 };
 

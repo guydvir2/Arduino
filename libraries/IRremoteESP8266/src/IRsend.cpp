@@ -110,6 +110,9 @@ void IRsend::enableIROut(uint32_t freq, uint8_t duty) {
   }
   if (freq < 1000)  // Were we given kHz? Supports the old call usage.
     freq *= 1000;
+#ifdef UNIT_TEST
+  _freq_unittest = freq;
+#endif  // UNIT_TEST
   uint32_t period = calcUSecPeriod(freq);
   // Nr. of uSeconds the LED will be on per pulse.
   onTimePeriod = (period * _dutycycle) / kDutyMax;
@@ -541,6 +544,11 @@ bool IRsend::send(decode_type_t type, uint64_t data, uint16_t nbits) {
 #if SEND_LASERTAG
     case LASERTAG:
       sendLasertag(data, nbits);
+      break;
+#endif
+#if SEND_LEGOPF
+    case LEGOPF:
+      sendLegoPf(data, nbits);
       break;
 #endif
 #if SEND_LG
