@@ -9,7 +9,7 @@
 #define RelayON HIGH
 #define doorOpen HIGH
 
-#define pwrdown_timeOut 10*(1000*60) // mins to powerdown , **0 means noTimeout**
+#define pwrdown_timeOut 0 // 0.5*(1000*60) // mins to powerdown , **0 means noTimeout**
 
 const int relayPin1 = 4;
 const int relayPin2 = 5;
@@ -30,34 +30,43 @@ ledDoor(int sensorPin, int relPin){
         _relPin=relPin;
 
         pinMode(_relPin, OUTPUT);
-        pinMode(_sensorPin, INPUT); // sensor io
+        pinMode(_sensorPin, INPUT_PULLUP); // sensor io
 }
 void detection_door(){
-    #if USE_SLEEP
+// #if USE_SLEEP
         sleep_disable();
-    #endif
-
+// #endif
         detachInterrupt(digitalPinToInterrupt(_sensorPin));
-        if (digitalRead(_sensorPin) == doorOpen) {
-                _doorOpen = true;
-        }
-        else {// trun off
-                _doorOpen = false;
-        }
+        _doorOpen = digitalRead(_sensorPin);
+
+        // if (digitalRead(_sensorPin) == doorOpen) {
+        //         _doorOpen = true;
+        //         Serial.println("OPEN");
+        // }
+        // else {// trun off
+        //         _doorOpen = false;
+        //         Serial.println("CLOSE");
+        // }
 }
 
 void go2sleep() {
-  #if USE_SLEEP
-        if (pwrdown_timeOut !=0 && millis()-onCounter >= pwrdown_timeOut && onCounter !=0) {
-                sleep_enable();
-                set_sleep_mode(SLEEP_MODE_PWR_DOWN);
-                sleep_cpu();
-        }
-        // else{
-        //   Serial.println(millis()-onCounter);
+#if USE_SLEEP
+        sleep_enable();
+        set_sleep_mode(SLEEP_MODE_PWR_DOWN);//SLEEP_MODE_PWR_SAVE);//);
+        Serial.println("Going2Sleep");
+        sleep_cpu();
+        // if (pwrdown_timeOut == 0 || onCounter == 0) {
+        //         sleep_enable();
+        //         set_sleep_mode(SLEEP_MODE_PWR_DOWN);
+        //         sleep_cpu();
         // }
-  #endif
-
+        // else if ( millis()-onCounter >= pwrdown_timeOut) {
+        //         sleep_enable();
+        //         set_sleep_mode(SLEEP_MODE_PWR_DOWN);
+        //         sleep_cpu();
+        //         // Serial.println("Sleep!");
+        // }
+#endif
 }
 void switchLeds(){
         if (_doorOpen == true) {
@@ -73,31 +82,28 @@ void switchLeds(){
 };
 
 ledDoor door1(sensorPin_1, relayPin1);
-ledDoor door2(sensorPin_2, relayPin2);
+// ledDoor door2(sensorPin_2, relayPin2);
 
 
 void handler_door1(){
         door1.detection_door();
 }
-void handler_door2(){
-        door2.detection_door();
-}
+// void handler_door2(){
+//         door2.detection_door();
+// }
 void setup() {
-        Serial.begin(9600);
-        Serial.println("UP");
+        // Serial.begin(9600);
+        // Serial.println("UP");
         attachInterrupt(digitalPinToInterrupt(sensorPin_1), handler_door1, CHANGE);
-        attachInterrupt(digitalPinToInterrupt(sensorPin_2), handler_door2, CHANGE);
+        // attachInterrupt(digitalPinToInterrupt(sensorPin_2), handler_door2, CHANGE);
 }
 
 void loop() {
         door1.detection_door();
-        door2.detection_door();
-
         door1.switchLeds();
-        door2.switchLeds();
+        // door1.go2sleep();
 
-  #if USE_SLEEP
-        door1.go2sleep();
-        door2.go2sleep();
-  #endif
+        // door2.detection_door();
+        // door2.switchLeds();
+        // door2.go2sleep();
 }
