@@ -3,7 +3,7 @@
 #include <IRutils.h>
 
 // ==================== start of TUNEABLE PARAMETERS ====================
-const uint16_t kRecvPin = D3; // D5 on a NodeMCU board
+const uint16_t kRecvPin = D5; // D5 on a NodeMCU board
 const uint32_t kBaudRate = 115200;
 //const uint16_t kCaptureBufferSize = 128;
 const uint16_t kMinUnknownSize = 12;
