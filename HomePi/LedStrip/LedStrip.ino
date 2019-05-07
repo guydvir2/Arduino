@@ -6,7 +6,7 @@
 #define DEVICE_TOPIC "HomePi/Dvir/Lights/CorridorLEDs"
 
 //~~~~~ Services ~~~~~~~~~~~
-#define USE_SERIAL    true
+#define USE_SERIAL    false
 #define USE_WDT       true
 #define USE_OTA       true
 #define USE_IR_REMOTE true
@@ -17,15 +17,15 @@
 
 //~~~~~~ Default Values ~~~~~~~
 #define COLOR         1
-#define LED_DELAY     0 // ms
-#define BRIGHTNESS    20 // [0,100]
-#define LED_DIRECTION 1  // [0,1]
+#define LED_DELAY     50 // ms
+#define BRIGHTNESS    5 // [0,100]
+#define LED_DIRECTION 0  // [0,1]
 #define PARAM_AMOUNT  5  // splitter
-#define MAX_BRIGHT    100
+#define MAX_BRIGHT    90
 #define TRAIL_MODE    0
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-#define VER "Wemos.Mini.2.4"
+#define VER "Wemos.Mini.2.5"
 //####################################################
 
 //~~~~~~~~~~~~~~~~~~~~IR Remote ~~~~~~~~~~~~~~~~~~~~~
@@ -71,22 +71,22 @@ long lastShuffle=0;
 
 // ~~~~~~~~~~~~ LED Operations ~~~~~~~~~~~~~~~~~~~~~~
 void turn_leds_off() {
-        // for (int i = 0; i < NUM_LEDS; i++) {
-        //         leds[i] = colors[0];
-        // }
-        // FastLED.show();
-        // delay(50);
+        for (int i = 0; i < NUM_LEDS; i++) {
+                leds[i] = colors[0];
+        }
+        FastLED.show();
+        delay(50);
 }
 
 void turn_leds_on(int col_indx = COLOR, int bright_1 = BRIGHTNESS, int del_1 = LED_DELAY, bool dir_1 = LED_DIRECTION, int mode_1 = 0) {
         char msg[100];
-
-
         if ( col_indx <= tot_colors && bright_1 <= MAX_BRIGHT && del_1 <= 1000 && dir_1 <= 1) {
                 if (dir_1 == true ) { // start to end
-                        turn_leds_off();
+                        if (mode_1 !=0) {
+                                turn_leds_off();
+                        }
                         for (int i = 0; i < NUM_LEDS; i++) {
-                          FastLED.setBrightness(bright_1 * 255 / 100);
+                                FastLED.setBrightness(bright_1 * 255 / 100);
                                 if (mode_1 == 1) {
                                         if ((i >= partial_lit[0] && i <= partial_lit[1]) || (i >= partial_lit[2] && i <= partial_lit[3])) {
                                                 leds[i] = colors[col_indx];
@@ -105,12 +105,12 @@ void turn_leds_on(int col_indx = COLOR, int bright_1 = BRIGHTNESS, int del_1 = L
                         }
                 }
                 else if (dir_1 == false) { // end to start
-                        turn_leds_off();
+                        FastLED.setBrightness(bright_1 * 255 / 100);
                         for (int i = NUM_LEDS - 1; i >= 0; i = i - 1) {
                                 leds[i] = colors[col_indx];
-                                FastLED.show();
-                                delay(del_1);
                         }
+                        FastLED.show();
+                        // delay(del_1);
                 }
                 sprintf(msg, "Color:[%s], Brightness:[%d], Delay[%d]ms, Direction[%d], Mode[%d]", color_names[col_indx], bright_1, del_1, dir_1, mode_1);
                 iot.pub_msg(msg);
@@ -157,24 +157,26 @@ void previousColor() {
 }
 void nextMode() {
         int currentMode = atoi(parameters[4]);
+        turn_leds_off();
         if ( currentMode < 2) {
                 sprintf(parameters[4], "%d", currentMode + 1);
-                turn_leds_on(atoi(parameters[0]), atoi(parameters[1]), atoi(parameters[2]), atoi(parameters[3]), atoi(parameters[4]));
+                turn_leds_on(atoi(parameters[0]), atoi(parameters[1]), atoi(parameters[2]), 1, atoi(parameters[4]));
         }
         else {
                 sprintf(parameters[4], "%d", 0);
-                turn_leds_on(atoi(parameters[0]), atoi(parameters[1]), atoi(parameters[2]), atoi(parameters[3]), atoi(parameters[4]));
+                turn_leds_on(atoi(parameters[0]), atoi(parameters[1]), atoi(parameters[2]), 1, atoi(parameters[4]));
         }
 }
 void previousMode() {
         int currentMode = atoi(parameters[4]);
-        if ( currentMode <= 2 && currentMode >= 1) {
+        turn_leds_off();
+        if ( currentMode !=0) {
                 sprintf(parameters[4], "%d", currentMode - 1);
-                turn_leds_on(atoi(parameters[0]), atoi(parameters[1]), atoi(parameters[2]), atoi(parameters[3]), atoi(parameters[4]));
+                turn_leds_on(atoi(parameters[0]), atoi(parameters[1]), atoi(parameters[2]), 1, atoi(parameters[4]));
         }
         else {
                 sprintf(parameters[4], "%d", 2);
-                turn_leds_on(atoi(parameters[0]), atoi(parameters[1]), atoi(parameters[2]), atoi(parameters[3]), atoi(parameters[4]));
+                turn_leds_on(atoi(parameters[0]), atoi(parameters[1]), atoi(parameters[2]), 1, atoi(parameters[4]));
         }
 }
 
@@ -313,13 +315,10 @@ void splitter(char *inputstr) {
         }
 }
 void addiotnalMQTT(char incoming_msg[50]) {
-        // char state[5];
-        // char state2[5];
         char msg[100];
-        // char msg2[100];
 
         if (strcmp(incoming_msg, "status") == 0) {
-                sprintf(msg, "Status: Color:[%s], Brightness:[%d]", color_names[atoi(parameters[0])], atoi(parameters[1]));
+                sprintf(msg, "Color:[%s], Brightness:[%d], Delay[%d]ms, Direction[%d], Mode[%d]", atoi(parameters[0]), atoi(parameters[1]), atoi(parameters[2]), atoi(parameters[3]), atoi(parameters[4]));
                 iot.pub_msg(msg);
         }
         else if (strcmp(incoming_msg, "ver") == 0 ) {

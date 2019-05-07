@@ -5,21 +5,21 @@
 #define RelayON HIGH
 
 
-const int sensorPin_1      = 2;
-const int sensorPin_2      = 3;
-const int relayPin_1       = 4;
-const int relayPin_2       = 5;
-long unsigned last_input   = 0;
-bool volatile doorOpen_1   = 0;
-bool volatile doorOpen_2   = 0;
+const int sensorPin_1         = 2;
+const int sensorPin_2         = 3;
+const int relayPin_1          = 4;
+const int relayPin_2          = 5;
+long unsigned last_input      = 0;
+bool volatile doorOpen_1      = 0;
+bool volatile doorOpen_2      = 0;
 
-const int sensorsPin[2]             = {sensorPin_1, sensorPin_2};
-const int relaysPin[2]              = {relayPin_1, relayPin_2};
-bool volatile sensorsState[2]       = {false, false};
-bool volatile last_sensorsState[2]  = {false, false};
-long unsigned onCounters[2]         = {0, 0};
-long unsigned lastInputs[2]         = {0, 0};
-bool inTimeOUT [2]                  = {false, false};
+const int sensorsPin[2]       = {sensorPin_1, sensorPin_2};
+const int relaysPin[2]        = {relayPin_1, relayPin_2};
+bool volatile sensorsState[2] = {false, false};
+bool last_sensorsState[2]     = {false, false};
+long unsigned onCounters[2]   = {0, 0};
+long unsigned lastInputs[2]   = {0, 0};
+bool inTimeOUT [2]            = {false, false};
 
 
 // ~~~~~~ Sleep~~~~~~~~~
@@ -31,12 +31,13 @@ void go2sleep(int *sensAmount) {
                 reAttach(i);
         }
         set_sleep_mode(SLEEP_MODE_PWR_DOWN);
+        delay(100);
         sleep_cpu();
 
         // ~~~~~~~~~~~~~~~~~~~
         Serial.print("wake\n");
         // Serial.println(i);
-        delay(1000);
+        // delay(1000);
 }
 // ~~~~~~~~~~~~~~~~~~~~~
 
@@ -65,16 +66,16 @@ void turnOn_relay(int i){
 }
 void checkSensor(int i) {
         if (sensorsState[i]!=last_sensorsState[i]) { // enter on change only
-                // if (millis()-lastInputs[i]>100) { // ms of debounce
-                if (sensorsState[i] == true) {
-                        turnOn_relay(i);
-                }
-                else {
-                        turnOff_relay(i);
-                }
-                lastInputs[i] = millis();
+                // if (millis()-lastInputs[i]>30) { // ms of debounce
+                        if (sensorsState[i] == true) {
+                                turnOn_relay(i);
+                        }
+                        else {
+                                turnOff_relay(i);
+                        }
+                        lastInputs[i] = millis();
+                // }
         }
-        // }
 }
 void offBy_timeout(int i){
         if (PWRDOWN_TIMEOUT == 0 ) { // user not using TO
@@ -105,14 +106,22 @@ void sensorActivated(int i) {
         sleep_disable();
         // Serial.print("Door, Sensor #");
         // Serial.println(i);
-        sensorsState[i] = digitalRead(sensorsPin[i]);
-        detachInterrupt(digitalPinToInterrupt(sensorsPin[i]));
+        // sensorsState[i] = digitalRead(sensorsPin[i]);
+        // detachInterrupt(digitalPinToInterrupt(sensorsPin[i]));
 }
 void sensor0_ISR(){
-        sensorActivated(0);
+        // sensorActivated(0);
+
+        sleep_disable();
+        detachInterrupt(digitalPinToInterrupt(sensorsPin[0]));
+        sensorsState[0] = digitalRead(sensorsPin[0]);
 }
 void sensor1_ISR(){
-        sensorActivated(1);
+        // sensorActivated(1);
+
+        sleep_disable();
+        detachInterrupt(digitalPinToInterrupt(sensorsPin[1]));
+        sensorsState[1] = digitalRead(sensorsPin[1]);
 }
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -137,14 +146,14 @@ void setup() {
 }
 
 void loop() {
-        delay(1000);
+        // delay(1000);
 
         // looperSensors(1);
         looperSensors(0);
-        int sum = 0;
-        for (int i=0; i<NUM_SENSORS; i++) {
-                sum += inTimeOUT[i];
-        }
+        // int sum = 0;
+        // for (int i=0; i<NUM_SENSORS; i++) {
+        //         sum += inTimeOUT[i];
+        // }
         // if (sum == 0){ //inTimeOUT[0]==false && inTimeOUT[1]==false) {
         //   // Serial.println(sum);
         //         go2sleep(NUM_SENSORS);
@@ -154,9 +163,9 @@ void loop() {
         //   // Serial.println(sum);
         //         go2sleep(NUM_SENSORS);
         // }
-        if (inTimeOUT[0]==false) {
-                // Serial.println(sum);
-                go2sleep(NUM_SENSORS);
-        }
+        // if (inTimeOUT[0]==false) {
+        //         // Serial.println(sum);
+        //         go2sleep(NUM_SENSORS);
+        // }
 
 }
