@@ -1,8 +1,8 @@
 // #include <avr/sleep.h>
 #define SECONDS         1000
-#define MINUTE          SECONDS*60  // [ms]
-#define NUM_SENSORS     2          // <----- NEED TO CHANGE BY USER
-#define PWRDOWN_TIMEOUT 5*SECONDS // <----- NEED TO CHANGE BY USER
+#define MINUTES         SECONDS*60  // [ms]
+#define NUM_SENSORS     2           // <----- NEED TO CHANGE BY USER
+#define PWRDOWN_TIMEOUT 15*MINUTES  // <----- NEED TO CHANGE BY USER
 #define RelayON HIGH
 
 
@@ -29,32 +29,23 @@ bool inTimeOUT [2]            = {false, false};
 void turnOff_relay(int i){
         if (digitalRead(relaysPin[i]) == RelayON) {
                 digitalWrite(relaysPin[i], !RelayON);
-                // last_sensorsState[i] = sensorsState[i];
-                // sensorsState[i] =
-                // last_sensorsState[i]=!RelayON;
-                // sensorsState[i] = !RelayON;  // need for TO
                 onCounters[i] = 0;
-
-                Serial.print("Off, Sensor #");
-                Serial.println(i);
+                // Serial.print("Off, Sensor #");
+                // Serial.println(i);
         }
 }
 void turnOn_relay(int i){
         if (digitalRead(relaysPin[i])==!RelayON) {
                 digitalWrite(relaysPin[i], RelayON);
-                // last_sensorsState[i] = sensorsState[i];
-                // last_sensorsState[i] = RelayON;
-                // sensorsState[i] = RelayON;  // need for TO
                 onCounters[i] = millis();
-
-                Serial.print("On , Sensor #");
-                Serial.println(i);
+                // Serial.print("On , Sensor #");
+                // Serial.println(i);
         }
 }
 void checkSensor(int i) {
         if (sensorsState[i]!=last_sensorsState[i]) { // enter on change only
                 if (millis()-lastInputs[i]>100) { // ms of debounce
-                        if (sensorsState[i] == true) {
+                        if (sensorsState[i] == false) {
                                 turnOn_relay(i);
                         }
                         else {
@@ -109,9 +100,9 @@ void startSensors(int m){
                 last_sensorsState[i] = digitalRead(sensorsPin[i]);
                 reAttach(i);
 
-                Serial.print("Sensor #");
-                Serial.print(i);
-                Serial.println(" initiated");
+                // Serial.print("Sensor #");
+                // Serial.print(i);
+                // Serial.println(" initiated");
         }
 }
 void looperSensors(int m){
@@ -124,8 +115,8 @@ void looperSensors(int m){
 // ~~~~~~~~~~~~~~~~~~~~~~~~~
 
 void setup() {
-        Serial.begin(9600);
-        delay(50);
+        // Serial.begin(9600);
+        // delay(50);
         startSensors(NUM_SENSORS);
 }
 
