@@ -15,9 +15,9 @@
 //####################################################
 
 // state definitions
-#define buttonPressed  LOW
-#define relayON        LOW
-#define ledON          HIGH
+#define buttonPressed      LOW
+#define relayON            LOW
+#define ledON              HIGH
 
 const int Button_Pin     = D7;
 const int Relay_Pin      = D6;

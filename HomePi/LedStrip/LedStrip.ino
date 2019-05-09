@@ -17,7 +17,7 @@
 
 //~~~~~~ Default Values ~~~~~~~
 #define COLOR         1
-#define LED_DELAY     50 // ms
+#define LED_DELAY     20 // ms
 #define BRIGHTNESS    5 // [0,100]
 #define LED_DIRECTION 0  // [0,1]
 #define PARAM_AMOUNT  5  // splitter
