@@ -11,7 +11,7 @@
 #define USE_BOUNCE_DEBUG  false
 #define USE_OLED          true
 
-#define VER "Wemos_3.3"
+#define VER "Wemos_3.4"
 //####################################################
 
 // state definitions
@@ -26,7 +26,7 @@ const int buttonLED_Pin  = D8;
 bool relayState;
 //##########################
 
-
+// ~~~~~~~~~~~~ OLED ~~~~~~~~~~~~~~~~~~~
 #if USE_OLED
 #include <Wire.h>
 #include <SPI.h>
@@ -40,6 +40,7 @@ const int SDApin      = D2;
 Adafruit_SSD1306 display(OLED_RESET);
 char text_lines[2][20];
 #endif
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 // manual RESET parameters
 int manResetCounter               = 0;  // reset press counter
@@ -214,7 +215,7 @@ void switchIt(char *type, char *dir) {
                 iot.pub_msg(mqttmsg);
         }
 }
-void checkSwitch_1() {
+void Switch_1_looper() {
         if (digitalRead(Button_Pin) == buttonPressed) {
                 delay(deBounceInt);
                 // CASE #1 : Button is pressed. Delay creates a delay when buttons is pressed constantly
@@ -250,20 +251,20 @@ void checkSwitch_1() {
                 }
         }
 }
-void detectResetPresses() {
-        if (millis() - lastResetPress < timeInterval_resetPress) {
-                if (manResetCounter >= pressAmount2Reset) {
-                        iot.sendReset("Manual operation");
-                        manResetCounter = 0;
-                }
-                else {
-                        manResetCounter++;
-                }
-        }
-        else {
-                manResetCounter = 0;
-        }
-}
+// void detectResetPresses() {
+//         if (millis() - lastResetPress < timeInterval_resetPress) {
+//                 if (manResetCounter >= pressAmount2Reset) {
+//                         iot.sendReset("Manual operation");
+//                         manResetCounter = 0;
+//                 }
+//                 else {
+//                         manResetCounter++;
+//                 }
+//         }
+//         else {
+//                 manResetCounter = 0;
+//         }
+// }
 void readGpioStates() {
         relayState = digitalRead(Relay_Pin);
 }
@@ -310,12 +311,12 @@ void addiotnalMQTT(char *incoming_msg) {
                 }
         }
 }
-void switch_1_terminator() {
+void switch_1_TimeOUToff() {
         if (relayState == relayON ) {
                 if ( endTime != 0 && endTime <= millis() ) {
                         switchIt("TimeOut", "off");
                 }
-                if((millis()-startTime) >= maxTO*60*1000) {
+                if((millis()-startTime) >= maxTO*60*1000) { // Max time to ON
                         switchIt("Overide TimeOut", "off");
                 }
         }
@@ -324,8 +325,8 @@ void switch_1_terminator() {
 // ~~~~~~ Loopers ~~~~~~~~~~
 void loop() {
         readGpioStates();
-        checkSwitch_1();
-        switch_1_terminator(); // For Timeout operations
+        Switch_1_looper();
+        switch_1_TimeOUToff(); // For Timeout operations
         OLEDlooper();
         iot.looper();
         delay(100);
