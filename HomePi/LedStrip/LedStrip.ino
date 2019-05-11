@@ -112,7 +112,7 @@ void turn_leds_on(int col_indx = COLOR, int bright_1 = BRIGHTNESS, int del_1 = L
                         FastLED.show();
                         // delay(del_1);
                 }
-                sprintf(msg, "Color:[%s], Brightness:[%d], Delay[%d]ms, Direction[%d], Mode[%d]", color_names[col_indx], bright_1, del_1, dir_1, mode_1);
+                sprintf(msg, "Color:[%s], Brightness:[%d], Delay[%d]ms, Direction[%d], Mode[%d]", color_names[col_indx],bright_1, del_1, dir_1, mode_1);
                 iot.pub_msg(msg);
         }
 }
@@ -318,16 +318,20 @@ void addiotnalMQTT(char incoming_msg[50]) {
         char msg[100];
 
         if (strcmp(incoming_msg, "status") == 0) {
-                sprintf(msg, "Color:[%s], Brightness:[%d], Delay[%d]ms, Direction[%d], Mode[%d]", atoi(parameters[0]), atoi(parameters[1]), atoi(parameters[2]), atoi(parameters[3]), atoi(parameters[4]));
+                sprintf(msg, "Color:[%s], Brightness:[%d], Delay[%d]ms,Direction[%d], Mode[%d]", color_names[atoi(parameters[0])], atoi(parameters[1]), atoi(parameters[2]), atoi(parameters[3]), atoi(parameters[4]));
                 iot.pub_msg(msg);
         }
         else if (strcmp(incoming_msg, "ver") == 0 ) {
-                sprintf(msg, "ver:[%s], lib:[%s], WDT:[%d], OTA:[%d], SERIAL:[%d], IRremote:[%d]", VER, iot.ver, USE_WDT, USE_OTA, USE_SERIAL, USE_IR_REMOTE);
+                sprintf(msg, "ver:[%s], lib:[%s], WDT:[%d], OTA:[%d], \
+                SERIAL:[%d], IRremote:[%d]", VER, iot.ver, USE_WDT, USE_OTA,
+                        USE_SERIAL, USE_IR_REMOTE);
                 iot.pub_msg(msg);
         }
         else {
                 splitter(incoming_msg);
-                turn_leds_on(atoi(parameters[0]), atoi(parameters[1]), atoi(parameters[2]), atoi(parameters[3]), atoi(parameters[4]));
+                turn_leds_on(atoi(parameters[0]), atoi(parameters[1]),
+                             atoi(parameters[2]), atoi(parameters[3]), \
+                             atoi(parameters[4]));
         }
 }
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
