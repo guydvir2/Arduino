@@ -2,16 +2,14 @@
 #include <Arduino.h>
 
 //####################################################
-#define DEVICE_TOPIC "HomePi/Dvir/WaterBoil"
+#define DEVICE_TOPIC      "HomePi/Dvir/WaterBoiler"
 #define USE_SERIAL        false
 #define USE_WDT           true
 #define USE_OTA           true
-
-#define USE_MAN_RESET     false
 #define USE_BOUNCE_DEBUG  false
 #define USE_OLED          true
 
-#define VER "Wemos_3.4"
+#define VER "Wemos_3.6"
 //####################################################
 
 // state definitions
@@ -19,6 +17,7 @@
 #define relayON            LOW
 #define ledON              HIGH
 
+// Pin hardware Defs
 const int Button_Pin     = D7;
 const int Relay_Pin      = D6;
 const int buttonLED_Pin  = D8;
@@ -28,27 +27,24 @@ bool relayState;
 
 // ~~~~~~~~~~~~ OLED ~~~~~~~~~~~~~~~~~~~
 #if USE_OLED
+
 #include <Wire.h>
 #include <SPI.h>
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
 
-#define OLED_RESET LED_BUILTIN
-const int SCLpin      = D1;
-const int SDApin      = D2;
+#define SCREEN_WIDTH  128
+#define SCREEN_HEIGHT 64 // double screen size
+#define OLED_RESET    LED_BUILTIN
 
-Adafruit_SSD1306 display(OLED_RESET);
-char text_lines[2][20];
+const int SCLpin       = D1;
+const int SDApin       = D2;
+long swapLines_counter = 0;
+
+Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
+
 #endif
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-// manual RESET parameters
-int manResetCounter               = 0;  // reset press counter
-int pressAmount2Reset             = 3; // time to press button to init Reset
-long lastResetPress               = 0; // time stamp of last press
-const int timeInterval_resetPress = 1500; // time between consq presses to init RESET cmd
-// ####################
-
 
 // TimeOut Constants
 int maxTO                    = 150; //minutes to timeout even in ON state
@@ -58,11 +54,11 @@ unsigned long startTime      = 0;
 unsigned long endTime        = 0;
 int delayBetweenPress        = 500; // consequtive presses to reset
 unsigned long pressTO_input1 = 0; // TimeOUT for next press
+const int deBounceInt        = 50;
 // ##########################
 
 char timeStamp [50];
 char dateStamp [50];
-const int deBounceInt = 50;
 char msg[150];
 char parameters [2][4];
 
@@ -95,39 +91,73 @@ void startOLED(){
         display.clearDisplay();
         #endif
 }
-void OLED_CenterTXT(int i, char *line1, char *line2 = "", char *line3 = "", char *line4 = "", byte shift = 0) {
+void OLED_CenterTXT(int char_size, char *line1, char *line2 = "", char *line3 = "", char *line4 = "", byte x_shift = 0,  byte y_shift = 0) {
   #if (USE_OLED)
         char *Lines[] = {line1, line2, line3, line4};
         display.clearDisplay();
-        display.setTextSize(i);
+        display.setTextSize(char_size);
         display.setTextColor(WHITE);
-        byte line_space = pow(2, (2 + i));
+        byte line_space = pow(2, (2 + char_size));
 
         for (int n = 0; n < 4; n++) {
                 if (strcmp(Lines[n], "") != 0) {
                         int strLength = strlen(Lines[n]);
-                        display.setCursor((ceil)((21 / i - strLength) / 2 * (128 / (21 / i))) + shift,  line_space * n);
+                        display.setCursor((ceil)((21 / char_size - strLength) / 2 * (128 / (21 / char_size))) + x_shift,  line_space * n + y_shift);
                         display.print(Lines[n]);
                 }
         }
         display.display();
   #endif
 }
-void OLED_SideTXT(int i, char *line1, char *line2 = "", char *line3 = "", char *line4 = "") {
+void OLED_SideTXT(int char_size, char *line1, char *line2 = "", char *line3 = "", char *line4 = "") {
   #if (USE_OLED)
         char *Lines[] = {line1, line2, line3, line4};
         display.clearDisplay();
-        display.setTextSize(i);
-        byte line_space = pow(2, (2 + i));
+        display.setTextSize(char_size);
+        byte line_space = pow(2, (2 + char_size));
 
-        for (int n = 0; n < 4; n++) {
-                if (strcmp(Lines[n], "") != 0) {
-                        if (n==1 || n == 3) {
-                                display.setTextColor(WHITE);
-                                int strLength = strlen(Lines[n]);
-                                display.setCursor((ceil)((21 / i - strLength) * (128 / (21 / i))),  line_space * n);
-                                display.print(Lines[n]);
-    #endif
+
+        if (strcmp(line3,"")==0 && strcmp(line4,"")==0) { // for ON state only - 2rows
+                for (int n = 0; n < 2; n++) {
+                        if (strcmp(Lines[n], "") != 0) {
+                                if (n==1) {  // Clock line
+                                        display.setTextSize(char_size);
+                                        display.setTextColor(WHITE);
+                                        int strLength = strlen(Lines[n]);
+                                        display.setCursor((ceil)((21 / char_size - strLength) * (128 / (21 / char_size))),  line_space * (n +1) -3);
+                                        display.print(Lines[n]);
+                                }
+                                else{ // Title line
+                                        display.setTextSize(char_size-1);
+                                        display.setTextColor(BLACK,WHITE);
+                                        display.setCursor(0, line_space * (n+1));
+                                        display.print(Lines[n]);
+                                }
+                        }
+                }
+
+        }
+        else{
+                for (int n = 0; n < 4; n++) {
+                        if (strcmp(Lines[n], "") != 0) {
+                                if (n==1 || n == 3) { // Clocks
+                                        display.setTextSize(char_size);
+                                        display.setTextColor(WHITE);
+                                        int strLength = strlen(Lines[n]);
+                                        display.setCursor((ceil)((21 / char_size - strLength) * (128 / (21 / char_size))),  line_space * n -3);
+                                        display.print(Lines[n]);
+                                }
+                                else{ // Title
+                                        display.setTextSize(char_size-1);
+                                        display.setTextColor(BLACK,WHITE);
+                                        display.setCursor(0, line_space * n);
+                                        display.print(Lines[n]);
+                                }
+                        }
+                }
+        }
+        display.display();
+  #endif
 }
 void OLEDlooper() {
         #if (USE_OLED)
@@ -138,19 +168,37 @@ void OLEDlooper() {
                 int timeON = millis() - startTime;
                 sec2clock(timeON, "", time_on_char);
                 if ( timeInc_counter == 1 ) {         // ~~~~ON, no timer ~~~~~~~
-                        OLED_SideTXT(1,"On Time:",time_on_char);
+                        OLED_SideTXT(2,"On:",time_on_char);
                 }
                 else if ( timeInc_counter > 1 ) {         /// ON + Timer
                         int timeLeft = endTime - millis();
                         sec2clock(timeLeft, "", time2Off_char);
-                        OLED_SideTXT(1,"On Time:",time_on_char,"Remain Time:",time2Off_char);
+                        OLED_SideTXT(2,"On:",time_on_char,"Remain:",time2Off_char);
                 }
         }
         else {         // OFF state - clock only
                 iot.return_clock(timeStamp);
                 iot.return_date(dateStamp);
-                OLED_CenterTXT(2,timeStamp, dateStamp);
+
+                int timeQoute=5000;
+
+                if (swapLines_counter == 0) {
+                        swapLines_counter=millis();
+                }
+
+
+                if (millis()-swapLines_counter < timeQoute) {
+                        OLED_CenterTXT(2,"",timeStamp, dateStamp);
+                }
+                else if (millis()-swapLines_counter >= timeQoute && millis()-swapLines_counter <2*timeQoute)
+                {
+                        OLED_CenterTXT(2,timeStamp,"","", dateStamp);
+                }
+                else if (millis()-swapLines_counter > 2*timeQoute) {
+                        swapLines_counter=0;
+                }
         }
+
         #endif
 }
 // ~~~~~~~~~~~~~~~
@@ -238,10 +286,10 @@ void Switch_1_looper() {
                         }
                         pressTO_input1 = millis();
                         // Disabled for now- to avoid resets by user
-                        if ( USE_MAN_RESET ) { // to create an on-demand reset after number of presses / disabled due to conflict with TO presses
-                                detectResetPresses();
-                                lastResetPress = millis();
-                        }
+                        // if ( USE_MAN_RESET ) { // to create an on-demand reset after number of presses / disabled due to conflict with TO presses
+                        //         detectResetPresses();
+                        //         lastResetPress = millis();
+                        // }
                 }
                 // CASE #2: DEBUGS
                 else {
@@ -251,20 +299,6 @@ void Switch_1_looper() {
                 }
         }
 }
-// void detectResetPresses() {
-//         if (millis() - lastResetPress < timeInterval_resetPress) {
-//                 if (manResetCounter >= pressAmount2Reset) {
-//                         iot.sendReset("Manual operation");
-//                         manResetCounter = 0;
-//                 }
-//                 else {
-//                         manResetCounter++;
-//                 }
-//         }
-//         else {
-//                 manResetCounter = 0;
-//         }
-// }
 void readGpioStates() {
         relayState = digitalRead(Relay_Pin);
 }
@@ -276,11 +310,11 @@ void addiotnalMQTT(char *incoming_msg) {
                 iot.pub_msg(msg);
         }
         else if (strcmp(incoming_msg, "pins") == 0 ) {
-                sprintf(msg, "Switch: [%d], Relay: [%d], Led: [%d]", input_1Pin, Relay_Pin, buttonLED_Pin);
+                sprintf(msg, "Switch: [%d], Relay: [%d], Led: [%d]", Button_Pin, Relay_Pin, buttonLED_Pin);
                 iot.pub_msg(msg);
         }
         else if (strcmp(incoming_msg, "ver") == 0 ) {
-                sprintf(msg, "ver:[%s], lib:[%s], WDT:[%d], OTA:[%d], SERIAL:[%d], MAN_RESET:[%d], OLED[%d]", VER, iot.ver, USE_WDT, USE_OTA, USE_SERIAL, USE_MAN_RESET, USE_OLED);
+                sprintf(msg, "ver:[%s], lib:[%s], WDT:[%d], OTA:[%d], SERIAL:[%d], OLED[%d]", VER, iot.ver, USE_WDT, USE_OTA, USE_SERIAL, USE_OLED);
                 iot.pub_msg(msg);
         }
         else if (strcmp(incoming_msg, "on") == 0 ) {
