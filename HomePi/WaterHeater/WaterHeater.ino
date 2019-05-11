@@ -6,10 +6,10 @@
 #define USE_SERIAL        false
 #define USE_WDT           true
 #define USE_OTA           true
-#define USE_BOUNCE_DEBUG  false
+#define USE_BOUNCE_DEBUG  true
 #define USE_OLED          true
 
-#define VER "Wemos_3.6"
+#define VER "Wemos_3.7"
 //####################################################
 
 // state definitions
@@ -109,7 +109,7 @@ void OLED_CenterTXT(int char_size, char *line1, char *line2 = "", char *line3 = 
         display.display();
   #endif
 }
-void OLED_SideTXT(int char_size, char *line1, char *line2 = "", char *line3 = "", char *line4 = "") {
+void OLED_titleTXT(int char_size, char *line1, char *line2 = "", char *line3 = "", char *line4 = "") {
   #if (USE_OLED)
         char *Lines[] = {line1, line2, line3, line4};
         display.clearDisplay();
@@ -168,30 +168,27 @@ void OLEDlooper() {
                 int timeON = millis() - startTime;
                 sec2clock(timeON, "", time_on_char);
                 if ( timeInc_counter == 1 ) {         // ~~~~ON, no timer ~~~~~~~
-                        OLED_SideTXT(2,"On:",time_on_char);
+                        OLED_titleTXT(2,"On:",time_on_char);
                 }
                 else if ( timeInc_counter > 1 ) {         /// ON + Timer
                         int timeLeft = endTime - millis();
                         sec2clock(timeLeft, "", time2Off_char);
-                        OLED_SideTXT(2,"On:",time_on_char,"Remain:",time2Off_char);
+                        OLED_titleTXT(2,"On:",time_on_char,"Remain:",time2Off_char);
                 }
         }
         else {         // OFF state - clock only
                 iot.return_clock(timeStamp);
                 iot.return_date(dateStamp);
 
-                int timeQoute=5000;
-
+                int timeQoute=5000; // Seconds to move text on OLED
                 if (swapLines_counter == 0) {
                         swapLines_counter=millis();
                 }
-
-
                 if (millis()-swapLines_counter < timeQoute) {
                         OLED_CenterTXT(2,"",timeStamp, dateStamp);
                 }
-                else if (millis()-swapLines_counter >= timeQoute && millis()-swapLines_counter <2*timeQoute)
-                {
+                else if (millis()-swapLines_counter >= timeQoute &&
+                         millis()-swapLines_counter <2*timeQoute) {
                         OLED_CenterTXT(2,timeStamp,"","", dateStamp);
                 }
                 else if (millis()-swapLines_counter > 2*timeQoute) {
@@ -203,7 +200,7 @@ void OLEDlooper() {
 }
 // ~~~~~~~~~~~~~~~
 
-// ~~~~ string creation ~~~~~~
+// ~~~~~~~~~~~~~~~~~~~~~~~ string manipulations  ~~~~~~~~~~~~~~~~~~~~~~~~
 void sec2clock(int sec, char* text, char* output_text) {
         int h = ((int)(sec) / (1000 * 60 * 60));
         int m = ((int)(sec) - h * 1000 * 60 * 60) / (1000 * 60);
@@ -234,8 +231,8 @@ void switchIt(char *type, char *dir) {
         bool suc_flag = false;
         char mqttmsg[50];
 
-        if (strcmp(dir, "on") == 0) {
-                if(digitalRead(Relay_Pin)!=relayON) { // was not ON
+        if (strcmp(dir, "on") == 0) {  // Switch On
+                if(digitalRead(Relay_Pin)!=relayON) { // was OFF
                         digitalWrite(Relay_Pin, relayON);
                         digitalWrite(buttonLED_Pin, ledON);
                         if (startTime == 0) {
@@ -250,9 +247,9 @@ void switchIt(char *type, char *dir) {
         else if (strcmp(dir, "off") == 0 && digitalRead(Relay_Pin)==relayON) {
                 digitalWrite(Relay_Pin, !relayON);
                 digitalWrite(buttonLED_Pin, !ledON);
-                startTime = 0;
+                startTime       = 0;
                 timeInc_counter = 0;
-                endTime = 0;
+                endTime         = 0;
 
                 suc_flag = true;
         }
@@ -285,11 +282,6 @@ void Switch_1_looper() {
                                 switchIt("Button", "off");
                         }
                         pressTO_input1 = millis();
-                        // Disabled for now- to avoid resets by user
-                        // if ( USE_MAN_RESET ) { // to create an on-demand reset after number of presses / disabled due to conflict with TO presses
-                        //         detectResetPresses();
-                        //         lastResetPress = millis();
-                        // }
                 }
                 // CASE #2: DEBUGS
                 else {
