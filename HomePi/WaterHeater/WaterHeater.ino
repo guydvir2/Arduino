@@ -6,7 +6,7 @@
 #define USE_SERIAL        false
 #define USE_WDT           true
 #define USE_OTA           true
-#define USE_BOUNCE_DEBUG  true
+#define USE_BOUNCE_DEBUG  false
 #define USE_OLED          true
 
 #define VER "Wemos_3.7"

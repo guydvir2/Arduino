@@ -1,29 +1,37 @@
+/*
+ESP8266 Alarm monitoring system, by guyDvir Apr.2019
+
+Pupose of this code is to monitor, notify and change syste, states of an existing
+Alarm system ( currently using PIMA alarm system incl. RF detectors) has the
+following hardware:
+1) Main Controller AKA " the brain"
+2) KeyPad for entering user codes and change syste states.
+3) "the brain" has relay inputs knows as external key operation:
+ */
+
+
 #include <myIOT.h>
 #include <Arduino.h>
 
 //####################################################
 #define DEVICE_TOPIC "HomePi/Dvir/alarmMonitor"
-//must be defined to use myIOT
-#define ADD_MQTT_FUNC addiotnalMQTT
-//~~~
-#define USE_SERIAL false
-#define USE_WDT true
-#define USE_OTA true
+#define USE_SERIAL   false
+#define USE_WDT      true
+#define USE_OTA      true
+#define VER          "NodeMCU_2.1"
+// ###################################################
 
-#define VER "NodeMCU_2.0"
-//####################################################
 
 // device state definitions
 #define RelayOn HIGH
 #define SwitchOn LOW
 
-// Code Specific #####################################
 
 // GPIO Pins for ESP8266
-const int systemState_armed_Pin = 4;
-const int systemState_alarm_Pin = 5;
-const int armedHomePin = 12;
-const int armedAwayPin = 14;
+const int systemState_armed_Pin = 4;  // input (System State)
+const int systemState_alarm_Pin = 5;  // input (System State)
+const int armedHomePin          = 12; // Output (Set system)
+const int armedAwayPin          = 14; // Output (Set system)
 //##########################
 
 const int systemPause = 2000; // seconds, delay to system react
@@ -38,7 +46,7 @@ bool systemState_armed_currentState;
 bool systemState_alarm_currentState;
 // ################################
 
-
+#define ADD_MQTT_FUNC addiotnalMQTT
 myIOT iot(DEVICE_TOPIC);
 
 void setup() {
@@ -107,7 +115,6 @@ void addiotnalMQTT(char incoming_msg[50]){
         }
 }
 
-// Code specific #######################
 // ~~~~ maintability ~~~~~~
 void allOff() {
         digitalWrite(armedHomePin, !RelayOn);
@@ -126,19 +133,6 @@ void allReset() {
         delay(systemPause);
 
         readGpioStates();
-}
-void verifyNotHazardState() {
-        if (digitalRead(armedHomePin) == RelayOn && digitalRead(armedAwayPin) == RelayOn ) {
-                switchIt("MQTT", "disarmed");
-                iot.sendReset("HazradState_1");
-        }
-        if (digitalRead(systemState_armed_Pin) == !SwitchOn) {
-                delay(systemPause);
-                if (digitalRead(armedHomePin) == RelayOn || digitalRead(armedAwayPin) == RelayOn) {
-                        iot.sendReset("HazradState_2");
-                }
-        }
-
 }
 
 // ~~~~~~~~~ GPIO switching ~~~~~~~~~~~~~
@@ -204,20 +198,18 @@ void switchIt(char *type, char *dir) {
                                 digitalWrite(armedHomePin, RelayOn);
                                 delay(systemPause);
                                 allOff();
-                                // delay(systemPause);
                         }
                         if (digitalRead(systemState_armed_Pin)==!SwitchOn && digitalRead(armedAwayPin)==!RelayOn && digitalRead(armedHomePin)==!RelayOn) {
                                 iot.pub_msg("[Disarmed]");
                                 iot.pub_state("disarmed");
                         }
                         else {
-                                // allReset();
                                 iot.pub_msg("error trying to [Disarm]");
                         }
                 }
         }
 }
-void check_systemState_armed() {
+void check_systemState_armed() { // System OUTPUT 1: arm_state
         if (digitalRead(systemState_armed_Pin) != systemState_armed_lastState) {
                 delay(deBounceInt);
                 if (digitalRead(systemState_armed_Pin) != systemState_armed_lastState) {
@@ -254,7 +246,7 @@ void check_systemState_armed() {
                 }
         }
 }
-void check_systemState_alarming() {
+void check_systemState_alarming() { // // System OUTPUT 2: alarm_state
         if (digitalRead(systemState_alarm_Pin) != systemState_alarm_lastState) {
                 delay(deBounceInt);
                 if (digitalRead(systemState_alarm_Pin) != systemState_alarm_lastState) {
@@ -287,14 +279,14 @@ void check_systemState_alarming() {
         }
 }
 void readGpioStates() {
-        armedHome_currentState = digitalRead(armedHomePin);
-        armedAway_currentState = digitalRead(armedAwayPin);
+        armedHome_currentState         = digitalRead(armedHomePin);
+        armedAway_currentState         = digitalRead(armedAwayPin);
         systemState_alarm_currentState = digitalRead(systemState_alarm_Pin);
         systemState_armed_currentState = digitalRead(systemState_armed_Pin);
 }
 
 void loop() {
-        iot.looper(); // check wifi, mqtt, wdt
+        iot.looper();
         readGpioStates();
 
         check_systemState_armed();

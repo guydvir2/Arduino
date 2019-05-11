@@ -4,7 +4,7 @@
 #define SENSOR_DETECT_DOOR    true
 
 #define NUM_SENSORS           2          // <----- NEED TO CHANGE BY USER
-#define USE_SLEEP             true       // <----- NEED TO CHANGE BY USER
+#define USE_SLEEP             false       // <----- NEED TO CHANGE BY USER
 #define PWRDOWN_TIMEOUT       5*SECONDS  // <----- NEED TO CHANGE BY USER
 
 #if USE_SLEEP
