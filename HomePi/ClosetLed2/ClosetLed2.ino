@@ -1,19 +1,15 @@
-#define SECONDS               1000
-#define MINUTES               SECONDS*60   // [ms]
+#define SECOND                1000
+#define MINUTE                60000
+#define NUM_SENSORS           2          // <----- NEED TO CHANGE BY USER
+#define PWRDOWN_TIMEOUT       5*MINUTE  // <----- NEED TO CHANGE BY USER
+
+
 #define RelayON               HIGH
 #define SENSOR_DETECT_DOOR    true
 
-#define NUM_SENSORS           2          // <----- NEED TO CHANGE BY USER
-#define USE_SLEEP             false       // <----- NEED TO CHANGE BY USER
-#define PWRDOWN_TIMEOUT       5*SECONDS  // <----- NEED TO CHANGE BY USER
-
-#if USE_SLEEP
-#include <avr/sleep.h>
-#endif
-
-const int sensorPin_1         = 2;
-const int sensorPin_2         = 3;
-const int relayPin_1          = 13;
+const int sensorPin_1         = 2; // Interrupt 0 - for 1st sensor
+const int sensorPin_2         = 3; // Interrupt 1 - for 2nd sensor
+const int relayPin_1          = 4; // Relay -
 const int relayPin_2          = 5;
 bool volatile doorOpen_1      = 0;
 bool volatile doorOpen_2      = 0;
@@ -25,23 +21,6 @@ bool last_sensorsState[2]     = {false, false};
 long unsigned onCounters[2]   = {0, 0};
 long unsigned lastInputs[2]   = {0, 0};
 
-void go2sleep() {
-
-#if USE_SLEEP
-        if (onCounters[0] == 0 && onCounters[1] == 0) {
-                sleep_enable();
-                set_sleep_mode(SLEEP_MODE_PWR_DOWN); //SLEEP_MODE_PWR_SAVE);
-                Serial.println("Going2Sleep");
-                delay(100);
-                sleep_cpu();
-
-                Serial.println("WAKE");
-                delay(100);
-                reAttach(0);
-                reAttach(1);
-        }
-#endif
-}
 
 // ~~~ Switching Power ~~~~~~~
 void turnOff_relay(int i){
@@ -122,7 +101,7 @@ void startSensors(int m){
                 sensorsState[i] = digitalRead(sensorsPin[i]);
                 last_sensorsState[i] = digitalRead(sensorsPin[i]);
                 reAttach(i);
-                turnOff_relay(m);
+                turnOff_relay(i);
 
                 Serial.print("Sensor #");
                 Serial.print(i);
@@ -143,10 +122,7 @@ void setup() {
         delay(50);
         startSensors(NUM_SENSORS);
 }
-
 void loop() {
         looperSensors(NUM_SENSORS);
-        go2sleep();
-        delay(100);
-
+        delay(1000);
 }
