@@ -1,7 +1,7 @@
 #define SECOND                1000
 #define MINUTE                60000
 #define NUM_SENSORS           2          // <----- NEED TO CHANGE BY USER
-#define PWRDOWN_TIMEOUT       5*MINUTE  // <----- NEED TO CHANGE BY USER
+#define PWRDOWN_TIMEOUT       60*MINUTE  // <----- NEED TO CHANGE BY USER
 
 
 #define RelayON               HIGH
