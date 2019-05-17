@@ -2,14 +2,14 @@
 #include <Arduino.h>
 
 //####################################################
-#define DEVICE_TOPIC "HomePi/Dvir/Windows/test"
+#define DEVICE_TOPIC "HomePi/Dvir/Windows/KidsRoom"
 //must be defined to use myIOT
 #define ADD_MQTT_FUNC addiotnalMQTT
 //~~~
 #define USE_SERIAL       false
 #define USE_WDT          true
 #define USE_OTA          true
-#define USE_MAN_RESET    true
+#define USE_MAN_RESET    false
 #define USE_BOUNCE_DEBUG false
 
 #define VER "NodeMCU_3.7"
@@ -50,7 +50,7 @@ void setup() {
   iot.useSerial = USE_SERIAL;
   iot.useWDT = USE_WDT;
   iot.useOTA = USE_OTA;
-  iot.start_services(ADD_MQTT_FUNC);//,"Xiaomi_D6C8","guyd5161", "guy", "kupelu9e", "192.168.3.202");//); // additinalMQTTfucntion, ssid,pswd,mqttuser,mqtt_pswd,broker
+  iot.start_services(ADD_MQTT_FUNC); 
 }
 
 // ~~~~~~~~~ StartUp ~~~~~~~~~~~~

@@ -8,7 +8,7 @@
 #define USE_SERIAL true
 #define USE_WDT true
 #define USE_OTA true
-#define VER "NodeMCU_2.1"
+#define VER "WemosMini_2.2"
 //####################################################
 
 
@@ -16,9 +16,7 @@
 #define ledON LOW
 
 // GPIO Pins for ESP8266
-// byte statusLed = D4;
-int sensorInterrupt = D1;  // 0 = digital pin 2
-// byte sensorPin = 12;
+const int sensorInterrupt = D2;
 //##########################
 
 
@@ -56,18 +54,15 @@ void setup(){
         iot.useOTA = USE_OTA;
         iot.start_services(ADD_MQTT_FUNC);
 
-        // ~~~ time on Boot ~~~~~
+        // ~~~ time on Boot ~~~~~\
         time_t t = now();
         currentDay = day(t);
         currentMonth = month(t)-1;
 }
 void startGPIOs(){
-        // pinMode(sensorPin, INPUT);
-        pinMode(sensorInterrupt,INPUT_PULLUP);
-        pinMode(sensorInterrupt, HIGH);
+        pinMode(sensorInterrupt,INPUT);
+        digitalWrite(sensorInterrupt, HIGH);
         attachInterrupt(digitalPinToInterrupt(sensorInterrupt), pulseCounter, FALLING);
-        // digitalWrite(statusLed, !ledON); // We have an active-low LED attached
-        //digitalWrite(sensorPin, HIGH);
 }
 
 //  ~~~~ MQTT messages ~~~~~~~
@@ -171,11 +166,7 @@ void measureFlow(){
                 // totalFlow_counter();
                 // updateFlow_state();
                 print_OL_readings();
-
-                // Reset the pulse counter- for next cycle
                 pulseCount = 0;
-
-                // Enable the interrupt again now that we've finished sending output
                 attachInterrupt(digitalPinToInterrupt(sensorInterrupt), pulseCounter, FALLING);
         }
 }
@@ -222,12 +213,8 @@ void totalFlow_counter(){
                 Serial.println(adHoc_flow);
         }
 }
-// void tStamp(char *retTime){
-//         time_t t_1 = now();
-//         sprintf(retTime, "%02d-%02d-%02d", year(t_1), month(t_1), day(t_1));
-// }
 void loop(){
-        iot.looper(); // check wifi, mqtt, wdt
+        iot.looper();
         measureFlow();
         delay(100);
 }

@@ -21,7 +21,7 @@ void setup() {
 }
 
 void loop() {
- delay(5000);//wait 5 seconds before going to sleep
+ delay(500);//wait 5 seconds before going to sleep
  Going_To_Sleep();
 }
 
@@ -30,7 +30,7 @@ void Going_To_Sleep(){
     attachInterrupt(0, wakeUp, LOW);//attaching a interrupt to pin d2
     set_sleep_mode(SLEEP_MODE_PWR_DOWN);//Setting the sleep mode, in our case full sleep
     digitalWrite(LED_BUILTIN,LOW);//turning LED off
-    delay(1000); //wait a second to allow the led to be turned off before going to sleep
+    delay(100); //wait a second to allow the led to be turned off before going to sleep
     sleep_cpu();//activating sleep mode
     Serial.println("just woke up!");//next line of code executed after the interrupt 
     digitalWrite(LED_BUILTIN,HIGH);//turning LED on
@@ -41,4 +41,3 @@ void wakeUp(){
    sleep_disable();//Disable sleep mode
   detachInterrupt(0); //Removes the interrupt from pin 2;
 }
-

@@ -1,8 +1,15 @@
+/*
+Upload using Generic ESP8266
+Change default 512 kB ram to
+<<<< 1024 kB of ram !!! MUST!! >>>>
+otherwise OTA will not be loaded next time
+ */
+
 #include <myIOT.h>
 #include <Arduino.h>
 
 //####################################################
-#define DEVICE_TOPIC "HomePi/Dvir/Lights/sonoffbasic_33"
+#define DEVICE_TOPIC "HomePi/Dvir/Lights/Pergola_LEDsProjector"
 
 //~~~Services~~~~~~~~~~~
 #define USE_SERIAL       false
@@ -13,8 +20,8 @@
 #define USE_EXT_BUTTONS  false
 
 //~~~Select Board~~~~~~~
-#define SONOFF_DUAL      false
-#define SONOFF_BASIC     true
+#define SONOFF_DUAL      true
+#define SONOFF_BASIC     false
 #define WEMOS            false
 // ~~~
 
@@ -23,48 +30,48 @@
     0 ==  off
     >0 == timeout
  */
-int relay_timeout[] = {150,60}; //
+int relay_timeout[] = {300,120}; //
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-#define VER "SonoffBasic_1.8"
+#define VER "SonoffBasic_1.9"
 //####################################################
 
 
 #if (SONOFF_DUAL)
 
 // state definitions
-#define RelayOn       HIGH
-#define SwitchOn      LOW
-#define LedOn         LOW
-#define ButtonPressed LOW
+#define RelayOn          HIGH
+#define SwitchOn         LOW
+#define LedOn            LOW
+#define ButtonPressed    LOW
 
 #define RELAY1           5
 #define RELAY2           12
 #define wifiOn_statusLED 13
 
-#define INPUT1       9
-#define INPUT2       0
-#define BUTTON       10
-#define NUM_SWITCHES 2
+#define INPUT1           9
+#define INPUT2           0
+#define BUTTON           10
+#define NUM_SWITCHES     2
 
 #endif
 
 
 #if (SONOFF_BASIC)
 // state definitions
-#define RelayOn       LOW
-#define SwitchOn      LOW
-#define LedOn         LOW
-#define ButtonPressed LOW
+#define RelayOn          HIGH
+#define SwitchOn         LOW
+#define LedOn            LOW
+#define ButtonPressed    LOW
 
 #define RELAY1           12
 #define RELAY2           0
 #define wifiOn_statusLED 13
 
-#define INPUT1       14
-#define INPUT2       0
-#define BUTTON       0
-#define NUM_SWITCHES 1
+#define INPUT1           14
+#define INPUT2           0
+#define BUTTON           0
+#define NUM_SWITCHES     1
 
 #endif
 
