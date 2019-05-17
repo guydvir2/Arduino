@@ -134,7 +134,7 @@ void myIOT::networkStatus() {
 }
 void myIOT::start_clock() {
         startNTP();
-        delay(2000); // <------------ADDED LINE 
+        delay(5000); // <------------ADDED LINE 
         get_timeStamp();
         strcpy(bootTime, timeStamp);
 }

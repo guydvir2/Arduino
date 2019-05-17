@@ -33,6 +33,7 @@ unsigned long oldTime;
 // ~~~~~ Cumalatibe consumption
 byte currentDay;
 byte currentMonth;
+// int currentYear;
 float currentDay_flow=0; //liters
 float lastDay_flow=0; //liters
 float monthly_consumption [12] = {0,0,0,0,0,0,0,0,0,0,0,0}; //liters
@@ -42,6 +43,11 @@ float adHoc_flow =0; //liters
 bool adHoc_flag=false;
 char* lastDetectState="";
 // ~~~~~~~~~~~~~~~~~
+
+unsigned long startFlow_clock=0;
+unsigned long stopFlow_clock=0;
+unsigned long lastTimeFlow_clock=0;
+unsigned long currentFlow_duration=0;
 
 #define ADD_MQTT_FUNC addiotnalMQTT
 myIOT iot(DEVICE_TOPIC);
@@ -55,9 +61,10 @@ void setup(){
         iot.start_services(ADD_MQTT_FUNC);
 
         // ~~~ time on Boot ~~~~~\
-        time_t t = now();
-        currentDay = day(t);
-        currentMonth = month(t)-1;
+        // time_t tt = now();
+        // currentDay = day(tt);
+        // currentMonth = month(t)-1;
+        // currentYear = year(t);
 }
 void startGPIOs(){
         pinMode(sensorInterrupt,INPUT);
@@ -110,20 +117,40 @@ void addiotnalMQTT(char incoming_msg[50]){
                 iot.pub_msg(msg);
         }
 }
-void updateFlow_state(){
-        float threshold = 4.0;
+
+void updateFlow_state(float threshold = 4.0){
+
+        // if (millis()-stopFlow_clock>1000*10 && stopFlow_clock !=0){
+        //   Serial.print("Duration:");
+        //   Serial.println(currentFlow_duration);
+        //   startFlow_clock = 0;
+        //   stopFlow_clock  = 0;
+        // }
+
         if (flowRate > threshold) {
-                if(iot.mqttConnected == 1 && strcmp(lastDetectState,systemStates[1]) !=0) {
-                        iot.pub_state(systemStates[1]);
+                if(strcmp(lastDetectState,systemStates[1]) !=0) { // detect start flow
                         lastDetectState = systemStates[1];
+                        if (millis()-startFlow_clock>20*1000) { //reset after dead time
+                                startFlow_clock = millis();
+                        }
+                        iot.pub_state(systemStates[1]);
+                }
+                else {
+                        if (millis()-startFlow_clock>1000*10) {
+                                Serial.print("Alert- overFlowing");
+                                Serial.println(millis()-startFlow_clock);
+                        }
                 }
         }
         else {
                 if(iot.mqttConnected == 1 && strcmp(lastDetectState,systemStates[0]) !=0) {
                         iot.pub_state (systemStates[0]);
+                        stopFlow_clock = millis();
                         lastDetectState = systemStates[0];
                 }
         }
+        currentFlow_duration = startFlow_clock - stopFlow_clock;
+        lastTimeFlow_clock = millis();
 }
 void print_OL_readings(){
         if (USE_SERIAL == true) {
@@ -164,7 +191,7 @@ void measureFlow(){
                 total_milLitres += flow_milLiters;
 
                 // totalFlow_counter();
-                // updateFlow_state();
+                updateFlow_state();
                 print_OL_readings();
                 pulseCount = 0;
                 attachInterrupt(digitalPinToInterrupt(sensorInterrupt), pulseCounter, FALLING);

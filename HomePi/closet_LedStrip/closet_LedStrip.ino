@@ -1,6 +1,6 @@
 #define SECOND                1000
 #define MINUTE                60000
-#define NUM_SENSORS           2          // <----- NEED TO CHANGE BY USER
+#define NUM_SENSORS           1          // <----- NEED TO CHANGE BY USER
 #define PWRDOWN_TIMEOUT       60*MINUTE  // <----- NEED TO CHANGE BY USER
 
 
@@ -42,9 +42,9 @@ void turnOn_relay(int i){
 void checkSensor(int i) {
         if (sensorsState[i]!=last_sensorsState[i]) { // enter on change only
                 if (millis()-lastInputs[i] > 100) { // ms of debounce
-                  #if USE_SLEEP
-                        sleep_disable();
-                        #endif
+                  // #if USE_SLEEP
+                  //       sleep_disable();
+                  //       #endif
                         if (sensorsState[i] == !SENSOR_DETECT_DOOR ) {
                                 turnOn_relay(i);
                         }
@@ -66,8 +66,8 @@ void offBy_timeout(int i){
                         last_sensorsState[i] = SENSOR_DETECT_DOOR;
                         // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-                        Serial.print("TimeOut #");
-                        Serial.println(i);
+                        // Serial.print("TimeOut #");
+                        // Serial.println(i);
                 }
         }
 }
@@ -103,9 +103,9 @@ void startSensors(int m){
                 reAttach(i);
                 turnOff_relay(i);
 
-                Serial.print("Sensor #");
-                Serial.print(i);
-                Serial.println(" initiated");
+                // Serial.print("Sensor #");
+                // Serial.print(i);
+                // Serial.println(" initiated");
         }
 }
 void looperSensors(int m){

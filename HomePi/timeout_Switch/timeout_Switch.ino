@@ -9,7 +9,7 @@ otherwise OTA will not be loaded next time
 #include <Arduino.h>
 
 //####################################################
-#define DEVICE_TOPIC "HomePi/Dvir/Lights/Pergola_LEDsProjector"
+#define DEVICE_TOPIC "HomePi/Dvir/Lights/sonoffBasic"
 
 //~~~Services~~~~~~~~~~~
 #define USE_SERIAL       false
@@ -20,8 +20,8 @@ otherwise OTA will not be loaded next time
 #define USE_EXT_BUTTONS  false
 
 //~~~Select Board~~~~~~~
-#define SONOFF_DUAL      true
-#define SONOFF_BASIC     false
+#define SONOFF_DUAL      false // <----- Select one
+#define SONOFF_BASIC     true  // <----- Select one
 #define WEMOS            false
 // ~~~
 
