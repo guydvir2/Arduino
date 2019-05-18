@@ -4,7 +4,6 @@
 
 //####################################################
 #define DEVICE_TOPIC "HomePi/Dvir/flowMeter"
-
 #define USE_SERIAL true
 #define USE_WDT true
 #define USE_OTA true
@@ -14,40 +13,46 @@
 
 // device state definitions
 #define ledON LOW
-
-// GPIO Pins for ESP8266
+#define TIMEOUT_WARNING  1000*10
 const int sensorInterrupt = D2;
 //##########################
 
 
 // ~~~~~ OnLine measuring ~~~~~~~
-float calibrationFactor = 4.5; // pulses per second per litre/minute of flow.
+float calibrationFactor  = 4.5; // pulses per second per litre/minute of flow.
 volatile byte pulseCount = 0;
-float flowRate = 0;
-int flow_milLiters = 0;
-long total_milLitres = 0;
-unsigned long oldTime;
+float flowRate           = 0;
+int flow_milLiters       = 0;
+long total_milLitres     = 0;
+unsigned long oldTime    = 0;
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 
 // ~~~~~ Cumalatibe consumption
 byte currentDay;
 byte currentMonth;
-// int currentYear;
-float currentDay_flow=0; //liters
-float lastDay_flow=0; //liters
+int currentYear;
+float currentDay_flow = 0; //liters
+float lastDay_flow    = 0; //liters
+float adHoc_flow      = 0; //liters
 float monthly_consumption [12] = {0,0,0,0,0,0,0,0,0,0,0,0}; //liters
-const char *months [12]= {"Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"};
-char* systemStates[2] = {"idle", "flowing"};
-float adHoc_flow =0; //liters
-bool adHoc_flag=false;
+const char *months [12] = {"Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"};
+char* systemStates[2]   = {"idle", "flowing"};
 char* lastDetectState="";
-// ~~~~~~~~~~~~~~~~~
 
-unsigned long startFlow_clock=0;
-unsigned long stopFlow_clock=0;
-unsigned long lastTimeFlow_clock=0;
-unsigned long currentFlow_duration=0;
+// ~~~~~~ Flags ~~~~~~~~~
+bool adHoc_flag  = false;
+bool warningFlag = false;
+bool flow_state  = false;
+// ~~~~~~~~~~~~~~~~~~~~~~
+
+// ~~~~~~~~~ Clock Counters ~~~~~~~~~~~
+unsigned long startFlow_clock      = 0;
+unsigned long stopFlow_clock       = 0;
+unsigned long lastTimeFlow_clock   = 0;
+unsigned long currentFlow_duration = 0;
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 
 #define ADD_MQTT_FUNC addiotnalMQTT
 myIOT iot(DEVICE_TOPIC);
@@ -60,12 +65,18 @@ void setup(){
         iot.useOTA = USE_OTA;
         iot.start_services(ADD_MQTT_FUNC);
 
-        // ~~~ time on Boot ~~~~~\
-        // time_t tt = now();
-        // currentDay = day(tt);
-        // currentMonth = month(t)-1;
-        // currentYear = year(t);
+        delay(1000);
+        // ~~~ time on Boot ~~~~~
+        time_t t = now();
+        currentDay = day(t);
+        currentMonth = month(t)-1;
+        currentYear = year(t);
 }
+
+
+
+
+
 void startGPIOs(){
         pinMode(sensorInterrupt,INPUT);
         digitalWrite(sensorInterrupt, HIGH);
@@ -118,38 +129,44 @@ void addiotnalMQTT(char incoming_msg[50]){
         }
 }
 
-void updateFlow_state(float threshold = 4.0){
+void updateFlow_state(float threshold = 2.0){
+        int reset_no_flow_time = 20*1000;
 
-        // if (millis()-stopFlow_clock>1000*10 && stopFlow_clock !=0){
-        //   Serial.print("Duration:");
-        //   Serial.println(currentFlow_duration);
-        //   startFlow_clock = 0;
-        //   stopFlow_clock  = 0;
-        // }
+        if (millis()- lastTimeFlow_clock > reset_no_flow_time) {
+                flow_state      = false;
+                warningFlag     = false;
+                stopFlow_clock  = 0;
+                startFlow_clock = 0;
+        }
 
         if (flowRate > threshold) {
-                if(strcmp(lastDetectState,systemStates[1]) !=0) { // detect start flow
-                        lastDetectState = systemStates[1];
-                        if (millis()-startFlow_clock>20*1000) { //reset after dead time
+                //  ~~~~~~~~~~~~~ FLOW IS DETECTED ~~~~~~~~
+                // ~~~~~ first time ~~~~~~
+                if(flow_state == false) {
+                        if (millis()-stopFlow_clock > reset_no_flow_time ||
+                            stopFlow_clock == 0 || startFlow_clock == 0) {         //reset after no-flow time
                                 startFlow_clock = millis();
+                                Serial.println("First Time Flow");
                         }
+                        flow_state = true;
                         iot.pub_state(systemStates[1]);
                 }
-                else {
-                        if (millis()-startFlow_clock>1000*10) {
-                                Serial.print("Alert- overFlowing");
-                                Serial.println(millis()-startFlow_clock);
-                        }
-                }
         }
+        // ~~~~~~~~~~~~~~~~~~~ towards stop flowing ~~~~~~~~~~~~~
         else {
-                if(iot.mqttConnected == 1 && strcmp(lastDetectState,systemStates[0]) !=0) {
+                if(flow_state == true) {         // update only once after flow detect
                         iot.pub_state (systemStates[0]);
                         stopFlow_clock = millis();
-                        lastDetectState = systemStates[0];
+
+                        flow_state  = false;
+                        warningFlag = false;
                 }
         }
-        currentFlow_duration = startFlow_clock - stopFlow_clock;
+        if (millis()-startFlow_clock > TIMEOUT_WARNING &&
+            stopFlow_clock != 0) {         // check allowed time for flowing
+                flow_alert();
+        }
+
         lastTimeFlow_clock = millis();
 }
 void print_OL_readings(){
@@ -190,9 +207,9 @@ void measureFlow(){
                 // Add the millilitres passed in this second to the cumulative total
                 total_milLitres += flow_milLiters;
 
-                // totalFlow_counter();
                 updateFlow_state();
-                print_OL_readings();
+                totalFlow_counter();
+                // print_OL_readings();
                 pulseCount = 0;
                 attachInterrupt(digitalPinToInterrupt(sensorInterrupt), pulseCounter, FALLING);
         }
@@ -212,7 +229,7 @@ void totalFlow_counter(){
 
         // monthly use
         if (month(t) == currentMonth) {
-                monthly_consumption[month(t)-1] = (float)monthly_consumption[month(t)-1] +(float)flow_milLiters/1000;
+                monthly_consumption[month(t)-1] += (float)flow_milLiters/1000;
         }
         else{
                 monthly_consumption[month(t)-1] = (float)flow_milLiters/1000;
@@ -229,16 +246,20 @@ void totalFlow_counter(){
                 Serial.print("Current Day:");
                 Serial.println(currentDay_flow);
 
-                for (int i=0; i<=11; i++) {
-                        Serial.print(months[i]);
-                        Serial.print(": ");
-                        Serial.print(monthly_consumption[i]);
-                        Serial.println(" [liters]");
-                }
-
-                Serial.print("Counter: ");
-                Serial.println(adHoc_flow);
+                // for (int i=0; i<=11; i++) {
+                //         Serial.print(months[i]);
+                //         Serial.print(": ");
+                //         Serial.print(monthly_consumption[i]);
+                //         Serial.println(" [liters]");
+                // }
+                //
+                // Serial.print("adHoc_Counter: ");
+                // Serial.println(adHoc_flow);
         }
+}
+void flow_alert(){
+        warningFlag = true;
+        Serial.println("Alert- overFlowing: ");
 }
 void loop(){
         iot.looper();

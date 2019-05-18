@@ -3,6 +3,8 @@
 #include "FS.h"
 #include <ArduinoJson.h>
 
+#define LOG_LENGTH 4
+
 myJSON::myJSON(char *filename, bool useserial) {
         _useSerial = useserial;
         sprintf(_filename,"%s",filename);
