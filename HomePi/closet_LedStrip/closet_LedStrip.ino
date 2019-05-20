@@ -4,7 +4,7 @@
 #define PWRDOWN_TIMEOUT       60*MINUTE  // <----- NEED TO CHANGE BY USER
 
 
-#define RelayON               HIGH
+#define RelayON               LOW        // <----- NEED TO CHANGE BY USER
 #define SENSOR_DETECT_DOOR    true
 
 const int sensorPin_1         = 2; // Interrupt 0 - for 1st sensor
@@ -42,9 +42,6 @@ void turnOn_relay(int i){
 void checkSensor(int i) {
         if (sensorsState[i]!=last_sensorsState[i]) { // enter on change only
                 if (millis()-lastInputs[i] > 100) { // ms of debounce
-                  // #if USE_SLEEP
-                  //       sleep_disable();
-                  //       #endif
                         if (sensorsState[i] == !SENSOR_DETECT_DOOR ) {
                                 turnOn_relay(i);
                         }
@@ -66,8 +63,8 @@ void offBy_timeout(int i){
                         last_sensorsState[i] = SENSOR_DETECT_DOOR;
                         // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-                        // Serial.print("TimeOut #");
-                        // Serial.println(i);
+                        Serial.print("TimeOut #");
+                        Serial.println(i);
                 }
         }
 }
@@ -103,9 +100,9 @@ void startSensors(int m){
                 reAttach(i);
                 turnOff_relay(i);
 
-                // Serial.print("Sensor #");
-                // Serial.print(i);
-                // Serial.println(" initiated");
+                Serial.print("Sensor #");
+                Serial.print(i);
+                Serial.println(" initiated");
         }
 }
 void looperSensors(int m){
@@ -124,5 +121,5 @@ void setup() {
 }
 void loop() {
         looperSensors(NUM_SENSORS);
-        delay(1000);
+        delay(100);
 }

@@ -37,7 +37,7 @@
 #define USE_WDT             true
 #define USE_OTA             true
 
-#define VER                 "NodeMCU_V1.0"
+#define VER                 "NodeMCU_V1.1"
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 #define PRESSED             LOW
@@ -65,7 +65,7 @@ void addiotnalMQTT(char *incoming_msg) {
   char msg[50];
 
   if (strcmp(incoming_msg, "status") == 0) {
-          sprintf(msg, "Status: [%s] Mode",systemState);
+          sprintf(msg, "Status: [%s] Mode",systemState? "StopWatch":"Clock");
           iot.pub_msg(msg);
   }
   else if (strcmp(incoming_msg, "start") == 0) {

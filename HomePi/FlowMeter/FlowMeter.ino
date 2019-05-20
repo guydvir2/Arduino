@@ -74,9 +74,6 @@ void setup(){
 }
 
 
-
-
-
 void startGPIOs(){
         pinMode(sensorInterrupt,INPUT);
         digitalWrite(sensorInterrupt, HIGH);
