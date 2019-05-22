@@ -62,36 +62,36 @@ Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 void addiotnalMQTT(char *incoming_msg) {
-  char msg[50];
+        char msg[50];
 
-  if (strcmp(incoming_msg, "status") == 0) {
-          sprintf(msg, "Status: [%s] Mode",systemState? "StopWatch":"Clock");
-          iot.pub_msg(msg);
-  }
-  else if (strcmp(incoming_msg, "start") == 0) {
-          sprintf(msg, "StopWatch: [start]");
-          start_stopwatch();
-          systemState = SYS_STATE_STWATCH;
-          iot.pub_msg(msg);
-  }
-  else if (strcmp(incoming_msg, "clock") == 0) {
-          sprintf(msg, "Mode: [Clock]");
-          systemState = !SYS_STATE_STWATCH;
-          iot.pub_msg(msg);
-  }
-  else if (strcmp(incoming_msg, "stopwatch") == 0) {
-          sprintf(msg, "Mode: [StopWatch]");
-          systemState = SYS_STATE_STWATCH;
-          iot.pub_msg(msg);
-  }
-  else if (strcmp(incoming_msg, "help") == 0) {
-          sprintf(msg, "Help: [status, start, clock, stopwatch, help] , [ver, boot, reset, ip, ota]");
-          iot.pub_msg(msg);
-  }
-  else if (strcmp(incoming_msg, "ver") == 0 ) {
-          sprintf(msg, "ver:[%s], lib:[%s], WDT:[%d], OTA:[%d], SERIAL:[%d]", VER,iot.ver, USE_WDT, USE_OTA, USE_SERIAL);
-          iot.pub_msg(msg);
-  }
+        if (strcmp(incoming_msg, "status") == 0) {
+                sprintf(msg, "Status: [%s] Mode",systemState ? "StopWatch" : "Clock");
+                iot.pub_msg(msg);
+        }
+        else if (strcmp(incoming_msg, "start") == 0) {
+                sprintf(msg, "StopWatch: [start]");
+                start_stopwatch();
+                systemState = SYS_STATE_STWATCH;
+                iot.pub_msg(msg);
+        }
+        else if (strcmp(incoming_msg, "clock") == 0) {
+                sprintf(msg, "Mode: [Clock]");
+                systemState = !SYS_STATE_STWATCH;
+                iot.pub_msg(msg);
+        }
+        else if (strcmp(incoming_msg, "stopwatch") == 0) {
+                sprintf(msg, "Mode: [StopWatch]");
+                systemState = SYS_STATE_STWATCH;
+                iot.pub_msg(msg);
+        }
+        else if (strcmp(incoming_msg, "help") == 0) {
+                sprintf(msg, "Help: [status, start, clock, stopwatch, help] , [ver, boot, reset, ip, ota]");
+                iot.pub_msg(msg);
+        }
+        else if (strcmp(incoming_msg, "ver") == 0 ) {
+                sprintf(msg, "ver:[%s], lib:[%s], WDT:[%d], OTA:[%d], SERIAL:[%d]", VER,iot.ver, USE_WDT, USE_OTA, USE_SERIAL);
+                iot.pub_msg(msg);
+        }
 }
 void put_text(byte size = 1, byte x = 0, byte y = 0, char *text = "") {
         display.setTextSize(size);
@@ -165,16 +165,18 @@ void loop() {
                         unsigned long presslength = millis();
                         systemState = !systemState; // change state
                         if (systemState == SYS_STATE_STWATCH) { //true for stopwatch mode
-                                while (digitalRead(buttonPin) == PRESSED) {
-                                        delay(50);
-                                }
-                                if (millis()-presslength > 3000) { // reset stopwatch
-                                        iot.pub_msg("Mode: [StopWatch], Counter: [Reset]");
-                                        start_stopwatch();
-                                }
-                                else{
-                                        iot.pub_msg("Mode: [StopWatch], Counter: [Continue]");
-                                }
+                                //         while (digitalRead(buttonPin) == PRESSED) {
+                                //                 delay(50);
+                                //         }
+                                //         if (millis()-presslength > 3000) { // reset stopwatch
+                                //                 iot.pub_msg("Mode: [StopWatch], Counter: [Reset]");
+                                //                 start_stopwatch();
+                                //         }
+                                //         else{
+                                //                 iot.pub_msg("Mode: [StopWatch], Counter: [Continue]");
+                                //         }
+                                // }
+                                iot.pub_msg("Mode: [StopWatch]");
                         }
                         else{
                                 iot.pub_msg("Mode: [Clock]");

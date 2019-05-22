@@ -2,7 +2,7 @@
 #include <Arduino.h>
 
 //############################################K########
-#define DEVICE_TOPIC "HomePi/Dvir/Windows/SaloonDual"
+#define DEVICE_TOPIC "HomePi/Dvir/Windows/KidsRoom"
 
 #define USE_SERIAL       true
 #define USE_WDT          true
