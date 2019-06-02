@@ -22,11 +22,12 @@ bool file_remove();
 bool format ();
 bool FS_ok();
 
-const char *getValue (const char *key);
+bool getCharValue (const char *key, const char *retval);
+bool getINTValue (const char *key, int retval);
 void removeValue(const char *key);
 void eraseArray(char* array_key);
 void setValue(const char *key, char *value);
-void setValue(const char *key, int value);
+void setValue(const char *key, int  value);
 void updateArray(char* array_key, char *val);
 void updateArray(char* array_key, int val);
 void printFile();

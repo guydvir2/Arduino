@@ -1,6 +1,6 @@
 #define SECOND                1000
 #define MINUTE                60000
-#define NUM_SENSORS           1          // <----- NEED TO CHANGE BY USER
+#define NUM_SENSORS           2          // <----- NEED TO CHANGE BY USER
 #define PWRDOWN_TIMEOUT       60*MINUTE  // <----- NEED TO CHANGE BY USER
 
 
@@ -9,8 +9,8 @@
 
 const int sensorPin_1         = 2; // Interrupt 0 - for 1st sensor
 const int sensorPin_2         = 3; // Interrupt 1 - for 2nd sensor
-const int relayPin_1          = 4; // Relay -
-const int relayPin_2          = 5;
+const int relayPin_1          = 8;//4; // Relay -
+const int relayPin_2          = 9;//5;
 bool volatile doorOpen_1      = 0;
 bool volatile doorOpen_2      = 0;
 

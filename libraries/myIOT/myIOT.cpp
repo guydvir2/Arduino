@@ -2,7 +2,7 @@
 #include "myIOT.h"
 
 #include <ESP8266WiFi.h>
-#include <TimeLib.h>
+// #include <TimeLib.h>
 #include <NtpClientLib.h>
 #include <PubSubClient.h> //MQTT
 #include <Ticker.h> //WDT
@@ -133,14 +133,15 @@ void myIOT::networkStatus() {
         }
 }
 void myIOT::start_clock() {
+        long startNTPclock = millis();
         startNTP();
-        delay(5000); // <------------ADDED LINE 
         get_timeStamp();
         strcpy(bootTime, timeStamp);
 }
 void myIOT::startNTP() {
         NTP.begin("pool.ntp.org", 2, true);
-        NTP.setInterval(clockUpdateInt);
+        NTP.setInterval(5, clockUpdateInt); // <------------ADDED parameter
+        delay(1000);
 }
 void myIOT::get_timeStamp() {
         time_t t = now();

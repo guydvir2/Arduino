@@ -66,7 +66,7 @@ void myJSON::readJSON_file(JsonDocument& _doc) {
         }
         else{
                 serializeJson(_doc, readFile);
-                Serial.println("JSON file read OK");
+                // Serial.println("JSON file read OK");
         }
 }
 void myJSON::printJSON(JsonDocument& _doc) {
@@ -78,11 +78,29 @@ void myJSON::PrettyprintJSON(JsonDocument& _doc) {
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 // ~~~ User Functions : JSON + file saving ~~~~~~~~~~~
-const char *myJSON::getValue (const char *key){
+bool myJSON::getCharValue (const char *key, const char *retval){
         StaticJsonDocument<DOC_SIZE> tempJDOC;
         myJSON::readJSON_file(tempJDOC);
-        const char *a = tempJDOC[key];
-        return a;
+        bool hasKey = tempJDOC.containsKey(key);
+        retval = tempJDOC[key];
+        if (hasKey){
+          return 1;
+        }
+        else {
+          return 0; // when key is not present
+        }
+}
+bool myJSON::getINTValue (const char *key, int retval){
+        StaticJsonDocument<DOC_SIZE> tempJDOC;
+        myJSON::readJSON_file(tempJDOC);
+        bool hasKey = tempJDOC.containsKey(key);
+        retval = tempJDOC[key];
+        if (hasKey){
+          return 1;
+        }
+        else {
+          return 0; // when key is not present
+        }
 }
 void myJSON::setValue(const char *key, char *value){
         StaticJsonDocument<512> tempJDOC;
@@ -91,7 +109,7 @@ void myJSON::setValue(const char *key, char *value){
         myJSON::saveJSON2file(tempJDOC);
 }
 void myJSON::setValue(const char *key, int value){
-        StaticJsonDocument<512> tempJDOC;
+        StaticJsonDocument<1024> tempJDOC;
         myJSON::readJSON_file(tempJDOC);
         tempJDOC[key]=value;
         myJSON::saveJSON2file(tempJDOC);

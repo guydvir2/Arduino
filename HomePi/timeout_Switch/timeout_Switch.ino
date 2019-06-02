@@ -9,7 +9,7 @@ otherwise OTA will not be loaded next time
 #include <Arduino.h>
 
 //####################################################
-#define DEVICE_TOPIC "HomePi/Dvir/Lights/Pergola_bulbs"
+#define DEVICE_TOPIC "HomePi/Dvir/Lights/sonoff_test2"
 
 //~~~Services~~~~~~~~~~~
 #define USE_SERIAL       false
