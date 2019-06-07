@@ -22,7 +22,8 @@ myIOT::myIOT(char *devTopic) {
         deviceName = deviceTopic;
         topicArry[0] = deviceTopic;
 }
-void myIOT::start_services(cb_func funct, char *ssid, char *password, char *mqtt_user, char *mqtt_passw, char *mqtt_broker) {
+void myIOT::start_services(cb_func funct, char *ssid, char *password,
+                           char *mqtt_user, char *mqtt_passw, char *mqtt_broker) {
         mqtt_server = mqtt_broker;
         user = mqtt_user;
         passw = mqtt_passw;
@@ -133,8 +134,18 @@ void myIOT::networkStatus() {
         }
 }
 void myIOT::start_clock() {
-        long startNTPclock = millis();
+        int x=0;
         startNTP();
+        while (x<3) {
+                time_t t=now();
+                if (year(t)==1970) { // verify actual update
+                        break;
+                }
+                else {
+                        x+=1;
+                        delay(100);
+                }
+        }
         get_timeStamp();
         strcpy(bootTime, timeStamp);
 }

@@ -26,7 +26,7 @@ bool extDefine = false; // must to set to true in order to use EXtMQTT
 
 bool mqttConnected  = 0;
 char* deviceTopic   = "";
-const char *ver     = "iot_1.46_alpha";
+const char *ver     = "iot_1.46_beta";
 char timeStamp[50];
 
 private:

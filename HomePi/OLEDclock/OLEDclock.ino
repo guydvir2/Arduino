@@ -31,91 +31,77 @@
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 //~~~~~~~~~~~~~~ myIOT  ~~~~~~~~~~~~~~~~~~~~~
-#define DEVICE_TOPIC        "HomePi/Dvir/OLED_Clock2"
+#define DEVICE_TOPIC        "HomePi/Dvir/OLED_Clock"
 #define ADD_MQTT_FUNC       addiotnalMQTT
-#define USE_SERIAL          true
+#define USE_SERIAL          false
 #define USE_WDT             true
 #define USE_OTA             true
+#define USE_FAT             true // Flash Assist
 
-#define VER                 "Wemos_V1.4"
+#define VER                 "Wemos_V2.0"
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 
 //~~~~~~~~~~~~~~ myJSON  ~~~~~~~~~~~~~~~~~~~~~
 #define jfile "myfile.json"
-#define STATE_KEY           "state"
-#define BOOT_KEY            "BootTime"
-#define STPWATCH_KEY        "stopWatch_clock"
+#define DISPMODE_KEY        "saved_dispmode"
+#define BOOT_CALC_KEY       "BootTime1"
+#define BOOT_RESET_KEY      "BootTime2"
+#define STPWATCH_KEY        "savedStopWatch"
 
 // Read from FLASH
-unsigned long savedBoot      = 0;
-unsigned long savedStopwatch = 0;
-bool savedSystemState        = false;
+long savedBoot_Calc     = 0; // boot time for calc
+long savedBoot_reset    = 0; // last actual boot
+long savedStopwatch     = 0; // clock when stopwatch start
+int savedDispMode       = 0;
+
+int allowedTime_betweenReboots = 30; //secץ time between reboots to be considered as continuation
+// int allowedTime_betweenReboots = 99999; // considered as inf time
+// int allowedTime_betweenReboots = 0; // considered as every reboot an new operation
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-#define buttonPin           D4
-#define PRESSED             LOW
-#define SYS_STATE_STWATCH   true
+//~~~~~~~~~~~~~~ Hardware setup   ~~~~~~~~~~~
+#define buttonPin       D4
+#define PRESSED         LOW
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+// ~~~~~~~~~~~ StopWatch ~~~~~~~~~~~~~~~~~~~~
+byte days       = 0;
+byte hours      = 0;
+byte minutes    = 0;
+byte seconds    = 0;
 
-byte days    = 0;
-byte hours   = 0;
-byte minutes = 0;
-byte seconds = 0;
-int micross  = 0;
-unsigned long start_watch    = 0;
-unsigned long local_bootTime = 0;
-int ignore_lastboot_interval = 30; //sec
-bool systemState     = false; // display clock or stopwatch
+int sec2minutes = 60;
+int sec2hours   = (sec2minutes * 60);
+int sec2days    = (sec2hours * 24);
+int sec2years   = (sec2days * 365);
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+// ~~~~~~~~~~~ System States  ~~~~~~~~~~~~~~~
+bool disp_stopWatch_flag  = false; // display clock or stopwatch
+bool resetBoot_flag       = false; // detect boot due to reset
+bool stopWatch_ON         = false; // Stopwatch is running
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-
-
+long stopWatch_clocklStart   = 0;
+long updated_bootTime        = 0;
 
 // ~~~~~~~~~~~~~~Start services ~~~~~~~~~~~~
 myIOT iot(DEVICE_TOPIC);
-myJSON json(jfile, true); // <----
+myJSON json(jfile, true);
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-void addiotnalMQTT(char *incoming_msg) {
-        char msg[50];
 
-        if (strcmp(incoming_msg, "status") == 0) {
-                sprintf(msg, "Status: [%s] Mode", systemState ? "StopWatch" : "Clock");
-                iot.pub_msg(msg);
-        }
-        else if (strcmp(incoming_msg, "start") == 0) {
-                sprintf(msg, "StopWatch: [start]");
-                // start_stopwatch(now());
-                iot.pub_msg(msg);
-        }
-        else if (strcmp(incoming_msg, "clock") == 0) {
-                sprintf(msg, "Mode: [Clock]");
-                systemState = !SYS_STATE_STWATCH;
-                json.setValue(STATE_KEY,0);
-                iot.pub_msg(msg);
-        }
-        else if (strcmp(incoming_msg, "stopwatch") == 0) {
-                sprintf(msg, "Mode: [StopWatch]");
-                systemState = SYS_STATE_STWATCH;
-                json.setValue(STATE_KEY,1);
-                iot.pub_msg(msg);
-        }
-        else if (strcmp(incoming_msg, "help") == 0) {
-                sprintf(msg, "Help: [status, start, clock, stopwatch, uptime, help] , [ver, boot, reset, ip, ota]");
-                iot.pub_msg(msg);
-        }
-        else if (strcmp(incoming_msg, "ver") == 0 ) {
-                sprintf(msg, "ver:[%s], lib:[%s], WDT:[%d], OTA:[%d], SERIAL:[%d]", VER, iot.ver, USE_WDT, USE_OTA, USE_SERIAL);
-                iot.pub_msg(msg);
-        }
-        else if (strcmp(incoming_msg, "uptime") == 0 ) {
-                sprintf(msg, "UpTime: %02d days  %02d:%02d:%02d.%01d", days, hours, minutes, seconds, micross);
-                iot.pub_msg(msg);
-        }
-}
-void center_text(int i, char *line1, char *line2 = "", char *line3 = "", char *line4 = "", byte shift = 0) {
+
+
+
+
+
+
+// ~~~~~~~~~~~~~~ display OLED ~~~~~~~~~~~~~
+void center_text(int i, char *line1, char *line2 = "", char *line3 = "",
+                 char *line4 = "", byte shift = 0) {
         char *Lines[] = {line1, line2, line3, line4};
         display.clearDisplay();
         display.setTextSize(i);
@@ -130,160 +116,178 @@ void center_text(int i, char *line1, char *line2 = "", char *line3 = "", char *l
                 }
         }
         display.display();
-}
-void show_clock() {
-        char a[12];
-        char b[12];
-        iot.return_clock(a);
-        iot.return_date(b);
-        center_text(2, a, b);
-}
-
-void start_stopwatch(unsigned long defVal=local_bootTime) {
-        char clock[20];
-
-        start_watch = defVal;
-        sprintf(clock,"%d",start_watch);
-        json.setValue(STATE_KEY, 1);
-        json.setValue(STPWATCH_KEY, clock);
-        systemState = SYS_STATE_STWATCH;
-}
-void stop_stopwatch() {
-        json.setValue(STATE_KEY, 0);
-        json.setValue(STPWATCH_KEY, "0");
-        systemState = !SYS_STATE_STWATCH;
-}
-
-void calc_stopwatch() {
-        unsigned long time_delta = now() - start_watch; //millis() - start_watch;
-        //  Serial.println(now());
-        //  Serial.println(start_watch);
-        //  days    = (int)(time_delta / (1000 * 60 * 60 * 24));
-        //  hours   = (int)((time_delta - days * 1000 * 60 * 60 * 24) / (1000 * 60 * 60));
-        //  minutes = (int)((time_delta - days * 1000 * 60 * 60 * 24 - hours * 1000 * 60 * 60) / (1000 * 60));
-        //  seconds = (int)((time_delta - days * 1000 * 60 * 60 * 24 - hours * 1000 * 60 * 60 - minutes * 1000 * 60) / 1000);
-        //  micross  = (int)((time_delta - days * 1000 * 60 * 60 * 24 - hours * 1000 * 60 * 60 - minutes * 1000 * 60 - seconds * 1000) / 100);
-
-        int sec2minutes = 60;
-        int sec2hours   = (sec2minutes*60);
-        int sec2days    = (sec2hours*24);
-        int sec2years   = (sec2days*365);
-
-        days    = (int)(time_delta/sec2days);
-        hours   = (int)((time_delta - days*sec2days) / sec2hours);
-        minutes = (int)((time_delta - days*sec2days - hours*sec2hours) / sec2minutes);
-        seconds = (int)(time_delta - days*sec2days - hours*sec2hours - minutes*sec2minutes);
-}
-void show_stopwatch() {
-        char day_char[12];
-        char stopwatch_char[50];
-
-        calc_stopwatch();
-        sprintf(day_char, "%02d days", days);
-        //  sprintf(stopwatch_char, "%02d:%02d:%02d.%01d", hours, minutes, seconds, micross);
-        sprintf(stopwatch_char, "%02d:%02d:%02d", hours, minutes, seconds);
-        center_text(2, day_char, stopwatch_char);
-}
-
-bool checkBoot_timestamp() {
-        const char *tmp;
-        if (json.getCharValue(BOOT_KEY,tmp)) {
-                Serial.println("Boot retrieved");
-                Serial.println(tmp);
-                // savedBoot = atoi(tmp);
-        }
-        else{
-                json.setValue(BOOT_KEY,"0");
-                Serial.println("Boot default saved");
-        }
-
-        //   long currentBootTime = now();
-        //   unsigned long stopwatchVal = load_stopwatchValue();
-        //   char temp[15];
-        //
-        //   if (year(currentBootTime) != 1970) { //NTP update succeeded
-        //           if (json.getCharValue("bootTime",savedBoot)) { // previous value not saved on flash
-        //                   if (currentBootTime - atoi(savedBoot) > ignore_lastboot_interval ) {
-        //                           sprintf(temp, "%d", currentBootTime);
-        //                           json.setValue("bootTime", temp);
-        //                           Serial.print("Time updated");
-        //                           local_bootTime = currentBootTime; // take clock of current boot
-        //                   }
-        //                   else if ( currentBootTime - atoi(savedBoot) <= ignore_lastboot_interval && stopwatchVal > 0) {
-        //                           Serial.println("No time update");
-        //                           local_bootTime = atoi(savedBoot); // take clock of last boot
-        //                           start_stopwatch()
-        //                   }
-        //                   return 1;
-        //           }
-        //           else {
-        //                   local_bootTime = currentBootTime;
-        //                   return 0;
-        //           }
-        //   }
-        // }
-}
-
-void load_systemState(){
-        if (json.getINTValue(STATE_KEY, savedSystemState)) {
-                Serial.print("SystemState retrieved: ");
-                Serial.println(savedSystemState);
-        }
-        else{
-                // json.setValue(STATE_KEY,0);
-                // Serial.println("State default saved");
-                systemState= false; // show watch
-        }
-}
-
-void load_stopwatchValue(){
-        const char *stopwatch;
-        if(json.getCharValue(STPWATCH_KEY,stopwatch)) {
-                if (stopwatch!=NULL) {
-                        savedStopwatch = atoi(stopwatch);
-                        Serial.print("Stopwatch retrieved: ");
-                        Serial.println(savedStopwatch);
-                }
-                else{
-                        json.setValue(STPWATCH_KEY,"0");
-                        Serial.println("State default saved");
-                }
-        }
-        else{
-                json.setValue(STPWATCH_KEY,"0");
-                Serial.println("State default saved");
-        }
-}
-
-void setup() {
-        pinMode(buttonPin, INPUT_PULLUP);
-
-        iot.useSerial = USE_SERIAL;
-        iot.useWDT = USE_WDT;
-        iot.useOTA = USE_OTA;
-        iot.start_services(ADD_MQTT_FUNC);
-
-        display.begin(SSD1306_SWITCHCAPVCC, 0x3C);
-        json.setValue(STATE_KEY,1);
-
-        // load_systemState();
-        load_stopwatchValue();
-        // checkBoot_timestamp();
-
-
         /*  size: 1 = 21X4
            /   size: 2 = 10X2
             size: 4 = 5 X1
          */
+}
+void displayClock_OLED() {
+        char clock[12];
+        char date[12];
+        iot.return_clock(clock);
+        iot.return_date(date);
+        center_text(2, clock, date);
+}
+void displayStopWatch_OLED() {
+        char day_char[12];
+        char clock_char[50];
+
+        convert_epoch2clock(now(), stopWatch_clocklStart, day_char, clock_char);
+        sprintf(day_char, "%02d days", days);
+        sprintf(clock_char, "%02d:%02d:%02d", hours, minutes, seconds);
+        center_text(2, day_char, clock_char);
+}
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+// ~~~~~~~~~~~~~~ Create Clocks ~~~~~~~~~~~
+void convert_epoch2clock(long t1, long t2, char* time_str, char* date_str){
+        long time_delta = t1-t2;
+
+        days    = (int)(time_delta / sec2days);
+        hours   = (int)((time_delta - days * sec2days) / sec2hours);
+        minutes = (int)((time_delta - days * sec2days - hours * sec2hours) / sec2minutes);
+        seconds = (int)(time_delta - days * sec2days - hours * sec2hours - minutes * sec2minutes);
+
+        sprintf(time_str, "%02d days", days);
+        sprintf(date_str, "%02d:%02d:%02d", hours, minutes, seconds);
+}
+void getTime_stamp(time_t t, char *ret_date, char* ret_clock){
+        sprintf(ret_date, "%04d-%02d-%02d", year(t), month(t), day(t));
+        sprintf(ret_clock, "%02d:%02d:%02d", hour(t), minute(t), second(t));
+}
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+// ~~~~~~~~~~~ StopWatch ~~~~~~~~~~~~~~~~~~
+void start_stopwatch(long defVal = updated_bootTime) {
+        stopWatch_clocklStart = defVal;
+        stopWatch_ON = true;
+        disp_stopWatch_flag = true; // stopwatch mode display
+        if (USE_FAT) {
+                json.setValue(DISPMODE_KEY, 1);
+                json.setValue(STPWATCH_KEY, stopWatch_clocklStart);
+        }
 
 }
-void loop() {
+void stop_stopwatch() {
+        stopWatch_ON = false;
+        disp_stopWatch_flag = !true; // back to clock mode display
+        if (USE_FAT) {
+                json.setValue(DISPMODE_KEY, 0);
+                json.setValue(STPWATCH_KEY, 0);
+        }
+
+}
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+// ~~~~~~~~~~~ Load Saved Flash ~~~~~~~~~~~
+bool load_bootTime() {
+        if (json.getValue(BOOT_CALC_KEY, savedBoot_Calc)) {
+                // Serial.print("Boot retrieved: ");
+                // Serial.println(savedBoot_Calc);
+        }
+        else {
+                json.setValue(BOOT_CALC_KEY, 0);
+                // Serial.println("Boot default saved");
+        }
+        if (json.getValue(BOOT_RESET_KEY, savedBoot_reset)) {
+                // Serial.print("Boot retrieved: ");
+                // Serial.println(savedBoot_reset);
+        }
+        else {
+                json.setValue(BOOT_CALC_KEY, 0);
+                // Serial.println("Boot default saved");
+        }
+
+        long currentBootTime = now();
+        int x =0;
+
+        while (x<5) { // verify time is updated
+                if (year(currentBootTime) != 1970) { //NTP update succeeded
+                        json.setValue(BOOT_RESET_KEY, currentBootTime);
+                        break;
+                }
+                else{
+                        currentBootTime = now();
+                }
+                x +=1;
+                delay(200);
+        }
+        if (x==4) { // fail NTP
+                return 0;
+        }
+
+        if (currentBootTime - savedBoot_reset > allowedTime_betweenReboots ) {
+                // Serial.print("TimeDelta:");
+                // Serial.println(currentBootTime - savedBoot_reset);
+                json.setValue(BOOT_CALC_KEY, currentBootTime);
+                // Serial.println("Time updated");
+                updated_bootTime = currentBootTime;                   // take clock of current boot
+                return 1;
+        }
+        else if ( currentBootTime - savedBoot_reset <= allowedTime_betweenReboots) {
+                // Serial.println("No time update");
+                updated_bootTime = savedBoot_Calc;                   // take clock of last boot
+                resetBoot_flag = true;
+                return 1;
+        }
+}
+void load_dispMode() {
+        if (json.getValue(DISPMODE_KEY, savedDispMode)) {
+                // Serial.print("SystemState retrieved: ");
+                // Serial.println(savedDispMode);
+
+                if (resetBoot_flag==0) {
+                        disp_stopWatch_flag = false;
+                }
+                else{
+                        disp_stopWatch_flag = savedDispMode;
+                }
+
+        }
+        else {
+                json.setValue(DISPMODE_KEY,0);
+                // Serial.println("State default saved");
+                disp_stopWatch_flag = false; // show watch
+        }
+}
+void load_stopwatchValue() {
+        if (json.getValue(STPWATCH_KEY, savedStopwatch)) {
+                if (savedStopwatch > 0 && resetBoot_flag == true) {
+                        start_stopwatch(updated_bootTime);
+
+                        // Serial.print("Stopwatch retrieved: ");
+                        // Serial.println(savedStopwatch);
+                }
+                else if(resetBoot_flag == false) {
+                        disp_stopWatch_flag = false;
+                }
+        }
+        else {
+                json.setValue(STPWATCH_KEY, 0);
+                // Serial.println("StopWatch default saved");
+                disp_stopWatch_flag = false;
+        }
+}
+void load_allFLASH_vars(){
+
+  if (load_bootTime()==true){
+    load_dispMode();
+    load_stopwatchValue();
+  }
+  else{
+    center_text(2,"Clock Update","Error");
+
+  }
+}
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+void readButton(){
         if (digitalRead(buttonPin) == PRESSED ) {
                 delay(50); // debounce
                 if (digitalRead(buttonPin) == PRESSED) {
                         unsigned long presslength = millis();
-                        systemState = !systemState; // change state
-                        if (systemState == SYS_STATE_STWATCH) { //true for stopwatch mode
+                        disp_stopWatch_flag = !disp_stopWatch_flag; // change state
+                        if (disp_stopWatch_flag == true) { //true for stopwatch mode
                                 while (digitalRead(buttonPin) == PRESSED) {
                                         delay(50);
                                 }
@@ -302,50 +306,83 @@ void loop() {
                 }
                 delay(300);
         }
+}
+void addiotnalMQTT(char *incoming_msg) {
+        char msg[100];
 
-        if (systemState == true) {
-                show_stopwatch();
+        if (strcmp(incoming_msg, "status") == 0) {
+                sprintf(msg, "Status: [%s] Mode", disp_stopWatch_flag ? "StopWatch" : "Clock");
+                iot.pub_msg(msg);
+        }
+        else if (strcmp(incoming_msg, "start") == 0) {
+                sprintf(msg, "StopWatch: [start]");
+                start_stopwatch(now());
+                iot.pub_msg(msg);
+        }
+        else if (strcmp(incoming_msg, "stop") == 0 ) {
+                sprintf(msg, "StopWatch: [stop]");
+                stop_stopwatch();
+                iot.pub_msg(msg);
+        }
+        else if (strcmp(incoming_msg, "clock") == 0) {
+                sprintf(msg, "Mode: [Clock]");
+                disp_stopWatch_flag = !true;
+                json.setValue(DISPMODE_KEY, 0);
+                iot.pub_msg(msg);
+        }
+        else if (strcmp(incoming_msg, "stopwatch") == 0) {
+                sprintf(msg, "Mode: [StopWatch]");
+                disp_stopWatch_flag = true;
+                json.setValue(DISPMODE_KEY, 1);
+                iot.pub_msg(msg);
+        }
+        else if (strcmp(incoming_msg, "help") == 0) {
+                sprintf(msg, "Help: [status, start, stop, clock, stopwatch, uptime, format, help] , [ver, boot, reset, ip, ota]");
+                iot.pub_msg(msg);
+        }
+        else if (strcmp(incoming_msg, "ver") == 0 ) {
+                sprintf(msg, "ver:[%s], lib:[%s], WDT:[%d], OTA:[%d], SERIAL:[%d], FAT:[%d], tBetweenReset[%d sec]", VER, iot.ver, USE_WDT, USE_OTA, USE_SERIAL, USE_FAT, allowedTime_betweenReboots);
+                iot.pub_msg(msg);
+        }
+        else if (strcmp(incoming_msg, "uptime") == 0 ) {
+                sprintf(msg, "UpTime: %02d days  %02d:%02d:%02d", days, hours, minutes, seconds);
+                iot.pub_msg(msg);
+        }
+        else if (strcmp(incoming_msg, "format") == 0 ) {
+                sprintf(msg, "Flash Format started");
+                json.format();
+                iot.pub_msg(msg);
+        }
+}
+
+void setup() {
+        pinMode(buttonPin, INPUT_PULLUP);
+
+        iot.useSerial = USE_SERIAL;
+        iot.useWDT = USE_WDT;
+        iot.useOTA = USE_OTA;
+        iot.start_services(ADD_MQTT_FUNC);
+
+        display.begin(SSD1306_SWITCHCAPVCC, 0x3C);
+
+        if (USE_FAT) { //Flash AssisT
+                load_allFLASH_vars();
+        }
+        else{
+                updated_bootTime = now();
+        }
+}
+
+void loop() {
+        readButton();
+
+        if (disp_stopWatch_flag == true && stopWatch_ON == true ) {
+                displayStopWatch_OLED();
         }
         else {
-                show_clock();
+                displayClock_OLED();
         }
 
         iot.looper();
-        delay(500);
+        delay(300);
 }
-
-
-
-
-// //    ~~~~~~~~~ Display clock ~~~~~~~~~~~~~~~~~~~
-// Serial.print("Current Time:");
-// Serial.print(year(currentBootTime));
-// Serial.print("-");
-// Serial.print(month(currentBootTime));
-// Serial.print("-");
-// Serial.print(day(currentBootTime));
-// Serial.print(" ");
-//
-// Serial.print(hour(currentBootTime));
-// Serial.print(":");
-// Serial.print(minute(currentBootTime));
-// Serial.print(":");
-// Serial.println(second(currentBootTime));
-// //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-//
-// Serial.print("Saved Time:");
-// Serial.print(year(atoi(savedBoot)));
-// Serial.print("-");
-// Serial.print(month(atoi(savedBoot)));
-// Serial.print("-");
-// Serial.print(day(atoi(savedBoot)));
-// Serial.print(" ");
-//
-// Serial.print(hour(atoi(savedBoot)));
-// Serial.print(":");
-// Serial.print(minute(atoi(savedBoot)));
-// Serial.print(":");
-// Serial.println(second(atoi(savedBoot)));
-// //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-// Serial.print("Time delta: ");
-// Serial.println(currentBootTime - atoi(savedBoot));

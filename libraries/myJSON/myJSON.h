@@ -22,15 +22,21 @@ bool file_remove();
 bool format ();
 bool FS_ok();
 
-bool getCharValue (const char *key, const char *retval);
-bool getINTValue (const char *key, int retval);
-void removeValue(const char *key);
-void eraseArray(char* array_key);
+bool getValue (const char *key, char value[20]="0");
+bool getValue (const char *key, int &retval);
+bool getValue (const char *key, long &retval);
+
+
 void setValue(const char *key, char *value);
-void setValue(const char *key, int  value);
+void setValue(const char *key, int value);
+void setValue(const char *key, long value);
+
 void updateArray(char* array_key, char *val);
 void updateArray(char* array_key, int val);
+void eraseArray(char* array_key);
+
 void printFile();
+void removeValue(const char *key);
 
 private:
 
