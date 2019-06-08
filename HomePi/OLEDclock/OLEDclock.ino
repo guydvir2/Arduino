@@ -238,6 +238,8 @@ void load_dispMode() {
 
                 if (resetBoot_flag==0) {
                         disp_stopWatch_flag = false;
+                        json.setValue(DISPMODE_KEY,0);
+
                 }
                 else{
                         disp_stopWatch_flag = savedDispMode;
@@ -259,6 +261,7 @@ void load_stopwatchValue() {
                         // Serial.println(savedStopwatch);
                 }
                 else if(resetBoot_flag == false) {
+                        json.setValue(STPWATCH_KEY, 0);
                         disp_stopWatch_flag = false;
                 }
         }
