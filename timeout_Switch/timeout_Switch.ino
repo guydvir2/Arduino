@@ -15,7 +15,7 @@
 
 //~~~Services~~~~~~~~~~~
 #define USE_SERIAL       true
-#define USE_WDT          true
+#define USE_WDT          false
 #define USE_OTA          true
 #define USE_MAN_RESET    false
 #define USE_BOUNCE_DEBUG false
@@ -26,14 +26,14 @@
 #define SONOFF_DUAL      false // <----- Select one
 #define SONOFF_BASIC     false // <----- Select one
 #define WEMOS            true
-// ~~~
+// ~~~~~~~~~~~~~~~~~~~~~
 
-// ~~~ define onBoot timeout in [minutes] ~~~~
+// ~~~ define ** onBoot ** timeout in [minutes] ~~~~
 /* -1 ==  on
     0 ==  off
     >0 == timeout
  */
-int relay_timeout[] = {2,2}; //
+int relay_timeout[] = {10,2}; //
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 #define VER "SonoffBasic_2.0_alpha"
@@ -41,8 +41,8 @@ int relay_timeout[] = {2,2}; //
 
 //~~~~~~~~~~~~~~ myJSON  ~~~~~~~~~~~~~~~~~~~~~
 #define jfile "myfile.json"
-#define BOOT_CALC_KEY       "BootTime1"
-#define BOOT_RESET_KEY      "BootTime2"
+#define BOOT_CALC_KEY        "BootTime1"
+#define BOOT_RESET_KEY       "BootTime2"
 #define TIMEOUT0_KEY         "savedTimeOut0"
 #define TIMEOUT1_KEY         "savedTimeOut1"
 #define SWITCH0_STATE_KEY    "savedSwitch0_State"
@@ -52,15 +52,17 @@ int relay_timeout[] = {2,2}; //
 // Read from FLASH
 long savedBoot_Calc     = 0; // boot time for calc
 long savedBoot_reset    = 0; // last actual boot
-long savedTimeOut       = 0; // clock when stopwatch start
+long savedTimeOut0      = 0; // clock when stopwatch start
+long savedTimeOut1      = 0; // clock when stopwatch start
 long clockShift         = 0;
 
-int resetIntervals = 30; //secץ time between reboots to be considered as continuation
+int resetIntervals = 30; //sec time between reboots to be considered as continuation
 // int allowedTime_betweenReboots = 99999; // considered as inf time
 // int allowedTime_betweenReboots = 0; // considered as every reboot an new operation
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-long updated_bootTime        = 0;
-bool resetBoot_flag       = false;
+long updated_bootTime = 0;
+bool resetBoot_flag   = false;
+long end_timeout[]    = {0, 0};
 
 #if (SONOFF_DUAL)
 
@@ -121,35 +123,39 @@ bool resetBoot_flag       = false;
 #endif
 
 
-int relays[] = {RELAY1, RELAY2};
+int relays[]  = {RELAY1, RELAY2};
 byte inputs[] = {INPUT1, INPUT2};
 int inputs_lastState[NUM_SWITCHES];
 long start_timeout[] = {0, 0}; // store clock start for TO
-long end_timeout[] = {0, 0};
-// manual RESET parameters
-int manResetCounter =               0;  // reset press counter
-int pressAmount2Reset =             3; // time to press button to init Reset
-long lastResetPress =               0; // time stamp of last press
-const int timeInterval_resetPress = 1500; // time between consq presses to init RESET cmd
-const int deBounceInt =             50; // mili
-// ####################
-
 char parameters[2][4]; //values from user
 
+// manual RESET parameters
+int manResetCounter               = 0;  // reset press counter
+int pressAmount2Reset             = 3; // time to press button to init Reset
+long lastResetPress               = 0; // time stamp of last press
+const int timeInterval_resetPress = 1500; // time between consq presses to init RESET cmd
+const int deBounceInt             = 50; // mili
+// ~~~~~~~~~~~~~~~~~~~~~~
+
+
+// ~~~~~~~~~~~~~~Start services ~~~~~~~~~~~~
 #define ADD_MQTT_FUNC addiotnalMQTT
 myIOT iot(DEVICE_TOPIC);
 myJSON json(jfile, true);
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 void setup() {
-  load_allFLASH_vars();
-        startGPIOs();
 
         iot.useSerial = USE_SERIAL;
         iot.useWDT = USE_WDT;
         iot.useOTA = USE_OTA;
         iot.start_services(ADD_MQTT_FUNC);  // additinalMQTTfucntion, ssid,pswd,mqttuser,mqtt_pswd,broker
 
-
+        load_bootTime();
+        startGPIOs();
+        // printTime(now(),"boot");
+        // printTime(end_timeout[0],"end_0");
+        // printTime(end_timeout[1],"end_1");
 
         // ~~~~~~~~~~~~~ using switchIt just to notify MQTT  ~~~~~~~
         for (int i = 0; i < NUM_SWITCHES; i++) {
@@ -163,12 +169,15 @@ void setup() {
         // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 }
 
-// ~~~~~~~~~ StartUp ~~~~~~~~~~~~
+// ~~~~~~~~~~~~ StartUp ~~~~~~~~~~~~~~~~~~~
 void startGPIOs() {
         for (int i = 0; i < NUM_SWITCHES; i++) {
                 pinMode(relays[i], OUTPUT);
+                pinMode(inputs[i], INPUT_PULLUP);
+
                 if (relay_timeout[i] == 0) {  // OFF STATE
                         digitalWrite(relays[i], !RelayOn);
+
                         if(USE_FAT) {
                                 if(i==0) {
                                         json.setValue(SWITCH0_STATE_KEY,0);
@@ -180,6 +189,7 @@ void startGPIOs() {
                 }
                 else if ( relay_timeout[i] == -1) { // ON STATE
                         digitalWrite(relays[i], RelayOn);
+
                         if(USE_FAT) {
                                 if(i==0) {
                                         json.setValue(SWITCH0_STATE_KEY,1);
@@ -192,19 +202,9 @@ void startGPIOs() {
                 }
                 else if (relay_timeout[i] > 0) { // TimeOut STATE [minuntes]
                         digitalWrite(relays[i], RelayOn);
-                        start_timeout[i] = millis();
-                        end_timeout [i] = updated_bootTime + relay_timeout[i]*60;
-                        if(USE_FAT) {
-                                if(i==0) {
-                                        json.setValue(SWITCH0_STATE_KEY,1);
-                                }
-                                else if(i==1) {
-                                        json.setValue(SWITCH1_STATE_KEY,1);
-                                }
-                        }
+                        startCounter(i,relay_timeout[i]);
                 }
 
-                pinMode(inputs[i], INPUT_PULLUP);
                 inputs_lastState[i] = digitalRead(inputs[i]);
         }
 
@@ -215,29 +215,49 @@ void startGPIOs() {
         }
 
 }
+void startCounter(int i, int t){
+        if(USE_FAT) {
+                if(i==0) {
+                        if (json.getValue(TIMEOUT0_KEY, savedTimeOut0)) {
+                                if (savedTimeOut0 == 0 ) {   // No TimeOut Stored
+                                        end_timeout[i] = updated_bootTime + t*60; // seconds
+                                        json.setValue(SWITCH0_STATE_KEY,1);
+                                        json.setValue(TIMEOUT0_KEY,end_timeout[0]);
+                                }
+                                else {   // Stored Timeout
+                                        end_timeout[i] = savedTimeOut0;
+                                }
+                        }
+                        else{
+                                json.setValue(TIMEOUT0_KEY, 0);
+                        }
+                        printTime(end_timeout[i],"TimeOut 0: ");
+                }
+
+                else if(i==1) {
+                        if (json.getValue(TIMEOUT1_KEY, savedTimeOut1)) {
+                                if (savedTimeOut1 == 0 ) {   // No TimeOut Stored
+                                        end_timeout[i] = updated_bootTime + t*60;
+                                        json.setValue(SWITCH1_STATE_KEY,1);
+                                        json.setValue(TIMEOUT1_KEY,end_timeout[1]);
+                                }
+                                else {   // Stored Timeout
+                                        end_timeout[i] = savedTimeOut1;
+                                }
+                        }
+                        else{
+                                json.setValue(TIMEOUT1_KEY, 0);
+                        }
+                        printTime(end_timeout[i],"TimeOut 1: ");
+                }
+        }
+        else{
+                end_timeout[i] = updated_bootTime + t*60;
+        }
+}
 void timeoutLoop() {
         for (int i = 0; i < NUM_SWITCHES; i++) {
-                // if (start_timeout[i] != 0 ) {
-                //         if ((millis() - start_timeout[i] ) > relay_timeout[i] * 1000 * 60 ) {
-                //                 switchIt("TimeOut", i, "off");
-                //                 if(USE_FAT) {
-                //                         if(i==0) {
-                //                                 json.setValue(TIMEOUT0_KEY,0);
-                //                         }
-                //                         else if(i==1) {
-                //                                 json.setValue(TIMEOUT01_KEY,0);
-                //                         }
-                //                 }
-                //
-                //                 start_timeout[i] = 0;
-                //         }
-                // }
-
                 if (end_timeout[i] != 0 ) {
-                  Serial.println(now());
-                  Serial.print(i);
-                  Serial.print(" :");
-                  Serial.println(end_timeout[i]);
                         if (now() > end_timeout[i] ) {
                                 switchIt("TimeOut", i, "off");
                                 if(USE_FAT) {
@@ -248,14 +268,15 @@ void timeoutLoop() {
                                                 json.setValue(TIMEOUT1_KEY,0);
                                         }
                                 }
-
                                 end_timeout[i] = 0;
                         }
                 }
         }
 }
-// ~~~~~~~~~ GPIO switching ~~~~~~~~~~~~~
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+
+// ~~~~~~~~~ GPIO switching ~~~~~~~~~~~~~
 void PBit() {
         int pause = 2 * 5 * deBounceInt;
         allOff();
@@ -292,6 +313,7 @@ void switchIt(char *type, int sw_num, char *dir) {
         if (sw_num < NUM_SWITCHES && sw_num >= 0) {
                 if (strcmp(dir, "on") == 0) {
                         digitalWrite(relays[sw_num], RelayOn);
+
                         if(USE_FAT) {
                                 if(sw_num==0) {
                                         json.setValue(SWITCH0_STATE_KEY,1);
@@ -344,7 +366,7 @@ void detectResetPresses() {
                 manResetCounter = 0;
         }
 }
-void checkSwitch_Pressed() {
+void checkSwitch_looper() {
         for (int i = 0; i < NUM_SWITCHES; i++) {
                 if (digitalRead(inputs[i]) != inputs_lastState[i]) {
                         delay(deBounceInt);
@@ -372,6 +394,10 @@ void checkSwitch_Pressed() {
                 }
         }
 }
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+// ~~~~~~~~~~~~~~~ MQTT  ~~~~~~~~~~~~~~~~~~
 void splitter(char *inputstr) {
         char * pch;
         int i = 0;
@@ -421,7 +447,34 @@ void addiotnalMQTT(char incoming_msg[50]) {
                 sprintf(msg, "ver:[%s], lib:[%s], WDT:[%d], OTA:[%d], SERIAL:[%d], MAN_RESET:[%d], EXT_BUTTONS[%d]", VER, iot.ver, USE_WDT, USE_OTA, USE_SERIAL, USE_MAN_RESET, USE_EXT_BUTTONS);
                 iot.pub_msg(msg);
         }
+        else if (strcmp(incoming_msg, "help") == 0) {
+                sprintf(msg, "Help: [status, uptime, format, help] , [ver, boot, reset, ip, ota]");
+                iot.pub_msg(msg);
+        }
+        else if (strcmp(incoming_msg, "uptime") == 0 ) {
+                long time_left[NUM_SWITCHES];
+                char aa[10];
+                char ab[10];
+                for (int a = 0; a<NUM_SWITCHES; a++) {
+                        time_left[a] = end_timeout[a]-now();
+                        if (time_left[a] < 0 ){
+                          time_left[a] = 0;
+                        }
+                        Serial.println(time_left[a]);
 
+                        // convert_epoch2clock(time_left[a],0, aa,ab);
+                        // Serial.println(aa);
+                        // Serial.println(ab);
+                }
+
+                // sprintf(msg, "UpTime: %02d days  %02d:%02d:%02d", days, hours, minutes, seconds);
+                iot.pub_msg(msg);
+        }
+        else if (strcmp(incoming_msg, "format") == 0 ) {
+                sprintf(msg, "Flash Format started");
+                json.format();
+                iot.pub_msg(msg);
+        }
         else { // get user defined definitions
                 splitter(incoming_msg);
                 if (isDigit(*parameters[1])) { // TimeOut
@@ -434,24 +487,59 @@ void addiotnalMQTT(char incoming_msg[50]) {
                 }
         }
 }
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+// ~~~~~~~~~~~~~~~ TIME  ~~~~~~~~~~~~~~~~~~
+void getTime_stamp(time_t t, char *ret_date, char* ret_clock){
+        sprintf(ret_date, "%04d-%02d-%02d", year(t), month(t), day(t));
+        sprintf(ret_clock, "%02d:%02d:%02d", hour(t), minute(t), second(t));
+}
+void printTime(time_t t, char *text){
+        char time1[20];
+        char date1[20];
+        Serial.println(text);
+        getTime_stamp(t,time1, date1);
+        Serial.println(time1);
+        Serial.println(date1);
+}
+void convert_epoch2clock(long t1, long t2, char* time_str, char* date_str){
+        byte days       = 0;
+        byte hours      = 0;
+        byte minutes    = 0;
+        byte seconds    = 0;
+
+        int sec2minutes = 60;
+        int sec2hours   = (sec2minutes * 60);
+        int sec2days    = (sec2hours * 24);
+        int sec2years   = (sec2days * 365);
+
+        long time_delta = t1-t2;
+
+        days    = (int)(time_delta / sec2days);
+        hours   = (int)((time_delta - days * sec2days) / sec2hours);
+        minutes = (int)((time_delta - days * sec2days - hours * sec2hours) / sec2minutes);
+        seconds = (int)(time_delta - days * sec2days - hours * sec2hours - minutes * sec2minutes);
+
+        sprintf(time_str, "%02d days", days);
+        sprintf(date_str, "%02d:%02d:%02d", hours, minutes, seconds);
+}
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 
 // ~~~~~~~~~~~ Load Saved Flash ~~~~~~~~~~~
 bool load_bootTime() {
+        char time1[20];
+        char date1[20];
         if (json.getValue(BOOT_CALC_KEY, savedBoot_Calc)) {
-                // Serial.print("Boot retrieved: ");
-                // Serial.println(savedBoot_Calc);
         }
         else {
                 json.setValue(BOOT_CALC_KEY, 0);
-                // Serial.println("Boot default saved");
         }
         if (json.getValue(BOOT_RESET_KEY, savedBoot_reset)) {
-                // Serial.print("Boot retrieved: ");
-                // Serial.println(savedBoot_reset);
         }
         else {
-                json.setValue(BOOT_CALC_KEY, 0);
-                // Serial.println("Boot default saved");
+                json.setValue(BOOT_RESET_KEY, 0);
         }
 
         long currentBootTime = now();
@@ -460,64 +548,38 @@ bool load_bootTime() {
         while (x<5) { // verify time is updated
                 if (year(currentBootTime) != 1970) { //NTP update succeeded
                         json.setValue(BOOT_RESET_KEY, currentBootTime);
+                        int tDelta = currentBootTime - savedBoot_reset;
+
+                        if ( tDelta > resetIntervals ) {
+                                Serial.println("Time updated");
+                                json.setValue(BOOT_CALC_KEY, currentBootTime);
+                                updated_bootTime = currentBootTime;                   // take clock of current boot
+                                clockShift = 0;
+                                resetBoot_flag = false;
+                                return 1;
+                        }
+                        else  {
+                                Serial.println("No time update");
+                                updated_bootTime = savedBoot_Calc;                   // take clock of last boot
+                                clockShift = currentBootTime - updated_bootTime;
+                                resetBoot_flag = true;
+                                return 1;
+                        }
                         break;
                 }
                 else{
                         currentBootTime = now();
                 }
                 x +=1;
+                Serial.println(x);
                 delay(200);
         }
         if (x==4) { // fail NTP
                 return 0;
         }
-
-        if (currentBootTime - savedBoot_reset > resetIntervals ) {
-                // Serial.print("TimeDelta:");
-                // Serial.println(currentBootTime - savedBoot_reset);
-                json.setValue(BOOT_CALC_KEY, currentBootTime);
-                // Serial.println("Time updated");
-                updated_bootTime = currentBootTime;                   // take clock of current boot
-                clockShift = 0;
-                return 1;
-        }
-        else if ( currentBootTime - savedBoot_reset <= resetIntervals) {
-                // Serial.println("No time update");
-                updated_bootTime = savedBoot_Calc;                   // take clock of last boot
-                clockShift = currentBootTime - updated_bootTime;
-                resetBoot_flag = true;
-                return 1;
-        }
-}
-void load_timeoutValue() {
-        // if (json.getValue(TIMEOUT_KEY, savedTimeOut)) {
-        //         if (savedTimeOut > 0 ) {
-        //                 start_stopwatch(updated_bootTime);
-        //
-        //                 // Serial.print("Stopwatch retrieved: ");
-        //                 // Serial.println(savedTimeOut);
-        //         }
-        //         else if(resetBoot_flag == false) {
-        //                 json.setValue(TIMEOUT_KEY, 0);
-        //                 disp_stopWatch_flag = false;
-        //         }
-        // }
-        // else {
-        //         json.setValue(TIMEOUT_KEY, 0);
-        //         // Serial.println("StopWatch default saved");
-        //         disp_stopWatch_flag = false;
-        // }
-}
-void load_allFLASH_vars(){
-
-        if (load_bootTime()==true) {
-                load_timeoutValue();
-        }
-        else{
-
-        }
 }
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 void loop() {
         iot.looper(); // check wifi, mqtt, wdt
         timeoutLoop();
@@ -527,7 +589,7 @@ void loop() {
         }
 
         if (USE_EXT_BUTTONS) {
-                checkSwitch_Pressed();
+                checkSwitch_looper();
         }
 
         if (SONOFF_DUAL && digitalRead(BUTTON) == ButtonPressed) {

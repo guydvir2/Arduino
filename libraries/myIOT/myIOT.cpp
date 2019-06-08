@@ -136,16 +136,16 @@ void myIOT::networkStatus() {
 void myIOT::start_clock() {
         int x=0;
         startNTP();
-        while (x<3) {
-                time_t t=now();
-                if (year(t)==1970) { // verify actual update
-                        break;
-                }
-                else {
-                        x+=1;
-                        delay(100);
-                }
-        }
+        // while (x<3) {
+        //         time_t t=now();
+        //         if (year(t)==1970) { // verify actual update
+        //                 break;
+        //         }
+        //         else {
+        //                 x+=1;
+        //                 delay(100);
+        //         }
+        // }
         get_timeStamp();
         strcpy(bootTime, timeStamp);
 }

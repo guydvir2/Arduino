@@ -31,9 +31,9 @@
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 //~~~~~~~~~~~~~~ myIOT  ~~~~~~~~~~~~~~~~~~~~~
-#define DEVICE_TOPIC        "HomePi/Dvir/OLED_Clock"
+#define DEVICE_TOPIC        "HomePi/Dvir/OLED_Clock2"
 #define ADD_MQTT_FUNC       addiotnalMQTT
-#define USE_SERIAL          false
+#define USE_SERIAL          true
 #define USE_WDT             true
 #define USE_OTA             true
 #define USE_FAT             true // Flash Assist
@@ -194,7 +194,7 @@ bool load_bootTime() {
                 // Serial.println(savedBoot_reset);
         }
         else {
-                json.setValue(BOOT_CALC_KEY, 0);
+                json.setValue(BOOT_RESET_KEY, 0);
                 // Serial.println("Boot default saved");
         }
 
@@ -273,14 +273,14 @@ void load_stopwatchValue() {
 }
 void load_allFLASH_vars(){
 
-  if (load_bootTime()==true){
-    load_dispMode();
-    load_stopwatchValue();
-  }
-  else{
-    center_text(2,"Clock Update","Error");
+        if (load_bootTime()==true) {
+                load_dispMode();
+                load_stopwatchValue();
+        }
+        else{
+                center_text(2,"Clock Update","Error");
 
-  }
+        }
 }
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
