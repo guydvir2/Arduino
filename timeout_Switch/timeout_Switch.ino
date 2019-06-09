@@ -15,7 +15,7 @@
 
 //~~~Services~~~~~~~~~~~
 #define USE_SERIAL       true
-#define USE_WDT          false
+#define USE_WDT          true
 #define USE_OTA          true
 #define USE_MAN_RESET    false
 #define USE_BOUNCE_DEBUG false
@@ -36,7 +36,7 @@
 int relay_timeout[] = {10,2}; //
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-#define VER "SonoffBasic_2.0_alpha"
+#define VER "SonoffBasic_2.1_alpha"
 //####################################################
 
 //~~~~~~~~~~~~~~ myJSON  ~~~~~~~~~~~~~~~~~~~~~
@@ -151,9 +151,10 @@ void setup() {
         iot.useOTA = USE_OTA;
         iot.start_services(ADD_MQTT_FUNC);  // additinalMQTTfucntion, ssid,pswd,mqttuser,mqtt_pswd,broker
 
-        load_bootTime();
+        if (load_bootTime();
         startGPIOs();
-        // printTime(now(),"boot");
+
+        printTime(now(),"boot: ");
         // printTime(end_timeout[0],"end_0");
         // printTime(end_timeout[1],"end_1");
 
@@ -167,6 +168,11 @@ void setup() {
                 }
         }
         // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+      }
+      else{
+        iot.pub_msg("Err: Read values from FLASh. RESET");
+        iot.reset();
+      }
 }
 
 // ~~~~~~~~~~~~ StartUp ~~~~~~~~~~~~~~~~~~~
@@ -216,6 +222,7 @@ void startGPIOs() {
 
 }
 void startCounter(int i, int t){
+        Serial.println("Read Counter Values");
         if(USE_FAT) {
                 if(i==0) {
                         if (json.getValue(TIMEOUT0_KEY, savedTimeOut0)) {
@@ -447,29 +454,29 @@ void addiotnalMQTT(char incoming_msg[50]) {
                 sprintf(msg, "ver:[%s], lib:[%s], WDT:[%d], OTA:[%d], SERIAL:[%d], MAN_RESET:[%d], EXT_BUTTONS[%d]", VER, iot.ver, USE_WDT, USE_OTA, USE_SERIAL, USE_MAN_RESET, USE_EXT_BUTTONS);
                 iot.pub_msg(msg);
         }
-        else if (strcmp(incoming_msg, "help") == 0) {
-                sprintf(msg, "Help: [status, uptime, format, help] , [ver, boot, reset, ip, ota]");
-                iot.pub_msg(msg);
-        }
-        else if (strcmp(incoming_msg, "uptime") == 0 ) {
-                long time_left[NUM_SWITCHES];
-                char aa[10];
-                char ab[10];
-                for (int a = 0; a<NUM_SWITCHES; a++) {
-                        time_left[a] = end_timeout[a]-now();
-                        if (time_left[a] < 0 ){
-                          time_left[a] = 0;
-                        }
-                        Serial.println(time_left[a]);
-
-                        // convert_epoch2clock(time_left[a],0, aa,ab);
-                        // Serial.println(aa);
-                        // Serial.println(ab);
-                }
-
-                // sprintf(msg, "UpTime: %02d days  %02d:%02d:%02d", days, hours, minutes, seconds);
-                iot.pub_msg(msg);
-        }
+        // else if (strcmp(incoming_msg, "help") == 0) {
+        //         sprintf(msg, "Help: [status, uptime, format, help] , [ver, boot, reset, ip, ota]");
+        //         iot.pub_msg(msg);
+        // }
+        // else if (strcmp(incoming_msg, "uptime") == 0 ) {
+        //         long time_left[NUM_SWITCHES];
+        //         char aa[10];
+        //         char ab[10];
+        //         for (int a = 0; a<NUM_SWITCHES; a++) {
+        //                 time_left[a] = end_timeout[a]-now();
+        //                 if (time_left[a] < 0 ){
+        //                   time_left[a] = 0;
+        //                 }
+        //                 Serial.println(time_left[a]);
+        //
+        //                 // convert_epoch2clock(time_left[a],0, aa,ab);
+        //                 // Serial.println(aa);
+        //                 // Serial.println(ab);
+        //         }
+        //
+        //         // sprintf(msg, "UpTime: %02d days  %02d:%02d:%02d", days, hours, minutes, seconds);
+        //         iot.pub_msg(msg);
+        // }
         else if (strcmp(incoming_msg, "format") == 0 ) {
                 sprintf(msg, "Flash Format started");
                 json.format();
@@ -490,7 +497,7 @@ void addiotnalMQTT(char incoming_msg[50]) {
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 
-// ~~~~~~~~~~~~~~~ TIME  ~~~~~~~~~~~~~~~~~~
+// ~~~~~~~~~~~~~~~ TIME  txt ~~~~~~~~~~~~~~
 void getTime_stamp(time_t t, char *ret_date, char* ret_clock){
         sprintf(ret_date, "%04d-%02d-%02d", year(t), month(t), day(t));
         sprintf(ret_clock, "%02d:%02d:%02d", hour(t), minute(t), second(t));
@@ -529,52 +536,66 @@ void convert_epoch2clock(long t1, long t2, char* time_str, char* date_str){
 
 // ~~~~~~~~~~~ Load Saved Flash ~~~~~~~~~~~
 bool load_bootTime() {
-        char time1[20];
-        char date1[20];
+
+        int suc_counter = 0
+                          Serial.println("Read Boot Values");
+
         if (json.getValue(BOOT_CALC_KEY, savedBoot_Calc)) {
+                Serial.println("BOOT_CALC_KEY OK");
+                suc_counter+=1;
         }
         else {
                 json.setValue(BOOT_CALC_KEY, 0);
+                Serial.println("BOOT_CALC_KEY NOT OK");
         }
         if (json.getValue(BOOT_RESET_KEY, savedBoot_reset)) {
+                Serial.println("BOOT_RESET_KEY OK");
+                suc_counter+=1;
         }
         else {
                 json.setValue(BOOT_RESET_KEY, 0);
+                Serial.println("BOOT_RESET_KEY NOT OK");
         }
 
-        long currentBootTime = now();
-        int x =0;
+        if (suc_counter == 1) {
 
-        while (x<5) { // verify time is updated
-                if (year(currentBootTime) != 1970) { //NTP update succeeded
-                        json.setValue(BOOT_RESET_KEY, currentBootTime);
-                        int tDelta = currentBootTime - savedBoot_reset;
+                long currentBootTime = now();
+                int x =0;
 
-                        if ( tDelta > resetIntervals ) {
-                                Serial.println("Time updated");
-                                json.setValue(BOOT_CALC_KEY, currentBootTime);
-                                updated_bootTime = currentBootTime;                   // take clock of current boot
-                                clockShift = 0;
-                                resetBoot_flag = false;
-                                return 1;
+                while (x<5) { // verify time is updated
+                        if (year(currentBootTime) != 1970) { //NTP update succeeded
+                                json.setValue(BOOT_RESET_KEY, currentBootTime);
+                                int tDelta = currentBootTime - savedBoot_reset;
+
+                                if ( tDelta > resetIntervals ) {
+                                        Serial.println("Time updated");
+                                        json.setValue(BOOT_CALC_KEY, currentBootTime);
+                                        updated_bootTime = currentBootTime;           // take clock of current boot
+                                        clockShift = 0;
+                                        resetBoot_flag = false;
+                                        return 1;
+                                }
+                                else  {
+                                        Serial.println("No time update");
+                                        updated_bootTime = savedBoot_Calc;           // take clock of last boot
+                                        clockShift = currentBootTime - updated_bootTime;
+                                        resetBoot_flag = true;
+                                        return 1;
+                                }
+                                break;
                         }
-                        else  {
-                                Serial.println("No time update");
-                                updated_bootTime = savedBoot_Calc;                   // take clock of last boot
-                                clockShift = currentBootTime - updated_bootTime;
-                                resetBoot_flag = true;
-                                return 1;
+                        else{
+                                currentBootTime = now();
                         }
-                        break;
+                        x +=1;
+                        Serial.println(x);
+                        delay(200);
                 }
-                else{
-                        currentBootTime = now();
+                if (x==4) { // fail NTP
+                        return 0;
                 }
-                x +=1;
-                Serial.println(x);
-                delay(200);
         }
-        if (x==4) { // fail NTP
+        else{
                 return 0;
         }
 }

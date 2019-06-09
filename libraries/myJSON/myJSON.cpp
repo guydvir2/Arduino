@@ -56,7 +56,8 @@ bool myJSON::FS_ok(){
 void myJSON::saveJSON2file(JsonDocument& _doc) {
         File writeFile = SPIFFS.open(_filename, "w");
         serializeJson(_doc, writeFile);
-        Serial.println("JSON file saved OK");
+        delay(50);
+        // Serial.println("JSON file saved OK");
         // myJSON::PrettyprintJSON(_doc);
 }
 void myJSON::readJSON_file(JsonDocument& _doc) {
@@ -69,6 +70,7 @@ void myJSON::readJSON_file(JsonDocument& _doc) {
                 serializeJson(_doc, readFile);
                 // Serial.println("JSON file read OK");
         }
+        delay(50);
 }
 void myJSON::printJSON(JsonDocument& _doc) {
         serializeJson(_doc, Serial);
