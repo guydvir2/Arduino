@@ -128,6 +128,7 @@ byte inputs[] = {INPUT1, INPUT2};
 int inputs_lastState[NUM_SWITCHES];
 long start_timeout[] = {0, 0}; // store clock start for TO
 char parameters[2][4]; //values from user
+char temp_msg[50];
 
 // manual RESET parameters
 int manResetCounter               = 0;  // reset press counter
@@ -149,30 +150,27 @@ void setup() {
         iot.useSerial = USE_SERIAL;
         iot.useWDT = USE_WDT;
         iot.useOTA = USE_OTA;
-        iot.start_services(ADD_MQTT_FUNC);  // additinalMQTTfucntion, ssid,pswd,mqttuser,mqtt_pswd,broker
+        iot.start_services(ADD_MQTT_FUNC);
 
-        if (load_bootTime();
-        startGPIOs();
+        if (load_bootTime()) {
+                startGPIOs();
+                printTime(now(),"boot: ");
 
-        printTime(now(),"boot: ");
-        // printTime(end_timeout[0],"end_0");
-        // printTime(end_timeout[1],"end_1");
-
-        // ~~~~~~~~~~~~~ using switchIt just to notify MQTT  ~~~~~~~
-        for (int i = 0; i < NUM_SWITCHES; i++) {
-                if (relay_timeout[i] > 0 ) {
-                        switchIt("TimeOut@Boot", i, "on");
+                // ~~~~~~~~~~~~~ using switchIt just to notify MQTT  ~~~~~~~
+                for (int i = 0; i < NUM_SWITCHES; i++) {
+                        if (relay_timeout[i] > 0 ) {
+                                switchIt("TimeOut@Boot", i, "on");
+                        }
+                        else if (relay_timeout[i] == -1 ) {
+                                switchIt("on@Boot", i, "on");
+                        }
                 }
-                else if (relay_timeout[i] == -1 ) {
-                        switchIt("on@Boot", i, "on");
-                }
+                // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         }
-        // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-      }
-      else{
-        iot.pub_msg("Err: Read values from FLASh. RESET");
-        iot.reset();
-      }
+        else{
+                iot.pub_msg("[Error]: fail to read values from FLASH. RESETING");
+                // iot.sendReset("Flash Error");
+        }
 }
 
 // ~~~~~~~~~~~~ StartUp ~~~~~~~~~~~~~~~~~~~
@@ -537,8 +535,8 @@ void convert_epoch2clock(long t1, long t2, char* time_str, char* date_str){
 // ~~~~~~~~~~~ Load Saved Flash ~~~~~~~~~~~
 bool load_bootTime() {
 
-        int suc_counter = 0
-                          Serial.println("Read Boot Values");
+        int suc_counter = 0;
+        Serial.println("Read Boot Values");
 
         if (json.getValue(BOOT_CALC_KEY, savedBoot_Calc)) {
                 Serial.println("BOOT_CALC_KEY OK");

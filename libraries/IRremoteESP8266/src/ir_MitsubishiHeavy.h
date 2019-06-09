@@ -122,6 +122,7 @@ class IRMitsubishiHeavy152Ac {
   void stateReset(void);
 #if SEND_MITSUBISHIHEAVY
   void send(const uint16_t repeat = kMitsubishiHeavy152MinRepeat);
+  uint8_t calibrate(void) { return _irsend.calibrate(); }
 #endif  // SEND_MITSUBISHIHEAVY
   void begin(void);
   void on(void);
@@ -176,6 +177,11 @@ class IRMitsubishiHeavy152Ac {
   static uint8_t convertFan(const stdAc::fanspeed_t speed);
   static uint8_t convertSwingV(const stdAc::swingv_t position);
   static uint8_t convertSwingH(const stdAc::swingh_t position);
+  static stdAc::opmode_t toCommonMode(const uint8_t mode);
+  static stdAc::fanspeed_t toCommonFanSpeed(const uint8_t speed);
+  static stdAc::swingv_t toCommonSwingV(const uint8_t pos);
+  static stdAc::swingh_t toCommonSwingH(const uint8_t pos);
+  stdAc::state_t toCommon(void);
 #ifdef ARDUINO
   String toString(void);
 #else  // ARDUINO
@@ -190,7 +196,7 @@ class IRMitsubishiHeavy152Ac {
 #endif  // UNIT_TEST
   // The state of the IR remote in IR code form.
   uint8_t remote_state[kMitsubishiHeavy152StateLength];
-  void checksum();
+  void checksum(void);
 };
 
 class IRMitsubishiHeavy88Ac {
@@ -245,6 +251,10 @@ class IRMitsubishiHeavy88Ac {
   static uint8_t convertFan(const stdAc::fanspeed_t speed);
   static uint8_t convertSwingV(const stdAc::swingv_t position);
   static uint8_t convertSwingH(const stdAc::swingh_t position);
+  static stdAc::fanspeed_t toCommonFanSpeed(const uint8_t speed);
+  static stdAc::swingv_t toCommonSwingV(const uint8_t pos);
+  static stdAc::swingh_t toCommonSwingH(const uint8_t pos);
+  stdAc::state_t toCommon(void);
 #ifdef ARDUINO
   String toString(void);
 #else  // ARDUINO
@@ -259,6 +269,6 @@ class IRMitsubishiHeavy88Ac {
 #endif  // UNIT_TEST
   // The state of the IR remote in IR code form.
   uint8_t remote_state[kMitsubishiHeavy152StateLength];
-  void checksum();
+  void checksum(void);
 };
 #endif  // IR_MITSUBISHIHEAVY_H_

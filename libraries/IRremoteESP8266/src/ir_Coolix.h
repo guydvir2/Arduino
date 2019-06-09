@@ -95,6 +95,7 @@ class IRCoolixAC {
   void stateReset();
 #if SEND_COOLIX
   void send(const uint16_t repeat = kCoolixDefaultRepeat);
+  uint8_t calibrate(void) { return _irsend.calibrate(); }
 #endif  // SEND_COOLIX
   void begin();
   void on();
@@ -106,7 +107,7 @@ class IRCoolixAC {
   void setSensorTemp(const uint8_t desired);
   uint8_t getSensorTemp();
   void clearSensorTemp();
-  void setFan(const uint8_t fan);
+  void setFan(const uint8_t speed, const bool modecheck = true);
   uint8_t getFan();
   void setMode(const uint8_t mode);
   uint8_t getMode();
@@ -125,6 +126,9 @@ class IRCoolixAC {
   void setRaw(const uint32_t new_code);
   uint8_t convertMode(const stdAc::opmode_t mode);
   uint8_t convertFan(const stdAc::fanspeed_t speed);
+  static stdAc::opmode_t toCommonMode(const uint8_t mode);
+  static stdAc::fanspeed_t toCommonFanSpeed(const uint8_t speed);
+  stdAc::state_t toCommon(void);
 #ifdef ARDUINO
   String toString();
 #else

@@ -29,7 +29,8 @@
         byte 7= checksum of the first part (and last byte before a 29ms pause)
         byte 13=Current time, mins past midnight, low bits
         byte 14
-        b0-b3=Current time, mins past midnight, high bits
+                b5-b3=Day of the week (SUN=1, MON=2, ..., SAT=7)
+                b2-b0=Current time, mins past midnight, high bits
         byte 15= checksum of the second part (and last byte before a 29ms pause)
         byte 21=mode
                 b7 = 0
@@ -122,6 +123,8 @@ const uint8_t kDaikinByteEcono = kDaikinByteSensor;
 const uint8_t kDaikinBitEcono = 0b00000100;
 const uint8_t kDaikinByteEye = kDaikinByteSensor;
 const uint8_t kDaikinBitEye = 0b10000000;
+const uint8_t kDaikinByteWeeklyTimer = kDaikinByteSensor;
+const uint8_t kDaikinBitWeeklyTimer = 0b10000000;
 const uint8_t kDaikinByteMold = 33;
 const uint8_t kDaikinBitMold = 0b00000010;
 const uint8_t kDaikinByteOffTimer = kDaikinBytePower;
@@ -187,11 +190,11 @@ const uint8_t kDaikin2MinCoolTemp = 18;  // Min temp (in C) when in Cool mode.
 
 // Another variant of the protocol for the Daikin ARC433B69 remote.
 const uint16_t kDaikin216Freq = 38000;  // Modulation Frequency in Hz.
-const uint16_t kDaikin216HdrMark = 3400;
-const uint16_t kDaikin216HdrSpace = 1800;
-const uint16_t kDaikin216BitMark = 380;
-const uint16_t kDaikin216OneSpace = 1350;
-const uint16_t kDaikin216ZeroSpace = 480;
+const uint16_t kDaikin216HdrMark = 3440;
+const uint16_t kDaikin216HdrSpace = 1750;
+const uint16_t kDaikin216BitMark = 420;
+const uint16_t kDaikin216OneSpace = 1300;
+const uint16_t kDaikin216ZeroSpace = 450;
 const uint16_t kDaikin216Gap = 29650;
 const uint16_t kDaikin216Sections = 2;
 const uint16_t kDaikin216Section1Length = 8;
@@ -208,6 +211,7 @@ const uint8_t kDaikin216ByteSwingV = 16;
 const uint8_t kDaikin216MaskSwingV = 0b00001111;
 const uint8_t kDaikin216ByteSwingH = 17;
 const uint8_t kDaikin216MaskSwingH = kDaikin216MaskSwingV;
+const uint8_t kDaikin216BytePowerful = 21;
 
 
 // Legacy defines.
@@ -229,6 +233,7 @@ class IRDaikinESP {
 
 #if SEND_DAIKIN
   void send(const uint16_t repeat = kDaikinDefaultRepeat);
+  uint8_t calibrate(void) { return _irsend.calibrate(); }
 #endif
   void begin(void);
   void on(void);
@@ -253,8 +258,6 @@ class IRDaikinESP {
   bool getSensor(void);
   void setEcono(const bool on);
   bool getEcono(void);
-  void setEye(const bool on);
-  bool getEye(void);
   void setMold(const bool on);
   bool getMold(void);
   void setComfort(const bool on);
@@ -269,6 +272,10 @@ class IRDaikinESP {
   bool getOffTimerEnabled(void);
   void setCurrentTime(const uint16_t mins_since_midnight);
   uint16_t getCurrentTime(void);
+  void setCurrentDay(const uint8_t day_of_week);
+  uint8_t getCurrentDay(void);
+  void setWeeklyTimerEnable(const bool on);
+  bool getWeeklyTimerEnable(void);
   uint8_t* getRaw(void);
   void setRaw(const uint8_t new_code[],
               const uint16_t length = kDaikinStateLength);
@@ -276,6 +283,9 @@ class IRDaikinESP {
                             const uint16_t length = kDaikinStateLength);
   static uint8_t convertMode(const stdAc::opmode_t mode);
   static uint8_t convertFan(const stdAc::fanspeed_t speed);
+  static stdAc::opmode_t toCommonMode(const uint8_t mode);
+  static stdAc::fanspeed_t toCommonFanSpeed(const uint8_t speed);
+  stdAc::state_t toCommon(void);
 #ifdef ARDUINO
   String toString(void);
   static String renderTime(const uint16_t timemins);
@@ -303,6 +313,7 @@ class IRDaikin2 {
 
 #if SEND_DAIKIN2
   void send(const uint16_t repeat = kDaikin2DefaultRepeat);
+  uint8_t calibrate(void) { return _irsend.calibrate(); }
 #endif
   void begin();
   void on();
@@ -368,6 +379,9 @@ class IRDaikin2 {
   static uint8_t convertMode(const stdAc::opmode_t mode);
   static uint8_t convertFan(const stdAc::fanspeed_t speed);
   uint8_t convertSwingV(const stdAc::swingv_t position);
+  static stdAc::swingv_t toCommonSwingV(const uint8_t setting);
+  static stdAc::swingh_t toCommonSwingH(const uint8_t setting);
+  stdAc::state_t toCommon(void);
 #ifdef ARDUINO
   String toString();
   static String renderTime(uint16_t timemins);
@@ -397,6 +411,7 @@ class IRDaikin216 {
 
 #if SEND_DAIKIN216
   void send(const uint16_t repeat = kDaikin216DefaultRepeat);
+  uint8_t calibrate(void) { return _irsend.calibrate(); }
 #endif
   void begin();
   uint8_t* getRaw();
@@ -421,6 +436,9 @@ class IRDaikin216 {
   bool getSwingHorizontal(void);
   void setQuiet(const bool on);
   bool getQuiet(void);
+  void setPowerful(const bool on);
+  bool getPowerful(void);
+  stdAc::state_t toCommon(void);
 #ifdef ARDUINO
   String toString(void);
   static String renderTime(const uint16_t timemins);

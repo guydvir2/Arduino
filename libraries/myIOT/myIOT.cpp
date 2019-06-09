@@ -287,9 +287,13 @@ void myIOT::callback(char* topic, byte* payload, unsigned int length) {
 void myIOT::pub_msg(char *inmsg) {
         char tmpmsg[150];
 
-        if (mqttConnected == true) {
+        sprintf(tmpmsg, "[%s] [%s]", timeStamp, deviceTopic );
+
+        if (useSerial==true){
+          Serial.println(tmpmsg);
+        }
+        else if (mqttConnected == true) {
                 get_timeStamp();
-                sprintf(tmpmsg, "[%s] [%s]", timeStamp, deviceTopic );
                 msgSplitter(inmsg, 221, tmpmsg, "#" );
         }
 }
