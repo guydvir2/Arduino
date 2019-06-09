@@ -141,15 +141,14 @@ myIOT iot(DEVICE_TOPIC);
 myJSON json(jfile, true);
 
 void setup() {
-  load_allFLASH_vars();
-        startGPIOs();
 
         iot.useSerial = USE_SERIAL;
         iot.useWDT = USE_WDT;
         iot.useOTA = USE_OTA;
         iot.start_services(ADD_MQTT_FUNC);  // additinalMQTTfucntion, ssid,pswd,mqttuser,mqtt_pswd,broker
 
-
+        load_allFLASH_vars();
+        startGPIOs();
 
         // ~~~~~~~~~~~~~ using switchIt just to notify MQTT  ~~~~~~~
         for (int i = 0; i < NUM_SWITCHES; i++) {
@@ -234,10 +233,10 @@ void timeoutLoop() {
                 // }
 
                 if (end_timeout[i] != 0 ) {
-                  Serial.println(now());
-                  Serial.print(i);
-                  Serial.print(" :");
-                  Serial.println(end_timeout[i]);
+                        Serial.println(now());
+                        Serial.print(i);
+                        Serial.print(" :");
+                        Serial.println(end_timeout[i]);
                         if (now() > end_timeout[i] ) {
                                 switchIt("TimeOut", i, "off");
                                 if(USE_FAT) {

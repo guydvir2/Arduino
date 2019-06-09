@@ -12,7 +12,7 @@ otherwise OTA will not be loaded next time
 #define DEVICE_TOPIC "HomePi/Dvir/Lights/sonoff_test2"
 
 //~~~Services~~~~~~~~~~~
-#define USE_SERIAL       false
+#define USE_SERIAL       true
 #define USE_WDT          true
 #define USE_OTA          true
 #define USE_MAN_RESET    false
