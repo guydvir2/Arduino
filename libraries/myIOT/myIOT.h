@@ -24,11 +24,13 @@ bool useSerial = false;
 bool useWDT    = true;
 bool useOTA    = true;
 bool extDefine = false; // must to set to true in order to use EXtMQTT
-char inline_param[3][8]; //values from user
+
+// byte inline_param_amount = 2;
+char inline_param[3][20]; //values from user
 
 bool mqttConnected  = 0;
 char* deviceTopic   = "";
-const char *ver     = "iot_1.5_alpha";
+const char *ver     = "iot_1.5";
 char timeStamp[50];
 
 private:

@@ -159,7 +159,6 @@ void switchIt(char *type, int sw_num, char *dir, int t = 0) {
                 if (strcmp(dir, "on") == 0 && digitalRead(relays[sw_num])==!RelayOn) {
                         digitalWrite(relays[sw_num], RelayOn);
                         if(USE_FAT) {
-                                // json.setValue(switch_state[sw_num],1);
                                 json.setValue(onTime[sw_num],now());
                         }
                 }
@@ -169,7 +168,6 @@ void switchIt(char *type, int sw_num, char *dir, int t = 0) {
                                 inTimeOut[sw_num]=false;
                                 end_timeout[sw_num]= now();
                                 if(USE_FAT) {
-                                        // json.setValue(switch_state[sw_num],0);
                                         json.setValue(timeouts[sw_num],end_timeout[sw_num]);
                                 }
                         }
@@ -183,7 +181,6 @@ void switchIt(char *type, int sw_num, char *dir, int t = 0) {
                                 min_timeout[sw_num]=t;
                                 if(USE_FAT) {
                                         json.setValue(timeouts[sw_num],end_timeout[sw_num]);
-                                        // json.setValue(switch_state[sw_num],1);
                                         json.setValue(onTime[sw_num],now());
                                 }
                         }
@@ -217,6 +214,7 @@ void setup() {
         iot.useWDT = USE_WDT;
         iot.useOTA = USE_OTA;
         iot.start_services(ADD_MQTT_FUNC);
+        // iot.inline_param_amount = 3;
 
         if (load_bootTime()) {
                 startGPIOs();
@@ -239,6 +237,7 @@ void setup() {
         }
 }
 
+
 // ~~~~~~~~~~~~ StartUp ~~~~~~~~~~~~~~~~~~~
 void startGPIOs() {
         for (int i = 0; i < NUM_SWITCHES; i++) {
@@ -251,12 +250,10 @@ void startGPIOs() {
                         if (json.getValue(val_timeouts[i],temp_timeout_val[i])) {
                                 if (temp_timeout_val[i]!=0) {
                                         min_timeout[i]=temp_timeout_val[i];
-                                        Serial.println("change vale");
                                 }
                         }
                         else{
                                 json.setValue(val_timeouts[i],0);
-                                Serial.println("Zerso");
                         }
                 }
                 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -289,7 +286,7 @@ bool startBootCounter(int i, int t){
                         end_timeout[i] = updated_bootTime + t*60;     // seconds
                         on_time[i]=now();
                         inTimeOut[i] = true;
-                        printTime(end_timeout[i],"After BOOT TimeOut : ");
+                        // printTime(end_timeout[i],"After BOOT TimeOut : ");
 
                         json.setValue(timeouts[i],end_timeout[i]);
                         json.setValue(onTime[i],on_time[i]);
@@ -311,13 +308,13 @@ bool startBootCounter(int i, int t){
 
                         inTimeOut[i]=true;
                         digitalWrite(relays[i], RelayOn);
-                        printTime(end_timeout[i],"TimeOut : ");
+                        // printTime(end_timeout[i],"TimeOut : ");
                         return 1;
                 }
 
                 else{ // fail to read from file
                         json.setValue(timeouts[i], 0);
-                        printTime(end_timeout[i],"TimeOut : ");
+                        // printTime(end_timeout[i],"TimeOut : ");
                         inTimeOut[i]=false;
                         return 0;
                 }
@@ -342,6 +339,7 @@ void timeoutLoop() {
                 }
         }
 }
+
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 
@@ -431,7 +429,7 @@ void addiotnalMQTT(char *incoming_msg) {
                 iot.pub_msg(msg);
         }
         else if (strcmp(incoming_msg, "help") == 0) {
-                sprintf(msg, "Help: [status, pins, uptime, format, help,[num],on, [num],off, [num],timeout,[min] ],[ver, boot, reset, ip, ota]");
+                sprintf(msg, "Help: [status, pins, uptime,remain, timeouts, TOreset, read_all, format, help,[num]-on, [num]-off, [num]-timeout-[min],[num]-TOupdate-[min] ],[ver, boot, reset, ip, ota]");
                 iot.pub_msg(msg);
         }
         else if (strcmp(incoming_msg, "uptime") == 0 ) {
@@ -441,7 +439,7 @@ void addiotnalMQTT(char *incoming_msg) {
                                 char time1[20];
                                 char date1[20];
                                 convert_epoch2clock(now(),on_time[i],time1,date1);
-                                sprintf(tempstr, "Switch#[%d] [%d min] ", i, time1);
+                                sprintf(tempstr, "Switch#[%d] [%s] ", i, time1);
                                 strcat(msg, tempstr);
                         }
                 }
@@ -451,8 +449,20 @@ void addiotnalMQTT(char *incoming_msg) {
                 strcpy(msg, "Remain: ");
                 for (int i = 0; i < NUM_SWITCHES; i++) {
                         if (digitalRead(relays[i])==RelayOn && inTimeOut[i]) {
-                                int rem = min_timeout[i]-(int)((now()-on_time[1])/60);
-                                sprintf(tempstr, "Switch#[%d] [%d min] ", i, rem);
+                                char time1[20];
+                                char date1[20];
+                                convert_epoch2clock(on_time[i]+min_timeout[i]*60,now(), time1,date1);
+                                sprintf(tempstr, "Switch#[%d] [%s] ", i, time1);
+                                strcat(msg, tempstr);
+                        }
+                }
+                iot.pub_msg(msg);
+        }
+        else if (strcmp(incoming_msg, "timeouts") == 0 ) {
+                strcpy(msg, "TimeOut: ");
+                for (int i = 0; i < NUM_SWITCHES; i++) {
+                        if (min_timeout[i]>0) {
+                                sprintf(tempstr, "Switch#[%d] [%d min.] ", i, min_timeout[i]);
                                 strcat(msg, tempstr);
                         }
                 }
@@ -463,6 +473,16 @@ void addiotnalMQTT(char *incoming_msg) {
                 json.format();
                 iot.pub_msg(msg);
         }
+        else if (strcmp(incoming_msg, "TOreset") == 0 ) {
+                delete_flash_Timeout();
+                sprintf(msg, "TimeOut: Stored TimeOut values deleted. Use defaults");
+                iot.pub_msg(msg);
+        }
+        else if (strcmp(incoming_msg, "read_all") == 0 ) {
+                read_all_flash();
+                // iot.pub_msg(msg);
+        }
+
         else {
                 iot.inline_read (incoming_msg);
                 if (atoi(iot.inline_param[0])>=0 && atoi(iot.inline_param[0]) < NUM_SWITCHES) {
@@ -472,7 +492,7 @@ void addiotnalMQTT(char *incoming_msg) {
                         else if (strcmp(iot.inline_param[1], "timeout") == 0) { // define counter :1,60
                                 switchIt("MQTT",atoi(iot.inline_param[0]),iot.inline_param[1],atoi(iot.inline_param[2]));
                         }
-                        else if (strcmp(iot.inline_param[1], "timeout_update") == 0) {
+                        else if (strcmp(iot.inline_param[1], "TOupdate") == 0) {
                                 update_flash_Timeout(atoi(iot.inline_param[0]),atoi(iot.inline_param[2]));
                         }
                 }
@@ -494,7 +514,7 @@ void printTime(time_t t, char *text){
         Serial.print(", ");
         Serial.println(date1);
 }
-void convert_epoch2clock(long t1, long t2, char* time_str, char* date_str){
+void convert_epoch2clock(long t1, long t2, char* time_str, char* days_str){
         byte days       = 0;
         byte hours      = 0;
         byte minutes    = 0;
@@ -512,8 +532,8 @@ void convert_epoch2clock(long t1, long t2, char* time_str, char* date_str){
         minutes = (int)((time_delta - days * sec2days - hours * sec2hours) / sec2minutes);
         seconds = (int)(time_delta - days * sec2days - hours * sec2hours - minutes * sec2minutes);
 
-        sprintf(time_str, "%02d days", days);
-        sprintf(date_str, "%02d:%02d:%02d", hours, minutes, seconds);
+        sprintf(days_str, "%02d days", days);
+        sprintf(time_str, "%02d:%02d:%02d", hours, minutes, seconds);
 }
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -582,7 +602,6 @@ bool load_bootTime() {
 bool update_flash_Timeout(int i, int t){
         char tempMSG[50];
         if( t>0) {
-                Serial.println("HI");
                 json.setValue(val_timeouts[i],t);
                 sprintf(tempMSG," TimeOut Update: Switch #[%d], [%d min.]",i,t);
                 iot.pub_msg(tempMSG);
@@ -594,6 +613,44 @@ bool update_flash_Timeout(int i, int t){
                 iot.pub_msg(tempMSG);
                 return 0;
         }
+}
+void delete_flash_Timeout(){
+        for (int i = 0; i < NUM_SWITCHES; i++) {
+                json.setValue(val_timeouts[i],0);
+        }
+}
+void read_all_flash(){
+        json.getValue(BOOT_CALC_KEY, savedBoot_Calc);
+        Serial.print("Boot_calc:");
+        Serial.println(savedBoot_Calc);
+
+        json.getValue(BOOT_RESET_KEY, savedBoot_reset);
+        Serial.print("Boot_reset:");
+        Serial.println(savedBoot_reset);
+
+        Serial.print("Boot_updated:");
+        Serial.println(updated_bootTime);
+
+        Serial.print("resetIntervals:");
+        Serial.println(resetIntervals);
+
+        for(int i=0; i<NUM_SWITCHES; i++) {
+                int temp_val;
+
+                Serial.print("hardCoded Timeout #");
+                Serial.print(i);
+                Serial.print(": ");
+                Serial.println(min_timeout[i]);
+
+                json.getValue(val_timeouts[i],temp_val);
+                Serial.print("Flash saved Timeout #");
+                Serial.print(i);
+                Serial.print(": ");
+                Serial.println(temp_val);
+        }
+
+
+
 }
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 

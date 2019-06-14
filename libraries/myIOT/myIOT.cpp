@@ -2,7 +2,6 @@
 #include "myIOT.h"
 
 #include <ESP8266WiFi.h>
-// #include <TimeLib.h>
 #include <NtpClientLib.h>
 #include <PubSubClient.h> //MQTT
 #include <Ticker.h> //WDT
@@ -251,15 +250,21 @@ void myIOT::callback(char* topic, byte* payload, unsigned int length) {
         char msg2[100];
 
         //      Display on Serial monitor only
-        Serial.print("Message arrived [");
-        Serial.print(topic);
-        Serial.print("] ");
+        if (useSerial) {
+                Serial.print("Message arrived [");
+                Serial.print(topic);
+                Serial.print("] ");
+        }
         for (int i = 0; i < length; i++) {
-                Serial.print((char)payload[i]);
+                if (useSerial) {
+                        Serial.print((char)payload[i]);
+                }
                 incoming_msg[i] = (char)payload[i];
         }
         incoming_msg[length] = 0;
-        Serial.println("");
+        if (useSerial) {
+                Serial.println("");
+        }
         //      ##############################
 
         if (strcmp(incoming_msg, "boot") == 0 ) {
@@ -287,7 +292,7 @@ void myIOT::callback(char* topic, byte* payload, unsigned int length) {
         }
 }
 void myIOT::pub_msg(char *inmsg) {
-        char tmpmsg[150];
+        char tmpmsg[250];
         get_timeStamp();
 
         if (useSerial==true) {
@@ -296,7 +301,7 @@ void myIOT::pub_msg(char *inmsg) {
         }
         else if (mqttConnected == true) {
                 sprintf(tmpmsg, "[%s] [%s]", timeStamp, deviceTopic );
-                msgSplitter(inmsg, 221, tmpmsg, "#" );
+                msgSplitter(inmsg, 100, tmpmsg, "#" );
         }
 }
 void myIOT::pub_state(char *inmsg) {
@@ -405,7 +410,7 @@ void myIOT::startOTA() {
 
                 // NOTE: if updating SPIFFS this would be the place to unmount SPIFFS using SPIFFS.end()
                 //    if (useSerial) {
-                Serial.println("Start updating " + type);
+                // Serial.println("Start updating " + type);
                 //    }
                 // Serial.end();
         });
