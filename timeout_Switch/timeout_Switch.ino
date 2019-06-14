@@ -11,11 +11,11 @@
 #include <Arduino.h>
 
 //##############  User Input ##################
-#define DEVICE_TOPIC "HomePi/Dvir/Lights/nodemcu_test3"
+#define DEVICE_TOPIC "HomePi/Dvir/Lights/sonoff_test2"
 #define VER "SonoffBasic_2.2"
 
 //~~~Services~~~~~~~~~~~
-#define USE_SERIAL       true
+#define USE_SERIAL       false
 #define USE_WDT          true
 #define USE_OTA          true
 #define USE_BOUNCE_DEBUG false
@@ -23,9 +23,9 @@
 #define USE_FAT          true // Flash Assist using JSON and FS
 
 //~~~Select Board~~~~~~~
-#define SONOFF_DUAL      false // <----- Select one
+#define SONOFF_DUAL      true // <----- Select one
 #define SONOFF_BASIC     false // <----- Select one
-#define WEMOS            true
+#define WEMOS            false
 // ~~~~~~~~~~~~~~~~~~~~~
 
 // ~~~ define ** onBoot ** timeout in [minutes] ~~~~
@@ -58,7 +58,6 @@ long savedTimeOuts [] = {0, 0};
 
 // ~~~~~~~~~~ Boot and clock adjustments ~~~~~~~
 int resetIntervals    = 30; //sec define "new Boot" or "unwanted reset" [0,999999]
-long clockShift       = 0; // fix clock shift after reset
 long updated_bootTime = 0; // clock of boot ( new boot or recover boot)
 bool resetBoot_flag   = false; // flag if newboot, or unwanted reset
 long end_timeout[]    = {0, 0}; // clock- when to stop timeout
@@ -66,21 +65,23 @@ long on_time[]        = {0, 0}; // clock- when switched on
 int min_timeout[]     = {BOOT_TIMEOUT_SW0,BOOT_TIMEOUT_SW1}; //given timeout value [min]
 bool inTimeOut []     = {false, false}; // flag when in timeOut mode
 
-#if (SONOFF_DUAL)
 
-// state definitions
+// ~~~~ Logic States ~~~~~~~~
 #define RelayOn          HIGH
 #define SwitchOn         LOW
 #define LedOn            LOW
 #define ButtonPressed    LOW
-// Hardware Pins
-#define RELAY1           5
-#define RELAY2           12
+
+// ~~~~~~ Pins Defs ~~~~~~~~
+#define RELAY1           12
 #define wifiOn_statusLED 13
+
+// ~~~~ Boards Specific ~~~~
+#if (SONOFF_DUAL)
+#define RELAY2           5
 #define INPUT1           9
 #define INPUT2           0
 #define BUTTON           10
-
 #define NUM_SWITCHES     2
 
 #endif
@@ -88,40 +89,22 @@ bool inTimeOut []     = {false, false}; // flag when in timeOut mode
 
 #if (SONOFF_BASIC)
 // state definitions
-#define RelayOn          HIGH
-#define SwitchOn         LOW
-#define LedOn            LOW
-#define ButtonPressed    LOW
-
-#define RELAY1           12
 #define RELAY2           0
-#define wifiOn_statusLED 13
-
 #define INPUT1           14
 #define INPUT2           0
 #define BUTTON           0
 #define NUM_SWITCHES     1
-
 #endif
 
 
 #if (WEMOS)
-
-// state definitions
-#define RelayOn       HIGH
-#define SwitchOn      LOW
-#define LedOn         LOW
-#define ButtonPressed LOW
-
-#define RELAY1           14
-#define RELAY2           12
+#define RELAY2           14
 #define wifiOn_statusLED 13
 
 #define INPUT1           4
 #define INPUT2           5
 #define BUTTON           10
 #define NUM_SWITCHES     2
-
 #endif
 
 
@@ -214,7 +197,6 @@ void setup() {
         iot.useWDT = USE_WDT;
         iot.useOTA = USE_OTA;
         iot.start_services(ADD_MQTT_FUNC);
-        // iot.inline_param_amount = 3;
 
         if (load_bootTime()) {
                 startGPIOs();
@@ -540,6 +522,7 @@ void convert_epoch2clock(long t1, long t2, char* time_str, char* days_str){
 // ~~~~~~~~~~~ Load Saved Flash ~~~~~~~~~~~
 bool load_bootTime() {
         int suc_counter = 0;
+        long clockShift = 0;
 
         if (json.getValue(BOOT_CALC_KEY, savedBoot_Calc)) {
                 suc_counter+=1;
@@ -555,11 +538,9 @@ bool load_bootTime() {
         }
 
         if (suc_counter == 2) {
-
                 long currentBootTime = now();
                 int x =0;
-                int maxRetries = 5;
-
+                int maxRetries = 3;
 
                 while (x<maxRetries) { // verify time is updated
                         if (year(currentBootTime) != 1970) { //NTP update succeeded
@@ -567,20 +548,20 @@ bool load_bootTime() {
                                 int tDelta = currentBootTime - savedBoot_reset;
 
                                 if ( tDelta > resetIntervals ) {
-                                        Serial.println("New Boot");
+                                        // Serial.println("New Boot");
                                         json.setValue(BOOT_CALC_KEY, currentBootTime);
                                         updated_bootTime = currentBootTime;           // take clock of current boot
                                         clockShift = 0;
                                         resetBoot_flag = false;
-                                        printTime(updated_bootTime,"BootTime: ");
+                                        // printTime(updated_bootTime,"BootTime: ");
                                         return 1;
                                 }
                                 else  {
-                                        Serial.println("reset detected");
+                                        // Serial.println("reset detected");
                                         updated_bootTime = savedBoot_Calc;           // take clock of last boot
                                         clockShift = currentBootTime - updated_bootTime;
                                         resetBoot_flag = true;
-                                        printTime(updated_bootTime,"BootTime: ");
+                                        // printTime(updated_bootTime,"BootTime: ");
                                         return 1;
                                 }
                         }
@@ -588,7 +569,7 @@ bool load_bootTime() {
                                 currentBootTime = now();
                         }
                         x +=1;
-                        Serial.println(x);
+                        // Serial.println(x);
                         delay(200);
                 }
                 if (x==maxRetries) { // fail NTP

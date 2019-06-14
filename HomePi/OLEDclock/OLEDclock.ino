@@ -31,9 +31,9 @@
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 //~~~~~~~~~~~~~~ myIOT  ~~~~~~~~~~~~~~~~~~~~~
-#define DEVICE_TOPIC        "HomePi/Dvir/OLED_Clock2"
+#define DEVICE_TOPIC        "HomePi/Dvir/OLED_Clock21"
 #define ADD_MQTT_FUNC       addiotnalMQTT
-#define USE_SERIAL          true
+#define USE_SERIAL          false
 #define USE_WDT             true
 #define USE_OTA             true
 #define USE_FAT             true // Flash Assist

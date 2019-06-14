@@ -107,4 +107,13 @@ void startWDT();
 void acceptOTA();
 };
 
+class FVars
+{
+public:
+  FVars();
+
+private:
+
+};
+
 #endif

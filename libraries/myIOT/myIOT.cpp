@@ -446,3 +446,8 @@ void myIOT::startOTA() {
 void myIOT::startWDT() {
         wdt.attach(1, std::bind(&myIOT::feedTheDog, this)); // Start WatchDog
 }
+
+
+FVars::FVars(){
+
+}
