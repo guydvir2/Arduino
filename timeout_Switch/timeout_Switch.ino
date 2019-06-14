@@ -10,7 +10,7 @@
 #include <TimeLib.h>
 #include <Arduino.h>
 
-//####################################################
+//##############  User Input ##################
 #define DEVICE_TOPIC "HomePi/Dvir/Lights/nodemcu_test3"
 #define VER "SonoffBasic_2.2"
 
@@ -41,10 +41,10 @@
 // JSON keys for storing values
 #define BOOT_CALC_KEY        "BootTime1"
 #define BOOT_RESET_KEY       "BootTime2"
-#define END_TIMEOUT0_KEY         "savedTimeOut0"
-#define END_TIMEOUT1_KEY         "savedTimeOut1"
-#define VAL_TIMEOUT0_KEY         "valueTimeOut0"
-#define VAL_TIMEOUT1_KEY         "valueTimeOut1"
+#define END_TIMEOUT0_KEY     "savedTimeOut0"
+#define END_TIMEOUT1_KEY     "savedTimeOut1"
+#define VAL_TIMEOUT0_KEY     "valueTimeOut0"
+#define VAL_TIMEOUT1_KEY     "valueTimeOut1"
 #define ONTIME0_KEY          "onTime0"
 #define ONTIME1_KEY          "onTime1"
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -117,10 +117,10 @@ bool inTimeOut []     = {false, false}; // flag when in timeOut mode
 #define RELAY2           12
 #define wifiOn_statusLED 13
 
-#define INPUT1       4
-#define INPUT2       5
-#define BUTTON       10
-#define NUM_SWITCHES 2
+#define INPUT1           4
+#define INPUT2           5
+#define BUTTON           10
+#define NUM_SWITCHES     2
 
 #endif
 
@@ -210,20 +210,7 @@ void switchIt(char *type, int sw_num, char *dir, int t = 0) {
                 }
         }
 }
-bool update_flash_Timeout(int i, int t){
-        char tempMSG[50];
-        if( t>0) {
-                json.setValue(val_timeouts[i],0);
-                sprintf(tempMSG," TimeOut Update: Switch #[%d], [%d min.]",i,t);
-                iot.pub_msg(tempMSG);
-                return 1;
-        }
-        else{
-                sprintf(tempMSG," TimeOut Update: Switch #[%d], error upDating timeout",i);
-                iot.pub_msg(tempMSG);
-                return 0;
-        }
-}
+
 void setup() {
 
         iot.useSerial = USE_SERIAL;
@@ -379,8 +366,6 @@ void allOff() {
                 inputs_lastState[i] = digitalRead(inputs[i]);
         }
 }
-
-
 void checkSwitch_looper() {
         for (int i = 0; i < NUM_SWITCHES; i++) {
                 if (digitalRead(inputs[i]) != inputs_lastState[i]) {
@@ -406,7 +391,6 @@ void checkSwitch_looper() {
         }
 }
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
 
 // ~~~~~~~~~~~~~~~ MQTT  ~~~~~~~~~~~~~~~~~~
 void addiotnalMQTT(char *incoming_msg) {
@@ -474,7 +458,6 @@ void addiotnalMQTT(char *incoming_msg) {
                 }
                 iot.pub_msg(msg);
         }
-
         else if (strcmp(incoming_msg, "format") == 0 ) {
                 sprintf(msg, "Flash Format started");
                 json.format();
@@ -489,14 +472,13 @@ void addiotnalMQTT(char *incoming_msg) {
                         else if (strcmp(iot.inline_param[1], "timeout") == 0) { // define counter :1,60
                                 switchIt("MQTT",atoi(iot.inline_param[0]),iot.inline_param[1],atoi(iot.inline_param[2]));
                         }
-                        else if (strcmp(iot.inline_param[1], "timeout_update") == 0) { // define counter :1,60
+                        else if (strcmp(iot.inline_param[1], "timeout_update") == 0) {
                                 update_flash_Timeout(atoi(iot.inline_param[0]),atoi(iot.inline_param[2]));
                         }
                 }
         }
 }
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
 
 // ~~~~~~~~~~~~~~~ TIME  txt ~~~~~~~~~~~~~~
 void getTime_stamp(time_t t, char *ret_date, char* ret_clock){
@@ -534,7 +516,6 @@ void convert_epoch2clock(long t1, long t2, char* time_str, char* date_str){
         sprintf(date_str, "%02d:%02d:%02d", hours, minutes, seconds);
 }
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
 
 // ~~~~~~~~~~~ Load Saved Flash ~~~~~~~~~~~
 bool load_bootTime() {
@@ -595,6 +576,22 @@ bool load_bootTime() {
                 }
         }
         else{
+                return 0;
+        }
+}
+bool update_flash_Timeout(int i, int t){
+        char tempMSG[50];
+        if( t>0) {
+                Serial.println("HI");
+                json.setValue(val_timeouts[i],t);
+                sprintf(tempMSG," TimeOut Update: Switch #[%d], [%d min.]",i,t);
+                iot.pub_msg(tempMSG);
+                return 1;
+        }
+        else{
+                json.setValue(val_timeouts[i],0);
+                sprintf(tempMSG," TimeOut Update: Switch #[%d], error upDating timeout",i);
+                iot.pub_msg(tempMSG);
                 return 0;
         }
 }
