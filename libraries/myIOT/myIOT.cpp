@@ -17,6 +17,8 @@ WiFiClient espClient;
 PubSubClient mqttClient(espClient);
 Ticker wdt;
 
+char parameters[3][8];
+
 myIOT::myIOT(char *devTopic) {
         deviceTopic = devTopic;
         deviceName = deviceTopic;
@@ -29,8 +31,8 @@ void myIOT::start_services(cb_func funct, char *ssid, char *password,
         passw = mqtt_passw;
         ssid = ssid;
         password = password;
-        ext_mqtt = funct;   //redirecting to ex-class function ( defined outside)
-        extDefine = true;   // maing sure this ext_func was defined
+        ext_mqtt = funct;     //redirecting to ex-class function ( defined outside)
+        extDefine = true;     // maing sure this ext_func was defined
 
 
         if ( useSerial ) {
@@ -288,9 +290,9 @@ void myIOT::pub_msg(char *inmsg) {
         char tmpmsg[150];
         get_timeStamp();
 
-        if (useSerial==true){
-          sprintf(tmpmsg, "[%s] [%s] %s", timeStamp, deviceTopic, inmsg );
-          Serial.println(tmpmsg);
+        if (useSerial==true) {
+                sprintf(tmpmsg, "[%s] [%s] %s", timeStamp, deviceTopic, inmsg );
+                Serial.println(tmpmsg);
         }
         else if (mqttConnected == true) {
                 sprintf(tmpmsg, "[%s] [%s]", timeStamp, deviceTopic );
@@ -329,7 +331,19 @@ void myIOT::msgSplitter( const char* msg_in, int max_msgSize, char *prefix, char
                 }
         }
 }
+int myIOT::inline_read(char *inputstr) {
+        char * pch;
+        int i = 0;
 
+        pch = strtok (inputstr, " ,.-");
+        while (pch != NULL)
+        {
+                sprintf(inline_param[i], "%s", pch);
+                pch = strtok (NULL, " ,.-");
+                i++;
+        }
+        return i;
+}
 
 // ~~~~~~ Reset and maintability ~~~~~~
 void myIOT::sendReset(char *header) {

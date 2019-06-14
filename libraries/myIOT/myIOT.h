@@ -18,15 +18,17 @@ void sendReset(char *header);
 void start_services(cb_func funct, char *ssid="Xiaomi_D6C8", char *password="guyd5161", char *mqtt_user="guy", char *mqtt_passw="kupelu9e", char *mqtt_broker="192.168.3.200");
 void pub_state(char *inmsg);
 void pub_msg(char *inmsg);
+int inline_read(char *inputstr);
 
 bool useSerial = false;
 bool useWDT    = true;
 bool useOTA    = true;
 bool extDefine = false; // must to set to true in order to use EXtMQTT
+char inline_param[3][8]; //values from user
 
 bool mqttConnected  = 0;
 char* deviceTopic   = "";
-const char *ver     = "iot_1.47_alpha";
+const char *ver     = "iot_1.5_alpha";
 char timeStamp[50];
 
 private:
@@ -77,6 +79,8 @@ int MQTTretries     = 2;     // allowed tries to reconnect
 char msg[150];
 char bootTime[50];
 bool firstRun = true;
+
+
 // ###################
 
 
