@@ -4,6 +4,10 @@
 #include "Arduino.h"
 typedef void (*cb_func)(char msg1[50]); // this define a generic functing with an input of 50 chars
 
+#define jfile "myfile.json"
+
+
+
 class myIOT
 {
 public:
@@ -30,8 +34,13 @@ char inline_param[3][20]; //values from user
 
 bool mqttConnected  = 0;
 char* deviceTopic   = "";
-const char *ver     = "iot_1.5";
+const char *ver     = "iot_2.0";
 char timeStamp[50];
+
+
+bool resetBoot_flag  = false;
+long updated_bootTime = 0;
+int resetIntervals   = 30;
 
 private:
 char* ssid;
@@ -81,9 +90,10 @@ int MQTTretries     = 2;     // allowed tries to reconnect
 char msg[150];
 char bootTime[50];
 bool firstRun = true;
-
-
 // ###################
+
+long _savedBoot_Calc  = 0;
+long _savedBoot_reset = 0;
 
 
 // ~~~~~~~~~~~~~~WIFI ~~~~~~~~~~~~~~~~~~~~~
@@ -91,6 +101,7 @@ void startNetwork(char *ssid, char *password);
 void startNTP();
 void start_clock();
 void networkStatus();
+bool bootKeeper();
 
 
 // ~~~~~~~ MQTT ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -111,6 +122,8 @@ class FVars
 {
 public:
   FVars();
+  void getValue();
+  void setValue(char val[20]);
 
 private:
 

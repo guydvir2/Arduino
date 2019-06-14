@@ -5,6 +5,7 @@
 #include <NtpClientLib.h>
 #include <PubSubClient.h> //MQTT
 #include <Ticker.h> //WDT
+#include <myJSON.h>
 
 // OTA libraries
 #include <ESP8266mDNS.h>
@@ -15,6 +16,7 @@
 WiFiClient espClient;
 PubSubClient mqttClient(espClient);
 Ticker wdt;
+myJSON json(jfile, true);
 
 char parameters[3][8];
 
@@ -147,6 +149,7 @@ void myIOT::start_clock() {
                         delay(100);
                 }
         }
+        bootKeeper();
         get_timeStamp();
         strcpy(bootTime, timeStamp);
 }
@@ -154,6 +157,61 @@ void myIOT::startNTP() {
         NTP.begin("pool.ntp.org", 2, true);
         NTP.setInterval(5, clockUpdateInt); // <------------ADDED parameter
         delay(1000);
+}
+bool myIOT::bootKeeper() {
+        int x =0;
+        int suc_counter = 0;
+        int maxRetries  = 3;
+        long clockShift = 0;
+
+        if (json.getValue("bootCalc", _savedBoot_Calc)) {
+                suc_counter+=1;
+        }
+        else {
+                json.setValue("bootCalc", 0);
+        }
+        if (json.getValue("bootReset", _savedBoot_reset)) {
+                suc_counter+=1;
+        }
+        else {
+                json.setValue("bootReset", 0);
+        }
+
+        if (suc_counter == 2) {
+                long currentBootTime = now();
+
+                while (x<maxRetries) { // verify time is updated
+                        if (year(currentBootTime) != 1970) { //NTP update succeeded
+                                json.setValue("bootReset", currentBootTime);
+                                int tDelta = currentBootTime - _savedBoot_reset;
+
+                                if ( tDelta > resetIntervals ) {
+                                        json.setValue("bootCalc", currentBootTime);
+                                        updated_bootTime = currentBootTime;           // take clock of current boot
+                                        clockShift = 0;
+                                        resetBoot_flag = false;
+                                        return 1;
+                                }
+                                else  {
+                                        updated_bootTime = _savedBoot_Calc;           // take clock of last boot
+                                        clockShift = currentBootTime - updated_bootTime;
+                                        resetBoot_flag = true;
+                                        return 1;
+                                }
+                        }
+                        else{
+                                currentBootTime = now();
+                        }
+                        x +=1;
+                        delay(200);
+                }
+                if (x==maxRetries) { // fail NTP
+                        return 0;
+                }
+        }
+        else{
+                return 0;
+        }
 }
 void myIOT::get_timeStamp() {
         time_t t = now();
@@ -195,7 +253,7 @@ int myIOT::subscribeMQTT() {
                                 mqttClient.publish(availTopic, "online", true);
                                 if (firstRun == true) {
                                         mqttClient.publish(stateTopic, "off", true);
-                                        pub_msg("<< Connected to MQTT - Boot >>");
+                                        pub_msg("<< Boot >>");
                                         firstRun = false;
                                 }
                                 else {
