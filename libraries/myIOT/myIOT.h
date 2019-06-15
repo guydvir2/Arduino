@@ -14,7 +14,7 @@ public:
 myIOT(char *devTopic);
 void looper();
 void startOTA();
-void get_timeStamp();
+void get_timeStamp(time_t t = 0);
 void return_clock(char ret_tuple[20]);
 void return_date(char ret_tuple[20]);
 
@@ -22,6 +22,7 @@ void sendReset(char *header);
 void start_services(cb_func funct, char *ssid="Xiaomi_D6C8", char *password="guyd5161", char *mqtt_user="guy", char *mqtt_passw="kupelu9e", char *mqtt_broker="192.168.3.200");
 void pub_state(char *inmsg);
 void pub_msg(char *inmsg);
+void pub_err(char *inmsg);
 int inline_read(char *inputstr);
 
 bool useSerial = false;
@@ -40,7 +41,7 @@ char timeStamp[50];
 
 bool resetBoot_flag  = false;
 long updated_bootTime = 0;
-int resetIntervals   = 30;
+int resetIntervals   = 10;
 
 private:
 char* ssid;
@@ -73,8 +74,9 @@ char* passw = "";
 // MQTT topics
 char* msgTopic     = "HomePi/Dvir/Messages";
 char* groupTopic   = "HomePi/Dvir/All";
+char* errorTopic   = "HomePi/Dvir/Errors";
 char* deviceName   = "";
-char* topicArry[2] = {deviceTopic, groupTopic};
+char* topicArry[3] = {deviceTopic, groupTopic, errorTopic};
 char stateTopic[50];
 char availTopic[50];
 // ##############################################
@@ -90,15 +92,17 @@ int MQTTretries     = 2;     // allowed tries to reconnect
 char msg[150];
 char bootTime[50];
 bool firstRun = true;
+bool _failNTP = false;
 // ###################
 
 long _savedBoot_Calc  = 0;
 long _savedBoot_reset = 0;
 
 
+
 // ~~~~~~~~~~~~~~WIFI ~~~~~~~~~~~~~~~~~~~~~
 void startNetwork(char *ssid, char *password);
-void startNTP();
+bool startNTP();
 void start_clock();
 void networkStatus();
 bool bootKeeper();
@@ -118,14 +122,26 @@ void startWDT();
 void acceptOTA();
 };
 
+
+
 class FVars
 {
 public:
-  FVars();
-  void getValue();
-  void setValue(char val[20]);
+FVars(char* key);
+bool getValue(int &ret_val);
+bool getValue(long &ret_val);
+bool getValue(char value[20]);
+
+void setValue(int val);
+void setValue(long val);
+void setValue(char* val);
+
+void remove();
+void printFile();
+void format();
 
 private:
+const char* _key;
 
 };
 

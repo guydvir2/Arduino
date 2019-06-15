@@ -68,7 +68,6 @@ void myJSON::readJSON_file(JsonDocument& _doc) {
         }
         else{
                 serializeJson(_doc, readFile);
-                // Serial.println("JSON file read OK");
         }
         delay(50);
 }
@@ -119,7 +118,6 @@ bool myJSON::getValue (const char *key, long &retval){
         }
 }
 
-
 void myJSON::setValue(const char *key, char *value){
         StaticJsonDocument<DOC_SIZE> tempJDOC;
         myJSON::readJSON_file(tempJDOC);
@@ -131,6 +129,7 @@ void myJSON::setValue(const char *key, int value){
         myJSON::readJSON_file(tempJDOC);
         tempJDOC[key]=value;
         myJSON::saveJSON2file(tempJDOC);
+        myJSON::PrettyprintJSON(tempJDOC);
 }
 void myJSON::setValue(const char *key, long value){
         StaticJsonDocument<DOC_SIZE> tempJDOC;

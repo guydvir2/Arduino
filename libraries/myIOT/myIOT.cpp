@@ -56,6 +56,7 @@ void myIOT::looper(){
         wdtResetCounter = 0;
 }
 
+
 // ~~~~~~~ Wifi functions ~~~~~~~
 void myIOT::startNetwork(char *ssid, char *password) {
         long startWifiConnection = millis();
@@ -137,26 +138,58 @@ void myIOT::networkStatus() {
         }
 }
 void myIOT::start_clock() {
-        int x=0;
-        startNTP();
-        while (x<3) {
-                time_t t=now();
-                if (year(t)==1970) { // verify actual update
-                        break;
+        if (startNTP()) {   //NTP Succeed
+                _failNTP = false;
+
+                if (bootKeeper()) {
+                        if (resetBoot_flag == false) {   // New Boot
+                                get_timeStamp(now());
+                                Serial.println("1");
+                        }
+                        else{   // QuickReset
+                                get_timeStamp(updated_bootTime);
+                                Serial.println("2");
+                        }
                 }
-                else {
-                        x+=1;
-                        delay(100);
+                else{
+                        // sendReset("NTP");
+                        get_timeStamp(now());   // fow now .....
+                        Serial.println("3");
                 }
+                strcpy(bootTime, timeStamp);
+                Serial.println(timeStamp);
         }
-        bootKeeper();
-        get_timeStamp();
-        strcpy(bootTime, timeStamp);
+        else{
+                _failNTP = true;
+                Serial.println("FAILNTP");
+        }
 }
-void myIOT::startNTP() {
+bool myIOT::startNTP() {
+        byte x=0;
+        byte retries = 5;
+        int delay_tries = 500;
+
         NTP.begin("pool.ntp.org", 2, true);
-        NTP.setInterval(5, clockUpdateInt); // <------------ADDED parameter
-        delay(1000);
+        delay(delay_tries);
+        time_t t=now();
+
+        while (x < retries && year(t)==1970) {
+                NTP.begin("pool.ntp.org", 2, true);
+                delay(delay_tries);
+                t=now();
+
+                Serial.print("NTP_retry: ");
+                Serial.println(x);
+                x+=1;
+        }
+        if(x<retries) {
+                NTP.setInterval(5, clockUpdateInt);
+                // delay(1000);
+                return 1;
+        }
+        else {
+                return 0;
+        }
 }
 bool myIOT::bootKeeper() {
         int x =0;
@@ -170,6 +203,7 @@ bool myIOT::bootKeeper() {
         else {
                 json.setValue("bootCalc", 0);
         }
+        delay(300);
         if (json.getValue("bootReset", _savedBoot_reset)) {
                 suc_counter+=1;
         }
@@ -204,6 +238,7 @@ bool myIOT::bootKeeper() {
                         }
                         x +=1;
                         delay(200);
+                        Serial.print(x);
                 }
                 if (x==maxRetries) { // fail NTP
                         return 0;
@@ -213,8 +248,10 @@ bool myIOT::bootKeeper() {
                 return 0;
         }
 }
-void myIOT::get_timeStamp() {
-        time_t t = now();
+void myIOT::get_timeStamp(time_t t) {
+        if (t==0) {
+                t = now();
+        }
         sprintf(timeStamp, "%02d-%02d-%02d %02d:%02d:%02d", year(t), month(t), day(t), hour(t), minute(t), second(t));
 }
 void myIOT::return_clock(char ret_tuple[20]){
@@ -225,6 +262,7 @@ void myIOT::return_date(char ret_tuple[20]){
         time_t t = now();
         sprintf(ret_tuple, "%02d-%02d-%02d", year(t), month(t), day(t));
 }
+
 
 // ~~~~~~~ MQTT functions ~~~~~~~
 void myIOT::startMQTT() {
@@ -252,9 +290,14 @@ int myIOT::subscribeMQTT() {
                                 mqttConnected = 1;
                                 mqttClient.publish(availTopic, "online", true);
                                 if (firstRun == true) {
-                                        mqttClient.publish(stateTopic, "off", true);
-                                        pub_msg("<< Boot >>");
-                                        firstRun = false;
+                                        if (resetBoot_flag == false) {
+                                                mqttClient.publish(stateTopic, "off", true);
+                                                pub_msg("<< Boot >>");
+                                                firstRun = false;
+                                        }
+                                        else{
+                                                firstRun = false;
+                                        }
                                 }
                                 else {
                                         sprintf(msg, "<< Connected to MQTT - Reload [%d]>> ", mqttFailCounter);
@@ -367,6 +410,14 @@ void myIOT::pub_state(char *inmsg) {
                 mqttClient.publish(stateTopic, inmsg, true);
         }
 }
+void myIOT::pub_err(char *inmsg) {
+        char tmpmsg[150];
+        get_timeStamp();
+        sprintf(tmpmsg, "[%s] [%s] %s", timeStamp, deviceTopic, inmsg );
+        if (mqttConnected == true) {
+                mqttClient.publish(errorTopic, tmpmsg, true);
+        }
+}
 void myIOT::msgSplitter( const char* msg_in, int max_msgSize, char *prefix, char *split_msg) {
         char tmp[120];
 
@@ -407,6 +458,7 @@ int myIOT::inline_read(char *inputstr) {
         }
         return i;
 }
+
 
 // ~~~~~~ Reset and maintability ~~~~~~
 void myIOT::sendReset(char *header) {
@@ -506,6 +558,33 @@ void myIOT::startWDT() {
 }
 
 
-FVars::FVars(){
-
+FVars::FVars(char* key){
+        _key=key;
+}
+bool FVars::getValue(int &ret_val){
+        json.getValue(_key, ret_val);
+}
+bool FVars::getValue(long &ret_val){
+        json.getValue(_key, ret_val);
+}
+bool FVars::getValue(char value[20]){
+  json.getValue(_key, value);
+}
+void FVars::setValue(int val){
+        json.setValue(_key, val);
+}
+void FVars::setValue(long val){
+        json.setValue(_key, val);
+}
+void FVars::setValue(char *val){
+        json.setValue(_key, val);
+}
+void FVars::remove(){
+  json.removeValue(_key);
+}
+void FVars::printFile(){
+  json.printFile();
+}
+void FVars::format(){
+  json.format();
 }

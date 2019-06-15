@@ -14,7 +14,7 @@
 #define VER "SonoffBasic_2.2"
 
 //~~~Services~~~~~~~~~~~
-#define USE_SERIAL       false
+#define USE_SERIAL       true
 #define USE_WDT          true
 #define USE_OTA          true
 #define USE_BOUNCE_DEBUG false
@@ -129,7 +129,8 @@ const int deBounceInt             = 50; // mili
 // ~~~~~~~~~~~~~~Start services ~~~~~~~~~~~~
 #define ADD_MQTT_FUNC addiotnalMQTT
 myIOT iot(DEVICE_TOPIC);
-FVars var1();
+FVars var1("newKey");
+FVars var2("key2");
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 // void switchIt(char *type, int sw_num, char *dir, int t = 0) {
@@ -197,6 +198,20 @@ void setup() {
         iot.useOTA = USE_OTA;
         iot.start_services(ADD_MQTT_FUNC);
 
+        var1.remove();
+        var2.setValue("GUYdvir");
+        var2.printFile();
+        // var1.format();
+        // iot.pub_err("HELP");
+
+        // Serial.println("");
+        // Serial.print("BootTime:");
+        // Serial.println(iot.updated_bootTime);
+        //
+        // Serial.print("resetFlag:");
+        // Serial.println(iot.resetBoot_flag);
+
+
         // if (load_bootTime()) {
         //         startGPIOs();
         //
@@ -221,44 +236,44 @@ void setup() {
 
 // ~~~~~~~~~~~~ StartUp ~~~~~~~~~~~~~~~~~~~
 // void startGPIOs() {
-        // for (int i = 0; i < NUM_SWITCHES; i++) {
-        //         pinMode(relays[i], OUTPUT);
-        //         pinMode(inputs[i], INPUT_PULLUP);
-        //
-        //         // ~~~~~ Read flash values for TimeOut ~~~~~~~~~
-        //         int temp_timeout_val[]={0,0};
-        //         if(USE_FAT) {
-        //                 if (json.getValue(val_timeouts[i],temp_timeout_val[i])) {
-        //                         if (temp_timeout_val[i]!=0) {
-        //                                 min_timeout[i]=temp_timeout_val[i];
-        //                         }
-        //                 }
-        //                 else{
-        //                         json.setValue(val_timeouts[i],0);
-        //                 }
-        //         }
-        //         // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        //
-        //         if (min_timeout[i] == 0) {    // OFF STATE
-        //                 digitalWrite(relays[i], !RelayOn);
-        //         }
-        //         else if ( min_timeout[i] == -1) {   // ON STATE
-        //                 digitalWrite(relays[i], RelayOn);
-        //                 if(USE_FAT) {
-        //                         json.setValue(onTime[i],now());
-        //                 }
-        //         }
-        //         else if (min_timeout[i] > 0) {   // TimeOut STATE [minuntes]
-        //                 startBootCounter(i,min_timeout[i]);
-        //         }
-        //         inputs_lastState[i] = digitalRead(inputs[i]);
-        // }
-        //
-        // if (SONOFF_DUAL) {
-        //         pinMode(BUTTON, INPUT_PULLUP);
-        //         pinMode(wifiOn_statusLED, OUTPUT);
-        //         digitalWrite(wifiOn_statusLED, LedOn);
-        // }
+// for (int i = 0; i < NUM_SWITCHES; i++) {
+//         pinMode(relays[i], OUTPUT);
+//         pinMode(inputs[i], INPUT_PULLUP);
+//
+//         // ~~~~~ Read flash values for TimeOut ~~~~~~~~~
+//         int temp_timeout_val[]={0,0};
+//         if(USE_FAT) {
+//                 if (json.getValue(val_timeouts[i],temp_timeout_val[i])) {
+//                         if (temp_timeout_val[i]!=0) {
+//                                 min_timeout[i]=temp_timeout_val[i];
+//                         }
+//                 }
+//                 else{
+//                         json.setValue(val_timeouts[i],0);
+//                 }
+//         }
+//         // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//
+//         if (min_timeout[i] == 0) {    // OFF STATE
+//                 digitalWrite(relays[i], !RelayOn);
+//         }
+//         else if ( min_timeout[i] == -1) {   // ON STATE
+//                 digitalWrite(relays[i], RelayOn);
+//                 if(USE_FAT) {
+//                         json.setValue(onTime[i],now());
+//                 }
+//         }
+//         else if (min_timeout[i] > 0) {   // TimeOut STATE [minuntes]
+//                 startBootCounter(i,min_timeout[i]);
+//         }
+//         inputs_lastState[i] = digitalRead(inputs[i]);
+// }
+//
+// if (SONOFF_DUAL) {
+//         pinMode(BUTTON, INPUT_PULLUP);
+//         pinMode(wifiOn_statusLED, OUTPUT);
+//         digitalWrite(wifiOn_statusLED, LedOn);
+// }
 
 // }
 // bool startBootCounter(int i, int t){
@@ -373,20 +388,20 @@ void setup() {
 
 // ~~~~~~~~~~~~~~~ MQTT  ~~~~~~~~~~~~~~~~~~
 void addiotnalMQTT(char *incoming_msg) {
-        // char state[25];
-        // char msg[200];
-        // char tempstr[50];
-        // char tempstr2[50];
-        //
-        // if (strcmp(incoming_msg, "status") == 0) {
-        //         // relays state
-        //         strcpy(msg, "Status: ");
-        //         for (int i = 0; i < NUM_SWITCHES; i++) {
-        //                 sprintf(tempstr, "Switch#[%d] [%s], timeOut[%s] ", i, digitalRead(relays[i]) ? "On" : "Off", inTimeOut[i] ? "Yes" : "No");
-        //                 strcat(msg, tempstr);
-        //         }
-        //         iot.pub_msg(msg);
-        // }
+        char state[25];
+        char msg[200];
+        char tempstr[50];
+        char tempstr2[50];
+
+        if (strcmp(incoming_msg, "status") == 0) {
+                // relays state
+                strcpy(msg, "Status: ");
+                for (int i = 0; i < NUM_SWITCHES; i++) {
+                        sprintf(tempstr, "Switch#[%d] [%s], timeOut[%s] ", i, digitalRead(relays[i]) ? "On" : "Off", inTimeOut[i] ? "Yes" : "No");
+                        strcat(msg, tempstr);
+                }
+                iot.pub_msg(msg);
+        }
         // else if (strcmp(incoming_msg, "pins") == 0 ) {
         //         strcpy(msg, "Pins: ");
         //         for (int i = 0; i < NUM_SWITCHES; i++) {
