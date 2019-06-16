@@ -97,6 +97,7 @@ bool _failNTP = false;
 
 long _savedBoot_Calc  = 0;
 long _savedBoot_reset = 0;
+char parameters[5][8];
 
 
 

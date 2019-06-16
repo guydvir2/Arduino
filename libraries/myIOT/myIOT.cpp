@@ -4,7 +4,7 @@
 #include <ESP8266WiFi.h>
 #include <NtpClientLib.h>
 #include <PubSubClient.h> //MQTT
-#include <Ticker.h> //WDT
+#include <Ticker.h>       //WDT
 #include <myJSON.h>
 
 // OTA libraries
@@ -13,12 +13,15 @@
 #include <ArduinoOTA.h>
 // #######################
 
+// ~~~~~~~~~ Services ~~~~~~~~~~~
 WiFiClient espClient;
 PubSubClient mqttClient(espClient);
 Ticker wdt;
 myJSON json(jfile, true);
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-char parameters[3][8];
+
+// ~~~~~~ myIOT CLASS ~~~~~~~~~~~ //
 
 myIOT::myIOT(char *devTopic) {
         deviceTopic = devTopic;
@@ -161,7 +164,7 @@ void myIOT::start_clock() {
         }
         else{
                 _failNTP = true;
-                Serial.println("FAILNTP");
+                Serial.println("failNTP");
         }
 }
 bool myIOT::startNTP() {
@@ -184,7 +187,6 @@ bool myIOT::startNTP() {
         }
         if(x<retries) {
                 NTP.setInterval(5, clockUpdateInt);
-                // delay(1000);
                 return 1;
         }
         else {
@@ -194,7 +196,7 @@ bool myIOT::startNTP() {
 bool myIOT::bootKeeper() {
         int x =0;
         int suc_counter = 0;
-        int maxRetries  = 3;
+        int maxRetries  = 2;
         long clockShift = 0;
 
         if (json.getValue("bootCalc", _savedBoot_Calc)) {
@@ -238,13 +240,14 @@ bool myIOT::bootKeeper() {
                         }
                         x +=1;
                         delay(200);
-                        Serial.print(x);
                 }
                 if (x==maxRetries) { // fail NTP
+                        Serial.println("bootKeeper Fail");
                         return 0;
                 }
         }
         else{
+          Serial.println("Fail read/Write bootKeeper to flash");
                 return 0;
         }
 }
@@ -413,9 +416,9 @@ void myIOT::pub_state(char *inmsg) {
 void myIOT::pub_err(char *inmsg) {
         char tmpmsg[150];
         get_timeStamp();
-        sprintf(tmpmsg, "[%s] [%s] %s", timeStamp, deviceTopic, inmsg );
+        sprintf(tmpmsg, "[%s] [%s] [Error log:]%s", timeStamp, deviceTopic, inmsg );
         if (mqttConnected == true) {
-                mqttClient.publish(errorTopic, tmpmsg, true);
+                mqttClient.publish(errorTopic, tmpmsg);
         }
 }
 void myIOT::msgSplitter( const char* msg_in, int max_msgSize, char *prefix, char *split_msg) {
@@ -556,8 +559,10 @@ void myIOT::startOTA() {
 void myIOT::startWDT() {
         wdt.attach(1, std::bind(&myIOT::feedTheDog, this)); // Start WatchDog
 }
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 
+// ~~~~~~ FVars CLASS ~~~~~~~~~~~ //
 FVars::FVars(char* key){
         _key=key;
 }
@@ -568,8 +573,9 @@ bool FVars::getValue(long &ret_val){
         json.getValue(_key, ret_val);
 }
 bool FVars::getValue(char value[20]){
-  json.getValue(_key, value);
+        json.getValue(_key, value);
 }
+
 void FVars::setValue(int val){
         json.setValue(_key, val);
 }
@@ -579,12 +585,13 @@ void FVars::setValue(long val){
 void FVars::setValue(char *val){
         json.setValue(_key, val);
 }
+
 void FVars::remove(){
-  json.removeValue(_key);
+        json.removeValue(_key);
 }
 void FVars::printFile(){
-  json.printFile();
+        json.printFile();
 }
 void FVars::format(){
-  json.format();
+        json.format();
 }
