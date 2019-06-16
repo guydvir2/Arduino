@@ -36,11 +36,13 @@ void setup() {
         iot.useOTA = USE_OTA;
         iot.start_services(ADD_MQTT_FUNC);
 
+        Serial.println(iot.resetBoot_flag);
+
         // var1.remove();
-        // var2.setValue("GUYdvir");
-        // var2.printFile();
+        // var1.setValue("GUYdvir");
+        // var1.printFile();
         // var1.format();
-        iot.pub_err("guy");
+        // iot.pub_err("guy");
 }
 
 // ~~~~~~~~~~~~~~~ MQTT  ~~~~~~~~~~~~~~~~~~
