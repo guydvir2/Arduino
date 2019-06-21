@@ -565,6 +565,10 @@ void myIOT::startWDT() {
 // ~~~~~~ FVars CLASS ~~~~~~~~~~~ //
 FVars::FVars(char* key){
         _key=key;
+        int int_value;
+        long long_value;
+        char char_value[20];
+
 }
 bool FVars::getValue(int &ret_val){
         json.getValue(_key, ret_val);
@@ -575,7 +579,6 @@ bool FVars::getValue(long &ret_val){
 bool FVars::getValue(char value[20]){
         json.getValue(_key, value);
 }
-
 void FVars::setValue(int val){
         json.setValue(_key, val);
 }
@@ -585,6 +588,8 @@ void FVars::setValue(long val){
 void FVars::setValue(char *val){
         json.setValue(_key, val);
 }
+
+
 
 void FVars::remove(){
         json.removeValue(_key);

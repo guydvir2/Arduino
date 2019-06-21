@@ -79,6 +79,37 @@ TEST(TestIRac, Coolix) {
   ASSERT_EQ(kCoolixBits, ac._irsend.capture.bits);
   ac.setRaw(ac._irsend.capture.value);
   ASSERT_EQ(expected, ac.toString());
+  // Confirm we are sending with a repeat of 1. i.e. two messages.
+  EXPECT_EQ(
+      "f38000d50"  // 38kHz Frequency and 50% duty-cycle.
+      // Start of message #1 (i.e. Repeat '0')
+      // Header
+      "m4480s4480"
+      // Data
+      "m560s1680m560s560m560s1680m560s1680m560s560m560s560m560s1680m560s560"
+      "m560s560m560s1680m560s560m560s560m560s1680m560s1680m560s560m560s1680"
+      "m560s560m560s560m560s1680m560s1680m560s1680m560s1680m560s1680m560s1680"
+      "m560s1680m560s1680m560s560m560s560m560s560m560s560m560s560m560s560"
+      "m560s560m560s1680m560s1680m560s560m560s1680m560s1680m560s560m560s560"
+      "m560s1680m560s560m560s560m560s1680m560s560m560s560m560s1680m560s1680"
+      // Footer
+      "m560s5040"
+      // End of message #1 (i.e. Repeat '0')
+      // Start of message #2 (i.e. Repeat '1')
+      // Header
+      "m4480s4480"
+      // Data
+      "m560s1680m560s560m560s1680m560s1680m560s560m560s560m560s1680m560s560"
+      "m560s560m560s1680m560s560m560s560m560s1680m560s1680m560s560m560s1680"
+      "m560s560m560s560m560s1680m560s1680m560s1680m560s1680m560s1680m560s1680"
+      "m560s1680m560s1680m560s560m560s560m560s560m560s560m560s560m560s560"
+      "m560s560m560s1680m560s1680m560s560m560s1680m560s1680m560s560m560s560"
+      "m560s1680m560s560m560s560m560s1680m560s560m560s560m560s1680m560s1680"
+      // Footer
+      "m560s5040",
+      // End of message #2 (i.e. Repeat '1')
+      // Note: the two messages (#1 & #2) are identical.
+      ac._irsend.outputStr());
 }
 
 TEST(TestIRac, Daikin) {
@@ -932,4 +963,36 @@ TEST(TestIRac, strToModel) {
   EXPECT_EQ(-1, IRac::strToModel("0"));
   EXPECT_EQ(-1, IRac::strToModel("FOOBAR"));
   EXPECT_EQ(0, IRac::strToModel("FOOBAR", 0));
+}
+
+TEST(TestIRac, boolToString) {
+  EXPECT_EQ("on", IRac::boolToString(true));
+  EXPECT_EQ("off", IRac::boolToString(false));
+}
+
+TEST(TestIRac, opmodeToString) {
+  EXPECT_EQ("off", IRac::opmodeToString(stdAc::opmode_t::kOff));
+  EXPECT_EQ("auto", IRac::opmodeToString(stdAc::opmode_t::kAuto));
+  EXPECT_EQ("cool", IRac::opmodeToString(stdAc::opmode_t::kCool));
+  EXPECT_EQ("unknown", IRac::opmodeToString((stdAc::opmode_t)500));
+}
+
+TEST(TestIRac, fanspeedToString) {
+  EXPECT_EQ("low", IRac::fanspeedToString(stdAc::fanspeed_t::kLow));
+  EXPECT_EQ("auto", IRac::fanspeedToString(stdAc::fanspeed_t::kAuto));
+  EXPECT_EQ("unknown", IRac::fanspeedToString((stdAc::fanspeed_t)500));
+}
+
+TEST(TestIRac, swingvToString) {
+  EXPECT_EQ("off", IRac::swingvToString(stdAc::swingv_t::kOff));
+  EXPECT_EQ("low", IRac::swingvToString(stdAc::swingv_t::kLow));
+  EXPECT_EQ("auto", IRac::swingvToString(stdAc::swingv_t::kAuto));
+  EXPECT_EQ("unknown", IRac::swingvToString((stdAc::swingv_t)500));
+}
+
+TEST(TestIRac, swinghToString) {
+  EXPECT_EQ("off", IRac::swinghToString(stdAc::swingh_t::kOff));
+  EXPECT_EQ("left", IRac::swinghToString(stdAc::swingh_t::kLeft));
+  EXPECT_EQ("auto", IRac::swinghToString(stdAc::swingh_t::kAuto));
+  EXPECT_EQ("unknown", IRac::swinghToString((stdAc::swingh_t)500));
 }

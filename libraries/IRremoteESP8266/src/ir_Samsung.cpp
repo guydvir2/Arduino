@@ -1,6 +1,8 @@
 // Copyright 2009 Ken Shirriff
 // Copyright 2017, 2018, 2019 David Conran
 
+// Samsung remote emulation
+
 #include "ir_Samsung.h"
 #include <algorithm>
 #ifndef ARDUINO
@@ -9,12 +11,6 @@
 #include "IRrecv.h"
 #include "IRsend.h"
 #include "IRutils.h"
-
-//              SSSS   AAA    MMM    SSSS  U   U  N   N   GGGG
-//             S      A   A  M M M  S      U   U  NN  N  G
-//              SSS   AAAAA  M M M   SSS   U   U  N N N  G  GG
-//                 S  A   A  M   M      S  U   U  N  NN  G   G
-//             SSSS   A   A  M   M  SSSS    UUU   N   N   GGG
 
 // Samsung originally added from https://github.com/shirriff/Arduino-IRremote/
 
@@ -590,6 +586,7 @@ void IRSamsungAc::setQuiet(const bool on) {
     remote_state[5] |= kSamsungAcQuietMask5;  // Bit needs to be set.
     // Quiet mode seems to set fan speed to auto.
     this->setFan(kSamsungAcFanAuto);
+    this->setPowerful(false);  // Quiet 'on' is mutually exclusive to Powerful.
   } else {
     remote_state[1] |= kSamsungAcQuietMask1;  // Bit needs to be set.
     remote_state[5] &= ~kSamsungAcQuietMask5;  // Bit needs to be cleared.
@@ -608,6 +605,7 @@ void IRSamsungAc::setPowerful(const bool on) {
     remote_state[10] |= kSamsungAcPowerfulMask10;  // Bit needs to be set.
     // Powerful mode sets fan speed to Turbo.
     this->setFan(kSamsungAcFanTurbo);
+    this->setQuiet(false);  // Powerful 'on' is mutually exclusive to Quiet.
   } else {
     remote_state[8] |= kSamsungAcPowerfulMask8;  // Bit needs to be set.
     remote_state[10] &= ~kSamsungAcPowerfulMask10;  // Bit needs to be cleared.
@@ -698,13 +696,8 @@ stdAc::state_t IRSamsungAc::toCommon(void) {
 }
 
 // Convert the internal state into a human readable string.
-#ifdef ARDUINO
 String IRSamsungAc::toString(void) {
   String result = "";
-#else
-std::string IRSamsungAc::toString(void) {
-  std::string result = "";
-#endif  // ARDUINO
   result.reserve(100);  // Reserve some heap for the string to reduce fragging.
   result += F("Power: ");
   if (getPower())

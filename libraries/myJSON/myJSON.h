@@ -33,6 +33,9 @@ void setValue(const char *key, long value);
 
 void updateArray(char* array_key, char *val);
 void updateArray(char* array_key, int val);
+void updateArray(char* array_key, long val);
+
+void nestedArray(char* array_key, long val);
 void eraseArray(char* array_key);
 
 void printFile();
