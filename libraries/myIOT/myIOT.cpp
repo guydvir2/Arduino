@@ -28,8 +28,7 @@ myIOT::myIOT(char *devTopic) {
         deviceName = deviceTopic;
         topicArry[0] = deviceTopic;
 }
-void myIOT::start_services(cb_func funct, char *ssid, char *password,
-                           char *mqtt_user, char *mqtt_passw, char *mqtt_broker) {
+void myIOT::start_services(cb_func funct, char *ssid, char *password, char *mqtt_user, char *mqtt_passw, char *mqtt_broker) {
         mqtt_server = mqtt_broker;
         user = mqtt_user;
         passw = mqtt_passw;
@@ -42,6 +41,7 @@ void myIOT::start_services(cb_func funct, char *ssid, char *password,
         if ( useSerial ) {
                 Serial.begin(9600);
                 delay(10);
+                Serial.println("\n~~~~~ IOT begins ~~~~~");
         }
         startNetwork(ssid, password);
         if (useWDT) {
@@ -50,6 +50,7 @@ void myIOT::start_services(cb_func funct, char *ssid, char *password,
         if (useOTA) {
                 startOTA();
         }
+        Serial.println("~~~~~ IOT fully loaded ~~~~~");
 }
 void myIOT::looper(){
         networkStatus();
@@ -57,6 +58,13 @@ void myIOT::looper(){
                 acceptOTA();
         }
         wdtResetCounter = 0;
+
+        if(useResetKeeper) {
+                if(firstRun && encounterReset !=2) {
+                        notifyOnline();
+                        firstRun = false;
+                }
+        }
 }
 
 
@@ -76,7 +84,7 @@ void myIOT::startNetwork(char *ssid, char *password) {
 
         // in case of reboot - timeOUT to wifi
         while (WiFi.status() != WL_CONNECTED && millis() - startWifiConnection < WIFItimeOut) {
-                delay(500);
+                delay(150);
                 if (useSerial) {
                         Serial.print(".");
                 }
@@ -143,24 +151,24 @@ void myIOT::networkStatus() {
 void myIOT::start_clock() {
         if (startNTP()) {   //NTP Succeed
                 _failNTP = false;
-
-                if (bootKeeper()) {
-                        if (resetBoot_flag == false) {   // New Boot
-                                get_timeStamp(now());
-                                Serial.println("1");
-                        }
-                        else{   // QuickReset
-                                get_timeStamp(updated_bootTime);
-                                Serial.println("2");
-                        }
-                }
-                else{
-                        // sendReset("NTP");
-                        get_timeStamp(now());   // fow now .....
-                        Serial.println("3");
-                }
+                get_timeStamp(now());
+                //
+                // if (bootKeeper()) {
+                //         if (resetBoot_flag == false) {   // New Boot
+                //                 get_timeStamp(now());
+                //                 Serial.println("1");
+                //         }
+                //         else{   // QuickReset
+                //                 get_timeStamp(updated_bootTime);
+                //                 Serial.println("2");
+                //         }
+                // }
+                // else{
+                //         // sendReset("NTP");
+                //         get_timeStamp(now());   // fow now .....
+                //         Serial.println("3");
+                // }
                 strcpy(bootTime, timeStamp);
-                Serial.println(timeStamp);
         }
         else{
                 _failNTP = true;
@@ -180,9 +188,6 @@ bool myIOT::startNTP() {
                 NTP.begin("pool.ntp.org", 2, true);
                 delay(delay_tries);
                 t=now();
-
-                Serial.print("NTP_retry: ");
-                Serial.println(x);
                 x+=1;
         }
         if(x<retries) {
@@ -193,6 +198,7 @@ bool myIOT::startNTP() {
                 return 0;
         }
 }
+
 bool myIOT::bootKeeper() {
         int x =0;
         int suc_counter = 0;
@@ -247,7 +253,7 @@ bool myIOT::bootKeeper() {
                 }
         }
         else{
-          Serial.println("Fail read/Write bootKeeper to flash");
+                Serial.println("Fail read/Write bootKeeper to flash");
                 return 0;
         }
 }
@@ -284,33 +290,28 @@ int myIOT::subscribeMQTT() {
                         if (useSerial) {
                                 Serial.print("Attempting MQTT connection...");
                         }
-
                         // Attempt to connect
                         if (mqttClient.connect(deviceName, user, passw, availTopic, 0, true, "offline")) {
                                 if (useSerial) {
                                         Serial.println("connected");
                                 }
                                 mqttConnected = 1;
-                                mqttClient.publish(availTopic, "online", true);
+                                // mqttClient.publish(availTopic, "online", true);
                                 if (firstRun == true) {
-                                        if (resetBoot_flag == false) {
-                                                mqttClient.publish(stateTopic, "off", true);
-                                                pub_msg("<< Boot >>");
-                                                firstRun = false;
-                                        }
-                                        else{
-                                                firstRun = false;
-                                        }
+                                        mqttClient.publish(stateTopic, "off", true);
+                                        pub_msg("<< Boot >>");
+                                        // firstRun = false;
                                 }
                                 else {
                                         sprintf(msg, "<< Connected to MQTT - Reload [%d]>> ", mqttFailCounter);
-                                        // pub_msg(msg);
+                                        pub_msg(msg);
 
                                 }
                                 for (int i = 0; i < sizeof(topicArry) / sizeof(char *); i++) {
                                         mqttClient.subscribe(topicArry[i]);
-                                        sprintf(msg, "Subscribed to %s", topicArry[i]);
+                                        // sprintf(msg, "Subscribed to %s", topicArry[i]);
                                 }
+
                                 mqttFailCounter = 0;
                                 return 1;
                         }
@@ -353,6 +354,7 @@ void myIOT::callback(char* topic, byte* payload, unsigned int length) {
         char state2[5];
         char msg2[100];
 
+
         //      Display on Serial monitor only
         if (useSerial) {
                 Serial.print("Message arrived [");
@@ -370,6 +372,21 @@ void myIOT::callback(char* topic, byte* payload, unsigned int length) {
                 Serial.println("");
         }
         //      ##############################
+        
+        // Check if Avail topic starts from OFFLINE or ONLINE mode
+        // This will flag weather unwanted Reset occured
+        if (firstRun) {
+                if(strcmp(topic,availTopic)==0) {
+                        if (strcmp(incoming_msg,"online")==0) {
+                                encounterReset = 1;
+                                // Serial.println("a: Reset detected");
+                        }
+                        else if (strcmp(incoming_msg,"offline")==0) {
+                                encounterReset = 0;
+                                // Serial.println("a: Regular Boot - not reset");
+                        }
+                }
+        }
 
         if (strcmp(incoming_msg, "boot") == 0 ) {
                 sprintf(msg, "Boot:[%s]", bootTime);
@@ -399,11 +416,12 @@ void myIOT::pub_msg(char *inmsg) {
         char tmpmsg[250];
         get_timeStamp();
 
-        if (useSerial==true) {
-                sprintf(tmpmsg, "[%s] [%s] %s", timeStamp, deviceTopic, inmsg );
-                Serial.println(tmpmsg);
-        }
-        else if (mqttConnected == true) {
+        // if (useSerial==true) {
+        //         sprintf(tmpmsg, "[%s] [%s] %s", timeStamp, deviceTopic, inmsg );
+        //         Serial.println(tmpmsg);
+        // }
+        // else if (mqttConnected == true) {
+        if (mqttConnected == true) {
                 sprintf(tmpmsg, "[%s] [%s]", timeStamp, deviceTopic );
                 msgSplitter(inmsg, 100, tmpmsg, "#" );
         }
@@ -461,7 +479,9 @@ int myIOT::inline_read(char *inputstr) {
         }
         return i;
 }
-
+void myIOT::notifyOnline(){
+        mqttClient.publish(availTopic, "online", true);
+}
 
 // ~~~~~~ Reset and maintability ~~~~~~
 void myIOT::sendReset(char *header) {
@@ -549,9 +569,9 @@ void myIOT::startOTA() {
                         }
                 });
                 // ArduinoOTA.begin();
-                Serial.println("Ready");
-                Serial.print("IP address: ");
-                Serial.println(WiFi.localIP());
+                // Serial.println("Ready");
+                // Serial.print("IP address: ");
+                // Serial.println(WiFi.localIP());
         }
 
         ArduinoOTA.begin();
@@ -588,8 +608,6 @@ void FVars::setValue(long val){
 void FVars::setValue(char *val){
         json.setValue(_key, val);
 }
-
-
 
 void FVars::remove(){
         json.removeValue(_key);

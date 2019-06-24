@@ -20,6 +20,7 @@ void return_date(char ret_tuple[20]);
 
 void sendReset(char *header);
 void start_services(cb_func funct, char *ssid="Xiaomi_D6C8", char *password="guyd5161", char *mqtt_user="guy", char *mqtt_passw="kupelu9e", char *mqtt_broker="192.168.3.200");
+void notifyOnline();
 void pub_state(char *inmsg);
 void pub_msg(char *inmsg);
 void pub_err(char *inmsg);
@@ -29,19 +30,21 @@ bool useSerial = false;
 bool useWDT    = true;
 bool useOTA    = true;
 bool extDefine = false; // must to set to true in order to use EXtMQTT
+bool useResetKeeper = false;
 
 // byte inline_param_amount = 2;
 char inline_param[3][20]; //values from user
 
 bool mqttConnected  = 0;
 char* deviceTopic   = "";
-const char *ver     = "iot_2.0";
+const char *ver     = "iot_2.1";
 char timeStamp[50];
 
 
-bool resetBoot_flag  = false;
+bool resetBoot_flag   = false;
+byte encounterReset   = 2;
 long updated_bootTime = 0;
-int resetIntervals   = 10;
+int resetIntervals    = 10;
 
 private:
 char* ssid;
@@ -76,9 +79,13 @@ char* msgTopic     = "HomePi/Dvir/Messages";
 char* groupTopic   = "HomePi/Dvir/All";
 char* errorTopic   = "HomePi/Dvir/Errors";
 char* deviceName   = "";
-char* topicArry[3] = {deviceTopic, groupTopic, errorTopic};
+char* availTopic   = "HomePi/Dvir";
+
 char stateTopic[50];
-char availTopic[50];
+char* topicArry[4] = {deviceTopic, groupTopic, errorTopic, availTopic};
+// char* topicArry[3] = {deviceTopic, groupTopic, errorTopic};
+// char availTopic[50];
+
 // ##############################################
 
 
@@ -115,8 +122,6 @@ int subscribeMQTT();
 void createTopics(const char *devTopic, char *state, char *avail);
 void callback(char* topic, byte* payload, unsigned int length);
 void msgSplitter( const char* msg_in, int max_msgSize, char *prefix, char *split_msg);
-
-
 // ~~~~~~~ Services  ~~~~~~~~~~~~~~~~~~~~~~~~
 void feedTheDog();
 void startWDT();
