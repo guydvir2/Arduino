@@ -6,8 +6,6 @@ typedef void (*cb_func)(char msg1[50]); // this define a generic functing with a
 
 #define jfile "myfile.json"
 
-
-
 class myIOT
 {
 public:
@@ -37,12 +35,12 @@ char inline_param[3][20]; //values from user
 
 bool mqttConnected  = 0;
 char* deviceTopic   = "";
-const char *ver     = "iot_2.1";
-char timeStamp[50];
+const char *ver     = "iot_3.0";
+char timeStamp[20];
 
 
 bool resetBoot_flag   = false;
-byte encounterReset   = 2;
+byte encounterReset   = 0;
 long updated_bootTime = 0;
 int resetIntervals    = 10;
 
@@ -78,13 +76,11 @@ char* passw = "";
 char* msgTopic     = "HomePi/Dvir/Messages";
 char* groupTopic   = "HomePi/Dvir/All";
 char* errorTopic   = "HomePi/Dvir/Errors";
-char* deviceName   = "";
-char* availTopic   = "HomePi/Dvir";
+char* deviceName   = "HomePi/DvirHomePi/DvirHomePi/DvirHomePi/Dvir";
+char* availTopic   = "HomePi/DvirHomePi/DvirHomePi/DvirHomePi/Dvir";
 
 char stateTopic[50];
 char* topicArry[4] = {deviceTopic, groupTopic, errorTopic, availTopic};
-// char* topicArry[3] = {deviceTopic, groupTopic, errorTopic};
-// char availTopic[50];
 
 // ##############################################
 
@@ -104,7 +100,7 @@ bool _failNTP = false;
 
 long _savedBoot_Calc  = 0;
 long _savedBoot_reset = 0;
-char parameters[5][8];
+// char parameters[5][8];
 
 
 
@@ -128,8 +124,6 @@ void startWDT();
 void acceptOTA();
 };
 
-
-
 class FVars
 {
 public:
@@ -151,4 +145,27 @@ const char* _key;
 
 };
 
+class timeOUT
+{
+private:
+int _def_val      = 0; // default value for TO ( hard coded )
+long _calc_endTO  = 0; // corrected clock ( case of restart)
+long _savedTO     = 0; // clock to stop TO
+bool _inTO        = false;
+bool _onState     = false;
+
+public:
+timeOUT(char *key, int def_val);
+int looper();
+bool begin(int val=0, bool newReboot = true);
+bool getStatus();
+int remain();
+void end_to();
+
+private:
+FVars p1;
+void switchON();
+void switchOFF();
+
+};
 #endif

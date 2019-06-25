@@ -175,7 +175,6 @@ void switchIt(char *type, int sw_num, char *dir) {
 
 }
 void setup() {
-        // startGPIOs();
 
         iot.useSerial      = USE_SERIAL;
         iot.useWDT         = USE_WDT;
@@ -183,8 +182,6 @@ void setup() {
         iot.useResetKeeper = USE_RESETKEEPER
         iot.start_services(ADD_MQTT_FUNC);
 
-        // Sw_0.begin();
-        // Sw_1.begin();
 }
 
 // ~~~~~~~~~ GPIO switching ~~~~~~~~~~~~~

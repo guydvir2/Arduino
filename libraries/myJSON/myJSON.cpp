@@ -129,7 +129,6 @@ void myJSON::setValue(const char *key, int value){
         myJSON::readJSON_file(tempJDOC);
         tempJDOC[key]=value;
         myJSON::saveJSON2file(tempJDOC);
-        myJSON::PrettyprintJSON(tempJDOC);
 }
 void myJSON::setValue(const char *key, long value){
         StaticJsonDocument<DOC_SIZE> tempJDOC;

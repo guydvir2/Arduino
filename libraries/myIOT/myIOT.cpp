@@ -34,14 +34,14 @@ void myIOT::start_services(cb_func funct, char *ssid, char *password, char *mqtt
         passw = mqtt_passw;
         ssid = ssid;
         password = password;
-        ext_mqtt = funct;     //redirecting to ex-class function ( defined outside)
-        extDefine = true;     // maing sure this ext_func was defined
+        ext_mqtt = funct;       //redirecting to ex-class function ( defined outside)
+        extDefine = true;       // maing sure this ext_func was defined
 
 
         if ( useSerial ) {
                 Serial.begin(9600);
                 delay(10);
-                Serial.println("\n~~~~~ IOT begins ~~~~~");
+                // Serial.println("\n~~~~~ IOT begins ~~~~~");
         }
         startNetwork(ssid, password);
         if (useWDT) {
@@ -50,14 +50,14 @@ void myIOT::start_services(cb_func funct, char *ssid, char *password, char *mqtt
         if (useOTA) {
                 startOTA();
         }
-        Serial.println("~~~~~ IOT fully loaded ~~~~~");
+        // Serial.println("~~~~~ IOT fully loaded ~~~~~");
 }
 void myIOT::looper(){
-        networkStatus();
+        networkStatus();      // runs wifi/mqtt connectivity
         if (useOTA) {
                 acceptOTA();
-        }
-        wdtResetCounter = 0;
+        }       // checks for OTA
+        wdtResetCounter = 0;  //reset WDT watchDog
 
         if(useResetKeeper) {
                 if(firstRun && encounterReset !=2) {
@@ -151,28 +151,11 @@ void myIOT::networkStatus() {
 void myIOT::start_clock() {
         if (startNTP()) {   //NTP Succeed
                 _failNTP = false;
-                get_timeStamp(now());
-                //
-                // if (bootKeeper()) {
-                //         if (resetBoot_flag == false) {   // New Boot
-                //                 get_timeStamp(now());
-                //                 Serial.println("1");
-                //         }
-                //         else{   // QuickReset
-                //                 get_timeStamp(updated_bootTime);
-                //                 Serial.println("2");
-                //         }
-                // }
-                // else{
-                //         // sendReset("NTP");
-                //         get_timeStamp(now());   // fow now .....
-                //         Serial.println("3");
-                // }
+                get_timeStamp();
                 strcpy(bootTime, timeStamp);
         }
         else{
                 _failNTP = true;
-                Serial.println("failNTP");
         }
 }
 bool myIOT::startNTP() {
@@ -199,64 +182,64 @@ bool myIOT::startNTP() {
         }
 }
 
-bool myIOT::bootKeeper() {
-        int x =0;
-        int suc_counter = 0;
-        int maxRetries  = 2;
-        long clockShift = 0;
-
-        if (json.getValue("bootCalc", _savedBoot_Calc)) {
-                suc_counter+=1;
-        }
-        else {
-                json.setValue("bootCalc", 0);
-        }
-        delay(300);
-        if (json.getValue("bootReset", _savedBoot_reset)) {
-                suc_counter+=1;
-        }
-        else {
-                json.setValue("bootReset", 0);
-        }
-
-        if (suc_counter == 2) {
-                long currentBootTime = now();
-
-                while (x<maxRetries) { // verify time is updated
-                        if (year(currentBootTime) != 1970) { //NTP update succeeded
-                                json.setValue("bootReset", currentBootTime);
-                                int tDelta = currentBootTime - _savedBoot_reset;
-
-                                if ( tDelta > resetIntervals ) {
-                                        json.setValue("bootCalc", currentBootTime);
-                                        updated_bootTime = currentBootTime;           // take clock of current boot
-                                        clockShift = 0;
-                                        resetBoot_flag = false;
-                                        return 1;
-                                }
-                                else  {
-                                        updated_bootTime = _savedBoot_Calc;           // take clock of last boot
-                                        clockShift = currentBootTime - updated_bootTime;
-                                        resetBoot_flag = true;
-                                        return 1;
-                                }
-                        }
-                        else{
-                                currentBootTime = now();
-                        }
-                        x +=1;
-                        delay(200);
-                }
-                if (x==maxRetries) { // fail NTP
-                        Serial.println("bootKeeper Fail");
-                        return 0;
-                }
-        }
-        else{
-                Serial.println("Fail read/Write bootKeeper to flash");
-                return 0;
-        }
-}
+// bool myIOT::bootKeeper() {
+//         int x =0;
+//         int suc_counter = 0;
+//         int maxRetries  = 2;
+//         long clockShift = 0;
+//
+//         if (json.getValue("bootCalc", _savedBoot_Calc)) {
+//                 suc_counter+=1;
+//         }
+//         else {
+//                 json.setValue("bootCalc", 0);
+//         }
+//         delay(300);
+//         if (json.getValue("bootReset", _savedBoot_reset)) {
+//                 suc_counter+=1;
+//         }
+//         else {
+//                 json.setValue("bootReset", 0);
+//         }
+//
+//         if (suc_counter == 2) {
+//                 long currentBootTime = now();
+//
+//                 while (x<maxRetries) { // verify time is updated
+//                         if (year(currentBootTime) != 1970) { //NTP update succeeded
+//                                 json.setValue("bootReset", currentBootTime);
+//                                 int tDelta = currentBootTime - _savedBoot_reset;
+//
+//                                 if ( tDelta > resetIntervals ) {
+//                                         json.setValue("bootCalc", currentBootTime);
+//                                         updated_bootTime = currentBootTime;           // take clock of current boot
+//                                         clockShift = 0;
+//                                         resetBoot_flag = false;
+//                                         return 1;
+//                                 }
+//                                 else  {
+//                                         updated_bootTime = _savedBoot_Calc;           // take clock of last boot
+//                                         clockShift = currentBootTime - updated_bootTime;
+//                                         resetBoot_flag = true;
+//                                         return 1;
+//                                 }
+//                         }
+//                         else{
+//                                 currentBootTime = now();
+//                         }
+//                         x +=1;
+//                         delay(200);
+//                 }
+//                 if (x==maxRetries) { // fail NTP
+//                         Serial.println("bootKeeper Fail");
+//                         return 0;
+//                 }
+//         }
+//         else{
+//                 Serial.println("Fail read/Write bootKeeper to flash");
+//                 return 0;
+//         }
+// }
 void myIOT::get_timeStamp(time_t t) {
         if (t==0) {
                 t = now();
@@ -296,15 +279,19 @@ int myIOT::subscribeMQTT() {
                                         Serial.println("connected");
                                 }
                                 mqttConnected = 1;
-                                // mqttClient.publish(availTopic, "online", true);
+                                if (useResetKeeper == false) {
+                                        mqttClient.publish(availTopic, "online", true);
+                                }
                                 if (firstRun == true) {
                                         mqttClient.publish(stateTopic, "off", true);
                                         pub_msg("<< Boot >>");
-                                        // firstRun = false;
+                                        if (useResetKeeper == false) {
+                                                firstRun = false;
+                                        }
                                 }
                                 else {
                                         sprintf(msg, "<< Connected to MQTT - Reload [%d]>> ", mqttFailCounter);
-                                        pub_msg(msg);
+                                        // pub_msg(msg);
 
                                 }
                                 for (int i = 0; i < sizeof(topicArry) / sizeof(char *); i++) {
@@ -327,7 +314,7 @@ int myIOT::subscribeMQTT() {
                                 mqttFailCounter++;
                         }
 
-                        delay(500);
+                        delay(100);
                 }
 
                 // Failed to connect MQTT adter retries
@@ -372,18 +359,16 @@ void myIOT::callback(char* topic, byte* payload, unsigned int length) {
                 Serial.println("");
         }
         //      ##############################
-        
+
         // Check if Avail topic starts from OFFLINE or ONLINE mode
         // This will flag weather unwanted Reset occured
         if (firstRun) {
                 if(strcmp(topic,availTopic)==0) {
                         if (strcmp(incoming_msg,"online")==0) {
                                 encounterReset = 1;
-                                // Serial.println("a: Reset detected");
                         }
                         else if (strcmp(incoming_msg,"offline")==0) {
                                 encounterReset = 0;
-                                // Serial.println("a: Regular Boot - not reset");
                         }
                 }
         }
@@ -423,7 +408,7 @@ void myIOT::pub_msg(char *inmsg) {
         // else if (mqttConnected == true) {
         if (mqttConnected == true) {
                 sprintf(tmpmsg, "[%s] [%s]", timeStamp, deviceTopic );
-                msgSplitter(inmsg, 100, tmpmsg, "#" );
+                msgSplitter(inmsg, 200, tmpmsg, "#" );
         }
 }
 void myIOT::pub_state(char *inmsg) {
@@ -617,4 +602,89 @@ void FVars::printFile(){
 }
 void FVars::format(){
         json.format();
+}
+
+
+// ~~~~~~~~~~~ TimeOut Class ~~~~~~~~~~~~
+// timeOUT::timeOUT(cb_func funct, char *key, int def_val) : p1 (key) {
+timeOUT::timeOUT(char *key, int def_val) : p1 (key) {
+        _def_val = def_val*60;//sec
+        // event_func = funct;
+}
+int timeOUT::looper(){
+        if (_inTO == true && _calc_endTO <=now() && _onState==true) { // shutting down
+          Serial.println("A");
+                switchOFF();
+                return 0;
+        }
+        else if(_inTO == true && _calc_endTO >now()&& _onState==false) {
+                switchON();
+                Serial.println("B");
+                return 1; // Running / ON
+        }
+        else{
+                return 2;
+        }
+}
+bool timeOUT::begin(int val, bool newReboot){ // NewReboot come to not case of sporadic reboot
+        if (p1.getValue(_savedTO)) {         // able to read JSON ?
+                if (_savedTO > now()) {         // saved and in time
+                        _calc_endTO=_savedTO;
+                        switchON();
+                        return 1;
+                }
+                else if (_savedTO >0 && _savedTO <=now()) {// saved but time passed
+                        switchOFF();
+                        return 0;
+                }
+                else if (_savedTO == 0 && newReboot == true) { // fresh start
+                        if (val == 0) {
+                                _calc_endTO = now() + _def_val;
+                                switchON();
+                                p1.setValue(_calc_endTO);
+                                return 1;
+                        }
+                        else if (_def_val == 0) {
+                                _calc_endTO = 0;
+                                return 0;
+                        }
+                        else{
+                                _calc_endTO=now()+val*60;
+                                switchON();
+                                p1.setValue(_calc_endTO);
+                                return 1;
+                        }
+                }
+        }
+        else{         // fail to read value, or value not initialized.
+                switchOFF();
+                return 0;
+        }
+}
+bool timeOUT::getStatus(){
+        return _onState;
+}
+int timeOUT::remain(){
+        if (_inTO == true) {
+                return _calc_endTO-now();
+        }
+        else {
+                return 0;
+        }
+}
+void timeOUT::end_to(){
+        switchOFF();
+}
+
+// FVars p1;
+void timeOUT::switchON(){
+        _onState = true;
+        _inTO = true;
+        Serial.println("On");
+}
+void timeOUT::switchOFF(){
+        _onState = false;
+        p1.setValue(0);
+        _inTO = false;
+        Serial.println("Off");
 }
