@@ -39,10 +39,10 @@ const char *ver     = "iot_3.0";
 char timeStamp[20];
 
 
-bool resetBoot_flag   = false;
-byte encounterReset   = 0;
-long updated_bootTime = 0;
-int resetIntervals    = 10;
+bool resetBoot_flag    = false;
+byte mqtt_detect_reset = 2;
+long updated_bootTime  = 0;
+int resetIntervals     = 10;
 
 private:
 char* ssid;
@@ -100,7 +100,6 @@ bool _failNTP = false;
 
 long _savedBoot_Calc  = 0;
 long _savedBoot_reset = 0;
-// char parameters[5][8];
 
 
 
@@ -157,6 +156,7 @@ bool _onState     = false;
 public:
 timeOUT(char *key, int def_val);
 int looper();
+int flashRead();
 bool begin(int val=0, bool newReboot = true);
 bool getStatus();
 int remain();
