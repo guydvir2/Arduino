@@ -29,6 +29,7 @@ bool useWDT    = true;
 bool useOTA    = true;
 bool extDefine = false; // must to set to true in order to use EXtMQTT
 bool useResetKeeper = false;
+bool resetFailNTP   = false;
 
 // byte inline_param_amount = 2;
 char inline_param[3][20]; //values from user
@@ -157,15 +158,20 @@ public:
 timeOUT(char *key, int def_val);
 int looper();
 int flashRead();
+int remain();
 bool begin(int val=0, bool newReboot = true);
 bool getStatus();
-int remain();
-void end_to();
+void default_to();
+void setNew_to(int to);
+void convert_epoch2clock(long t1, long t2, char* time_str, char* days_str);
+long savedTO     = 0; // clock to stop TO
+
 
 private:
 FVars p1;
 void switchON();
 void switchOFF();
+
 
 };
 #endif

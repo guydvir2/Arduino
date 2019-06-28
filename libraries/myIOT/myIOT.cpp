@@ -41,7 +41,6 @@ void myIOT::start_services(cb_func funct, char *ssid, char *password, char *mqtt
         if ( useSerial ) {
                 Serial.begin(9600);
                 delay(10);
-                // Serial.println("\n~~~~~ IOT begins ~~~~~");
         }
         startNetwork(ssid, password);
         if (useWDT) {
@@ -50,7 +49,6 @@ void myIOT::start_services(cb_func funct, char *ssid, char *password, char *mqtt
         if (useOTA) {
                 startOTA();
         }
-        // Serial.println("~~~~~ IOT fully loaded ~~~~~");
 }
 void myIOT::looper(){
         networkStatus();      // runs wifi/mqtt connectivity
@@ -155,7 +153,12 @@ void myIOT::start_clock() {
                 strcpy(bootTime, timeStamp);
         }
         else{
-                _failNTP = true;
+                if (resetFailNTP) {
+                        ESP.reset();
+                }
+                else{
+                        _failNTP = true;
+                }
         }
 }
 bool myIOT::startNTP() {
@@ -284,9 +287,9 @@ int myIOT::subscribeMQTT() {
                                 }
                                 if (firstRun == true) {
                                         mqttClient.publish(stateTopic, "off", true);
-                                        pub_msg("<< Boot >>");
                                         if (useResetKeeper == false) {
                                                 firstRun = false;
+                                                pub_msg("<< Boot >>");
                                         }
                                 }
                                 else {
@@ -611,12 +614,12 @@ timeOUT::timeOUT(char *key, int def_val) : p1 (key) {
         _def_val = def_val*60;//sec
 }
 int timeOUT::looper(){
-        if (_calc_endTO >=now()) { // shutting down
+        if (_calc_endTO >=now()) {
                 return 1;
         }
         else if  (_calc_endTO < now() && _inTO == true) {
                 switchOFF();
-                return 0; // Running / ON
+                return 0;
         }
         else{
                 return 0;
@@ -624,18 +627,15 @@ int timeOUT::looper(){
 }
 bool timeOUT::begin(int val, bool newReboot){ // NewReboot come to not case of sporadic reboot
         if (flashRead()) {          // able to read JSON ?
-                Serial.print("StartValue: ");
-                Serial.println(_savedTO);
-
                 if (_savedTO > now()) {       // saved and in time
                         _calc_endTO=_savedTO;
                         switchON();
-                        Serial.println(1);
+                        // Serial.println(1);
                         return 1;
                 }
                 else if (_savedTO >0 && _savedTO <=now()) {// saved but time passed
                         switchOFF();
-                        Serial.println(2);
+                        // Serial.println(2);
                         return 0;
                 }
                 else if (_savedTO == 0 && newReboot == true) { // fresh start
@@ -643,31 +643,37 @@ bool timeOUT::begin(int val, bool newReboot){ // NewReboot come to not case of s
                                 _calc_endTO = now() + _def_val;
                                 switchON();
                                 p1.setValue(_calc_endTO);
-                                Serial.println(3);
+                                // Serial.println(3);
                                 return 1;
                         }
                         else if (_def_val == 0) {
                                 _calc_endTO = 0;
-                                Serial.println(4);
+                                // Serial.println(4);
                                 return 0;
                         }
                         else{
                                 _calc_endTO=now()+val*60;
                                 switchON();
                                 p1.setValue(_calc_endTO);
-                                Serial.println(5);
+                                // Serial.println(5);
                                 return 1;
                         }
                 }
         }
         else{         // fail to read value, or value not initialized.
                 switchOFF();
-                Serial.println(7);
                 return 0;
         }
 }
 int timeOUT::flashRead(){
-  return p1.getValue(_savedTO);
+        if(p1.getValue(_savedTO)) {
+                savedTO = _savedTO;
+                return 1;
+        }
+        else {
+                return 0;
+        }
+
 }
 bool timeOUT::getStatus(){
         return 0;
@@ -680,11 +686,15 @@ int timeOUT::remain(){
                 return 0;
         }
 }
-void timeOUT::end_to(){
-        _calc_endTO = now();
+void timeOUT::setNew_to(int to){
+  switchOFF();
+  _calc_endTO=now()+to*60;
+  p1.setValue(_calc_endTO);
+  switchON();
 }
-
-// FVars p1;
+void timeOUT::default_to(){
+        setNew_to(_def_val);
+}
 void timeOUT::switchON(){
         _inTO = true;
         Serial.println("On!");
@@ -693,4 +703,25 @@ void timeOUT::switchOFF(){
         p1.setValue(0);
         _inTO = false;
         Serial.println("Off!");
+}
+void timeOUT::convert_epoch2clock(long t1, long t2, char* time_str, char* days_str){
+        byte days       = 0;
+        byte hours      = 0;
+        byte minutes    = 0;
+        byte seconds    = 0;
+
+        int sec2minutes = 60;
+        int sec2hours   = (sec2minutes * 60);
+        int sec2days    = (sec2hours * 24);
+        int sec2years   = (sec2days * 365);
+
+        long time_delta = t1-t2;
+
+        days    = (int)(time_delta / sec2days);
+        hours   = (int)((time_delta - days * sec2days) / sec2hours);
+        minutes = (int)((time_delta - days * sec2days - hours * sec2hours) / sec2minutes);
+        seconds = (int)(time_delta - days * sec2days - hours * sec2hours - minutes * sec2minutes);
+
+        sprintf(days_str, "%02d days", days);
+        sprintf(time_str, "%02d:%02d:%02d", hours, minutes, seconds);
 }
