@@ -164,6 +164,7 @@ bool getStatus();
 void default_to();
 void setNewTimeout(int to);
 void convert_epoch2clock(long t1, long t2, char* time_str, char* days_str);
+void endNow();
 long savedTO     = 0; // clock to stop TO
 
 

@@ -228,9 +228,9 @@ int myIOT::subscribeMQTT() {
                                 }
                                 if (firstRun == true) {
                                         mqttClient.publish(stateTopic, "off", true);
+                                        pub_msg("<< Boot >>");
                                         if (useResetKeeper == false) {
                                                 firstRun = false;
-                                                pub_msg("<< Boot >>");
                                         }
                                 }
                                 else {
@@ -552,7 +552,7 @@ void FVars::format(){
 // ~~~~~~~~~~~ TimeOut Class ~~~~~~~~~~~~
 // timeOUT::timeOUT(cb_func funct, char *key, int def_val) : p1 (key) {
 timeOUT::timeOUT(char *key, int def_val) : p1 (key) {
-        _def_val = def_val*60;//conv to minutes
+        _def_val = def_val*60;//[sec]
 }
 int timeOUT::looper(){
         if (_calc_endTO >=now()) {
@@ -572,12 +572,12 @@ bool timeOUT::begin(bool newReboot, int val ){ // NewReboot come to not case of 
                 if (_savedTO > now()) {       // get saved value- still have to go
                         _calc_endTO=_savedTO;
                         switchON();
-                        // Serial.println(1);
+                        Serial.println(1);
                         return 1;
                 }
                 else if (_savedTO >0 && _savedTO <=now()) {// saved but time passed
                         switchOFF();
-                        // Serial.println(2);
+                        Serial.println(2);
                         return 0;
                 }
                 /*
@@ -589,17 +589,17 @@ bool timeOUT::begin(bool newReboot, int val ){ // NewReboot come to not case of 
                 else if (_savedTO == 0 && newReboot == true) { // fresh start
                         if (val == 0) {
                                 setNewTimeout(_def_val);
-                                // Serial.println(3);
+                                Serial.println(3);
                                 return 1;
                         }
                         else if (_def_val == 0) {
                                 _calc_endTO = 0;
-                                // Serial.println(4);
+                                Serial.println(4);
                                 return 0;
                         }
                         else{
                           setNewTimeout(val);
-                                // Serial.println(5);
+                                Serial.println(5);
                                 return 1;
                         }
                 }
@@ -631,8 +631,7 @@ int timeOUT::remain(){
         }
 }
 void timeOUT::setNewTimeout(int to){
-        // switchOFF();
-        _calc_endTO=now()+to*60;
+        _calc_endTO=now()+to;
         p1.setValue(_calc_endTO);
         switchON();
 }
@@ -647,6 +646,9 @@ void timeOUT::switchOFF(){
         p1.setValue(0);
         _inTO = false;
         Serial.println("Off!");
+}
+void timeOUT::endNow(){
+  _calc_endTO = now();
 }
 void timeOUT::convert_epoch2clock(long t1, long t2, char* time_str, char* days_str){
         byte days       = 0;
