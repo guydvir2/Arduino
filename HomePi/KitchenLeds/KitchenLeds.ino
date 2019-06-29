@@ -177,6 +177,7 @@ void addiotnalMQTT(char incoming_msg[50]) {
 
         if      (strcmp(incoming_msg, "status") == 0) {
                 if(timeOut_SW0.remain()>0) {
+                        timeOut_SW0.convert_epoch2clock(now()+timeOut_SW0.remain(),now(), msg2, msg);
                         sprintf(msg2,"[TimeOut][%d mins.]",timeOut_SW0.remain());
                 }
                 else{
@@ -213,9 +214,9 @@ void addiotnalMQTT(char incoming_msg[50]) {
         else{
                 iot.inline_read(incoming_msg);
                 if(strcmp(iot.inline_param[0],"timeout") == 0 && atoi(iot.inline_param[1])>0) {
-                        timeOut_SW0.setNew_to(atoi(iot.inline_param[1]));
+                        timeOut_SW0.setNewTimeout(atoi(iot.inline_param[1]));
                         timeOut_SW0.convert_epoch2clock(now()+atoi(iot.inline_param[1]),now(), msg2, msg);
-                        sprintf(msg, "[MQTT]: new TimeOut Added %s", msg2);
+                        sprintf(msg, "MQTT: new TimeOut Added %s", msg2);
                         iot.pub_msg(msg);
                 }
                 else if(strcmp(iot.inline_param[0],"blink") == 0 && atoi(iot.inline_param[1])>0 && atoi(iot.inline_param[2])>0) {
@@ -234,7 +235,7 @@ void startTimeOut(){
                 timeOut_SW0.begin();
         }
         else {
-                timeOut_SW0.begin(0,false);
+                timeOut_SW0.begin(false); // badreboot detected - don't restart TO if already ended
         }
 }
 void checkIf_badReboot(){

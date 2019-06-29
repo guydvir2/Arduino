@@ -184,65 +184,6 @@ bool myIOT::startNTP() {
                 return 0;
         }
 }
-
-// bool myIOT::bootKeeper() {
-//         int x =0;
-//         int suc_counter = 0;
-//         int maxRetries  = 2;
-//         long clockShift = 0;
-//
-//         if (json.getValue("bootCalc", _savedBoot_Calc)) {
-//                 suc_counter+=1;
-//         }
-//         else {
-//                 json.setValue("bootCalc", 0);
-//         }
-//         delay(300);
-//         if (json.getValue("bootReset", _savedBoot_reset)) {
-//                 suc_counter+=1;
-//         }
-//         else {
-//                 json.setValue("bootReset", 0);
-//         }
-//
-//         if (suc_counter == 2) {
-//                 long currentBootTime = now();
-//
-//                 while (x<maxRetries) { // verify time is updated
-//                         if (year(currentBootTime) != 1970) { //NTP update succeeded
-//                                 json.setValue("bootReset", currentBootTime);
-//                                 int tDelta = currentBootTime - _savedBoot_reset;
-//
-//                                 if ( tDelta > resetIntervals ) {
-//                                         json.setValue("bootCalc", currentBootTime);
-//                                         updated_bootTime = currentBootTime;           // take clock of current boot
-//                                         clockShift = 0;
-//                                         resetBoot_flag = false;
-//                                         return 1;
-//                                 }
-//                                 else  {
-//                                         updated_bootTime = _savedBoot_Calc;           // take clock of last boot
-//                                         clockShift = currentBootTime - updated_bootTime;
-//                                         resetBoot_flag = true;
-//                                         return 1;
-//                                 }
-//                         }
-//                         else{
-//                                 currentBootTime = now();
-//                         }
-//                         x +=1;
-//                         delay(200);
-//                 }
-//                 if (x==maxRetries) { // fail NTP
-//                         Serial.println("bootKeeper Fail");
-//                         return 0;
-//                 }
-//         }
-//         else{
-//                 Serial.println("Fail read/Write bootKeeper to flash");
-//                 return 0;
-//         }
-// }
 void myIOT::get_timeStamp(time_t t) {
         if (t==0) {
                 t = now();
@@ -611,12 +552,13 @@ void FVars::format(){
 // ~~~~~~~~~~~ TimeOut Class ~~~~~~~~~~~~
 // timeOUT::timeOUT(cb_func funct, char *key, int def_val) : p1 (key) {
 timeOUT::timeOUT(char *key, int def_val) : p1 (key) {
-        _def_val = def_val*60;//sec
+        _def_val = def_val*60;//conv to minutes
 }
 int timeOUT::looper(){
         if (_calc_endTO >=now()) {
                 return 1;
         }
+
         else if  (_calc_endTO < now() && _inTO == true) {
                 switchOFF();
                 return 0;
@@ -625,9 +567,9 @@ int timeOUT::looper(){
                 return 0;
         }
 }
-bool timeOUT::begin(int val, bool newReboot){ // NewReboot come to not case of sporadic reboot
-        if (flashRead()) {          // able to read JSON ?
-                if (_savedTO > now()) {       // saved and in time
+bool timeOUT::begin(bool newReboot, int val ){ // NewReboot come to not case of sporadic reboot
+        if (flashRead()) {                    // able to read JSON ?
+                if (_savedTO > now()) {       // get saved value- still have to go
                         _calc_endTO=_savedTO;
                         switchON();
                         // Serial.println(1);
@@ -638,11 +580,15 @@ bool timeOUT::begin(int val, bool newReboot){ // NewReboot come to not case of s
                         // Serial.println(2);
                         return 0;
                 }
+                /*
+                   case below is the main issue: if upon new reboot, after a successfull
+                   ending of last timeOut ( _savedTO==0 ), how to consider a new
+                   Reboot ? if newReboot == true, means that it will start over
+                   as a new Timeout Task.
+                 */
                 else if (_savedTO == 0 && newReboot == true) { // fresh start
                         if (val == 0) {
-                                _calc_endTO = now() + _def_val;
-                                switchON();
-                                p1.setValue(_calc_endTO);
+                                setNewTimeout(_def_val);
                                 // Serial.println(3);
                                 return 1;
                         }
@@ -652,9 +598,7 @@ bool timeOUT::begin(int val, bool newReboot){ // NewReboot come to not case of s
                                 return 0;
                         }
                         else{
-                                _calc_endTO=now()+val*60;
-                                switchON();
-                                p1.setValue(_calc_endTO);
+                          setNewTimeout(val);
                                 // Serial.println(5);
                                 return 1;
                         }
@@ -686,14 +630,14 @@ int timeOUT::remain(){
                 return 0;
         }
 }
-void timeOUT::setNew_to(int to){
-  switchOFF();
-  _calc_endTO=now()+to*60;
-  p1.setValue(_calc_endTO);
-  switchON();
+void timeOUT::setNewTimeout(int to){
+        // switchOFF();
+        _calc_endTO=now()+to*60;
+        p1.setValue(_calc_endTO);
+        switchON();
 }
 void timeOUT::default_to(){
-        setNew_to(_def_val);
+        setNewTimeout(_def_val);
 }
 void timeOUT::switchON(){
         _inTO = true;
@@ -725,3 +669,65 @@ void timeOUT::convert_epoch2clock(long t1, long t2, char* time_str, char* days_s
         sprintf(days_str, "%02d days", days);
         sprintf(time_str, "%02d:%02d:%02d", hours, minutes, seconds);
 }
+
+
+
+
+// bool myIOT::bootKeeper() {
+//         int x =0;
+//         int suc_counter = 0;
+//         int maxRetries  = 2;
+//         long clockShift = 0;
+//
+//         if (json.getValue("bootCalc", _savedBoot_Calc)) {
+//                 suc_counter+=1;
+//         }
+//         else {
+//                 json.setValue("bootCalc", 0);
+//         }
+//         delay(300);
+//         if (json.getValue("bootReset", _savedBoot_reset)) {
+//                 suc_counter+=1;
+//         }
+//         else {
+//                 json.setValue("bootReset", 0);
+//         }
+//
+//         if (suc_counter == 2) {
+//                 long currentBootTime = now();
+//
+//                 while (x<maxRetries) { // verify time is updated
+//                         if (year(currentBootTime) != 1970) { //NTP update succeeded
+//                                 json.setValue("bootReset", currentBootTime);
+//                                 int tDelta = currentBootTime - _savedBoot_reset;
+//
+//                                 if ( tDelta > resetIntervals ) {
+//                                         json.setValue("bootCalc", currentBootTime);
+//                                         updated_bootTime = currentBootTime;           // take clock of current boot
+//                                         clockShift = 0;
+//                                         resetBoot_flag = false;
+//                                         return 1;
+//                                 }
+//                                 else  {
+//                                         updated_bootTime = _savedBoot_Calc;           // take clock of last boot
+//                                         clockShift = currentBootTime - updated_bootTime;
+//                                         resetBoot_flag = true;
+//                                         return 1;
+//                                 }
+//                         }
+//                         else{
+//                                 currentBootTime = now();
+//                         }
+//                         x +=1;
+//                         delay(200);
+//                 }
+//                 if (x==maxRetries) { // fail NTP
+//                         Serial.println("bootKeeper Fail");
+//                         return 0;
+//                 }
+//         }
+//         else{
+//                 Serial.println("Fail read/Write bootKeeper to flash");
+//                 return 0;
+//         }
+// }

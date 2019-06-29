@@ -159,10 +159,10 @@ timeOUT(char *key, int def_val);
 int looper();
 int flashRead();
 int remain();
-bool begin(int val=0, bool newReboot = true);
+bool begin(bool newReboot = true, int val=0);
 bool getStatus();
 void default_to();
-void setNew_to(int to);
+void setNewTimeout(int to);
 void convert_epoch2clock(long t1, long t2, char* time_str, char* days_str);
 long savedTO     = 0; // clock to stop TO
 
