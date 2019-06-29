@@ -550,11 +550,11 @@ void FVars::format(){
 
 
 // ~~~~~~~~~~~ TimeOut Class ~~~~~~~~~~~~
-// timeOUT::timeOUT(cb_func funct, char *key, int def_val) : p1 (key) {
-timeOUT::timeOUT(char *key, int def_val) : p1 (key) {
-        _def_val = def_val*60;//[sec]
+// timeOUT::timeOUT(cb_func funct, char *key, int def_val) : endTimeOUT_inFlash (key) {
+timeOUT::timeOUT(char *key, int def_val) : endTimeOUT_inFlash (key) {
+        _def_val = def_val*60; //[sec]
 }
-int timeOUT::looper(){
+bool timeOUT::looper(){
         if (_calc_endTO >=now()) {
                 return 1;
         }
@@ -572,12 +572,10 @@ bool timeOUT::begin(bool newReboot, int val ){ // NewReboot come to not case of 
                 if (_savedTO > now()) {       // get saved value- still have to go
                         _calc_endTO=_savedTO;
                         switchON();
-                        Serial.println(1);
                         return 1;
                 }
                 else if (_savedTO >0 && _savedTO <=now()) {// saved but time passed
                         switchOFF();
-                        Serial.println(2);
                         return 0;
                 }
                 /*
@@ -589,17 +587,14 @@ bool timeOUT::begin(bool newReboot, int val ){ // NewReboot come to not case of 
                 else if (_savedTO == 0 && newReboot == true) { // fresh start
                         if (val == 0) {
                                 setNewTimeout(_def_val);
-                                Serial.println(3);
                                 return 1;
                         }
                         else if (_def_val == 0) {
                                 _calc_endTO = 0;
-                                Serial.println(4);
                                 return 0;
                         }
                         else{
                           setNewTimeout(val);
-                                Serial.println(5);
                                 return 1;
                         }
                 }
@@ -610,7 +605,7 @@ bool timeOUT::begin(bool newReboot, int val ){ // NewReboot come to not case of 
         }
 }
 int timeOUT::flashRead(){
-        if(p1.getValue(_savedTO)) {
+        if(endTimeOUT_inFlash.getValue(_savedTO)) {
                 savedTO = _savedTO;
                 return 1;
         }
@@ -618,9 +613,6 @@ int timeOUT::flashRead(){
                 return 0;
         }
 
-}
-bool timeOUT::getStatus(){
-        return 0;
 }
 int timeOUT::remain(){
         if (_inTO == true) {
@@ -632,7 +624,7 @@ int timeOUT::remain(){
 }
 void timeOUT::setNewTimeout(int to){
         _calc_endTO=now()+to;
-        p1.setValue(_calc_endTO);
+        endTimeOUT_inFlash.setValue(_calc_endTO);
         switchON();
 }
 void timeOUT::default_to(){
@@ -640,12 +632,12 @@ void timeOUT::default_to(){
 }
 void timeOUT::switchON(){
         _inTO = true;
-        Serial.println("On!");
+        // Serial.println("On!");
 }
 void timeOUT::switchOFF(){
-        p1.setValue(0);
+        endTimeOUT_inFlash.setValue(0);
         _inTO = false;
-        Serial.println("Off!");
+        // Serial.println("Off!");
 }
 void timeOUT::endNow(){
   _calc_endTO = now();

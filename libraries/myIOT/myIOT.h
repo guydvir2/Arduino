@@ -156,11 +156,10 @@ bool _onState     = false;
 
 public:
 timeOUT(char *key, int def_val);
-int looper();
+bool looper();
 int flashRead();
 int remain();
 bool begin(bool newReboot = true, int val=0);
-bool getStatus();
 void default_to();
 void setNewTimeout(int to);
 void convert_epoch2clock(long t1, long t2, char* time_str, char* days_str);
@@ -169,7 +168,7 @@ long savedTO     = 0; // clock to stop TO
 
 
 private:
-FVars p1;
+FVars endTimeOUT_inFlash;
 void switchON();
 void switchOFF();
 

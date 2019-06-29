@@ -4,18 +4,21 @@
 
 
 //####################################################
-#define DEVICE_TOPIC "HomePi/Dvir/Lights/KitchenLED"
+#define DEVICE_TOPIC "HomePi/Dvir/Lights/KitchenLEDs"
 
 //~~~~~ Services ~~~~~~~~~~~
-#define USE_SERIAL       true
+#define USE_SERIAL       false
 #define USE_WDT          true
 #define USE_OTA          true
 #define USE_IR_REMOTE    true
 #define USE_TIMEOUT      true
 #define USE_RESETKEEPER  true
 #define USE_FAILNTP      true
-#define TIMEOUT_SW0      60*6 // mins for SW0
-#define CLOCK_OFF        [1,2,3,4]
+
+#define TIMEOUT_SW0      60*8 // mins for SW0
+
+int CLOCK_OFF[2]={8,0};
+int CLOCK_ON[2] ={18,0};
 
 #define IR_SENSOR_PIN D5
 #define RelayPin      D2
@@ -25,7 +28,6 @@
 //####################################################
 
 bool blinker_state      = false;
-bool strobe_state       = false;
 bool badReboot          = false;
 bool checkbadReboot     = true;
 byte swState            = 0;
@@ -73,6 +75,8 @@ decode_results results;
 
 void recvIRinputs() {
 #if USE_IR_REMOTE
+        char msg[50];
+
         if (irrecv.decode(&results)) {
 
                 if (results.value == 0XFFFFFFFF)
@@ -81,7 +85,7 @@ void recvIRinputs() {
 
                 switch (results.value) {
                 case 0xFFA25D:
-                        //        Serial.println("CH-");
+                        //Serial.println("CH-");
                         break;
                 case 0xFF629D:
                         //Serial.println("CH");
@@ -101,11 +105,15 @@ void recvIRinputs() {
                         break;
                 case 0xFFE01F:
                         //Serial.println("-");
-                        turnLeds(0, "RemoteControl");
+                        timeOut_SW0.endNow();
+                        sprintf(msg, "TimeOut: IRremote[Abort]");
+                        iot.pub_msg(msg);
                         break;
                 case 0xFFA857:
                         //Serial.println("+");
-                        turnLeds(1, "RemoteControl");
+                        timeOut_SW0.default_to();
+                        sprintf(msg, "TimeOut: IRremote[Restart]");
+                        iot.pub_msg(msg);
                         break;
                 case 0xFF906F:
                         //Serial.println("EQ");
@@ -125,9 +133,9 @@ void recvIRinputs() {
                         iot.pub_msg(msg);
                         break;
                 case 0xFF18E7:
-                        strobe_state = !strobe_state;
-                        sprintf(msg, "Switch: [Strobe], [%s]", strobe_state ? "ON" : "OFF");
-                        iot.pub_msg(msg);
+                        // strobe_state = !strobe_state;
+                        // sprintf(msg, "Switch: [Strobe], [%s]", strobe_state ? "ON" : "OFF");
+                        // iot.pub_msg(msg);
                         break;
                 case 0xFF7A85:
                         break;
@@ -266,21 +274,21 @@ void timeOutLoop(){
                                 turnLeds(swState, "TimeOut", msg);
                         }
                         else{ // switch OFF
-                          turnLeds(swState, "Boot");
+                                turnLeds(swState, "Boot");
                         }
                 }
                 last_swState = swState;
         }
 }
-void clockOff(){
+void clockOff(int t_vect[2]){
         time_t t=now();
-        if (hour(t)==8 && minute(t)==0 && second(t)<10) {
+        if (hour(t)==t_vect[0] && minute(t)==t_vect[1] && second(t)<10) {
                 turnLeds(0,"Clock");
         }
 }
-void clockOn(){
+void clockOn(int t_vect[2]){
         time_t t=now();
-        if (hour(t)==18 && minute(t)==0 && second(t)<10) {
+        if (hour(t)==t_vect[0] && minute(t)==t_vect[1] && second(t)<10) {
                 turnLeds(1,"Clock");
         }
 }
@@ -319,8 +327,8 @@ void loop() {
         recvIRinputs(); // IR signals
         timeOutLoop();
 
-        clockOff();
-        clockOn();
+        clockOff(CLOCK_OFF);
+        clockOn(CLOCK_ON);
 
         if (blinker_state == true ) {
                 switch_Blinker();
