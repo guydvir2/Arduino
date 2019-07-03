@@ -237,8 +237,8 @@ void addiotnalMQTT(char incoming_msg[50]) {
                 }
                 else if(strcmp(iot.inline_param[0],"blink") == 0 && atoi(iot.inline_param[1])>0 && atoi(iot.inline_param[2])>0) {
                         turnLeds(0,"Blink");
-                        a=atoi(iot.inline_param[1]);
-                        b=atoi(iot.inline_param[2]);
+                        delayOn=atoi(iot.inline_param[1]);
+                        delayOff=atoi(iot.inline_param[2]);
 
                         sprintf(msg, "Mode: [%s]", "Blink");
                         blinker_state = !blinker_state;
@@ -247,7 +247,10 @@ void addiotnalMQTT(char incoming_msg[50]) {
         }
 }
 void startTimeOut(){
-        if (badReboot==false) { // PowerOn
+        // if (timeOut_SW0.flashRead()==1 && timeOut_SW0.savedTO !=0) {
+        //   timeOut_SW0.begin();
+        // }
+        if (badReboot == 0) { // PowerOn
                 timeOut_SW0.begin();
         }
         else {
@@ -255,7 +258,7 @@ void startTimeOut(){
         }
 }
 void checkIf_badReboot(){
-        // Wait for indication if it was false reset(1) or powerOn(0)
+        // Wait for indication if it was false reset(1) or
         if(iot.mqtt_detect_reset != 2) {
                 badReboot = iot.mqtt_detect_reset;
                 checkbadReboot = false;
