@@ -1,22 +1,21 @@
-<<<<<<< HEAD
-#define SECOND                1000
-#define MINUTE                60000
-#define NUM_SENSORS           1          // <----- NEED TO CHANGE BY USER
-#define PWRDOWN_TIMEOUT       60*MINUTE  // <----- NEED TO CHANGE BY USER
-=======
-#define SWITCHPIN        3
 #define SENSORPIN        2
-#define PWRDOWN_TIMEOUT  60  // <----- NEED TO CHANGE BY USER
->>>>>>> 698d8d2b109d7e81fb31785beae62a412b489ab9
+#define SWITCHPIN        3
+#define BUTTONPIN        4
+#define PWRDOWN_TIMEOUT  100  // <----- NEED TO CHANGE BY USER
 
 class SensorSwitch {
   #define RelayON               true
+  #define ButtonPressed         LOW
   #define SENSOR_DETECT_DOOR    false
   #define SWITCH_DELAY          30
 
 private:
 int _switchPin, _extPin, _timeout_mins;
-int step = 20;
+byte step          = 20;
+byte maxLuminVal   = 240;
+byte currentLumVal = maxLuminVal;
+byte LumStep       = 60;
+
 bool _sensorsState, _last_sensorsState;
 long unsigned _onCounter = 0;
 long unsigned _lastInput = 0;
@@ -33,7 +32,7 @@ SensorSwitch(int sensorPin, int switchPin, int extPin, int timeout_mins=10){
 }
 void start(){
         pinMode(SensorPin, INPUT_PULLUP);
-        // pinMode(_extPin, INPUT_PULLUP);
+        pinMode(_extPin, INPUT_PULLUP);
         pinMode(_switchPin, OUTPUT);
 
         _sensorsState = digitalRead(SensorPin);
@@ -44,45 +43,53 @@ void sensor_ISR(){
         detachInterrupt(digitalPinToInterrupt(SensorPin));
         _sensorsState = digitalRead(SensorPin);
 }
+void checkLuminButton(){
+        if (digitalRead(_extPin) == ButtonPressed) {
+                delay(50);
+                if (digitalRead(_extPin) == ButtonPressed) {
+                        if (currentLumVal - LumStep >= 0) {
+                                currentLumVal = currentLumVal - LumStep;
+                        }
+                        else {
+                                currentLumVal = maxLuminVal;
+                        }
+                        analogWrite(_switchPin,currentLumVal);
+                }
+        }
+}
 void looper(){
         checkSensor();
+        checkLuminButton();
         offBy_timeout();
-        // reAttach();
 }
 
 private:
 void turnOff(){
-        if (digitalRead(_switchPin) == RelayON) {
-                for (int i=255; i>0; i=i-step) {
-                        analogWrite(_switchPin,i);
-                        delay(SWITCH_DELAY);
-                }
-                digitalWrite(_switchPin, !RelayON);
-                _onCounter = 0;
-                // Serial.print("Off");
+        for (int i=currentLumVal; i>=0; i=i-step) {
+                analogWrite(_switchPin,i);
+                delay(SWITCH_DELAY);
         }
+        _onCounter = 0;
+        //Serial.println("Off");
 }
 void turnOn(){
-        if (digitalRead(_switchPin) == !RelayON) {
-                for (int i=0; i<255; i=i+step) {
-                        analogWrite(_switchPin,i);
-                        delay(SWITCH_DELAY);
-                }
-                digitalWrite(_switchPin, RelayON);
-                _onCounter = millis();
-                // Serial.println("On");
-                // Serial.println(_timeout_mins*1000*60ul);
+        for (int i=0; i<=currentLumVal; i=i+step) {
+                analogWrite(_switchPin,i);
+                delay(SWITCH_DELAY);
         }
+        _onCounter = millis();
+        //Serial.println("On");
 }
 void offBy_timeout(){
-        if (_timeout_mins*1000*60ul> 0 && _onCounter!=0) { // user setup TO ?
-                if (millis() - _onCounter >= _timeout_mins*1000*60ul) { //TO ended
+        if (_timeout_mins*1000ul*60ul> 0 && _onCounter!=0) { // user setup TO ?
+                if (millis() - _onCounter >= _timeout_mins*1000ul*60ul) { //TO ended
                         turnOff();
                         // ~ faking sensor value to shut down using timeout ~~
                         _sensorsState = SENSOR_DETECT_DOOR; // mean led off
                         _last_sensorsState = SENSOR_DETECT_DOOR;
                         // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
                 }
+                //Serial.println((_timeout_mins*1000ul*60ul-(millis() - _onCounter))/1000);
         }
 }
 void checkSensor(){
@@ -102,7 +109,7 @@ void checkSensor(){
 
 };
 
-SensorSwitch s1(SENSORPIN,SWITCHPIN,8,PWRDOWN_TIMEOUT);
+SensorSwitch s1(SENSORPIN,SWITCHPIN,BUTTONPIN,PWRDOWN_TIMEOUT);
 void reAttach(){
         attachInterrupt(digitalPinToInterrupt(s1.SensorPin), isr, CHANGE);
 }
@@ -112,10 +119,11 @@ void isr(){
 }
 
 void setup() {
+        //Serial.begin(9600);
         s1.start();
         reAttach();
 }
 void loop() {
         s1.looper();
-        delay(50);
+        delay(100);
 }
