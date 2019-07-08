@@ -23,7 +23,7 @@ myJSON json(jfile, true);
 
 // ~~~~~~ myIOT CLASS ~~~~~~~~~~~ //
 
-myIOT::myIOT(char *devTopic) {
+myIOT::myIOT(char *devTopic, char *key) : _failNTPcounter_inFlash(key){
         deviceTopic = devTopic;
         deviceName = deviceTopic;
         topicArry[0] = deviceTopic;
@@ -147,18 +147,36 @@ void myIOT::networkStatus() {
         }
 }
 void myIOT::start_clock() {
+        int failcount=0;
         if (startNTP()) {   //NTP Succeed
                 _failNTP = false;
                 get_timeStamp();
                 strcpy(bootTime, timeStamp);
+
+                if(_failNTPcounter_inFlash.getValue(failcount)) {
+                        if (failcount!=0) {
+                                _failNTPcounter_inFlash.setValue(0);
+                        }
+                }
+                else{
+                        _failNTPcounter_inFlash.setValue(0);
+
+                }
+
         }
         else{
                 if (resetFailNTP) {
-                        ESP.reset();
+                        if(_failNTPcounter_inFlash.getValue(failcount)) {
+                                if (failcount<3) {
+                                        _failNTPcounter_inFlash.setValue(failcount+1);
+                                        ESP.reset();
+                                }
+                        }
+                        else{
+                                _failNTPcounter_inFlash.setValue(1);
+                        }
                 }
-                else{
-                        _failNTP = true;
-                }
+                _failNTP = true;
         }
 }
 bool myIOT::startNTP() {
@@ -550,9 +568,20 @@ void FVars::format(){
 
 
 // ~~~~~~~~~~~ TimeOut Class ~~~~~~~~~~~~
-// timeOUT::timeOUT(cb_func funct, char *key, int def_val) : endTimeOUT_inFlash (key) {
-timeOUT::timeOUT(char *key, int def_val) : endTimeOUT_inFlash (key) {
-        _def_val = def_val*60; //[sec]
+timeOUT::timeOUT(char *key, int def_val, char *key2, char *key3)
+        : endTimeOUT_inFlash (_key1), inCodeTimeOUT_inFlash(_key2), updatedTimeOUT_inFlash(_key3)
+{
+        int tempVal=0;
+        inCode_timeout_value = def_val; //[min]
+
+        if (inCodeTimeOUT_inFlash.getValue(tempVal)) {
+                if (tempVal != inCode_timeout_value) {
+                        inCodeTimeOUT_inFlash.setValue(inCode_timeout_value);
+                }
+        }
+        else{
+                inCodeTimeOUT_inFlash.setValue(0);
+        }
 }
 bool timeOUT::looper(){
         if (_calc_endTO >=now()) {
@@ -567,14 +596,14 @@ bool timeOUT::looper(){
                 return 0;
         }
 }
-bool timeOUT::begin(bool newReboot, int val ){ // NewReboot come to not case of sporadic reboot
-        if (flashRead()) {                    // able to read JSON ?
-                if (_savedTO > now()) {       // get saved value- still have to go
-                        _calc_endTO=_savedTO;
+bool timeOUT::begin(bool newReboot){   // NewReboot come to not case of sporadic reboot
+        if (flashRead()) {                      // able to read JSON ?
+                if (_savedTO > now()) {         // get saved value- still have to go
+                        _calc_endTO=_savedTO;   //clock time to stop
                         switchON();
                         return 1;
                 }
-                else if (_savedTO >0 && _savedTO <=now()) {// saved but time passed
+                else if (_savedTO >0 && _savedTO <=now()) {  // saved but time passed
                         switchOFF();
                         return 0;
                 }
@@ -584,37 +613,32 @@ bool timeOUT::begin(bool newReboot, int val ){ // NewReboot come to not case of 
                    Reboot ? if newReboot == true, means that it will start over
                    as a new Timeout Task.
                  */
-                else if (_savedTO == 0 && newReboot == true) { // fresh start
-                        if (val == 0) {
-                                setNewTimeout(_def_val);
+                else if (_savedTO == 0 && newReboot == true) {   // fresh start
+                        if (inCode_timeout_value != 0) {
+                                setNewTimeout(inCode_timeout_value);
                                 return 1;
                         }
-                        else if (_def_val == 0) {
+                        else {
                                 _calc_endTO = 0;
                                 return 0;
                         }
-                        else{
-                          setNewTimeout(val);
-                                return 1;
-                        }
                 }
         }
-        else{         // fail to read value, or value not initialized.
+        else{           // fail to read value, or value not initialized.
                 switchOFF();
                 return 0;
         }
 }
-int timeOUT::flashRead(){
+int  timeOUT::flashRead(){
         if(endTimeOUT_inFlash.getValue(_savedTO)) {
-                savedTO = _savedTO;
+                // savedTO = _savedTO;
                 return 1;
         }
         else {
                 return 0;
         }
-
 }
-int timeOUT::remain(){
+int  timeOUT::remain(){
         if (_inTO == true) {
                 return _calc_endTO-now();
         }
@@ -623,24 +647,32 @@ int timeOUT::remain(){
         }
 }
 void timeOUT::setNewTimeout(int to){
-        _calc_endTO=now()+to;
+        _calc_endTO=now()+to*60;
         endTimeOUT_inFlash.setValue(_calc_endTO);
         switchON();
 }
-void timeOUT::default_to(){
-        setNewTimeout(_def_val);
+void timeOUT::restart_to(){
+        setNewTimeout(inCode_timeout_value);
+}
+void timeOUT::updateTOinflash(int TO){
+        updatedTimeOUT_inFlash.setValue(TO);
+        // switchOFF();
+        setNewTimeout(TO);
+}
+void timeOUT::restore_to(){
+        updatedTimeOUT_inFlash.setValue(0);
+        endTimeOUT_inFlash.setValue(0);
+        inCodeTimeOUT_inFlash.setValue(0);
 }
 void timeOUT::switchON(){
         _inTO = true;
-        // Serial.println("On!");
 }
 void timeOUT::switchOFF(){
         endTimeOUT_inFlash.setValue(0);
         _inTO = false;
-        // Serial.println("Off!");
 }
 void timeOUT::endNow(){
-  _calc_endTO = now();
+        _calc_endTO = now();
 }
 void timeOUT::convert_epoch2clock(long t1, long t2, char* time_str, char* days_str){
         byte days       = 0;
@@ -663,65 +695,3 @@ void timeOUT::convert_epoch2clock(long t1, long t2, char* time_str, char* days_s
         sprintf(days_str, "%02d days", days);
         sprintf(time_str, "%02d:%02d:%02d", hours, minutes, seconds);
 }
-
-
-
-
-// bool myIOT::bootKeeper() {
-//         int x =0;
-//         int suc_counter = 0;
-//         int maxRetries  = 2;
-//         long clockShift = 0;
-//
-//         if (json.getValue("bootCalc", _savedBoot_Calc)) {
-//                 suc_counter+=1;
-//         }
-//         else {
-//                 json.setValue("bootCalc", 0);
-//         }
-//         delay(300);
-//         if (json.getValue("bootReset", _savedBoot_reset)) {
-//                 suc_counter+=1;
-//         }
-//         else {
-//                 json.setValue("bootReset", 0);
-//         }
-//
-//         if (suc_counter == 2) {
-//                 long currentBootTime = now();
-//
-//                 while (x<maxRetries) { // verify time is updated
-//                         if (year(currentBootTime) != 1970) { //NTP update succeeded
-//                                 json.setValue("bootReset", currentBootTime);
-//                                 int tDelta = currentBootTime - _savedBoot_reset;
-//
-//                                 if ( tDelta > resetIntervals ) {
-//                                         json.setValue("bootCalc", currentBootTime);
-//                                         updated_bootTime = currentBootTime;           // take clock of current boot
-//                                         clockShift = 0;
-//                                         resetBoot_flag = false;
-//                                         return 1;
-//                                 }
-//                                 else  {
-//                                         updated_bootTime = _savedBoot_Calc;           // take clock of last boot
-//                                         clockShift = currentBootTime - updated_bootTime;
-//                                         resetBoot_flag = true;
-//                                         return 1;
-//                                 }
-//                         }
-//                         else{
-//                                 currentBootTime = now();
-//                         }
-//                         x +=1;
-//                         delay(200);
-//                 }
-//                 if (x==maxRetries) { // fail NTP
-//                         Serial.println("bootKeeper Fail");
-//                         return 0;
-//                 }
-//         }
-//         else{
-//                 Serial.println("Fail read/Write bootKeeper to flash");
-//                 return 0;
-//         }
-// }

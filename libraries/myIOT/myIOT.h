@@ -6,10 +6,31 @@ typedef void (*cb_func)(char msg1[50]); // this define a generic functing with a
 
 #define jfile "myfile.json"
 
+class FVars
+{
+public:
+FVars(char* key="def_key");
+bool getValue(int &ret_val);
+bool getValue(long &ret_val);
+bool getValue(char value[20]);
+
+void setValue(int val);
+void setValue(long val);
+void setValue(char* val);
+
+void remove();
+void printFile();
+void format();
+
+private:
+const char* _key;
+
+};
+
 class myIOT
 {
 public:
-myIOT(char *devTopic);
+myIOT(char *devTopic, char *key="failNTPcount");
 void looper();
 void startOTA();
 void get_timeStamp(time_t t = 0);
@@ -31,12 +52,11 @@ bool extDefine = false; // must to set to true in order to use EXtMQTT
 bool useResetKeeper = false;
 bool resetFailNTP   = false;
 
-// byte inline_param_amount = 2;
 char inline_param[3][20]; //values from user
 
 bool mqttConnected  = 0;
 char* deviceTopic   = "";
-const char *ver     = "iot_3.0";
+const char *ver     = "iot_3.1";
 char timeStamp[20];
 
 
@@ -97,6 +117,7 @@ char msg[150];
 char bootTime[50];
 bool firstRun = true;
 bool _failNTP = false;
+FVars _failNTPcounter_inFlash;
 // ###################
 
 long _savedBoot_Calc  = 0;
@@ -124,54 +145,45 @@ void startWDT();
 void acceptOTA();
 };
 
-class FVars
-{
-public:
-FVars(char* key);
-bool getValue(int &ret_val);
-bool getValue(long &ret_val);
-bool getValue(char value[20]);
-
-void setValue(int val);
-void setValue(long val);
-void setValue(char* val);
-
-void remove();
-void printFile();
-void format();
-
-private:
-const char* _key;
-
-};
-
 class timeOUT
 {
+  #define _key1 "_endTO"
+  #define _key2 "_codedTO"
+  #define _key3 "_updatedTO"
+
 private:
-int _def_val      = 0; // default value for TO ( hard coded )
 long _calc_endTO  = 0; // corrected clock ( case of restart)
 long _savedTO     = 0; // clock to stop TO
 bool _inTO        = false;
 bool _onState     = false;
+byte loopVerify   = 0;
 
 public:
-timeOUT(char *key, int def_val);
+// long savedTO             = 0;   // clock to stop TO
+int inCode_timeout_value = 0;   // default value for TO ( hard coded )
+
+
+public:
+timeOUT(char *key, int def_val, char *key2=_key2, char *key3=_key3);
 bool looper();
 int flashRead();
 int remain();
-bool begin(bool newReboot = true, int val=0);
-void default_to();
+bool begin(bool newReboot = true);
+void restart_to();
 void setNewTimeout(int to);
 void convert_epoch2clock(long t1, long t2, char* time_str, char* days_str);
 void endNow();
-long savedTO     = 0; // clock to stop TO
+void updateTOinflash(int TO);
+void restore_to();
 
+FVars inCodeTimeOUT_inFlash;
+FVars endTimeOUT_inFlash;
+FVars updatedTimeOUT_inFlash;
 
 private:
-FVars endTimeOUT_inFlash;
 void switchON();
 void switchOFF();
 
-
 };
+
 #endif

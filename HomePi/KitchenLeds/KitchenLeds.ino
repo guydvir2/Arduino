@@ -4,10 +4,10 @@
 
 
 //####################################################
-#define DEVICE_TOPIC "HomePi/Dvir/Lights/KitchenLEDs"
+#define DEVICE_TOPIC "HomePi/Dvir/Lights/KitchenLED"
 
 //~~~~~ Services ~~~~~~~~~~~
-#define USE_SERIAL       false
+#define USE_SERIAL       true
 #define USE_WDT          true
 #define USE_OTA          true
 #define USE_IR_REMOTE    true
@@ -24,7 +24,7 @@ int CLOCK_ON[2] ={18,0};
 #define RelayPin      D2
 #define LEDsON        true
 
-#define VER "Wemos.Mini.2.1"
+#define VER "Wemos.Mini.2.3"
 //####################################################
 
 bool blinker_state      = false;
@@ -112,7 +112,7 @@ void recvIRinputs() {
                         break;
                 case 0xFFA857:
                         //Serial.println("+");
-                        timeOut_SW0.default_to();
+                        timeOut_SW0.restart_to();
                         sprintf(msg, "TimeOut: IRremote[Restart]");
                         iot.pub_msg(msg);
                         break;
@@ -182,7 +182,7 @@ void start_IR() {
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 void addiotnalMQTT(char incoming_msg[50]) {
-        char msg[100];
+        char msg[150];
         char msg2[20];
 
         if      (strcmp(incoming_msg, "status") == 0) {
@@ -208,7 +208,9 @@ void addiotnalMQTT(char incoming_msg[50]) {
                 turnLeds(0,"Switch");
         }
         else if (strcmp(incoming_msg, "help") == 0) {
-                sprintf(msg, "Help: [status, blink(x,y), on, off, ver, help, remain, clear_to, timeout(x,y), end_to] , [boot, reset, ip, ota]");
+                sprintf(msg, "Help: Commands #1- [status, blink(x,y), on, off, ver, help, remain, restart_to, timeout(x), end_to, updateTO(x), restore_to]");
+                iot.pub_msg(msg);
+                sprintf(msg, "Help: Commands #2-[boot, reset, ip, ota]");
                 iot.pub_msg(msg);
         }
         else if (strcmp(incoming_msg, "remain") == 0) {
@@ -216,9 +218,9 @@ void addiotnalMQTT(char incoming_msg[50]) {
                 sprintf(msg, "TimeOut: Remain [%s]", msg2);
                 iot.pub_msg(msg);
         }
-        else if (strcmp(incoming_msg, "clear_to") == 0) {
-                timeOut_SW0.default_to();
-                sprintf(msg, "TimeOut: [Reset TimeOut]");
+        else if (strcmp(incoming_msg, "restart_to") == 0) {
+                timeOut_SW0.restart_to();
+                sprintf(msg, "TimeOut: [Restart]");
                 iot.pub_msg(msg);
         }
         else if (strcmp(incoming_msg, "end_to") == 0) {
@@ -226,11 +228,21 @@ void addiotnalMQTT(char incoming_msg[50]) {
                 sprintf(msg, "TimeOut: [Abort]");
                 iot.pub_msg(msg);
         }
+        else if (strcmp(incoming_msg, "restore_to") == 0) {
+                timeOut_SW0.restore_to();
+                timeOut_SW0.restart_to();
+                sprintf(msg, "TimeOut: Restore hardCoded Value [%d mins.]", TIMEOUT_SW0);
+                iot.pub_msg(msg);
+                iot.sendReset("Restore");
+        }
+        else if (strcmp(incoming_msg, "flash") == 0 ) {
+                timeOut_SW0.inCodeTimeOUT_inFlash.printFile();
+        }
 
         else{
                 iot.inline_read(incoming_msg);
                 if(strcmp(iot.inline_param[0],"timeout") == 0 && atoi(iot.inline_param[1])>0) {
-                        timeOut_SW0.setNewTimeout(atoi(iot.inline_param[1])*60);
+                        timeOut_SW0.setNewTimeout(atoi(iot.inline_param[1]));
                         timeOut_SW0.convert_epoch2clock(now()+atoi(iot.inline_param[1]),now(), msg2, msg);
                         sprintf(msg, "TimeOut: new TimeOut Added %s", msg2);
                         iot.pub_msg(msg);
@@ -244,14 +256,44 @@ void addiotnalMQTT(char incoming_msg[50]) {
                         blinker_state = !blinker_state;
                         iot.pub_msg(msg);
                 }
+                else if(strcmp(iot.inline_param[0],"updateTO") == 0 && atoi(iot.inline_param[1])>0) {
+                        timeOut_SW0.updateTOinflash(atoi(iot.inline_param[1]));
+                        sprintf(msg, "TimeOut: Updated in flash to [%d min.]", atoi(iot.inline_param[1]));
+                        iot.pub_msg(msg);
+                        delay(1000);
+                        iot.sendReset("TimeOut update");
+                }
         }
 }
 void startTimeOut(){
-        // if (timeOut_SW0.flashRead()==1 && timeOut_SW0.savedTO !=0) {
-        //   timeOut_SW0.begin();
-        // }
+        int ext_timeout;
+        /*
+           badReboot refers as a very short power loss / restart.
+           mostly happens due to power adaptpor momentary failure.
+           if "State" topic goes to offline - it means that powerloss was more than 10 sec
+           which equivalent to a fresh restart.
+           if "State" topic still "Online"- meaning it is a badreboot.
+         */
+
+
         if (badReboot == 0) { // PowerOn
-                timeOut_SW0.begin();
+                /*
+                   Not a badReboot:
+                   Case a: after a fresh restart it starts over timeout default value.
+                   Case b: if timeout has ended, not retstarts a new timeout, and if timeout
+                   still not ended, contunue from what is left.
+                 */
+                if (timeOut_SW0.updatedTimeOUT_inFlash.getValue(ext_timeout)) {
+                        if (ext_timeout!=0) {
+                                timeOut_SW0.inCode_timeout_value = ext_timeout;
+                        }
+                        timeOut_SW0.restart_to();
+                }
+                else{
+                        timeOut_SW0.updatedTimeOUT_inFlash.setValue(0);
+                        Serial.println("Value set to 0");
+                }
+
         }
         else {
                 timeOut_SW0.begin(false); // badreboot detected - don't restart TO if already ended
@@ -278,7 +320,7 @@ void timeOutLoop(){
                                 turnLeds(swState, "TimeOut", msg);
                         }
                         else{ // switch OFF
-                                turnLeds(swState, "Boot");
+                                turnLeds(swState, "TimeOut");
                         }
                 }
                 last_swState = swState;
@@ -299,7 +341,7 @@ void clockOn(int t_vect[2]){
 void setup() {
         pinMode(RelayPin, OUTPUT);
         // if (timeOut_SW0.flashRead()==1 && timeOut_SW0.savedTO !=0) {
-        //         digitalWrite(RelayPin, LEDsON);
+        // digitalWrite(RelayPin, LEDsON);
         // }
         // else {
         digitalWrite(RelayPin, !LEDsON);
@@ -337,7 +379,6 @@ void loop() {
         if (blinker_state == true ) {
                 switch_Blinker();
         }
-
 
         delay(100);
 }
