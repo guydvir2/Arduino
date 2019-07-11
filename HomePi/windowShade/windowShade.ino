@@ -6,7 +6,7 @@
 //must be defined to use myIOT
 #define ADD_MQTT_FUNC addiotnalMQTT
 //~~~
-#define USE_SERIAL       true        
+#define USE_SERIAL       true
 #define USE_WDT          true
 #define USE_OTA          true
 #define USE_MAN_RESET    false

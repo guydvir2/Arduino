@@ -45,10 +45,10 @@ void pub_msg(char *inmsg);
 void pub_err(char *inmsg);
 int inline_read(char *inputstr);
 
-bool useSerial = false;
-bool useWDT    = true;
-bool useOTA    = true;
-bool extDefine = false; // must to set to true in order to use EXtMQTT
+bool useSerial      = false;
+bool useWDT         = true;
+bool useOTA         = true;
+bool extDefine      = false; // must to set to true in order to use EXtMQTT
 bool useResetKeeper = false;
 bool resetFailNTP   = false;
 
@@ -56,14 +56,14 @@ char inline_param[3][20]; //values from user
 
 bool mqttConnected  = 0;
 char* deviceTopic   = "";
-const char *ver     = "iot_3.1";
+const char *ver     = "iot_3.2";
 char timeStamp[20];
 
-
-bool resetBoot_flag    = false;
+bool badMQTTserver     = false;
 byte mqtt_detect_reset = 2;
 long updated_bootTime  = 0;
 int resetIntervals     = 10;
+
 
 private:
 char* ssid;
@@ -75,30 +75,30 @@ cb_func ext_mqtt;
 const int clockUpdateInt        = 60 * 5;            // seconds to update NTP
 const int WIFItimeOut           = (1000 * 60) * 1/3;     // 20 sec try to connect WiFi
 const int OTA_upload_interval   = (1000 * 60) * 5;     // 5 minute to try OTA
-const int time2Reset_noNetwork  = (1000 * 60) * 10;     // minutues pass without any network
+const long time2Reset_noNetwork = (1000 * 60) * 2;     // minutues pass without any network
 const int time2_tryReconnect    = (1000 * 60) * 5;     // time between reconnection retries
 volatile int wdtResetCounter    = 0;
 const int wdtMaxRetries         = 20;     //seconds to bITE
-long noNetwork_Counter          = 0;     // clock
-long OTAcounter                 = 0;     // clock
+long noNetwork_Clock            = 0;     // clock
+long allowOTA_clock             = 0;     // clock
 long lastReconnectTry           = 0;
 // ############################
 
 
-
 //MQTT broker parameters
 char* mqtt_server;
-char* user = "";
+char* mqtt_server2 = "iot.eclipse.org";//"test.mosquitto.org"; //
+char* user  = "";
 char* passw = "";
 // ######################################
 
 
 // MQTT topics
-char* msgTopic     = "HomePi/Dvir/Messages";
-char* groupTopic   = "HomePi/Dvir/All";
-char* errorTopic   = "HomePi/Dvir/Errors";
-char* deviceName   = "HomePi/DvirHomePi/DvirHomePi/DvirHomePi/Dvir";
-char* availTopic   = "HomePi/DvirHomePi/DvirHomePi/DvirHomePi/Dvir";
+char* msgTopic     = "myHome/Messages";
+char* groupTopic   = "myHome/All";
+char* errorTopic   = "myHome/Errors";
+char* deviceName   = "myHomemyHomemyHomemyHome";
+char* availTopic   = "myHomemyHomemyHomemyHome";
 
 char stateTopic[50];
 char* topicArry[4] = {deviceTopic, groupTopic, errorTopic, availTopic};
@@ -115,15 +115,11 @@ int MQTTretries     = 2;     // allowed tries to reconnect
 // holds informamtion
 char msg[150];
 char bootTime[50];
+char bootErrors [150];
 bool firstRun = true;
 bool _failNTP = false;
 FVars _failNTPcounter_inFlash;
 // ###################
-
-long _savedBoot_Calc  = 0;
-long _savedBoot_reset = 0;
-
-
 
 // ~~~~~~~~~~~~~~WIFI ~~~~~~~~~~~~~~~~~~~~~
 void startNetwork(char *ssid, char *password);
@@ -139,6 +135,7 @@ int subscribeMQTT();
 void createTopics(const char *devTopic, char *state, char *avail);
 void callback(char* topic, byte* payload, unsigned int length);
 void msgSplitter( const char* msg_in, int max_msgSize, char *prefix, char *split_msg);
+void publish_errs();
 // ~~~~~~~ Services  ~~~~~~~~~~~~~~~~~~~~~~~~
 void feedTheDog();
 void startWDT();
@@ -166,7 +163,6 @@ int inCode_timeout_value = 0;   // default value for TO ( hard coded )
 public:
 timeOUT(char *key, int def_val, char *key2=_key2, char *key3=_key3);
 bool looper();
-int flashRead();
 int remain();
 bool begin(bool newReboot = true);
 void restart_to();

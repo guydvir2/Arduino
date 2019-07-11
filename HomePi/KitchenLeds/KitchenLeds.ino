@@ -4,67 +4,51 @@
 
 
 //####################################################
-#define DEVICE_TOPIC "HomePi/Dvir/Lights/KitchenLED"
+#define DEVICE_TOPIC "myHome/Test"
+#define VER "Wemos.Mini.2.4"
 
 //~~~~~ Services ~~~~~~~~~~~
 #define USE_SERIAL       true
 #define USE_WDT          true
 #define USE_OTA          true
 #define USE_IR_REMOTE    true
-#define USE_TIMEOUT      true
 #define USE_RESETKEEPER  true
 #define USE_FAILNTP      true
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+// ~~~~~~~ TimeOuts ~~~~~~~~~
 #define TIMEOUT_SW0      60*8 // mins for SW0
-
 int CLOCK_OFF[2]={8,0};
 int CLOCK_ON[2] ={18,0};
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-#define IR_SENSOR_PIN D5
+// ~~~~ HW Pins and States ~~~~
 #define RelayPin      D2
 #define LEDsON        true
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-#define VER "Wemos.Mini.2.3"
+bool badReboot        = false;
+bool checkbadReboot   = true;
+bool boot_overide     = true;
+byte swState          = 0;
+byte last_swState     = 0;
+
+bool blinker_state    = false;
+int delayOn           = 0;
+int delayOff          = 0;
+
 //####################################################
-
-bool blinker_state      = false;
-bool badReboot          = false;
-bool checkbadReboot     = true;
-byte swState            = 0;
-byte last_swState       = 0;
-int delayOn             = 0;
-int delayOff            = 0;
-
 
 #define ADD_MQTT_FUNC addiotnalMQTT
 myIOT iot(DEVICE_TOPIC);
-
-#if USE_TIMEOUT
 timeOUT timeOut_SW0("SW0",TIMEOUT_SW0);
-#endif
 
-// ~~~~~~~~~~~~~~~  LED Switching ~~~~~~~~~~~~~~~~~~~
-void turnLeds(bool state, char *txt1 = "", char *txt2 = "") {
-        char msg [50];
-        if(digitalRead(RelayPin)!= state) {
-                digitalWrite(RelayPin, state);
-                sprintf(msg, "%s: Turned[%s] %s", txt1, state ? "ON" : "OFF", txt2);
-                iot.pub_msg(msg);
-        }
-}
-void switch_Blinker() {
-        digitalWrite(RelayPin, LEDsON);
-        delay(delayOn);
-        digitalWrite(RelayPin, !LEDsON);
-        delay(delayOff);
-}
-//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-
-//~~~~~~~~~~~~~~~~~~~~IR Remote ~~~~~~~~~~~~~~~~~~~~~
+//~~~~~~~Run IR Remote ~~~~~~~~
 #if USE_IR_REMOTE
 #include <IRremoteESP8266.h>
 #include <IRutils.h>
+
+#define IR_SENSOR_PIN D5
 
 const uint16_t kRecvPin        = IR_SENSOR_PIN;
 const uint32_t kBaudRate       = 115200;
@@ -130,7 +114,7 @@ void recvIRinputs() {
                         break;
                 case 0xFF30CF:
                         blinker_state = !blinker_state;
-                        sprintf(msg, "Switch: [Blinker], [%s]", blinker_state ? "ON" : "OFF");
+                        sprintf(msg, "IRremote: [Blinker], [%s]", blinker_state ? "ON" : "OFF");
                         iot.pub_msg(msg);
                         break;
                 case 0xFF18E7:
@@ -179,90 +163,34 @@ void start_IR() {
 }
 
 #endif
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+// ~~~~~~~~~~~~~~~  LED Switching ~~~~~~~~~~~~~~~~~~~
+void turnLeds(bool state, char *txt1 = "", char *txt2 = "") {
+        char msg [50];
+        if(digitalRead(RelayPin)!= state || boot_overide == true) {
+                digitalWrite(RelayPin, state);
+                sprintf(msg, "%s: Turned[%s] %s", txt1, state ? "ON" : "OFF", txt2);
+                iot.pub_msg(msg);
+                boot_overide = false;
+        }
+}
+void switch_Blinker() {
+        digitalWrite(RelayPin, LEDsON);
+        delay(delayOn);
+        digitalWrite(RelayPin, !LEDsON);
+        delay(delayOff);
+}
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-void addiotnalMQTT(char incoming_msg[50]) {
-        char msg[150];
-        char msg2[20];
-
-        if      (strcmp(incoming_msg, "status") == 0) {
-                if(timeOut_SW0.remain()>0) {
-                        timeOut_SW0.convert_epoch2clock(now()+timeOut_SW0.remain(),now(), msg, msg2);
-                        sprintf(msg2,", TimeOut [%s]", msg);
-                }
-                else{
-                        sprintf(msg2,"");
-                }
-                sprintf(msg, "Status: [%s] %s", digitalRead(RelayPin) ? "ON" : "OFF", msg2);
-                iot.pub_msg(msg);
+void fastpowerobBOOT(){
+        int temp=0;
+        timeOut_SW0.endTimeOUT_inFlash.getValue(temp);
+        if (temp >0) {
+                digitalWrite(RelayPin, LEDsON);
         }
-        else if (strcmp(incoming_msg, "ver") == 0 ) {
-                sprintf(msg, "ver: [%s], lib: [%s], WDT: [%d], OTA: [%d], SERIAL: [%d], IRremote: [%d], ResetKeeper[%d], FailNTP[%d]", VER, iot.ver, USE_WDT, USE_OTA,
-                        USE_SERIAL, USE_IR_REMOTE, USE_RESETKEEPER, USE_FAILNTP);
-                iot.pub_msg(msg);
-        }
-        else if (strcmp(incoming_msg, "on") == 0 ) {
-                turnLeds(1, "Switch");
-        }
-        else if (strcmp(incoming_msg, "off") == 0 ) {
-                turnLeds(0,"Switch");
-        }
-        else if (strcmp(incoming_msg, "help") == 0) {
-                sprintf(msg, "Help: Commands #1- [status, blink(x,y), on, off, ver, help, remain, restart_to, timeout(x), end_to, updateTO(x), restore_to]");
-                iot.pub_msg(msg);
-                sprintf(msg, "Help: Commands #2-[boot, reset, ip, ota]");
-                iot.pub_msg(msg);
-        }
-        else if (strcmp(incoming_msg, "remain") == 0) {
-                timeOut_SW0.convert_epoch2clock(now()+timeOut_SW0.remain(),now(), msg2, msg);
-                sprintf(msg, "TimeOut: Remain [%s]", msg2);
-                iot.pub_msg(msg);
-        }
-        else if (strcmp(incoming_msg, "restart_to") == 0) {
-                timeOut_SW0.restart_to();
-                sprintf(msg, "TimeOut: [Restart]");
-                iot.pub_msg(msg);
-        }
-        else if (strcmp(incoming_msg, "end_to") == 0) {
-                timeOut_SW0.endNow();
-                sprintf(msg, "TimeOut: [Abort]");
-                iot.pub_msg(msg);
-        }
-        else if (strcmp(incoming_msg, "restore_to") == 0) {
-                timeOut_SW0.restore_to();
-                timeOut_SW0.restart_to();
-                sprintf(msg, "TimeOut: Restore hardCoded Value [%d mins.]", TIMEOUT_SW0);
-                iot.pub_msg(msg);
-                iot.sendReset("Restore");
-        }
-        else if (strcmp(incoming_msg, "flash") == 0 ) {
-                timeOut_SW0.inCodeTimeOUT_inFlash.printFile();
-        }
-
-        else{
-                iot.inline_read(incoming_msg);
-                if(strcmp(iot.inline_param[0],"timeout") == 0 && atoi(iot.inline_param[1])>0) {
-                        timeOut_SW0.setNewTimeout(atoi(iot.inline_param[1]));
-                        timeOut_SW0.convert_epoch2clock(now()+atoi(iot.inline_param[1]),now(), msg2, msg);
-                        sprintf(msg, "TimeOut: new TimeOut Added %s", msg2);
-                        iot.pub_msg(msg);
-                }
-                else if(strcmp(iot.inline_param[0],"blink") == 0 && atoi(iot.inline_param[1])>0 && atoi(iot.inline_param[2])>0) {
-                        turnLeds(0,"Blink");
-                        delayOn=atoi(iot.inline_param[1]);
-                        delayOff=atoi(iot.inline_param[2]);
-
-                        sprintf(msg, "Mode: [%s]", "Blink");
-                        blinker_state = !blinker_state;
-                        iot.pub_msg(msg);
-                }
-                else if(strcmp(iot.inline_param[0],"updateTO") == 0 && atoi(iot.inline_param[1])>0) {
-                        timeOut_SW0.updateTOinflash(atoi(iot.inline_param[1]));
-                        sprintf(msg, "TimeOut: Updated in flash to [%d min.]", atoi(iot.inline_param[1]));
-                        iot.pub_msg(msg);
-                        delay(1000);
-                        iot.sendReset("TimeOut update");
-                }
+        else {
+                digitalWrite(RelayPin, !LEDsON);
         }
 }
 void startTimeOut(){
@@ -291,7 +219,6 @@ void startTimeOut(){
                 }
                 else{
                         timeOut_SW0.updatedTimeOUT_inFlash.setValue(0);
-                        Serial.println("Value set to 0");
                 }
 
         }
@@ -307,6 +234,7 @@ void checkIf_badReboot(){
                 startTimeOut();
         }
 }
+
 void timeOutLoop(){
         char msg_t[]="                ";
         char msg[10];
@@ -326,28 +254,108 @@ void timeOutLoop(){
                 last_swState = swState;
         }
 }
-void clockOff(int t_vect[2]){
-        time_t t=now();
-        if (hour(t)==t_vect[0] && minute(t)==t_vect[1] && second(t)<10) {
-                turnLeds(0,"Clock");
+void addiotnalMQTT(char incoming_msg[50]) {
+        char msg[150];
+        char msg2[20];
+
+        if      (strcmp(incoming_msg, "status") == 0) {
+                if(timeOut_SW0.remain()>0) {
+                        timeOut_SW0.convert_epoch2clock(now()+timeOut_SW0.remain(),now(), msg, msg2);
+                        sprintf(msg2,", TimeOut [%s]", msg);
+                }
+                else{
+                        sprintf(msg2,"");
+                }
+                sprintf(msg, "Status: [%s] %s", digitalRead(RelayPin) ? "ON" : "OFF", msg2);
+                iot.pub_msg(msg);
+        }
+        else if (strcmp(incoming_msg, "ver") == 0 ) {
+                sprintf(msg, "ver: [%s], lib: [%s], WDT: [%d], OTA: [%d], SERIAL: [%d], IRremote: [%d], ResetKeeper[%d], FailNTP[%d]", VER, iot.ver, USE_WDT, USE_OTA,USE_SERIAL, USE_IR_REMOTE, USE_RESETKEEPER, USE_FAILNTP);
+                iot.pub_msg(msg);
+        }
+        else if (strcmp(incoming_msg, "on") == 0 ) {
+                turnLeds(1, "Switch");
+        }
+        else if (strcmp(incoming_msg, "off") == 0 ) {
+                turnLeds(0,"Switch");
+        }
+        else if (strcmp(incoming_msg, "help") == 0) {
+                sprintf(msg, "Help: Commands #1 - [status, blink(x,y), on, off, ver, help, flash, format ");
+                iot.pub_msg(msg);
+                sprintf(msg, "Help: Commands #2 - remain, restart_to, timeout(x), end_to, updateTO(x), restore_to]");
+                iot.pub_msg(msg);
+                sprintf(msg, "Help: Commands #3 - [boot, reset, ip, ota]");
+                iot.pub_msg(msg);
+        }
+        else if (strcmp(incoming_msg, "remain") == 0) {
+                timeOut_SW0.convert_epoch2clock(now()+timeOut_SW0.remain(),now(), msg2, msg);
+                sprintf(msg, "TimeOut: Remain [%s]", msg2);
+                iot.pub_msg(msg);
+        }
+        else if (strcmp(incoming_msg, "restart_to") == 0) {
+                timeOut_SW0.restart_to();
+                sprintf(msg, "TimeOut: [Restart]");
+                iot.pub_msg(msg);
+        }
+        else if (strcmp(incoming_msg, "end_to") == 0) {
+                timeOut_SW0.endNow();
+                sprintf(msg, "TimeOut: [Abort]");
+                iot.pub_msg(msg);
+        }
+        else if (strcmp(incoming_msg, "restore_to") == 0) {
+                timeOut_SW0.restore_to();
+                timeOut_SW0.restart_to();
+                sprintf(msg, "TimeOut: Restore hardCoded Value [%d mins.]", TIMEOUT_SW0);
+                iot.pub_msg(msg);
+                iot.sendReset("Restore");
+        }
+        else if (strcmp(incoming_msg, "flash") == 0 ) {
+                timeOut_SW0.inCodeTimeOUT_inFlash.printFile();
+        }
+        else if (strcmp(incoming_msg, "format") == 0 ) {
+                timeOut_SW0.inCodeTimeOUT_inFlash.format();
+        }
+
+        else{
+                iot.inline_read(incoming_msg);
+                if(strcmp(iot.inline_param[0],"timeout") == 0 && atoi(iot.inline_param[1])>0) {
+                        timeOut_SW0.setNewTimeout(atoi(iot.inline_param[1]));
+                        timeOut_SW0.convert_epoch2clock(now()+atoi(iot.inline_param[1]),now(), msg2, msg);
+                        sprintf(msg, "TimeOut: new TimeOut Added %s", msg2);
+                        iot.pub_msg(msg);
+                }
+                else if(strcmp(iot.inline_param[0],"blink") == 0 && atoi(iot.inline_param[1])>0 && atoi(iot.inline_param[2])>0) {
+                        turnLeds(0,"Blink");
+                        delayOn=atoi(iot.inline_param[1]);
+                        delayOff=atoi(iot.inline_param[2]);
+
+                        sprintf(msg, "Mode: [%s]", "Blink");
+                        blinker_state = !blinker_state;
+                        iot.pub_msg(msg);
+                }
+                else if(strcmp(iot.inline_param[0],"updateTO") == 0 && atoi(iot.inline_param[1])>0) {
+                        timeOut_SW0.updateTOinflash(atoi(iot.inline_param[1]));
+                        sprintf(msg, "TimeOut: Updated in flash to [%d min.]", atoi(iot.inline_param[1]));
+                        iot.pub_msg(msg);
+                        delay(1000);
+                        iot.sendReset("TimeOut update");
+                }
         }
 }
-void clockOn(int t_vect[2]){
+void clock_timeouts(int toff_vect[2],int ton_vect[2]){
         time_t t=now();
-        if (hour(t)==t_vect[0] && minute(t)==t_vect[1] && second(t)<10) {
+        if (hour(t)==toff_vect[0] && minute(t)==toff_vect[1] && second(t)<10) {
+                turnLeds(0,"Clock");
+        }
+        if (hour(t)==ton_vect[0] && minute(t)==ton_vect[1] && second(t)<10) {
                 turnLeds(1,"Clock");
         }
 }
+
 void setup() {
         pinMode(RelayPin, OUTPUT);
-        // if (timeOut_SW0.flashRead()==1 && timeOut_SW0.savedTO !=0) {
-        // digitalWrite(RelayPin, LEDsON);
-        // }
-        // else {
-        digitalWrite(RelayPin, !LEDsON);
-        // }
-
-
+        fastpowerobBOOT();
+        start_IR();
 
         // ~~~~~~~~Start IOT sevices~~~~~~~~
         iot.useSerial = USE_SERIAL;
@@ -355,15 +363,8 @@ void setup() {
         iot.useOTA    = USE_OTA;
         iot.useResetKeeper = USE_RESETKEEPER;
         iot.resetFailNTP   = USE_FAILNTP;
-        iot.start_services(ADD_MQTT_FUNC);
-
+        iot.start_services(ADD_MQTT_FUNC,"Xiaomi_ADA6","guyd5161");//,"guy","kupelu9e","broker.hivemq.com	");
         //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-
-#if USE_IR_REMOTE
-        start_IR();
-#endif
-
 }
 void loop() {
         iot.looper();   // iot connection/Wifi/NTP/MQTT services
@@ -373,8 +374,7 @@ void loop() {
         recvIRinputs(); // IR signals
         timeOutLoop();
 
-        clockOff(CLOCK_OFF);
-        clockOn(CLOCK_ON);
+        clock_timeouts(CLOCK_OFF, CLOCK_ON);
 
         if (blinker_state == true ) {
                 switch_Blinker();

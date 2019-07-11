@@ -2,6 +2,7 @@
 #include "myIOT.h"
 
 #include <ESP8266WiFi.h>
+#include <ESP8266Ping.h>
 #include <NtpClientLib.h>
 #include <PubSubClient.h> //MQTT
 #include <Ticker.h>       //WDT
@@ -22,11 +23,12 @@ myJSON json(jfile, true);
 
 
 // ~~~~~~ myIOT CLASS ~~~~~~~~~~~ //
-
 myIOT::myIOT(char *devTopic, char *key) : _failNTPcounter_inFlash(key){
         deviceTopic = devTopic;
         deviceName = deviceTopic;
         topicArry[0] = deviceTopic;
+        bootErrors [0]=0;
+
 }
 void myIOT::start_services(cb_func funct, char *ssid, char *password, char *mqtt_user, char *mqtt_passw, char *mqtt_broker) {
         mqtt_server = mqtt_broker;
@@ -52,6 +54,8 @@ void myIOT::start_services(cb_func funct, char *ssid, char *password, char *mqtt
 }
 void myIOT::looper(){
         networkStatus();      // runs wifi/mqtt connectivity
+        // publish_errs();
+        // pub_err("Err");
         if (useOTA) {
                 acceptOTA();
         }       // checks for OTA
@@ -63,6 +67,7 @@ void myIOT::looper(){
                         firstRun = false;
                 }
         }
+
 }
 
 
@@ -93,7 +98,8 @@ void myIOT::startNetwork(char *ssid, char *password) {
                 if (useSerial) {
                         Serial.println("no wifi detected");
                 }
-                noNetwork_Counter = millis(); // CHANGE V1
+                // strcat(bootErrors,"**NoWifi** ");
+                noNetwork_Clock = millis(); // CHANGE V1
         }
 
         // if wifi is OK
@@ -110,24 +116,30 @@ void myIOT::startNetwork(char *ssid, char *password) {
 }
 void myIOT::networkStatus() {
         if (WiFi.status() == WL_CONNECTED ) { // wifi is ok
-                if (mqttClient.connected()) { // mqtt is good
+                if (mqttClient.connected() && badMQTTserver == false) { // mqtt is good
                         mqttClient.loop();
                         mqttConnected = 1;
-                        noNetwork_Counter = 0;
+                        noNetwork_Clock = 0;
                         lastReconnectTry = 0;
                 }
-                else { // WIFI OK, no MQTT
-                        if  (millis() - noNetwork_Counter >= time2Reset_noNetwork) { // reset due to long no MQTT
+                else if ( badMQTTserver ==true) { // connected to temp MQTT
+                        if  (millis() - noNetwork_Clock >= time2Reset_noNetwork) {// reset due to long no MQTT
+                                sendReset("null");
+                        }
+
+                }
+                else  { // WIFI OK, no MQTT
+                        if  (millis() - noNetwork_Clock >= time2Reset_noNetwork) { // reset due to long no MQTT
                                 sendReset("null");
                         }
                         else if (lastReconnectTry - (long)millis() <= 0) { // time interval to try again to connect MQTT
                                 if (subscribeMQTT() == 1) {         //try successfully reconnect mqtt
-                                        noNetwork_Counter = 0;
+                                        noNetwork_Clock = 0;
                                         lastReconnectTry = 0;
                                 }
                                 else {         // fail connect to MQTT server
-                                        if (noNetwork_Counter == 0) {         // first time no MQTT  - start timeout counter
-                                                noNetwork_Counter = millis();
+                                        if (noNetwork_Clock == 0) {         // first time no MQTT  - start timeout counter
+                                                noNetwork_Clock = millis();
                                         }
                                         lastReconnectTry = millis() + time2_tryReconnect;
                                         mqttConnected = 0;
@@ -136,12 +148,11 @@ void myIOT::networkStatus() {
                 }
         }
 
-
-        else {             // CHANGE V1 - add this condition - NO WIFI
-                if (noNetwork_Counter !=0) { // first time when NO NETWORK
-                        noNetwork_Counter=millis();
+        else {             // NO WIFI
+                if (noNetwork_Clock !=0) { // first time when NO NETWORK
+                        noNetwork_Clock=millis();
                 }
-                if  (millis() - noNetwork_Counter >= time2Reset_noNetwork) {
+                if  (millis() - noNetwork_Clock >= time2Reset_noNetwork) {
                         sendReset("null"); // due to wifi error
                 }
         }
@@ -160,11 +171,12 @@ void myIOT::start_clock() {
                 }
                 else{
                         _failNTPcounter_inFlash.setValue(0);
-
+                        // strcat(bootErrors,"**Fail Write Flash NTP** ");
                 }
 
         }
         else{
+                // strcat(bootErrors,"**FailNTP** ");
                 if (resetFailNTP) {
                         if(_failNTPcounter_inFlash.getValue(failcount)) {
                                 if (failcount<3) {
@@ -199,6 +211,7 @@ bool myIOT::startNTP() {
                 return 1;
         }
         else {
+                strcat(bootErrors,"** NTP ERR **");
                 return 0;
         }
 }
@@ -220,10 +233,30 @@ void myIOT::return_date(char ret_tuple[20]){
 
 // ~~~~~~~ MQTT functions ~~~~~~~
 void myIOT::startMQTT() {
+        bool stat = false;
         createTopics(deviceTopic, stateTopic, availTopic);
-        mqttClient.setServer(mqtt_server, 1883);
-        mqttClient.setCallback(std::bind(&myIOT::callback, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
-        subscribeMQTT();
+        // Select MQTT server
+        if (Ping.ping(mqtt_server)) {
+                mqttClient.setServer(mqtt_server, 1883);
+                stat = true;
+        }
+        else if (Ping.ping(mqtt_server2)) {
+                mqttClient.setServer(mqtt_server2, 1883);
+                // strcat(bootErrors,"** MQTT SERVER ERR **");
+                Serial.println("SERVER2");
+                stat = true;
+        }
+
+        // Set callback function
+        if (stat) {
+                mqttClient.setCallback(std::bind(&myIOT::callback, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
+                subscribeMQTT();
+        }
+        else {
+                if (useSerial) {
+                        Serial.println("Not connected to MQTT server");
+                }
+        }
 }
 int myIOT::subscribeMQTT() {
         // verify wifi connected
@@ -264,8 +297,6 @@ int myIOT::subscribeMQTT() {
                                 mqttFailCounter = 0;
                                 return 1;
                         }
-
-                        // fail to connect, but have few retries
                         else {
                                 if (useSerial) {
                                         Serial.print("failed, rc=");
@@ -275,7 +306,6 @@ int myIOT::subscribeMQTT() {
                                 }
                                 mqttFailCounter++;
                         }
-
                         delay(100);
                 }
 
@@ -290,6 +320,7 @@ int myIOT::subscribeMQTT() {
                 if (useSerial) {
                         Serial.println("Not connected to Wifi, abort try to connect MQTT broker");
                 }
+                // strcat(bootErrors,"**NoWifi** ");
                 return 0;
         }
 }
@@ -303,8 +334,6 @@ void myIOT::callback(char* topic, byte* payload, unsigned int length) {
         char state2[5];
         char msg2[100];
 
-
-        //      Display on Serial monitor only
         if (useSerial) {
                 Serial.print("Message arrived [");
                 Serial.print(topic);
@@ -335,7 +364,7 @@ void myIOT::callback(char* topic, byte* payload, unsigned int length) {
                 }
         }
 
-        if (strcmp(incoming_msg, "boot") == 0 ) {
+        if      (strcmp(incoming_msg, "boot") == 0 ) {
                 sprintf(msg, "Boot:[%s]", bootTime);
                 pub_msg(msg);
         }
@@ -348,7 +377,7 @@ void myIOT::callback(char* topic, byte* payload, unsigned int length) {
         else if (strcmp(incoming_msg, "ota") == 0 ) {
                 sprintf(msg, "OTA allowed for %d seconds", OTA_upload_interval / 1000);
                 pub_msg(msg);
-                OTAcounter = millis();
+                allowOTA_clock = millis();
         }
         else if (strcmp(incoming_msg, "reset") == 0 ) {
                 sendReset("MQTT");
@@ -379,11 +408,13 @@ void myIOT::pub_state(char *inmsg) {
         }
 }
 void myIOT::pub_err(char *inmsg) {
-        char tmpmsg[150];
+        char tmpmsg[250];
         get_timeStamp();
-        sprintf(tmpmsg, "[%s] [%s] [Error log:]%s", timeStamp, deviceTopic, inmsg );
+        sprintf(tmpmsg, "%s %s Error log: %s", timeStamp, deviceTopic, inmsg );
+        // sprintf(tmpmsg, "[%s] [%s] [Error log:]%s", timeStamp, deviceTopic, inmsg );
+
         if (mqttConnected == true) {
-                mqttClient.publish(errorTopic, tmpmsg);
+                mqttClient.publish(errorTopic, "[tmpmsg]");
         }
 }
 void myIOT::msgSplitter( const char* msg_in, int max_msgSize, char *prefix, char *split_msg) {
@@ -429,6 +460,15 @@ int myIOT::inline_read(char *inputstr) {
 void myIOT::notifyOnline(){
         mqttClient.publish(availTopic, "online", true);
 }
+void myIOT::publish_errs(){
+        if (strlen(bootErrors)==0 &&mqttConnected==true) {
+                pub_err("bootErrors");
+                // bootErrors[0]=0;
+
+                strcpy(bootErrors,"");
+        }
+}
+
 
 // ~~~~~~ Reset and maintability ~~~~~~
 void myIOT::sendReset(char *header) {
@@ -451,7 +491,7 @@ void myIOT::feedTheDog() {
         }
 }
 void myIOT::acceptOTA() {
-        if (millis() - OTAcounter <= OTA_upload_interval) {
+        if (millis() - allowOTA_clock <= OTA_upload_interval) {
                 ArduinoOTA.handle();
         }
 }
@@ -465,7 +505,7 @@ void myIOT::startOTA() {
                 m++;
         }
 
-        OTAcounter = millis();
+        allowOTA_clock = millis();
 
         // Port defaults to 8266
         ArduinoOTA.setPort(8266);
@@ -597,7 +637,7 @@ bool timeOUT::looper(){
         }
 }
 bool timeOUT::begin(bool newReboot){   // NewReboot come to not case of sporadic reboot
-        if (flashRead()) {                      // able to read JSON ?
+        if (endTimeOUT_inFlash.getValue(_savedTO)) {                      // able to read JSON ?
                 if (_savedTO > now()) {         // get saved value- still have to go
                         _calc_endTO=_savedTO;   //clock time to stop
                         switchON();
@@ -629,16 +669,7 @@ bool timeOUT::begin(bool newReboot){   // NewReboot come to not case of sporadic
                 return 0;
         }
 }
-int  timeOUT::flashRead(){
-        if(endTimeOUT_inFlash.getValue(_savedTO)) {
-                // savedTO = _savedTO;
-                return 1;
-        }
-        else {
-                return 0;
-        }
-}
-int  timeOUT::remain(){
+int timeOUT::remain(){
         if (_inTO == true) {
                 return _calc_endTO-now();
         }
