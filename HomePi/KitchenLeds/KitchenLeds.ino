@@ -4,7 +4,7 @@
 
 
 //####################################################
-#define DEVICE_TOPIC "myHome/Test"
+#define DEVICE_TOPIC "KitchenLEDS"
 #define VER "Wemos.Mini.2.4"
 
 //~~~~~ Services ~~~~~~~~~~~
@@ -14,6 +14,11 @@
 #define USE_IR_REMOTE    true
 #define USE_RESETKEEPER  true
 #define USE_FAILNTP      true
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+// ~~~~~~~ MQTT Topics ~~~~~~
+#define MQTT_PREFIX  "myHome"
+#define MQTT_GROUP   "LEDStrips"
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 // ~~~~~~~ TimeOuts ~~~~~~~~~
@@ -280,11 +285,11 @@ void addiotnalMQTT(char incoming_msg[50]) {
                 turnLeds(0,"Switch");
         }
         else if (strcmp(incoming_msg, "help") == 0) {
-                sprintf(msg, "Help: Commands #1 - [status, blink(x,y), on, off, ver, help, flash, format ");
+                sprintf(msg, "Help: Commands #1 - [blink(x,y), on, off, flash, format]");
                 iot.pub_msg(msg);
-                sprintf(msg, "Help: Commands #2 - remain, restart_to, timeout(x), end_to, updateTO(x), restore_to]");
+                sprintf(msg, "Help: Commands #2 - [remain, restart_to, timeout(x), end_to, updateTO(x), restore_to]");
                 iot.pub_msg(msg);
-                sprintf(msg, "Help: Commands #3 - [boot, reset, ip, ota]");
+                sprintf(msg, "Help: Commands #3 - [status, boot, reset, ip, ota, ver, help]");
                 iot.pub_msg(msg);
         }
         else if (strcmp(incoming_msg, "remain") == 0) {
@@ -363,7 +368,9 @@ void setup() {
         iot.useOTA    = USE_OTA;
         iot.useResetKeeper = USE_RESETKEEPER;
         iot.resetFailNTP   = USE_FAILNTP;
-        iot.start_services(ADD_MQTT_FUNC,"Xiaomi_ADA6","guyd5161");//,"guy","kupelu9e","broker.hivemq.com	");
+        strcpy(iot.prefixTopic, MQTT_PREFIX);
+        strcpy(iot.addGroupTopic, MQTT_GROUP);
+        iot.start_services(ADD_MQTT_FUNC);
         //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 }
 void loop() {

@@ -24,10 +24,8 @@ myJSON json(jfile, true);
 
 // ~~~~~~ myIOT CLASS ~~~~~~~~~~~ //
 myIOT::myIOT(char *devTopic, char *key) : _failNTPcounter_inFlash(key){
-        deviceTopic = devTopic;
-        deviceName = deviceTopic;
-        topicArry[0] = deviceTopic;
-        bootErrors [0]=0;
+        strcpy(_deviceName,devTopic); // for OTA only
+        // bootErrors [0]=0;
 
 }
 void myIOT::start_services(cb_func funct, char *ssid, char *password, char *mqtt_user, char *mqtt_passw, char *mqtt_broker) {
@@ -54,7 +52,7 @@ void myIOT::start_services(cb_func funct, char *ssid, char *password, char *mqtt
 }
 void myIOT::looper(){
         networkStatus();      // runs wifi/mqtt connectivity
-        // publish_errs();
+        publish_errs();
         // pub_err("Err");
         if (useOTA) {
                 acceptOTA();
@@ -98,7 +96,7 @@ void myIOT::startNetwork(char *ssid, char *password) {
                 if (useSerial) {
                         Serial.println("no wifi detected");
                 }
-                // strcat(bootErrors,"**NoWifi** ");
+                strcat(bootErrors,"**NoWifi** ");
                 noNetwork_Clock = millis(); // CHANGE V1
         }
 
@@ -118,28 +116,32 @@ void myIOT::networkStatus() {
         if (WiFi.status() == WL_CONNECTED ) { // wifi is ok
                 if (mqttClient.connected() && badMQTTserver == false) { // mqtt is good
                         mqttClient.loop();
-                        mqttConnected = 1;
-                        noNetwork_Clock = 0;
+                        mqttConnected    = 1;
+                        noNetwork_Clock  = 0;
                         lastReconnectTry = 0;
                 }
                 else if ( badMQTTserver ==true) { // connected to temp MQTT
                         if  (millis() - noNetwork_Clock >= time2Reset_noNetwork) {// reset due to long no MQTT
                                 sendReset("null");
                         }
+                        Serial.println("1");
 
                 }
                 else  { // WIFI OK, no MQTT
                         if  (millis() - noNetwork_Clock >= time2Reset_noNetwork) { // reset due to long no MQTT
+                                Serial.println("2a");
                                 sendReset("null");
                         }
                         else if (lastReconnectTry - (long)millis() <= 0) { // time interval to try again to connect MQTT
                                 if (subscribeMQTT() == 1) {         //try successfully reconnect mqtt
                                         noNetwork_Clock = 0;
                                         lastReconnectTry = 0;
+                                        Serial.println("2b");
                                 }
                                 else {         // fail connect to MQTT server
                                         if (noNetwork_Clock == 0) {         // first time no MQTT  - start timeout counter
                                                 noNetwork_Clock = millis();
+                                                Serial.println("2c");
                                         }
                                         lastReconnectTry = millis() + time2_tryReconnect;
                                         mqttConnected = 0;
@@ -171,12 +173,12 @@ void myIOT::start_clock() {
                 }
                 else{
                         _failNTPcounter_inFlash.setValue(0);
-                        // strcat(bootErrors,"**Fail Write Flash NTP** ");
+                        strcat(bootErrors,"**Fail Write Flash NTP** ");
                 }
 
         }
         else{
-                // strcat(bootErrors,"**FailNTP** ");
+                strcat(bootErrors,"**FailNTP** ");
                 if (resetFailNTP) {
                         if(_failNTPcounter_inFlash.getValue(failcount)) {
                                 if (failcount<3) {
@@ -195,18 +197,19 @@ bool myIOT::startNTP() {
         byte x=0;
         byte retries = 5;
         int delay_tries = 500;
+        char* NTPserver="pool.ntp.org";
 
-        NTP.begin("pool.ntp.org", 2, true);
-        delay(delay_tries);
+        NTP.begin(NTPserver, 2, true);
+        // delay(delay_tries);
         time_t t=now();
 
         while (x < retries && year(t)==1970) {
-                NTP.begin("pool.ntp.org", 2, true);
+                NTP.begin(NTPserver, 2, true);
                 delay(delay_tries);
                 t=now();
                 x+=1;
         }
-        if(x<retries) {
+        if(x<retries && year(t)!=1970) {
                 NTP.setInterval(5, clockUpdateInt);
                 return 1;
         }
@@ -234,16 +237,23 @@ void myIOT::return_date(char ret_tuple[20]){
 // ~~~~~~~ MQTT functions ~~~~~~~
 void myIOT::startMQTT() {
         bool stat = false;
-        createTopics(deviceTopic, stateTopic, availTopic);
+        createTopics();
         // Select MQTT server
         if (Ping.ping(mqtt_server)) {
                 mqttClient.setServer(mqtt_server, 1883);
                 stat = true;
+                badMQTTserver  =false;
+                if (useSerial) {
+                        Serial.println("MQTT SERVER1");
+                }
         }
         else if (Ping.ping(mqtt_server2)) {
                 mqttClient.setServer(mqtt_server2, 1883);
-                // strcat(bootErrors,"** MQTT SERVER ERR **");
-                Serial.println("SERVER2");
+                strcat(bootErrors,"** MQTT SERVER ERR **");
+                if(useSerial) {
+                        Serial.println("MQTT SERVER2");
+                }
+                badMQTTserver  =false;
                 stat = true;
         }
 
@@ -269,29 +279,32 @@ int myIOT::subscribeMQTT() {
                                 Serial.print("Attempting MQTT connection...");
                         }
                         // Attempt to connect
-                        if (mqttClient.connect(deviceName, user, passw, availTopic, 0, true, "offline")) {
+                        if (mqttClient.connect(_deviceName, user, passw, _availTopic, 0, true, "offline")) {
                                 if (useSerial) {
                                         Serial.println("connected");
                                 }
                                 mqttConnected = 1;
                                 if (useResetKeeper == false) {
-                                        mqttClient.publish(availTopic, "online", true);
+                                        mqttClient.publish(_availTopic, "online", true);
                                 }
                                 if (firstRun == true) {
-                                        mqttClient.publish(stateTopic, "off", true);
-                                        pub_msg("<< Boot >>");
+                                        mqttClient.publish(_stateTopic, "off", true);
+                                        pub_err("<< Boot >>");
                                         if (useResetKeeper == false) {
                                                 firstRun = false;
                                         }
                                 }
                                 else {
                                         sprintf(msg, "<< Connected to MQTT - Reload [%d]>> ", mqttFailCounter);
-                                        // pub_msg(msg);
+                                        pub_err(msg);
 
                                 }
                                 for (int i = 0; i < sizeof(topicArry) / sizeof(char *); i++) {
-                                        mqttClient.subscribe(topicArry[i]);
-                                        // sprintf(msg, "Subscribed to %s", topicArry[i]);
+                                        if (strcmp(topicArry[i],"")!=0) {
+                                                mqttClient.subscribe(topicArry[i]);
+                                                // sprintf(msg, "Subscribed to %s", topicArry[i]);
+                                                // Serial.println(msg);
+                                        }
                                 }
 
                                 mqttFailCounter = 0;
@@ -306,7 +319,7 @@ int myIOT::subscribeMQTT() {
                                 }
                                 mqttFailCounter++;
                         }
-                        delay(100);
+                        delay(500);
                 }
 
                 // Failed to connect MQTT adter retries
@@ -320,13 +333,24 @@ int myIOT::subscribeMQTT() {
                 if (useSerial) {
                         Serial.println("Not connected to Wifi, abort try to connect MQTT broker");
                 }
-                // strcat(bootErrors,"**NoWifi** ");
+                strcat(bootErrors,"**NoWifi** ");
                 return 0;
         }
 }
-void myIOT::createTopics(const char *devTopic, char *state, char *avail) {
-        sprintf(state, "%s/State", devTopic);
-        sprintf(avail, "%s/Avail", devTopic);
+void myIOT::createTopics() {
+        snprintf(_msgTopic, MaxTopicLength, "%s/Messages", prefixTopic);
+        snprintf(_groupTopic, MaxTopicLength, "%s/All", prefixTopic);
+        snprintf(_errorTopic, MaxTopicLength, "%s/Errors", prefixTopic);
+
+        snprintf(deviceTopic,MaxTopicLength,"%s/%s",prefixTopic,_deviceName);
+        snprintf(_stateTopic, MaxTopicLength, "%s/State", deviceTopic);
+        snprintf(_availTopic, MaxTopicLength, "%s/Avail", deviceTopic);
+
+        if(strcmp(addGroupTopic,"")!=0) {
+                char temptopic[MaxTopicLength];
+                strcpy(temptopic, addGroupTopic);
+                snprintf(addGroupTopic,MaxTopicLength,"%s/%s",prefixTopic,temptopic);
+        }
 }
 void myIOT::callback(char* topic, byte* payload, unsigned int length) {
         char incoming_msg[50];
@@ -354,7 +378,7 @@ void myIOT::callback(char* topic, byte* payload, unsigned int length) {
         // Check if Avail topic starts from OFFLINE or ONLINE mode
         // This will flag weather unwanted Reset occured
         if (firstRun && useResetKeeper) {
-                if(strcmp(topic,availTopic)==0) {
+                if(strcmp(topic,_availTopic)==0) {
                         if (strcmp(incoming_msg,"online")==0) {
                                 mqtt_detect_reset = 1;
                         }
@@ -404,17 +428,16 @@ void myIOT::pub_msg(char *inmsg) {
 }
 void myIOT::pub_state(char *inmsg) {
         if (mqttConnected == true) {
-                mqttClient.publish(stateTopic, inmsg, true);
+                mqttClient.publish(_stateTopic, inmsg, true);
         }
 }
 void myIOT::pub_err(char *inmsg) {
         char tmpmsg[250];
         get_timeStamp();
-        sprintf(tmpmsg, "%s %s Error log: %s", timeStamp, deviceTopic, inmsg );
-        // sprintf(tmpmsg, "[%s] [%s] [Error log:]%s", timeStamp, deviceTopic, inmsg );
+        sprintf(tmpmsg, "[%s] [%s] [Error log:] %s", timeStamp, deviceTopic, inmsg );
 
         if (mqttConnected == true) {
-                mqttClient.publish(errorTopic, "[tmpmsg]");
+                mqttClient.publish(_errorTopic, tmpmsg);
         }
 }
 void myIOT::msgSplitter( const char* msg_in, int max_msgSize, char *prefix, char *split_msg) {
@@ -433,14 +456,14 @@ void myIOT::msgSplitter( const char* msg_in, int max_msgSize, char *prefix, char
                                 tmp[i + 1 + pre_len] = '\0';
                         }
                         if (mqttConnected == true) {
-                                mqttClient.publish(msgTopic, tmp);
+                                mqttClient.publish(_msgTopic, tmp);
                         }
                 }
         }
         else {
                 if (mqttConnected == true) {
                         sprintf(tmp, "%s %s", prefix, msg_in);
-                        mqttClient.publish(msgTopic, tmp);
+                        mqttClient.publish(_msgTopic, tmp);
                 }
         }
 }
@@ -458,11 +481,11 @@ int myIOT::inline_read(char *inputstr) {
         return i;
 }
 void myIOT::notifyOnline(){
-        mqttClient.publish(availTopic, "online", true);
+        mqttClient.publish(_availTopic, "online", true);
 }
 void myIOT::publish_errs(){
-        if (strlen(bootErrors)==0 &&mqttConnected==true) {
-                pub_err("bootErrors");
+        if (strcmp(bootErrors,"")!=0 &&mqttConnected==true) {
+                pub_err(bootErrors);
                 // bootErrors[0]=0;
 
                 strcpy(bootErrors,"");
