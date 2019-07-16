@@ -1,7 +1,7 @@
 #define SENSORPIN        2
 #define SWITCHPIN        3
 #define BUTTONPIN        4
-#define PWRDOWN_TIMEOUT  100  // <----- NEED TO CHANGE BY USER
+#define PWRDOWN_TIMEOUT  100  // mins <----- NEED TO CHANGE BY USER
 
 class SensorSwitch {
   #define RelayON               true
@@ -54,6 +54,7 @@ void checkLuminButton(){
                                 currentLumVal = maxLuminVal;
                         }
                         analogWrite(_switchPin,currentLumVal);
+                        delay(200);
                 }
         }
 }
@@ -89,7 +90,6 @@ void offBy_timeout(){
                         _last_sensorsState = SENSOR_DETECT_DOOR;
                         // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
                 }
-                //Serial.println((_timeout_mins*1000ul*60ul-(millis() - _onCounter))/1000);
         }
 }
 void checkSensor(){
@@ -119,7 +119,6 @@ void isr(){
 }
 
 void setup() {
-        //Serial.begin(9600);
         s1.start();
         reAttach();
 }
