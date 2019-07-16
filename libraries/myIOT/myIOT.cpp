@@ -53,19 +53,21 @@ void myIOT::start_services(cb_func funct, char *ssid, char *password, char *mqtt
 void myIOT::looper(){
         networkStatus();      // runs wifi/mqtt connectivity
         publish_errs();
-        // pub_err("Err");
+
+        //reset WDT watchDog
+        wdtResetCounter = 0;
+
+        // checks for OTA
         if (useOTA) {
                 acceptOTA();
-        }       // checks for OTA
-        wdtResetCounter = 0;  //reset WDT watchDog
-
+        }
+        // continue TO after reset
         if(useResetKeeper) {
                 if(firstRun && mqtt_detect_reset !=2) {
                         notifyOnline();
                         firstRun = false;
                 }
         }
-
 }
 
 
@@ -214,7 +216,7 @@ bool myIOT::startNTP() {
                 return 1;
         }
         else {
-                strcat(bootErrors,"** NTP ERR **");
+                strcat(bootErrors,"** NTP ERR ** ");
                 return 0;
         }
 }
@@ -342,15 +344,21 @@ void myIOT::createTopics() {
         snprintf(_groupTopic, MaxTopicLength, "%s/All", prefixTopic);
         snprintf(_errorTopic, MaxTopicLength, "%s/Errors", prefixTopic);
 
-        snprintf(deviceTopic,MaxTopicLength,"%s/%s",prefixTopic,_deviceName);
-        snprintf(_stateTopic, MaxTopicLength, "%s/State", deviceTopic);
-        snprintf(_availTopic, MaxTopicLength, "%s/Avail", deviceTopic);
-
         if(strcmp(addGroupTopic,"")!=0) {
                 char temptopic[MaxTopicLength];
                 strcpy(temptopic, addGroupTopic);
                 snprintf(addGroupTopic,MaxTopicLength,"%s/%s",prefixTopic,temptopic);
+
+                snprintf(deviceTopic,MaxTopicLength,"%s/%s",addGroupTopic,_deviceName);
         }
+        else{
+          snprintf(deviceTopic,MaxTopicLength,"%s/%s",prefixTopic,_deviceName);
+        }
+
+        snprintf(_stateTopic, MaxTopicLength, "%s/State", deviceTopic);
+        snprintf(_availTopic, MaxTopicLength, "%s/Avail", deviceTopic);
+
+
 }
 void myIOT::callback(char* topic, byte* payload, unsigned int length) {
         char incoming_msg[50];

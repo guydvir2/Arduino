@@ -4,11 +4,11 @@
 
 
 //####################################################
-#define DEVICE_TOPIC "KitchenLEDS"
-#define VER "Wemos.Mini.2.4"
+#define DEVICE_TOPIC "KitchenLEDs"
+#define VER "Wemos.Mini.2.5"
 
 //~~~~~ Services ~~~~~~~~~~~
-#define USE_SERIAL       true
+#define USE_SERIAL       false
 #define USE_WDT          true
 #define USE_OTA          true
 #define USE_IR_REMOTE    true
@@ -188,7 +188,12 @@ void switch_Blinker() {
 }
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-void fastpowerobBOOT(){
+void quickPwrON(){
+    /*
+    power on before iot starts,
+    using the fact that endTimeOUT_inFlash contains value
+    other than 0
+     */
         int temp=0;
         timeOut_SW0.endTimeOUT_inFlash.getValue(temp);
         if (temp >0) {
@@ -199,7 +204,6 @@ void fastpowerobBOOT(){
         }
 }
 void startTimeOut(){
-        int ext_timeout;
         /*
            badReboot refers as a very short power loss / restart.
            mostly happens due to power adaptpor momentary failure.
@@ -207,8 +211,7 @@ void startTimeOut(){
            which equivalent to a fresh restart.
            if "State" topic still "Online"- meaning it is a badreboot.
          */
-
-
+        int ext_timeout;
         if (badReboot == 0) { // PowerOn
                 /*
                    Not a badReboot:
@@ -231,13 +234,46 @@ void startTimeOut(){
                 timeOut_SW0.begin(false); // badreboot detected - don't restart TO if already ended
         }
 }
-void checkIf_badReboot(){
+void recoverReset(){
         // Wait for indication if it was false reset(1) or
         if(iot.mqtt_detect_reset != 2) {
                 badReboot = iot.mqtt_detect_reset;
                 checkbadReboot = false;
-                startTimeOut();
+
+                /*
+                   badReboot refers as a very short power loss / restart.
+                   mostly happens due to power adaptpor momentary failure.
+                   if "State" topic goes to offline - it means that powerloss was more than 10 sec
+                   which equivalent to a fresh restart.
+                   if "State" topic still "Online"- meaning it is a badreboot.
+                 */
+
+                int ext_timeout;
+                if (badReboot == 0) { // PowerOn
+                        /*
+                           Not a badReboot:
+                           Case a: after a fresh restart it starts over timeout default value.
+                           Case b: if timeout has ended, not retstarts a new timeout, and if timeout
+                           still not ended, contunue from what is left.
+                         */
+                        if (timeOut_SW0.updatedTimeOUT_inFlash.getValue(ext_timeout)) {
+                                if (ext_timeout!=0) {
+                                        timeOut_SW0.inCode_timeout_value = ext_timeout;
+                                }
+                                timeOut_SW0.restart_to();
+                        }
+                        else{
+                                timeOut_SW0.updatedTimeOUT_inFlash.setValue(0);
+                        }
+
+                }
+                else {
+                        timeOut_SW0.begin(false); // badreboot detected - don't restart TO if already ended
+                }
         }
+
+
+
 }
 
 void timeOutLoop(){
@@ -359,7 +395,7 @@ void clock_timeouts(int toff_vect[2],int ton_vect[2]){
 
 void setup() {
         pinMode(RelayPin, OUTPUT);
-        fastpowerobBOOT();
+        quickPwrON();
         start_IR();
 
         // ~~~~~~~~Start IOT sevices~~~~~~~~
@@ -376,7 +412,7 @@ void setup() {
 void loop() {
         iot.looper();   // iot connection/Wifi/NTP/MQTT services
         if (checkbadReboot == true) {
-                checkIf_badReboot();
+                recoverReset();
         }
         recvIRinputs(); // IR signals
         timeOutLoop();

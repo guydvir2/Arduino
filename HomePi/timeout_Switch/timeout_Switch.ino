@@ -9,7 +9,8 @@ otherwise OTA will not be loaded next time
 #include <Arduino.h>
 
 //####################################################
-#define DEVICE_TOPIC "HomePi/Dvir/Lights/sonoff_test2"
+#define DEVICE_TOPIC "sonoff_test2"
+#define VER          "SonoffBasic_2.0"
 
 //~~~Services~~~~~~~~~~~
 #define USE_SERIAL       false
@@ -18,6 +19,8 @@ otherwise OTA will not be loaded next time
 #define USE_MAN_RESET    false
 #define USE_BOUNCE_DEBUG false
 #define USE_EXT_BUTTONS  false
+#define USE_RESETKEEPER  true
+#define USE_FAILNTP      true
 
 //~~~Select Board~~~~~~~
 #define SONOFF_DUAL      false // <----- Select one
@@ -33,7 +36,10 @@ otherwise OTA will not be loaded next time
 int relay_timeout[] = {300,120}; //
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-#define VER "SonoffBasic_1.9"
+// ~~~~~~~ MQTT Topics ~~~~~~
+#define MQTT_PREFIX  "myHome"
+#define MQTT_GROUP   "Lights"
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~
 //####################################################
 
 
@@ -96,6 +102,30 @@ int relay_timeout[] = {300,120}; //
 #endif
 
 
+// ~~~~~~~ TimeOuts ~~~~~~~~~
+#define TIMEOUT_SW0      60*2 // mins for SW0
+int CLOCK_OFF[2]={8,0};
+int CLOCK_ON[2] ={18,0};
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+// ~~~~ HW Pins and States ~~~~
+#define RelayPin      D2
+#define LEDsON        true
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+bool badReboot        = false;
+bool checkbadReboot   = true;
+bool boot_overide     = true;
+byte swState          = 0;
+byte last_swState     = 0;
+
+// bool blinker_state    = false;
+// int delayOn           = 0;
+// int delayOff          = 0;
+
+
+
+
 int relays[] = {RELAY1, RELAY2};
 byte inputs[] = {INPUT1, INPUT2};
 int inputs_lastState[NUM_SWITCHES];
@@ -109,18 +139,23 @@ const int timeInterval_resetPress = 1500; // time between consq presses to init 
 const int deBounceInt =             50; // mili
 // ####################
 
-char parameters[2][4]; //values from user
+// char parameters[2][4]; //values from user
 
 #define ADD_MQTT_FUNC addiotnalMQTT
 myIOT iot(DEVICE_TOPIC);
+timeOUT timeOut_SW0("SW0",TIMEOUT_SW0);
 
 void setup() {
         startGPIOs();
 
          iot.useSerial = USE_SERIAL;
-         iot.useWDT = USE_WDT;
-         iot.useOTA = USE_OTA;
-         iot.start_services(ADD_MQTT_FUNC); // additinalMQTTfucntion, ssid,pswd,mqttuser,mqtt_pswd,broker
+         iot.useWDT    = USE_WDT;
+         iot.useOTA    = USE_OTA;
+         iot.useResetKeeper = USE_RESETKEEPER;
+         iot.resetFailNTP   = USE_FAILNTP;
+         strcpy(iot.prefixTopic, MQTT_PREFIX);
+         strcpy(iot.addGroupTopic, MQTT_GROUP);
+         iot.start_services(ADD_MQTT_FUNC);
 
          // ~~~~~~~~~~~~~ susing switchIt just to notify MQTT  ~~~~~~~
         for (int i = 0; i < NUM_SWITCHES; i++) {
