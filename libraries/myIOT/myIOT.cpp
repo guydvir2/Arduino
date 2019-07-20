@@ -23,7 +23,8 @@ myJSON json(jfile, true);
 
 
 // ~~~~~~ myIOT CLASS ~~~~~~~~~~~ //
-myIOT::myIOT(char *devTopic, char *key) : _failNTPcounter_inFlash(key){
+myIOT::myIOT(char *devTopic, char *key)
+        : _failNTPcounter_inFlash(key){
         strcpy(_deviceName,devTopic); // for OTA only
         // bootErrors [0]=0;
 
@@ -116,34 +117,33 @@ void myIOT::startNetwork(char *ssid, char *password) {
 }
 void myIOT::networkStatus() {
         if (WiFi.status() == WL_CONNECTED ) { // wifi is ok
-                if (mqttClient.connected() && badMQTTserver == false) { // mqtt is good
+                if (mqttClient.connected()) { // mqtt is good
                         mqttClient.loop();
                         mqttConnected    = 1;
                         noNetwork_Clock  = 0;
                         lastReconnectTry = 0;
-                }
-                else if ( badMQTTserver ==true) { // connected to temp MQTT
-                        if  (millis() - noNetwork_Clock >= time2Reset_noNetwork) {// reset due to long no MQTT
-                                sendReset("null");
+                        if ( alternativeMQTTserver ==true) { // connected to temp MQTT
+                                if  (millis() - noNetwork_Clock >= time2Reset_noNetwork) {// reset due to long no MQTT
+                                        sendReset("null");
+                                }
+                                // Serial.println("1");
                         }
-                        Serial.println("1");
-
                 }
                 else  { // WIFI OK, no MQTT
                         if  (millis() - noNetwork_Clock >= time2Reset_noNetwork) { // reset due to long no MQTT
-                                Serial.println("2a");
+                                // Serial.println("2a");
                                 sendReset("null");
                         }
                         else if (lastReconnectTry - (long)millis() <= 0) { // time interval to try again to connect MQTT
                                 if (subscribeMQTT() == 1) {         //try successfully reconnect mqtt
                                         noNetwork_Clock = 0;
                                         lastReconnectTry = 0;
-                                        Serial.println("2b");
+                                        // Serial.println("2b");
                                 }
                                 else {         // fail connect to MQTT server
                                         if (noNetwork_Clock == 0) {         // first time no MQTT  - start timeout counter
                                                 noNetwork_Clock = millis();
-                                                Serial.println("2c");
+                                                // Serial.println("2c");
                                         }
                                         lastReconnectTry = millis() + time2_tryReconnect;
                                         mqttConnected = 0;
@@ -244,7 +244,7 @@ void myIOT::startMQTT() {
         if (Ping.ping(mqtt_server)) {
                 mqttClient.setServer(mqtt_server, 1883);
                 stat = true;
-                badMQTTserver  =false;
+                alternativeMQTTserver  =false;
                 if (useSerial) {
                         Serial.println("MQTT SERVER1");
                 }
@@ -255,7 +255,7 @@ void myIOT::startMQTT() {
                 if(useSerial) {
                         Serial.println("MQTT SERVER2");
                 }
-                badMQTTserver  =false;
+                alternativeMQTTserver  =false;
                 stat = true;
         }
 
@@ -352,7 +352,7 @@ void myIOT::createTopics() {
                 snprintf(deviceTopic,MaxTopicLength,"%s/%s",addGroupTopic,_deviceName);
         }
         else{
-          snprintf(deviceTopic,MaxTopicLength,"%s/%s",prefixTopic,_deviceName);
+                snprintf(deviceTopic,MaxTopicLength,"%s/%s",prefixTopic,_deviceName);
         }
 
         snprintf(_stateTopic, MaxTopicLength, "%s/State", deviceTopic);
@@ -601,12 +601,8 @@ void myIOT::startWDT() {
 
 
 // ~~~~~~ FVars CLASS ~~~~~~~~~~~ //
-FVars::FVars(char* key){
-        _key=key;
-        int int_value;
-        long long_value;
-        char char_value[20];
-
+FVars::FVars(char* key, char* pref){
+        sprintf(_key,"%s%s",pref,key);
 }
 bool FVars::getValue(int &ret_val){
         json.getValue(_key, ret_val);
@@ -639,8 +635,8 @@ void FVars::format(){
 
 
 // ~~~~~~~~~~~ TimeOut Class ~~~~~~~~~~~~
-timeOUT::timeOUT(char *key, int def_val, char *key2, char *key3)
-        : endTimeOUT_inFlash (_key1), inCodeTimeOUT_inFlash(_key2), updatedTimeOUT_inFlash(_key3)
+timeOUT::timeOUT(char* sw_num, int def_val)
+        : endTimeOUT_inFlash (_key1,sw_num), inCodeTimeOUT_inFlash(_key2,sw_num), updatedTimeOUT_inFlash(_key3,sw_num)
 {
         int tempVal=0;
         inCode_timeout_value = def_val; //[min]

@@ -203,37 +203,6 @@ void quickPwrON(){
                 digitalWrite(RelayPin, !LEDsON);
         }
 }
-// void startTimeOut(){
-//         /*
-//            badReboot refers as a very short power loss / restart.
-//            mostly happens due to power adaptpor momentary failure.
-//            if "State" topic goes to offline - it means that powerloss was more than 10 sec
-//            which equivalent to a fresh restart.
-//            if "State" topic still "Online"- meaning it is a badreboot.
-//          */
-//         int ext_timeout;
-//         if (badReboot == 0) { // PowerOn
-//                 /*
-//                    Not a badReboot:
-//                    Case a: after a fresh restart it starts over timeout default value.
-//                    Case b: if timeout has ended, not retstarts a new timeout, and if timeout
-//                    still not ended, contunue from what is left.
-//                  */
-//                 if (timeOut_SW0.updatedTimeOUT_inFlash.getValue(ext_timeout)) {
-//                         if (ext_timeout!=0) {
-//                                 timeOut_SW0.inCode_timeout_value = ext_timeout;
-//                         }
-//                         timeOut_SW0.restart_to();
-//                 }
-//                 else{
-//                         timeOut_SW0.updatedTimeOUT_inFlash.setValue(0);
-//                 }
-//
-//         }
-//         else {
-//                 timeOut_SW0.begin(false); // badreboot detected - don't restart TO if already ended
-//         }
-// }
 void recoverReset(){
         // Wait for indication if it was false reset(1) or
         if(iot.mqtt_detect_reset != 2) {
@@ -271,9 +240,6 @@ void recoverReset(){
                         timeOut_SW0.begin(false); // badreboot detected - don't restart TO if already ended
                 }
         }
-
-
-
 }
 
 void timeOutLoop(){
@@ -392,7 +358,6 @@ void clock_timeouts(int toff_vect[2],int ton_vect[2]){
                 turnLeds(1,"Clock");
         }
 }
-
 void setup() {
         pinMode(RelayPin, OUTPUT);
         quickPwrON();

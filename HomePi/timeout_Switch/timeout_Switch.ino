@@ -9,30 +9,28 @@
 #include <Arduino.h>
 #include <Time.h>
 
-//####################################################
-#define DEVICE_TOPIC "sonoff_test2"
-#define VER          "SonoffBasic_2.0"
+//##### myIOT Definitions #######
 
-//~~~Services~~~~~~~~~~~
+//~~~~~~~~Services~~~~~~~~~~~
 #define USE_SERIAL       true
 #define USE_WDT          true
 #define USE_OTA          true
-#define USE_MAN_RESET    false
-#define USE_BOUNCE_DEBUG false
-// #define USE_EXT_BUTTONS  false
 #define USE_RESETKEEPER  true
 #define USE_FAILNTP      true
 
-//~~~Select Board~~~~~~~
-#define SONOFF_DUAL      false // <----- Select one
-#define SONOFF_BASIC     false  // <----- Select one
-#define WEMOS            true
-// ~~~
-
 // ~~~~~~~ MQTT Topics ~~~~~~
+#define DEVICE_TOPIC "sonoff_test2"
 #define MQTT_PREFIX  "myHome"
 #define MQTT_GROUP   "Lights"
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+#define ADD_MQTT_FUNC addiotnalMQTT
+myIOT iot(DEVICE_TOPIC);
+
+// ###################################
+
+
+//###### tioeOUT Definitions #########
 
 // ~~~~~~~ TimeOuts ~~~~~~~~~
 #define TIMEOUT_SW0      60*2 // mins for SW0
@@ -41,10 +39,36 @@
 int CLOCK_OFF[2]={8,0};
 int CLOCK_ON[2] ={18,0};
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+// timeOUT timeOut_SW0("SW0",TIMEOUT_SW0);
+// timeOUT timeOut_SW0("SW1",TIMEOUT_SW1);
+
+#if NUM_SWITCHES==1
+timeOUT TO[]={timeOut_SW0};
+#endif
+#if NUM_SWITCHES==2
+timeOUT *TO[]={&timeOut_SW0,&timeOut_SW1};
+TO[2]={timeOut_SW0("SW0",TIMEOUT_SW0),timeOut_SW1("SW1",TIMEOUT_SW1)};
+#endif
+
+// ###################################
+
+
+
+#define VER          "SonoffBasic_2.0"
+#define USE_MAN_RESET    false
+#define USE_BOUNCE_DEBUG false
+#define USE_EXT_BUTTONS  false
+
+
+//~~~Select Board~~~~~~~
+#define SONOFF_DUAL      false // <----- Select one
+#define SONOFF_BASIC     false  // <----- Select one
+#define WEMOS            true
+// ~~~
 //####################################################
 
-#define ADD_MQTT_FUNC addiotnalMQTT
-myIOT iot(DEVICE_TOPIC);
+
 
 #if (SONOFF_DUAL)
 
@@ -63,8 +87,7 @@ myIOT iot(DEVICE_TOPIC);
 #define BUTTON           10
 #define NUM_SWITCHES     2
 
-timeOUT timeOut_SW0("SW0",TIMEOUT_SW0);
-timeOUT timeOut_SW0("SW1",TIMEOUT_SW1);
+
 
 #endif
 
@@ -110,13 +133,6 @@ timeOUT timeOut_SW1("SW1",TIMEOUT_SW1);
 
 #endif
 
-#if NUM_SWITCHES==1
-timeOUT TO[]={timeOut_SW0};
-#endif
-#if NUM_SWITCHES==2
-timeOUT TO[]={timeOut_SW0,timeOut_SW1};
-#endif
-
 bool badReboot        = false;
 bool checkbadReboot   = true;
 bool boot_overide     = true;
@@ -139,11 +155,10 @@ int inputs_lastState[NUM_SWITCHES];
 
 void setup() {
         startGPIOs();
-        quickPwrON(timeOut_SW0);
-        #if NUM_SWITCHES==2
-        quickPwrON(timeOut_SW1);
-        #endif
 
+        // for(int i=0; i<NUM_SWITCHES; i++) {
+        //         quickPwrON(*TO[i]);
+        // }
 
         iot.useSerial = USE_SERIAL;
         iot.useWDT    = USE_WDT;
@@ -171,7 +186,6 @@ void startGPIOs() {
 
 }
 
-
 // ~~~~~~~~~ GPIO switching ~~~~~~~~~~~~~
 void allOff() {
         for (int i = 0; i < NUM_SWITCHES; i++) {
@@ -193,10 +207,10 @@ void switchIt(char *type, int sw_num, char *dir) {
                 }
 
                 sprintf(mqttmsg, "[%s] Switch#[%d] [%s]", type, sw_num + 1, dir);
-                if (strcmp(type, "TimeOut") == 0) {
-                        // sprintf(tempstr, " [%d min.]", relay_timeout[sw_num]);
-                        strcat(mqttmsg, tempstr);
-                }
+                // if (strcmp(type, "TimeOut") == 0) {
+                //         // sprintf(tempstr, " [%d min.]", relay_timeout[sw_num]);
+                //         strcat(mqttmsg, tempstr);
+                // }
 
                 sprintf(states,"");
                 for (int i = 0; i < NUM_SWITCHES; i++) {
@@ -237,87 +251,84 @@ void switchIt(char *type, int sw_num, char *dir) {
 // }
 void addiotnalMQTT(char incoming_msg[50]) {
 
-  char msg[150];
-  char msg2[20];
+        char msg[150];
+        char msg2[20];
 
-  if      (strcmp(incoming_msg, "status") == 0) {
-    for(int i=0; i<NUM_SWITCHES;i++){
-          if(TO[i].remain()>0) {
-                  TO.convert_epoch2clock(now()+TO.remain(),now(), msg, msg2);
-                  sprintf(msg2,", TimeOut Switch [%d] [%s]",i, msg);
-          }
-          else{
-                  sprintf(msg2,"");
-          }
-          sprintf(msg, "Status: Switch [%d] [%s] %s",i, digitalRead(relays[i]) ? "ON" : "OFF", msg2);
-          iot.pub_msg(msg);
+        if      (strcmp(incoming_msg, "status") == 0) {
+                for(int i=0; i<NUM_SWITCHES; i++) {
+                        if(TO[i]->remain()>0) {
+                                TO[i]->convert_epoch2clock(now()+TO[i]->remain(),now(), msg, msg2);
+                                sprintf(msg2,", TimeOut Switch [%d] [%s]",i, msg);
+                        }
+                        else{
+                                sprintf(msg2,"");
+                        }
+                        sprintf(msg, "Status: Switch [%d] [%s] %s",i, digitalRead(relays[i]) ? "ON" : "OFF", msg2);
+                        iot.pub_msg(msg);
+                }
         }
-  }
-  else if (strcmp(incoming_msg, "ver") == 0 ) {
-          sprintf(msg, "ver: [%s], lib: [%s], WDT: [%d], OTA: [%d], SERIAL: [%d],  ResetKeeper[%d], FailNTP[%d]", VER, iot.ver, USE_WDT, USE_OTA,USE_SERIAL, USE_RESETKEEPER, USE_FAILNTP);
-          iot.pub_msg(msg);
-  }
-  else if (strcmp(incoming_msg, "help") == 0) {
-          sprintf(msg, "Help: Commands #1 - [on, off, flash, format]");
-          iot.pub_msg(msg);
-          sprintf(msg, "Help: Commands #2 - [remain, restart_to, timeout(x), end_to, updateTO(x), restore_to]");
-          iot.pub_msg(msg);
-          sprintf(msg, "Help: Commands #3 - [status, boot, reset, ip, ota, ver, help]");
-          iot.pub_msg(msg);
-  }
-  else if (strcmp(incoming_msg, "flash") == 0 ) {
-          TO[0].inCodeTimeOUT_inFlash.printFile();
-  }
-  else if (strcmp(incoming_msg, "format") == 0 ) {
-          TO[0].inCodeTimeOUT_inFlash.format();
-  }
+        else if (strcmp(incoming_msg, "ver") == 0 ) {
+                sprintf(msg, "ver: [%s], lib: [%s], WDT: [%d], OTA: [%d], SERIAL: [%d],  ResetKeeper[%d], FailNTP[%d]", VER, iot.ver, USE_WDT, USE_OTA,USE_SERIAL, USE_RESETKEEPER, USE_FAILNTP);
+                iot.pub_msg(msg);
+        }
+        else if (strcmp(incoming_msg, "help") == 0) {
+                sprintf(msg, "Help: Commands #1 - [on, off, flash, format]");
+                iot.pub_msg(msg);
+                sprintf(msg, "Help: Commands #2 - [remain, restart_to, timeout(x), end_to, updateTO(x), restore_to]");
+                iot.pub_msg(msg);
+                sprintf(msg, "Help: Commands #3 - [status, boot, reset, ip, ota, ver, help]");
+                iot.pub_msg(msg);
+        }
+        else if (strcmp(incoming_msg, "flash") == 0 ) {
+                TO[0].inCodeTimeOUT_inFlash.printFile();
+        }
+        else if (strcmp(incoming_msg, "format") == 0 ) {
+                TO[0].inCodeTimeOUT_inFlash.format();
+        }
 
-  else{
-          iot.inline_read(incoming_msg);
-  //
-  //         // if(strcmp(iot.inline_param[0],"timeout") == 0 && atoi(iot.inline_param[1])>0) {
-  //         //         timeOut_SW0.setNewTimeout(atoi(iot.inline_param[1]));
-  //         //         timeOut_SW0.convert_epoch2clock(now()+atoi(iot.inline_param[1]),now(), msg2, msg);
-  //         //         sprintf(msg, "TimeOut: new TimeOut Added %s", msg2);
-  //         //         iot.pub_msg(msg);
-  //         // }
-  //         // else if(strcmp(iot.inline_param[0],"updateTO") == 0 && atoi(iot.inline_param[1])>0) {
-  //         //         timeOut_SW0.updateTOinflash(atoi(iot.inline_param[1]));
-  //         //         sprintf(msg, "TimeOut: Updated in flash to [%d min.]", atoi(iot.inline_param[1]));
-  //         //         iot.pub_msg(msg);
-  //         //         delay(1000);
-  //         //         iot.sendReset("TimeOut update");
-  //         // }
-  // else if (strcmp(incoming_msg, "on") == 0 ) {
-  //         turnLeds(1, "Switch");
-  // }
-  // else if (strcmp(incoming_msg, "off") == 0 ) {
-  //         turnLeds(0,"Switch");
-  // }
+        else{
+                iot.inline_read(incoming_msg);
 
-  // else if (strcmp(incoming_msg, "remain") == 0) {
-  //         timeOut_SW0.convert_epoch2clock(now()+timeOut_SW0.remain(),now(), msg2, msg);
-  //         sprintf(msg, "TimeOut: Remain [%s]", msg2);
-  //         iot.pub_msg(msg);
-  // }
-  // else if (strcmp(incoming_msg, "restart_to") == 0) {
-  //         timeOut_SW0.restart_to();
-  //         sprintf(msg, "TimeOut: [Restart]");
-  //         iot.pub_msg(msg);
-  // }
-  // else if (strcmp(incoming_msg, "end_to") == 0) {
-  //         timeOut_SW0.endNow();
-  //         sprintf(msg, "TimeOut: [Abort]");
-  //         iot.pub_msg(msg);
-  // }
-  // else if (strcmp(incoming_msg, "restore_to") == 0) {
-  //         timeOut_SW0.restore_to();
-  //         timeOut_SW0.restart_to();
-  //         sprintf(msg, "TimeOut: Restore hardCoded Value [%d mins.]", TIMEOUT_SW0);
-  //         iot.pub_msg(msg);
-  //         iot.sendReset("Restore");
-  // }
-  }
+                if (strcmp(iot.inline_param[1],"on") == 0 || strcmp(iot.inline_param[1], "off") == 0) {
+                        switchIt("MQTT", atoi(iot.inline_param[0]), iot.inline_param[1]);
+                }
+                else if(strcmp(iot.inline_param[1],"timeout") == 0) {
+                        TO[atoi(iot.inline_param[0])].setNewTimeout(atoi(iot.inline_param[2]));
+                        // TO[atoi(iot.inline_param[0])].convert_epoch2clock(now()+atoi(iot.inline_param[2]),now(), msg2, msg);
+                        sprintf(msg, "TimeOut: Switch[%d] new TimeOut Added %s", atoi(iot.inline_param[0]),msg2);
+                        iot.pub_msg(msg);
+                }
+                //         else if(strcmp(iot.inline_param[1],"updateTO") == 0) {
+                //                 TO[atoi(iot.inline_param[0])].updateTOinflash(atoi(iot.inline_param[2]));
+                //                 sprintf(msg, "TimeOut: Switch[%d] Updated in flash to [%d min.]", atoi(iot.inline_param[0]), atoi(iot.inline_param[2]));
+                //                 iot.pub_msg(msg);
+                //                 delay(1000);
+                //                 iot.sendReset("TimeOut update");
+                //         }
+
+                // else if (strcmp(incoming_msg, "remain") == 0) {
+                //         timeOut_SW0.convert_epoch2clock(now()+timeOut_SW0.remain(),now(), msg2, msg);
+                //         sprintf(msg, "TimeOut: Remain [%s]", msg2);
+                //         iot.pub_msg(msg);
+                // }
+                // else if (strcmp(incoming_msg, "restart_to") == 0) {
+                //         timeOut_SW0.restart_to();
+                //         sprintf(msg, "TimeOut: [Restart]");
+                //         iot.pub_msg(msg);
+                // }
+                // else if (strcmp(incoming_msg, "end_to") == 0) {
+                //         timeOut_SW0.endNow();
+                //         sprintf(msg, "TimeOut: [Abort]");
+                //         iot.pub_msg(msg);
+                // }
+                // else if (strcmp(incoming_msg, "restore_to") == 0) {
+                //         timeOut_SW0.restore_to();
+                //         timeOut_SW0.restart_to();
+                //         sprintf(msg, "TimeOut: Restore hardCoded Value [%d mins.]", TIMEOUT_SW0);
+                //         iot.pub_msg(msg);
+                //         iot.sendReset("Restore");
+                // }
+        }
 }
 void quickPwrON(timeOUT &TO){
         /*
@@ -335,7 +346,7 @@ void quickPwrON(timeOUT &TO){
                 digitalWrite(relays[0], LOW);
         }
 }
-void recoverReset(timeOUT &TO){
+void recoverReset(){
         // Wait for indication if it was false reset(1) or
         if(iot.mqtt_detect_reset != 2) {
                 badReboot = iot.mqtt_detect_reset;
@@ -350,48 +361,52 @@ void recoverReset(timeOUT &TO){
                  */
 
                 int ext_timeout;
-                if (badReboot == 0) { // PowerOn
-                        /*
-                           Not a badReboot:
-                           Case a: after a fresh restart it starts over timeout default value.
-                           Case b: if timeout has ended, not retstarts a new timeout, and if timeout
-                           still not ended, contunue from what is left.
-                         */
-                        if (TO.updatedTimeOUT_inFlash.getValue(ext_timeout)) {
-                                if (ext_timeout!=0) {
-                                        TO.inCode_timeout_value = ext_timeout;
-                                }
-                                TO.restart_to();
-                        }
-                        else{
-                                TO.updatedTimeOUT_inFlash.setValue(0);
-                        }
+                for (int i=0; i<NUM_SWITCHES; i++) {
+                        if (badReboot == 0) { // PowerOn
+                                /*
+                                   Not a badReboot:
+                                   Case a: after a fresh restart it starts over timeout default value.
+                                   Case b: if timeout has ended, not retstarts a new timeout, and if timeout
+                                   still not ended, contunue from what is left.
+                                 */
 
-                }
-                else {
-                        TO.begin(false); // badreboot detected - don't restart TO if already ended
+                                if (TO[i].updatedTimeOUT_inFlash.getValue(ext_timeout)) {
+                                        if (ext_timeout!=0) {
+                                                TO[i].inCode_timeout_value = ext_timeout;
+                                        }
+                                        TO[i].restart_to();
+                                }
+                                else{
+                                        TO[i].updatedTimeOUT_inFlash.setValue(0);
+                                }
+                        }
+                        else {
+                                TO[i].begin(false); // badreboot detected - don't restart TO if already ended
+                        }
                 }
         }
 }
-void timeOutLoop(timeOUT &TO, int i){
+void timeOutLoop(){
         char msg_t[]="                ";
         char msg[10];
 
         char *states[2]={"off","on"};
 
         if(iot.mqtt_detect_reset != 2) {
-                swState = TO.looper();
-                if (swState!=last_swState) {
-                        if (swState==1) { // swithc ON
-                                TO.convert_epoch2clock(now()+timeOut_SW0.remain(),now(), msg_t, msg);
-                                sprintf(msg,"TimeOut [%s]",msg_t);
-                                switchIt(msg, i, states[i]);
+                for(int i=0; i<NUM_SWITCHES; i++) {
+                        swState = TO[i].looper();
+                        if (swState!=last_swState) {
+                                if (swState==1) { // swithc ON
+                                        // TO1.convert_epoch2clock(now()+TO1.remain(),now(), msg_t, msg);
+                                        sprintf(msg,"TimeOut [%s]",msg_t);
+                                        switchIt(msg, i, states[i]);
+                                }
+                                else{ // switch OFF
+                                        switchIt("TimeOut Ended",i,states[i]);
+                                }
                         }
-                        else{ // switch OFF
-                                switchIt("TimeOut Ended",i,states[i]);
-                        }
+                        last_swState = swState;
                 }
-                last_swState = swState;
         }
 }
 
@@ -399,16 +414,10 @@ void loop() {
         iot.looper(); // check wifi, mqtt, wdt
 
         if (checkbadReboot == true) {
-                recoverReset(timeOut_SW0);
-                #if NUM_SWITCHES==2
-                recoverReset(timeOut_SW1);
-                #endif
+                recoverReset();
         }
 
-        timeOutLoop(timeOut_SW0,0);
-        #if NUM_SWITCHES==2
-        timeOutLoop(timeOut_SW1,1);
-        #endif
+        timeOutLoop();
 
         if (iot.mqttConnected) {
                 digitalWrite(wifiOn_statusLED, !LedOn);

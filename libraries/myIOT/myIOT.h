@@ -9,7 +9,7 @@ typedef void (*cb_func)(char msg1[50]); // this define a generic functing with a
 class FVars
 {
 public:
-FVars(char* key="def_key");
+FVars(char* key="def_key", char* pref="SW_0");
 bool getValue(int &ret_val);
 bool getValue(long &ret_val);
 bool getValue(char value[20]);
@@ -23,7 +23,7 @@ void printFile();
 void format();
 
 private:
-const char* _key;
+char _key[20];
 
 };
 
@@ -57,14 +57,14 @@ bool resetFailNTP   = false;
 // ~~~~~~~~~~~~~~~~~~~~~~~~~
 char inline_param[3][20]; //values from user
 
-bool mqttConnected     = 0;
-bool badMQTTserver     = false;
-byte mqtt_detect_reset = 2;
+bool mqttConnected         = 0;
+bool alternativeMQTTserver = false;
+byte mqtt_detect_reset     = 2;
 char prefixTopic  [MaxTopicLength];
 char deviceTopic  [MaxTopicLength];
 char addGroupTopic[MaxTopicLength];
 
-const char *ver     = "iot_3.4";
+const char *ver     = "iot_3.5";
 char timeStamp[20];
 long updated_bootTime  = 0;
 int resetIntervals     = 10;
@@ -157,15 +157,13 @@ long _calc_endTO  = 0; // corrected clock ( case of restart)
 long _savedTO     = 0; // clock to stop TO
 bool _inTO        = false;
 bool _onState     = false;
-byte loopVerify   = 0;
 
 public:
-// long savedTO             = 0;   // clock to stop TO
 int inCode_timeout_value = 0;   // default value for TO ( hard coded )
 
 
 public:
-timeOUT(char *key, int def_val, char *key2=_key2, char *key3=_key3);
+timeOUT(char* key, int def_val);
 bool looper();
 int remain();
 bool begin(bool newReboot = true);
