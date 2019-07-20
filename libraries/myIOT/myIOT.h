@@ -9,7 +9,7 @@ typedef void (*cb_func)(char msg1[50]); // this define a generic functing with a
 class FVars
 {
 public:
-FVars(char* key="def_key", char* pref="SW_0");
+FVars(char* key="def_key", char* pref="");
 bool getValue(int &ret_val);
 bool getValue(long &ret_val);
 bool getValue(char value[20]);
@@ -92,7 +92,7 @@ long lastReconnectTry           = 0;
 
 //MQTT broker parameters
 char* mqtt_server;
-char* mqtt_server2 = "iot.eclipse.org";//"test.mosquitto.org"; //
+char* mqtt_server2 = "iot.eclipse.org";
 char* user  = "";
 char* passw = "";
 // ######################################

@@ -18,6 +18,7 @@
 #include "ir_Argo.h"
 #include "ir_Coolix.h"
 #include "ir_Daikin.h"
+#include "ir_Electra.h"
 #include "ir_Fujitsu.h"
 #include "ir_Haier.h"
 #include "ir_Hitachi.h"
@@ -25,6 +26,7 @@
 #include "ir_Midea.h"
 #include "ir_Mitsubishi.h"
 #include "ir_MitsubishiHeavy.h"
+#include "ir_Neoclima.h"
 #include "ir_Panasonic.h"
 #include "ir_Samsung.h"
 #include "ir_Sharp.h"
@@ -49,11 +51,17 @@ bool IRac::isProtocolSupported(const decode_type_t protocol) {
 #if SEND_DAIKIN
     case decode_type_t::DAIKIN:
 #endif
+#if SEND_DAIKIN160
+    case decode_type_t::DAIKIN160:
+#endif
 #if SEND_DAIKIN2
     case decode_type_t::DAIKIN2:
 #endif
 #if SEND_DAIKIN216
     case decode_type_t::DAIKIN216:
+#endif
+#if SEND_ELECTRA_AC
+    case decode_type_t::ELECTRA_AC:
 #endif
 #if SEND_FUJITSU_AC
     case decode_type_t::FUJITSU_AC:
@@ -85,6 +93,9 @@ bool IRac::isProtocolSupported(const decode_type_t protocol) {
 #if SEND_MITSUBISHIHEAVY
     case decode_type_t::MITSUBISHI_HEAVY_88:
     case decode_type_t::MITSUBISHI_HEAVY_152:
+#endif
+#if SEND_NEOCLIMA
+    case decode_type_t::NEOCLIMA:
 #endif
 #if SEND_PANASONIC_AC
     case decode_type_t::PANASONIC_AC:
@@ -213,6 +224,20 @@ void IRac::daikin(IRDaikinESP *ac,
 }
 #endif  // SEND_DAIKIN
 
+#if SEND_DAIKIN160
+void IRac::daikin160(IRDaikin160 *ac,
+                     const bool on, const stdAc::opmode_t mode,
+                     const float degrees, const stdAc::fanspeed_t fan,
+                     const stdAc::swingv_t swingv) {
+  ac->setPower(on);
+  ac->setMode(ac->convertMode(mode));
+  ac->setTemp(degrees);
+  ac->setFan(ac->convertFan(fan));
+  ac->setSwingVertical(ac->convertSwingV(swingv));
+  ac->send();
+}
+#endif  // SEND_DAIKIN160
+
 #if SEND_DAIKIN2
 void IRac::daikin2(IRDaikin2 *ac,
                    const bool on, const stdAc::opmode_t mode,
@@ -257,6 +282,31 @@ void IRac::daikin216(IRDaikin216 *ac,
   ac->send();
 }
 #endif  // SEND_DAIKIN216
+
+#if SEND_ELECTRA_AC
+void IRac::electra(IRElectraAc *ac,
+                   const bool on, const stdAc::opmode_t mode,
+                   const float degrees, const stdAc::fanspeed_t fan,
+                   const stdAc::swingv_t swingv,
+                   const stdAc::swingh_t swingh) {
+  ac->setPower(on);
+  ac->setMode(ac->convertMode(mode));
+  ac->setTemp(degrees);
+  ac->setFan(ac->convertFan(fan));
+  ac->setSwingV(swingv != stdAc::swingv_t::kOff);
+  ac->setSwingH(swingh != stdAc::swingh_t::kOff);
+  // No Quiet setting available.
+  // No Turbo setting available.
+  // No Light setting available.
+  // No Econo setting available.
+  // No Filter setting available.
+  // No Clean setting available.
+  // No Beep setting available.
+  // No Sleep setting available.
+  // No Clock setting available.
+  ac->send();
+}
+#endif  // SEND_ELECTRA_AC
 
 #if SEND_FUJITSU_AC
 void IRac::fujitsu(IRFujitsuAC *ac, const fujitsu_ac_remote_model_t model,
@@ -561,6 +611,32 @@ void IRac::mitsubishiHeavy152(IRMitsubishiHeavy152Ac *ac,
 }
 #endif  // SEND_MITSUBISHIHEAVY
 
+#if SEND_NEOCLIMA
+void IRac::neoclima(IRNeoclimaAc *ac,
+                    const bool on, const stdAc::opmode_t mode,
+                    const float degrees, const stdAc::fanspeed_t fan,
+                    const stdAc::swingv_t swingv, const stdAc::swingh_t swingh,
+                    const bool turbo, const bool light, const bool filter,
+                    const int16_t sleep) {
+  ac->setMode(ac->convertMode(mode));
+  ac->setTemp(degrees);
+  ac->setFan(ac->convertFan(fan));
+  ac->setSwingV(swingv != stdAc::swingv_t::kOff);
+  ac->setSwingH(swingh != stdAc::swingh_t::kOff);
+  // No Quiet setting available.
+  ac->setTurbo(turbo);
+  ac->setLight(light);
+  // No Econo setting available.
+  ac->setIon(filter);
+  // No Clean setting available.
+  // No Beep setting available.
+  ac->setSleep(sleep >= 0);  // Sleep is either on/off, so convert to boolean.
+  // No Clock setting available.
+  ac->setPower(on);
+  ac->send();
+}
+#endif  // SEND_NEOCLIMA
+
 #if SEND_PANASONIC_AC
 void IRac::panasonic(IRPanasonicAc *ac, const panasonic_ac_remote_model_t model,
                      const bool on, const stdAc::opmode_t mode,
@@ -789,6 +865,48 @@ void IRac::whirlpool(IRWhirlpoolAc *ac, const whirlpool_ac_remote_model_t model,
 }
 #endif  // SEND_WHIRLPOOL_AC
 
+// Create a new state base on desired & previous states but handle
+// any state changes for options that need to be toggled.
+// Args:
+//   desired: The state_t structure describing the desired a/c state.
+//   prev:    Ptr to the previous state_t structure.
+//
+// Returns:
+//   A stdAc::state_t with the needed settings.
+stdAc::state_t IRac::handleToggles(const stdAc::state_t desired,
+                                   const stdAc::state_t *prev) {
+  stdAc::state_t result = desired;
+  // If we've been given a previous state AND the it's the same A/C basically.
+  if (prev != NULL && desired.protocol == prev->protocol &&
+      desired.model == prev->model) {
+    // Check if we have to handle toggle settings for specific A/C protocols.
+    switch (desired.protocol) {
+      case decode_type_t::COOLIX:
+        if ((desired.swingv == stdAc::swingv_t::kOff) ^
+            (prev->swingv == stdAc::swingv_t::kOff))  // It changed, so toggle.
+          result.swingv = stdAc::swingv_t::kAuto;
+        else
+          result.swingv = stdAc::swingv_t::kOff;  // No change, so no toggle.
+        result.turbo = desired.turbo ^ prev->turbo;
+        result.light = desired.light ^ prev->light;
+        result.clean = desired.clean ^ prev->clean;
+        result.sleep = (desired.sleep ^ prev->sleep) ? 0 : -1;
+        break;
+      case decode_type_t::WHIRLPOOL_AC:
+        result.power = desired.power ^ prev->power;
+        break;
+      case decode_type_t::PANASONIC_AC:
+        // CKP models use a power mode toggle.
+        if (desired.model == panasonic_ac_remote_model_t::kPanasonicCkp)
+          result.power = desired.power ^ prev->power;
+        break;
+      default:
+        {};
+    }
+  }
+  return result;
+}
+
 // Send A/C message for a given device using common A/C settings.
 // Args:
 //   vendor:  The type of A/C protocol to use.
@@ -857,6 +975,14 @@ bool IRac::sendAc(const decode_type_t vendor, const int16_t model,
       break;
     }
 #endif  // SEND_DAIKIN
+#if SEND_DAIKIN160
+    case DAIKIN160:
+    {
+      IRDaikin160 ac(_pin);
+      daikin160(&ac, on, mode, degC, fan, swingv);
+      break;
+    }
+#endif  // SEND_DAIKIN160
 #if SEND_DAIKIN2
     case DAIKIN2:
     {
@@ -874,6 +1000,15 @@ bool IRac::sendAc(const decode_type_t vendor, const int16_t model,
       break;
     }
 #endif  // SEND_DAIKIN216
+#if SEND_ELECTRA_AC
+    case ELECTRA_AC:
+    {
+      IRElectraAc ac(_pin);
+      ac.begin();
+      electra(&ac, on, mode, degC, fan, swingv, swingh);
+      break;
+    }
+#endif  // SEND_ELECTRA_AC
 #if SEND_FUJITSU_AC
     case FUJITSU_AC:
     {
@@ -975,6 +1110,16 @@ bool IRac::sendAc(const decode_type_t vendor, const int16_t model,
       break;
     }
 #endif  // SEND_MITSUBISHIHEAVY
+#if SEND_NEOCLIMA
+    case NEOCLIMA:
+    {
+      IRNeoclimaAc ac(_pin);
+      ac.begin();
+      neoclima(&ac, on, mode, degC, fan, swingv, swingh, turbo, light, filter,
+               sleep);
+      break;
+    }
+#endif  // SEND_NEOCLIMA
 #if SEND_PANASONIC_AC
     case PANASONIC_AC:
     {
@@ -1065,21 +1210,49 @@ bool IRac::sendAc(const decode_type_t vendor, const int16_t model,
   return true;  // Success.
 }
 
+// Send A/C message for a given device using state_t structures.
+// Args:
+//   desired: The state_t structure describing the desired new a/c state.
+//   prev:    Ptr to the previous state_t structure.
+//
+// Returns:
+//   boolean: True, if accepted/converted/attempted. False, if unsupported.
+bool IRac::sendAc(const stdAc::state_t desired, const stdAc::state_t *prev) {
+  stdAc::state_t final = this->handleToggles(desired, prev);
+  return this->sendAc(final.protocol, final.model, final.power, final.mode,
+                      final.degrees, final.celsius, final.fanspeed,
+                      final.swingv, final.swingh, final.quiet, final.turbo,
+                      final.econo, final.light, final.filter, final.clean,
+                      final.beep, final.sleep, final.clock);
+}
+
+// Compare two AirCon states.
+// Returns: True if they differ, False if they don't.
+// Note: Excludes clock.
+bool IRac::cmpStates(const stdAc::state_t a, const stdAc::state_t b) {
+  return a.protocol != b.protocol || a.model != b.model || a.power != b.power ||
+      a.mode != b.mode || a.degrees != b.degrees || a.celsius != b.celsius ||
+      a.fanspeed != b.fanspeed || a.swingv != b.swingv ||
+      a.swingh != b.swingh || a.quiet != b.quiet || a.turbo != b.turbo ||
+      a.econo != b.econo || a.light != b.light || a.filter != b.filter ||
+      a.clean != b.clean || a.beep != b.beep || a.sleep != b.sleep;
+}
+
 stdAc::opmode_t IRac::strToOpmode(const char *str,
                                 const stdAc::opmode_t def) {
-  if (!strcmp(str, "AUTO") || !strcmp(str, "AUTOMATIC"))
+  if (!strcasecmp(str, "AUTO") || !strcasecmp(str, "AUTOMATIC"))
     return stdAc::opmode_t::kAuto;
-  else if (!strcmp(str, "OFF") || !strcmp(str, "STOP"))
+  else if (!strcasecmp(str, "OFF") || !strcasecmp(str, "STOP"))
     return stdAc::opmode_t::kOff;
-  else if (!strcmp(str, "COOL") || !strcmp(str, "COOLING"))
+  else if (!strcasecmp(str, "COOL") || !strcasecmp(str, "COOLING"))
     return stdAc::opmode_t::kCool;
-  else if (!strcmp(str, "HEAT") || !strcmp(str, "HEATING"))
+  else if (!strcasecmp(str, "HEAT") || !strcasecmp(str, "HEATING"))
     return stdAc::opmode_t::kHeat;
-  else if (!strcmp(str, "DRY") || !strcmp(str, "DRYING") ||
-           !strcmp(str, "DEHUMIDIFY"))
+  else if (!strcasecmp(str, "DRY") || !strcasecmp(str, "DRYING") ||
+           !strcasecmp(str, "DEHUMIDIFY"))
     return stdAc::opmode_t::kDry;
-  else if (!strcmp(str, "FAN") || !strcmp(str, "FANONLY") ||
-           !strcmp(str, "FAN_ONLY"))
+  else if (!strcasecmp(str, "FAN") || !strcasecmp(str, "FANONLY") ||
+           !strcasecmp(str, "FAN_ONLY"))
     return stdAc::opmode_t::kFan;
   else
     return def;
@@ -1087,20 +1260,20 @@ stdAc::opmode_t IRac::strToOpmode(const char *str,
 
 stdAc::fanspeed_t IRac::strToFanspeed(const char *str,
                                       const stdAc::fanspeed_t def) {
-  if (!strcmp(str, "AUTO") || !strcmp(str, "AUTOMATIC"))
+  if (!strcasecmp(str, "AUTO") || !strcasecmp(str, "AUTOMATIC"))
     return stdAc::fanspeed_t::kAuto;
-  else if (!strcmp(str, "MIN") || !strcmp(str, "MINIMUM") ||
-           !strcmp(str, "LOWEST"))
+  else if (!strcasecmp(str, "MIN") || !strcasecmp(str, "MINIMUM") ||
+           !strcasecmp(str, "LOWEST"))
     return stdAc::fanspeed_t::kMin;
-  else if (!strcmp(str, "LOW"))
+  else if (!strcasecmp(str, "LOW"))
     return stdAc::fanspeed_t::kLow;
-  else if (!strcmp(str, "MED") || !strcmp(str, "MEDIUM") ||
-           !strcmp(str, "MID"))
+  else if (!strcasecmp(str, "MED") || !strcasecmp(str, "MEDIUM") ||
+           !strcasecmp(str, "MID"))
     return stdAc::fanspeed_t::kMedium;
-  else if (!strcmp(str, "HIGH") || !strcmp(str, "HI"))
+  else if (!strcasecmp(str, "HIGH") || !strcasecmp(str, "HI"))
     return stdAc::fanspeed_t::kHigh;
-  else if (!strcmp(str, "MAX") || !strcmp(str, "MAXIMUM") ||
-           !strcmp(str, "HIGHEST"))
+  else if (!strcasecmp(str, "MAX") || !strcasecmp(str, "MAXIMUM") ||
+           !strcasecmp(str, "HIGHEST"))
     return stdAc::fanspeed_t::kMax;
   else
     return def;
@@ -1108,26 +1281,26 @@ stdAc::fanspeed_t IRac::strToFanspeed(const char *str,
 
 stdAc::swingv_t IRac::strToSwingV(const char *str,
                                   const stdAc::swingv_t def) {
-  if (!strcmp(str, "AUTO") || !strcmp(str, "AUTOMATIC") ||
-      !strcmp(str, "ON") || !strcmp(str, "SWING"))
+  if (!strcasecmp(str, "AUTO") || !strcasecmp(str, "AUTOMATIC") ||
+      !strcasecmp(str, "ON") || !strcasecmp(str, "SWING"))
     return stdAc::swingv_t::kAuto;
-  else if (!strcmp(str, "OFF") || !strcmp(str, "STOP"))
+  else if (!strcasecmp(str, "OFF") || !strcasecmp(str, "STOP"))
     return stdAc::swingv_t::kOff;
-  else if (!strcmp(str, "MIN") || !strcmp(str, "MINIMUM") ||
-           !strcmp(str, "LOWEST") || !strcmp(str, "BOTTOM") ||
-           !strcmp(str, "DOWN"))
+  else if (!strcasecmp(str, "MIN") || !strcasecmp(str, "MINIMUM") ||
+           !strcasecmp(str, "LOWEST") || !strcasecmp(str, "BOTTOM") ||
+           !strcasecmp(str, "DOWN"))
     return stdAc::swingv_t::kLowest;
-  else if (!strcmp(str, "LOW"))
+  else if (!strcasecmp(str, "LOW"))
     return stdAc::swingv_t::kLow;
-  else if (!strcmp(str, "MID") || !strcmp(str, "MIDDLE") ||
-           !strcmp(str, "MED") || !strcmp(str, "MEDIUM") ||
-           !strcmp(str, "CENTRE") || !strcmp(str, "CENTER"))
+  else if (!strcasecmp(str, "MID") || !strcasecmp(str, "MIDDLE") ||
+           !strcasecmp(str, "MED") || !strcasecmp(str, "MEDIUM") ||
+           !strcasecmp(str, "CENTRE") || !strcasecmp(str, "CENTER"))
     return stdAc::swingv_t::kMiddle;
-  else if (!strcmp(str, "HIGH") || !strcmp(str, "HI"))
+  else if (!strcasecmp(str, "HIGH") || !strcasecmp(str, "HI"))
     return stdAc::swingv_t::kHigh;
-  else if (!strcmp(str, "HIGHEST") || !strcmp(str, "MAX") ||
-           !strcmp(str, "MAXIMUM") || !strcmp(str, "TOP") ||
-           !strcmp(str, "UP"))
+  else if (!strcasecmp(str, "HIGHEST") || !strcasecmp(str, "MAX") ||
+           !strcasecmp(str, "MAXIMUM") || !strcasecmp(str, "TOP") ||
+           !strcasecmp(str, "UP"))
     return stdAc::swingv_t::kHighest;
   else
     return def;
@@ -1135,56 +1308,56 @@ stdAc::swingv_t IRac::strToSwingV(const char *str,
 
 stdAc::swingh_t IRac::strToSwingH(const char *str,
                                   const stdAc::swingh_t def) {
-  if (!strcmp(str, "AUTO") || !strcmp(str, "AUTOMATIC") ||
-      !strcmp(str, "ON") || !strcmp(str, "SWING"))
+  if (!strcasecmp(str, "AUTO") || !strcasecmp(str, "AUTOMATIC") ||
+      !strcasecmp(str, "ON") || !strcasecmp(str, "SWING"))
     return stdAc::swingh_t::kAuto;
-  else if (!strcmp(str, "OFF") || !strcmp(str, "STOP"))
+  else if (!strcasecmp(str, "OFF") || !strcasecmp(str, "STOP"))
     return stdAc::swingh_t::kOff;
-  else if (!strcmp(str, "LEFTMAX") || !strcmp(str, "LEFT MAX") ||
-           !strcmp(str, "MAXLEFT") || !strcmp(str, "MAX LEFT") ||
-           !strcmp(str, "FARLEFT") || !strcmp(str, "FAR LEFT"))
+  else if (!strcasecmp(str, "LEFTMAX") || !strcasecmp(str, "LEFT MAX") ||
+           !strcasecmp(str, "MAXLEFT") || !strcasecmp(str, "MAX LEFT") ||
+           !strcasecmp(str, "FARLEFT") || !strcasecmp(str, "FAR LEFT"))
     return stdAc::swingh_t::kLeftMax;
-  else if (!strcmp(str, "LEFT"))
+  else if (!strcasecmp(str, "LEFT"))
     return stdAc::swingh_t::kLeft;
-  else if (!strcmp(str, "MID") || !strcmp(str, "MIDDLE") ||
-           !strcmp(str, "MED") || !strcmp(str, "MEDIUM") ||
-           !strcmp(str, "CENTRE") || !strcmp(str, "CENTER"))
+  else if (!strcasecmp(str, "MID") || !strcasecmp(str, "MIDDLE") ||
+           !strcasecmp(str, "MED") || !strcasecmp(str, "MEDIUM") ||
+           !strcasecmp(str, "CENTRE") || !strcasecmp(str, "CENTER"))
     return stdAc::swingh_t::kMiddle;
-  else if (!strcmp(str, "RIGHT"))
+  else if (!strcasecmp(str, "RIGHT"))
     return stdAc::swingh_t::kRight;
-  else if (!strcmp(str, "RIGHTMAX") || !strcmp(str, "RIGHT MAX") ||
-           !strcmp(str, "MAXRIGHT") || !strcmp(str, "MAX RIGHT") ||
-           !strcmp(str, "FARRIGHT") || !strcmp(str, "FAR RIGHT"))
+  else if (!strcasecmp(str, "RIGHTMAX") || !strcasecmp(str, "RIGHT MAX") ||
+           !strcasecmp(str, "MAXRIGHT") || !strcasecmp(str, "MAX RIGHT") ||
+           !strcasecmp(str, "FARRIGHT") || !strcasecmp(str, "FAR RIGHT"))
     return stdAc::swingh_t::kRightMax;
   else
     return def;
 }
 
-// Assumes str is upper case or an integer >= 1.
+// Assumes str is the model or an integer >= 1.
 int16_t IRac::strToModel(const char *str, const int16_t def) {
   // Fujitsu A/C models
-  if (!strcmp(str, "ARRAH2E")) {
+  if (!strcasecmp(str, "ARRAH2E")) {
     return fujitsu_ac_remote_model_t::ARRAH2E;
-  } else if (!strcmp(str, "ARDB1")) {
+  } else if (!strcasecmp(str, "ARDB1")) {
     return fujitsu_ac_remote_model_t::ARDB1;
   // Panasonic A/C families
-  } else if (!strcmp(str, "LKE") || !strcmp(str, "PANASONICLKE")) {
+  } else if (!strcasecmp(str, "LKE") || !strcasecmp(str, "PANASONICLKE")) {
     return panasonic_ac_remote_model_t::kPanasonicLke;
-  } else if (!strcmp(str, "NKE") || !strcmp(str, "PANASONICNKE")) {
+  } else if (!strcasecmp(str, "NKE") || !strcasecmp(str, "PANASONICNKE")) {
     return panasonic_ac_remote_model_t::kPanasonicNke;
-  } else if (!strcmp(str, "DKE") || !strcmp(str, "PANASONICDKE")) {
+  } else if (!strcasecmp(str, "DKE") || !strcasecmp(str, "PANASONICDKE")) {
     return panasonic_ac_remote_model_t::kPanasonicDke;
-  } else if (!strcmp(str, "JKE") || !strcmp(str, "PANASONICJKE")) {
+  } else if (!strcasecmp(str, "JKE") || !strcasecmp(str, "PANASONICJKE")) {
     return panasonic_ac_remote_model_t::kPanasonicJke;
-  } else if (!strcmp(str, "CKP") || !strcmp(str, "PANASONICCKP")) {
+  } else if (!strcasecmp(str, "CKP") || !strcasecmp(str, "PANASONICCKP")) {
     return panasonic_ac_remote_model_t::kPanasonicCkp;
-  } else if (!strcmp(str, "RKR") || !strcmp(str, "PANASONICRKR")) {
+  } else if (!strcasecmp(str, "RKR") || !strcasecmp(str, "PANASONICRKR")) {
     return panasonic_ac_remote_model_t::kPanasonicRkr;
   // Whirlpool A/C models
-  } else if (!strcmp(str, "DG11J13A") || !strcmp(str, "DG11J104") ||
-             !strcmp(str, "DG11J1-04")) {
+  } else if (!strcasecmp(str, "DG11J13A") || !strcasecmp(str, "DG11J104") ||
+             !strcasecmp(str, "DG11J1-04")) {
     return whirlpool_ac_remote_model_t::DG11J13A;
-  } else if (!strcmp(str, "DG11J191")) {
+  } else if (!strcasecmp(str, "DG11J191")) {
     return whirlpool_ac_remote_model_t::DG11J191;
   } else {
     int16_t number = atoi(str);
@@ -1195,13 +1368,12 @@ int16_t IRac::strToModel(const char *str, const int16_t def) {
   }
 }
 
-// Assumes str is upper case.
 bool IRac::strToBool(const char *str, const bool def) {
-  if (!strcmp(str, "ON") || !strcmp(str, "1") || !strcmp(str, "YES") ||
-      !strcmp(str, "TRUE"))
+  if (!strcasecmp(str, "ON") || !strcasecmp(str, "1") ||
+      !strcasecmp(str, "YES") || !strcasecmp(str, "TRUE"))
     return true;
-  else if (!strcmp(str, "OFF") || !strcmp(str, "0") ||
-           !strcmp(str, "NO") || !strcmp(str, "FALSE"))
+  else if (!strcasecmp(str, "OFF") || !strcasecmp(str, "0") ||
+           !strcasecmp(str, "NO") || !strcasecmp(str, "FALSE"))
     return false;
   else
     return def;
@@ -1290,3 +1462,453 @@ String IRac::swinghToString(const stdAc::swingh_t swingh) {
       return F("unknown");
   }
 }
+
+namespace IRAcUtils {
+  // Display the human readable state of an A/C message if we can.
+  // Args:
+  //   result: A Ptr to the captured `decode_results` that contains an A/C mesg.
+  // Returns:
+  //   A string with the human description of the A/C message. "" if we can't.
+  String resultAcToString(const decode_results * const result) {
+    switch (result->decode_type) {
+#if DECODE_ARGO
+      case decode_type_t::ARGO: {
+        IRArgoAC ac(0);
+        ac.setRaw(result->state);
+        return ac.toString();
+      }
+#endif  // DECODE_ARGO
+#if DECODE_DAIKIN
+      case decode_type_t::DAIKIN: {
+        IRDaikinESP ac(0);
+        ac.setRaw(result->state);
+        return ac.toString();
+      }
+#endif  // DECODE_DAIKIN
+#if DECODE_DAIKIN160
+      case decode_type_t::DAIKIN160: {
+        IRDaikin160 ac(0);
+        ac.setRaw(result->state);
+        return ac.toString();
+      }
+#endif  // DECODE_DAIKIN160
+#if DECODE_DAIKIN2
+      case decode_type_t::DAIKIN2: {
+        IRDaikin2 ac(0);
+        ac.setRaw(result->state);
+        return ac.toString();
+      }
+#endif  // DECODE_DAIKIN2
+#if DECODE_DAIKIN216
+      case decode_type_t::DAIKIN216: {
+        IRDaikin216 ac(0);
+        ac.setRaw(result->state);
+        return ac.toString();
+      }
+#endif  // DECODE_DAIKIN216
+#if DECODE_ELECTRA_AC
+      case decode_type_t::ELECTRA_AC: {
+        IRElectraAc ac(0);
+        ac.setRaw(result->state);
+        return ac.toString();
+      }
+#endif  // DECODE_ELECTRA_AC
+#if DECODE_FUJITSU_AC
+      case decode_type_t::FUJITSU_AC: {
+        IRFujitsuAC ac(0);
+        ac.setRaw(result->state, result->bits / 8);
+        return ac.toString();
+      }
+#endif  // DECODE_FUJITSU_AC
+#if DECODE_KELVINATOR
+      case decode_type_t::KELVINATOR: {
+        IRKelvinatorAC ac(0);
+        ac.setRaw(result->state);
+        return ac.toString();
+      }
+#endif  // DECODE_KELVINATOR
+#if DECODE_MITSUBISHI_AC
+      case decode_type_t::MITSUBISHI_AC: {
+        IRMitsubishiAC ac(0);
+        ac.setRaw(result->state);
+        return ac.toString();
+      }
+#endif  // DECODE_MITSUBISHI_AC
+#if DECODE_MITSUBISHIHEAVY
+      case decode_type_t::MITSUBISHI_HEAVY_88: {
+        IRMitsubishiHeavy88Ac ac(0);
+        ac.setRaw(result->state);
+        return ac.toString();
+      }
+      case decode_type_t::MITSUBISHI_HEAVY_152: {
+        IRMitsubishiHeavy152Ac ac(0);
+        ac.setRaw(result->state);
+        return ac.toString();
+      }
+#endif  // DECODE_MITSUBISHIHEAVY
+#if DECODE_NEOCLIMA
+      case decode_type_t::NEOCLIMA: {
+        IRNeoclimaAc ac(0);
+        ac.setRaw(result->state);
+        return ac.toString();
+      }
+#endif  // DECODE_NEOCLIMA
+#if DECODE_TOSHIBA_AC
+      case decode_type_t::TOSHIBA_AC: {
+        IRToshibaAC ac(0);
+        ac.setRaw(result->state);
+        return ac.toString();
+      }
+#endif  // DECODE_TOSHIBA_AC
+#if DECODE_TROTEC
+      case decode_type_t::TROTEC: {
+        IRTrotecESP ac(0);
+        ac.setRaw(result->state);
+        return ac.toString();
+      }
+#endif  // DECODE_TROTEC
+#if DECODE_GOODWEATHER
+      case decode_type_t::GOODWEATHER: {
+        IRGoodweatherAc ac(0);
+        ac.setRaw(result->value);  // Goodweather uses value instead of state.
+        return ac.toString();
+      }
+#endif  // DECODE_GOODWEATHER
+#if DECODE_GREE
+      case decode_type_t::GREE: {
+        IRGreeAC ac(0);
+        ac.setRaw(result->state);
+        return ac.toString();
+      }
+#endif  // DECODE_GREE
+#if DECODE_MIDEA
+      case decode_type_t::MIDEA: {
+        IRMideaAC ac(0);
+        ac.setRaw(result->value);  // Midea uses value instead of state.
+        return ac.toString();
+      }
+#endif  // DECODE_MIDEA
+#if DECODE_HAIER_AC
+      case decode_type_t::HAIER_AC: {
+        IRHaierAC ac(0);
+        ac.setRaw(result->state);
+        return ac.toString();
+      }
+#endif  // DECODE_HAIER_AC
+#if DECODE_HAIER_AC_YRW02
+      case decode_type_t::HAIER_AC_YRW02: {
+        IRHaierACYRW02 ac(0);
+        ac.setRaw(result->state);
+        return ac.toString();
+      }
+#endif  // DECODE_HAIER_AC_YRW02
+#if DECODE_SAMSUNG_AC
+      case decode_type_t::SAMSUNG_AC: {
+        IRSamsungAc ac(0);
+        ac.setRaw(result->state, result->bits / 8);
+        return ac.toString();
+      }
+#endif  // DECODE_SAMSUNG_AC
+#if DECODE_SHARP_AC
+      case decode_type_t::SHARP_AC: {
+        IRSharpAc ac(0);
+        ac.setRaw(result->state);
+        return ac.toString();
+      }
+#endif  // DECODE_SHARP_AC
+#if DECODE_COOLIX
+      case decode_type_t::COOLIX: {
+        IRCoolixAC ac(0);
+        ac.setRaw(result->value);  // Coolix uses value instead of state.
+        return ac.toString();
+      }
+#endif  // DECODE_COOLIX
+#if DECODE_PANASONIC_AC
+      case decode_type_t::PANASONIC_AC: {
+        if (result->bits > kPanasonicAcShortBits) {
+          IRPanasonicAc ac(0);
+          ac.setRaw(result->state);
+          return ac.toString();
+        }
+        return "";
+      }
+#endif  // DECODE_PANASONIC_AC
+#if DECODE_HITACHI_AC
+      case decode_type_t::HITACHI_AC: {
+        IRHitachiAc ac(0);
+        ac.setRaw(result->state);
+        return ac.toString();
+      }
+#endif  // DECODE_HITACHI_AC
+#if DECODE_WHIRLPOOL_AC
+      case decode_type_t::WHIRLPOOL_AC: {
+        IRWhirlpoolAc ac(0);
+        ac.setRaw(result->state);
+        return ac.toString();
+      }
+#endif  // DECODE_WHIRLPOOL_AC
+#if DECODE_VESTEL_AC
+      case decode_type_t::VESTEL_AC: {
+        IRVestelAc ac(0);
+        ac.setRaw(result->value);  // Like Coolix, use value instead of state.
+        return ac.toString();
+      }
+#endif  // DECODE_VESTEL_AC
+#if DECODE_TECO
+      case decode_type_t::TECO: {
+        IRTecoAc ac(0);
+        ac.setRaw(result->value);  // Like Coolix, use value instead of state.
+        return ac.toString();
+      }
+#endif  // DECODE_TECO
+#if DECODE_TCL112AC
+      case decode_type_t::TCL112AC: {
+        IRTcl112Ac ac(0);
+        ac.setRaw(result->state);
+        return ac.toString();
+      }
+#endif  // DECODE_TCL112AC
+      default:
+        return "";
+    }
+  }
+
+  // Convert a valid IR A/C remote message that we understand enough into a
+  // Common A/C state.
+  //
+  // Args:
+  //   decode: A PTR to a successful raw IR decode object.
+  //   result: A PTR to a state structure to store the result in.
+  // Returns:
+  //   A boolean indicating success or failure.
+  bool decodeToState(const decode_results *decode, stdAc::state_t *result) {
+    if (decode == NULL || result == NULL) return false;  // Safety check.
+    switch (decode->decode_type) {
+#if DECODE_ARGO
+      case decode_type_t::ARGO: {
+        IRArgoAC ac(kGpioUnused);
+        ac.setRaw(decode->state);
+        *result = ac.toCommon();
+        break;
+      }
+#endif  // DECODE_ARGO
+#if DECODE_COOLIX
+      case decode_type_t::COOLIX: {
+        IRCoolixAC ac(kGpioUnused);
+        ac.setRaw(decode->value);  // Uses value instead of state.
+        *result = ac.toCommon();
+        break;
+      }
+#endif  // DECODE_COOLIX
+#if DECODE_DAIKIN
+      case decode_type_t::DAIKIN: {
+        IRDaikinESP ac(kGpioUnused);
+        ac.setRaw(decode->state);
+        *result = ac.toCommon();
+        break;
+      }
+#endif  // DECODE_DAIKIN
+#if DECODE_DAIKIN160
+      case decode_type_t::DAIKIN160: {
+        IRDaikin160 ac(kGpioUnused);
+        ac.setRaw(decode->state);
+        *result = ac.toCommon();
+        break;
+      }
+#endif  // DECODE_DAIKIN160
+#if DECODE_DAIKIN2
+      case decode_type_t::DAIKIN2: {
+        IRDaikin2 ac(kGpioUnused);
+        ac.setRaw(decode->state);
+        *result = ac.toCommon();
+        break;
+      }
+#endif  // DECODE_DAIKIN2
+#if DECODE_DAIKIN216
+      case decode_type_t::DAIKIN216: {
+        IRDaikin216 ac(kGpioUnused);
+        ac.setRaw(decode->state);
+        *result = ac.toCommon();
+        break;
+      }
+#endif  // DECODE_DAIKIN216
+#if DECODE_ELECTRA_AC
+      case decode_type_t::ELECTRA_AC: {
+        IRElectraAc ac(kGpioUnused);
+        ac.setRaw(decode->state);
+        *result = ac.toCommon();
+        break;
+      }
+#endif  // DECODE_ELECTRA_AC
+#if DECODE_FUJITSU_AC
+      case decode_type_t::FUJITSU_AC: {
+        IRFujitsuAC ac(kGpioUnused);
+        ac.setRaw(decode->state, decode->bits / 8);
+        *result = ac.toCommon();
+        break;
+      }
+#endif  // DECODE_FUJITSU_AC
+#if DECODE_GOODWEATHER
+      case decode_type_t::GOODWEATHER: {
+        IRGoodweatherAc ac(kGpioUnused);
+        ac.setRaw(decode->value);  // Uses value instead of state.
+        *result = ac.toCommon();
+        break;
+      }
+#endif  // DECODE_GOODWEATHER
+#if DECODE_GREE
+      case decode_type_t::GREE: {
+        IRGreeAC ac(kGpioUnused);
+        ac.setRaw(decode->state);
+        *result = ac.toCommon();
+        break;
+      }
+#endif  // DECODE_GREE
+#if DECODE_HAIER_AC
+      case decode_type_t::HAIER_AC: {
+        IRHaierAC ac(kGpioUnused);
+        ac.setRaw(decode->state);
+        *result = ac.toCommon();
+        break;
+      }
+#endif  // DECODE_HAIER_AC
+#if DECODE_HAIER_AC_YRW02
+      case decode_type_t::HAIER_AC_YRW02: {
+        IRHaierACYRW02 ac(kGpioUnused);
+        ac.setRaw(decode->state);
+        *result = ac.toCommon();
+        break;
+      }
+#endif  // DECODE_HAIER_AC_YRW02
+#if (DECODE_HITACHI_AC || DECODE_HITACHI_AC2)
+      case decode_type_t::HITACHI_AC: {
+        IRHitachiAc ac(kGpioUnused);
+        ac.setRaw(decode->state);
+        *result = ac.toCommon();
+        break;
+      }
+#endif  // (DECODE_HITACHI_AC || DECODE_HITACHI_AC2)
+#if DECODE_KELVINATOR
+      case decode_type_t::KELVINATOR: {
+        IRKelvinatorAC ac(kGpioUnused);
+        ac.setRaw(decode->state);
+        *result = ac.toCommon();
+        break;
+      }
+#endif  // DECODE_KELVINATOR
+#if DECODE_MIDEA
+      case decode_type_t::MIDEA: {
+        IRMideaAC ac(kGpioUnused);
+        ac.setRaw(decode->value);  // Uses value instead of state.
+        *result = ac.toCommon();
+        break;
+      }
+#endif  // DECODE_MIDEA
+#if DECODE_MITSUBISHI_AC
+      case decode_type_t::MITSUBISHI_AC: {
+        IRMitsubishiAC ac(kGpioUnused);
+        ac.setRaw(decode->state);
+        *result = ac.toCommon();
+        break;
+      }
+#endif  // DECODE_MITSUBISHI_AC
+#if DECODE_MITSUBISHIHEAVY
+      case decode_type_t::MITSUBISHI_HEAVY_88: {
+        IRMitsubishiHeavy88Ac ac(kGpioUnused);
+        ac.setRaw(decode->state);
+        *result = ac.toCommon();
+        break;
+      }
+      case decode_type_t::MITSUBISHI_HEAVY_152: {
+        IRMitsubishiHeavy152Ac ac(kGpioUnused);
+        ac.setRaw(decode->state);
+        *result = ac.toCommon();
+        break;
+      }
+#endif  // DECODE_MITSUBISHIHEAVY
+#if DECODE_NEOCLIMA
+      case decode_type_t::NEOCLIMA: {
+        IRNeoclimaAc ac(kGpioUnused);
+        ac.setRaw(decode->state);
+        *result = ac.toCommon();
+        break;
+      }
+#endif  // DECODE_NEOCLIMA
+#if DECODE_PANASONIC_AC
+      case decode_type_t::PANASONIC_AC: {
+        IRPanasonicAc ac(kGpioUnused);
+        ac.setRaw(decode->state);
+        *result = ac.toCommon();
+        break;
+      }
+#endif  // DECODE_PANASONIC_AC
+#if DECODE_SAMSUNG_AC
+      case decode_type_t::SAMSUNG_AC: {
+        IRSamsungAc ac(kGpioUnused);
+        ac.setRaw(decode->state);
+        *result = ac.toCommon();
+        break;
+      }
+#endif  // DECODE_SAMSUNG_AC
+#if DECODE_SHARP_AC
+      case decode_type_t::SHARP_AC: {
+        IRSharpAc ac(kGpioUnused);
+        ac.setRaw(decode->state);
+        *result = ac.toCommon();
+        break;
+      }
+#endif  // DECODE_SHARP_AC
+#if DECODE_TCL112AC
+      case decode_type_t::TCL112AC: {
+        IRTcl112Ac ac(kGpioUnused);
+        ac.setRaw(decode->state);
+        *result = ac.toCommon();
+        break;
+      }
+#endif  // DECODE_TCL112AC
+#if DECODE_TECO
+      case decode_type_t::TECO: {
+        IRTecoAc ac(kGpioUnused);
+        ac.setRaw(decode->value);  // Uses value instead of state.
+        *result = ac.toCommon();
+        break;
+      }
+#endif  // DECODE_TECO
+#if DECODE_TOSHIBA_AC
+      case decode_type_t::TOSHIBA_AC: {
+        IRToshibaAC ac(kGpioUnused);
+        ac.setRaw(decode->state);
+        *result = ac.toCommon();
+        break;
+      }
+#endif  // DECODE_TOSHIBA_AC
+#if DECODE_TROTEC
+      case decode_type_t::TROTEC: {
+        IRTrotecESP ac(kGpioUnused);
+        ac.setRaw(decode->state);
+        *result = ac.toCommon();
+        break;
+      }
+#endif  // DECODE_TROTEC
+#if DECODE_VESTEL_AC
+      case decode_type_t::VESTEL_AC: {
+        IRVestelAc ac(kGpioUnused);
+        ac.setRaw(decode->value);  // Uses value instead of state.
+        *result = ac.toCommon();
+        break;
+      }
+#endif  // DECODE_VESTEL_AC
+#if DECODE_WHIRLPOOL_AC
+      case decode_type_t::WHIRLPOOL_AC: {
+        IRWhirlpoolAc ac(kGpioUnused);
+        ac.setRaw(decode->state);
+        *result = ac.toCommon();
+        break;
+      }
+#endif  // DECODE_WHIRLPOOL_AC
+      default:
+        return false;
+    }
+    return true;
+  }
+}  // namespace IRAcUtils

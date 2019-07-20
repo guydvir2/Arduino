@@ -343,29 +343,10 @@ stdAc::state_t IRTcl112Ac::toCommon(void) {
 String IRTcl112Ac::toString(void) {
   String result = "";
   result.reserve(140);  // Reserve some heap for the string to reduce fragging.
-  result += F("Power: ");
-  result += (this->getPower() ? F("On") : F("Off"));
-  result += F(", Mode: ");
-  result += uint64ToString(getMode());
-  switch (this->getMode()) {
-    case kTcl112AcAuto:
-      result += F(" (AUTO)");
-      break;
-    case kTcl112AcCool:
-      result += F(" (COOL)");
-      break;
-    case kTcl112AcHeat:
-      result += F(" (HEAT)");
-      break;
-    case kTcl112AcDry:
-      result += F(" (DRY)");
-      break;
-    case kTcl112AcFan:
-      result += F(" (FAN)");
-      break;
-    default:
-      result += F(" (UNKNOWN)");
-  }
+  result += IRutils::acBoolToString(getPower(), F("Power"), false);
+  result += IRutils::acModeToString(getMode(), kTcl112AcAuto,
+                                    kTcl112AcCool, kTcl112AcHeat,
+                                    kTcl112AcDry, kTcl112AcFan);
   uint16_t nrHalfDegrees = this->getTemp() * 2;
   result += F(", Temp: ");
   result += uint64ToString(nrHalfDegrees / 2);
@@ -386,18 +367,12 @@ String IRTcl112Ac::toString(void) {
       result += F(" (High)");
       break;
   }
-  result += F(", Econo: ");
-  result += (this->getEcono() ? F("On") : F("Off"));
-  result += ", Health: ";
-  result += (this->getHealth() ? F("On") : F("Off"));
-  result += F(", Light: ");
-  result += (this->getLight() ? F("On") : F("Off"));
-  result += F(", Turbo: ");
-  result += (this->getTurbo() ? F("On") : F("Off"));
-  result += ", Swing (H): ";
-  result += (this->getSwingHorizontal() ? F("On") : F("Off"));
-  result += F(", Swing (V): ");
-  result += (this->getSwingVertical() ? F("On") : F("Off"));
+  result += IRutils::acBoolToString(getEcono(), F("Econo"));
+  result += IRutils::acBoolToString(getHealth(), F("Health"));
+  result += IRutils::acBoolToString(getLight(), F("Light"));
+  result += IRutils::acBoolToString(getTurbo(), F("Turbo"));
+  result += IRutils::acBoolToString(getSwingHorizontal(), F("Swing (H)"));
+  result += IRutils::acBoolToString(getSwingVertical(), F("Swing (V)"));
   return result;
 }
 
@@ -417,45 +392,23 @@ String IRTcl112Ac::toString(void) {
 //   https://github.com/markszabo/IRremoteESP8266/issues/619
 bool IRrecv::decodeTcl112Ac(decode_results *results, const uint16_t nbits,
                             const bool strict) {
-  if (results->rawlen < 2 * nbits + kHeader + kFooter - 1)
-    return false;  // Can't possibly be a valid Samsung A/C message.
   if (strict && nbits != kTcl112AcBits) return false;
 
   uint16_t offset = kStartOffset;
-  uint16_t dataBitsSoFar = 0;
-  match_result_t data_result;
-
-  // Message Header
-  if (!matchMark(results->rawbuf[offset++], kTcl112AcHdrMark)) return false;
-  if (!matchSpace(results->rawbuf[offset++], kTcl112AcHdrSpace)) return false;
-
-  // Data
-  // Keep reading bytes until we either run out of section or state to fill.
-  for (uint16_t i = 0; offset <= results->rawlen - 16 && i < nbits / 8;
-       i++, dataBitsSoFar += 8, offset += data_result.used) {
-    data_result = matchData(&(results->rawbuf[offset]), 8, kTcl112AcBitMark,
-                            kTcl112AcOneSpace, kTcl112AcBitMark,
-                            kTcl112AcZeroSpace, kTcl112AcTolerance, 0, false);
-    if (data_result.success == false) {
-      DPRINT("DEBUG: offset = ");
-      DPRINTLN(offset + data_result.used);
-      return false;  // Fail
-    }
-    results->state[i] = data_result.data;
-  }
-
-  // Footer
-  if (!matchMark(results->rawbuf[offset++], kTcl112AcBitMark)) return false;
-  if (offset <= results->rawlen &&
-      !matchAtLeast(results->rawbuf[offset++], kTcl112AcGap)) return false;
+  // Match Header + Data + Footer
+  if (!matchGeneric(results->rawbuf + offset, results->state,
+                    results->rawlen - offset, nbits,
+                    kTcl112AcHdrMark, kTcl112AcHdrSpace,
+                    kTcl112AcBitMark, kTcl112AcOneSpace,
+                    kTcl112AcBitMark, kTcl112AcZeroSpace,
+                    kTcl112AcBitMark, kTcl112AcGap, true,
+                    kTcl112AcTolerance, 0, false)) return false;
   // Compliance
-  // Re-check we got the correct size/length due to the way we read the data.
-  if (dataBitsSoFar != nbits) return false;
   // Verify we got a valid checksum.
   if (strict && !IRTcl112Ac::validChecksum(results->state)) return false;
   // Success
   results->decode_type = TCL112AC;
-  results->bits = dataBitsSoFar;
+  results->bits = nbits;
   // No need to record the state as we stored it as we decoded it.
   // As we use result->state, we don't record value, address, or command as it
   // is a union data type.

@@ -504,29 +504,10 @@ String IRWhirlpoolAc::toString(void) {
     default:
       result += F(" (UNKNOWN)");
   }
-  result += F(", Power toggle: ");
-  result += this->getPowerToggle() ? F("On") : F("Off");
-  result += F(", Mode: ");
-  result += uint64ToString(this->getMode());
-  switch (this->getMode()) {
-    case kWhirlpoolAcHeat:
-      result += F(" (HEAT)");
-      break;
-    case kWhirlpoolAcAuto:
-      result += F(" (AUTO)");
-      break;
-    case kWhirlpoolAcCool:
-      result += F(" (COOL)");
-      break;
-    case kWhirlpoolAcDry:
-      result += F(" (DRY)");
-      break;
-    case kWhirlpoolAcFan:
-      result += F(" (FAN)");
-      break;
-    default:
-      result += F(" (UNKNOWN)");
-  }
+  result += IRutils::acBoolToString(getPowerToggle(), F("Power toggle"));
+  result += IRutils::acModeToString(getMode(), kWhirlpoolAcAuto,
+                                    kWhirlpoolAcCool, kWhirlpoolAcHeat,
+                                    kWhirlpoolAcDry, kWhirlpoolAcFan);
   result += F(", Temp: ");
   result += uint64ToString(this->getTemp());
   result += F("C, Fan: ");
@@ -548,10 +529,8 @@ String IRWhirlpoolAc::toString(void) {
       result += F(" (UNKNOWN)");
       break;
   }
-  result += F(", Swing: ");
-  result += this->getSwing() ? F("On") : F("Off");
-  result += F(", Light: ");
-  result += this->getLight() ? F("On") : F("Off");
+  result += IRutils::acBoolToString(getSwing(), F("Swing"));
+  result += IRutils::acBoolToString(getLight(), F("Light"));
   result += F(", Clock: ");
   result += this->timeToString(this->getClock());
   result += F(", On Timer: ");
@@ -564,10 +543,8 @@ String IRWhirlpoolAc::toString(void) {
     result += this->timeToString(this->getOffTimer());
   else
     result += F("Off");
-  result += F(", Sleep: ");
-  result += this->getSleep() ? F("On") : F("Off");
-  result += F(", Super: ");
-  result += this->getSuper() ? F("On") : F("Off");
+  result += IRutils::acBoolToString(getSleep(), F("Sleep"));
+  result += IRutils::acBoolToString(getSuper(), F("Super"));
   result += F(", Command: ");
   result += uint64ToString(this->getCommand());
   switch (this->getCommand()) {
@@ -638,9 +615,6 @@ bool IRrecv::decodeWhirlpoolAC(decode_results *results, const uint16_t nbits,
   }
 
   uint16_t offset = kStartOffset;
-  uint16_t dataBitsSoFar = 0;
-  uint16_t i = 0;
-  match_result_t data_result;
   uint8_t sectionSize[kWhirlpoolAcSections] = {6, 8, 7};
 
   // Header
@@ -648,44 +622,36 @@ bool IRrecv::decodeWhirlpoolAC(decode_results *results, const uint16_t nbits,
   if (!matchSpace(results->rawbuf[offset++], kWhirlpoolAcHdrSpace))
     return false;
 
-  // Data Section
-  // Keep reading bytes until we either run out of section or state to fill.
-  for (uint8_t section = 0, pos = 0; section < kWhirlpoolAcSections;
+  // Data Sections
+  uint16_t pos = 0;
+  for (uint8_t section = 0; section < kWhirlpoolAcSections;
        section++) {
+    uint16_t used;
+    // Section Data
+    used = matchGeneric(results->rawbuf + offset, results->state + pos,
+                        results->rawlen - offset, sectionSize[section] * 8,
+                        0, 0,
+                        kWhirlpoolAcBitMark, kWhirlpoolAcOneSpace,
+                        kWhirlpoolAcBitMark, kWhirlpoolAcZeroSpace,
+                        kWhirlpoolAcBitMark, kWhirlpoolAcGap,
+                        section >= kWhirlpoolAcSections - 1,
+                        kTolerance, kMarkExcess, false);
+    if (used == 0) return false;
+    offset += used;
     pos += sectionSize[section];
-    for (; offset <= results->rawlen - 16 && i < pos;
-         i++, dataBitsSoFar += 8, offset += data_result.used) {
-      data_result =
-          matchData(&(results->rawbuf[offset]), 8, kWhirlpoolAcBitMark,
-                    kWhirlpoolAcOneSpace, kWhirlpoolAcBitMark,
-                    kWhirlpoolAcZeroSpace, kTolerance, kMarkExcess, false);
-      if (data_result.success == false) break;  // Fail
-      // Data is in LSB order. We need to reverse it.
-      results->state[i] = (uint8_t)data_result.data;
-    }
-    // Section Footer
-    if (!matchMark(results->rawbuf[offset++], kWhirlpoolAcBitMark))
-      return false;
-    if (section < kWhirlpoolAcSections - 1) {  // Inter-section gaps.
-      if (!matchSpace(results->rawbuf[offset++], kWhirlpoolAcGap)) return false;
-    } else {  // Last section / End of message gap.
-      if (offset <= results->rawlen &&
-          !matchAtLeast(results->rawbuf[offset++], kWhirlpoolAcGap))
-        return false;
-    }
   }
 
   // Compliance
   if (strict) {
     // Re-check we got the correct size/length due to the way we read the data.
-    if (dataBitsSoFar != kWhirlpoolAcBits) return false;
-    if (!IRWhirlpoolAc::validChecksum(results->state, dataBitsSoFar / 8))
+    if (pos * 8 != nbits) return false;
+    if (!IRWhirlpoolAc::validChecksum(results->state, nbits / 8))
       return false;
   }
 
   // Success
   results->decode_type = WHIRLPOOL_AC;
-  results->bits = dataBitsSoFar;
+  results->bits = nbits;
   // No need to record the state as we stored it as we decoded it.
   // As we use result->state, we don't record value, address, or command as it
   // is a union data type.

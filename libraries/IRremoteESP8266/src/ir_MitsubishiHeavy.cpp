@@ -455,29 +455,10 @@ stdAc::state_t IRMitsubishiHeavy152Ac::toCommon(void) {
 String IRMitsubishiHeavy152Ac::toString(void) {
   String result = "";
   result.reserve(180);  // Reserve some heap for the string to reduce fragging.
-  result += F("Power: ");
-  result += (this->getPower() ? F("On") : F("Off"));
-  result += F(", Mode: ");
-  result += uint64ToString(this->getMode());
-  switch (this->getMode()) {
-    case kMitsubishiHeavyAuto:
-      result += F(" (Auto)");
-      break;
-    case kMitsubishiHeavyCool:
-      result += F(" (Cool)");
-      break;
-    case kMitsubishiHeavyHeat:
-      result += F(" (Heat)");
-      break;
-    case kMitsubishiHeavyDry:
-      result += F(" (Dry)");
-      break;
-    case kMitsubishiHeavyFan:
-      result += F(" (Fan)");
-      break;
-    default:
-      result += F(" (UNKNOWN)");
-  }
+  result += IRutils::acBoolToString(getPower(), F("Power"), false);
+  result += IRutils::acModeToString(getMode(), kMitsubishiHeavyAuto,
+                                    kMitsubishiHeavyCool, kMitsubishiHeavyHeat,
+                                    kMitsubishiHeavyDry, kMitsubishiHeavyFan);
   result += F(", Temp: ");
   result += uint64ToString(this->getTemp()) + 'C';
   result += F(", Fan: ");
@@ -567,20 +548,13 @@ String IRMitsubishiHeavy152Ac::toString(void) {
     default:
       result += F(" (UNKNOWN)");
   }
-  result += F(", Silent: ");
-  result += (this->getSilent() ? F("On") : F("Off"));
-  result += F(", Turbo: ");
-  result += (this->getTurbo() ? F("On") : F("Off"));
-  result += F(", Econo: ");
-  result += (this->getEcono() ? F("On") : F("Off"));
-  result += F(", Night: ");
-  result += (this->getNight() ? F("On") : F("Off"));
-  result += F(", Filter: ");
-  result += (this->getFilter() ? F("On") : F("Off"));
-  result += F(", 3D: ");
-  result += (this->get3D() ? F("On") : F("Off"));
-  result += F(", Clean: ");
-  result += (this->getClean() ? F("On") : F("Off"));
+  result += IRutils::acBoolToString(getSilent(), F("Silent"));
+  result += IRutils::acBoolToString(getTurbo(), F("Turbo"));
+  result += IRutils::acBoolToString(getEcono(), F("Econo"));
+  result += IRutils::acBoolToString(getNight(), F("Night"));
+  result += IRutils::acBoolToString(getFilter(), F("Filter"));
+  result += IRutils::acBoolToString(get3D(), F("3D"));
+  result += IRutils::acBoolToString(getClean(), F("Clean"));
   return result;
 }
 
@@ -931,29 +905,10 @@ stdAc::state_t IRMitsubishiHeavy88Ac::toCommon(void) {
 String IRMitsubishiHeavy88Ac::toString(void) {
   String result = "";
   result.reserve(140);  // Reserve some heap for the string to reduce fragging.
-  result += F("Power: ");
-  result += (this->getPower() ? F("On") : F("Off"));
-  result += F(", Mode: ");
-  result += uint64ToString(this->getMode());
-  switch (this->getMode()) {
-    case kMitsubishiHeavyAuto:
-      result += F(" (Auto)");
-      break;
-    case kMitsubishiHeavyCool:
-      result += F(" (Cool)");
-      break;
-    case kMitsubishiHeavyHeat:
-      result += F(" (Heat)");
-      break;
-    case kMitsubishiHeavyDry:
-      result += F(" (Dry)");
-      break;
-    case kMitsubishiHeavyFan:
-      result += F(" (Fan)");
-      break;
-    default:
-      result += F(" (UNKNOWN)");
-  }
+  result += IRutils::acBoolToString(getPower(), F("Power"), false);
+  result += IRutils::acModeToString(getMode(), kMitsubishiHeavyAuto,
+                                    kMitsubishiHeavyCool, kMitsubishiHeavyHeat,
+                                    kMitsubishiHeavyDry, kMitsubishiHeavyFan);
   result += F(", Temp: ");
   result += uint64ToString(this->getTemp()) + 'C';
   result += F(", Fan: ");
@@ -1043,14 +998,10 @@ String IRMitsubishiHeavy88Ac::toString(void) {
     default:
       result += F(" (UNKNOWN)");
   }
-  result += F(", Turbo: ");
-  result += (this->getTurbo() ? F("On") : F("Off"));
-  result += F(", Econo: ");
-  result += (this->getEcono() ? F("On") : F("Off"));
-  result += F(", 3D: ");
-  result += (this->get3D() ? F("On") : F("Off"));
-  result += F(", Clean: ");
-  result += (this->getClean() ? F("On") : F("Off"));
+  result += IRutils::acBoolToString(getTurbo(), F("Turbo"));
+  result += IRutils::acBoolToString(getEcono(), F("Econo"));
+  result += IRutils::acBoolToString(get3D(), F("3D"));
+  result += IRutils::acBoolToString(getClean(), F("Clean"));
   return result;
 }
 
@@ -1080,41 +1031,19 @@ bool IRrecv::decodeMitsubishiHeavy(decode_results* results,
     }
   }
 
-  uint16_t actualBits = 0;
   uint16_t offset = kStartOffset;
-  match_result_t data_result;
-
-  // Header
-  if (!matchMark(results->rawbuf[offset++], kMitsubishiHeavyHdrMark))
-    return false;
-  if (!matchSpace(results->rawbuf[offset++], kMitsubishiHeavyHdrSpace))
-    return false;
-  // Data
-  // Keep reading bytes until we either run out of section or state to fill.
-  for (uint16_t i = 0;
-       offset <= results->rawlen - 16 && actualBits < nbits;
-       i++, actualBits += 8, offset += data_result.used) {
-    data_result = matchData(&(results->rawbuf[offset]), 8,
-                            kMitsubishiHeavyBitMark, kMitsubishiHeavyOneSpace,
-                            kMitsubishiHeavyBitMark, kMitsubishiHeavyZeroSpace,
-                            kTolerance, 0, false);
-    if (data_result.success == false) {
-      DPRINT("DEBUG: offset = ");
-      DPRINTLN(offset + data_result.used);
-      return false;  // Fail
-    }
-    results->state[i] = data_result.data;
-  }
-  // Footer.
-  if (!matchMark(results->rawbuf[offset++], kMitsubishiHeavyBitMark))
-    return false;
-  if (offset < results->rawlen &&
-      !matchAtLeast(results->rawbuf[offset], kMitsubishiHeavyGap)) return false;
-
+  uint16_t used;
+  used = matchGeneric(results->rawbuf + offset, results->state,
+                      results->rawlen - offset, nbits,
+                      kMitsubishiHeavyHdrMark, kMitsubishiHeavyHdrSpace,
+                      kMitsubishiHeavyBitMark, kMitsubishiHeavyOneSpace,
+                      kMitsubishiHeavyBitMark, kMitsubishiHeavyZeroSpace,
+                      kMitsubishiHeavyBitMark, kMitsubishiHeavyGap, true,
+                      kTolerance, 0, false);
+  if (used == 0) return false;
+  offset += used;
   // Compliance
-  if (actualBits < nbits) return false;
-  if (strict && actualBits != nbits) return false;  // Not as we expected.
-  switch (actualBits) {
+  switch (nbits) {
     case kMitsubishiHeavy88Bits:
       if (strict && !(IRMitsubishiHeavy88Ac::checkZjsSig(results->state) &&
                       IRMitsubishiHeavy88Ac::validChecksum(results->state)))
@@ -1132,7 +1061,7 @@ bool IRrecv::decodeMitsubishiHeavy(decode_results* results,
   }
 
   // Success
-  results->bits = actualBits;
+  results->bits = nbits;
   // No need to record the state as we stored it as we decoded it.
   // As we use result->state, we don't record value, address, or command as it
   // is a union data type.

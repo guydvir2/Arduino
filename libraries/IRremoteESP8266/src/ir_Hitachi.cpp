@@ -340,32 +340,10 @@ stdAc::state_t IRHitachiAc::toCommon(void) {
 String IRHitachiAc::toString(void) {
   String result = "";
   result.reserve(110);  // Reserve some heap for the string to reduce fragging.
-  result += F("Power: ");
-  if (getPower())
-    result += F("On");
-  else
-    result += F("Off");
-  result += F(", Mode: ");
-  result += uint64ToString(getMode());
-  switch (getMode()) {
-    case kHitachiAcAuto:
-      result += F(" (AUTO)");
-      break;
-    case kHitachiAcCool:
-      result += F(" (COOL)");
-      break;
-    case kHitachiAcHeat:
-      result += F(" (HEAT)");
-      break;
-    case kHitachiAcDry:
-      result += F(" (DRY)");
-      break;
-    case kHitachiAcFan:
-      result += F(" (FAN)");
-      break;
-    default:
-      result += F(" (UNKNOWN)");
-  }
+  result += IRutils::acBoolToString(getPower(), F("Power"), false);
+  result += IRutils::acModeToString(getMode(), kHitachiAcAuto,
+                                    kHitachiAcCool, kHitachiAcHeat,
+                                    kHitachiAcDry, kHitachiAcFan);
   result += F(", Temp: ");
   result += uint64ToString(getTemp());
   result += F("C, Fan: ");
@@ -384,16 +362,10 @@ String IRHitachiAc::toString(void) {
       result += F(" (UNKNOWN)");
       break;
   }
-  result += F(", Swing (Vertical): ");
-  if (getSwingVertical())
-    result += F("On");
-  else
-    result += F("Off");
-  result += F(", Swing (Horizontal): ");
-  if (getSwingHorizontal())
-    result += F("On");
-  else
-    result += F("Off");
+  result += IRutils::acBoolToString(getSwingVertical(), F("Swing (Vertical)"));
+  result += IRutils::acBoolToString(getSwingHorizontal(),
+                                    F("Swing (Horizontal)"));
+
   return result;
 }
 
@@ -432,57 +404,33 @@ bool IRrecv::decodeHitachiAC(decode_results *results, const uint16_t nbits,
     }
   }
   uint16_t offset = kStartOffset;
-  uint16_t dataBitsSoFar = 0;
-  match_result_t data_result;
-
-  // Header
+  uint16_t hmark;
+  uint32_t hspace;
   if (nbits == kHitachiAc1Bits) {
-    if (!matchMark(results->rawbuf[offset++], kHitachiAc1HdrMark, kTolerance))
-      return false;
-    if (!matchSpace(results->rawbuf[offset++], kHitachiAc1HdrSpace, kTolerance))
-      return false;
-  } else {  // Everything else.
-    if (!matchMark(results->rawbuf[offset++], kHitachiAcHdrMark, kTolerance))
-      return false;
-    if (!matchSpace(results->rawbuf[offset++], kHitachiAcHdrSpace, kTolerance))
-      return false;
+    hmark = kHitachiAc1HdrMark;
+    hspace = kHitachiAc1HdrSpace;
+  } else {
+    hmark = kHitachiAcHdrMark;
+    hspace = kHitachiAcHdrSpace;
   }
-  // Data
-  // Keep reading bytes until we either run out of message or state to fill.
-  for (uint16_t i = 0; offset <= results->rawlen - 16 && i < nbits / 8;
-       i++, dataBitsSoFar += 8, offset += data_result.used) {
-    data_result = matchData(&(results->rawbuf[offset]), 8, kHitachiAcBitMark,
-                            kHitachiAcOneSpace, kHitachiAcBitMark,
-                            kHitachiAcZeroSpace, kTolerance);
-    if (data_result.success == false) break;  // Fail
-    results->state[i] = (uint8_t)data_result.data;
-  }
-
-  // Footer
-  if (!matchMark(results->rawbuf[offset++], kHitachiAcBitMark, kTolerance))
-    return false;
-  if (offset <= results->rawlen &&
-      !matchAtLeast(results->rawbuf[offset], kHitachiAcMinGap, kTolerance))
-    return false;
+  // Match Header + Data + Footer
+  if (!matchGeneric(results->rawbuf + offset, results->state,
+                    results->rawlen - offset, nbits,
+                    hmark, hspace,
+                    kHitachiAcBitMark, kHitachiAcOneSpace,
+                    kHitachiAcBitMark, kHitachiAcZeroSpace,
+                    kHitachiAcBitMark, kHitachiAcMinGap, true,
+                    kTolerance)) return false;
 
   // Compliance
   if (strict) {
-    // Re-check we got the correct size/length due to the way we read the data.
-    switch (dataBitsSoFar / 8) {
-      case kHitachiAcStateLength:
-      case kHitachiAc1StateLength:
-      case kHitachiAc2StateLength:
-        break;  // Continue
-      default:
-        return false;
-    }
-    if (dataBitsSoFar / 8 == kHitachiAcStateLength &&
+    if (nbits / 8 == kHitachiAcStateLength &&
         !IRHitachiAc::validChecksum(results->state, kHitachiAcStateLength))
       return false;
   }
 
   // Success
-  switch (dataBitsSoFar) {
+  switch (nbits) {
     case kHitachiAc1Bits:
       results->decode_type = HITACHI_AC1;
       break;
@@ -493,7 +441,7 @@ bool IRrecv::decodeHitachiAC(decode_results *results, const uint16_t nbits,
     default:
       results->decode_type = HITACHI_AC;
   }
-  results->bits = dataBitsSoFar;
+  results->bits = nbits;
   // No need to record the state as we stored it as we decoded it.
   // As we use result->state, we don't record value, address, or command as it
   // is a union data type.

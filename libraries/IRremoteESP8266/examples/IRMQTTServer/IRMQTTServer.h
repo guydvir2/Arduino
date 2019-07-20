@@ -18,6 +18,11 @@
 #define MQTT_ENABLE true  // Whether or not MQTT is used at all.
 #endif  // MQTT_ENABLE
 
+#ifndef EXAMPLES_ENABLE
+// Whether or not examples are included. `false` saves ~2.5K of program space.
+#define EXAMPLES_ENABLE true
+#endif  // EXAMPLES_ENABLE
+
 // ---------------------- Board Related Settings -------------------------------
 // NOTE: Make sure you set your Serial Monitor to the same speed.
 #define BAUD_RATE 115200  // Serial port Baud rate.
@@ -81,10 +86,20 @@ const uint32_t kMqttReconnectTime = 5000;  // Delay(ms) between reconnect tries.
 #define MQTT_CLIMATE "ac"  // Sub-topic for the climate topics.
 #define MQTT_CLIMATE_CMND "cmnd"  // Sub-topic for the climate command topics.
 #define MQTT_CLIMATE_STAT "stat"  // Sub-topic for the climate stat topics.
-#define MQTTbroadcastInterval 10 * 60  // Seconds between rebroadcasts
+// Enable sending/receiving climate via JSON. `true` cost ~5k of program space.
+#define MQTT_CLIMATE_JSON false
+// Do we send an IR message when we reboot and recover the existing A/C state?
+// If set to `false` you may miss requested state changes while the ESP was
+// down. If set to `true`, it will resend the previous desired state sent to the
+// A/C. Depending on your circumstances, you may need to change this.
+#define MQTT_CLIMATE_IR_SEND_ON_RESTART false
+#define MQTTbroadcastInterval 10 * 60  // Seconds between rebroadcasts.
 
 #define QOS 1  // MQTT broker should queue up any unreceived messages for us
 // #define QOS 0  // MQTT broker WON'T queue up messages for us. Fire & Forget.
+// Enable(true)/Disable(false) the option to send a MQTT Discovery message for
+// the AirCon/Climate system to Home Assistant. `false` saves ~1.5k.
+#define MQTT_DISCOVERY_ENABLE true
 #endif  // MQTT_ENABLE
 
 // ------------------------ IR Capture Settings --------------------------------
@@ -125,7 +140,7 @@ const uint16_t kMinUnknownSize = 2 * 10;
 // `false` if you don't want to repeat the captured message.
 // e.g. Useful if the IR demodulator is located in the path between the remote
 //      and the A/C unit so the command isn't sent twice.
-// `true` if want it sent anyway.
+// `true` if you want it sent anyway.
 // e.g. The IR demodulator is in a completely different location than than the
 //      actual a/c unit.
 #define REPLAY_DECODED_AC_MESSAGE false
@@ -149,6 +164,8 @@ const uint16_t kMinUnknownSize = 2 * 10;
 #define KEY_FILTER "filter"
 #define KEY_CLEAN "clean"
 #define KEY_CELSIUS "use_celsius"
+#define KEY_JSON "json"
+#define KEY_RESEND "resend"
 
 // HTML arguments we will parse for IR code information.
 #define KEY_TYPE "type"  // KEY_PROTOCOL is also checked too.
@@ -180,24 +197,24 @@ const uint8_t kPasswordLength = 20;
 // ----------------- End of User Configuration Section -------------------------
 
 // Constants
-#define _MY_VERSION_ "v1.2.0"
+#define _MY_VERSION_ "v1.3.0"
 
 const uint8_t kRebootTime = 15;  // Seconds
 const uint8_t kQuickDisplayTime = 2;  // Seconds
 
 // Gpio related
-const int8_t kGpioUnused = -1;
 #if defined(ESP8266)
 const int8_t kTxGpios[] = {-1, 0, 1, 2, 3, 4, 5, 12, 13, 14, 15, 16};
 const int8_t kRxGpios[] = {-1, 0, 1, 2, 3, 4, 5, 12, 13, 14, 15};
 #endif  // ESP8266
 #if defined(ESP32)
+// Ref: https://randomnerdtutorials.com/esp32-pinout-reference-gpios/
 const int8_t kTxGpios[] = {
-    -1, 0, 1, 2, 3, 4, 5, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24,
-    25, 26, 27, 28, 29, 30, 31, 32, 33};
+    -1, 0, 1, 2, 3, 4, 5, 12, 13, 14, 15, 16, 17, 18, 19, 21, 22, 23,
+    25, 26, 27, 32, 33};
 const int8_t kRxGpios[] = {
-    -1, 1, 2, 3, 4, 5, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24,
-    25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39};
+    -1, 1, 2, 3, 4, 5, 12, 13, 14, 15, 16, 17, 18, 19, 21, 22, 23,
+    25, 26, 27, 32, 33, 34, 35, 36, 39};
 #endif  // ESP32
 
 // JSON stuff
@@ -242,14 +259,18 @@ const char* kClimateTopics =
     "(" KEY_PROTOCOL "|" KEY_MODEL "|" KEY_POWER "|" KEY_MODE "|" KEY_TEMP "|"
     KEY_FANSPEED "|" KEY_SWINGV "|" KEY_SWINGH "|" KEY_QUIET "|"
     KEY_TURBO "|" KEY_LIGHT "|" KEY_BEEP "|" KEY_ECONO "|" KEY_SLEEP "|"
-    KEY_FILTER "|" KEY_CLEAN "|" KEY_CELSIUS ")<br>";
+    KEY_FILTER "|" KEY_CLEAN "|" KEY_CELSIUS "|" KEY_RESEND
+#if MQTT_CLIMATE_JSON
+    "|" KEY_JSON
+#endif  // MQTT_CLIMATE_JSON
+    ")<br>";
 
 void mqttCallback(char* topic, byte* payload, unsigned int length);
 String listOfCommandTopics(void);
 void handleSendMqttDiscovery(void);
 void subscribing(const String topic_name);
 void unsubscribing(const String topic_name);
-void mqttLog(const String mesg);
+void mqttLog(const char* str);
 bool mountSpiffs(void);
 bool reconnect(void);
 void receivingMQTT(String const topic_name, String const callback_str);
@@ -258,12 +279,18 @@ void sendMQTTDiscovery(const char *topic);
 void doBroadcast(TimerMs *timer, const uint32_t interval,
                  const stdAc::state_t state, const bool retain,
                  const bool force);
+#if MQTT_CLIMATE_JSON
+stdAc::state_t jsonToState(const stdAc::state_t current, const String str);
+void sendJsonState(const stdAc::state_t state, const String topic,
+                   const bool retain = false, const bool ha_mode = true);
+#endif  // MQTT_CLIMATE_JSON
 #endif  // MQTT_ENABLE
 bool isSerialGpioUsedByIr(void);
 void debug(const char *str);
 void saveWifiConfigCallback(void);
 void saveWifiConfig(void);
 void loadWifiConfigFile(void);
+void doRestart(const char* str, const bool serial_only = false);
 String msToHumanString(uint32_t const msecs);
 String timeElapsed(uint32_t const msec);
 String timeSince(uint32_t const start);
@@ -295,7 +322,7 @@ void handleAdmin(void);
 void handleInfo(void);
 void handleReset(void);
 void handleReboot(void);
-bool parseStringAndSendAirCon(IRsend *irsend, const uint16_t irType,
+bool parseStringAndSendAirCon(IRsend *irsend, const decode_type_t irType,
                               const String str);
 uint16_t countValuesInStr(const String str, char sep);
 uint16_t * newCodeArray(const uint16_t size);
@@ -315,8 +342,9 @@ void setup_wifi(void);
 void init_vars(void);
 void setup(void);
 void loop(void);
+uint32_t maxSketchSpace(void);
 uint64_t getUInt64fromHex(char const *str);
-bool sendIRCode(IRsend *irsend, int const ir_type,
+bool sendIRCode(IRsend *irsend, decode_type_t const ir_type,
                 uint64_t const code, char const * code_str, uint16_t bits,
                 uint16_t repeat);
 bool sendInt(const String topic, const int32_t num, const bool retain);

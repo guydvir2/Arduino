@@ -316,29 +316,10 @@ stdAc::state_t IRToshibaAC::toCommon(void) {
 String IRToshibaAC::toString(void) {
   String result = "";
   result.reserve(40);
-  result += F("Power: ");
-  if (this->getPower())
-    result += F("On");
-  else
-    result += F("Off");
-  result += F(", Mode: ");
-  result += uint64ToString(this->getMode());
-  switch (this->getMode()) {
-    case kToshibaAcAuto:
-      result += F(" (AUTO)");
-      break;
-    case kToshibaAcCool:
-      result += F(" (COOL)");
-      break;
-    case kToshibaAcHeat:
-      result += F(" (HEAT)");
-      break;
-    case kToshibaAcDry:
-      result += F(" (DRY)");
-      break;
-    default:
-      result += F(" (UNKNOWN)");
-  }
+  result += IRutils::acBoolToString(getPower(), F("Power"), false);
+  result += IRutils::acModeToString(getMode(), kToshibaAcAuto,
+                                    kToshibaAcCool, kToshibaAcHeat,
+                                    kToshibaAcDry, kToshibaAcAuto);
   result += F(", Temp: ");
   result += uint64ToString(this->getTemp());
   result += F("C, Fan: ");
@@ -371,36 +352,19 @@ String IRToshibaAC::toString(void) {
 bool IRrecv::decodeToshibaAC(decode_results* results, const uint16_t nbits,
                              const bool strict) {
   uint16_t offset = kStartOffset;
-  uint16_t dataBitsSoFar = 0;
-
-  // Have we got enough data to successfully decode?
-  if (results->rawlen < kToshibaACBits + kHeader + kFooter - 1)
-    return false;  // Can't possibly be a valid message.
 
   // Compliance
   if (strict && nbits != kToshibaACBits)
     return false;  // Must be called with the correct nr. of bytes.
 
-  // Header
-  if (!matchMark(results->rawbuf[offset++], kToshibaAcHdrMark)) return false;
-  if (!matchSpace(results->rawbuf[offset++], kToshibaAcHdrSpace)) return false;
-
-  // Data
-  for (uint8_t i = 0; i < kToshibaACStateLength; i++) {
-    // Read a byte's worth of data.
-    match_result_t data_result =
-        matchData(&(results->rawbuf[offset]), 8, kToshibaAcBitMark,
-                  kToshibaAcOneSpace, kToshibaAcBitMark, kToshibaAcZeroSpace);
-    if (data_result.success == false) return false;  // Fail
-    dataBitsSoFar += 8;
-    results->state[i] = (uint8_t)data_result.data;
-    offset += data_result.used;
-  }
-
-  // Footer
-  if (!matchMark(results->rawbuf[offset++], kToshibaAcBitMark)) return false;
-  if (!matchSpace(results->rawbuf[offset++], kToshibaAcMinGap)) return false;
-
+  // Match Header + Data + Footer
+  if (!matchGeneric(results->rawbuf + offset, results->state,
+                    results->rawlen - offset, nbits,
+                    kToshibaAcHdrMark, kToshibaAcHdrSpace,
+                    kToshibaAcBitMark, kToshibaAcOneSpace,
+                    kToshibaAcBitMark, kToshibaAcZeroSpace,
+                    kToshibaAcBitMark, kToshibaAcMinGap, true,
+                    kTolerance, kMarkExcess)) return false;
   // Compliance
   if (strict) {
     // Check that the checksum of the message is correct.
@@ -409,7 +373,7 @@ bool IRrecv::decodeToshibaAC(decode_results* results, const uint16_t nbits,
 
   // Success
   results->decode_type = TOSHIBA_AC;
-  results->bits = dataBitsSoFar;
+  results->bits = nbits;
   // No need to record the state as we stored it as we decoded it.
   // As we use result->state, we don't record value, address, or command as it
   // is a union data type.

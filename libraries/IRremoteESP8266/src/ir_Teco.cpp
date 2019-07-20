@@ -220,29 +220,10 @@ stdAc::state_t IRTecoAc::toCommon(void) {
 String IRTecoAc::toString(void) {
   String result = "";
   result.reserve(80);  // Reserve some heap for the string to reduce fragging.
-  result += F("Power: ");
-  result += (this->getPower() ? F("On") : F("Off"));
-  result += F(", Mode: ");
-  result += uint64ToString(this->getMode());
-  switch (this->getMode()) {
-    case kTecoAuto:
-      result += F(" (AUTO)");
-      break;
-    case kTecoCool:
-      result += F(" (COOL)");
-      break;
-    case kTecoHeat:
-      result += F(" (HEAT)");
-      break;
-    case kTecoDry:
-      result += F(" (DRY)");
-      break;
-    case kTecoFan:
-      result += F(" (FAN)");
-      break;
-    default:
-      result += F(" (UNKNOWN)");
-  }
+  result += IRutils::acBoolToString(getPower(), F("Power"), false);
+  result += IRutils::acModeToString(getMode(), kTecoAuto,
+                                    kTecoCool, kTecoHeat,
+                                    kTecoDry, kTecoFan);
   result += F(", Temp: ");
   result += uint64ToString(getTemp());
   result += F("C, Fan: ");
@@ -263,10 +244,8 @@ String IRTecoAc::toString(void) {
     default:
       result += F(" (UNKNOWN)");
   }
-  result += F(", Sleep: ");
-  result += (this->getSleep() ? F("On") : F("Off"));
-  result += F(", Swing: ");
-  result += (this->getSwing() ? F("On") : F("Off"));
+  result += IRutils::acBoolToString(getSleep(), F("Sleep"));
+  result += IRutils::acBoolToString(getSwing(), F("Swing"));
   return result;
 }
 
@@ -283,38 +262,22 @@ String IRTecoAc::toString(void) {
 // Status: STABLE / Tested.
 bool IRrecv::decodeTeco(decode_results* results,
                         const uint16_t nbits, const bool strict) {
-  // Check if can possibly be a valid Teco message.
-  if (results->rawlen < 2 * nbits + kHeader + kFooter - 1) return false;
   if (strict && nbits != kTecoBits) return false;  // Not what is expected
 
   uint64_t data = 0;
   uint16_t offset = kStartOffset;
-  match_result_t data_result;
-
-  // Header
-  if (!matchMark(results->rawbuf[offset++], kTecoHdrMark)) return false;
-  if (!matchSpace(results->rawbuf[offset++], kTecoHdrSpace)) return false;
-  // Data (35 bits)
-  data_result =
-      matchData(&(results->rawbuf[offset]), 35, kTecoBitMark, kTecoOneSpace,
-                kTecoBitMark, kTecoZeroSpace, kTolerance, kMarkExcess, false);
-  if (data_result.success == false) return false;
-  data = data_result.data;
-  offset += data_result.used;
-  uint16_t actualBits = data_result.used / 2;
-
-  // Footer.
-  if (!matchMark(results->rawbuf[offset++], kTecoBitMark)) return false;
-  if (offset < results->rawlen &&
-      !matchAtLeast(results->rawbuf[offset], kTecoGap)) return false;
-
-  // Compliance
-  if (actualBits < nbits) return false;
-  if (strict && actualBits != nbits) return false;  // Not as we expected.
+  // Match Header + Data + Footer
+  if (!matchGeneric(results->rawbuf + offset, &data,
+                    results->rawlen - offset, nbits,
+                    kTecoHdrMark, kTecoHdrSpace,
+                    kTecoBitMark, kTecoOneSpace,
+                    kTecoBitMark, kTecoZeroSpace,
+                    kTecoBitMark, kTecoGap, true,
+                    kTolerance, kMarkExcess, false)) return false;
 
   // Success
   results->decode_type = TECO;
-  results->bits = actualBits;
+  results->bits = nbits;
   results->value = data;
   results->address = 0;
   results->command = 0;

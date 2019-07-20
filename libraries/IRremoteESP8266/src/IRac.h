@@ -11,6 +11,7 @@
 #include "ir_Coolix.h"
 #include "ir_Daikin.h"
 #include "ir_Fujitsu.h"
+#include "ir_Electra.h"
 #include "ir_Goodweather.h"
 #include "ir_Gree.h"
 #include "ir_Haier.h"
@@ -19,6 +20,7 @@
 #include "ir_Midea.h"
 #include "ir_Mitsubishi.h"
 #include "ir_MitsubishiHeavy.h"
+#include "ir_Neoclima.h"
 #include "ir_Panasonic.h"
 #include "ir_Samsung.h"
 #include "ir_Sharp.h"
@@ -29,6 +31,10 @@
 #include "ir_Vestel.h"
 #include "ir_Whirlpool.h"
 
+// Constants
+const int8_t kGpioUnused = -1;
+
+// Class
 class IRac {
  public:
   explicit IRac(uint8_t pin);
@@ -41,18 +47,19 @@ class IRac {
               const bool light, const bool filter, const bool clean,
               const bool beep, const int16_t sleep = -1,
               const int16_t clock = -1);
-
+  bool sendAc(const stdAc::state_t desired, const stdAc::state_t *prev = NULL);
+  static bool cmpStates(const stdAc::state_t a, const stdAc::state_t b);
   static bool strToBool(const char *str, const bool def = false);
   static int16_t strToModel(const char *str, const int16_t def = -1);
   static stdAc::opmode_t strToOpmode(
-    const char *str, const stdAc::opmode_t def = stdAc::opmode_t::kAuto);
+      const char *str, const stdAc::opmode_t def = stdAc::opmode_t::kAuto);
   static stdAc::fanspeed_t strToFanspeed(
-    const char *str,
-    const stdAc::fanspeed_t def = stdAc::fanspeed_t::kAuto);
+      const char *str,
+      const stdAc::fanspeed_t def = stdAc::fanspeed_t::kAuto);
   static stdAc::swingv_t strToSwingV(
-    const char *str, const stdAc::swingv_t def = stdAc::swingv_t::kOff);
+      const char *str, const stdAc::swingv_t def = stdAc::swingv_t::kOff);
   static stdAc::swingh_t strToSwingH(
-    const char *str, const stdAc::swingh_t def = stdAc::swingh_t::kOff);
+      const char *str, const stdAc::swingh_t def = stdAc::swingh_t::kOff);
   static String boolToString(const bool value);
   static String opmodeToString(const stdAc::opmode_t mode);
   static String fanspeedToString(const stdAc::fanspeed_t speed);
@@ -85,6 +92,12 @@ class IRac {
               const bool quiet, const bool turbo, const bool econo,
               const bool clean);
 #endif  // SEND_DAIKIN
+#if SEND_DAIKIN160
+void daikin160(IRDaikin160 *ac,
+               const bool on, const stdAc::opmode_t mode,
+               const float degrees, const stdAc::fanspeed_t fan,
+               const stdAc::swingv_t swingv);
+#endif  // SEND_DAIKIN160
 #if SEND_DAIKIN2
   void daikin2(IRDaikin2 *ac,
                const bool on, const stdAc::opmode_t mode,
@@ -102,6 +115,13 @@ void daikin216(IRDaikin216 *ac,
                const stdAc::swingv_t swingv, const stdAc::swingh_t swingh,
                const bool quiet, const bool turbo);
 #endif  // SEND_DAIKIN216
+#if SEND_ELECTRA_AC
+void electra(IRElectraAc *ac,
+             const bool on, const stdAc::opmode_t mode,
+             const float degrees, const stdAc::fanspeed_t fan,
+             const stdAc::swingv_t swingv,
+             const stdAc::swingh_t swingh);
+#endif  // SEND_ELECTRA_AC
 #if SEND_FUJITSU_AC
   void fujitsu(IRFujitsuAC *ac, const fujitsu_ac_remote_model_t model,
                const bool on, const stdAc::opmode_t mode, const float degrees,
@@ -182,6 +202,13 @@ void daikin216(IRDaikin216 *ac,
                           const bool filter, const bool clean,
                           const int16_t sleep = -1);
 #endif  // SEND_MITSUBISHIHEAVY
+#if SEND_NEOCLIMA
+  void neoclima(IRNeoclimaAc *ac, const bool on, const stdAc::opmode_t mode,
+                const float degrees, const stdAc::fanspeed_t fan,
+                const stdAc::swingv_t swingv, const stdAc::swingh_t swingh,
+                const bool turbo, const bool light, const bool filter,
+                const int16_t sleep = -1);
+#endif  // SEND_NEOCLIMA
 #if SEND_PANASONIC_AC
   void panasonic(IRPanasonicAc *ac, const panasonic_ac_remote_model_t model,
                  const bool on, const stdAc::opmode_t mode, const float degrees,
@@ -240,5 +267,12 @@ void daikin216(IRDaikin216 *ac,
                  const bool turbo, const bool light,
                  const int16_t sleep = -1, const int16_t clock = -1);
 #endif  // SEND_WHIRLPOOL_AC
+static stdAc::state_t handleToggles(const stdAc::state_t desired,
+                                    const stdAc::state_t *prev = NULL);
 };  // IRac class
+
+namespace IRAcUtils {
+  String resultAcToString(const decode_results * const results);
+  bool decodeToState(const decode_results *decode, stdAc::state_t *result);
+}  // namespace IRAcUtils
 #endif  // IRAC_H_

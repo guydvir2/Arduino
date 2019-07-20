@@ -26,8 +26,6 @@ myJSON json(jfile, true);
 myIOT::myIOT(char *devTopic, char *key)
         : _failNTPcounter_inFlash(key){
         strcpy(_deviceName,devTopic); // for OTA only
-        // bootErrors [0]=0;
-
 }
 void myIOT::start_services(cb_func funct, char *ssid, char *password, char *mqtt_user, char *mqtt_passw, char *mqtt_broker) {
         mqtt_server = mqtt_broker;
@@ -162,52 +160,79 @@ void myIOT::networkStatus() {
         }
 }
 void myIOT::start_clock() {
-        int failcount=0;
+        int failcount;
         if (startNTP()) {   //NTP Succeed
                 _failNTP = false;
                 get_timeStamp();
                 strcpy(bootTime, timeStamp);
 
-                if(_failNTPcounter_inFlash.getValue(failcount)) {
-                        if (failcount!=0) {
-                                _failNTPcounter_inFlash.setValue(0);
-                        }
-                }
-                else{
+                _failNTPcounter_inFlash.getValue(failcount);
+                if (failcount!=0) {
                         _failNTPcounter_inFlash.setValue(0);
-                        strcat(bootErrors,"**Fail Write Flash NTP** ");
+                        Serial.println("0");
+                        Serial.println(failcount);
                 }
-
         }
         else{
-                strcat(bootErrors,"**FailNTP** ");
+                // strcat(bootErrors,"** Fail connecting NTP server** ");
+                Serial.println("2");
                 if (resetFailNTP) {
-                        if(_failNTPcounter_inFlash.getValue(failcount)) {
-                                if (failcount<3) {
-                                        _failNTPcounter_inFlash.setValue(failcount+1);
-                                        ESP.reset();
-                                }
-                        }
-                        else{
-                                _failNTPcounter_inFlash.setValue(1);
+                        _failNTPcounter_inFlash.getValue(failcount);
+                        if (failcount<3) {
+                                _failNTPcounter_inFlash.setValue(failcount+1);
+                                ESP.reset();
+                                Serial.println("4");
                         }
                 }
                 _failNTP = true;
         }
+
+        //         if(_failNTPcounter_inFlash.getValue(failcount)) {
+        //                 if (failcount!=0) {
+        //                         _failNTPcounter_inFlash.setValue(0);
+        //                         Serial.println("0");
+        //                         Serial.println(failcount);
+        //                 }
+        //         }
+        //         else{
+        //                 _failNTPcounter_inFlash.setValue(0);
+        //                 Serial.println("1");
+        //                 // strcat(bootErrors,"**Fail Write Flash NTP** ");
+        //         }
+        //
+        // }
+        // else{
+        //         // strcat(bootErrors,"** Fail connecting NTP server** ");
+        //         Serial.println("2");
+        //         if (resetFailNTP) {
+        //                 if(_failNTPcounter_inFlash.getValue(failcount)) {
+        //                         if (failcount<3) {
+        //                                 _failNTPcounter_inFlash.setValue(failcount+1);
+        //                                 ESP.reset();
+        //                                 Serial.println("4");
+        //                         }
+        //                 }
+        //                 else{
+        //                         _failNTPcounter_inFlash.setValue(1);
+        //                         Serial.println("5");
+        //                 }
+        //         }
+        //         _failNTP = true;
+
 }
 bool myIOT::startNTP() {
         byte x=0;
         byte retries = 5;
-        int delay_tries = 500;
+        int delay_tries = 300;
         char* NTPserver="pool.ntp.org";
 
         NTP.begin(NTPserver, 2, true);
-        // delay(delay_tries);
+        delay(delay_tries);
         time_t t=now();
 
         while (x < retries && year(t)==1970) {
                 NTP.begin(NTPserver, 2, true);
-                delay(delay_tries);
+                delay(delay_tries*(1.2*(x+1)));
                 t=now();
                 x+=1;
         }
@@ -215,8 +240,8 @@ bool myIOT::startNTP() {
                 NTP.setInterval(5, clockUpdateInt);
                 return 1;
         }
-        else {
-                strcat(bootErrors,"** NTP ERR ** ");
+        if (year(t)==1970) {
+                strcat(bootErrors,"** NTP Fail obtain valid Clock ** ");
                 return 0;
         }
 }
@@ -258,7 +283,6 @@ void myIOT::startMQTT() {
                 alternativeMQTTserver  =false;
                 stat = true;
         }
-
         // Set callback function
         if (stat) {
                 mqttClient.setCallback(std::bind(&myIOT::callback, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
@@ -442,7 +466,7 @@ void myIOT::pub_state(char *inmsg) {
 void myIOT::pub_err(char *inmsg) {
         char tmpmsg[250];
         get_timeStamp();
-        sprintf(tmpmsg, "[%s] [%s] [Error log:] %s", timeStamp, deviceTopic, inmsg );
+        sprintf(tmpmsg, "[%s] [%s] Error log: %s", timeStamp, deviceTopic, inmsg );
 
         if (mqttConnected == true) {
                 mqttClient.publish(_errorTopic, tmpmsg);
@@ -494,8 +518,6 @@ void myIOT::notifyOnline(){
 void myIOT::publish_errs(){
         if (strcmp(bootErrors,"")!=0 &&mqttConnected==true) {
                 pub_err(bootErrors);
-                // bootErrors[0]=0;
-
                 strcpy(bootErrors,"");
         }
 }
@@ -636,18 +658,32 @@ void FVars::format(){
 
 // ~~~~~~~~~~~ TimeOut Class ~~~~~~~~~~~~
 timeOUT::timeOUT(char* sw_num, int def_val)
-        : endTimeOUT_inFlash (_key1,sw_num), inCodeTimeOUT_inFlash(_key2,sw_num), updatedTimeOUT_inFlash(_key3,sw_num)
+        : endTimeOUT_inFlash(_key1,sw_num), inCodeTimeOUT_inFlash(_key2,sw_num), updatedTimeOUT_inFlash(_key3,sw_num)
 {
+        /* endTimeOUT_inFlash     -- Save clock when TO ends (sec from epoch)
+           inCodeTimeOUT_inFlash  -- save value of TO defined in code [ minutes]
+           updatedTimeOUT_inFlash -- value of TO defined using MQTT by user, overides inCode value [minutes]
+         */
+        // delay(500);
+        // inCodeTimeOUT_inFlash.printFile();
+
         int tempVal=0;
         inCode_timeout_value = def_val; //[min]
+        //
+        // if (inCodeTimeOUT_inFlash.getValue(tempVal)) {
+        //   Serial.println("succ indcode");
+        //         if (tempVal != inCode_timeout_value) {
+        //                 inCodeTimeOUT_inFlash.setValue(inCode_timeout_value);
+        //         }
+        // }
+        // else{
+        //         inCodeTimeOUT_inFlash.setValue(10);
+        //         Serial.println("fail indcode");
+        // }
 
-        if (inCodeTimeOUT_inFlash.getValue(tempVal)) {
-                if (tempVal != inCode_timeout_value) {
-                        inCodeTimeOUT_inFlash.setValue(inCode_timeout_value);
-                }
-        }
-        else{
-                inCodeTimeOUT_inFlash.setValue(0);
+        inCodeTimeOUT_inFlash.getValue(tempVal);
+        if (tempVal != inCode_timeout_value) {
+                inCodeTimeOUT_inFlash.setValue(inCode_timeout_value);
         }
 }
 bool timeOUT::looper(){

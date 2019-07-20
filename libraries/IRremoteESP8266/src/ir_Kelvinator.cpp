@@ -416,29 +416,10 @@ stdAc::state_t IRKelvinatorAC::toCommon(void) {
 String IRKelvinatorAC::toString(void) {
   String result = "";
   result.reserve(160);  // Reserve some heap for the string to reduce fragging.
-  result += F("Power: ");
-  result += getPower() ? F("On") : F("Off");
-  result += F(", Mode: ");
-  result += uint64ToString(getMode());
-  switch (getMode()) {
-    case kKelvinatorAuto:
-      result += F(" (AUTO)");
-      break;
-    case kKelvinatorCool:
-      result += F(" (COOL)");
-      break;
-    case kKelvinatorHeat:
-      result += F(" (HEAT)");
-      break;
-    case kKelvinatorDry:
-      result += F(" (DRY)");
-      break;
-    case kKelvinatorFan:
-      result += F(" (FAN)");
-      break;
-    default:
-      result += F(" (UNKNOWN)");
-  }
+  result += IRutils::acBoolToString(getPower(), F("Power"), false);
+  result += IRutils::acModeToString(getMode(), kKelvinatorAuto, kKelvinatorCool,
+                                    kKelvinatorHeat, kKelvinatorDry,
+                                    kKelvinatorFan);
   result += F(", Temp: ");
   result += uint64ToString(getTemp());
   result += F("C, Fan: ");
@@ -451,20 +432,14 @@ String IRKelvinatorAC::toString(void) {
       result += F(" (MAX)");
       break;
   }
-  result += F(", Turbo: ");
-  result += getTurbo() ? F("On") : F("Off");
-  result += F(", Quiet: ");
-  result += getQuiet() ? F("On") : F("Off");
-  result += F(", XFan: ");
-  result += getXFan() ? F("On") : F("Off");
-  result += F(", IonFilter: ");
-  result += getIonFilter() ? F("On") : F("Off");
-  result += F(", Light: ");
-  result += getLight() ? F("On") : F("Off");
-  result += F(", Swing (Horizontal): ");
-  result += getSwingHorizontal() ? F("On") : F("Off");
-  result += F(", Swing (Vertical): ");
-  result += getSwingVertical() ? F("On") : F("Off");
+  result += IRutils::acBoolToString(getTurbo(), F("Turbo"));
+  result += IRutils::acBoolToString(getQuiet(), F("Quiet"));
+  result += IRutils::acBoolToString(getXFan(), F("XFan"));
+  result += IRutils::acBoolToString(getIonFilter(), F("IonFilter"));
+  result += IRutils::acBoolToString(getLight(), F("Light"));
+  result += IRutils::acBoolToString(getSwingHorizontal(),
+                                    F("Swing (Horizontal)"));
+  result += IRutils::acBoolToString(getSwingVertical(), F("Swing (Vertical)"));
   return result;
 }
 
@@ -487,101 +462,66 @@ bool IRrecv::decodeKelvinator(decode_results *results, uint16_t nbits,
   if (strict && nbits != kKelvinatorBits)
     return false;  // Not strictly a Kelvinator message.
 
-  uint32_t data;
   uint16_t offset = kStartOffset;
 
   // There are two messages back-to-back in a full Kelvinator IR message
   // sequence.
-  int8_t state_pos = 0;
+  int8_t pos = 0;
   for (uint8_t s = 0; s < 2; s++) {
     match_result_t data_result;
 
-    // Header
-    if (!matchMark(results->rawbuf[offset], kKelvinatorHdrMark)) return false;
-    // Calculate how long the lowest tick time is based on the header mark.
-    uint32_t mark_tick =
-        results->rawbuf[offset++] * kRawTick / kKelvinatorHdrMarkTicks;
-    if (!matchSpace(results->rawbuf[offset], kKelvinatorHdrSpace)) return false;
-    // Calculate how long the common tick time is based on the header space.
-    uint32_t space_tick =
-        results->rawbuf[offset++] * kRawTick / kKelvinatorHdrSpaceTicks;
-
-    // Data (Command) (32 bits)
-    data_result = matchData(
-        &(results->rawbuf[offset]), 32, kKelvinatorBitMarkTicks * mark_tick,
-        kKelvinatorOneSpaceTicks * space_tick,
-        kKelvinatorBitMarkTicks * mark_tick,
-        kKelvinatorZeroSpaceTicks * space_tick, kTolerance, kMarkExcess, false);
-    if (data_result.success == false) return false;
-    data = data_result.data;
-    offset += data_result.used;
-
-    // Record command data in the state.
-    for (uint16_t i = 0; i < 4; i++, data >>= 8)
-      results->state[state_pos + i] = data & 0xFF;
-    state_pos += 4;
+    uint16_t used;
+    // Header + Data Block #1 (32 bits)
+    used = matchGeneric(results->rawbuf + offset, results->state + pos,
+                        results->rawlen - offset, 32,
+                        kKelvinatorHdrMark, kKelvinatorHdrSpace,
+                        kKelvinatorBitMark, kKelvinatorOneSpace,
+                        kKelvinatorBitMark, kKelvinatorZeroSpace,
+                        0, 0, false,
+                        kTolerance, kMarkExcess, false);
+    if (used == 0) return false;
+    offset += used;
+    pos += 4;
 
     // Command data footer (3 bits, B010)
     data_result = matchData(
         &(results->rawbuf[offset]), kKelvinatorCmdFooterBits,
-        kKelvinatorBitMarkTicks * mark_tick,
-        kKelvinatorOneSpaceTicks * space_tick,
-        kKelvinatorBitMarkTicks * mark_tick,
-        kKelvinatorZeroSpaceTicks * space_tick, kTolerance, kMarkExcess, false);
+        kKelvinatorBitMark, kKelvinatorOneSpace,
+        kKelvinatorBitMark, kKelvinatorZeroSpace,
+        kTolerance, kMarkExcess, false);
     if (data_result.success == false) return false;
     if (data_result.data != kKelvinatorCmdFooter) return false;
     offset += data_result.used;
 
     // Interdata gap.
-    if (!matchMark(results->rawbuf[offset++],
-                   kKelvinatorBitMarkTicks * mark_tick))
+    if (!matchMark(results->rawbuf[offset++], kKelvinatorBitMark))
       return false;
-    if (!matchSpace(results->rawbuf[offset++],
-                    kKelvinatorGapSpaceTicks * space_tick))
+    if (!matchSpace(results->rawbuf[offset++], kKelvinatorGapSpace))
       return false;
 
     // Data (Options) (32 bits)
-    data_result = matchData(
-        &(results->rawbuf[offset]), 32, kKelvinatorBitMarkTicks * mark_tick,
-        kKelvinatorOneSpaceTicks * space_tick,
-        kKelvinatorBitMarkTicks * mark_tick,
-        kKelvinatorZeroSpaceTicks * space_tick, kTolerance, kMarkExcess, false);
-    if (data_result.success == false) return false;
-    data = data_result.data;
-    offset += data_result.used;
-
-    // Record option data in the state.
-    for (uint16_t i = 0; i < 4; i++, data >>= 8)
-      results->state[state_pos + i] = data & 0xFF;
-    state_pos += 4;
-
-    // Inter-sequence gap. (Double length gap)
-    if (!matchMark(results->rawbuf[offset++],
-                   kKelvinatorBitMarkTicks * mark_tick))
-      return false;
-    if (s == 0) {
-      if (!matchSpace(results->rawbuf[offset++],
-                      kKelvinatorGapSpaceTicks * space_tick * 2))
-        return false;
-    } else {
-      if (offset <= results->rawlen &&
-          !matchAtLeast(results->rawbuf[offset],
-                        kKelvinatorGapSpaceTicks * 2 * space_tick))
-        return false;
-    }
+    used = matchGeneric(results->rawbuf + offset, results->state + pos,
+                        results->rawlen - offset, 32,
+                        0, 0,
+                        kKelvinatorBitMark, kKelvinatorOneSpace,
+                        kKelvinatorBitMark, kKelvinatorZeroSpace,
+                        kKelvinatorBitMark, kKelvinatorGapSpace * 2,
+                        s > 0,
+                        kTolerance, kMarkExcess, false);
+    if (used == 0) return false;
+    offset += used;
+    pos += 4;
   }
 
   // Compliance
   if (strict) {
-    // Correct size/length)
-    if (state_pos != kKelvinatorStateLength) return false;
     // Verify the message's checksum is correct.
     if (!IRKelvinatorAC::validChecksum(results->state)) return false;
   }
 
   // Success
   results->decode_type = decode_type_t::KELVINATOR;
-  results->bits = state_pos * 8;
+  results->bits = nbits;
   // No need to record the state as we stored it as we decoded it.
   // As we use result->state, we don't record value, address, or command as it
   // is a union data type.

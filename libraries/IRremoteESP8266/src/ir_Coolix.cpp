@@ -10,12 +10,6 @@
 #include "IRsend.h"
 #include "IRutils.h"
 
-//             CCCCC   OOOOO   OOOOO  LL      IIIII XX    XX
-//            CC    C OO   OO OO   OO LL       III   XX  XX
-//            CC      OO   OO OO   OO LL       III    XXXX
-//            CC    C OO   OO OO   OO LL       III   XX  XX
-//             CCCCC   OOOO0   OOOO0  LLLLLLL IIIII XX    XX
-
 // Coolix A/C / heatpump added by (send) bakrus & (decode) crankyoldgit
 //
 // Supports:
@@ -431,13 +425,8 @@ stdAc::state_t IRCoolixAC::toCommon(void) {
 String IRCoolixAC::toString() {
   String result = "";
   result.reserve(100);  // Reserve some heap for the string to reduce fragging.
-  result += F("Power: ");
-  if (getPower()) {
-    result += F("On");
-  } else {
-    result += F("Off");
-    return result;  // If it's off, there is no other info.
-  }
+  result += IRutils::acBoolToString(getPower(), F("Power"), false);
+  if (!getPower()) return result;  // If it's off, there is no other info.
   // Special modes.
   if (getSwing()) {
     result += F(", Swing: Toggle");
@@ -459,27 +448,9 @@ String IRCoolixAC::toString() {
     result += F(", Clean: Toggle");
     return result;
   }
-  result += F(", Mode: ");
-  result += uint64ToString(getMode());
-  switch (getMode()) {
-    case kCoolixAuto:
-      result += F(" (AUTO)");
-      break;
-    case kCoolixCool:
-      result += F(" (COOL)");
-      break;
-    case kCoolixHeat:
-      result += F(" (HEAT)");
-      break;
-    case kCoolixDry:
-      result += F(" (DRY)");
-      break;
-    case kCoolixFan:
-      result += F(" (FAN)");
-      break;
-    default:
-      result += F(" (UNKNOWN)");
-  }
+  result += IRutils::acModeToString(getMode(), kCoolixAuto,
+                                    kCoolixCool, kCoolixHeat,
+                                    kCoolixDry, kCoolixFan);
   result += F(", Fan: ");
   result += uint64ToString(getFan());
   switch (getFan()) {
@@ -512,11 +483,7 @@ String IRCoolixAC::toString() {
     result += uint64ToString(getTemp());
     result += 'C';
   }
-  result += F(", Zone Follow: ");
-  if (getZoneFollow())
-    result += F("On");
-  else
-    result += F("Off");
+  result += IRutils::acBoolToString(getZoneFollow(), F("Zone Follow"));
   result += F(", Sensor Temp: ");
   if (getSensorTemp() > kCoolixSensorTempMax)
     result += F("Ignored");
