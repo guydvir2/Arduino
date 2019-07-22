@@ -8,7 +8,7 @@
 
 //~~~~~~~~ Services ~~~~~~~~~~~
 #define USE_SERIAL       true
-#define USE_WDT          true
+#define USE_WDT          false
 #define USE_OTA          true
 #define USE_RESETKEEPER  true
 #define USE_FAILNTP      true
@@ -141,28 +141,37 @@ void recoverReset(){
            "online" to "offline".
          */
         // Wait for indication if it was false reset(1) or
+        char mqttmsg[30];
         if(iot.mqtt_detect_reset != 2) {
                 badReboot = iot.mqtt_detect_reset;
                 checkbadReboot = false;
                 int ext_timeout;
                 for (int i=0; i<NUM_SWITCHES; i++) {
+                        Serial.print("Switch #");
+                        Serial.print(i);
+                        Serial.print(": ");
                         if (badReboot == 0) {                  // PowerOn - not a quickReboot
-                                if (TO[i]->updatedTimeOUT_inFlash.getValue(ext_timeout)) { // Read Flash
-                                        if (ext_timeout!=0) {  // coded TO was changed by user
-                                                TO[i]->inCode_timeout_value = ext_timeout;
-                                                iot.pub_err("TimeOut updated by User");
-                                        }
-                                        TO[i]->restart_to();
+                                if(TO[i]->updatedTimeOUT_inFlash.getValue(ext_timeout)){  // Read Flash
+                                if (ext_timeout!=0) {          // coded TO was changed by user
+                                        TO[i]->inCode_timeout_value = ext_timeout;
+                                        sprintf(mqttmsg,"Switch[#%d]-Using Updated TimeOut",i);
+                                        iot.pub_err(mqttmsg);
                                 }
-                                else{   // fail to read FLASH value
-                                        TO[i]->updatedTimeOUT_inFlash.setValue(0);
-                                        iot.pub_err("Fail reading updated TimeOut");
-                                }
+                                TO[i]->restart_to();
+                                Serial.println("PowerOn Boot");
                         }
-                        else {                       // badReboot detected
-                                TO[i]->begin(false); // badreboot detected - don't restart TO if already ended
-                                iot.pub_err("badReboot");
+
+
                         }
+                        else {
+                                TO[i]->begin();
+                                // TO[i]->restart_to();
+                                Serial.println("BadReboot");
+                        }
+                }
+                if (badReboot !=0) {                               // badReboot detected
+                        // TO[i]->begin(false);         // badreboot detected - don't restart TO if already ended
+                        iot.pub_err("Booting after badReset");
                 }
         }
 }
@@ -170,17 +179,15 @@ void timeOutLoop(){
         char msg_t[50];
         char msg[50];
 
-        char *states[2]={"off","on"};
-
         if(iot.mqtt_detect_reset != 2) {
                 for(int i=0; i<NUM_SWITCHES; i++) {
                         swState[i] = TO[i]->looper();
                         if (swState[i]!=last_swState[i]) { // change state (ON <-->OFF)
                                 if (swState[i]==1) {    // swithc ON
-                                        switchIt("TimeOut", i, states[1]);
+                                        switchIt("TimeOut", i, "on");
                                 }
                                 else{ // switch OFF
-                                        switchIt("TimeOut",i,states[0]);
+                                        switchIt("TimeOut",i,"off");
                                 }
                         }
                         last_swState[i] = swState[i];
@@ -307,7 +314,7 @@ void addiotnalMQTT(char incoming_msg[50]) {
 }
 void setup() {
         startGPIOs();
-        quickPwrON();
+        // quickPwrON();
 
         iot.useSerial      = USE_SERIAL;
         iot.useWDT         = USE_WDT;
