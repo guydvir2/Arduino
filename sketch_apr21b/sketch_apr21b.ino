@@ -2,21 +2,21 @@
 #include <Arduino.h>
 #include <TimeLib.h>
 
-#define VER  "NodeMCU_2.2"
+#define VER  "NodeMCU_2.3"
 
 // ********** myIOT ***********
 
 //~~~~~~~~ Services ~~~~~~~~~~~
 #define USE_SERIAL       true
-#define USE_WDT          false
+#define USE_WDT          true
 #define USE_OTA          true
 #define USE_RESETKEEPER  true
 #define USE_FAILNTP      true
 
 // ~~~~~~~ MQTT Topics ~~~~~~
-#define DEVICE_TOPIC "basic"
+#define DEVICE_TOPIC "TimeOut"
 #define MQTT_PREFIX  "myHome"
-#define MQTT_GROUP   "no_group"
+#define MQTT_GROUP   "TestBed"
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 #define ADD_MQTT_FUNC addiotnalMQTT
@@ -27,10 +27,10 @@ myIOT iot(DEVICE_TOPIC);
 
 // ******** timeOUT  *********
 #define TIMEOUT_SW0      1 // mins
-#define TIMEOUT_SW1      2 // mins
+#define TIMEOUT_SW1      1 // mins
 
-int CLOCK_ON[2] ={12,53};
-int CLOCK_OFF[2]={12,55};
+int CLOCK_ON[2] ={22,40};
+int CLOCK_OFF[2]={22,41};
 
 timeOUT timeOut_SW0("SW0",TIMEOUT_SW0);
 timeOUT timeOut_SW1("SW1",TIMEOUT_SW1);
@@ -65,7 +65,7 @@ bool last_swState [NUM_SWITCHES];
 bool inputs_lastState[NUM_SWITCHES];
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-
+// ~~~~~~~~ HW Switching ~~~~~~~~
 void startGPIOs() {
         for (int i = 0; i < NUM_SWITCHES; i++) {
                 pinMode(relays[i], OUTPUT);
@@ -78,120 +78,6 @@ void startGPIOs() {
                 swState [i] = 0;
                 last_swState [i] = 0;
 
-        }
-}
-void quickPwrON(){
-        /*
-           power on before iot starts,
-           using the fact that endTimeOUT_inFlash contains value
-           other than 0
-         */
-        int temp=0;
-        for(int i=0; i<NUM_SWITCHES; i++) {
-                TO[i]->endTimeOUT_inFlash.getValue(temp);
-                if (temp>0) {
-                        digitalWrite(1, HIGH);
-                }
-                else{
-                        digitalWrite(2, LOW);
-                }
-        }
-}
-void switchIt(char *type, int sw_num, char *dir) {
-        char mqttmsg[150];
-        char states[50];
-        char tempstr[50];
-
-        if (sw_num < NUM_SWITCHES && sw_num >= 0) {
-                if (strcmp(dir, "on") == 0 || strcmp(dir, "off") == 0) {
-                        digitalWrite(relays[sw_num], RelayOn);
-                        if (strcmp(type, "TimeOut") == 0) {
-                                char msg[20];
-                                char msg_t[20];
-
-                                if (strcmp(dir, "on") == 0) {
-                                        TO[sw_num]->convert_epoch2clock(now()+TO[sw_num]->remain(),now(), msg_t, msg);
-                                        sprintf(mqttmsg, "%s: Switch[#%d] [%s] [%s]", type, sw_num, dir,msg_t);
-                                }
-                                else{
-                                        sprintf(mqttmsg, "%s: Switch[#%d] [%s]", type, sw_num, dir);
-
-                                }
-                        }
-                        else {
-                                sprintf(mqttmsg, "%s: Switch[#%d] [%s]", type, sw_num, dir);
-                        }
-                }
-                iot.pub_msg(mqttmsg);
-
-                sprintf(states,"");
-                for (int i = 0; i < NUM_SWITCHES; i++) {
-                        sprintf(tempstr, "[%s]", !digitalRead(relays[i]) ? "On" : "Off");
-                        strcat(states, tempstr);
-                }
-                iot.pub_state(states);
-        }
-}
-void recoverReset(){
-        /*
-           Using KeepAlive Service.
-           This function determines if boot up caused be a regular PowerOn or caused
-           by a power glich.
-           The criteria is whther KeepAlive value was changed from
-           "online" to "offline".
-         */
-        // Wait for indication if it was false reset(1) or
-        char mqttmsg[30];
-        if(iot.mqtt_detect_reset != 2) {
-                badReboot = iot.mqtt_detect_reset;
-                checkbadReboot = false;
-                int ext_timeout;
-                for (int i=0; i<NUM_SWITCHES; i++) {
-                        Serial.print("Switch #");
-                        Serial.print(i);
-                        Serial.print(": ");
-                        if (badReboot == 0) {                  // PowerOn - not a quickReboot
-                                if(TO[i]->updatedTimeOUT_inFlash.getValue(ext_timeout)){  // Read Flash
-                                if (ext_timeout!=0) {          // coded TO was changed by user
-                                        TO[i]->inCode_timeout_value = ext_timeout;
-                                        sprintf(mqttmsg,"Switch[#%d]-Using Updated TimeOut",i);
-                                        iot.pub_err(mqttmsg);
-                                }
-                                TO[i]->restart_to();
-                                Serial.println("PowerOn Boot");
-                        }
-
-
-                        }
-                        else {
-                                TO[i]->begin();
-                                // TO[i]->restart_to();
-                                Serial.println("BadReboot");
-                        }
-                }
-                if (badReboot !=0) {                               // badReboot detected
-                        // TO[i]->begin(false);         // badreboot detected - don't restart TO if already ended
-                        iot.pub_err("Booting after badReset");
-                }
-        }
-}
-void timeOutLoop(){
-        char msg_t[50];
-        char msg[50];
-
-        if(iot.mqtt_detect_reset != 2) {
-                for(int i=0; i<NUM_SWITCHES; i++) {
-                        swState[i] = TO[i]->looper();
-                        if (swState[i]!=last_swState[i]) { // change state (ON <-->OFF)
-                                if (swState[i]==1) {    // swithc ON
-                                        switchIt("TimeOut", i, "on");
-                                }
-                                else{ // switch OFF
-                                        switchIt("TimeOut",i,"off");
-                                }
-                        }
-                        last_swState[i] = swState[i];
-                }
         }
 }
 void checkSwitch_Pressed() {
@@ -218,6 +104,121 @@ void checkSwitch_Pressed() {
                 }
         }
 }
+void quickPwrON(){
+        /*
+           power on before iot starts,
+           using the fact that endTimeOUT_inFlash contains value
+           other than 0
+         */
+        int temp=0;
+        for(int i=0; i<NUM_SWITCHES; i++) {
+                TO[i]->endTimeOUT_inFlash.getValue(temp);
+                if (temp>0) {
+                        digitalWrite(1, HIGH);
+                }
+                else{
+                        digitalWrite(2, LOW);
+                }
+        }
+}
+void switchIt(char *type, int sw_num, char *dir) {
+        char mqttmsg[150];
+        char states[50];
+        char tempstr[50];
+        int a=-1;
+
+        if (strcmp(dir,"on")==0) {
+                a=1;
+        }
+        else if (strcmp(dir,"off")==0) {
+                a=0;
+        }
+
+        if (sw_num < NUM_SWITCHES && sw_num >= 0) {
+                digitalWrite(relays[sw_num], a);
+                if (strcmp(type, "TimeOut") == 0) {
+                        char msg[20];
+                        char msg_t[20];
+
+                        if (a==1) {         //TO switches ON
+                                TO[sw_num]->convert_epoch2clock(now()+TO[sw_num]->remain(),now(), msg_t, msg);
+                                sprintf(mqttmsg, "%s: Switch[#%d] [%s] [%s]", type, sw_num, dir,msg_t);
+                        }
+                        else if (a==0) {        // TO switches off
+                                sprintf(mqttmsg, "%s: Switch[#%d] [%s]", type, sw_num, dir);
+                        }
+                }
+                else if (a>=0) {
+                        sprintf(mqttmsg, "%s: Switch[#%d] [%s]", type, sw_num, dir);
+                }         // regular ON/OFF mode
+                iot.pub_msg(mqttmsg);
+
+                sprintf(states,"");
+                for (int i = 0; i < NUM_SWITCHES; i++) {
+                        sprintf(tempstr, "[%s]", !digitalRead(relays[i]) ? "ON" : "OFF");
+                        strcat(states, tempstr);
+                }
+                iot.pub_state(states);
+        }
+}
+
+// ~~~~~~~~ TimeOut funcs ~~~~~~~~
+void recoverReset(){
+        /*
+           Using KeepAlive Service.
+           This function determines if boot up caused be a regular PowerOn or caused
+           by a power glich.
+           The criteria is whther KeepAlive value was changed from
+           "online" to "offline".
+         */
+        // Wait for indication if it was false reset(1) or
+        char mqttmsg[30];
+        if(iot.mqtt_detect_reset != 2) {
+                badReboot = iot.mqtt_detect_reset;
+                checkbadReboot = false;
+                int ext_timeout;
+                for (int i=0; i<NUM_SWITCHES; i++) {
+                        if (badReboot == 0) {                  // PowerOn - not a quickReboot
+                                if(TO[i]->updatedTimeOUT_inFlash.getValue(ext_timeout)) {  // Read Flash
+                                        if (ext_timeout!=0) {  // coded TO was changed by user
+                                                TO[i]->inCode_timeout_value = ext_timeout;
+                                                sprintf(mqttmsg,"Switch[#%d]-Using Updated TimeOut",i);
+                                                iot.pub_err(mqttmsg);
+                                        }
+                                        TO[i]->restart_to();
+                                }
+                                else{
+                                        TO[i]->updatedTimeOUT_inFlash.setValue(0);
+                                }
+                        }
+                        else {
+                                TO[i]->begin(false);
+                        }
+                }
+                if (badReboot !=0) {                               // badReboot detected
+                        iot.pub_err("badReset");
+                }
+        }
+}
+void timeOutLoop(){
+        char msg_t[50];
+        char msg[50];
+
+        if(iot.mqtt_detect_reset != 2) {
+                for(int i=0; i<NUM_SWITCHES; i++) {
+                        swState[i] = TO[i]->looper();
+                        if (swState[i]!=last_swState[i]) { // change state (ON <-->OFF)
+                                if (swState[i]==1) {    // swithc ON
+                                        switchIt("TimeOut", i, "on");
+                                }
+                                else{ // switch OFF
+                                        switchIt("TimeOut",i,"off");
+                                }
+                        }
+                        last_swState[i] = swState[i];
+                }
+        }
+}
 void daily_timeouts(int toff_vect[2],int ton_vect[2], byte i=0){
         time_t t=now();
         if (hour(t)==toff_vect[0] && minute(t)==toff_vect[1] && second(t)<2) {
@@ -231,6 +232,8 @@ void daily_timeouts(int toff_vect[2],int ton_vect[2], byte i=0){
                 }
         }
 }
+
+// ~~~~~~~~~~~~~ IOT ~~~~~~~~~~~~~
 void addiotnalMQTT(char incoming_msg[50]) {
 
         char msg[150];
@@ -312,10 +315,7 @@ void addiotnalMQTT(char incoming_msg[50]) {
                 }
         }
 }
-void setup() {
-        startGPIOs();
-        // quickPwrON();
-
+void startIOTservices(){
         iot.useSerial      = USE_SERIAL;
         iot.useWDT         = USE_WDT;
         iot.useOTA         = USE_OTA;
@@ -326,11 +326,17 @@ void setup() {
         iot.start_services(ADD_MQTT_FUNC);
 
 }
+
+void setup() {
+        startGPIOs();
+        quickPwrON();
+        startIOTservices();
+}
 void loop() {
         iot.looper(); // check wifi, mqtt, wdt
         timeOutLoop();
 
-        if (checkbadReboot == true) {
+        if (checkbadReboot == true && USE_RESETKEEPER == true) {
                 recoverReset();
         }
         if (USE_DAILY_TO == true) {

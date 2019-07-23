@@ -29,7 +29,7 @@ char _key[20];
 
 class myIOT
 {
-static const int MaxTopicLength = 32; //topics
+static const int MaxTopicLength = 64; //topics
 
 public:
 myIOT(char *devTopic, char *key="failNTPcount");
@@ -64,7 +64,7 @@ char prefixTopic  [MaxTopicLength];
 char deviceTopic  [MaxTopicLength];
 char addGroupTopic[MaxTopicLength];
 
-const char *ver     = "iot_3.6";
+const char *ver     = "iot_3.7";
 char timeStamp[20];
 long updated_bootTime  = 0;
 int resetIntervals     = 10;

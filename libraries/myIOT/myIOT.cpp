@@ -167,28 +167,6 @@ void myIOT::start_clock() {
                 _failNTP = false;
                 get_timeStamp();
                 strcpy(bootTime, timeStamp);
-
-                //         _failNTPcounter_inFlash.getValue(failcount);
-                //         if (failcount!=0) {
-                //                 _failNTPcounter_inFlash.setValue(0);
-                //                 Serial.println("0");
-                //                 Serial.println(failcount);
-                //         }
-                // }
-                // else{
-                //         // strcat(bootErrors,"** Fail connecting NTP server** ");
-                //         Serial.println("2");
-                //         if (resetFailNTP) {
-                //                 _failNTPcounter_inFlash.getValue(failcount);
-                //                 if (failcount<3) {
-                //                         _failNTPcounter_inFlash.setValue(failcount+1);
-                //                         ESP.reset();
-                //                         Serial.println("4");
-                //                 }
-                //         }
-                //         _failNTP = true;
-                // }
-
                 if(_failNTPcounter_inFlash.getValue(failcount)) {
                         if (failcount!=0) {
                                 _failNTPcounter_inFlash.setValue(0);
@@ -201,10 +179,9 @@ void myIOT::start_clock() {
                         Serial.println("fail get flash NTP failcount");
                         // strcat(bootErrors,"**Fail Write Flash NTP** ");
                 }
-
         }
         else{
-                // strcat(bootErrors,"** Fail connecting NTP server** ");
+                strcat(bootErrors,"** Fail connecting NTP server** ");
                 Serial.println("** Fail connecting NTP server**");
                 if (resetFailNTP) {
                         if(_failNTPcounter_inFlash.getValue(failcount)) {
@@ -332,8 +309,6 @@ int myIOT::subscribeMQTT() {
                                 for (int i = 0; i < sizeof(topicArry) / sizeof(char *); i++) {
                                         if (strcmp(topicArry[i],"")!=0) {
                                                 mqttClient.subscribe(topicArry[i]);
-                                                // sprintf(msg, "Subscribed to %s", topicArry[i]);
-                                                // Serial.println(msg);
                                         }
                                 }
 
@@ -389,7 +364,7 @@ void myIOT::createTopics() {
 
 }
 void myIOT::callback(char* topic, byte* payload, unsigned int length) {
-        char incoming_msg[50];
+        char incoming_msg[150];
         char state[5];
         char state2[5];
         char msg2[100];
@@ -712,7 +687,7 @@ bool timeOUT::begin(bool newReboot){   // NewReboot come to not case of sporadic
                    as a new Timeout Task.
                  */
                 else if (_savedTO == 0 && newReboot == true) {   // fresh start
-                        if (inCode_timeout_value != 0) {
+                        if (inCode_timeout_value != 0) {         // Normal boot with inCode Timeout
                                 setNewTimeout(inCode_timeout_value);
                                 return 1;
                         }
