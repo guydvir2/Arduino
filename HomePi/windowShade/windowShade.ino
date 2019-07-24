@@ -1,19 +1,25 @@
 #include <myIOT.h>
 #include <Arduino.h>
 
-//####################################################
-#define DEVICE_TOPIC "HomePi/Dvir/Windows/SaloonDual2"
-//must be defined to use myIOT
-#define ADD_MQTT_FUNC addiotnalMQTT
-//~~~
-#define USE_SERIAL       true
-#define USE_WDT          true
-#define USE_OTA          true
+
+//~~~~~~~~~~~~~~ myIOT  ~~~~~~~~~~~~~~~~~~~~~
+#define DEVICE_TOPIC        "FamilyRoom"
+#define MQTT_PREFIX         "HomePi/Dvir"
+#define MQTT_GROUP          "Windows"
+#define ADD_MQTT_FUNC       addiotnalMQTT
+#define USE_SERIAL          false
+#define USE_WDT             true
+#define USE_OTA             true
+#define USE_FAT             false // Flash Assist
+#define USE_RESETKEEPER     false
+#define USE_FAILNTP         true
+
+#define VER                "NodeMCU_3.8"
+myIOT iot(DEVICE_TOPIC);
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 #define USE_MAN_RESET    false
 #define USE_BOUNCE_DEBUG false
-
-#define VER "NodeMCU_3.7"
-//####################################################
 
 // state definitions
 #define RelayOn  LOW
@@ -43,14 +49,20 @@ const int timeInterval_resetPress = 1500; // time between consq presses to init 
 const int deBounceInt = 50;
 
 
-myIOT iot(DEVICE_TOPIC);
+void startIOTservices(){
+        iot.useSerial      = USE_SERIAL;
+        iot.useWDT         = USE_WDT;
+        iot.useOTA         = USE_OTA;
+        iot.useResetKeeper = USE_RESETKEEPER;
+        iot.resetFailNTP   = USE_FAILNTP;
+        strcpy(iot.prefixTopic, MQTT_PREFIX);
+        strcpy(iot.addGroupTopic, MQTT_GROUP);
+        iot.start_services(ADD_MQTT_FUNC);
 
+}
 void setup() {
         startGPIOs();
-        iot.useSerial = USE_SERIAL;
-        iot.useWDT = USE_WDT;
-        iot.useOTA = USE_OTA;
-        iot.start_services(ADD_MQTT_FUNC);
+        startIOTservices();
 }
 
 // ~~~~~~~~~ StartUp ~~~~~~~~~~~~
@@ -226,16 +238,12 @@ void addiotnalMQTT(char incoming_msg[50]) {
         else if (strcmp(incoming_msg, "up") == 0 || strcmp(incoming_msg, "down") == 0 || strcmp(incoming_msg, "off") == 0) {
                 switchIt("MQTT", incoming_msg);
         }
-        else if (strcmp(incoming_msg, "pins") == 0 ) {
-                sprintf(msg, "Switch: Up[%d] Down[%d], Relay: Up[%d] Down[%d]", inputUpPin, inputDownPin, outputUpPin, outputDownPin);
-                iot.pub_msg(msg);
-        }
         else if (strcmp(incoming_msg, "pbit") == 0 ) {
                 iot.pub_msg("PowerOnBit");
                 PBit();
         }
         else if (strcmp(incoming_msg, "ver") == 0 ) {
-                sprintf(msg, "ver:[%s], lib:[%s], WDT:[%d], OTA:[%d], SERIAL:[%d], MAN_RESET:[%d]", VER, iot.ver, USE_WDT, USE_OTA, USE_SERIAL, USE_MAN_RESET);
+                sprintf(msg, "ver:[%s], lib:[%s], WDT:[%d], OTA:[%d], SERIAL:[%d], MAN_RESET:[%d],ResetKeeper[%d], FailNTP[%d]", VER, iot.ver, USE_WDT, USE_OTA, USE_SERIAL, USE_MAN_RESET, USE_RESETKEEPER, USE_FAILNTP);
                 iot.pub_msg(msg);
         }
 }
