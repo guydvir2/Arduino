@@ -2,20 +2,27 @@
 #include <Arduino.h>
 
 //####################################################
-#define DEVICE_TOPIC      "HomePi/Dvir/WaterBoiler"
-#define USE_SERIAL        false
-#define USE_WDT           true
-#define USE_OTA           true
-#define USE_BOUNCE_DEBUG  false
-#define USE_OLED          true
+#define DEVICE_TOPIC        "WaterBoiler"
+#define MQTT_PREFIX         "HomePi/Dvir"
+#define MQTT_GROUP          ""
+#define ADD_MQTT_FUNC       addiotnalMQTT
+#define USE_SERIAL          false
+#define USE_WDT             true
+#define USE_OTA             true
+#define USE_FAT             false // Flash Assist
+#define USE_RESETKEEPER     false
+#define USE_FAILNTP         true
 
-#define VER "Wemos_3.7"
+#define VER "Wemos_3.8"
+myIOT iot(DEVICE_TOPIC);
 //####################################################
 
 // state definitions
 #define buttonPressed      LOW
 #define relayON            LOW
 #define ledON              HIGH
+#define USE_BOUNCE_DEBUG   false
+#define USE_OLED           true
 
 // Pin hardware Defs
 const int Button_Pin     = D7;
@@ -60,21 +67,12 @@ const int deBounceInt        = 50;
 char timeStamp [50];
 char dateStamp [50];
 char msg[150];
-char parameters [2][4];
 
-
-// // IOT services ~~~~~
-#define ADD_MQTT_FUNC addiotnalMQTT
-myIOT iot(DEVICE_TOPIC);
-// // ~~~~~~~~~~~~~~~~~~~
 
 void setup() {
         startGPIOs();
         startOLED();
-        iot.useSerial = USE_SERIAL;
-        iot.useWDT    = USE_WDT;
-        iot.useOTA    = USE_OTA;
-        iot.start_services(ADD_MQTT_FUNC);
+        startIOTservices();
 }
 void startGPIOs() {
         pinMode(Button_Pin, INPUT_PULLUP);
@@ -82,6 +80,16 @@ void startGPIOs() {
         pinMode(buttonLED_Pin, OUTPUT);
 
         allOff();
+}
+void startIOTservices(){
+        iot.useSerial      = USE_SERIAL;
+        iot.useWDT         = USE_WDT;
+        iot.useOTA         = USE_OTA;
+        iot.useResetKeeper = USE_RESETKEEPER;
+        iot.resetFailNTP   = USE_FAILNTP;
+        strcpy(iot.prefixTopic, MQTT_PREFIX);
+        strcpy(iot.addGroupTopic, MQTT_GROUP);
+        iot.start_services(ADD_MQTT_FUNC);
 }
 
 // ~~~~ OLED ~~~~~~~
@@ -207,19 +215,6 @@ void sec2clock(int sec, char* text, char* output_text) {
         int s = ((int)(sec) - h * 1000 * 60 * 60 - m * 1000 * 60) / 1000;
         sprintf(output_text, "%s %01d:%02d:%02d", text, h, m, s);
 }
-int splitter(char *inputstr) {
-        char * pch;
-        int i = 0;
-
-        pch = strtok (inputstr, " ,.-");
-        while (pch != NULL)
-        {
-                sprintf(parameters[i], "%s", pch);
-                pch = strtok (NULL, " ,.-");
-                i++;
-        }
-        return i;
-}
 
 // ~~~~~~~~~ GPIO switching ~~~~~~~~~~~~~
 void allOff() {
@@ -327,9 +322,9 @@ void addiotnalMQTT(char *incoming_msg) {
                 iot.pub_msg(remTime);
         }
         else {
-                int len = splitter (incoming_msg);
-                if (len == 2 && strcmp(parameters[0], "on") == 0 && atoi(parameters[1])) {
-                        timeInc_counter = atoi(parameters[1]); /// timeIncrements; // ON + Timer
+                int len = iot.inline_read (incoming_msg);
+                if (len == 2 && strcmp(iot.inline_param[0], "on") == 0 && atoi(iot.inline_param[1])) {
+                        timeInc_counter = atoi(iot.inline_param[1]); /// timeIncrements; // ON + Timer
                         switchIt("MQTT", "on");
                         sec2clock(timeInc_counter * 1000 * 60, "Added Timeout: +", msg);
                         iot.pub_msg(msg);
@@ -353,7 +348,9 @@ void loop() {
         readGpioStates();
         Switch_1_looper();
         switch_1_TimeOUToff(); // For Timeout operations
+
         OLEDlooper();
         iot.looper();
+
         delay(100);
 }

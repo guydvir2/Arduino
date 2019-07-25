@@ -160,7 +160,7 @@ void addiotnalMQTT(char incoming_msg[50]) {
         char msg[100];
         char msg2[100];
 
-        if (strcmp(incoming_msg, "status") == 0) {
+        if      (strcmp(incoming_msg, "status") == 0) {
                 // relays state
                 if (digitalRead(outputUpPin) == RelayOn && digitalRead(outputDownPin) == RelayOn) {
                         sprintf(state, "invalid Relay State");
@@ -198,6 +198,13 @@ void addiotnalMQTT(char incoming_msg[50]) {
         else if (strcmp(incoming_msg, "ver") == 0 ) {
                 sprintf(msg, "ver:[%s], lib:[%s], WDT:[%d], OTA:[%d], SERIAL:[%d],ResetKeeper[%d], FailNTP[%d]", VER, iot.ver, USE_WDT, USE_OTA, USE_SERIAL, USE_RESETKEEPER, USE_FAILNTP);
                 iot.pub_msg(msg);
+        }
+        else if (strcmp(incoming_msg, "help") == 0) {
+                sprintf(msg, "Help: Commands #1 - [status, boot, reset, ip, ota, ver, help]");
+                iot.pub_msg(msg);
+                sprintf(msg, "Help: Commands #2 - [up, down, off, pbit]");
+                iot.pub_msg(msg);
+
         }
 }
 void loop() {
