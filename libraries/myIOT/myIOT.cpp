@@ -114,45 +114,36 @@ void myIOT::startNetwork(char *ssid, char *password) {
         }
 }
 void myIOT::networkStatus() {
-        if (WiFi.status() == WL_CONNECTED ) { // wifi is ok
+        if (WiFi.status() == WL_CONNECTED ) {   // wifi is ok
                 if (mqttClient.connected()) {   // mqtt is good
                         mqttClient.loop();
                         mqttConnected    = 1;
                         noNetwork_Clock  = 0;
-                        lastReconnectTry = 0;
                         if ( alternativeMQTTserver ==true) { // connected to temp MQTT
                                 if  (millis() - noNetwork_Clock >= time2Reset_noNetwork) {// reset due to long no MQTT
-                                        sendReset("MQTT");
+                                        sendReset("fail MQTT");
                                 }
                         }
                 }
-                else if (noNetwork_Clock == 0){ // first time no MQTT, wifi OK
-                  noNetwork_Clock  = millis();
+                else if (noNetwork_Clock == 0) { // first time no MQTT, wifi OK
+                        noNetwork_Clock  = millis();
                 }
-                else  if(noNetwork_Clock !=0){  // WIFI OK, no MQTT not for the first time
-                        if (millis() - noNetwork_Clock >= time2Reset_noNetwork) { // reset due to long no MQTT
+                else if (noNetwork_Clock !=0 ) {  // WIFI OK, no MQTT not for the first time
+                        if (millis() - noNetwork_Clock >= time2Reset_noNetwork) {     // reset due to long no MQTT
                                 sendReset("NO NETWoRK");
-                                lastReconnectTry = millis();
                         }
-                        else if (millis() - lastReconnectTry <= time2_tryReconnect) { // time interval to try again to connect MQTT
-                                if (subscribeMQTT() == 1) {         //try successfully reconnect mqtt
+                        else if (millis() - noNetwork_Clock <= time2_tryReconnect) { // time interval to try again to connect MQTT
+                                if (subscribeMQTT() == 1) {                           //try successfully reconnect mqtt
                                         noNetwork_Clock  = 0;
-                                        lastReconnectTry = 0;
                                         mqttConnected    = 1;
                                 }
                                 else {         // fail connect to MQTT server
-                                        // if (noNetwork_Clock == 0) {         // first time no MQTT  - start timeout counter
-                                        //         noNetwork_Clock = millis();
-                                        //         // Serial.println("2c");
-                                        // }
-                                        // lastReconnectTry = millis() + time2_tryReconnect;
                                         mqttConnected = 0;
                                 }
                         }
                 }
         }
-
-        else {             // NO WIFI
+        else {                                  // NO WIFI
                 if (noNetwork_Clock !=0) { // first time when NO NETWORK
                         noNetwork_Clock=millis();
                 }
@@ -170,31 +161,27 @@ void myIOT::start_clock() {
                 if(_failNTPcounter_inFlash.getValue(failcount)) {
                         if (failcount!=0) {
                                 _failNTPcounter_inFlash.setValue(0);
-                                Serial.print("failNTPcount:");
-                                Serial.println(failcount);
+
                         }
                 }
                 else{
                         _failNTPcounter_inFlash.setValue(0);
-                        Serial.println("fail get flash NTP failcount");
-                        // strcat(bootErrors,"**Fail Write Flash NTP** ");
+                        strcat(bootErrors,"**Fail Write Flash NTP** ");
                 }
         }
         else{
                 strcat(bootErrors,"** Fail connecting NTP server** ");
-                Serial.println("** Fail connecting NTP server**");
                 if (resetFailNTP) {
                         if(_failNTPcounter_inFlash.getValue(failcount)) {
                                 if (failcount<3) {
                                         _failNTPcounter_inFlash.setValue(failcount+1);
-                                        Serial.println("Reset Sent");
                                         ESP.reset();
 
                                 }
                         }
                         else{
                                 _failNTPcounter_inFlash.setValue(1);
-                                Serial.println("set value in flash");
+                                strcat(bootErrors,"set value in flash");
                         }
                 }
                 _failNTP = true;
@@ -259,7 +246,7 @@ void myIOT::startMQTT() {
                 mqttClient.setServer(mqtt_server2, 1883);
                 strcat(bootErrors,"** MQTT SERVER ERR **");
                 if(useSerial) {
-                        Serial.println("MQTT SERVER2");
+                        strcat(bootErrors,"Coonected to MQTT SERVER2");
                 }
                 alternativeMQTTserver  =false;
                 stat = true;
@@ -384,7 +371,6 @@ void myIOT::callback(char* topic, byte* payload, unsigned int length) {
         if (useSerial) {
                 Serial.println("");
         }
-        //      ##############################
 
         // Check if Avail topic starts from OFFLINE or ONLINE mode
         // This will flag weather unwanted Reset occured
@@ -432,6 +418,7 @@ void myIOT::pub_msg(char *inmsg) {
         //         Serial.println(tmpmsg);
         // }
         // else if (mqttConnected == true) {
+
         if (mqttConnected == true) {
                 sprintf(tmpmsg, "[%s] [%s]", timeStamp, deviceTopic );
                 msgSplitter(inmsg, 200, tmpmsg, "#" );
@@ -720,7 +707,6 @@ void timeOUT::restart_to(){
 }
 void timeOUT::updateTOinflash(int TO){
         updatedTimeOUT_inFlash.setValue(TO);
-        // switchOFF();
         setNewTimeout(TO);
 }
 void timeOUT::restore_to(){

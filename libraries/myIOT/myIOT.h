@@ -64,7 +64,7 @@ char prefixTopic  [MaxTopicLength];
 char deviceTopic  [MaxTopicLength];
 char addGroupTopic[MaxTopicLength];
 
-const char *ver     = "iot_3.7";
+const char *ver     = "iot_3.8";
 char timeStamp[20];
 long updated_bootTime  = 0;
 int resetIntervals     = 10;
@@ -80,8 +80,8 @@ cb_func ext_mqtt;
 const int clockUpdateInt        = 60 * 5;            // seconds to update NTP
 const int WIFItimeOut           = (1000 * 60) * 1/3;     // 20 sec try to connect WiFi
 const int OTA_upload_interval   = (1000 * 60) * 5;     // 5 minute to try OTA
-const long time2Reset_noNetwork = (1000 * 60) * 2;     // minutues pass without any network
-const int time2_tryReconnect    = (1000 * 60) * 5;     // time between reconnection retries
+const long time2Reset_noNetwork = (1000 * 60) * 5;     // minutues pass without any network
+const int time2_tryReconnect    = (1000 * 60) * 3;     // time between reconnection retries
 volatile int wdtResetCounter    = 0;
 const int wdtMaxRetries         = 20;     //seconds to bITE
 long noNetwork_Clock            = 0;     // clock

@@ -14,22 +14,21 @@
 #define USE_RESETKEEPER     false
 #define USE_FAILNTP         true
 
-#define VER                "NodeMCU_3.8"
+#define VER                "NodeMCU_4.0"
 myIOT iot(DEVICE_TOPIC);
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-#define USE_MAN_RESET    false
-#define USE_BOUNCE_DEBUG false
+#define USE_BOUNCE_DEBUG true
 
 // state definitions
 #define RelayOn  LOW
 #define SwitchOn LOW
 
 // GPIO Pins for ESP8266
-const int inputUpPin    = 4;
-const int inputDownPin  = 5;
-const int outputUpPin   = 14;
-const int outputDownPin = 12;
+const byte inputUpPin    = 4;
+const byte inputDownPin  = 5;
+const byte outputUpPin   = 14;
+const byte outputDownPin = 12;
 //##########################
 
 // GPIO status flags
@@ -38,13 +37,6 @@ bool inputDown_lastState;
 bool inputUp_currentState;
 bool inputDown_currentState;
 // ###########################
-
-// manual RESET parameters
-int manResetCounter   = 0;  // reset press counter
-int pressAmount2Reset = 3; // time to press button to init Reset
-long lastResetPress   = 0; // time stamp of last press
-const int timeInterval_resetPress = 1500; // time between consq presses to init RESET cmd
-// ####################
 
 const int deBounceInt = 50;
 
@@ -126,70 +118,31 @@ void switchIt(char *type, char *dir) {
         }
         if (iot.mqttConnected == true) {
                 iot.pub_state(dir);
-                sprintf(mqttmsg, "[%s] switched [%s]", type, dir);
+                sprintf(mqttmsg, "%s: Switched [%s]", type, dir);
                 iot.pub_msg(mqttmsg);
         }
 }
-void detectResetPresses() {
-        if (millis() - lastResetPress < timeInterval_resetPress) {
-                if (manResetCounter >= pressAmount2Reset) {
-                        iot.sendReset("Manual operation");
-                        manResetCounter = 0;
-                }
-                else {
-                        manResetCounter++;
-                }
-        }
-        else {
-                manResetCounter = 0;
-        }
-}
-void checkSwitch_PressedUp() {
-        if (digitalRead(inputUpPin) != inputUp_lastState) {
+void checkSwitch_looper( const int &pin, char *dir, bool &lastState) {
+        if (digitalRead(pin) != lastState) {
                 delay(deBounceInt);
-                if (digitalRead(inputUpPin) != inputUp_lastState) {
-                        if (digitalRead(inputUpPin) == SwitchOn) {
-                                switchIt("Button", "up");
-                                inputUp_lastState = digitalRead(inputUpPin);
-                                if (USE_MAN_RESET) {
-                                        detectResetPresses();
-                                        lastResetPress = millis();
-                                }
+                if (digitalRead(pin) != lastState) {
+                        if (digitalRead(pin) == SwitchOn) {
+                                switchIt("Button", dir);
+                                lastState = digitalRead(pin);
                         }
-                        else if (digitalRead(inputUpPin) == !SwitchOn) {
+                        else if (digitalRead(pin) == !SwitchOn) {
                                 switchIt("Button", "off");
-                                inputUp_lastState = digitalRead(inputUpPin);
-                        }
-                }
-
-                else if (USE_BOUNCE_DEBUG) { // for debug only
-                        char tMsg [100];
-                        sprintf(tMsg, "UP Bounce: cRead [%d] lRead[%d]", digitalRead(inputUpPin), inputUp_lastState);
-                        iot.pub_msg(tMsg);
-                }
-        }
-
-}
-void checkSwitch_PressedDown() {
-        if (digitalRead(inputDownPin) != inputDown_lastState) {
-                delay(deBounceInt);
-                if (digitalRead(inputDownPin) != inputDown_lastState) {
-                        if (digitalRead(inputDownPin) == SwitchOn) {
-                                switchIt("Button", "down");
-                                inputDown_lastState = digitalRead(inputDownPin);
-                        }
-                        else if (digitalRead(inputDownPin) == !SwitchOn) {
-                                switchIt("Button", "off");
-                                inputDown_lastState = digitalRead(inputDownPin);
+                                lastState = digitalRead(pin);
                         }
                 }
                 else if (USE_BOUNCE_DEBUG) { // for debug only
                         char tMsg [100];
-                        sprintf(tMsg, "Down Bounce: cRead[%d] lRead[%d]", digitalRead(inputDownPin), inputDown_lastState);
-                        iot.pub_msg(tMsg);
+                        sprintf(tMsg, "[%s] Bounce: cRead[%d] lRead[%d]", dir, digitalRead(pin), lastState);
+                        iot.pub_err(tMsg);
                 }
         }
 }
+
 void verifyNotHazardState() {
         if (digitalRead(outputUpPin) == RelayOn && digitalRead(outputDownPin) == RelayOn ) {
                 switchIt("Button", "off");
@@ -243,18 +196,17 @@ void addiotnalMQTT(char incoming_msg[50]) {
                 PBit();
         }
         else if (strcmp(incoming_msg, "ver") == 0 ) {
-                sprintf(msg, "ver:[%s], lib:[%s], WDT:[%d], OTA:[%d], SERIAL:[%d], MAN_RESET:[%d],ResetKeeper[%d], FailNTP[%d]", VER, iot.ver, USE_WDT, USE_OTA, USE_SERIAL, USE_MAN_RESET, USE_RESETKEEPER, USE_FAILNTP);
+                sprintf(msg, "ver:[%s], lib:[%s], WDT:[%d], OTA:[%d], SERIAL:[%d],ResetKeeper[%d], FailNTP[%d]", VER, iot.ver, USE_WDT, USE_OTA, USE_SERIAL, USE_RESETKEEPER, USE_FAILNTP);
                 iot.pub_msg(msg);
         }
 }
 void loop() {
-        iot.looper(); // check wifi, mqtt, wdt
+        iot.looper();
 
         readGpioStates();
         verifyNotHazardState(); // case both up and down are ---> OFF
+        checkSwitch_looper(inputUpPin,"up", inputUp_lastState);
+        checkSwitch_looper(inputDownPin,"down", inputDown_lastState);
 
-        checkSwitch_PressedUp();
-        checkSwitch_PressedDown();
-
-        delay(50);
+        delay(100);
 }
