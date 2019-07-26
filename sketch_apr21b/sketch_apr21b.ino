@@ -2,21 +2,25 @@
 #include <Arduino.h>
 #include <TimeLib.h>
 
-#define VER  "NodeMCU_2.3"
+#define VER              "SONOFF_2.4"
+#define USE_BOUNCE_DEBUG false
+#define USE_INPUTS       false
+#define USE_DAILY_TO     true
+#define NUM_SWITCHES     1
 
 // ********** myIOT ***********
 
 //~~~~~~~~ Services ~~~~~~~~~~~
-#define USE_SERIAL       true
+#define USE_SERIAL       false
 #define USE_WDT          true
 #define USE_OTA          true
 #define USE_RESETKEEPER  true
 #define USE_FAILNTP      true
 
 // ~~~~~~~ MQTT Topics ~~~~~~
-#define DEVICE_TOPIC "TimeOut"
+#define DEVICE_TOPIC "PergolaBulbs"
 #define MQTT_PREFIX  "myHome"
-#define MQTT_GROUP   "TestBed"
+#define MQTT_GROUP   "GardenLights"
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 #define ADD_MQTT_FUNC addiotnalMQTT
@@ -26,28 +30,30 @@ myIOT iot(DEVICE_TOPIC);
 
 
 // ******** timeOUT  *********
-#define TIMEOUT_SW0      1 // mins
-#define TIMEOUT_SW1      1 // mins
+#define TIMEOUT_SW0      2*60 // mins
+#define TIMEOUT_SW1      4*60 // mins
 
-int CLOCK_ON[2] ={22,40};
-int CLOCK_OFF[2]={22,41};
-
+int CLOCK_ON[2] ={20,0};
+int CLOCK_OFF[2]={6,0};
 timeOUT timeOut_SW0("SW0",TIMEOUT_SW0);
+
+# if NUM_SWITCHES == 2
 timeOUT timeOut_SW1("SW1",TIMEOUT_SW1);
 timeOUT *TO[]={&timeOut_SW0,&timeOut_SW1};
-// ***************************
+#endif
 
-#define USE_BOUNCE_DEBUG false
-#define USE_INPUTS       false
-#define USE_DAILY_TO     true
+#if NUM_SWITCHES==1
+timeOUT *TO[]={&timeOut_SW0};
+#endif
+
+// ***************************
 
 
 // ~~~~~~~~ HW Pins  ~~~~~~~~
-#define NUM_SWITCHES    2
-#define RELAY1          5
-#define RELAY2          12
+#define RELAY1          12
+#define RELAY2          5
 #define INPUT1          9
-#define INPUT2          3
+#define INPUT2          0
 
 byte relays[]  = {RELAY1, RELAY2};
 byte inputs[]  = {INPUT1, INPUT2};
@@ -114,10 +120,10 @@ void quickPwrON(){
         for(int i=0; i<NUM_SWITCHES; i++) {
                 TO[i]->endTimeOUT_inFlash.getValue(temp);
                 if (temp>0) {
-                        digitalWrite(1, HIGH);
+                        digitalWrite(relays[i], HIGH);
                 }
                 else{
-                        digitalWrite(2, LOW);
+                        digitalWrite(relays[i], LOW);
                 }
         }
 }
@@ -263,6 +269,8 @@ void addiotnalMQTT(char incoming_msg[50]) {
                 iot.pub_msg(msg);
                 sprintf(msg, "Help: Commands #3 - [status, boot, reset, ip, ota, ver, help]");
                 iot.pub_msg(msg);
+                sprintf(msg, "Help: Switches 0: Projector, 1: LEDstrip");
+                iot.pub_msg(msg);
         }
         else if (strcmp(incoming_msg, "flash") == 0 ) {
                 TO[0]->inCodeTimeOUT_inFlash.printFile();
@@ -326,7 +334,6 @@ void startIOTservices(){
         iot.start_services(ADD_MQTT_FUNC);
 
 }
-
 void setup() {
         startGPIOs();
         quickPwrON();
@@ -340,7 +347,7 @@ void loop() {
                 recoverReset();
         }
         if (USE_DAILY_TO == true) {
-                daily_timeouts(CLOCK_OFF, CLOCK_ON,0);
+                daily_timeouts(CLOCK_OFF, CLOCK_ON,1);
         }
         if (USE_INPUTS == true) {
                 checkSwitch_Pressed();
