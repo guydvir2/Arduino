@@ -633,13 +633,13 @@ timeOUT::timeOUT(char* sw_num, int def_val)
          */
 
         int inCodeVal  =0;
-        inCode_timeout_value = def_val; //[min]
+        inCodeTO = def_val; //[min]
 
         if(updatedTimeOUT_inFlash.getValue(updatedTO) != true) { // not able to read
                 updatedTimeOUT_inFlash.setValue(0);
         }
 
-        if(endTimeOUT_inFlash.getValue(_savedTO) != true) { // not able to read
+        if(endTimeOUT_inFlash.getValue(savedTO) != true) { // not able to read
                 endTimeOUT_inFlash.setValue(0);
         }
 
@@ -647,46 +647,46 @@ timeOUT::timeOUT(char* sw_num, int def_val)
                 inCodeTimeOUT_inFlash.setValue(0);
         }
         else{
-                if (inCodeVal != inCode_timeout_value) {
-                        inCodeTimeOUT_inFlash.setValue(inCode_timeout_value);
+                if (inCodeVal != inCodeTO) {
+                        inCodeTimeOUT_inFlash.setValue(inCodeTO);
                 }
         }
 }
 bool timeOUT::looper(){
         if (_calc_endTO >=now()) {
-                // Serial.println("COMMAND ON");
                 return 1;
         }
         else if  (_calc_endTO < now() && _inTO == true) {
                 switchOFF();
-                // Serial.println("COMMAND OFF");
                 return 0;
         }
         else{
-                // Serial.println("NO COMMAND");
                 return 0;
         }
 }
 bool timeOUT::begin(bool newReboot){   // NewReboot come to not case of sporadic reboot
-        // if (endTimeOUT_inFlash.getValue(_savedTO)) {                      // able to read JSON ?
-        if (_savedTO > now()) {                 // get saved value- still have to go
-                _calc_endTO=_savedTO;           //clock time to stop
+        // ~~~~~~~~ Check if stored end value stil valid ~~~~~~~~~~~~~~
+        if (savedTO > now()) {                 // get saved value- still have to go
+                _calc_endTO=savedTO;           //clock time to stop
                 switchON();
                 return 1;
         }
-        else if (_savedTO >0 && _savedTO <=now()) {          // saved but time passed
+        else if (savedTO >0 && savedTO <=now()) {          // saved but time passed
                 switchOFF();
                 return 0;
         }
+        // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         /*
            case below is the main issue: if upon new reboot, after a successfull
-           ending of last timeOut ( _savedTO==0 ), how to consider a new
+           ending of last timeOut ( savedTO==0 ), how to consider a new
            Reboot ? if newReboot == true, means that it will start over
            as a new Timeout Task.
          */
-        else if (_savedTO == 0 && newReboot == true) {           // fresh start
-                if (inCode_timeout_value != 0) {                 // Normal boot with inCode Timeout
-                        setNewTimeout(inCode_timeout_value);
+
+        // ~~~~~~~~~ Case of fresh Start - not a quick boot ~~~~~~~~~~~~~~~~
+        else if (savedTO == 0 && newReboot == true) {           // fresh start
+                if (inCodeTO != 0) {                 // Normal boot with inCode Timeout
+                        setNewTimeout(inCodeTO);
                         return 1;
                 }
                 else {
@@ -709,7 +709,7 @@ void timeOUT::setNewTimeout(int to){
         switchON();
 }
 void timeOUT::restart_to(){
-        setNewTimeout(inCode_timeout_value);
+        setNewTimeout(inCodeTO);
 }
 void timeOUT::updateTOinflash(int TO){
         updatedTimeOUT_inFlash.setValue(TO);

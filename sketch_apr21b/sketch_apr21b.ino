@@ -164,14 +164,14 @@ void switchIt(char *type, int sw_num, char *dir) {
                         }
                 }         // regular ON/OFF mode
                 iot.pub_msg(mqttmsg);
-
-                sprintf(states,"");
-                for (int i = 0; i < NUM_SWITCHES; i++) {
-                        sprintf(tempstr, "[%s]", !digitalRead(relays[i]) ? "ON" : "OFF");
-                        strcat(states, tempstr);
-                }
-                iot.pub_state(states);
         }
+
+        sprintf(states,"");
+        for (int i = 0; i < NUM_SWITCHES; i++) {
+                sprintf(tempstr, "[%s]", !digitalRead(relays[i]) ? "ON" : "OFF");
+                strcat(states, tempstr);
+        }
+        iot.pub_state(states);
 }
 
 // ~~~~~~~~ TimeOut funcs ~~~~~~~~

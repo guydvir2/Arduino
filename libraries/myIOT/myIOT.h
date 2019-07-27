@@ -64,7 +64,7 @@ char prefixTopic  [MaxTopicLength];
 char deviceTopic  [MaxTopicLength];
 char addGroupTopic[MaxTopicLength];
 
-const char *ver     = "iot_3.8";
+const char *ver     = "iot_3.9";
 char timeStamp[20];
 long updated_bootTime  = 0;
 int resetIntervals     = 10;
@@ -154,13 +154,14 @@ class timeOUT
 
 private:
 long _calc_endTO  = 0; // corrected clock ( case of restart)
-long _savedTO     = 0; // clock to stop TO
+
 bool _inTO        = false;
 bool _onState     = false;
 
 public:
-int inCode_timeout_value = 0;   // default value for TO ( hard coded )
+int inCodeTO = 0;   // default value for TO ( hard coded )
 int updatedTO            = 0;
+long savedTO     = 0; // clock to stop TO
 
 
 public:
