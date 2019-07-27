@@ -11,14 +11,14 @@
 // ********** myIOT ***********
 
 //~~~~~~~~ Services ~~~~~~~~~~~
-#define USE_SERIAL       false
+#define USE_SERIAL       true
 #define USE_WDT          true
 #define USE_OTA          true
 #define USE_RESETKEEPER  true
 #define USE_FAILNTP      true
 
 // ~~~~~~~ MQTT Topics ~~~~~~
-#define DEVICE_TOPIC "PergolaBulbs"
+#define DEVICE_TOPIC "test"
 #define MQTT_PREFIX  "myHome"
 #define MQTT_GROUP   "GardenLights"
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -30,7 +30,7 @@ myIOT iot(DEVICE_TOPIC);
 
 
 // ******** timeOUT  *********
-#define TIMEOUT_SW0      2*60 // mins
+#define TIMEOUT_SW0      0 // mins
 #define TIMEOUT_SW1      4*60 // mins
 
 int CLOCK_ON[2] ={20,0};
@@ -80,10 +80,8 @@ void startGPIOs() {
                 if (USE_INPUTS) {
                         inputs_lastState[i] = digitalRead(inputs[i]);
                 }
-
                 swState [i] = 0;
                 last_swState [i] = 0;
-
         }
 }
 void checkSwitch_Pressed() {
@@ -154,8 +152,16 @@ void switchIt(char *type, int sw_num, char *dir) {
                                 sprintf(mqttmsg, "%s: Switch[#%d] [%s]", type, sw_num, dir);
                         }
                 }
-                else if (a>=0) {
+                else if (a>=0 || boot_overide==true) {
                         sprintf(mqttmsg, "%s: Switch[#%d] [%s]", type, sw_num, dir);
+                        if (boot_overide == true) {
+                                char msg1[50], msg2[50];
+
+                                TO[sw_num]->convert_epoch2clock(now()+TO[sw_num]->remain(),now(), msg1, msg2);
+                                sprintf(msg2,"remain [%s]", msg1);
+                                strcat(mqttmsg, msg2);
+                                boot_overide = false;
+                        }
                 }         // regular ON/OFF mode
                 iot.pub_msg(mqttmsg);
 

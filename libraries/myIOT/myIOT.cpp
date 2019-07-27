@@ -632,61 +632,67 @@ timeOUT::timeOUT(char* sw_num, int def_val)
            updatedTimeOUT_inFlash -- value of TO defined using MQTT by user, overides inCode value [minutes]
          */
 
-        int tempVal=0;
+        int inCodeVal  =0;
         inCode_timeout_value = def_val; //[min]
-        if(inCodeTimeOUT_inFlash.getValue(tempVal)) {
-                if (tempVal != inCode_timeout_value) {
-                        inCodeTimeOUT_inFlash.setValue(inCode_timeout_value);
-                }
+
+        if(updatedTimeOUT_inFlash.getValue(updatedTO) != true) { // not able to read
+                updatedTimeOUT_inFlash.setValue(0);
+        }
+
+        if(endTimeOUT_inFlash.getValue(_savedTO) != true) { // not able to read
+                endTimeOUT_inFlash.setValue(0);
+        }
+
+        if(inCodeTimeOUT_inFlash.getValue(inCodeVal) != true) {
+                inCodeTimeOUT_inFlash.setValue(0);
         }
         else{
-                inCodeTimeOUT_inFlash.setValue(0);
+                if (inCodeVal != inCode_timeout_value) {
+                        inCodeTimeOUT_inFlash.setValue(inCode_timeout_value);
+                }
         }
 }
 bool timeOUT::looper(){
         if (_calc_endTO >=now()) {
+                // Serial.println("COMMAND ON");
                 return 1;
         }
-
         else if  (_calc_endTO < now() && _inTO == true) {
                 switchOFF();
+                // Serial.println("COMMAND OFF");
                 return 0;
         }
         else{
+                // Serial.println("NO COMMAND");
                 return 0;
         }
 }
 bool timeOUT::begin(bool newReboot){   // NewReboot come to not case of sporadic reboot
-        if (endTimeOUT_inFlash.getValue(_savedTO)) {                      // able to read JSON ?
-                if (_savedTO > now()) {         // get saved value- still have to go
-                        _calc_endTO=_savedTO;   //clock time to stop
-                        switchON();
-                        return 1;
-                }
-                else if (_savedTO >0 && _savedTO <=now()) {  // saved but time passed
-                        switchOFF();
-                        return 0;
-                }
-                /*
-                   case below is the main issue: if upon new reboot, after a successfull
-                   ending of last timeOut ( _savedTO==0 ), how to consider a new
-                   Reboot ? if newReboot == true, means that it will start over
-                   as a new Timeout Task.
-                 */
-                else if (_savedTO == 0 && newReboot == true) {   // fresh start
-                        if (inCode_timeout_value != 0) {         // Normal boot with inCode Timeout
-                                setNewTimeout(inCode_timeout_value);
-                                return 1;
-                        }
-                        else {
-                                _calc_endTO = 0;
-                                return 0;
-                        }
-                }
+        // if (endTimeOUT_inFlash.getValue(_savedTO)) {                      // able to read JSON ?
+        if (_savedTO > now()) {                 // get saved value- still have to go
+                _calc_endTO=_savedTO;           //clock time to stop
+                switchON();
+                return 1;
         }
-        else{           // fail to read value, or value not initialized.
+        else if (_savedTO >0 && _savedTO <=now()) {          // saved but time passed
                 switchOFF();
                 return 0;
+        }
+        /*
+           case below is the main issue: if upon new reboot, after a successfull
+           ending of last timeOut ( _savedTO==0 ), how to consider a new
+           Reboot ? if newReboot == true, means that it will start over
+           as a new Timeout Task.
+         */
+        else if (_savedTO == 0 && newReboot == true) {           // fresh start
+                if (inCode_timeout_value != 0) {                 // Normal boot with inCode Timeout
+                        setNewTimeout(inCode_timeout_value);
+                        return 1;
+                }
+                else {
+                        _calc_endTO = 0;
+                        return 0;
+                }
         }
 }
 int timeOUT::remain(){

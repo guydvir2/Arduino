@@ -160,6 +160,7 @@ bool _onState     = false;
 
 public:
 int inCode_timeout_value = 0;   // default value for TO ( hard coded )
+int updatedTO            = 0;
 
 
 public:
