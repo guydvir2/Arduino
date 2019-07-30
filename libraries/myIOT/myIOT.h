@@ -42,6 +42,7 @@ void return_date(char ret_tuple[20]);
 
 void sendReset(char *header);
 void notifyOnline();
+void notifyOffline();
 void pub_state(char *inmsg);
 void pub_msg(char *inmsg);
 void pub_err(char *inmsg);
@@ -64,7 +65,7 @@ char prefixTopic  [MaxTopicLength];
 char deviceTopic  [MaxTopicLength];
 char addGroupTopic[MaxTopicLength];
 
-const char *ver     = "iot_3.9";
+const char *ver     = "iot_3.91";
 char timeStamp[20];
 long updated_bootTime  = 0;
 int resetIntervals     = 10;

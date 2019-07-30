@@ -279,10 +279,12 @@ int myIOT::subscribeMQTT() {
                                 }
                                 mqttConnected = 1;
                                 if (useResetKeeper == false) {
-                                        mqttClient.publish(_availTopic, "online", true);
+                                  notifyOnline();
+                                        // mqttClient.publish(_availTopic, "online", true);
                                 }
                                 if (firstRun == true) {
-                                        mqttClient.publish(_stateTopic, "off", true);
+                                  notifyOffline();
+                                        // mqttClient.publish(_stateTopic, "off", true);
                                         pub_err("<< Boot >>");
                                         if (useResetKeeper == false) {
                                                 firstRun = false;
@@ -480,6 +482,9 @@ int myIOT::inline_read(char *inputstr) {
 }
 void myIOT::notifyOnline(){
         mqttClient.publish(_availTopic, "online", true);
+}
+void myIOT::notifyOffline(){
+        mqttClient.publish(_availTopic, "offline", true);
 }
 void myIOT::publish_errs(){
         if (strcmp(bootErrors,"")!=0 &&mqttConnected==true) {

@@ -3,7 +3,7 @@
 #include <TimeLib.h>
 
 // ********** Sketch Services  ***********
-#define VER              "Wemos.Mini.2.9"
+#define VER              "Wemos.Mini.2.95"
 #define USE_BOUNCE_DEBUG false
 #define USE_INPUTS       false
 #define USE_DAILY_TO     true
@@ -28,7 +28,7 @@ int CLOCK_OFF[2] = {8,0};
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 // ~~~~~~~ MQTT Topics ~~~~~~
-#define DEVICE_TOPIC "KitchenLEDs2"
+#define DEVICE_TOPIC "KitchenLEDs"
 #define MQTT_PREFIX  "myHome"
 #define MQTT_GROUP   "LEDStrips"
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -198,12 +198,11 @@ void start_IR() {
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 void switchIt (char *txt1, int sw_num, bool state, char *txt2=""){
-        char msg [50], msg1[50], msg2[50], states[50], mqttmsg[150];
-        char tempstr[50];
+        char msg [50], msg1[50], msg2[50], states[50], mqttmsg[150], tempstr[50];
 
         if(digitalRead(relays[sw_num])!= state || boot_overide == true) {
                 digitalWrite(relays[sw_num], state);
-                TO[0]->convert_epoch2clock(now()+TO[0]->remain(),now(), msg1, msg2);
+                TO[sw_num]->convert_epoch2clock(now() + TO[sw_num]->remain(),now(), msg1, msg2);
                 if (boot_overide == true && iot.mqtt_detect_reset == 1) {
                         sprintf(msg, "%s: Resume[%s] %s[%s]", txt1, state ? "ON" : "OFF", txt2, msg1);
                         boot_overide = false;
@@ -230,7 +229,6 @@ void startIOTservices(){
         strcpy(iot.prefixTopic, MQTT_PREFIX);
         strcpy(iot.addGroupTopic, MQTT_GROUP);
         iot.start_services(ADD_MQTT_FUNC);
-
 }
 void startGPIOs() {
         for (int i = 0; i < NUM_SWITCHES; i++) {
@@ -243,7 +241,6 @@ void startGPIOs() {
 
                 swState [i] = 0;
                 last_swState [i] = 0;
-
         }
 }
 void quickPwrON(){
@@ -275,17 +272,17 @@ void recoverReset(){
                 badReboot = iot.mqtt_detect_reset;
                 checkbadReboot = false;
                 for (int i=0; i<NUM_SWITCHES; i++) {
-                        if (TO[i]->updatedTO!=0) {                  // coded TO was changed by user
+                        if (TO[i]->updatedTO!=0) {    // coded TO was changed by user
                                 TO[i]->inCodeTO = TO[i]->updatedTO;
-                                sprintf(mqttmsg,"Switch[#%d]-Using Updated TimeOut",i);
+                                sprintf(mqttmsg,"Switch[#%d]: get TimeOut from Flash",i);
                                 iot.pub_err(mqttmsg);
                         }
                         if (badReboot == 0) {         // PowerOn - not a quickReboot
-                                TO[i]->restart_to();
+                                TO[i]->restart_to();  //
                         }
                         else {
                                 TO[i]->begin(false);
-                                iot.pub_err("badReset");
+                                iot.pub_err("--> Quick-Reset");
                         }
                 }
         }
@@ -375,6 +372,7 @@ void addiotnalMQTT(char incoming_msg[50]) {
                         sprintf(msg, "TimeOut: Switch[%d] Updated in flash to [%d min.]", atoi(iot.inline_param[0]), atoi(iot.inline_param[2]));
                         iot.pub_msg(msg);
                         delay(1000);
+                        iot.notifyOffline();
                         iot.sendReset("TimeOut update");
                 }
                 else if (strcmp(iot.inline_param[1], "remain") == 0) {
@@ -386,6 +384,8 @@ void addiotnalMQTT(char incoming_msg[50]) {
                         TO[atoi(iot.inline_param[0])]->restart_to();
                         sprintf(msg, "TimeOut: Switch[#%d] [Restart]",atoi(iot.inline_param[0]));
                         iot.pub_msg(msg);
+                        iot.notifyOffline();
+                        iot.sendReset("TimeOut restart");
                 }
                 else if (strcmp(iot.inline_param[1], "end_to") == 0) {
                         TO[atoi(iot.inline_param[0])]->endNow();
@@ -397,6 +397,7 @@ void addiotnalMQTT(char incoming_msg[50]) {
                         TO[atoi(iot.inline_param[0])]->restart_to();
                         sprintf(msg, "TimeOut: Switch[#%d], Restore hardCoded Value [%d mins.]",atoi(iot.inline_param[0]), TIMEOUT_SW0);
                         iot.pub_msg(msg);
+                        iot.notifyOffline();
                         iot.sendReset("Restore");
                 }
         }
