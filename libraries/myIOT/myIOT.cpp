@@ -658,10 +658,10 @@ timeOUT::timeOUT(char* sw_num, int def_val)
         }
 }
 bool timeOUT::looper(){
-        if (_calc_endTO >=now()) {
+        if (_calc_endTO >now()) {
                 return 1;
         }
-        else if  (_calc_endTO < now() && _inTO == true) {
+        else if  (_calc_endTO <= now() && _inTO == true) {
                 switchOFF();
                 return 0;
         }
