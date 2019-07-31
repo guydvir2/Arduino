@@ -1,24 +1,28 @@
 #include <myIOT.h>
 #include <Arduino.h>
 
+// ********** Sketch Services  ***********
+#define VER              "NodeMCU.4.1"
+#define USE_BOUNCE_DEBUG false
 
-//~~~~~~~~~~~~~~ myIOT  ~~~~~~~~~~~~~~~~~~~~~
-#define DEVICE_TOPIC        "FamilyRoom"
+// ********** myIOT Class ***********
+//~~~~~ Services ~~~~~~~~~~~
+#define USE_SERIAL       false
+#define USE_WDT          true
+#define USE_OTA          true
+#define USE_RESETKEEPER  true
+#define USE_FAILNTP      true
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+// ~~~~~~~ MQTT Topics ~~~~~~
+#define DEVICE_TOPIC        "SaloonDual"
 #define MQTT_PREFIX         "HomePi/Dvir"
 #define MQTT_GROUP          "Windows"
-#define ADD_MQTT_FUNC       addiotnalMQTT
-#define USE_SERIAL          false
-#define USE_WDT             true
-#define USE_OTA             true
-#define USE_FAT             false // Flash Assist
-#define USE_RESETKEEPER     false
-#define USE_FAILNTP         true
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-#define VER                "NodeMCU_4.0"
+#define ADD_MQTT_FUNC addiotnalMQTT
 myIOT iot(DEVICE_TOPIC);
-//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-#define USE_BOUNCE_DEBUG true
+// ***************************
 
 // state definitions
 #define RelayOn  LOW
