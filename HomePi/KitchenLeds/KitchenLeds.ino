@@ -3,7 +3,7 @@
 #include <TimeLib.h>
 
 // ********** Sketch Services  ***********
-#define VER              "SONOFF_BASIC.2.95"
+#define VER              "Wemos.3.0"
 #define USE_BOUNCE_DEBUG false
 #define USE_INPUTS       false
 #define USE_DAILY_TO     true
@@ -11,18 +11,18 @@
 
 // ********** TimeOut Time vars  ***********
 #define NUM_SWITCHES     1
-#define TIMEOUT_SW0      2 // mins for SW0
+#define TIMEOUT_SW0      6*80 // mins for SW0
 #define TIMEOUT_SW1      1 // mins
-int CLOCK_ON [2] = {21,57};
-int CLOCK_OFF[2] = {22,00};
+int CLOCK_ON [2] = {18,0};
+int CLOCK_OFF[2] = {7,0};
 
 
 // ********** myIOT Class ***********
 //~~~~~ Services ~~~~~~~~~~~
-#define USE_SERIAL       true
+#define USE_SERIAL       false
 #define USE_WDT          true
 #define USE_OTA          true
-#define USE_IR_REMOTE    false
+#define USE_IR_REMOTE    true
 #define USE_RESETKEEPER  true
 #define USE_FAILNTP      true
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -51,8 +51,8 @@ timeOUT *TO[]={&timeOut_SW0};
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 
-// ~~~~ HW Pins and States ~~~~
-#define RELAY1          12 // 12 for Sonoff D2 for wemos mini
+// ~~~~ HW Pins and Statdes ~~~~
+#define RELAY1          D2 // 12 for Sonoff D2 for wemos mini
 #define RELAY2          5
 #define INPUT1          9
 #define INPUT2          3
@@ -198,18 +198,22 @@ void start_IR() {
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 void switchIt (char *txt1, int sw_num, bool state, char *txt2=""){
-        char msg [50], msg1[50], msg2[50], states[50], mqttmsg[150], tempstr[50];
+        char msg [50], msg1[50], msg2[50], states[50], tempstr[50];
+        char *word={"Turned"};
 
         if(digitalRead(relays[sw_num])!= state || boot_overide == true) {
                 digitalWrite(relays[sw_num], state);
                 TO[sw_num]->convert_epoch2clock(now() + TO[sw_num]->remain(),now(), msg1, msg2);
                 if (boot_overide == true && iot.mqtt_detect_reset == 1) { //BOOT TIME ONLY for after quick boot
-                        sprintf(msg, "%s: Resume[%s] %s[%s]", txt1, state ? "ON" : "OFF", txt2, msg1);
+                        word = {"Resume"};
                         boot_overide = false;
                 }
-                else {
-                        sprintf(msg, "%s: Turned[%s] %s[%s]", txt1, state ? "ON" : "OFF", txt2, msg1);
+                sprintf(msg, "%s: Switch[#%d] %s[%s] %s", txt1, sw_num, word, state ? "ON" : "OFF", txt2);
+                if (state==1) {
+                        sprintf(msg2,"[%s]", msg1);
+                        strcat(msg, msg2);
                 }
+
                 iot.pub_msg(msg);
 
                 sprintf(states,"");
@@ -306,35 +310,34 @@ void timeOutLoop(){
         }
 }
 void daily_timeouts(int toff_vect[2],int ton_vect[2], byte i=0){
-  char msg [50], msg1[50], msg2[50], states[50], mqttmsg[150], tempstr[50];
+        char msg [50], msg2[50];
         time_t t=now();
-        int mins = toff_vect[1] - ton_vect[1];
-        int delt_h = toff_vect[0] - ton_vect[0];
-        if (mins < 0){
-          mins = 60 + mins;
+
+        if (hour(t)==ton_vect[0] && minute(t)==ton_vect[1] && second(t)<2 && digitalRead(relays[i]) == !RelayOn) {
+                int mins = toff_vect[1] - ton_vect[1];
+                int delt_h = toff_vect[0] - ton_vect[0];
+                if (mins < 0 && delt_h <=0) {
+                        mins += (12+delt_h)*60;
+                }
+                else if (delt_h >= 0 && mins >=0) {
+                        mins += delt_h * 60;
+                }
+                else if (delt_h >0 && mins < 0 ) {
+                        mins += 60-mins +delt_h*60;
+                }
+                else if(delt_h <0 && mins >= 0 ) {
+                        mins += (12+delt_h)*60;
+                }
+
+                TO[i]->setNewTimeout(mins);
+                TO[i]->convert_epoch2clock(now()+mins*60,now(), msg2, msg);
+                sprintf(msg, "Clock: Switch[#%d] [On] TimeOut [%s]", i,msg2);
+                iot.pub_msg(msg);
         }
-        if (delt_h >= 0){
-          mins += delt_h * 60;
-        }
-        else {
-          mins += (12 +delt_h)*60;
-        }
-        // TurnOff
-        // if (hour(t)==toff_vect[0] && minute(t)==toff_vect[1] && second(t)<2) {
-        //         if (digitalRead(relays[i])==RelayOn) {
-        //                 switchIt("Clock",i,0);
-        //         }
-        // }
-        // TurnOn
-        if (hour(t)==ton_vect[0] && minute(t)==ton_vect[1] && second(t)<2 && digitalRead(relays[i])==LOW) {
-          TO[i]->setNewTimeout(mins);
-          TO[i]->convert_epoch2clock(now()+mins*60,now(), msg2, msg);
-          sprintf(msg, "Clock: Switch[#%d] TimeOut %s", i,msg2);
-          iot.pub_msg(msg);
-                // if (digitalRead(relays[i])==!RelayOn) {
-                //   TO[i]->
-                //         switchIt("Clock",i,1);
-                // }
+        else if (hour(t)==toff_vect[0] && minute(t)==toff_vect[1] && second(t)<2 && digitalRead(relays[i]) == RelayOn) {
+                TO[i]->endNow();
+                sprintf(msg, "Clock: Switch[#%d] [Off]", i);
+                iot.pub_msg(msg);
         }
 }
 void addiotnalMQTT(char incoming_msg[50]) {
@@ -344,7 +347,7 @@ void addiotnalMQTT(char incoming_msg[50]) {
                 for(int i=0; i<NUM_SWITCHES; i++) {
                         if(TO[i]->remain()>0) {
                                 TO[i]->convert_epoch2clock(now()+TO[i]->remain(),now(), msg, msg2);
-                                sprintf(msg2," TimeOut[%s]", msg);
+                                sprintf(msg2,"TimeOut[%s]", msg);
                         }
                         else{
                                 sprintf(msg2,"");
@@ -424,13 +427,13 @@ void addiotnalMQTT(char incoming_msg[50]) {
 
 void setup() {
         startGPIOs();
-        // start_IR();
+        start_IR();
         quickPwrON();
         startIOTservices();
 }
 void loop() {
         iot.looper();
-        // recvIRinputs(); // IR signals
+        recvIRinputs(); // IR signals
         timeOutLoop();
 
         if (checkbadReboot == true && USE_RESETKEEPER == true) {

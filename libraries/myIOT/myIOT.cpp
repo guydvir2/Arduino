@@ -279,12 +279,9 @@ int myIOT::subscribeMQTT() {
                                 }
                                 mqttConnected = 1;
                                 if (useResetKeeper == false) {
-                                  notifyOnline();
-                                        // mqttClient.publish(_availTopic, "online", true);
+                                        notifyOnline();
                                 }
                                 if (firstRun == true) {
-                                  notifyOffline();
-                                        // mqttClient.publish(_stateTopic, "off", true);
                                         pub_err("<< Boot >>");
                                         if (useResetKeeper == false) {
                                                 firstRun = false;
@@ -327,7 +324,7 @@ int myIOT::subscribeMQTT() {
                 if (useSerial) {
                         Serial.println("Not connected to Wifi, abort try to connect MQTT broker");
                 }
-                strcat(bootErrors,"**NoWifi** ");
+                strcat(bootErrors,"** NoWifi ** ");
                 return 0;
         }
 }
