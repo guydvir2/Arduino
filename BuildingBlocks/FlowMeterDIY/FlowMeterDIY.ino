@@ -11,7 +11,7 @@ signal line to arduino digital pin 2.
 Wiring:
 Red = 3.3v or 5v
 Black = GND
-Yellow = Signal 
+Yellow = Signal
  */
 byte statusLed    = 13;
 
@@ -65,7 +65,7 @@ void loop()
   {
     // Disable the interrupt while calculating flow rate and sending the value to
     // the host
-    detachInterrupt(sensorInterrupt);
+    detachInterrupt(sensorPin);//sensorInterrupt);
 
     // Because this loop may not complete in exactly 1 second intervals we calculate
     // the number of milliseconds that have passed since the last execution and use

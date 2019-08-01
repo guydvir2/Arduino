@@ -1,64 +1,86 @@
+
+// #define CHAT_ID "596123373" // Chat ID of where you want the message to go (You can use MyIdBot to get the chat ID)
+
+
+
+
+
+
+
+
 /*******************************************************************
- *  Push Notificaiton Demo                                         *
- *  Using IFTTT and Telegram to send alerts to your phone          *
+ *  An example of bot that receives commands and turns on and off  *
+ *  an LED.                                                        *
  *                                                                 *
- *  Telegram Library:                                              *
- *  https://github.com/witnessmenow/Universal-Arduino-Telegram-Bot *
- *                                                                 *
- *  IFTTT Maker Library:                                           *
- *  https://github.com/witnessmenow/arduino-ifttt-maker            *
- *                                                                 *
- *  By Brian Lough                                                 *
+ *  written by Giacarlo Bacchio (Gianbacchio on Github)            *
+ *  adapted by Brian Lough                                         *
  *******************************************************************/
-
-//Including the two libraries
-#include <UniversalTelegramBot.h>
-//#include <IFTTTMaker.h>
-
 #include <ESP8266WiFi.h>
 #include <WiFiClientSecure.h>
+#include <UniversalTelegramBot.h>
 
-//------- WiFi Settings -------
-char ssid[] = "Xiaomi_D6C8";       // your network SSID (name)
-char password[] = "guyd5161";  // your network key
+// Initialize Wifi connection to the router
+char ssid[] = "Xiaomi_D6C8";     // your network SSID (name)
+char password[] = "guyd5161"; // your network key
 
-#define TELEGRAM_BUTTON_PIN D5
-//#define IFTTT_BUTTON_PIN D6
+// Initialize Telegram BOT
+#define BOTtoken "497268459:AAESYm27tJfNXwnnnn0slbmWnkqvbWgQEyw"  // your Bot Token (Get from Botfather)
 
-
-// ------- IFTTT Maker config --------
-//#define KEY "zzzzzzzzzzzzzzzzzzzzzzz"  // Get it from this page https://ifttt.com/services/maker/settings
-//#define EVENT_NAME "button_pressed" // Name of your event name, set when you are creating the applet
-
-// ------- Telegram config --------
-#define BOT_TOKEN "497268459:AAESYm27tJfNXwnnnn0slbmWnkqvbWgQEyw"  // your Bot Token (Get from Botfather)
-#define CHAT_ID "596123373" // Chat ID of where you want the message to go (You can use MyIdBot to get the chat ID)
-
-// SSL client needed for both libraries
 WiFiClientSecure client;
+UniversalTelegramBot bot(BOTtoken, client);
 
-//IFTTTMaker ifttt(KEY, client);
-UniversalTelegramBot bot(BOT_TOKEN, client);
+int Bot_mtbs = 1000; //mean time between scan messages
+long Bot_lasttime;   //last time messages' scan has been done
+bool Start = false;
 
-String ipAddress = "";
+const int ledPin = 13;
+int ledStatus = 0;
 
-volatile bool telegramButtonPressedFlag = false;
-//volatile bool iftttButtonPressedFlag = false;
+void handleNewMessages(int numNewMessages) {
+  Serial.println("handleNewMessages");
+  Serial.println(String(numNewMessages));
+
+  for (int i=0; i<numNewMessages; i++) {
+    String chat_id = String(bot.messages[i].chat_id);
+    String text = bot.messages[i].text;
+
+    String from_name = bot.messages[i].from_name;
+    if (from_name == "") from_name = "Guest";
+
+    if (text == "/ledon") {
+      digitalWrite(ledPin, HIGH);   // turn the LED on (HIGH is the voltage level)
+      ledStatus = 1;
+      bot.sendMessage(chat_id, "Led is ON", "");
+    }
+
+    if (text == "/ledoff") {
+      ledStatus = 0;
+      digitalWrite(ledPin, LOW);    // turn the LED off (LOW is the voltage level)
+      bot.sendMessage(chat_id, "Led is OFF", "");
+    }
+
+    if (text == "/status") {
+      if(ledStatus){
+        bot.sendMessage(chat_id, "Led is ON", "");
+      } else {
+        bot.sendMessage(chat_id, "Led is OFF", "");
+      }
+    }
+
+    if (text == "/start") {
+      String welcome = "Welcome to Universal Arduino Telegram Bot library, " + from_name + ".\n";
+      welcome += "This is Flash Led Bot example.\n\n";
+      welcome += "/ledon : to switch the Led ON\n";
+      welcome += "/ledoff : to switch the Led OFF\n";
+      welcome += "/status : Returns current status of LED\n";
+      bot.sendMessage(chat_id, welcome, "Markdown");
+    }
+  }
+}
+
 
 void setup() {
-
   Serial.begin(115200);
-
-  // Initlaze the buttons
-  pinMode(TELEGRAM_BUTTON_PIN, INPUT);
-//  pinMode(IFTTT_BUTTON_PIN, INPUT);
-
-  // NOTE:
-  // It is important to use interupts when making network calls in your sketch
-  // if you just checked the status of te button in the loop you might
-  // miss the button press.
-  attachInterrupt(TELEGRAM_BUTTON_PIN, telegramButtonPressed, RISING);
-//  attachInterrupt(IFTTT_BUTTON_PIN, iftttButtonPressed, RISING);
 
   // Set WiFi to station mode and disconnect from an AP if it was Previously
   // connected
@@ -66,73 +88,37 @@ void setup() {
   WiFi.disconnect();
   delay(100);
 
-  // Attempt to connect to Wifi network:
+  // attempt to connect to Wifi network:
   Serial.print("Connecting Wifi: ");
   Serial.println(ssid);
   WiFi.begin(ssid, password);
+
   while (WiFi.status() != WL_CONNECTED) {
     Serial.print(".");
     delay(500);
   }
+
   Serial.println("");
   Serial.println("WiFi connected");
-  Serial.println("IP address: ");
-  IPAddress ip = WiFi.localIP();
-  Serial.println(ip);
+  Serial.print("IP address: ");
+  Serial.println(WiFi.localIP());
 
-  ipAddress = ip.toString();
-
-}
-
-void telegramButtonPressed() {
-  Serial.println("telegramButtonPressed");
-  int button = digitalRead(TELEGRAM_BUTTON_PIN);
-  if(button == HIGH)
-  {
-    telegramButtonPressedFlag = true;
-  }
-  return;
-}
-
-
-//void iftttButtonPressed() {
-//  Serial.println("iftttButtonPressed");
-//  int button = digitalRead(IFTTT_BUTTON_PIN);
-//  if(button == HIGH)
-//  {
-//    iftttButtonPressedFlag = true;
-//  }
-//  return;
-//}
-
-//void triggerIftttEvent() {
-//  if(ifttt.triggerEvent(EVENT_NAME, ssid, ipAddress)){
-//    Serial.println("IFTTT Successfully sent");
-//  }
-//  iftttButtonPressedFlag = false;
-//}
-
-void sendTelegramMessage() {
-  String message = "SSID:  ";
-  message.concat(ssid);
-  message.concat("\n");
-  message.concat("IP: ");
-  message.concat(ipAddress);
-  message.concat("\n");
-  if(bot.sendMessage(CHAT_ID, message, "Markdown")){
-    Serial.println("TELEGRAM Successfully sent");
-  }
-//  telegramButtonPressedFlag = false;
+  pinMode(ledPin, OUTPUT); // initialize digital ledPin as an output.
+  delay(10);
+  digitalWrite(ledPin, LOW); // initialize pin as off
+  client.setInsecure();
 }
 
 void loop() {
-//  if ( iftttButtonPressedFlag ) {
-//    triggerIftttEvent();
-//  }
+  if (millis() > Bot_lasttime + Bot_mtbs)  {
+    int numNewMessages = bot.getUpdates(bot.last_message_received + 1);
 
-//  if ( telegramButtonPressedFlag ) {
-    sendTelegramMessage();
-//  }
+    while(numNewMessages) {
+      Serial.println("got response");
+      handleNewMessages(numNewMessages);
+      numNewMessages = bot.getUpdates(bot.last_message_received + 1);
+    }
 
-delay(5000);
+    Bot_lasttime = millis();
+  }
 }

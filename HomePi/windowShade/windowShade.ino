@@ -15,7 +15,7 @@
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 // ~~~~~~~ MQTT Topics ~~~~~~
-#define DEVICE_TOPIC        "SaloonDual"
+#define DEVICE_TOPIC        "FamilyRom"
 #define MQTT_PREFIX         "HomePi/Dvir"
 #define MQTT_GROUP          "Windows"
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
