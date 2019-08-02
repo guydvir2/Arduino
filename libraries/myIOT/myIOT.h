@@ -1,6 +1,7 @@
 #ifndef myIOT_h
 #define myIOT_h
 
+#include "secrets.h"
 #include "Arduino.h"
 typedef void (*cb_func)(char msg1[50]); // this define a generic functing with an input of 50 chars
 
@@ -33,7 +34,7 @@ static const int MaxTopicLength = 64; //topics
 
 public:
 myIOT(char *devTopic, char *key="failNTPcount");
-void start_services(cb_func funct, char *ssid="Xiaomi_D6C8", char *password="guyd5161", char *mqtt_user="guy", char *mqtt_passw="kupelu9e", char *mqtt_broker="192.168.3.200");
+void start_services(cb_func funct, char *ssid=SSID_ID, char *password=PASS_WIFI, char *mqtt_user=MQTT_USER, char *mqtt_passw=MQTT_PASS, char *mqtt_broker="192.168.3.200");
 void looper();
 void startOTA();
 void get_timeStamp(time_t t = 0);
@@ -65,7 +66,7 @@ char prefixTopic  [MaxTopicLength];
 char deviceTopic  [MaxTopicLength];
 char addGroupTopic[MaxTopicLength];
 
-const char *ver     = "iot_3.92";
+const char *ver     = "iot_3.93";
 char timeStamp[20];
 long updated_bootTime  = 0;
 int resetIntervals     = 10;
@@ -176,6 +177,7 @@ void convert_epoch2clock(long t1, long t2, char* time_str, char* days_str);
 void endNow();
 void updateTOinflash(int TO);
 void restore_to();
+void switchOFF();
 
 FVars inCodeTimeOUT_inFlash;
 FVars endTimeOUT_inFlash;
@@ -183,7 +185,7 @@ FVars updatedTimeOUT_inFlash;
 
 private:
 void switchON();
-void switchOFF();
+// void switchOFF();
 
 };
 

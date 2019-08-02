@@ -24,7 +24,7 @@ char ssid[] = "Xiaomi_D6C8";     // your network SSID (name)
 char password[] = "guyd5161"; // your network key
 
 // Initialize Telegram BOT
-#define BOTtoken "497268459:AAESYm27tJfNXwnnnn0slbmWnkqvbWgQEyw"  // your Bot Token (Get from Botfather)
+#define BOTtoken "812406965:AAEaV-ONCIru8ePuisuMfm0ECygsm5adZHs"  // your Bot Token (Get from Botfather)
 
 WiFiClientSecure client;
 UniversalTelegramBot bot(BOTtoken, client);
@@ -81,6 +81,7 @@ void handleNewMessages(int numNewMessages) {
 
 void setup() {
   Serial.begin(115200);
+  client.setInsecure();
 
   // Set WiFi to station mode and disconnect from an AP if it was Previously
   // connected
@@ -106,11 +107,12 @@ void setup() {
   pinMode(ledPin, OUTPUT); // initialize digital ledPin as an output.
   delay(10);
   digitalWrite(ledPin, LOW); // initialize pin as off
-  client.setInsecure();
+
 }
 
 void loop() {
   if (millis() > Bot_lasttime + Bot_mtbs)  {
+    Serial.println("IN");
     int numNewMessages = bot.getUpdates(bot.last_message_received + 1);
 
     while(numNewMessages) {

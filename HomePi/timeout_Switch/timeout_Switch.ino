@@ -1,7 +1,7 @@
-/*
-   Upload using Generic ESP8266
-   Change default 64kB ram to
-   <<<< 1024 kB of ram !!! MUST!! >>>>
+/* For SonOff Devices:
+   1) Upload using Generic ESP8266
+   2) Change default 1024kB (64kB SPIFFS ) ram
+   <<<<  !!! MUST!! >>>>
    otherwise OTA will not be loaded next time
  */
 
@@ -11,18 +11,18 @@
 #include <TimeLib.h>
 
 // ********** Sketch Services  ***********
-#define VER              "Sonoff.1.0"
+#define VER              "Sonoff.1.2"
 #define USE_BOUNCE_DEBUG false
-#define USE_INPUTS       false
+#define USE_INPUTS       true
 #define USE_DAILY_TO     true
-
+#define IS_SONOFF        true
 
 // ********** TimeOut Time vars  ***********
 #define NUM_SWITCHES     1
-#define TIMEOUT_SW0      6*80 // mins for SW0
-#define TIMEOUT_SW1      1 // mins
-int CLOCK_ON [2] = {18,0};
-int CLOCK_OFF[2] = {7,0};
+#define TIMEOUT_SW0      2*60 // mins for SW0
+#define TIMEOUT_SW1      3*60 // mins
+int CLOCK_ON [2] = {19,0};
+int CLOCK_OFF[2] = {23,0};
 
 
 // ********** myIOT Class ***********
@@ -35,7 +35,7 @@ int CLOCK_OFF[2] = {7,0};
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 // ~~~~~~~ MQTT Topics ~~~~~~
-#define DEVICE_TOPIC "PergolaBulbs"
+#define DEVICE_TOPIC "test"
 #define MQTT_PREFIX  "myHome"
 #define MQTT_GROUP   "OutdoorLights"
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -59,10 +59,19 @@ timeOUT *TO[]={&timeOut_SW0};
 
 
 // ~~~~ HW Pins and Statdes ~~~~
-#define RELAY1          12 // 12 for Sonoff D2 for wemos mini
+#if IS_SONOFF
+#define RELAY1          12
+#define RELAY2          5
+#define INPUT1          0
+#define INPUT2          0
+#define LEDpin          13
+#endif
+#if !IS_SONOFF
+#define RELAY1          D2
 #define RELAY2          5
 #define INPUT1          9
 #define INPUT2          3
+#endif
 
 byte relays[]  = {RELAY1, RELAY2};
 byte inputs[]  = {INPUT1, INPUT2};
@@ -82,10 +91,15 @@ bool last_swState [NUM_SWITCHES];
 bool inputs_lastState[NUM_SWITCHES];
 //####################################################
 
-
-
-
-
+// // ~~~~~~~~ Test using FVARS ~~~~~~~~~~~~~~~~~~~
+// FVars dailyClockOn("ClockOn");
+// FVars dailyClockOff("ClockOff");
+//
+//
+//
+// void update_clock_from_flash(){
+//
+// }
 void switchIt (char *txt1, int sw_num, bool state, char *txt2=""){
         char msg [50], msg1[50], msg2[50], states[50], tempstr[50];
         char *word={"Turned"};
@@ -113,6 +127,21 @@ void switchIt (char *txt1, int sw_num, bool state, char *txt2=""){
                 iot.pub_state(states);
         }
 }
+void checkSwitch_Pressed (byte sw){
+        if (digitalRead(inputs[sw])==LOW) {
+                delay(50);
+                if (digitalRead(inputs[sw])==LOW) {
+                        if (digitalRead(relays[sw])==RelayOn) {
+                                TO[sw]->endNow();
+                        }
+                        else {
+                                TO[sw]->restart_to();
+                        }
+                        delay(500);
+                }
+        }
+
+}
 void startIOTservices(){
         iot.useSerial      = USE_SERIAL;
         iot.useWDT         = USE_WDT;
@@ -134,6 +163,9 @@ void startGPIOs() {
 
                 swState [i] = 0;
                 last_swState [i] = 0;
+        }
+        if (IS_SONOFF) {
+                pinMode(LEDpin, OUTPUT);
         }
 }
 void quickPwrON(){
@@ -189,9 +221,15 @@ void timeOutLoop(){
                         if (swState[i]!=last_swState[i]) { // change state (ON <-->OFF)
                                 if (swState[i]==1) {    // swithc ON
                                         switchIt("TimeOut",i,1);
+                                        if (IS_SONOFF) {
+                                                digitalWrite(LEDpin,LOW);
+                                        }
                                 }
                                 else{ // switch OFF
                                         switchIt("TimeOut",i,0);
+                                        if (IS_SONOFF) {
+                                                digitalWrite(LEDpin,HIGH);
+                                        }
                                 }
                         }
                         last_swState[i] = swState[i];
@@ -327,10 +365,12 @@ void loop() {
                 recoverReset();
         }
         if (USE_DAILY_TO == true) {
-                daily_timeouts(CLOCK_OFF, CLOCK_ON,0);
+                for (int i=0; i<NUM_SWITCHES; i++) {
+                        daily_timeouts(CLOCK_OFF, CLOCK_ON,i);
+                }
         }
         if (USE_INPUTS == true) {
-                // checkSwitch_Pressed();
+                checkSwitch_Pressed(0);
         }
 
         delay(100);
