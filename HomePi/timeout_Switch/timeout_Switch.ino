@@ -11,7 +11,7 @@
 #include <TimeLib.h>
 
 // ********** Sketch Services  ***********
-#define VER              "Sonoff.1.2"
+#define VER              "Sonoff.1.3"
 #define USE_BOUNCE_DEBUG false
 #define USE_INPUTS       true
 #define USE_DAILY_TO     true
@@ -91,7 +91,8 @@ bool last_swState [NUM_SWITCHES];
 bool inputs_lastState[NUM_SWITCHES];
 //####################################################
 
-// // ~~~~~~~~ Test using FVARS ~~~~~~~~~~~~~~~~~~~
+// ~~~~~~~~ Test using FVARS ~~~~~~~~~~~~~~~~~~~
+FVars useDailyClock ("useDailyClock");
 // FVars dailyClockOn("ClockOn");
 // FVars dailyClockOff("ClockOff");
 //
