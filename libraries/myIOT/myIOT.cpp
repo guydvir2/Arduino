@@ -1,8 +1,8 @@
 #include "Arduino.h"
 #include "myIOT.h"
 
-// #include <ESP8266WiFi.h>
-#include <WiFiClientSecure.h>
+#include <ESP8266WiFi.h>
+// #include <WiFiClientSecure.h>
 #include <ESP8266Ping.h>
 #include <NtpClientLib.h>
 #include <PubSubClient.h> //MQTT
@@ -16,8 +16,8 @@
 // #######################
 
 // ~~~~~~~~~ Services ~~~~~~~~~~~
-// WiFiClient espClient;
-WiFiClientSecure espClient;
+WiFiClient espClient;
+// WiFiClientSecure espClient;
 PubSubClient mqttClient(espClient);
 Ticker wdt;
 myJSON json(jfile, true);
@@ -237,6 +237,7 @@ void myIOT::startMQTT() {
         createTopics();
         // Select MQTT server
         if (Ping.ping(mqtt_server)) {
+                // mqttClient.setServer(mqtt_server, 8883);
                 mqttClient.setServer(mqtt_server, 1883);
                 stat = true;
                 alternativeMQTTserver  =false;

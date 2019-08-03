@@ -19,7 +19,7 @@ int CLOCK_OFF[2] = {7,0};
 
 // ********** myIOT Class ***********
 //~~~~~ Services ~~~~~~~~~~~
-#define USE_SERIAL       false
+#define USE_SERIAL       true
 #define USE_WDT          true
 #define USE_OTA          true
 #define USE_IR_REMOTE    true
@@ -28,7 +28,7 @@ int CLOCK_OFF[2] = {7,0};
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 // ~~~~~~~ MQTT Topics ~~~~~~
-#define DEVICE_TOPIC "KitchenLEDs"
+#define DEVICE_TOPIC "KitchenLEDsss"
 #define MQTT_PREFIX  "myHome"
 #define MQTT_GROUP   "LEDStrips"
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
