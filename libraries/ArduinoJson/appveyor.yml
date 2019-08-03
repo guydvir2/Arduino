@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 version: 5.13.5.{build}
+=======
+version: 6.11.3.{build}
+>>>>>>> 71a09487d18c8b01d889cc54dde62335db4d16d6
 environment:
   matrix:
   - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
@@ -17,4 +21,4 @@ before_build:
 build_script:
 - cmake --build . --config %CONFIGURATION%
 test_script:
-- ctest --output-on-failure .
+- ctest -C %CONFIGURATION% --output-on-failure .

@@ -55,7 +55,7 @@ void setup() {
   Serial.println(WiFi.localIP());
   client.setInsecure();
 
-  bot.sendMessage(CHAT_ID, "HiGuy", "");
+  bot.sendMessage(CHAT_ID, "HiGuy");
 }
 
 void loop() {

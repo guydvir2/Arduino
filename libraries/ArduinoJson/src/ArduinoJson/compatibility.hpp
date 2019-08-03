@@ -13,6 +13,7 @@
 #define ARDUINOJSON_STRINGIFY(S) #S
 
 #define ARDUINOJSON_DEPRECATION_ERROR(X, Y) \
+<<<<<<< HEAD
   ARDUINOJSON_COMPILE_ERROR(ARDUINOJSON_STRINGIFY(X is a Y from ArduinoJson 6 but version 5 is installed. Visit arduinojson.org to get more information.))
 
 #define StaticJsonDocument ARDUINOJSON_DEPRECATION_ERROR(StaticJsonDocument, class)
@@ -27,5 +28,13 @@
 #define measureMsgPack ARDUINOJSON_DEPRECATION_ERROR(measureMsgPack, function)
 #define measureJson ARDUINOJSON_DEPRECATION_ERROR(measureJson, function)
 #define measureJsonPretty ARDUINOJSON_DEPRECATION_ERROR(measureJsonPretty, function)
+=======
+  ARDUINOJSON_COMPILE_ERROR(ARDUINOJSON_STRINGIFY(X is a Y from ArduinoJson 5. Please see arduinojson.org/upgrade to learn how to upgrade your program to ArduinoJson version 6))
+
+#define StaticJsonBuffer ARDUINOJSON_DEPRECATION_ERROR(StaticJsonBuffer, class)
+#define DynamicJsonBuffer ARDUINOJSON_DEPRECATION_ERROR(DynamicJsonBuffer, class)
+#define JsonBuffer ARDUINOJSON_DEPRECATION_ERROR(JsonBuffer, class)
+#define RawJson ARDUINOJSON_DEPRECATION_ERROR(RawJson, function)
+>>>>>>> 71a09487d18c8b01d889cc54dde62335db4d16d6
 
 #endif
