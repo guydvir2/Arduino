@@ -35,7 +35,7 @@ int CLOCK_OFF[2] = {23,0};
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 // ~~~~~~~ MQTT Topics ~~~~~~
-#define DEVICE_TOPIC "test"
+#define DEVICE_TOPIC "test2"
 #define MQTT_PREFIX  "myHome"
 #define MQTT_GROUP   "OutdoorLights"
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -93,8 +93,8 @@ bool inputs_lastState[NUM_SWITCHES];
 
 // ~~~~~~~~ Test using FVARS ~~~~~~~~~~~~~~~~~~~
 FVars useDailyClock ("useDailyClock");
-// FVars dailyClockOn("ClockOn");
-// FVars dailyClockOff("ClockOff");
+FVars dailyClockOn("ClockOn");
+FVars dailyClockOff("ClockOff");
 //
 //
 //

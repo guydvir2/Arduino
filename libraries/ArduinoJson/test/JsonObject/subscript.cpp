@@ -1,5 +1,5 @@
 // ArduinoJson - arduinojson.org
-// Copyright Benoit Blanchon 2014-2018
+// Copyright Benoit Blanchon 2014-2019
 // MIT License
 
 #include <ArduinoJson.h>
@@ -148,5 +148,16 @@ TEST_CASE("JsonObject::operator[]") {
     _object[std::string("hello")] = std::string("world");
     const size_t expectedSize = JSON_OBJECT_SIZE(1) + 12;
     REQUIRE(expectedSize <= _jsonBuffer.size());
+  }
+
+  SECTION("should ignore null key") {
+    // object must have a value to make a call to strcmp()
+    _object["dummy"] = 42;
+
+    const char* null = 0;
+    _object[null] = 666;
+
+    REQUIRE(_object.size() == 1);
+    REQUIRE(_object[null] == 0);
   }
 }

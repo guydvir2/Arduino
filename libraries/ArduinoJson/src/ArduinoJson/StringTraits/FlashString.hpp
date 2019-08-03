@@ -1,5 +1,5 @@
 // ArduinoJson - arduinojson.org
-// Copyright Benoit Blanchon 2014-2018
+// Copyright Benoit Blanchon 2014-2019
 // MIT License
 
 #pragma once
@@ -31,7 +31,9 @@ struct StringTraits<const __FlashStringHelper*, void> {
   };
 
   static bool equals(const __FlashStringHelper* str, const char* expected) {
-    return strcmp_P(expected, (const char*)str) == 0;
+    const char* actual = reinterpret_cast<const char*>(str);
+    if (!actual || !expected) return actual == expected;
+    return strcmp_P(expected, actual) == 0;
   }
 
   static bool is_null(const __FlashStringHelper* str) {
@@ -53,7 +55,7 @@ struct StringTraits<const __FlashStringHelper*, void> {
   static const bool has_equals = true;
   static const bool should_duplicate = true;
 };
-}
-}
+}  // namespace Internals
+}  // namespace ArduinoJson
 
 #endif
