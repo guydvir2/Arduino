@@ -15,10 +15,10 @@
 #define USE_BOUNCE_DEBUG false
 #define USE_INPUTS       true
 #define USE_DAILY_TO     true
-#define IS_SONOFF        true
+#define IS_SONOFF        false
 
 // ********** TimeOut Time vars  ***********
-#define NUM_SWITCHES     1
+#define NUM_SWITCHES     2
 #define TIMEOUT_SW0      2*60 // mins for SW0
 #define TIMEOUT_SW1      3*60 // mins
 int CLOCK_ON [2] = {19,0};
@@ -35,7 +35,11 @@ int CLOCK_OFF[2] = {23,0};
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 // ~~~~~~~ MQTT Topics ~~~~~~
+<<<<<<< HEAD
 #define DEVICE_TOPIC "test2"
+=======
+#define DEVICE_TOPIC "test3"
+>>>>>>> 22b87949f55f88cbb8ddce31cccaf72fd935ac88
 #define MQTT_PREFIX  "myHome"
 #define MQTT_GROUP   "OutdoorLights"
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -64,7 +68,7 @@ timeOUT *TO[]={&timeOut_SW0};
 #define RELAY2          5
 #define INPUT1          0
 #define INPUT2          0
-#define LEDpin          13
+// #define LEDpin          13
 #endif
 #if !IS_SONOFF
 #define RELAY1          D2
@@ -72,7 +76,7 @@ timeOUT *TO[]={&timeOut_SW0};
 #define INPUT1          9
 #define INPUT2          3
 #endif
-
+#define LEDpin          13
 byte relays[]  = {RELAY1, RELAY2};
 byte inputs[]  = {INPUT1, INPUT2};
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
