@@ -1,8 +1,8 @@
 #include "Arduino.h"
 #include "myIOT.h"
-// #include "arduino_secrets.h"
 
-#include <ESP8266WiFi.h>
+// #include <ESP8266WiFi.h>
+#include <WiFiClientSecure.h>
 #include <ESP8266Ping.h>
 #include <NtpClientLib.h>
 #include <PubSubClient.h> //MQTT
@@ -16,7 +16,8 @@
 // #######################
 
 // ~~~~~~~~~ Services ~~~~~~~~~~~
-WiFiClient espClient;
+// WiFiClient espClient;
+WiFiClientSecure espClient;
 PubSubClient mqttClient(espClient);
 Ticker wdt;
 myJSON json(jfile, true);
