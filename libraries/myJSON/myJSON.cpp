@@ -56,7 +56,8 @@ bool myJSON::FS_ok(){
 void myJSON::saveJSON2file(JsonDocument& _doc) {
         File writeFile = SPIFFS.open(_filename, "w");
         serializeJson(_doc, writeFile);
-        Serial.println("JSON file saved OK");
+        delay(50);
+        // Serial.println("JSON file saved OK");
         // myJSON::PrettyprintJSON(_doc);
 }
 void myJSON::readJSON_file(JsonDocument& _doc) {
@@ -67,8 +68,8 @@ void myJSON::readJSON_file(JsonDocument& _doc) {
         }
         else{
                 serializeJson(_doc, readFile);
-                // Serial.println("JSON file read OK");
         }
+        delay(50);
 }
 void myJSON::printJSON(JsonDocument& _doc) {
         serializeJson(_doc, Serial);
@@ -83,40 +84,39 @@ bool myJSON::getValue (const char *key, char value[20]){
         StaticJsonDocument<DOC_SIZE> tempJDOC;
         myJSON::readJSON_file(tempJDOC);
         bool hasKey = tempJDOC.containsKey(key);
-        if (hasKey){
-          const char *val = tempJDOC[key];
-          sprintf(value,"%s",val);
-          return 1;
+        if (hasKey) {
+                const char *val = tempJDOC[key];
+                sprintf(value,"%s",val);
+                return 1;
         }
         else {
-          return 0; // when key is not present
+                return 0; // when key is not present
         }
 }
 bool myJSON::getValue (const char *key, int &retval){
         StaticJsonDocument<DOC_SIZE> tempJDOC;
         myJSON::readJSON_file(tempJDOC);
         bool hasKey = tempJDOC.containsKey(key);
-        if (hasKey){
-          retval = tempJDOC[key];
-          return 1;
+        if (hasKey) {
+                retval = tempJDOC[key];
+                return 1;
         }
         else {
-          return 0; // when key is not present
+                return 0; // when key is not present
         }
 }
 bool myJSON::getValue (const char *key, long &retval){
         StaticJsonDocument<DOC_SIZE> tempJDOC;
         myJSON::readJSON_file(tempJDOC);
         bool hasKey = tempJDOC.containsKey(key);
-        if (hasKey){
-          retval = tempJDOC[key];
-          return 1;
+        if (hasKey) {
+                retval = tempJDOC[key];
+                return 1;
         }
         else {
-          return 0; // when key is not present
+                return 0; // when key is not present
         }
 }
-
 
 void myJSON::setValue(const char *key, char *value){
         StaticJsonDocument<DOC_SIZE> tempJDOC;
@@ -177,6 +177,45 @@ void myJSON::updateArray(char* array_key, int val) {
         }
         myJSON::saveJSON2file(tempJDOC);
 }
+void myJSON::updateArray(char* array_key, long val) {
+        StaticJsonDocument<DOC_SIZE> tempJDOC;
+        myJSON::readJSON_file(tempJDOC);
+
+        JsonVariant data_key = tempJDOC[array_key];
+        if (data_key.isNull()) { // create for the first time
+                JsonArray data = tempJDOC.createNestedArray(array_key);
+                data.add(val);
+        }
+        else if (tempJDOC[array_key].size() < LOG_LENGTH) {
+                tempJDOC[array_key].add(val);
+        }
+        else if (tempJDOC[array_key].size() >= LOG_LENGTH) {
+                for (int n = 0; n < LOG_LENGTH - 1; n++) {
+                        tempJDOC[array_key][n] = tempJDOC[array_key][n + 1];
+                }
+                tempJDOC[array_key][LOG_LENGTH - 1] = val;
+        }
+        myJSON::saveJSON2file(tempJDOC);
+}
+// void myJSON::getArrayVal(char* array_key, int val){
+//   StaticJsonDocument<DOC_SIZE> tempJDOC;
+//   myJSON::readJSON_file(tempJDOC);
+//
+//   JsonVariant data_key = tempJDOC[array_key];
+//   if (data_key.isNull()) { // create for the first time
+//           JsonArray data = tempJDOC.createNestedArray(array_key);
+//           data.add(val);
+//   }
+// }
+void myJSON::nestedArray(char* array_key, long val) {
+        StaticJsonDocument<DOC_SIZE> tempJDOC;
+        myJSON::readJSON_file(tempJDOC);
+        JsonArray array = tempJDOC.to<JsonArray>();
+        JsonObject nested = array.createNestedObject();
+        nested[array_key] = val;
+        myJSON::saveJSON2file(tempJDOC);
+}
+
 void myJSON::eraseArray(char* array_key) {
         StaticJsonDocument<DOC_SIZE> tempJDOC;
         myJSON::readJSON_file(tempJDOC);

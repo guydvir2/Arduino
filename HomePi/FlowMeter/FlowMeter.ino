@@ -2,12 +2,47 @@
 #include <Arduino.h>
 #include <TimeLib.h>
 
-//####################################################
-#define DEVICE_TOPIC "HomePi/Dvir/flowMeter"
-#define USE_SERIAL true
-#define USE_WDT true
-#define USE_OTA true
-#define VER "WemosMini_2.2"
+
+
+// ********** Sketch Services  ***********
+#define VER              "WemosMini_2.2"
+#define USE_BOUNCE_DEBUG false
+#define USE_INPUTS       false
+#define USE_DAILY_TO     true
+
+
+// ********** myIOT Class ***********
+//~~~~~ Services ~~~~~~~~~~~
+#define USE_SERIAL       false
+#define USE_WDT          true
+#define USE_OTA          true
+#define USE_RESETKEEPER  true
+#define USE_FAILNTP      true
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+// ~~~~~~~ MQTT Topics ~~~~~~
+#define DEVICE_TOPIC "flowMeter"
+#define MQTT_PREFIX  "myHome"
+#define MQTT_GROUP   ""
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+#define ADD_MQTT_FUNC addiotnalMQTT
+myIOT iot(DEVICE_TOPIC);
+// ***************************
+
+
+// ~~~~ ResetKeeper Vars ~~~~~~~
+bool badReboot        = false;
+bool checkbadReboot   = true;
+bool boot_overide     = true;
+
+// ~~~~~~~~ state Vars ~~~~~~~~
+#define RelayOn          HIGH
+#define SwitchOn         LOW
+
+bool swState [NUM_SWITCHES];
+bool last_swState [NUM_SWITCHES];
+bool inputs_lastState[NUM_SWITCHES];
 //####################################################
 
 
@@ -56,14 +91,20 @@ unsigned long currentFlow_duration = 0;
 
 #define ADD_MQTT_FUNC addiotnalMQTT
 myIOT iot(DEVICE_TOPIC);
+void startIOTservices(){
+        iot.useSerial      = USE_SERIAL;
+        iot.useWDT         = USE_WDT;
+        iot.useOTA         = USE_OTA;
+        iot.useResetKeeper = USE_RESETKEEPER;
+        iot.resetFailNTP   = USE_FAILNTP;
+        strcpy(iot.prefixTopic, MQTT_PREFIX);
+        strcpy(iot.addGroupTopic, MQTT_GROUP);
+        iot.start_services(ADD_MQTT_FUNC);
+}
 
 void setup(){
         startGPIOs();
-
-        iot.useSerial = USE_SERIAL;
-        iot.useWDT = USE_WDT;
-        iot.useOTA = USE_OTA;
-        iot.start_services(ADD_MQTT_FUNC);
+        startIOTservices();
 
         delay(1000);
         // ~~~ time on Boot ~~~~~
@@ -259,6 +300,7 @@ void flow_alert(){
         Serial.println("Alert- overFlowing: ");
 }
 void loop(){
+  
         iot.looper();
         measureFlow();
         delay(100);
