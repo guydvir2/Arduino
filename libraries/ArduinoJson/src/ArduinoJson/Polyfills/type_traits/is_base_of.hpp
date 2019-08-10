@@ -21,9 +21,4 @@ class is_base_of {
   static const bool value =
       sizeof(probe(reinterpret_cast<TDerived *>(0))) == sizeof(Yes);
 };
-<<<<<<< HEAD:libraries/ArduinoJson/src/ArduinoJson/TypeTraits/IsBaseOf.hpp
-}  // namespace Internals
-}  // namespace ArduinoJson
-=======
 }  // namespace ARDUINOJSON_NAMESPACE
->>>>>>> 71a09487d18c8b01d889cc54dde62335db4d16d6:libraries/ArduinoJson/src/ArduinoJson/Polyfills/type_traits/is_base_of.hpp

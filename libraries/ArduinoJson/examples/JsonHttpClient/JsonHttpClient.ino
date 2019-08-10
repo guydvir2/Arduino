@@ -111,10 +111,6 @@ void loop() {
 // The book "Mastering ArduinoJson" contains a tutorial on deserialization
 // showing how to parse the response from GitHub's API. In the last chapter,
 // it shows how to parse the huge documents from OpenWeatherMap
-<<<<<<< HEAD
-// and Weather Underground.
-=======
 // and Reddit.
->>>>>>> 71a09487d18c8b01d889cc54dde62335db4d16d6
 // Learn more at https://arduinojson.org/book/
 // Use the coupon code TWENTY for a 20% discount ❤❤❤❤❤

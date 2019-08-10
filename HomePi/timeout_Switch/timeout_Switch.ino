@@ -11,14 +11,14 @@
 #include <TimeLib.h>
 
 // ********** Sketch Services  ***********
-#define VER              "Sonoff.1.3"
+#define VER              "ESP-01.1.3"
 #define USE_BOUNCE_DEBUG false
 #define USE_INPUTS       true
 #define USE_DAILY_TO     true
-#define IS_SONOFF        false
+#define IS_SONOFF        true
 
 // ********** TimeOut Time vars  ***********
-#define NUM_SWITCHES     2
+#define NUM_SWITCHES     1
 #define TIMEOUT_SW0      2*60 // mins for SW0
 #define TIMEOUT_SW1      3*60 // mins
 int CLOCK_ON [2] = {19,0};
@@ -27,7 +27,7 @@ int CLOCK_OFF[2] = {23,0};
 
 // ********** myIOT Class ***********
 //~~~~~ Services ~~~~~~~~~~~
-#define USE_SERIAL       true
+#define USE_SERIAL       false
 #define USE_WDT          true
 #define USE_OTA          true
 #define USE_RESETKEEPER  true
@@ -35,13 +35,9 @@ int CLOCK_OFF[2] = {23,0};
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 // ~~~~~~~ MQTT Topics ~~~~~~
-<<<<<<< HEAD
-#define DEVICE_TOPIC "test2"
-=======
-#define DEVICE_TOPIC "test3"
->>>>>>> 22b87949f55f88cbb8ddce31cccaf72fd935ac88
+#define DEVICE_TOPIC "test4"
 #define MQTT_PREFIX  "myHome"
-#define MQTT_GROUP   "OutdoorLights"
+#define MQTT_GROUP   "SonOff"
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 #define ADD_MQTT_FUNC addiotnalMQTT
@@ -68,14 +64,15 @@ timeOUT *TO[]={&timeOut_SW0};
 #define RELAY2          5
 #define INPUT1          0
 #define INPUT2          0
-// #define LEDpin          13
 #endif
+
 #if !IS_SONOFF
 #define RELAY1          D2
 #define RELAY2          5
 #define INPUT1          9
 #define INPUT2          3
 #endif
+
 #define LEDpin          13
 byte relays[]  = {RELAY1, RELAY2};
 byte inputs[]  = {INPUT1, INPUT2};
@@ -96,15 +93,10 @@ bool inputs_lastState[NUM_SWITCHES];
 //####################################################
 
 // ~~~~~~~~ Test using FVARS ~~~~~~~~~~~~~~~~~~~
-FVars useDailyClock ("useDailyClock");
-FVars dailyClockOn("ClockOn");
-FVars dailyClockOff("ClockOff");
-//
-//
-//
-// void update_clock_from_flash(){
-//
-// }
+// FVars useDailyClock ("useDailyClock");
+// FVars dailyClockOn("ClockOn");
+// FVars dailyClockOff("ClockOff");
+
 void switchIt (char *txt1, int sw_num, bool state, char *txt2=""){
         char msg [50], msg1[50], msg2[50], states[50], tempstr[50];
         char *word={"Turned"};

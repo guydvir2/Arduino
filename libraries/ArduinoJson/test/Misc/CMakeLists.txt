@@ -2,14 +2,8 @@
 # Copyright Benoit Blanchon 2014-2019
 # MIT License
 
-<<<<<<< HEAD
-add_executable(MiscTests 
-	empty.cpp
-	deprecated.cpp
-=======
 add_executable(MiscTests
 	conflicts.cpp
->>>>>>> 71a09487d18c8b01d889cc54dde62335db4d16d6
 	FloatParts.cpp
 	StreamReader.cpp
 	StringAdapters.cpp
@@ -17,10 +11,6 @@ add_executable(MiscTests
 	TypeTraits.cpp
 	unsigned_char.cpp
 	version.cpp
-<<<<<<< HEAD
-	vla.cpp
-=======
->>>>>>> 71a09487d18c8b01d889cc54dde62335db4d16d6
 )
 
 target_link_libraries(MiscTests catch)

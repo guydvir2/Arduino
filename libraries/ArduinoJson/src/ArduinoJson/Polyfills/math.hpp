@@ -21,10 +21,5 @@ template <typename T>
 bool isinf(T x) {
   return x != 0.0 && x * 2 == x;
 }
-<<<<<<< HEAD
-}  // namespace Internals
-}  // namespace ArduinoJson
-=======
 #endif
 }  // namespace ARDUINOJSON_NAMESPACE
->>>>>>> 71a09487d18c8b01d889cc54dde62335db4d16d6

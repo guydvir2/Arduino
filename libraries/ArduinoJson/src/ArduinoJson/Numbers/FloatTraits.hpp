@@ -95,8 +95,6 @@ struct FloatTraits<T, 8 /*64bits*/> {
     return forge(0x7ff00000, 0x00000000);
   }
 
-<<<<<<< HEAD:libraries/ArduinoJson/src/ArduinoJson/TypeTraits/FloatTraits.hpp
-=======
   static T highest() {
     return forge(0x7FEFFFFF, 0xFFFFFFFF);
   }
@@ -105,7 +103,6 @@ struct FloatTraits<T, 8 /*64bits*/> {
     return forge(0xFFEFFFFF, 0xFFFFFFFF);
   }
 
->>>>>>> 71a09487d18c8b01d889cc54dde62335db4d16d6:libraries/ArduinoJson/src/ArduinoJson/Numbers/FloatTraits.hpp
   // constructs a double floating point values from its binary representation
   // we use this function to workaround platforms with single precision literals
   // (for example, when -fsingle-precision-constant is passed to GCC)
@@ -176,9 +173,4 @@ struct FloatTraits<T, 4 /*32bits*/> {
     return forge(0xFf7fffff);
   }
 };
-<<<<<<< HEAD:libraries/ArduinoJson/src/ArduinoJson/TypeTraits/FloatTraits.hpp
-}  // namespace Internals
-}  // namespace ArduinoJson
-=======
 }  // namespace ARDUINOJSON_NAMESPACE
->>>>>>> 71a09487d18c8b01d889cc54dde62335db4d16d6:libraries/ArduinoJson/src/ArduinoJson/Numbers/FloatTraits.hpp

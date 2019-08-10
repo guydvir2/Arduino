@@ -111,13 +111,9 @@ TEST_CASE("JsonVariant comparisons") {
   }
 
   SECTION("null") {
-<<<<<<< HEAD
-    JsonVariant variant = null;
-=======
     DynamicJsonDocument doc(4096);
     JsonVariant variant = doc.to<JsonVariant>();
     variant.set(null);
->>>>>>> 71a09487d18c8b01d889cc54dde62335db4d16d6
 
     REQUIRE(variant == variant);
     REQUIRE_FALSE(variant != variant);
@@ -133,9 +129,6 @@ TEST_CASE("JsonVariant comparisons") {
     DynamicJsonDocument doc(4096);
     deserializeJson(doc, "\"hello\"");
     JsonVariant variant = doc.as<JsonVariant>();
-
-    REQUIRE(variant == variant);
-    REQUIRE_FALSE(variant != variant);
 
     REQUIRE(variant == variant);
     REQUIRE_FALSE(variant != variant);
@@ -167,9 +160,6 @@ TEST_CASE("JsonVariant comparisons") {
     REQUIRE(variant == variant);
     REQUIRE_FALSE(variant != variant);
 
-    REQUIRE(variant == variant);
-    REQUIRE_FALSE(variant != variant);
-
     REQUIRE(variant == std::string("hello"));
     REQUIRE_FALSE(variant != std::string("hello"));
 
@@ -187,8 +177,6 @@ TEST_CASE("JsonVariant comparisons") {
 
     REQUIRE(null != variant);
     REQUIRE_FALSE(null == variant);
-<<<<<<< HEAD
-=======
   }
 
 #ifdef HAS_VARIABLE_LENGTH_ARRAY
@@ -267,7 +255,6 @@ TEST_CASE("JsonVariant comparisons") {
 
     REQUIRE(variant1 != variant3);
     REQUIRE_FALSE(variant1 == variant3);
->>>>>>> 71a09487d18c8b01d889cc54dde62335db4d16d6
   }
 
   SECTION("Variants containing linked raws") {

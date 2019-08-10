@@ -4,23 +4,6 @@
 
 #pragma once
 
-<<<<<<< HEAD
-#include "ArduinoJson/version.hpp"
-
-#include "ArduinoJson/DynamicJsonBuffer.hpp"
-#include "ArduinoJson/JsonArray.hpp"
-#include "ArduinoJson/JsonObject.hpp"
-#include "ArduinoJson/StaticJsonBuffer.hpp"
-
-#include "ArduinoJson/Deserialization/JsonParserImpl.hpp"
-#include "ArduinoJson/JsonArrayImpl.hpp"
-#include "ArduinoJson/JsonBufferImpl.hpp"
-#include "ArduinoJson/JsonObjectImpl.hpp"
-#include "ArduinoJson/JsonVariantImpl.hpp"
-#include "ArduinoJson/Serialization/JsonSerializerImpl.hpp"
-
-#include "ArduinoJson/compatibility.hpp"
-=======
 #ifndef ARDUINOJSON_DEBUG
 #ifdef __clang__
 #pragma clang system_header
@@ -84,4 +67,3 @@ namespace DeserializationOption {
 using ARDUINOJSON_NAMESPACE::NestingLimit;
 }
 }  // namespace ArduinoJson
->>>>>>> 71a09487d18c8b01d889cc54dde62335db4d16d6
