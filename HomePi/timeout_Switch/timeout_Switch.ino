@@ -5,15 +5,15 @@
    otherwise OTA will not be loaded next time
  */
 
-
 #include <myIOT.h>
+#include <myJSON.h>
 #include <Arduino.h>
 #include <TimeLib.h>
 
 // ********** Sketch Services  ***********
 #define VER              "ESP-01.1.3"
 #define USE_BOUNCE_DEBUG false
-#define USE_INPUTS       true
+#define USE_INPUTS       false
 #define USE_DAILY_TO     true
 #define IS_SONOFF        true
 
@@ -21,8 +21,11 @@
 #define NUM_SWITCHES     1
 #define TIMEOUT_SW0      2*60 // mins for SW0
 #define TIMEOUT_SW1      3*60 // mins
-int CLOCK_ON [2] = {19,0};
-int CLOCK_OFF[2] = {23,0};
+int clockOn_0 [2] = {19,0};
+int clockOn_1 [2] = {18,0};
+
+int clockOff_0[2] = {23,59};
+int clockOff_1[2] = {22,0};
 
 
 // ********** myIOT Class ***********
@@ -35,7 +38,7 @@ int CLOCK_OFF[2] = {23,0};
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 // ~~~~~~~ MQTT Topics ~~~~~~
-#define DEVICE_TOPIC "test4"
+#define DEVICE_TOPIC "EntranceLights"
 #define MQTT_PREFIX  "myHome"
 #define MQTT_GROUP   "SonOff"
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -58,11 +61,21 @@ timeOUT *TO[]={&timeOut_SW0};
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 
+// ~~~~~~~~~ Use Daily Clock ~~~~
+bool dailyRun[] = {false,false};
+bool clockOn_flags[] = {false, false};
+#if USE_DAILY_TO
+myJSON clock_inFlash("file0.json", true);
+#endif
+// char *keys[]={"clockon_0,clockoff_0,flag_0,clockon_1,clockoff_1, flag_1"};
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
 // ~~~~ HW Pins and Statdes ~~~~
 #if IS_SONOFF
 #define RELAY1          12
 #define RELAY2          5
-#define INPUT1          0
+#define INPUT1          14
 #define INPUT2          0
 #endif
 
@@ -91,11 +104,6 @@ bool swState [NUM_SWITCHES];
 bool last_swState [NUM_SWITCHES];
 bool inputs_lastState[NUM_SWITCHES];
 //####################################################
-
-// ~~~~~~~~ Test using FVARS ~~~~~~~~~~~~~~~~~~~
-// FVars useDailyClock ("useDailyClock");
-// FVars dailyClockOn("ClockOn");
-// FVars dailyClockOff("ClockOff");
 
 void switchIt (char *txt1, int sw_num, bool state, char *txt2=""){
         char msg [50], msg1[50], msg2[50], states[50], tempstr[50];
@@ -264,6 +272,70 @@ void daily_timeouts(int toff_vect[2],int ton_vect[2], byte i=0){
                 iot.pub_msg(msg);
         }
 }
+void check_dailyTO_inFlash(){
+  // StaticJsonDocument<200> doc;
+  //
+  // JsonArray clock_0 = doc.createNestedArray("clock_0");
+  // JsonArray clock_1 = doc.createNestedArray("clock_1");
+  //
+  // clock_0.add[17];
+  // clock_0.add[0];
+  // clock_0.add[1];
+  //
+
+
+
+  // int flag_0;
+  // int flag_1;
+  // char clockon_0[10];
+  // char clockon_1[10];
+  // char tmp[10];
+  // int vals[10];
+  //
+  // for(int i=0; i<3;i++){
+  //   if(clock_inFlash.getValue(keys[i],tmp)){
+  //     Serial.println(tmp);
+  //
+  //   }
+  //   //       int a=iot.inline_read(tmp);
+  //
+  // }
+
+  // for (int i=0; i<3*NUM_SWITCHES; i++){
+  //   if(clock_inFlash.getValue(keys[i],tmp)){
+  //       int a=iot.inline_read(tmp);
+  //       for(int x=0;x<a;x++){
+  //         iot.inline_param(x)
+  //       }
+  //   }
+  //   else{
+  //     clock_inFlash.setValue(keys[i],"");
+  //
+  //   }
+  // }
+  //
+  // clockFlag_0.getValue(flag_0);
+  // clockon_0.getValue(clockon_0);
+  // clockoff_0.getValue(clockoff_0);
+  //
+  // iot.inline_read(clockon_0);
+  // for (int i=0; i<2;i++){
+  //   if (iot.inline_param[i]!=clockOn_0[i]){
+  //     clockOn_0[i]=atoi(if (iot.inline_param));
+  //   }
+  //
+  // }
+  //
+  // //
+  // // if (NUM_SWITCHES == 2){
+  // //   clockFlag_1.getValue(flag_1);
+  // //   clockon_1.getValue(clockon_1);
+  // //   clockoff_1.getValue(clockoff_1);
+  // // }
+  //
+  //
+
+}
 void addiotnalMQTT(char incoming_msg[50]) {
         char msg[150];
         char msg2[20];
@@ -363,7 +435,7 @@ void loop() {
         }
         if (USE_DAILY_TO == true) {
                 for (int i=0; i<NUM_SWITCHES; i++) {
-                        daily_timeouts(CLOCK_OFF, CLOCK_ON,i);
+                        daily_timeouts(clockOff_0, clockOn_0,i);
                 }
         }
         if (USE_INPUTS == true) {

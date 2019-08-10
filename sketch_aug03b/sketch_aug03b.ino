@@ -1,5 +1,7 @@
 #include <myIOT.h>
 #include <myJSON.h>
+#include <ArduinoJson.h>
+
 
 
 
@@ -120,15 +122,26 @@ void addiotnalMQTT(char incoming_msg[50]) {
 }
 void setup() {
 startIOTservices();
-a.setValue("key1",11);
-a.setValue("key2",12);
-a.setValue("key3",13);
-a.updateArray("array_key1",123456);
-a.nestedArray("nested_key1",5644646);
+// a.format();
+// char retVal[20];
+// a.getValue("key1",retVal);
+// iot.inline_read(retVal);
+
+// Serial.println(iot.inline_param[0]);
+// Serial.println(iot.inline_param[1]);
+
+// a.setValue("key1","11,15");
+// a.setValue("key2",12);
+// a.setValue("key3",13);
+a.updateArray("array_key1",156);
+a.updateArray("array_key1",4545);
+a.updateArray("array_key2",33);
+
+// a.nestedArray("nested_key1",5644646);
 a.printFile();
+a.eraseArray("array_key1");
 }
 
 void loop() {
         iot.looper();
-
 }
