@@ -3,32 +3,32 @@
 #include <TimeLib.h>
 
 // ********** Sketch Services  ***********
-#define VER              "Wemos.3.0"
+#define VER              "Wemos.3.0.1"
 #define USE_BOUNCE_DEBUG false
 #define USE_INPUTS       false
 #define USE_DAILY_TO     true
+#define USE_IR_REMOTE    true
 
 
 // ********** TimeOut Time vars  ***********
 #define NUM_SWITCHES     1
 #define TIMEOUT_SW0      6*80 // mins for SW0
 #define TIMEOUT_SW1      1 // mins
-int CLOCK_ON [2] = {18,0};
-int CLOCK_OFF[2] = {7,0};
+int ClockOn [2] = {14,5};
+int ClockOff[2] = {7,0};
 
 
 // ********** myIOT Class ***********
 //~~~~~ Services ~~~~~~~~~~~
-#define USE_SERIAL       true
+#define USE_SERIAL       false
 #define USE_WDT          true
 #define USE_OTA          true
-#define USE_IR_REMOTE    true
 #define USE_RESETKEEPER  true
 #define USE_FAILNTP      true
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 // ~~~~~~~ MQTT Topics ~~~~~~
-#define DEVICE_TOPIC "KitchenLEDsss"
+#define DEVICE_TOPIC "KitchenLEDs"
 #define MQTT_PREFIX  "myHome"
 #define MQTT_GROUP   "LEDStrips"
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -440,10 +440,7 @@ void loop() {
                 recoverReset();
         }
         if (USE_DAILY_TO == true) {
-                daily_timeouts(CLOCK_OFF, CLOCK_ON,0);
-        }
-        if (USE_INPUTS == true) {
-                // checkSwitch_Pressed();
+                daily_timeouts(ClockOff, ClockOn,0);
         }
 
         delay(100);

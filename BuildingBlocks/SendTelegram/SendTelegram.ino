@@ -1,10 +1,43 @@
+#include <myIOT.h>
 #include <ESP8266WiFi.h>
 #include <WiFiClientSecure.h>
 #include <UniversalTelegramBot.h>
 
+
 #define BOTtoken "812406965:AAEaV-ONCIru8ePuisuMfm0ECygsm5adZHs"
 #define CHAT_ID "596123373"
 
+// ********** myIOT Class ***********
+//~~~~~ Services ~~~~~~~~~~~
+#define USE_SERIAL       false
+#define USE_WDT          true
+#define USE_OTA          true
+#define USE_RESETKEEPER  true
+#define USE_FAILNTP      true
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+// ~~~~~~~ MQTT Topics ~~~~~~
+#define DEVICE_TOPIC "telegram"
+#define MQTT_PREFIX  "myHome"
+#define MQTT_GROUP   "tests"
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+#define ADD_MQTT_FUNC addiotnalMQTT
+myIOT iot(DEVICE_TOPIC);
+// ***************************
+
+void addiotnalMQTT(char incoming_msg[50]) {
+}
+void startIOTservices(){
+        iot.useSerial      = USE_SERIAL;
+        iot.useWDT         = USE_WDT;
+        iot.useOTA         = USE_OTA;
+        iot.useResetKeeper = USE_RESETKEEPER;
+        iot.resetFailNTP   = USE_FAILNTP;
+        strcpy(iot.prefixTopic, MQTT_PREFIX);
+        strcpy(iot.addGroupTopic, MQTT_GROUP);
+        iot.start_services(ADD_MQTT_FUNC);
+}
 class myTelegram {
 
 private:
@@ -123,6 +156,7 @@ void telegram_looper(){
 myTelegram telegram(BOTtoken, CHAT_ID);
 void setup(){
         Serial.begin(115200);
+        startIOTservices();
         telegram.begin();
         delay(10);
         telegram.send_msg("good morning Love");
@@ -130,8 +164,8 @@ void setup(){
 }
 
 void loop(){
+  iot.looper();
         telegram.telegram_looper();
-
 }
 
 
