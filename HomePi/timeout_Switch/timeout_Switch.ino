@@ -11,7 +11,7 @@
 #include <TimeLib.h>
 
 // ********** Sketch Services  ***********
-#define VER              "Sonoff.1.3"
+#define VER              "ESP-01.1.3"
 #define USE_BOUNCE_DEBUG false
 #define USE_INPUTS       false
 #define USE_DAILY_TO     true
@@ -40,7 +40,7 @@ int clockOff_1[2] = {22,0};
 // ~~~~~~~ MQTT Topics ~~~~~~
 #define DEVICE_TOPIC "EntranceLights"
 #define MQTT_PREFIX  "myHome"
-#define MQTT_GROUP   "OutdoorLights"
+#define MQTT_GROUP   "SonOff"
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 #define ADD_MQTT_FUNC addiotnalMQTT
@@ -77,14 +77,15 @@ myJSON clock_inFlash("file0.json", true);
 #define RELAY2          5
 #define INPUT1          14
 #define INPUT2          0
-// #define LEDpin          13
 #endif
+
 #if !IS_SONOFF
 #define RELAY1          D2
 #define RELAY2          5
 #define INPUT1          9
 #define INPUT2          3
 #endif
+
 #define LEDpin          13
 byte relays[]  = {RELAY1, RELAY2};
 byte inputs[]  = {INPUT1, INPUT2};
