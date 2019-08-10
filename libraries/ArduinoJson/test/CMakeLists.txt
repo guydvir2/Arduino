@@ -48,12 +48,6 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "GNU")
 	if(CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 4.6)
 		add_compile_options(-Wnoexcept)
 	endif()
-
-	if(CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 4.7 AND 
-	   CMAKE_CXX_COMPILER_VERSION VERSION_LESS 4.8)
-		# avoid false positive with GCC 4.7
-		add_compile_options(-Wno-maybe-uninitialized)
-	endif()
 endif()
 
 if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
@@ -87,13 +81,8 @@ add_subdirectory(JsonVariant)
 add_subdirectory(MemberProxy)
 add_subdirectory(MemoryPool)
 add_subdirectory(Misc)
-<<<<<<< HEAD
-add_subdirectory(Polyfills)
-add_subdirectory(StaticJsonBuffer)
-=======
 add_subdirectory(MixedConfiguration)
 add_subdirectory(MsgPackDeserializer)
 add_subdirectory(MsgPackSerializer)
 add_subdirectory(Numbers)
 add_subdirectory(TextFormatter)
->>>>>>> 71a09487d18c8b01d889cc54dde62335db4d16d6

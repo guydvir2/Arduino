@@ -231,15 +231,4 @@ TEST_CASE("JsonObject::operator[]") {
     REQUIRE(true == obj["hello"]["world"].is<int>());
     REQUIRE(false == obj["hello"]["world"].is<bool>());
   }
-
-  SECTION("should ignore null key") {
-    // object must have a value to make a call to strcmp()
-    _object["dummy"] = 42;
-
-    const char* null = 0;
-    _object[null] = 666;
-
-    REQUIRE(_object.size() == 1);
-    REQUIRE(_object[null] == 0);
-  }
 }

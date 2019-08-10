@@ -9,12 +9,7 @@
 #include "../Configuration.hpp"
 #include "../Polyfills/math.hpp"
 
-<<<<<<< HEAD
-namespace ArduinoJson {
-namespace Internals {
-=======
 namespace ARDUINOJSON_NAMESPACE {
->>>>>>> 71a09487d18c8b01d889cc54dde62335db4d16d6
 
 template <typename T, typename F>
 struct alias_cast_t {
@@ -30,10 +25,4 @@ T alias_cast(F raw_data) {
   ac.raw = raw_data;
   return ac.data;
 }
-<<<<<<< HEAD
-
-}  // namespace Internals
-}  // namespace ArduinoJson
-=======
 }  // namespace ARDUINOJSON_NAMESPACE
->>>>>>> 71a09487d18c8b01d889cc54dde62335db4d16d6

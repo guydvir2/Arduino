@@ -197,7 +197,16 @@ void myJSON::updateArray(char* array_key, long val) {
         }
         myJSON::saveJSON2file(tempJDOC);
 }
-
+// void myJSON::getArrayVal(char* array_key, int val){
+//   StaticJsonDocument<DOC_SIZE> tempJDOC;
+//   myJSON::readJSON_file(tempJDOC);
+//
+//   JsonVariant data_key = tempJDOC[array_key];
+//   if (data_key.isNull()) { // create for the first time
+//           JsonArray data = tempJDOC.createNestedArray(array_key);
+//           data.add(val);
+//   }
+// }
 void myJSON::nestedArray(char* array_key, long val) {
         StaticJsonDocument<DOC_SIZE> tempJDOC;
         myJSON::readJSON_file(tempJDOC);

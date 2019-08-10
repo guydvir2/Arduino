@@ -84,9 +84,4 @@ struct FloatParts {
     return powersOf10;
   }
 };
-<<<<<<< HEAD:libraries/ArduinoJson/src/ArduinoJson/Serialization/FloatParts.hpp
-}  // namespace Internals
-}  // namespace ArduinoJson
-=======
 }  // namespace ARDUINOJSON_NAMESPACE
->>>>>>> 71a09487d18c8b01d889cc54dde62335db4d16d6:libraries/ArduinoJson/src/ArduinoJson/Numbers/FloatParts.hpp

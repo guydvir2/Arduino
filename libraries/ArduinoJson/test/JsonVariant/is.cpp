@@ -87,17 +87,11 @@ void checkIsInteger(TVariant var) {
   REQUIRE_FALSE(var.template is<JsonObject>());
 }
 
-<<<<<<< HEAD
-void checkIsString(JsonVariant var) {
-  REQUIRE(var.is<const char*>());
-  REQUIRE(var.is<std::string>());
-=======
 template <typename T>
 void testInteger(T value) {
   DynamicJsonDocument doc(4096);
   JsonVariant var = doc.to<JsonVariant>();
   var.set(value);
->>>>>>> 71a09487d18c8b01d889cc54dde62335db4d16d6
 
   checkIsInteger(var);
   checkIsInteger(JsonVariantConst(var));

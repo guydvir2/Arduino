@@ -32,9 +32,4 @@ class EscapeSequence {
     return &"\"\"\\\\b\bf\fn\nr\rt\t"[excludeIdenticals ? 4 : 0];
   }
 };
-<<<<<<< HEAD:libraries/ArduinoJson/src/ArduinoJson/Data/Encoding.hpp
-}  // namespace Internals
-}  // namespace ArduinoJson
-=======
 }  // namespace ARDUINOJSON_NAMESPACE
->>>>>>> 71a09487d18c8b01d889cc54dde62335db4d16d6:libraries/ArduinoJson/src/ArduinoJson/Json/EscapeSequence.hpp

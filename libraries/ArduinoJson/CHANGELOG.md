@@ -1,26 +1,6 @@
 ArduinoJson: change log
 =======================
 
-<<<<<<< HEAD
-v5.13.5
--------
-
-* Fixed warning "unused variable" with GCC 4.4 (issue #912)
-* Fixed warning "maybe uninitialized" (issue #909)
-* Added an clear message for `StaticJsonDocument`, `DynamicJsonDocument`...
-
-v5.13.4
--------
-
-* Removed spurious files in the Particle library
-
-v5.13.3
--------
-
-* Improved float serialization when `-fsingle-precision-constant` is used
-* Fixed `JsonVariant::is<int>()` that returned true for empty strings
-* Fixed `JsonVariant::is<String>()` (closes #763)
-=======
 v6.11.3 (2019-07-22)
 -------
 
@@ -436,7 +416,6 @@ v6.0.0-beta (2018-06-07)
 > obj["key"] = "value";
 > serializeJson(doc, Serial);
 > ```
->>>>>>> 71a09487d18c8b01d889cc54dde62335db4d16d6
 
 v5.13.2
 -------
