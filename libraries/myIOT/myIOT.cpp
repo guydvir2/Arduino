@@ -2,7 +2,11 @@
 #include "myIOT.h"
 
 #include <ESP8266WiFi.h>
-// #include <WiFiClientSecure.h>
+// Telegram BOT
+#include <WiFiClientSecure.h>
+#include <UniversalTelegramBot.h>
+//
+
 #include <ESP8266Ping.h>
 #include <NtpClientLib.h>
 #include <PubSubClient.h> //MQTT
@@ -17,10 +21,13 @@
 
 // ~~~~~~~~~ Services ~~~~~~~~~~~
 WiFiClient espClient;
-// WiFiClientSecure espClient;
 PubSubClient mqttClient(espClient);
 Ticker wdt;
 myJSON json(jfile, true);
+
+UniversalTelegramBot bot;
+WiFiClientSecure client;
+
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 
@@ -755,4 +762,92 @@ void timeOUT::convert_epoch2clock(long t1, long t2, char* time_str, char* days_s
 
         sprintf(days_str, "%02d days", days);
         sprintf(time_str, "%02d:%02d:%02d", hours, minutes, seconds);
+}
+
+
+
+myTelegram::myTelegram(char* Bot, char* chatID, char* ssid, char* password)
+{
+        sprintf(_bot,Bot);
+        sprintf(_chatID,chatID);
+        sprintf(_ssid,ssid);
+        sprintf(_password,password);
+}
+void myTelegram::handleNewMessages(int numNewMessages){
+        Serial.println("handleNewMessages");
+        Serial.println(String(numNewMessages));
+
+        for (int i=0; i<numNewMessages; i++) {
+                String chat_id = String(bot.messages[i].chat_id);
+                String text = bot.messages[i].text;
+
+                String from_name = bot.messages[i].from_name;
+                if (from_name == "") from_name = "Guest";
+
+                if (text == "/ledon") {
+                        digitalWrite(ledPin, HIGH); // turn the LED on (HIGH is the voltage level)
+                        ledStatus = 1;
+                        bot.sendMessage(chat_id, "Led is ON", "");
+                }
+
+                if (text == "/ledoff") {
+                        ledStatus = 0;
+                        digitalWrite(ledPin, LOW); // turn the LED off (LOW is the voltage level)
+                        bot.sendMessage(chat_id, "Led is OFF", "");
+                }
+
+                if (text == "/status") {
+                        if(ledStatus) {
+                                bot.sendMessage(chat_id, "Led is ON", "");
+                        } else {
+                                bot.sendMessage(chat_id, "Led is OFF", "");
+                        }
+                }
+
+                if (text == "/start") {
+                        String welcome = "Welcome to Universal Arduino Telegram Bot library, " + from_name + ".\n";
+                        welcome += "This is Flash Led Bot example.\n\n";
+                        welcome += "/ledon : to switch the Led ON\n";
+                        welcome += "/ledoff : to switch the Led OFF\n";
+                        welcome += "/status : Returns current status of LED\n";
+                        bot.sendMessage(chat_id, welcome, "Markdown");
+                }
+        }
+}
+void myTelegram::begin(){
+        WiFi.mode(WIFI_STA);
+        WiFi.disconnect();
+        delay(100);
+
+        Serial.print("Connecting Wifi: ");
+        Serial.println(_ssid);
+        WiFi.begin(_ssid, _password);
+
+        while (WiFi.status() != WL_CONNECTED) {
+                Serial.print(".");
+                delay(500);
+        }
+
+        Serial.println("");
+        Serial.println("WiFi connected");
+        Serial.print("IP address: ");
+        Serial.println(WiFi.localIP());
+
+        client.setInsecure();
+}
+void myTelegram::send_msg(char *msg){
+        bot.sendMessage(_chatID, msg, "");
+}
+void myTelegram::telegram_looper(){
+        if (millis() > _Bot_lasttime + _Bot_mtbs)  {
+                int numNewMessages = bot.getUpdates(bot.last_message_received + 1);
+
+                while(numNewMessages) {
+                        Serial.println("got response");
+                        handleNewMessages(numNewMessages);
+                        numNewMessages = bot.getUpdates(bot.last_message_received + 1);
+                }
+
+                _Bot_lasttime = millis();
+        }
 }

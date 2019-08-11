@@ -66,7 +66,7 @@ char prefixTopic  [MaxTopicLength];
 char deviceTopic  [MaxTopicLength];
 char addGroupTopic[MaxTopicLength];
 
-const char *ver     = "iot_4.0_alpha";
+const char *ver     = "iot_4.1";
 char timeStamp[20];
 long updated_bootTime  = 0;
 int resetIntervals     = 10;
@@ -185,8 +185,38 @@ FVars updatedTimeOUT_inFlash;
 
 private:
 void switchON();
-// void switchOFF();
 
 };
+
+// class myTelegram
+// {
+//
+// // private:
+// // WiFiClientSecure client;
+// // UniversalTelegramBot bot;
+//
+// private:
+// char _bot[100];
+// char _chatID[100];
+// char _ssid[20];
+// char _password[20];
+//
+// int _Bot_mtbs = 1000; //mean time between scan messages
+// long _Bot_lasttime;   //last time messages' scan has been done
+// bool _Start = false;
+//
+// int ledPin = 13;
+// int ledStatus = 0;
+//
+//
+// void handleNewMessages(int numNewMessages);
+//
+// public:
+// myTelegram(char* Bot, char* chatID, char* ssid = "Xiaomi_D6C8", char* password = "guyd5161");
+//
+// void begin();
+// void send_msg(char *msg);
+// void telegram_looper();
+// };
 
 #endif
