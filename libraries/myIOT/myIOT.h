@@ -3,12 +3,28 @@
 
 #include "secrets.h"
 #include "Arduino.h"
+
+#include <ESP8266WiFi.h>
+#include <PubSubClient.h> //MQTT
+#include <Ticker.h>       //WDT
+#include <NtpClientLib.h>
+// #include <ESP8266Ping.h>
+
+// OTA libraries
+#include <ESP8266mDNS.h>
+#include <WiFiUdp.h>
+#include <ArduinoOTA.h>
+
+// Telegram libraries
+#include <UniversalTelegramBot.h>
+#include <WiFiClientSecure.h>
+
+
 typedef void (*cb_func)(char msg1[50]); // this define a generic functing with an input of 50 chars
 
 #define jfile "myfile.json"
 
-class FVars
-{
+class FVars {
 public:
 FVars(char* key="def_key", char* pref="");
 bool getValue(int &ret_val);
@@ -28,11 +44,15 @@ char _key[20];
 
 };
 
-class myIOT
-{
+class myIOT {
 static const int MaxTopicLength = 64; //topics
 
 public:
+  WiFiClient espClient;
+  PubSubClient mqttClient;//(espClient);
+  Ticker wdt;
+
+
 myIOT(char *devTopic, char *key="failNTPcount");
 void start_services(cb_func funct, char *ssid=SSID_ID, char *password=PASS_WIFI, char *mqtt_user=MQTT_USER, char *mqtt_passw=MQTT_PASS, char *mqtt_broker="192.168.3.200");
 void looper();
@@ -148,8 +168,7 @@ void startWDT();
 void acceptOTA();
 };
 
-class timeOUT
-{
+class timeOUT {
   #define _key1 "_endTO"
   #define _key2 "_codedTO"
   #define _key3 "_updatedTO"
@@ -188,12 +207,11 @@ void switchON();
 
 };
 
-class myTelegram
-{
+class myTelegram {
 
-// private:
-// WiFiClientSecure client;
-// UniversalTelegramBot bot;
+private:
+UniversalTelegramBot bot;
+WiFiClientSecure client;
 
 private:
 char _bot[100];

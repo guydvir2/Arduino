@@ -10,22 +10,11 @@
 #include <Arduino.h>
 #include <TimeLib.h>
 
-<<<<<<< HEAD
-//####################################################
-#define DEVICE_TOPIC "HomePi/Dvir/Lights/sonoff_test2"
-
-//~~~Services~~~~~~~~~~~
-#define USE_SERIAL       true
-#define USE_WDT          true
-#define USE_OTA          true
-#define USE_MAN_RESET    false
-=======
 // ********** Sketch Services  ***********
-#define VER              "ESP-01.1.3"
->>>>>>> updateOIT
-#define USE_BOUNCE_DEBUG false
-#define USE_INPUTS       false
-#define USE_DAILY_TO     true
+#define VER              "Sonoff_1.41"
+#define USE_INPUTS       true
+#define STATE_AT_BOOT    false // Usually when using inputs, at boot/PowerOn - state should be off
+#define USE_DAILY_TO     false
 #define IS_SONOFF        true
 
 // ********** TimeOut Time vars  ***********
@@ -42,16 +31,16 @@ int clockOff_1[2] = {22,0};
 // ********** myIOT Class ***********
 //~~~~~ Services ~~~~~~~~~~~
 #define USE_SERIAL       false
-#define USE_WDT          true
+#define USE_WDT          false
 #define USE_OTA          true
 #define USE_RESETKEEPER  true
 #define USE_FAILNTP      true
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 // ~~~~~~~ MQTT Topics ~~~~~~
-#define DEVICE_TOPIC "EntranceLights"
+#define DEVICE_TOPIC "floorFan"
 #define MQTT_PREFIX  "myHome"
-#define MQTT_GROUP   "SonOff"
+#define MQTT_GROUP   ""
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 #define ADD_MQTT_FUNC addiotnalMQTT
@@ -78,7 +67,6 @@ bool clockOn_flags[] = {false, false};
 #if USE_DAILY_TO
 myJSON clock_inFlash("file0.json", true);
 #endif
-// char *keys[]={"clockon_0,clockoff_0,flag_0,clockon_1,clockoff_1, flag_1"};
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 
@@ -218,8 +206,10 @@ void recoverReset(){
                                 sprintf(mqttmsg,"Switch[#%d]: get TimeOut from Flash",i);
                                 iot.pub_err(mqttmsg);
                         }
-                        if (badReboot == 0) {         // PowerOn - not a quickReboot
-                                TO[i]->restart_to();  //
+                        if (badReboot == 0) {             // PowerOn - not a quickReboot
+                            if (STATE_AT_BOOT == true ){  // define to be ON at boot
+                                TO[i]->restart_to();
+                              }
                         }
                         else {
                                 TO[i]->begin(false);

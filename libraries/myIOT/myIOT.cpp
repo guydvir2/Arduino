@@ -1,39 +1,15 @@
 #include "Arduino.h"
 #include "myIOT.h"
 
-#include <ESP8266WiFi.h>
-// Telegram BOT
-#include <WiFiClientSecure.h>
-#include <UniversalTelegramBot.h>
-//
-
 #include <ESP8266Ping.h>
-#include <NtpClientLib.h>
-#include <PubSubClient.h> //MQTT
-#include <Ticker.h>       //WDT
 #include <myJSON.h>
 
-// OTA libraries
-#include <ESP8266mDNS.h>
-#include <WiFiUdp.h>
-#include <ArduinoOTA.h>
-// #######################
-
-// ~~~~~~~~~ Services ~~~~~~~~~~~
-WiFiClient espClient;
-PubSubClient mqttClient(espClient);
-Ticker wdt;
 myJSON json(jfile, true);
-
-UniversalTelegramBot bot;
-WiFiClientSecure client;
-
-// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
 
 // ~~~~~~ myIOT CLASS ~~~~~~~~~~~ //
 myIOT::myIOT(char *devTopic, char *key)
-        : _failNTPcounter_inFlash(key){
+        : _failNTPcounter_inFlash(key),mqttClient(espClient)
+{
         strcpy(_deviceName,devTopic); // for OTA only
 }
 void myIOT::start_services(cb_func funct, char *ssid, char *password, char *mqtt_user, char *mqtt_passw, char *mqtt_broker) {
@@ -77,7 +53,6 @@ void myIOT::looper(){
                 }
         }
 }
-
 
 // ~~~~~~~ Wifi functions ~~~~~~~
 void myIOT::startNetwork(char *ssid, char *password) {
@@ -237,7 +212,6 @@ void myIOT::return_date(char ret_tuple[20]){
         sprintf(ret_tuple, "%02d-%02d-%02d", year(t), month(t), day(t));
 }
 
-
 // ~~~~~~~ MQTT functions ~~~~~~~
 void myIOT::startMQTT() {
         bool stat = false;
@@ -298,8 +272,8 @@ int myIOT::subscribeMQTT() {
                                         }
                                 }
                                 else {
-                                        sprintf(msg, "<< Connected to MQTT - Reload [%d]>> ", mqttFailCounter);
-                                        pub_err(msg);
+                                        // sprintf(msg, "<< Connected to MQTT - Reload [%d]>> ", mqttFailCounter);
+                                        // pub_err(msg);
 
                                 }
                                 for (int i = 0; i < sizeof(topicArry) / sizeof(char *); i++) {
@@ -499,7 +473,6 @@ void myIOT::publish_errs(){
                 strcpy(bootErrors,"");
         }
 }
-
 
 // ~~~~~~ Reset and maintability ~~~~~~
 void myIOT::sendReset(char *header) {
@@ -737,6 +710,7 @@ void timeOUT::switchON(){
 }
 void timeOUT::switchOFF(){
         endTimeOUT_inFlash.setValue(0);
+        endNow();
         _inTO = false;
 }
 void timeOUT::endNow(){
@@ -766,7 +740,7 @@ void timeOUT::convert_epoch2clock(long t1, long t2, char* time_str, char* days_s
 
 
 
-myTelegram::myTelegram(char* Bot, char* chatID, char* ssid, char* password)
+myTelegram::myTelegram(char* Bot, char* chatID, char* ssid, char* password) : bot (Bot, client)
 {
         sprintf(_bot,Bot);
         sprintf(_chatID,chatID);
@@ -778,10 +752,10 @@ void myTelegram::handleNewMessages(int numNewMessages){
         Serial.println(String(numNewMessages));
 
         for (int i=0; i<numNewMessages; i++) {
-                String chat_id = String(bot.messages[i].chat_id);
-                String text = bot.messages[i].text;
+        String chat_id = String(bot.messages[i].chat_id);
+        String text = bot.messages[i].text;
 
-                String from_name = bot.messages[i].from_name;
+        String from_name = bot.messages[i].from_name;
                 if (from_name == "") from_name = "Guest";
 
                 if (text == "/ledon") {
@@ -840,7 +814,7 @@ void myTelegram::send_msg(char *msg){
 }
 void myTelegram::telegram_looper(){
         if (millis() > _Bot_lasttime + _Bot_mtbs)  {
-                int numNewMessages = bot.getUpdates(bot.last_message_received + 1);
+        int numNewMessages = bot.getUpdates(bot.last_message_received + 1);
 
                 while(numNewMessages) {
                         Serial.println("got response");
