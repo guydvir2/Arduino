@@ -4,20 +4,20 @@
 #include <Arduino.h>
 
 // ********** Sketch Services  ***********
-#define VER              "Wemos_1.2"
+#define VER              "Wemos_1.3"
 #define USE_INPUTS       true
-#define STATE_AT_BOOT    true // On or OFF at boot (Usually when using inputs, at boot/PowerOn - state should be off
+#define STATE_AT_BOOT    false // On or OFF at boot (Usually when using inputs, at boot/PowerOn - state should be off
 #define USE_DAILY_TO     true
 #define IS_SONOFF        false
 
 // ********** TimeOut Time vars  ***********
 #define NUM_SWITCHES     1
-#define TIMEOUT_SW0      1 // mins for SW0
+#define TIMEOUT_SW0      3*60 // mins for SW0
 #define TIMEOUT_SW1      3*60 // mins
-int clockOn_0 [2] = {20,6};
+int clockOn_0 [2] = {8,0};
 int clockOn_1 [2] = {18,0};
 
-int clockOff_0[2] = {00,59};
+int clockOff_0[2] = {0,30};
 int clockOff_1[2] = {22,0};
 
 
@@ -33,7 +33,7 @@ int clockOff_1[2] = {22,0};
 // ~~~~~~~ MQTT Topics ~~~~~~
 #define DEVICE_TOPIC "tableLEDs"
 #define MQTT_PREFIX  "myHome"
-#define MQTT_GROUP   "LEDStrip"
+#define MQTT_GROUP   "LEDStrips"
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 #define ADD_MQTT_FUNC addiotnalMQTT
@@ -55,8 +55,7 @@ timeOUT *TO[]={&timeOut_SW0};
 
 
 // ~~~~~~~~~ Use Daily Clock ~~~~
-bool dailyRun[] = {false,false};
-bool clockOn_flags[] = {false, false};
+bool inDailyTO[] = {false, false};
 #if USE_DAILY_TO
 myJSON clock_inFlash("file0.json", true);
 #endif
@@ -239,31 +238,26 @@ void daily_timeouts(int toff_vect[2],int ton_vect[2], byte i=0){
         char msg [50], msg2[50];
         time_t t=now();
 
-        if (hour(t)==ton_vect[0] && minute(t)==ton_vect[1] && second(t)<2 && digitalRead(relays[i]) == !RelayOn) {
+        if (hour(t)==ton_vect[0] && minute(t)==ton_vect[1] && second(t)<2 && inDailyTO[i] == false) {
                 int mins = toff_vect[1] - ton_vect[1];
                 int delt_h = toff_vect[0] - ton_vect[0];
-                if (mins < 0 && delt_h <=0) {
-                        mins += (12+delt_h)*60;
-                }
-                else if (delt_h >= 0 && mins >=0) {
-                        mins += delt_h * 60;
-                }
-                else if (delt_h >0 && mins < 0 ) {
-                        mins += 60-mins +delt_h*60;
-                }
-                else if(delt_h <0 && mins >= 0 ) {
-                        mins += (12+delt_h)*60;
+
+                int total_time = mins+ delt_h*60;
+                if (total_time < 0){
+                  total_time +=24*60;
                 }
 
-                TO[i]->setNewTimeout(mins);
-                TO[i]->convert_epoch2clock(now()+mins*60,now(), msg2, msg);
+                TO[i]->setNewTimeout(total_time);
+                TO[i]->convert_epoch2clock(now()+total_time*60,now(), msg2, msg);
                 sprintf(msg, "Clock: Switch[#%d] [On] TimeOut [%s]", i,msg2);
                 iot.pub_msg(msg);
+                inDailyTO[i] = true;
         }
         else if (hour(t)==toff_vect[0] && minute(t)==toff_vect[1] && second(t)<2 && digitalRead(relays[i]) == RelayOn) {
                 TO[i]->endNow();
                 sprintf(msg, "Clock: Switch[#%d] [Off]", i);
                 iot.pub_msg(msg);
+                inDailyTO[i] = false;
         }
 }
 void check_dailyTO_inFlash(){

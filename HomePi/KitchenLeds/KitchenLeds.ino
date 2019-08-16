@@ -1,21 +1,25 @@
 #include <myIOT.h>
+#include <myJSON.h>
 #include <Arduino.h>
 #include <TimeLib.h>
 
 // ********** Sketch Services  ***********
-#define VER              "Wemos.3.0.1"
-#define USE_BOUNCE_DEBUG false
+#define VER              "Wemos.3.1"
 #define USE_INPUTS       false
 #define USE_DAILY_TO     true
+#define STATE_AT_BOOT    false
 #define USE_IR_REMOTE    true
 
 
 // ********** TimeOut Time vars  ***********
 #define NUM_SWITCHES     1
-#define TIMEOUT_SW0      6*80 // mins for SW0
-#define TIMEOUT_SW1      1 // mins
-int ClockOn [2] = {14,5};
-int ClockOff[2] = {7,0};
+#define TIMEOUT_SW0      4*60 // mins for SW0
+#define TIMEOUT_SW1      3*60 // mins
+int clockOn_0 [2] = {17,0};
+int clockOn_1 [2] = {18,0};
+
+int clockOff_0[2] = {0,30};
+int clockOff_1[2] = {22,0};
 
 
 // ********** myIOT Class ***********
@@ -47,6 +51,14 @@ timeOUT *TO[]={&timeOut_SW0,&timeOut_SW1};
 #endif
 #if NUM_SWITCHES == 1
 timeOUT *TO[]={&timeOut_SW0};
+#endif
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+// ~~~~~~~~~ Use Daily Clock ~~~~
+bool inDailyTO[] = {false, false};
+#if USE_DAILY_TO
+myJSON clock_inFlash("file0.json", true);
 #endif
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -281,8 +293,10 @@ void recoverReset(){
                                 sprintf(mqttmsg,"Switch[#%d]: get TimeOut from Flash",i);
                                 iot.pub_err(mqttmsg);
                         }
-                        if (badReboot == 0) {         // PowerOn - not a quickReboot
-                                TO[i]->restart_to();  //
+                        if (badReboot == 0) {             // PowerOn - not a quickReboot
+                            if (STATE_AT_BOOT == true ){  // define to be ON at boot
+                                TO[i]->restart_to();
+                              }
                         }
                         else {
                                 TO[i]->begin(false);
@@ -313,32 +327,29 @@ void daily_timeouts(int toff_vect[2],int ton_vect[2], byte i=0){
         char msg [50], msg2[50];
         time_t t=now();
 
-        if (hour(t)==ton_vect[0] && minute(t)==ton_vect[1] && second(t)<2 && digitalRead(relays[i]) == !RelayOn) {
+        if (hour(t)==ton_vect[0] && minute(t)==ton_vect[1] && second(t)<2 && inDailyTO[i] == false) {
                 int mins = toff_vect[1] - ton_vect[1];
                 int delt_h = toff_vect[0] - ton_vect[0];
-                if (mins < 0 && delt_h <=0) {
-                        mins += (12+delt_h)*60;
-                }
-                else if (delt_h >= 0 && mins >=0) {
-                        mins += delt_h * 60;
-                }
-                else if (delt_h >0 && mins < 0 ) {
-                        mins += 60-mins +delt_h*60;
-                }
-                else if(delt_h <0 && mins >= 0 ) {
-                        mins += (12+delt_h)*60;
+
+                int total_time = mins+ delt_h*60;
+                if (total_time < 0){
+                  total_time +=24*60;
                 }
 
-                TO[i]->setNewTimeout(mins);
-                TO[i]->convert_epoch2clock(now()+mins*60,now(), msg2, msg);
+                TO[i]->setNewTimeout(total_time);
+                TO[i]->convert_epoch2clock(now()+total_time*60,now(), msg2, msg);
                 sprintf(msg, "Clock: Switch[#%d] [On] TimeOut [%s]", i,msg2);
                 iot.pub_msg(msg);
+                inDailyTO[i] = true;
         }
         else if (hour(t)==toff_vect[0] && minute(t)==toff_vect[1] && second(t)<2 && digitalRead(relays[i]) == RelayOn) {
                 TO[i]->endNow();
                 sprintf(msg, "Clock: Switch[#%d] [Off]", i);
                 iot.pub_msg(msg);
+                inDailyTO[i] = false;
         }
+}
+void check_dailyTO_inFlash(){
 }
 void addiotnalMQTT(char incoming_msg[50]) {
         char msg[150];
@@ -357,11 +368,11 @@ void addiotnalMQTT(char incoming_msg[50]) {
                 }
         }
         else if (strcmp(incoming_msg, "ver") == 0 ) {
-                sprintf(msg, "ver: [%s], lib: [%s], WDT: [%d], OTA: [%d], SERIAL: [%d], IRremote: [%d], ResetKeeper[%d], FailNTP[%d]", VER, iot.ver, USE_WDT, USE_OTA,USE_SERIAL, USE_IR_REMOTE, USE_RESETKEEPER, USE_FAILNTP);
+                sprintf(msg, "ver: [%s], lib: [%s], WDT: [%d], OTA: [%d], SERIAL: [%d], ResetKeeper[%d], FailNTP[%d], UseInputs[%d], DailyTO[%d]", VER, iot.ver, USE_WDT, USE_OTA,USE_SERIAL, USE_RESETKEEPER, USE_FAILNTP, USE_INPUTS, USE_DAILY_TO);
                 iot.pub_msg(msg);
         }
         else if (strcmp(incoming_msg, "help") == 0) {
-                sprintf(msg, "Help: Commands #1 - [blink(x,y), on, off, flash, format]");
+                sprintf(msg, "Help: Commands #1 - [on, off, flash, format]");
                 iot.pub_msg(msg);
                 sprintf(msg, "Help: Commands #2 - [remain, restart_to, timeout(x), end_to, updateTO(x), restore_to]");
                 iot.pub_msg(msg);
@@ -440,7 +451,12 @@ void loop() {
                 recoverReset();
         }
         if (USE_DAILY_TO == true) {
-                daily_timeouts(ClockOff, ClockOn,0);
+                for (int i=0; i<NUM_SWITCHES; i++) {
+                        daily_timeouts(clockOff_0, clockOn_0,i);
+                }
+        }
+        if (USE_INPUTS == true) {
+                // checkSwitch_Pressed(0);
         }
 
         delay(100);
