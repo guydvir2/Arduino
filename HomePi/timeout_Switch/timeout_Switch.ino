@@ -14,33 +14,33 @@
 #define VER              "Sonoff_1.41"
 #define USE_INPUTS       true
 #define STATE_AT_BOOT    false // On or OFF at boot (Usually when using inputs, at boot/PowerOn - state should be off
-#define USE_DAILY_TO     false
+#define USE_DAILY_TO     true
 #define IS_SONOFF        true
 
 // ********** TimeOut Time vars  ***********
 #define NUM_SWITCHES     1
 #define TIMEOUT_SW0      2*60 // mins for SW0
 #define TIMEOUT_SW1      3*60 // mins
-int clockOn_0 [2] = {19,0};
-int clockOn_1 [2] = {18,0};
+int clockOn_0 [2] = {7,9};
+int clockOn_1 [2] = {8,0};
 
-int clockOff_0[2] = {23,59};
+int clockOff_0[2] = {7,0};
 int clockOff_1[2] = {22,0};
 
 
 // ********** myIOT Class ***********
 //~~~~~ Services ~~~~~~~~~~~
-#define USE_SERIAL       false
-#define USE_WDT          false
+#define USE_SERIAL       true
+#define USE_WDT          true
 #define USE_OTA          true
 #define USE_RESETKEEPER  true
 #define USE_FAILNTP      true
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 // ~~~~~~~ MQTT Topics ~~~~~~
-#define DEVICE_TOPIC "floorFan"
+#define DEVICE_TOPIC "clock"
 #define MQTT_PREFIX  "myHome"
-#define MQTT_GROUP   ""
+#define MQTT_GROUP   "createNestedArray"
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 #define ADD_MQTT_FUNC addiotnalMQTT
@@ -246,24 +246,30 @@ void daily_timeouts(int toff_vect[2],int ton_vect[2], byte i=0){
         char msg [50], msg2[50];
         time_t t=now();
 
+
         if (hour(t)==ton_vect[0] && minute(t)==ton_vect[1] && second(t)<2 && digitalRead(relays[i]) == !RelayOn) {
                 int mins = toff_vect[1] - ton_vect[1];
                 int delt_h = toff_vect[0] - ton_vect[0];
-                if (mins < 0 && delt_h <=0) {
-                        mins += (12+delt_h)*60;
-                }
-                else if (delt_h >= 0 && mins >=0) {
-                        mins += delt_h * 60;
-                }
-                else if (delt_h >0 && mins < 0 ) {
-                        mins += 60-mins +delt_h*60;
-                }
-                else if(delt_h <0 && mins >= 0 ) {
-                        mins += (12+delt_h)*60;
+                int total_time = 12*delt_h + mins;
+                if (total_time < 0) {
+                  total_time +=24*60;
                 }
 
-                TO[i]->setNewTimeout(mins);
-                TO[i]->convert_epoch2clock(now()+mins*60,now(), msg2, msg);
+                // if (mins < 0 && delt_h <=0) {
+                //         mins += (12+delt_h)*60;
+                // }
+                // else if (delt_h >= 0 && mins >=0) {
+                //         mins += delt_h * 60;
+                // }
+                // else if (delt_h >0 && mins < 0 ) {
+                //         mins += 60-mins +delt_h*60;
+                // }
+                // else if(delt_h <0 && mins >= 0 ) {
+                //         mins += (12+delt_h)*60;
+                // }
+
+                TO[i]->setNewTimeout(total_time);
+                TO[i]->convert_epoch2clock(now()+total_time*60,now(), msg2, msg);
                 sprintf(msg, "Clock: Switch[#%d] [On] TimeOut [%s]", i,msg2);
                 iot.pub_msg(msg);
         }

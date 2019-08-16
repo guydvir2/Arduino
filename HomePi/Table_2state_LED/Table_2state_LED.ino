@@ -4,17 +4,17 @@
 #include <Arduino.h>
 
 // ********** Sketch Services  ***********
-#define VER              "Wemos_1.1"
-#define USE_INPUTS       false
+#define VER              "Wemos_1.2"
+#define USE_INPUTS       true
 #define STATE_AT_BOOT    true // On or OFF at boot (Usually when using inputs, at boot/PowerOn - state should be off
 #define USE_DAILY_TO     true
 #define IS_SONOFF        false
 
 // ********** TimeOut Time vars  ***********
 #define NUM_SWITCHES     1
-#define TIMEOUT_SW0      5*60 // mins for SW0
+#define TIMEOUT_SW0      1 // mins for SW0
 #define TIMEOUT_SW1      3*60 // mins
-int clockOn_0 [2] = {17,1};
+int clockOn_0 [2] = {20,6};
 int clockOn_1 [2] = {18,0};
 
 int clockOff_0[2] = {00,59};
@@ -72,9 +72,9 @@ myJSON clock_inFlash("file0.json", true);
 #endif
 
 #if !IS_SONOFF
-#define RELAY1          D1
+#define RELAY1          D2
 #define RELAY2          D7
-#define INPUT1          9
+#define INPUT1          D1
 #define INPUT2          3
 #endif
 
@@ -285,7 +285,7 @@ void addiotnalMQTT(char incoming_msg[50]) {
                 }
         }
         else if (strcmp(incoming_msg, "ver") == 0 ) {
-                sprintf(msg, "ver: [%s], lib: [%s], WDT: [%d], OTA: [%d], SERIAL: [%d], ResetKeeper[%d], FailNTP[%d]", VER, iot.ver, USE_WDT, USE_OTA,USE_SERIAL, USE_RESETKEEPER, USE_FAILNTP);
+                sprintf(msg, "ver: [%s], lib: [%s], WDT: [%d], OTA: [%d], SERIAL: [%d], ResetKeeper[%d], FailNTP[%d], UseInputs[%d], DailyTO[%d]", VER, iot.ver, USE_WDT, USE_OTA,USE_SERIAL, USE_RESETKEEPER, USE_FAILNTP, USE_INPUTS, USE_DAILY_TO);
                 iot.pub_msg(msg);
         }
         else if (strcmp(incoming_msg, "help") == 0) {
