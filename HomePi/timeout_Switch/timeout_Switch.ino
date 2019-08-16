@@ -13,7 +13,7 @@
 // ********** Sketch Services  ***********
 #define VER              "Sonoff_1.41"
 #define USE_INPUTS       true
-#define STATE_AT_BOOT    false // Usually when using inputs, at boot/PowerOn - state should be off
+#define STATE_AT_BOOT    false // On or OFF at boot (Usually when using inputs, at boot/PowerOn - state should be off
 #define USE_DAILY_TO     false
 #define IS_SONOFF        true
 

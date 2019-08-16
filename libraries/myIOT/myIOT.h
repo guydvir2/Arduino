@@ -1,6 +1,8 @@
 #ifndef myIOT_h
 #define myIOT_h
 
+#define jfile "myfile.json"
+
 #include "secrets.h"
 #include "Arduino.h"
 
@@ -8,7 +10,6 @@
 #include <PubSubClient.h> //MQTT
 #include <Ticker.h>       //WDT
 #include <NtpClientLib.h>
-// #include <ESP8266Ping.h>
 
 // OTA libraries
 #include <ESP8266mDNS.h>
@@ -20,9 +21,10 @@
 #include <WiFiClientSecure.h>
 
 
-typedef void (*cb_func)(char msg1[50]); // this define a generic functing with an input of 50 chars
+// define generic functiobs
+typedef void (*cb_func)(char msg1[50]);
+typedef void (*cb_func2)(String msg1, String msg2, String msg3, char msg4[50]);
 
-#define jfile "myfile.json"
 
 class FVars {
 public:
@@ -44,19 +46,45 @@ char _key[20];
 
 };
 
+class myTelegram {
+
+private:
+UniversalTelegramBot bot;
+WiFiClientSecure client;
+cb_func2 _ext_func;
+
+private:
+char _bot[100];
+char _chatID[100];
+char _ssid[20];
+char _password[20];
+
+int _Bot_mtbs = 1000; //mean time between scan messages
+long _Bot_lasttime;   //last time messages' scan has been done
+
+private:
+void handleNewMessages(int numNewMessages);
+
+public:
+myTelegram(char* Bot, char* chatID, char* ssid = SSID_ID, char* password = PASS_WIFI);
+void begin(cb_func2 funct);
+void send_msg(char *msg);
+void looper();
+};
+
 class myIOT {
 static const int MaxTopicLength = 64; //topics
 
 public:
   WiFiClient espClient;
-  PubSubClient mqttClient;//(espClient);
+  PubSubClient mqttClient;
   Ticker wdt;
-
 
 myIOT(char *devTopic, char *key="failNTPcount");
 void start_services(cb_func funct, char *ssid=SSID_ID, char *password=PASS_WIFI, char *mqtt_user=MQTT_USER, char *mqtt_passw=MQTT_PASS, char *mqtt_broker="192.168.3.200");
 void looper();
 void startOTA();
+// void startTelegram(cb_func2 funct2);
 void get_timeStamp(time_t t = 0);
 void return_clock(char ret_tuple[20]);
 void return_date(char ret_tuple[20]);
@@ -76,6 +104,7 @@ bool useOTA         = true;
 bool extDefine      = false; // must to set to true in order to use EXtMQTT
 bool useResetKeeper = false;
 bool resetFailNTP   = false;
+bool useTelegram    = true;
 // ~~~~~~~~~~~~~~~~~~~~~~~~~
 char inline_param[3][20]; //values from user
 
@@ -96,6 +125,7 @@ private:
 char* ssid;
 char* password;
 cb_func ext_mqtt;
+cb_func2 ext_telegram;
 
 
 // time interval parameters
@@ -205,36 +235,6 @@ FVars updatedTimeOUT_inFlash;
 private:
 void switchON();
 
-};
-
-class myTelegram {
-
-private:
-UniversalTelegramBot bot;
-WiFiClientSecure client;
-
-private:
-char _bot[100];
-char _chatID[100];
-char _ssid[20];
-char _password[20];
-
-int _Bot_mtbs = 1000; //mean time between scan messages
-long _Bot_lasttime;   //last time messages' scan has been done
-bool _Start = false;
-
-int ledPin = 13;
-int ledStatus = 0;
-
-
-void handleNewMessages(int numNewMessages);
-
-public:
-myTelegram(char* Bot, char* chatID, char* ssid = "Xiaomi_D6C8", char* password = "guyd5161");
-
-void begin();
-void send_msg(char *msg);
-void telegram_looper();
 };
 
 #endif

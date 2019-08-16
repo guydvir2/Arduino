@@ -8,7 +8,7 @@ myJSON json(jfile, true);
 
 // ~~~~~~ myIOT CLASS ~~~~~~~~~~~ //
 myIOT::myIOT(char *devTopic, char *key)
-        : _failNTPcounter_inFlash(key),mqttClient(espClient)
+        : _failNTPcounter_inFlash(key), mqttClient(espClient)
 {
         strcpy(_deviceName,devTopic); // for OTA only
 }
@@ -748,58 +748,35 @@ myTelegram::myTelegram(char* Bot, char* chatID, char* ssid, char* password) : bo
         sprintf(_password,password);
 }
 void myTelegram::handleNewMessages(int numNewMessages){
-        Serial.println("handleNewMessages");
-        Serial.println(String(numNewMessages));
+        // Serial.println("handleNewMessages");
+        // Serial.println(String(numNewMessages));
+        char sendmsg[50];
 
         for (int i=0; i<numNewMessages; i++) {
-        String chat_id = String(bot.messages[i].chat_id);
-        String text = bot.messages[i].text;
-
-        String from_name = bot.messages[i].from_name;
-                if (from_name == "") from_name = "Guest";
-
-                if (text == "/ledon") {
-                        digitalWrite(ledPin, HIGH); // turn the LED on (HIGH is the voltage level)
-                        ledStatus = 1;
-                        bot.sendMessage(chat_id, "Led is ON", "");
-                }
-
-                if (text == "/ledoff") {
-                        ledStatus = 0;
-                        digitalWrite(ledPin, LOW); // turn the LED off (LOW is the voltage level)
-                        bot.sendMessage(chat_id, "Led is OFF", "");
-                }
-
-                if (text == "/status") {
-                        if(ledStatus) {
-                                bot.sendMessage(chat_id, "Led is ON", "");
-                        } else {
-                                bot.sendMessage(chat_id, "Led is OFF", "");
-                        }
-                }
-
-                if (text == "/start") {
-                        String welcome = "Welcome to Universal Arduino Telegram Bot library, " + from_name + ".\n";
-                        welcome += "This is Flash Led Bot example.\n\n";
-                        welcome += "/ledon : to switch the Led ON\n";
-                        welcome += "/ledoff : to switch the Led OFF\n";
-                        welcome += "/status : Returns current status of LED\n";
-                        bot.sendMessage(chat_id, welcome, "Markdown");
-                }
+                String chat_id = String(bot.messages[i].chat_id);
+                String text = bot.messages[i].text;
+                String from_name = bot.messages[i].from_name;
+                _ext_func (text,from_name,chat_id, sendmsg);
+                bot.sendMessage(chat_id, sendmsg, "");
         }
 }
-void myTelegram::begin(){
-        WiFi.mode(WIFI_STA);
-        WiFi.disconnect();
-        delay(100);
+void myTelegram::begin(cb_func2 funct){
 
-        Serial.print("Connecting Wifi: ");
-        Serial.println(_ssid);
-        WiFi.begin(_ssid, _password);
+        _ext_func = funct; // call to external function outside of clss
 
-        while (WiFi.status() != WL_CONNECTED) {
-                Serial.print(".");
-                delay(500);
+        if (WiFi.status() != WL_CONNECTED) {
+                WiFi.mode(WIFI_STA);
+                WiFi.disconnect();
+                delay(100);
+
+                Serial.print("Connecting Wifi: ");
+                Serial.println(_ssid);
+                WiFi.begin(_ssid, _password);
+
+                while (WiFi.status() != WL_CONNECTED) {
+                        Serial.print(".");
+                        delay(500);
+                }
         }
 
         Serial.println("");
@@ -812,16 +789,15 @@ void myTelegram::begin(){
 void myTelegram::send_msg(char *msg){
         bot.sendMessage(_chatID, msg, "");
 }
-void myTelegram::telegram_looper(){
+void myTelegram::looper(){
         if (millis() > _Bot_lasttime + _Bot_mtbs)  {
-        int numNewMessages = bot.getUpdates(bot.last_message_received + 1);
+                int numNewMessages = bot.getUpdates(bot.last_message_received + 1);
 
                 while(numNewMessages) {
-                        Serial.println("got response");
+                        // Serial.println("got response");
                         handleNewMessages(numNewMessages);
                         numNewMessages = bot.getUpdates(bot.last_message_received + 1);
                 }
-
                 _Bot_lasttime = millis();
         }
 }
