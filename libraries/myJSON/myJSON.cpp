@@ -197,16 +197,73 @@ void myJSON::updateArray(char* array_key, long val) {
         }
         myJSON::saveJSON2file(tempJDOC);
 }
-// void myJSON::getArrayVal(char* array_key, int val){
-//   StaticJsonDocument<DOC_SIZE> tempJDOC;
-//   myJSON::readJSON_file(tempJDOC);
-//
-//   JsonVariant data_key = tempJDOC[array_key];
-//   if (data_key.isNull()) { // create for the first time
-//           JsonArray data = tempJDOC.createNestedArray(array_key);
-//           data.add(val);
-//   }
-// }
+
+bool myJSON::getArrayVal(char* array_key, int i, int &retval){
+        StaticJsonDocument<DOC_SIZE> tempJDOC;
+        myJSON::readJSON_file(tempJDOC);
+
+        bool hasKey = tempJDOC.containsKey(array_key);
+        if (hasKey) {
+                retval = tempJDOC[array_key][i].as<int>();
+                return 1;
+        }
+        else {
+                return 0;
+        }
+}
+bool myJSON::getArrayVal(char* array_key, int i, long &retval){
+        StaticJsonDocument<DOC_SIZE> tempJDOC;
+        myJSON::readJSON_file(tempJDOC);
+
+        bool hasKey = tempJDOC.containsKey(array_key);
+        if (hasKey) {
+                retval = tempJDOC[array_key][i].as<long>();
+                return 1;
+        }
+        else {
+                return 0;
+        }
+}
+bool myJSON::getArrayVal(char* array_key, int i, char value[20]){
+        StaticJsonDocument<DOC_SIZE> tempJDOC;
+        myJSON::readJSON_file(tempJDOC);
+
+        bool hasKey = tempJDOC.containsKey(array_key);
+        if (hasKey) {
+                char val[20];
+                // strcpy(val,tempJDOC[array_key][i].as<char>());
+                // sprintf(value,"%s",val);//tempJDOC[array_key][i].as<char>());
+                return 1;
+        }
+        else {
+                return 0;
+        }
+}
+
+void myJSON::setArrayVal(char* array_key, int i, int val){
+        StaticJsonDocument<DOC_SIZE> tempJDOC;
+        myJSON::readJSON_file(tempJDOC);
+
+        tempJDOC[array_key][i] = val;
+        myJSON::saveJSON2file(tempJDOC);
+}
+void myJSON::setArrayVal(char* array_key, int i, long val){
+        StaticJsonDocument<DOC_SIZE> tempJDOC;
+        myJSON::readJSON_file(tempJDOC);
+
+        tempJDOC[array_key][i] = val;
+        myJSON::saveJSON2file(tempJDOC);
+}
+void myJSON::setArrayVal(char* array_key, int i, char *val){
+        StaticJsonDocument<DOC_SIZE> tempJDOC;
+        myJSON::readJSON_file(tempJDOC);
+
+        tempJDOC[array_key][i] = val;
+        myJSON::saveJSON2file(tempJDOC);
+}
+
+
+
 void myJSON::nestedArray(char* array_key, long val) {
         StaticJsonDocument<DOC_SIZE> tempJDOC;
         myJSON::readJSON_file(tempJDOC);

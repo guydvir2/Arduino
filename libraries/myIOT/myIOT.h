@@ -106,7 +106,7 @@ bool useResetKeeper = false;
 bool resetFailNTP   = false;
 bool useTelegram    = true;
 // ~~~~~~~~~~~~~~~~~~~~~~~~~
-char inline_param[3][20]; //values from user
+char inline_param[6][20]; //values from user
 
 bool mqttConnected         = 0;
 bool alternativeMQTTserver = false;
@@ -115,7 +115,7 @@ char prefixTopic  [MaxTopicLength];
 char deviceTopic  [MaxTopicLength];
 char addGroupTopic[MaxTopicLength];
 
-const char *ver     = "iot_4.1";
+const char *ver     = "iot_4.11";
 char timeStamp[20];
 long updated_bootTime  = 0;
 int resetIntervals     = 10;
@@ -221,7 +221,7 @@ bool looper();
 int remain();
 bool begin(bool newReboot = true);
 void restart_to();
-void setNewTimeout(int to);
+void setNewTimeout(int to, bool mins = true);
 void convert_epoch2clock(long t1, long t2, char* time_str, char* days_str);
 void endNow();
 void updateTOinflash(int TO);

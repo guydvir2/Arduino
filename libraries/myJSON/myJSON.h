@@ -14,7 +14,7 @@ bool _useSerial=false;
 char _filename[30];
 
 public:
-char *ver="myJSON_v1.2";
+char *ver="myJSON_v1.3";
 myJSON(char *filename, bool useserial=false);
 
 bool file_exists();
@@ -34,6 +34,14 @@ void setValue(const char *key, long value);
 void updateArray(char* array_key, char *val);
 void updateArray(char* array_key, int val);
 void updateArray(char* array_key, long val);
+
+void setArrayVal(char* array_key, int i, char *val);
+void setArrayVal(char* array_key, int i, long val);
+void setArrayVal(char* array_key, int i, int val);
+
+bool getArrayVal(char* array_key, int i, int &retval);
+bool getArrayVal(char* array_key, int i, long &retval);
+bool getArrayVal(char* array_key, int i, char value[20]="0");
 
 void nestedArray(char* array_key, long val);
 void eraseArray(char* array_key);

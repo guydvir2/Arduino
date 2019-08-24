@@ -25,7 +25,7 @@ myTelegram telegram(BOT_TOKEN, CHAT_ID);
 // ***************************
 void teleFunc(String text, String from_name, String chat_id, char sendMsg[50]){
 
-  if (from_name == "") from_name = "Guest";
+  
 
   if (text == "/ledon") {
           strcpy(sendMsg,"Led is ON");

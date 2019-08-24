@@ -688,8 +688,14 @@ int timeOUT::remain(){
                 return 0;
         }
 }
-void timeOUT::setNewTimeout(int to){
-        _calc_endTO=now()+to*60;
+void timeOUT::setNewTimeout(int to, bool mins){
+  if (mins==true){
+        _calc_endTO=now()+to*60; // given in mintes
+      }
+      else{
+        _calc_endTO=now()+to;
+
+      }
         endTimeOUT_inFlash.setValue(_calc_endTO);
         switchON();
 }
@@ -748,14 +754,14 @@ myTelegram::myTelegram(char* Bot, char* chatID, char* ssid, char* password) : bo
         sprintf(_password,password);
 }
 void myTelegram::handleNewMessages(int numNewMessages){
-        // Serial.println("handleNewMessages");
-        // Serial.println(String(numNewMessages));
         char sendmsg[50];
 
         for (int i=0; i<numNewMessages; i++) {
                 String chat_id = String(bot.messages[i].chat_id);
                 String text = bot.messages[i].text;
                 String from_name = bot.messages[i].from_name;
+                if (from_name == "") from_name = "Guest";
+
                 _ext_func (text,from_name,chat_id, sendmsg);
                 bot.sendMessage(chat_id, sendmsg, "");
         }
@@ -777,6 +783,7 @@ void myTelegram::begin(cb_func2 funct){
                         Serial.print(".");
                         delay(500);
                 }
+                WiFi.setAutoReconnect(true);
         }
 
         Serial.println("");
@@ -794,7 +801,6 @@ void myTelegram::looper(){
                 int numNewMessages = bot.getUpdates(bot.last_message_received + 1);
 
                 while(numNewMessages) {
-                        // Serial.println("got response");
                         handleNewMessages(numNewMessages);
                         numNewMessages = bot.getUpdates(bot.last_message_received + 1);
                 }
