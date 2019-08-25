@@ -128,11 +128,13 @@ void myIOT::networkStatus() {
                 }
         }
         else {                                  // NO WIFI
-                if (noNetwork_Clock !=0) { // first time when NO NETWORK
+                if (noNetwork_Clock == 0) { // first time when NO NETWORK
                         noNetwork_Clock=millis();
                 }
-                if  (millis() - noNetwork_Clock >= time2Reset_noNetwork) {
-                        sendReset("NOWIFI"); // due to wifi error
+                else{
+                        if  (millis() - noNetwork_Clock >= time2Reset_noNetwork) {
+                                sendReset("NOWIFI"); // due to wifi error
+                        }
                 }
         }
 }
@@ -689,13 +691,13 @@ int timeOUT::remain(){
         }
 }
 void timeOUT::setNewTimeout(int to, bool mins){
-  if (mins==true){
-        _calc_endTO=now()+to*60; // given in mintes
-      }
-      else{
-        _calc_endTO=now()+to;
+        if (mins==true) {
+                _calc_endTO=now()+to*60; // given in mintes
+        }
+        else{
+                _calc_endTO=now()+to;
 
-      }
+        }
         endTimeOUT_inFlash.setValue(_calc_endTO);
         switchON();
 }

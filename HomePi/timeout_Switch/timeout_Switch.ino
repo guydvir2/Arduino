@@ -25,7 +25,7 @@
 // ********** myIOT Class ***********
 //~~~~~ Services ~~~~~~~~~~~
 #define USE_SERIAL       true
-#define USE_WDT          false
+#define USE_WDT          true
 #define USE_OTA          true
 #define USE_RESETKEEPER  true
 #define USE_FAILNTP      true
@@ -56,21 +56,19 @@ timeOUT *TO[]={&timeOut_SW0};
 
 
 // ~~~~~~~~~ Use Daily Clock ~~~~
+#if USE_DAILY_TO
+myJSON dailyTO_inFlash("file0.json", true);
+#endif
+
+char *clock_fields[] = {"ontime", "off_time", "flag"};
+int items_each_array[3] = {3,3,1};
+char *clockAlias = "DailyClock";
 struct dTO {
         int on[3];
         int off[3];
         bool flag;
         bool onNow;
 };
-
-#if USE_DAILY_TO
-myJSON dailyTO_inFlash("file0.json", true);
-#endif
-
-bool inDailyTO[]     = {false, false};
-char *clock_fields[] = {"ontime", "off_time", "flag"};
-int items_each_array[3] = {3,3,1};
-
 dTO defaultVals = {{0,0,0},{0,0,0},0,0};
 dTO dailyTO_0   = {{17,0,5},{20,30,5},1,0};
 dTO dailyTO_1   = {{20,0,0},{22,0,0},0,0};
@@ -269,7 +267,7 @@ void daily_timeouts(dTO &dailyTO, byte i=0){
 
                         TO[i]->setNewTimeout(total_time);
                         TO[i]->convert_epoch2clock(now()+total_time,now(), msg2, msg);
-                        sprintf(msg, "Clock: Switch[#%d] [On] TimeOut [%s]", i,msg2);
+                        sprintf(msg, "%s: Switch[#%d] [On] TimeOut [%s]", clockAlias,i,msg2);
                         iot.pub_msg(msg);
                         dailyTO.onNow = true;
                 }
@@ -489,7 +487,7 @@ void addiotnalMQTT(char incoming_msg[50]) {
 
                         store_dailyTO_inFlash(*dailyTO[atoi(iot.inline_param[0])],atoi(iot.inline_param[0]));
 
-                        sprintf(msg, "Daily TimeOut: Clock[#%d] [ON] updated [%02d:%02d:%02d]",atoi(iot.inline_param[0]),
+                        sprintf(msg, "%s: Clock[#%d] [ON] updated [%02d:%02d:%02d]",clockAlias,atoi(iot.inline_param[0]),
                                 dailyTO[atoi(iot.inline_param[0])]->on[0],
                                 dailyTO[atoi(iot.inline_param[0])]->on[1],
                                 dailyTO[atoi(iot.inline_param[0])]->on[2]);
@@ -502,7 +500,7 @@ void addiotnalMQTT(char incoming_msg[50]) {
 
                         store_dailyTO_inFlash(*dailyTO[atoi(iot.inline_param[0])],atoi(iot.inline_param[0]));
 
-                        sprintf(msg, "Daily TimeOut: Clock[#%d] [OFF] updated %02d:%02d:%02d",atoi(iot.inline_param[0]),
+                        sprintf(msg, "%s: Clock[#%d] [OFF] updated %02d:%02d:%02d",clockAlias, atoi(iot.inline_param[0]),
                                 dailyTO[atoi(iot.inline_param[0])]->off[0],
                                 dailyTO[atoi(iot.inline_param[0])]->off[1],
                                 dailyTO[atoi(iot.inline_param[0])]->off[2]);
@@ -511,8 +509,8 @@ void addiotnalMQTT(char incoming_msg[50]) {
                 else if (strcmp(iot.inline_param[1], "flag_daily_to") == 0) {
                         dailyTO[atoi(iot.inline_param[0])]->flag=atoi(iot.inline_param[2]);
                         store_dailyTO_inFlash(*dailyTO[atoi(iot.inline_param[0])],atoi(iot.inline_param[0]));
-                        sprintf(msg, "Daily TimeOut: Clock[#%d] set to [%d]",
-                                atoi(iot.inline_param[0]),atoi(iot.inline_param[2]) ? "ON":"OFF");
+                        sprintf(msg, "%s: Clock[#%d] set to [%s]",clockAlias,
+                                atoi(iot.inline_param[0]),atoi(iot.inline_param[2]) ? "ON" : "OFF");
                         iot.pub_msg(msg);
                 }
         }
@@ -535,13 +533,14 @@ void loop() {
         if (checkbadReboot == true && USE_RESETKEEPER == true) {
                 recoverReset();
         }
-        if (USE_DAILY_TO == true) {
-                for (int i=0; i<NUM_SWITCHES; i++) {
+
+        for (int i=0; i<NUM_SWITCHES; i++) {
+                if (USE_DAILY_TO == true) {
                         daily_timeouts(*dailyTO[i],i);
                 }
-        }
-        if (USE_INPUTS == true) {
-                checkSwitch_Pressed(0);
+                if (USE_INPUTS == true) {
+                        checkSwitch_Pressed(i);
+                }
         }
 
         delay(100);
