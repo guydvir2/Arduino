@@ -2,8 +2,9 @@
 #include <Arduino.h>
 
 // ********** Sketch Services  ***********
-#define VER              "NodeMCU.4.1"
+#define VER              "NodeMCU.4.3"
 #define USE_BOUNCE_DEBUG false
+#define USE_2_EXT_INPUT  false // Only for dual input window
 
 // ********** myIOT Class ***********
 //~~~~~ Services ~~~~~~~~~~~
@@ -15,7 +16,7 @@
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 // ~~~~~~~ MQTT Topics ~~~~~~
-#define DEVICE_TOPIC        "FamilyRommm"
+#define DEVICE_TOPIC        "FamilyRoom"
 #define MQTT_PREFIX         "HomePi/Dvir"
 #define MQTT_GROUP          "Windows"
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -29,21 +30,30 @@ myIOT iot(DEVICE_TOPIC);
 #define SwitchOn LOW
 
 // GPIO Pins for ESP8266
-const byte inputUpPin    = 4;
-const byte inputDownPin  = 5;
-const byte outputUpPin   = 14;
-const byte outputDownPin = 12;
+//~~~~Internal Switch ~~~~~~
+const int inputUpPin = 4;
+const int inputDownPin = 5;
+const int outputUpPin = 14;
+const int outputDownPin = 12;
+//~~~~External Input ~~~~~~~
+const int inputUpExtPin = 0;
+const int inputDownExtPin = 2;
 //##########################
 
 // GPIO status flags
+//~~~~Internal Switch ~~~~~~
 bool inputUp_lastState;
 bool inputDown_lastState;
 bool inputUp_currentState;
 bool inputDown_currentState;
+//~~~~External Input ~~~~~~~
+bool inputUpExt_lastState;
+bool inputDownExt_lastState;
+bool inputUpExt_currentState;
+bool inputDownExt_currentState;
 // ###########################
 
 const int deBounceInt = 50;
-
 
 void startIOTservices(){
         iot.useSerial      = USE_SERIAL;
@@ -65,98 +75,15 @@ void setup() {
 void startGPIOs() {
         pinMode(inputUpPin, INPUT_PULLUP);
         pinMode(inputDownPin, INPUT_PULLUP);
+        if (USE_2_EXT_INPUT) {
+                pinMode(inputUpExtPin, INPUT_PULLUP);
+                pinMode(inputDownExtPin, INPUT_PULLUP);
+        }
+
         pinMode(outputUpPin, OUTPUT);
         pinMode(outputDownPin, OUTPUT);
 
         allOff();
-}
-void PBit() {
-        int pause = 2 * 5 * deBounceInt;
-        allOff();
-        delay(pause);
-        digitalWrite(outputUpPin, RelayOn);
-        delay(pause);
-        digitalWrite(outputUpPin, !RelayOn);
-        delay(pause);
-        digitalWrite(outputDownPin, RelayOn);
-        delay(pause);
-        allOff();
-
-}
-void allOff() {
-        digitalWrite(outputUpPin, !RelayOn);
-        digitalWrite(outputDownPin, !RelayOn);
-        inputUp_lastState = digitalRead(inputUpPin);
-        inputDown_lastState = digitalRead(inputDownPin);
-}
-
-// ~~~~~~~~~ GPIO switching ~~~~~~~~~~~~~
-void switchIt(char *type, char *dir) {
-        char mqttmsg[50];
-        bool states[2];
-
-        if (strcmp(dir, "up") == 0) {
-                states[0] = RelayOn;
-                states[1] = !RelayOn;
-        }
-        else if (strcmp(dir, "down") == 0) {
-                states[0] = !RelayOn;
-                states[1] = RelayOn;
-        }
-        else if (strcmp(dir, "off") == 0) {
-                states[0] = !RelayOn;
-                states[1] = !RelayOn;
-        }
-
-        // Case that both realys need to change state ( Up --> Down or Down --> Up )
-        if (digitalRead(outputUpPin) != states[0] && digitalRead(outputDownPin) != states[1]) {
-                allOff();
-                delay(deBounceInt * 2);
-                digitalWrite(outputUpPin, states[0]);
-                digitalWrite(outputDownPin, states[1]);
-        }
-        // Case that one relay changes from/to off --> on
-        else if (digitalRead(outputUpPin) != states[0] || digitalRead(outputDownPin) != states[1]) {
-                digitalWrite(outputUpPin, states[0]);
-                digitalWrite(outputDownPin, states[1]);
-        }
-        if (iot.mqttConnected == true) {
-                iot.pub_state(dir);
-                sprintf(mqttmsg, "%s: Switched [%s]", type, dir);
-                iot.pub_msg(mqttmsg);
-        }
-}
-void checkSwitch_looper( const int &pin, char *dir, bool &lastState) {
-        if (digitalRead(pin) != lastState) {
-                delay(deBounceInt);
-                if (digitalRead(pin) != lastState) {
-                        if (digitalRead(pin) == SwitchOn) {
-                                switchIt("Button", dir);
-                                lastState = digitalRead(pin);
-                        }
-                        else if (digitalRead(pin) == !SwitchOn) {
-                                switchIt("Button", "off");
-                                lastState = digitalRead(pin);
-                        }
-                }
-                else if (USE_BOUNCE_DEBUG) { // for debug only
-                        char tMsg [100];
-                        sprintf(tMsg, "[%s] Bounce: cRead[%d] lRead[%d]", dir, digitalRead(pin), lastState);
-                        iot.pub_err(tMsg);
-                }
-        }
-}
-
-void verifyNotHazardState() {
-        if (digitalRead(outputUpPin) == RelayOn && digitalRead(outputDownPin) == RelayOn ) {
-                switchIt("Button", "off");
-                iot.sendReset("HazradState");
-        }
-
-}
-void readGpioStates() {
-        inputDown_currentState = digitalRead(inputDownPin);
-        inputUp_currentState = digitalRead(inputUpPin);
 }
 void addiotnalMQTT(char incoming_msg[50]) {
         char state[5];
@@ -211,13 +138,110 @@ void addiotnalMQTT(char incoming_msg[50]) {
 
         }
 }
+// ~~~~ maintability ~~~~~~
+void PBit() {
+        int pause = 2 * 5 * deBounceInt;
+        allOff();
+        delay(pause);
+        digitalWrite(outputUpPin, RelayOn);
+        delay(pause);
+        digitalWrite(outputUpPin, !RelayOn);
+        delay(pause);
+        digitalWrite(outputDownPin, RelayOn);
+        delay(pause);
+        allOff();
+
+}
+void allOff() {
+        digitalWrite(outputUpPin, !RelayOn);
+        digitalWrite(outputDownPin, !RelayOn);
+        inputUp_lastState = digitalRead(inputUpPin);
+        inputDown_lastState = digitalRead(inputDownPin);
+        if (USE_2_EXT_INPUT) {
+                inputUpExt_lastState = digitalRead(inputUpExtPin);
+                inputDownExt_lastState = digitalRead(inputDownExtPin);
+        }
+}
+
+// ~~~~~~~~~ GPIO switching ~~~~~~~~~~~~~
+void switchIt(char *type, char *dir) {
+        char mqttmsg[50];
+        bool states[2];
+
+        if (strcmp(dir, "up") == 0) {
+                states[0] = RelayOn;
+                states[1] = !RelayOn;
+        }
+        else if (strcmp(dir, "down") == 0) {
+                states[0] = !RelayOn;
+                states[1] = RelayOn;
+        }
+        else if (strcmp(dir, "off") == 0) {
+                states[0] = !RelayOn;
+                states[1] = !RelayOn;
+        }
+
+        // Case that both realys need to change state ( Up --> Down or Down --> Up )
+        if (digitalRead(outputUpPin) != states[0] && digitalRead(outputDownPin) != states[1]) {
+                allOff();
+                delay(deBounceInt * 2);
+                digitalWrite(outputUpPin, states[0]);
+                digitalWrite(outputDownPin, states[1]);
+        }
+        // Case that one relay changes from/to off --> on
+        else if (digitalRead(outputUpPin) != states[0] || digitalRead(outputDownPin) != states[1]) {
+                digitalWrite(outputUpPin, states[0]);
+                digitalWrite(outputDownPin, states[1]);
+        }
+        if (iot.mqttConnected == true) {
+                iot.pub_state(dir);
+                sprintf(mqttmsg, "%s: Switched [%s]", type, dir);
+                iot.pub_msg(mqttmsg);
+        }
+}
+void checkSwitch_looper( const int &pin, char *dir, bool &lastState, char* type="Button") {
+        if (digitalRead(pin) != lastState) {
+                delay(deBounceInt);
+                if (digitalRead(pin) != lastState) {
+                        if (digitalRead(pin) == SwitchOn) {
+                                switchIt(type, dir);
+                                lastState = digitalRead(pin);
+                        }
+                        else if (digitalRead(pin) == !SwitchOn) {
+                                switchIt(type, "off");
+                                lastState = digitalRead(pin);
+                        }
+                }
+                else if (USE_BOUNCE_DEBUG) { // for debug only
+                        char tMsg [100];
+                        sprintf(tMsg, "[%s] Bounce: cRead[%d] lRead[%d]", dir, digitalRead(pin), lastState);
+                        iot.pub_err(tMsg);
+                }
+        }
+}
+void verifyNotHazardState() {
+        if (digitalRead(outputUpPin) == RelayOn && digitalRead(outputDownPin) == RelayOn ) {
+                switchIt("Button", "off");
+                iot.sendReset("HazradState");
+        }
+
+}
+void readGpioStates() {
+        inputDown_currentState = digitalRead(inputDownPin);
+        inputUp_currentState = digitalRead(inputUpPin);
+}
+
 void loop() {
         iot.looper();
-
         readGpioStates();
-        verifyNotHazardState(); // case both up and down are ---> OFF
-        checkSwitch_looper(inputUpPin,"up", inputUp_lastState);
-        checkSwitch_looper(inputDownPin,"down", inputDown_lastState);
+        verifyNotHazardState(); // both up and down are ---> OFF
+
+        checkSwitch_looper(inputUpPin,"up", inputUp_lastState, "inButton");
+        checkSwitch_looper(inputDownPin,"down", inputDown_lastState, "inButton");
+        if (USE_2_EXT_INPUT) {
+                checkSwitch_looper(inputUpExtPin,"up", inputUpExt_lastState, "extButton");
+                checkSwitch_looper(inputDownExtPin,"down", inputDownExt_lastState, "extButton");
+        }
 
         delay(100);
 }
