@@ -19,8 +19,8 @@
 #define USE_STORED_PARAMETERS_IN_FLASH false
 
 // ********** TimeOut Time vars  ***********
-#define NUM_SWITCHES     1
-#define TIMEOUT_SW0      2*60 // mins for SW0
+#define NUM_SWITCHES     2
+#define TIMEOUT_SW0      4*60 // mins for SW0
 #define TIMEOUT_SW1      2*60 // mins
 
 // ********** myIOT Class ***********
@@ -33,7 +33,7 @@
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 // ~~~~~~~ MQTT Topics ~~~~~~
-#define DEVICE_TOPIC "PergolaBulbs"
+#define DEVICE_TOPIC "PergolaLEDS"
 #define MQTT_PREFIX  "myHome"
 #define MQTT_GROUP   "OutdoorLights"
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -71,8 +71,8 @@ struct dTO {
         bool onNow;
 };
 dTO defaultVals = {{0,0,0},{0,0,0},0,0};
-dTO dailyTO_0   = {{20,0,0},{6,30,5},1,0};
-dTO dailyTO_1   = {{20,0,0},{22,0,0},0,0};
+dTO dailyTO_0   = {{19,0,0},{6,00,0},1,0};
+dTO dailyTO_1   = {{20,0,0},{22,0,0},1,0};
 dTO *dailyTO[]  = {&dailyTO_0,&dailyTO_1};
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -337,7 +337,7 @@ void check_dailyTO_inFlash(dTO &dailyTO, int x){
                                                 dailyTO.flag = retVal;
                                         }
                                         else { //
-                                                // Serial.println("flash vals are exact as code");
+
                                         }
                                 }
                                 else {
