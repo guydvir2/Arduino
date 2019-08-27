@@ -11,7 +11,7 @@
 #include <TimeLib.h>
 
 // ********** Sketch Services  ***********
-#define VER              "Sonoff_1.61"
+#define VER              "Sonoff_1.62"
 #define USE_INPUTS       false
 #define STATE_AT_BOOT    true // On or OFF at boot (Usually when using inputs, at boot/PowerOn - state should be off
 #define USE_DAILY_TO     true
@@ -19,7 +19,7 @@
 #define USE_STORED_PARAMETERS_IN_FLASH false
 
 // ********** TimeOut Time vars  ***********
-#define NUM_SWITCHES     2
+#define NUM_SWITCHES     1
 #define TIMEOUT_SW0      4*60 // mins for SW0
 #define TIMEOUT_SW1      2*60 // mins
 
@@ -33,7 +33,7 @@
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 // ~~~~~~~ MQTT Topics ~~~~~~
-#define DEVICE_TOPIC "PergolaLEDS"
+#define DEVICE_TOPIC "EntranceDoor"
 #define MQTT_PREFIX  "myHome"
 #define MQTT_GROUP   "OutdoorLights"
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -287,8 +287,6 @@ void check_dailyTO_inFlash(dTO &dailyTO, int x){
         if (dailyTO_inFlash.file_exists()) {
                 for(int m=0; m<sizeof(clock_fields)/sizeof(clock_fields[0]); m++) {
                         sprintf(temp,"%s_%d",clock_fields[m], x);
-                        Serial.print("key name: ");
-                        Serial.println(temp);
 
                         if (m == 0 || m == 1) { // clock fileds only
                                 for(int i=0; i<items_each_array[m]; i++) {
@@ -298,30 +296,10 @@ void check_dailyTO_inFlash(dTO &dailyTO, int x){
                                                         if (retVal !=dailyTO.on[i]) {
                                                                 dailyTO.on[i] = retVal;
                                                         }
-                                                        else {
-                                                                // Serial.println("flash vals are exact as code");
-                                                                // Serial.print("inCode: ");
-                                                                // Serial.println(dailyTO.on[i]);
-                                                                // Serial.print("inFlash: ");
-                                                                // Serial.println(retVal);
-                                                        }
                                                 }
                                                 else {
                                                         if (retVal !=dailyTO.off[i]) {
-                                                                Serial.print("inCode: ");
-                                                                Serial.println(dailyTO.off[i]);
-                                                                Serial.print("inFlash: ");
-                                                                Serial.println(retVal);
-
                                                                 dailyTO.off[i] = retVal;
-                                                                Serial.println("read val from flash");
-                                                        }
-                                                        else {
-                                                                Serial.println("flash vals are exact as code");
-                                                                Serial.print("inCode: ");
-                                                                Serial.println(dailyTO.off[i]);
-                                                                Serial.print("inFlash: ");
-                                                                Serial.println(retVal);
                                                         }
                                                 }
                                         }
@@ -369,21 +347,6 @@ void store_dailyTO_inFlash(dTO &dailyTO, int x){
                         dailyTO_inFlash.setValue(temp,dailyTO.flag);
                 }
         }
-        dailyTO_inFlash.printFile();
-}
-void print_dailyTO(dTO &dailyTO){
-        Serial.print("On_Time: ");
-        for (int i=0; i<3; i++) {
-                Serial.print(dailyTO.on[i]);
-                Serial.print(",");
-        }
-        Serial.print("\nOff_Time: ");
-        for (int i=0; i<3; i++) {
-                Serial.print(dailyTO.off[i]);
-                Serial.print(",");
-        }
-        Serial.print("\nflag: ");
-        Serial.print(dailyTO.flag);
 }
 void addiotnalMQTT(char incoming_msg[50]) {
         char msg[150];
@@ -413,6 +376,8 @@ void addiotnalMQTT(char incoming_msg[50]) {
                 sprintf(msg, "Help: Commands #2 - [remain, restart_to, timeout(x), end_to, updateTO(x), restore_to]");
                 iot.pub_msg(msg);
                 sprintf(msg, "Help: Commands #3 - [status, boot, reset, ip, ota, ver, help]");
+                iot.pub_msg(msg);
+                sprintf(msg, "Help: Commands #4 - [off_daily_to, on_daily_to, flag_daily_to]");
                 iot.pub_msg(msg);
         }
         else if (strcmp(incoming_msg, "flash") == 0 ) {
@@ -510,11 +475,8 @@ void setup() {
         quickPwrON();
         startIOTservices();
 
-        if (USE_STORED_PARAMETERS_IN_FLASH) {
-                for (int i=0; i<NUM_SWITCHES; i++) {
-                        check_dailyTO_inFlash(*dailyTO[i], i);
-                        print_dailyTO(*dailyTO[i]);
-                }
+        for (int i=0; i<NUM_SWITCHES; i++) {
+                check_dailyTO_inFlash(*dailyTO[i], i);
         }
 }
 void loop() {
