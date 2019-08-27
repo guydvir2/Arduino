@@ -274,6 +274,7 @@ int myIOT::subscribeMQTT() {
                                         }
                                 }
                                 else {
+                                        notifyOnline();
                                         // sprintf(msg, "<< Connected to MQTT - Reload [%d]>> ", mqttFailCounter);
                                         // pub_err(msg);
 
