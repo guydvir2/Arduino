@@ -17,7 +17,7 @@
 #define TIMEOUT_SW1      3*60 // mins
 // ********** myIOT Class ***********
 //~~~~~ Services ~~~~~~~~~~~
-#define USE_SERIAL       true
+#define USE_SERIAL       false
 #define USE_WDT          true
 #define USE_OTA          true
 #define USE_RESETKEEPER  true
@@ -25,7 +25,7 @@
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 // ~~~~~~~ MQTT Topics ~~~~~~
-#define DEVICE_TOPIC "KitchenLEDs_"
+#define DEVICE_TOPIC "KitchenLEDs"
 #define MQTT_PREFIX  "myHome"
 #define MQTT_GROUP   "LEDStrips"
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -40,7 +40,7 @@ myIOT iot(DEVICE_TOPIC);
 int TIMEOUTS[2] = {TIMEOUT_SW0,TIMEOUT_SW1};
 timeOUT timeOut_SW0("SW0",TIMEOUTS[0]);
 #if NUM_SWITCHES == 2
-timeOUT timeOut_SW1("SW1",TIMEOUT_SW1[1]);
+timeOUT timeOut_SW1("SW1",TIMEOUTS[1]);
 timeOUT *TO[]={&timeOut_SW0,&timeOut_SW1};
 #endif
 #if NUM_SWITCHES == 1
@@ -353,7 +353,7 @@ void timeOutLoop(){
                 }
         }
 }
-void daily_timeouts(dTO &dailyTO, byte i=0){
+void daily_timeouts_looper(dTO &dailyTO, byte i=0){
         char msg [50], msg2[50];
         time_t t=now();
 
@@ -616,7 +616,7 @@ void loop() {
 
         for (int i=0; i<NUM_SWITCHES; i++) {
                 if (USE_DAILY_TO == true) {
-                        daily_timeouts(*dailyTO[i],i);
+                        daily_timeouts_looper(*dailyTO[i],i);
                 }
                 if (USE_INPUTS == true) {
                         checkSwitch_Pressed(i);
