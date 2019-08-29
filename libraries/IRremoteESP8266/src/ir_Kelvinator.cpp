@@ -475,7 +475,7 @@ bool IRrecv::decodeKelvinator(decode_results *results, uint16_t nbits,
                         kKelvinatorBitMark, kKelvinatorOneSpace,
                         kKelvinatorBitMark, kKelvinatorZeroSpace,
                         0, 0, false,
-                        kTolerance, kMarkExcess, false);
+                        _tolerance, kMarkExcess, false);
     if (used == 0) return false;
     offset += used;
     pos += 4;
@@ -485,26 +485,20 @@ bool IRrecv::decodeKelvinator(decode_results *results, uint16_t nbits,
         &(results->rawbuf[offset]), kKelvinatorCmdFooterBits,
         kKelvinatorBitMark, kKelvinatorOneSpace,
         kKelvinatorBitMark, kKelvinatorZeroSpace,
-        kTolerance, kMarkExcess, false);
+        _tolerance, kMarkExcess, false);
     if (data_result.success == false) return false;
     if (data_result.data != kKelvinatorCmdFooter) return false;
     offset += data_result.used;
 
-    // Interdata gap.
-    if (!matchMark(results->rawbuf[offset++], kKelvinatorBitMark))
-      return false;
-    if (!matchSpace(results->rawbuf[offset++], kKelvinatorGapSpace))
-      return false;
-
-    // Data (Options) (32 bits)
+    // Gap + Data (Options) (32 bits)
     used = matchGeneric(results->rawbuf + offset, results->state + pos,
                         results->rawlen - offset, 32,
-                        0, 0,
+                        kKelvinatorBitMark, kKelvinatorGapSpace,
                         kKelvinatorBitMark, kKelvinatorOneSpace,
                         kKelvinatorBitMark, kKelvinatorZeroSpace,
                         kKelvinatorBitMark, kKelvinatorGapSpace * 2,
                         s > 0,
-                        kTolerance, kMarkExcess, false);
+                        _tolerance, kMarkExcess, false);
     if (used == 0) return false;
     offset += used;
     pos += 4;

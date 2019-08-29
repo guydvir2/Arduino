@@ -11,12 +11,12 @@
 #include <TimeLib.h>
 
 // ********** Sketch Services  ***********
-#define VER              "Sonoff_1.62"
+#define VER              "Sonoff_1.7"
 #define USE_INPUTS       false
 #define STATE_AT_BOOT    true // On or OFF at boot (Usually when using inputs, at boot/PowerOn - state should be off
 #define USE_DAILY_TO     true
 #define IS_SONOFF        true
-#define USE_STORED_PARAMETERS_IN_FLASH false
+// #define USE_STORED_PARAMETERS_IN_FLASH false
 
 // ********** TimeOut Time vars  ***********
 #define NUM_SWITCHES     1
@@ -26,7 +26,7 @@
 // ********** myIOT Class ***********
 //~~~~~ Services ~~~~~~~~~~~
 #define USE_SERIAL       false
-#define USE_WDT          false
+#define USE_WDT          true
 #define USE_OTA          true
 #define USE_RESETKEEPER  true
 #define USE_FAILNTP      true
@@ -367,7 +367,7 @@ void addiotnalMQTT(char incoming_msg[50]) {
         else if (strcmp(incoming_msg, "ver") == 0 ) {
                 sprintf(msg, "ver #1: [%s], lib: [%s], WDT: [%d], OTA: [%d], SERIAL: [%d], ResetKeeper[%d], FailNTP[%d]", VER, iot.ver, USE_WDT, USE_OTA,USE_SERIAL, USE_RESETKEEPER, USE_FAILNTP);
                 iot.pub_msg(msg);
-                sprintf(msg, "ver #2: DailyTO[%d], UseInputs[%d], STATE_AT_BOOT[%d], IS_SONOFF[%d], USE_STORED_PARAMETERS_IN_FLASH[%d]",USE_DAILY_TO, USE_INPUTS, STATE_AT_BOOT, IS_SONOFF, USE_STORED_PARAMETERS_IN_FLASH);
+                sprintf(msg, "ver #2: DailyTO[%d], UseInputs[%d], STATE_AT_BOOT[%d], IS_SONOFF[%d]",USE_DAILY_TO, USE_INPUTS, STATE_AT_BOOT, IS_SONOFF);
                 iot.pub_msg(msg);
         }
         else if (strcmp(incoming_msg, "help") == 0) {
@@ -465,6 +465,18 @@ void addiotnalMQTT(char incoming_msg[50]) {
                         store_dailyTO_inFlash(*dailyTO[atoi(iot.inline_param[0])],atoi(iot.inline_param[0]));
                         sprintf(msg, "%s: Clock[#%d] set to [%s]",clockAlias,
                                 atoi(iot.inline_param[0]),atoi(iot.inline_param[2]) ? "ON" : "OFF");
+                        iot.pub_msg(msg);
+                }
+                else if (strcmp(iot.inline_param[1], "status_daily_to") == 0) {
+                        sprintf(msg, "%s: Switch [#%d] {ON, %02d:%02d:%02d} {OFF, %02d:%02d:%02d} {Flag: %s}",
+                                clockAlias,atoi(iot.inline_param[0]),
+                                dailyTO[atoi(iot.inline_param[0])]->on[0],
+                                dailyTO[atoi(iot.inline_param[0])]->on[1],
+                                dailyTO[atoi(iot.inline_param[0])]->on[2],
+                                dailyTO[atoi(iot.inline_param[0])]->off[0],
+                                dailyTO[atoi(iot.inline_param[0])]->off[1],
+                                dailyTO[atoi(iot.inline_param[0])]->off[2],
+                                dailyTO[atoi(iot.inline_param[0])]->flag ? "ON" : "OFF" );
                         iot.pub_msg(msg);
                 }
         }

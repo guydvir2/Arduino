@@ -95,6 +95,8 @@ decode_type_t strToDecodeType(const char * const str) {
     return decode_type_t::UNUSED;
   else if (!strcasecmp(str, "AIWA_RC_T501"))
     return decode_type_t::AIWA_RC_T501;
+  else if (!strcasecmp(str, "AMCOR"))
+    return decode_type_t::AMCOR;
   else if (!strcasecmp(str, "ARGO"))
     return decode_type_t::ARGO;
   else if (!strcasecmp(str, "CARRIER_AC"))
@@ -105,6 +107,8 @@ decode_type_t strToDecodeType(const char * const str) {
     return decode_type_t::DAIKIN;
   else if (!strcasecmp(str, "DAIKIN128"))
     return decode_type_t::DAIKIN128;
+  else if (!strcasecmp(str, "DAIKIN152"))
+    return decode_type_t::DAIKIN152;
   else if (!strcasecmp(str, "DAIKIN160"))
     return decode_type_t::DAIKIN160;
   else if (!strcasecmp(str, "DAIKIN176"))
@@ -254,6 +258,9 @@ String typeToString(const decode_type_t protocol, const bool isRepeat) {
     case AIWA_RC_T501:
       result = F("AIWA_RC_T501");
       break;
+    case AMCOR:
+      result = F("AMCOR");
+      break;
     case ARGO:
       result = F("ARGO");
       break;
@@ -268,6 +275,9 @@ String typeToString(const decode_type_t protocol, const bool isRepeat) {
       break;
     case DAIKIN128:
       result = F("DAIKIN128");
+      break;
+    case DAIKIN152:
+      result = F("DAIKIN152");
       break;
     case DAIKIN160:
       result = F("DAIKIN160");
@@ -467,9 +477,11 @@ String typeToString(const decode_type_t protocol, const bool isRepeat) {
 // Does the given protocol use a complex state as part of the decode?
 bool hasACState(const decode_type_t protocol) {
   switch (protocol) {
+    case AMCOR:
     case ARGO:
     case DAIKIN:
     case DAIKIN128:
+    case DAIKIN152:
     case DAIKIN160:
     case DAIKIN176:
     case DAIKIN2:

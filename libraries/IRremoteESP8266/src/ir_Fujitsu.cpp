@@ -267,9 +267,6 @@ bool IRFujitsuAC::setRaw(const uint8_t newState[], const uint16_t length) {
   return true;
 }
 
-// Set the requested power state of the A/C to off.
-void IRFujitsuAC::off(void) { this->setCmd(kFujitsuAcCmdTurnOff); }
-
 void IRFujitsuAC::stepHoriz(void) { this->setCmd(kFujitsuAcCmdStepHoriz); }
 
 void IRFujitsuAC::toggleSwingHoriz(const bool update) {
@@ -335,6 +332,17 @@ uint8_t IRFujitsuAC::getCmd(const bool raw) {
   if (raw) return remote_state[5];
   return _cmd;
 }
+
+// Set the requested power state of the A/C.
+void IRFujitsuAC::setPower(const bool on) {
+  this->setCmd(on ? kFujitsuAcCmdTurnOn : kFujitsuAcCmdTurnOff);
+}
+
+// Set the requested power state of the A/C to off.
+void IRFujitsuAC::off(void) { this->setPower(false); }
+
+// Set the requested power state of the A/C to on.
+void IRFujitsuAC::on(void) { this->setPower(true); }
 
 bool IRFujitsuAC::getPower(void) { return _cmd != kFujitsuAcCmdTurnOff; }
 
@@ -649,7 +657,7 @@ bool IRrecv::decodeFujitsuAC(decode_results* results, uint16_t nbits,
   match_result_t data_result =
       matchData(&(results->rawbuf[offset]), kFujitsuAcMinBits - 8,
                 kFujitsuAcBitMark, kFujitsuAcOneSpace, kFujitsuAcBitMark,
-                kFujitsuAcZeroSpace, kTolerance, kMarkExcess, false);
+                kFujitsuAcZeroSpace, _tolerance, kMarkExcess, false);
   if (data_result.success == false) return false;      // Fail
   if (data_result.data != 0x1010006314) return false;  // Signature failed.
   dataBitsSoFar += kFujitsuAcMinBits - 8;
@@ -666,7 +674,7 @@ bool IRrecv::decodeFujitsuAC(decode_results* results, uint16_t nbits,
        i++, dataBitsSoFar += 8, offset += data_result.used) {
     data_result = matchData(
         &(results->rawbuf[offset]), 8, kFujitsuAcBitMark, kFujitsuAcOneSpace,
-        kFujitsuAcBitMark, kFujitsuAcZeroSpace, kTolerance, kMarkExcess, false);
+        kFujitsuAcBitMark, kFujitsuAcZeroSpace, _tolerance, kMarkExcess, false);
     if (data_result.success == false) break;  // Fail
     results->state[i] = data_result.data;
   }
