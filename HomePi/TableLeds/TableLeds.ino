@@ -16,7 +16,7 @@
 int TIMEOUTS[2]={TIMEOUT_SW0,TIMEOUT_SW1};
 // ********** myIOT Class ***********
 //~~~~~ Services ~~~~~~~~~~~
-#define USE_SERIAL       true
+#define USE_SERIAL       false
 #define USE_WDT          true
 #define USE_OTA          true
 #define USE_RESETKEEPER  true
@@ -24,7 +24,7 @@ int TIMEOUTS[2]={TIMEOUT_SW0,TIMEOUT_SW1};
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 // ~~~~~~~ MQTT Topics ~~~~~~
-#define DEVICE_TOPIC "tableLEDs_"
+#define DEVICE_TOPIC "tableLEDs"
 #define MQTT_PREFIX  "myHome"
 #define MQTT_GROUP   "LEDStrips"
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -268,10 +268,6 @@ void check_dailyTO_inFlash(dTO &dailyTO, int x){
                                                 else {
                                                         if (retVal !=dailyTO.off[i]) {
                                                                 dailyTO.off[i] = retVal;
-
-                                                        }
-                                                        else {
-
                                                         }
                                                 }
                                         }
@@ -400,7 +396,6 @@ void addiotnalMQTT(char incoming_msg[50]) {
                                 TO[atoi(iot.inline_param[0])]->updatedTO ? "Flash" : "inCode" );
                         iot.pub_msg(msg);
                 }
-
                 else if (strcmp(iot.inline_param[1], "end_to") == 0) {
                         TO[atoi(iot.inline_param[0])]->endNow();
                         sprintf(msg, "TimeOut: Switch[#%d] [Abort]",atoi(iot.inline_param[0]));

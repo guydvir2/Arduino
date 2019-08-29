@@ -11,18 +11,17 @@
 #include <TimeLib.h>
 
 // ********** Sketch Services  ***********
-#define VER              "Sonoff_1.7"
+#define VER              "Sonoff_1.8"
 #define USE_INPUTS       false
 #define STATE_AT_BOOT    true // On or OFF at boot (Usually when using inputs, at boot/PowerOn - state should be off
 #define USE_DAILY_TO     true
 #define IS_SONOFF        true
-// #define USE_STORED_PARAMETERS_IN_FLASH false
 
 // ********** TimeOut Time vars  ***********
-#define NUM_SWITCHES     1
+#define NUM_SWITCHES     2
 #define TIMEOUT_SW0      4*60 // mins for SW0
-#define TIMEOUT_SW1      2*60 // mins
-
+#define TIMEOUT_SW1      3*60 // mins
+int TIMEOUTS[2]={TIMEOUT_SW0,TIMEOUT_SW1};
 // ********** myIOT Class ***********
 //~~~~~ Services ~~~~~~~~~~~
 #define USE_SERIAL       false
@@ -33,7 +32,7 @@
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 // ~~~~~~~ MQTT Topics ~~~~~~
-#define DEVICE_TOPIC "EntranceDoor"
+#define DEVICE_TOPIC "PergolaLEDs"
 #define MQTT_PREFIX  "myHome"
 #define MQTT_GROUP   "OutdoorLights"
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -187,7 +186,7 @@ void quickPwrON(){
            other than 0
          */
         for(int i=0; i<NUM_SWITCHES; i++) {
-                if (TO[i]->savedTO) {
+                if (TO[i]->savedTO || STATE_AT_BOOT ) {
                         digitalWrite(relays[i], HIGH);
                 }
                 else{
@@ -211,13 +210,11 @@ void recoverReset(){
                 for (int i=0; i<NUM_SWITCHES; i++) {
                         if (TO[i]->updatedTO!=0) {    // coded TO was changed by user
                                 TO[i]->inCodeTO = TO[i]->updatedTO;
-                                sprintf(mqttmsg,"Switch[#%d]: get TimeOut from Flash",i);
+                                sprintf(mqttmsg,"TimeOut: Switch[#%d] TimeOut from Flash",i);
                                 iot.pub_err(mqttmsg);
                         }
-                        if (badReboot == 0) {             // PowerOn - not a quickReboot
-                                if (STATE_AT_BOOT == true ) { // define to be ON at boot
-                                        TO[i]->restart_to();
-                                }
+                        if (badReboot == 0 || STATE_AT_BOOT == true) {  // PowerOn - not a quickReboot
+                                TO[i]->restart_to();
                         }
                         else {
                                 TO[i]->begin(false);
@@ -314,9 +311,6 @@ void check_dailyTO_inFlash(dTO &dailyTO, int x){
                                         if (retVal !=dailyTO.flag) {
                                                 dailyTO.flag = retVal;
                                         }
-                                        else { //
-
-                                        }
                                 }
                                 else {
                                         dailyTO_inFlash.setValue(temp,0);
@@ -373,7 +367,7 @@ void addiotnalMQTT(char incoming_msg[50]) {
         else if (strcmp(incoming_msg, "help") == 0) {
                 sprintf(msg, "Help: Commands #1 - [on, off, flash, format]");
                 iot.pub_msg(msg);
-                sprintf(msg, "Help: Commands #2 - [remain, restart_to, timeout(x), end_to, updateTO(x), restore_to]");
+                sprintf(msg, "Help: Commands #2 - [remain, restart_to, timeout(x), end_to, updateTO(x), restore_to, status_TO]");
                 iot.pub_msg(msg);
                 sprintf(msg, "Help: Commands #3 - [status, boot, reset, ip, ota, ver, help]");
                 iot.pub_msg(msg);
@@ -410,7 +404,7 @@ void addiotnalMQTT(char incoming_msg[50]) {
                         iot.sendReset("TimeOut update");
                 }
                 else if (strcmp(iot.inline_param[1], "remain") == 0) {
-                        TO[atoi(iot.inline_param[0])]->convert_epoch2clock(now()+TO[atoi(iot.inline_param[0])]->remain(),now(), msg2, msg);
+                        TO[atoi(iot.inline_param[0])]->convert_epoch2clock(now()+ TO[atoi(iot.inline_param[0])]->remain(),now(), msg2, msg);
                         sprintf(msg, "TimeOut: Switch[#%d] Remain [%s]",atoi(iot.inline_param[0]), msg2);
                         iot.pub_msg(msg);
                 }
@@ -420,6 +414,14 @@ void addiotnalMQTT(char incoming_msg[50]) {
                         iot.pub_msg(msg);
                         iot.notifyOffline();
                         iot.sendReset("TimeOut restart");
+                }
+                else if (strcmp(iot.inline_param[1], "status_TO") == 0) {
+                        sprintf(msg, "%s: Switch [#%d] {inCode: [%d] mins} {Flash: [%d] mins}, {Active: [%s]}",
+                                "TimeOut",atoi(iot.inline_param[0]),
+                                TIMEOUTS[atoi(iot.inline_param[0])],
+                                TO[atoi(iot.inline_param[0])]->updatedTO,
+                                TO[atoi(iot.inline_param[0])]->updatedTO ? "Flash" : "inCode" );
+                        iot.pub_msg(msg);
                 }
                 else if (strcmp(iot.inline_param[1], "end_to") == 0) {
                         TO[atoi(iot.inline_param[0])]->endNow();
