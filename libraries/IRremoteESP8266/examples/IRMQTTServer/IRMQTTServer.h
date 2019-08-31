@@ -5,6 +5,9 @@
 #ifndef EXAMPLES_IRMQTTSERVER_IRMQTTSERVER_H_
 #define EXAMPLES_IRMQTTSERVER_IRMQTTSERVER_H_
 
+#if defined(ESP8266)
+#include <ESP8266WiFi.h>
+#endif  // ESP8266
 #include <IRremoteESP8266.h>
 #include <IRrecv.h>
 #include <IRsend.h>
@@ -156,6 +159,16 @@ const uint16_t kMinUnknownSize = 2 * 10;
 
 // ------------------------ Advanced Usage Only --------------------------------
 
+// Reports the input voltage to the ESP chip. **NOT** the input voltage
+// to the development board (e.g. NodeMCU, D1 Mini etc) which are typically
+// powered by USB (5V) which is then lowered to 3V via a Low Drop Out (LDO)
+// Voltage regulator. Hence, this feature is turned off by default as it
+// make little sense for most users as it really isn't the actual input voltage.
+// E.g. For purposes of monitoring a battery etc.
+// Note: Turning on the feature costs ~250 bytes of prog space.
+#define REPORT_VCC false  // Do we report Vcc via html info page & MQTT?
+
+// Keywords for MQTT topics, html arguments, or config file.
 #define KEY_PROTOCOL "protocol"
 #define KEY_MODEL "model"
 #define KEY_POWER "power"
@@ -175,6 +188,7 @@ const uint16_t kMinUnknownSize = 2 * 10;
 #define KEY_CELSIUS "use_celsius"
 #define KEY_JSON "json"
 #define KEY_RESEND "resend"
+#define KEY_VCC "vcc"
 
 // HTML arguments we will parse for IR code information.
 #define KEY_TYPE "type"  // KEY_PROTOCOL is also checked too.
@@ -206,11 +220,14 @@ const uint8_t kPasswordLength = 20;
 // ----------------- End of User Configuration Section -------------------------
 
 // Constants
-#define _MY_VERSION_ "v1.3.3"
+#define _MY_VERSION_ "v1.3.4"
 
 const uint8_t kRebootTime = 15;  // Seconds
 const uint8_t kQuickDisplayTime = 2;  // Seconds
 
+// Common bit sizes for the simple protocols.
+const uint8_t kCommonBitSizes[] = {
+    12, 13, 15, 16, 20, 24, 28, 32, 35, 36, 42, 48, 56, 64};
 // Gpio related
 #if defined(ESP8266)
 const int8_t kTxGpios[] = {-1, 0, 1, 2, 3, 4, 5, 12, 13, 14, 15, 16};
@@ -294,6 +311,9 @@ void sendJsonState(const stdAc::state_t state, const String topic,
                    const bool retain = false, const bool ha_mode = true);
 #endif  // MQTT_CLIMATE_JSON
 #endif  // MQTT_ENABLE
+#if REPORT_VCC
+String vccToString(void);
+#endif  // REPORT_VCC
 bool isSerialGpioUsedByIr(void);
 void debug(const char *str);
 void saveWifiConfigCallback(void);
@@ -319,7 +339,9 @@ String addJsReloadUrl(const String url, const uint16_t timeout_s,
                       const bool notify);
 void handleExamples(void);
 String htmlSelectBool(const String name, const bool def);
-String htmlSelectProtocol(const String name, const decode_type_t def);
+String htmlSelectClimateProtocol(const String name, const decode_type_t def);
+String htmlSelectAcStateProtocol(const String name, const decode_type_t def,
+                                 const bool simple);
 String htmlSelectModel(const String name, const int16_t def);
 String htmlSelectMode(const String name, const stdAc::opmode_t def);
 String htmlSelectFanspeed(const String name, const stdAc::fanspeed_t def);

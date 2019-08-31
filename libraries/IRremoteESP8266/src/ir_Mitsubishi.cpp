@@ -302,7 +302,7 @@ bool IRrecv::decodeMitsubishiAC(decode_results *results, uint16_t nbits,
       data_result =
           matchData(&(results->rawbuf[offset]), 8, kMitsubishiAcBitMark,
                     kMitsubishiAcOneSpace, kMitsubishiAcBitMark,
-                    kMitsubishiAcZeroSpace, kTolerance, kMarkExcess, false);
+                    kMitsubishiAcZeroSpace, _tolerance, kMarkExcess, false);
       if (data_result.success == false) {
         failure = true;
         DPRINT("Byte decode failed at #");
@@ -365,7 +365,7 @@ bool IRrecv::decodeMitsubishiAC(decode_results *results, uint16_t nbits,
         data_result =
             matchData(&(results->rawbuf[offset]), 8, kMitsubishiAcBitMark,
                       kMitsubishiAcOneSpace, kMitsubishiAcBitMark,
-                      kMitsubishiAcZeroSpace, kTolerance, kMarkExcess, false);
+                      kMitsubishiAcZeroSpace, _tolerance, kMarkExcess, false);
         if (data_result.success == false ||
             data_result.data != results->state[i]) {
           DPRINTLN("Repeat payload error.");
@@ -672,6 +672,8 @@ uint8_t IRMitsubishiAC::convertSwingH(const stdAc::swingh_t position) {
       return kMitsubishiAcWideVaneAuto - 4;
     case stdAc::swingh_t::kRightMax:
       return kMitsubishiAcWideVaneAuto - 3;
+    case stdAc::swingh_t::kWide:
+      return kMitsubishiAcWideVaneAuto - 2;
     case stdAc::swingh_t::kAuto:
       return kMitsubishiAcWideVaneAuto;
     default:
@@ -721,6 +723,7 @@ stdAc::swingh_t IRMitsubishiAC::toCommonSwingH(const uint8_t pos) {
     case 3: return stdAc::swingh_t::kMiddle;
     case 4: return stdAc::swingh_t::kRight;
     case 5: return stdAc::swingh_t::kRightMax;
+    case 6: return stdAc::swingh_t::kWide;
     default: return stdAc::swingh_t::kAuto;
   }
 }

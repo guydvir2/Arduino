@@ -115,7 +115,7 @@ char prefixTopic  [MaxTopicLength];
 char deviceTopic  [MaxTopicLength];
 char addGroupTopic[MaxTopicLength];
 
-const char *ver     = "iot_4.2";
+const char *ver     = "iot_4.3";
 char timeStamp[20];
 long updated_bootTime  = 0;
 int resetIntervals     = 10;

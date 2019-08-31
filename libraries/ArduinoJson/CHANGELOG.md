@@ -1,6 +1,19 @@
 ArduinoJson: change log
 =======================
 
+v6.11.5 (2019-08-23)
+-------
+
+* Added fallback implementations of `strlen_P()`, `strncmp_P()`, `strcmp_P()`, and `memcpy_P()` (issue #1073)
+
+v6.11.4 (2019-08-12)
+-------
+
+* Added `measureJson()` to the `ArduinoJson` namespace (PR #1069 by @nomis)
+* Added support for `basic_string<char, traits, allocator>` (issue #1045)
+* Fixed example `JsonConfigFile.ino` for ESP8266
+* Include `Arduino.h` if `ARDUINO` is defined (PR #1071 by @nomis)
+
 v6.11.3 (2019-07-22)
 -------
 
