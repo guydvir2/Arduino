@@ -746,7 +746,19 @@ void timeOUT::convert_epoch2clock(long t1, long t2, char* time_str, char* days_s
         sprintf(days_str, "%02d days", days);
         sprintf(time_str, "%02d:%02d:%02d", hours, minutes, seconds);
 }
-
+// void timeOUT::addTime(int addTime, bool mins){
+//   if (mins==true) {
+//     if (_calc_endTO >0){
+//           _calc_endTO += addTime*60; // given in mintes
+//           setNewTimeout()
+//   }
+// }
+//   else{
+//           _calc_endTO=now()+to;
+//
+//   }
+//
+// }
 
 
 myTelegram::myTelegram(char* Bot, char* chatID, char* ssid, char* password) : bot (Bot, client)

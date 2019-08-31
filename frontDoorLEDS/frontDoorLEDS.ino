@@ -1,30 +1,23 @@
-/* For SonOff Devices:
-   1) Upload using Generic ESP8266
-   2) Change default 1024kB (64kB SPIFFS ) ram
-   <<<<  !!! MUST!! >>>>
-   otherwise OTA will not be loaded next time
- */
-
 #include <myIOT.h>
 #include <myJSON.h>
 #include <Arduino.h>
 #include <TimeLib.h>
 
 // ********** Sketch Services  ***********
-#define VER              "Sonoff_1.8"
+#define VER              "Wemos_1.0"
 #define USE_INPUTS       true
 #define STATE_AT_BOOT    false // On or OFF at boot (Usually when using inputs, at boot/PowerOn - state should be off
 #define USE_DAILY_TO     true
-#define IS_SONOFF        true
+#define IS_SONOFF        false
 
 // ********** TimeOut Time vars  ***********
 #define NUM_SWITCHES     1
-#define TIMEOUT_SW0      2*60 // mins for SW0
+#define TIMEOUT_SW0      5// mins for SW0
 #define TIMEOUT_SW1      3*60 // mins
 int TIMEOUTS[2]={TIMEOUT_SW0,TIMEOUT_SW1};
 // ********** myIOT Class ***********
 //~~~~~ Services ~~~~~~~~~~~
-#define USE_SERIAL       false
+#define USE_SERIAL       true
 #define USE_WDT          true
 #define USE_OTA          true
 #define USE_RESETKEEPER  true
@@ -32,9 +25,9 @@ int TIMEOUTS[2]={TIMEOUT_SW0,TIMEOUT_SW1};
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 // ~~~~~~~ MQTT Topics ~~~~~~
-#define DEVICE_TOPIC "Stove"
+#define DEVICE_TOPIC "frontDoorLEDs"
 #define MQTT_PREFIX  "myHome"
-#define MQTT_GROUP   "Lights"
+#define MQTT_GROUP   "OutdoorLights"
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 #define ADD_MQTT_FUNC addiotnalMQTT
@@ -70,7 +63,7 @@ struct dTO {
         bool onNow;
 };
 dTO defaultVals = {{0,0,0},{0,0,0},0,0};
-dTO dailyTO_0   = {{17,0,0},{6,00,0},1,0};
+dTO dailyTO_0   = {{20,0,0},{0,00,0},1,0};
 dTO dailyTO_1   = {{20,0,0},{22,0,0},1,0};
 dTO *dailyTO[]  = {&dailyTO_0,&dailyTO_1};
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -87,7 +80,7 @@ dTO *dailyTO[]  = {&dailyTO_0,&dailyTO_1};
 #if !IS_SONOFF
 #define RELAY1          D2
 #define RELAY2          5
-#define INPUT1          9
+#define INPUT1          D5
 #define INPUT2          3
 #endif
 
@@ -104,6 +97,7 @@ bool boot_overide     = true;
 // ~~~~~~~~ state Vars ~~~~~~~~
 #define RelayOn          HIGH
 #define SwitchOn         LOW
+#define PIR_DETECT       HIGH
 
 bool swState [NUM_SWITCHES];
 bool last_swState [NUM_SWITCHES];
@@ -152,7 +146,23 @@ void checkSwitch_Pressed (byte sw){
         }
 
 }
-
+void checkPIR_sensor(byte sw){
+        if (inputs_lastState[sw] != digitalRead(inputs[sw])) {
+                delay(50);
+                if (inputs_lastState[sw] != digitalRead(inputs[sw])) {
+                        inputs_lastState[sw] = digitalRead(inputs[sw]);
+                        if (digitalRead(inputs[sw]) == PIR_DETECT) {
+                                Serial.println("DETECTED");
+                                // if (digitalRead(relays[sw]) != RelayOn) {
+                                //         TO[sw]->restart_to();
+                                // }
+                                // else {
+                                //         // Make a blink when detected
+                                // }
+                        }
+                }
+        }
+}
 void startIOTservices(){
         iot.useSerial      = USE_SERIAL;
         iot.useWDT         = USE_WDT;
@@ -507,8 +517,10 @@ void loop() {
                 }
                 if (USE_INPUTS == true) {
                         checkSwitch_Pressed(i);
+                        // checkPIR_sensor(i);
                 }
         }
 
         delay(100);
+        Serial.println(digitalRead(inputs[0]));
 }
