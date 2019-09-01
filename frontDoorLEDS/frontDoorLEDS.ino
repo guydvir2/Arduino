@@ -11,9 +11,9 @@
 #define IS_SONOFF        false
 
 // ********** TimeOut Time vars  ***********
-#define NUM_SWITCHES     1
-#define TIMEOUT_SW0      5// mins for SW0
-#define TIMEOUT_SW1      3*60 // mins
+#define NUM_SWITCHES     2
+#define TIMEOUT_SW0      1 // mins for SW0
+#define TIMEOUT_SW1      0 // mins
 int TIMEOUTS[2]={TIMEOUT_SW0,TIMEOUT_SW1};
 // ********** myIOT Class ***********
 //~~~~~ Services ~~~~~~~~~~~
@@ -63,7 +63,7 @@ struct dTO {
         bool onNow;
 };
 dTO defaultVals = {{0,0,0},{0,0,0},0,0};
-dTO dailyTO_0   = {{20,0,0},{0,00,0},1,0};
+dTO dailyTO_0   = {{20,0,0},{0,30,0},1,0};
 dTO dailyTO_1   = {{20,0,0},{22,0,0},1,0};
 dTO *dailyTO[]  = {&dailyTO_0,&dailyTO_1};
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -78,10 +78,10 @@ dTO *dailyTO[]  = {&dailyTO_0,&dailyTO_1};
 #endif
 
 #if !IS_SONOFF
-#define RELAY1          D2
+#define RELAY1          D3
 #define RELAY2          5
-#define INPUT1          D5
-#define INPUT2          3
+#define INPUT1          D7 //OPT. Switch
+#define INPUT2          D8 //PIR_Sensor
 #endif
 
 #define LEDpin          13
@@ -102,7 +102,11 @@ bool boot_overide     = true;
 bool swState [NUM_SWITCHES];
 bool last_swState [NUM_SWITCHES];
 bool inputs_lastState[NUM_SWITCHES];
-//####################################################
+
+// ~~~~~~~~~~~~ Telegram ~~~~~~~~~~~~~~
+#define EXT_TEL external_telegram
+myTelegram telegram(BOT_TOKEN, CHAT_ID);
+
 
 void switchIt (char *txt1, int sw_num, bool state, char *txt2=""){
         char msg [50], msg1[50], msg2[50], states[50], tempstr[50];
@@ -137,9 +141,12 @@ void checkSwitch_Pressed (byte sw){
                 if (digitalRead(inputs[sw])==LOW) {
                         if (digitalRead(relays[sw])==RelayOn) {
                                 TO[sw]->endNow();
+                                // Serial.println("SHUT_DOWN");
                         }
                         else {
                                 TO[sw]->restart_to();
+                                // Serial.println("POWER_UP");
+
                         }
                         delay(500);
                 }
@@ -153,12 +160,14 @@ void checkPIR_sensor(byte sw){
                         inputs_lastState[sw] = digitalRead(inputs[sw]);
                         if (digitalRead(inputs[sw]) == PIR_DETECT) {
                                 Serial.println("DETECTED");
-                                // if (digitalRead(relays[sw]) != RelayOn) {
-                                //         TO[sw]->restart_to();
-                                // }
-                                // else {
-                                //         // Make a blink when detected
-                                // }
+                                if (digitalRead(relays[sw-1]) != RelayOn) {
+                                        switchIt("txt",sw-1,1,"txt2");
+                                        Serial.println("switch on");
+                                        TO[sw]->restart_to();
+                                }
+                                else {
+                                        Serial.println("DETECTED-While already On. blink blink");
+                                }
                         }
                 }
         }
@@ -494,6 +503,9 @@ void addiotnalMQTT(char incoming_msg[50]) {
         }
 }
 
+void external_telegram(String a, String b, String c, char msg[50]){
+
+}
 void setup() {
         startGPIOs();
         quickPwrON();
@@ -502,6 +514,9 @@ void setup() {
         for (int i=0; i<NUM_SWITCHES; i++) {
                 check_dailyTO_inFlash(*dailyTO[i], i);
         }
+
+        telegram.begin(EXT_TEL);
+        telegram.send_msg("GOOD");
 }
 void loop() {
         iot.looper();
@@ -515,12 +530,11 @@ void loop() {
                 if (USE_DAILY_TO == true) {
                         daily_timeouts(*dailyTO[i],i);
                 }
-                if (USE_INPUTS == true) {
-                        checkSwitch_Pressed(i);
-                        // checkPIR_sensor(i);
-                }
         }
 
+        if (USE_INPUTS == true) {
+                checkSwitch_Pressed(0);
+                checkPIR_sensor(1);
+        }
         delay(100);
-        Serial.println(digitalRead(inputs[0]));
 }

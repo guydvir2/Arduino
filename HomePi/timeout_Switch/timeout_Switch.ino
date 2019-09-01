@@ -11,7 +11,7 @@
 #include <TimeLib.h>
 
 // ********** Sketch Services  ***********
-#define VER              "Sonoff_1.8"
+#define VER              "Sonoff_1.9"
 #define USE_INPUTS       true
 #define STATE_AT_BOOT    false // On or OFF at boot (Usually when using inputs, at boot/PowerOn - state should be off
 #define USE_DAILY_TO     true
@@ -21,10 +21,9 @@
 #define NUM_SWITCHES     1
 #define TIMEOUT_SW0      2*60 // mins for SW0
 #define TIMEOUT_SW1      3*60 // mins
-int TIMEOUTS[2]={TIMEOUT_SW0,TIMEOUT_SW1};
 // ********** myIOT Class ***********
 //~~~~~ Services ~~~~~~~~~~~
-#define USE_SERIAL       false
+#define USE_SERIAL       true
 #define USE_WDT          true
 #define USE_OTA          true
 #define USE_RESETKEEPER  true
@@ -32,7 +31,7 @@ int TIMEOUTS[2]={TIMEOUT_SW0,TIMEOUT_SW1};
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 // ~~~~~~~ MQTT Topics ~~~~~~
-#define DEVICE_TOPIC "Stove"
+#define DEVICE_TOPIC "test"
 #define MQTT_PREFIX  "myHome"
 #define MQTT_GROUP   "Lights"
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -53,14 +52,6 @@ timeOUT *TO[]={&timeOut_SW0,&timeOut_SW1};
 #if NUM_SWITCHES == 1
 timeOUT *TO[]={&timeOut_SW0};
 #endif
-
-// #if USE_STORED_PARAMETERS_IN_FLASH
-// myJSON storedParameters_inFlash("file1.json", true);
-// #endif
-// char *storedP_keys[]={"TO_0","TO_1"};
-
-// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
 
 // ~~~~~~~~~ Use Daily Clock ~~~~
 #if USE_DAILY_TO
@@ -144,20 +135,35 @@ void switchIt (char *txt1, int sw_num, bool state, char *txt2=""){
                 iot.pub_state(states);
         }
 }
-void checkSwitch_Pressed (byte sw){
-        if (digitalRead(inputs[sw])==LOW) {
-                delay(50);
+void checkSwitch_Pressed (byte sw, bool momentary=true){
+        if (momentary) {
                 if (digitalRead(inputs[sw])==LOW) {
-                        if (digitalRead(relays[sw])==RelayOn) {
-                                TO[sw]->endNow();
+                        delay(50);
+                        if (digitalRead(inputs[sw])==LOW) {
+                                if (digitalRead(relays[sw])==RelayOn) {
+                                        TO[sw]->endNow();
+                                }
+                                else {
+                                        TO[sw]->restart_to();
+                                }
+                                delay(500);
                         }
-                        else {
-                                TO[sw]->restart_to();
-                        }
-                        delay(500);
                 }
         }
-
+        else{
+                if (digitalRead(inputs[sw]) !=inputs_lastState[sw]) {
+                        delay(50);
+                        if (digitalRead(inputs[sw]) !=inputs_lastState[sw]) {
+                                inputs_lastState[sw] = digitalRead(inputs[sw]);
+                                if (digitalRead(inputs[sw]) == SwitchOn) {
+                                        TO[sw]->restart_to();
+                                }
+                                else{
+                                        TO[sw]->endNow();
+                                }
+                        }
+                }
+        }
 }
 
 void startIOTservices(){
@@ -349,24 +355,6 @@ void store_dailyTO_inFlash(dTO &dailyTO, int x){
                 }
         }
 }
-// void check_storedP_inFlash(int i){
-//         int tempval;
-//         int defval = 0;
-//         if (storedParameters_inFlash.file_exists()) {
-//                 if(storedParameters_inFlash.getValue(storedP_keys[i],tempval)) {
-//                         if(tempval > 0 && tempval !=TIMEOUTS[i]) {
-//                                 TIMEOUTS[i]=tempval;
-//                                 TO[i]->setNewTimeout(tempval);
-//                         }
-//                 }
-//                 else{
-//                         storedParameters_inFlash.setValue(storedP_keys[i],defval);
-//                 }
-//         }
-//         else{
-//                 storedParameters_inFlash.setValue(storedP_keys[i],defval);
-//         }
-// }
 void addiotnalMQTT(char incoming_msg[50]) {
         char msg[150];
         char msg2[20];
@@ -519,21 +507,21 @@ void setup() {
         }
 }
 void loop() {
-        // iot.looper();
-        // timeOutLoop();
+        iot.looper();
+        timeOutLoop();
 
-        // if (checkbadReboot == true && USE_RESETKEEPER == true) {
-        //         recoverReset();
-        // }
+        if (checkbadReboot == true && USE_RESETKEEPER == true) {
+                recoverReset();
+        }
 
-        // for (int i=0; i<NUM_SWITCHES; i++) {
-        //         if (USE_DAILY_TO == true) {
-        //                 daily_timeouts_looper(*dailyTO[i],i);
-        //         }
-        //         if (USE_INPUTS == true) {
-        //                 checkSwitch_Pressed(i);
-        //         }
-        // }
-        //
-        // delay(100);
+        for (int i=0; i<NUM_SWITCHES; i++) {
+                if (USE_DAILY_TO == true) {
+                        daily_timeouts_looper(*dailyTO[i],i);
+                }
+                if (USE_INPUTS == true) {
+                        checkSwitch_Pressed(i, false);
+                }
+        }
+
+        delay(100);
 }
