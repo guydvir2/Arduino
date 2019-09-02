@@ -363,10 +363,10 @@ void myIOT::callback(char* topic, byte* payload, unsigned int length) {
         if (firstRun && useResetKeeper) {
                 if(strcmp(topic,_availTopic)==0) {
                         if (strcmp(incoming_msg,"online")==0) {
-                                mqtt_detect_reset = 1;
+                                mqtt_detect_reset = 1; // bad reboot
                         }
                         else if (strcmp(incoming_msg,"offline")==0) {
-                                mqtt_detect_reset = 0;
+                                mqtt_detect_reset = 0; // ordinary boot
                         }
                 }
         }
@@ -620,61 +620,68 @@ timeOUT::timeOUT(char* sw_num, int def_val)
            updatedTimeOUT_inFlash -- value of TO defined using MQTT by user, overides inCode value [minutes]
          */
 
-        int inCodeVal  =0;
+        int tempVal_inFlash  = 0;
         inCodeTO = def_val; //[min]
 
-        if(updatedTimeOUT_inFlash.getValue(updatedTO) != true) { // not able to read
+        if(updatedTimeOUT_inFlash.getValue(updatedTO_inFlash) != true) { // not able to read
                 updatedTimeOUT_inFlash.setValue(0);
         }
 
-        if(endTimeOUT_inFlash.getValue(savedTO) != true) { // not able to read
+        if(endTimeOUT_inFlash.getValue(endTO_inFlash) != true) { // not able to read
                 endTimeOUT_inFlash.setValue(0);
         }
 
-        if(inCodeTimeOUT_inFlash.getValue(inCodeVal) != true) {
+        if(inCodeTimeOUT_inFlash.getValue(tempVal_inFlash) != true) {
                 inCodeTimeOUT_inFlash.setValue(0);
         }
         else{
-                if (inCodeVal != inCodeTO) {
+                if (tempVal_inFlash != inCodeTO) {
                         inCodeTimeOUT_inFlash.setValue(inCodeTO);
                 }
+        }
+
+        if (updatedTO_inFlash != 0) {
+                _calc_TO = updatedTO_inFlash;
+        }
+        else {
+                _calc_TO = inCodeTO;
         }
 }
 bool timeOUT::looper(){
         if (_calc_endTO >now()) {
                 return 1;
         }
-        else if  (_calc_endTO <= now() && _inTO == true) {
-                switchOFF();
-                return 0;
-        }
-        else{
+        else {
+                if (_inTO == true) {
+                        switchOFF();
+                }
                 return 0;
         }
 }
 bool timeOUT::begin(bool newReboot){   // NewReboot come to not case of sporadic reboot
+
         // ~~~~~~~~ Check if stored end value stil valid ~~~~~~~~~~~~~~
-        if (savedTO > now()) {                 // get saved value- still have to go
-                _calc_endTO=savedTO;           //clock time to stop
+        if (endTO_inFlash > now()) {                 // get saved value- still have to go
+                _calc_endTO = endTO_inFlash;           //clock time to stop
                 switchON();
                 return 1;
         }
-        else if (savedTO >0 && savedTO <=now()) {          // saved but time passed
+        else if (endTO_inFlash >0 && endTO_inFlash <=now()) {          // saved but time passed
                 switchOFF();
                 return 0;
         }
         // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         /*
            case below is the main issue: if upon new reboot, after a successfull
-           ending of last timeOut ( savedTO==0 ), how to consider a new
+           ending of last timeOut ( endTO_inFlash==0 ), how to consider a new
            Reboot ? if newReboot == true, means that it will start over
            as a new Timeout Task.
          */
 
         // ~~~~~~~~~ Case of fresh Start - not a quick boot ~~~~~~~~~~~~~~~~
-        else if (savedTO == 0 && newReboot == true) {           // fresh start
-                if (inCodeTO != 0) {                 // Normal boot with inCode Timeout
-                        setNewTimeout(inCodeTO);
+        else if (endTO_inFlash == 0 && newReboot == true) {           // fresh start
+                if (_calc_TO != 0) {
+                        setNewTimeout(_calc_TO);
                         return 1;
                 }
                 else {
@@ -685,7 +692,7 @@ bool timeOUT::begin(bool newReboot){   // NewReboot come to not case of sporadic
 }
 int timeOUT::remain(){
         if (_inTO == true) {
-                return _calc_endTO-now();
+                return _calc_endTO-now(); //sec
         }
         else {
                 return 0;
@@ -693,17 +700,17 @@ int timeOUT::remain(){
 }
 void timeOUT::setNewTimeout(int to, bool mins){
         if (mins==true) {
-                _calc_endTO=now()+to*60; // given in mintes
+                _calc_endTO=now()+to*60; // when given in mintes
         }
         else{
                 _calc_endTO=now()+to;
 
         }
-        endTimeOUT_inFlash.setValue(_calc_endTO);
+        endTimeOUT_inFlash.setValue(_calc_endTO); // store end_to to flash
         switchON();
 }
 void timeOUT::restart_to(){
-        setNewTimeout(inCodeTO);
+        setNewTimeout(_calc_TO);
 }
 void timeOUT::updateTOinflash(int TO){
         updatedTimeOUT_inFlash.setValue(TO);
