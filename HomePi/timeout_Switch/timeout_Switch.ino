@@ -11,19 +11,20 @@
 #include <TimeLib.h>
 
 // ********** Sketch Services  ***********
-#define VER              "Sonoff_2.1"
-#define USE_INPUTS       true
-#define STATE_AT_BOOT    false // On or OFF at boot (Usually when using inputs, at boot/PowerOn - state should be off
+#define VER              "Sonoff_2.2"
+#define USE_INPUTS       false
+#define STATE_AT_BOOT    true // On or OFF at boot (Usually when using inputs, at boot/PowerOn - state should be off
 #define USE_DAILY_TO     true
 #define IS_SONOFF        true
 
 // ********** TimeOut Time vars  ***********
 #define NUM_SWITCHES     1
 #define TIMEOUT_SW0      2*60 // mins for SW0
-#define TIMEOUT_SW1      3*60 // mins
+#define TIMEOUT_SW1      2*60 // mins
+int TIMEOUTS[2] = {TIMEOUT_SW0,TIMEOUT_SW1};
 // ********** myIOT Class ***********
 //~~~~~ Services ~~~~~~~~~~~
-#define USE_SERIAL       true
+#define USE_SERIAL       false
 #define USE_WDT          true
 #define USE_OTA          true
 #define USE_RESETKEEPER  true
@@ -31,9 +32,9 @@
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 // ~~~~~~~ MQTT Topics ~~~~~~
-#define DEVICE_TOPIC "SaloonST"
+#define DEVICE_TOPIC "EntranceDoor"
 #define MQTT_PREFIX  "myHome"
-#define MQTT_GROUP   "Lights"
+#define MQTT_GROUP   "OutdoorLights"
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 #define ADD_MQTT_FUNC addiotnalMQTT
@@ -43,7 +44,6 @@ myIOT iot(DEVICE_TOPIC);
 
 
 // ~~~~~~~ TimeOuts class ~~~~~~~~~
-int TIMEOUTS[2] = {TIMEOUT_SW0,TIMEOUT_SW1};
 timeOUT timeOut_SW0("SW0",TIMEOUTS[0]);
 #if NUM_SWITCHES == 2
 timeOUT timeOut_SW1("SW1",TIMEOUTS[1]);
@@ -52,6 +52,8 @@ timeOUT *TO[]={&timeOut_SW0,&timeOut_SW1};
 #if NUM_SWITCHES == 1
 timeOUT *TO[]={&timeOut_SW0};
 #endif
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 
 // ~~~~~~~~~ Use Daily Clock ~~~~
 #if USE_DAILY_TO
@@ -68,8 +70,8 @@ struct dTO {
         bool onNow;
 };
 dTO defaultVals = {{0,0,0},{0,0,0},0,0};
-dTO dailyTO_0   = {{17,0,0},{6,00,0},1,0};
-dTO dailyTO_1   = {{20,0,0},{22,0,0},1,0};
+dTO dailyTO_0   = {{20,0,0},{2,0,0},1,0};
+dTO dailyTO_1   = {{21,0,0},{23,0,0},1,0};
 dTO *dailyTO[]  = {&dailyTO_0,&dailyTO_1};
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -222,7 +224,7 @@ void recoverReset(){
         if(rebootState != 2) { // before getting online/offline MQTT state
                 checkrebootState = false;
                 for (int i=0; i<NUM_SWITCHES; i++) {
-                        if (rebootState == 0) { //} || STATE_AT_BOOT == true) {  // PowerOn - not a quickReboot
+                        if (rebootState == 0 || STATE_AT_BOOT == true) {  // PowerOn - not a quickReboot
                                 TO[i]->restart_to();
                         }
                         else {
@@ -237,15 +239,15 @@ void timeOutLoop(byte i){
         char msg_t[50], msg[50];
 
         if(iot.mqtt_detect_reset != 2) {
-                        swState[i] = TO[i]->looper();
-                        if (swState[i]!=last_swState[i]) { // change state (ON <-->OFF)
-                                switchIt("TimeOut",i,swState[i]);
-                                if (IS_SONOFF) {
-                                        digitalWrite(LEDpin,!swState[i]);
-                                }
+                swState[i] = TO[i]->looper();
+                if (swState[i]!=last_swState[i]) {         // change state (ON <-->OFF)
+                        switchIt("TimeOut",i,swState[i]);
+                        if (IS_SONOFF) {
+                                digitalWrite(LEDpin,!swState[i]);
                         }
-                        last_swState[i] = swState[i];
                 }
+                last_swState[i] = swState[i];
+        }
 }
 void daily_timeouts_looper(dTO &dailyTO, byte i=0){
         char msg [50], msg2[50];
@@ -263,16 +265,12 @@ void daily_timeouts_looper(dTO &dailyTO, byte i=0){
                         }
 
                         TO[i]->setNewTimeout(total_time, false);
-                        // TO[i]->convert_epoch2clock(now()+total_time,now(), msg2, msg);
-                        // sprintf(msg, "%s: Switch[#%d] [On] Duration[%s]", clockAlias,i,msg2);
-                        // iot.pub_msg(msg);
                         dailyTO.onNow = true;
                 }
         }
         else if (hour(t) == dailyTO.off[0] && minute(t) == dailyTO.off[1] && second(t) == dailyTO.off[2] && digitalRead(relays[i]) == RelayOn) {
                 TO[i]->endNow();
-                // sprintf(msg, "Clock: Switch[#%d] [Off]", i);
-                // iot.pub_msg(msg);
+
                 dailyTO.onNow = false;
         }
 }

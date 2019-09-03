@@ -664,10 +664,12 @@ bool timeOUT::begin(bool newReboot){   // NewReboot come to not case of sporadic
         if (endTO_inFlash > now()) {                 // get saved value- still have to go
                 _calc_endTO = endTO_inFlash;           //clock time to stop
                 switchON();
+                Serial.println("A");
                 return 1;
         }
         else if (endTO_inFlash >0 && endTO_inFlash <=now()) {          // saved but time passed
                 switchOFF();
+                Serial.println("B");
                 return 0;
         }
         // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -682,10 +684,12 @@ bool timeOUT::begin(bool newReboot){   // NewReboot come to not case of sporadic
         else if (endTO_inFlash == 0 && newReboot == true) {           // fresh start
                 if (_calc_TO != 0) {
                         setNewTimeout(_calc_TO);
+                        Serial.println("C");
                         return 1;
                 }
                 else {
                         _calc_endTO = 0;
+                        Serial.println("D");
                         return 0;
                 }
         }
@@ -708,8 +712,10 @@ void timeOUT::setNewTimeout(int to, bool mins){
         }
         endTimeOUT_inFlash.setValue(_calc_endTO); // store end_to to flash
         switchON();
+        Serial.println("F");
 }
 void timeOUT::restart_to(){
+  Serial.println("E");
         setNewTimeout(_calc_TO);
 }
 void timeOUT::updateTOinflash(int TO){
