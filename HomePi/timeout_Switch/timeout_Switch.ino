@@ -31,7 +31,7 @@
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 // ~~~~~~~ MQTT Topics ~~~~~~
-#define DEVICE_TOPIC "test"
+#define DEVICE_TOPIC "SaloonST"
 #define MQTT_PREFIX  "myHome"
 #define MQTT_GROUP   "Lights"
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
