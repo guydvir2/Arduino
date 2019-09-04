@@ -6,7 +6,7 @@
 // ********** Sketch Services  ***********
 #define VER              "Wemos.3.4"
 #define USE_INPUTS       false
-#define STATE_AT_BOOT    false
+#define STATE_AT_BOOT    true
 #define USE_DAILY_TO     true
 #define IS_SONOFF        true
 #define USE_IR_REMOTE    true
