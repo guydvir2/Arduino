@@ -664,12 +664,10 @@ bool timeOUT::begin(bool newReboot){   // NewReboot come to not case of sporadic
         if (endTO_inFlash > now()) {                 // get saved value- still have to go
                 _calc_endTO = endTO_inFlash;           //clock time to stop
                 switchON();
-                Serial.println("A");
                 return 1;
         }
         else if (endTO_inFlash >0 && endTO_inFlash <=now()) {          // saved but time passed
                 switchOFF();
-                Serial.println("B");
                 return 0;
         }
         // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -684,14 +682,15 @@ bool timeOUT::begin(bool newReboot){   // NewReboot come to not case of sporadic
         else if (endTO_inFlash == 0 && newReboot == true) {           // fresh start
                 if (_calc_TO != 0) {
                         setNewTimeout(_calc_TO);
-                        Serial.println("C");
                         return 1;
                 }
                 else {
                         _calc_endTO = 0;
-                        Serial.println("D");
                         return 0;
                 }
+        }
+        else if (endTO_inFlash == 0) {          // saved but time passed
+                return 0;
         }
 }
 int timeOUT::remain(){
@@ -712,10 +711,8 @@ void timeOUT::setNewTimeout(int to, bool mins){
         }
         endTimeOUT_inFlash.setValue(_calc_endTO); // store end_to to flash
         switchON();
-        Serial.println("F");
 }
 void timeOUT::restart_to(){
-  Serial.println("E");
         setNewTimeout(_calc_TO);
 }
 void timeOUT::updateTOinflash(int TO){
@@ -759,20 +756,6 @@ void timeOUT::convert_epoch2clock(long t1, long t2, char* time_str, char* days_s
         sprintf(days_str, "%02d days", days);
         sprintf(time_str, "%02d:%02d:%02d", hours, minutes, seconds);
 }
-// void timeOUT::addTime(int addTime, bool mins){
-//   if (mins==true) {
-//     if (_calc_endTO >0){
-//           _calc_endTO += addTime*60; // given in mintes
-//           setNewTimeout()
-//   }
-// }
-//   else{
-//           _calc_endTO=now()+to;
-//
-//   }
-//
-// }
-
 
 myTelegram::myTelegram(char* Bot, char* chatID, char* ssid, char* password) : bot (Bot, client)
 {

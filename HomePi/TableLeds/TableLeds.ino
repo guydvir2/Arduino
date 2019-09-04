@@ -4,7 +4,7 @@
 #include <TimeLib.h>
 
 // ********** Sketch Services  ***********
-#define VER              "Wemos_1.8"
+#define VER              "Wemos_1.9"
 #define USE_INPUTS       true
 #define STATE_AT_BOOT    false // On or OFF at boot (Usually when using inputs, at boot/PowerOn - state should be off
 #define USE_DAILY_TO     true
@@ -12,7 +12,7 @@
 
 // ********** TimeOut Time vars  ***********
 #define NUM_SWITCHES     1
-#define TIMEOUT_SW0      4*60 // mins for SW0
+#define TIMEOUT_SW0      2*60 // mins for SW0
 #define TIMEOUT_SW1      3*60 // mins
 int TIMEOUTS[2]={TIMEOUT_SW0,TIMEOUT_SW1};
 // ********** myIOT Class ***********
@@ -63,7 +63,7 @@ struct dTO {
         bool onNow;
 };
 dTO defaultVals = {{0,0,0},{0,0,0},0,0};
-dTO dailyTO_0   = {{16,0,0},{0,30,0},1,0};
+dTO dailyTO_0   = {{16,0,0},{8,0,0},1,0};
 dTO dailyTO_1   = {{20,0,0},{22,0,0},0,0};
 dTO *dailyTO[]  = {&dailyTO_0,&dailyTO_1};
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -71,7 +71,9 @@ dTO *dailyTO[]  = {&dailyTO_0,&dailyTO_1};
 
 // ~~~~ HW Pins and Statdes ~~~~
 #define RELAY1          D2
+#define RELAY2          D3
 #define INPUT1          D1
+#define INPUT2          D4
 
 #define LEDpin          13
 byte relays[]  = {RELAY1, RELAY2};
@@ -79,9 +81,9 @@ byte inputs[]  = {INPUT1, INPUT2};
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 // ~~~~ ResetKeeper Vars ~~~~~~~
-bool rebootState        = false;
+int rebootState        = 0;
 bool checkrebootState   = true;
-bool boot_overide     = true;
+bool boot_overide       = true;
 
 // ~~~~~~~~ state Vars ~~~~~~~~
 #define RelayOn          HIGH
@@ -206,11 +208,13 @@ void recoverReset(){
         if(rebootState != 2) { // before getting online/offline MQTT state
                 checkrebootState = false;
                 for (int i=0; i<NUM_SWITCHES; i++) {
-                        if (rebootState == 0 || STATE_AT_BOOT == true) {  // PowerOn - not a quickReboot
+                        if (rebootState == 0 ) { //}|| ) {  // PowerOn - not a quickReboot
                                 TO[i]->restart_to();
                         }
-                        else {
-                                TO[i]->begin(false); // prevent quick boot to restart after succsefull end
+                        else { // prevent quick boot to restart after succsefull end
+                                if (TO[i]->begin(false) == 0) { // if STATE_AT_BOOT == true turn off if not needed
+                                        digitalWrite(relays[i],LOW);
+                                }
                                 iot.pub_err("--> Quick-Reset");
                         }
                 }

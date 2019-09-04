@@ -5,20 +5,20 @@
 
 // ********** Sketch Services  ***********
 #define VER              "Wemos.3.4"
-#define USE_INPUTS       false
-#define STATE_AT_BOOT    true
+#define USE_INPUTS       true
+#define STATE_AT_BOOT    false
 #define USE_DAILY_TO     true
 #define IS_SONOFF        true
 #define USE_IR_REMOTE    true
 
 // ********** TimeOut Time vars  ***********
 #define NUM_SWITCHES     1
-#define TIMEOUT_SW0      4*60 // mins for SW0
+#define TIMEOUT_SW0      3*60 // mins for SW0
 #define TIMEOUT_SW1      3*60 // mins
 int TIMEOUTS[2]={TIMEOUT_SW0,TIMEOUT_SW1};
 // ********** myIOT Class ***********
 //~~~~~ Services ~~~~~~~~~~~
-#define USE_SERIAL       true
+#define USE_SERIAL       false
 #define USE_WDT          true
 #define USE_OTA          true
 #define USE_RESETKEEPER  true
@@ -26,7 +26,7 @@ int TIMEOUTS[2]={TIMEOUT_SW0,TIMEOUT_SW1};
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 // ~~~~~~~ MQTT Topics ~~~~~~
-#define DEVICE_TOPIC "KitchenLEDs2"
+#define DEVICE_TOPIC "KitchenLEDs"
 #define MQTT_PREFIX  "myHome"
 #define MQTT_GROUP   "LEDStrips"
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -82,9 +82,9 @@ byte inputs[]  = {INPUT1, INPUT2};
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 // ~~~~ ResetKeeper Vars ~~~~~~~
-int  rebootState        = 0;
+int rebootState        = 0;
 bool checkrebootState   = true;
-bool boot_overide     = true;
+bool boot_overide       = true;
 
 // ~~~~~~~~ state Vars ~~~~~~~~
 #define RelayOn          HIGH
@@ -265,12 +265,9 @@ void checkSwitch_Pressed (byte sw, bool momentary=true){
                         if (digitalRead(inputs[sw]) !=inputs_lastState[sw]) {
                                 inputs_lastState[sw] = digitalRead(inputs[sw]);
                                 if (digitalRead(inputs[sw]) == SwitchOn) {
-
                                         TO[sw]->restart_to();
-
                                 }
                                 else{
-
                                         TO[sw]->endNow();
                                 }
                         }
@@ -334,16 +331,13 @@ void recoverReset(){
         if(rebootState != 2) { // before getting online/offline MQTT state
                 checkrebootState = false;
                 for (int i=0; i<NUM_SWITCHES; i++) {
-                        if (rebootState == 0 ){ //}|| STATE_AT_BOOT == true) {  // PowerOn - not a quickReboot
-                          Serial.println("AA");
+                        if (rebootState == 0 ) { //}|| ) {  // PowerOn - not a quickReboot
                                 TO[i]->restart_to();
                         }
-                        // else if (rebootState == 1 &&)
-                        else {
-                          Serial.println("AB: ");
-                          Serial.println(rebootState);
-
-                                TO[i]->begin(false); // prevent quick boot to restart after succsefull end
+                        else { // prevent quick boot to restart after succsefull end
+                                if (TO[i]->begin(false) == 0) { // if STATE_AT_BOOT == true turn off if not needed
+                                        digitalWrite(relays[i],LOW);
+                                }
                                 iot.pub_err("--> Quick-Reset");
                         }
                 }
