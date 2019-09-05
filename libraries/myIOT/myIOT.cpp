@@ -220,7 +220,6 @@ void myIOT::startMQTT() {
         createTopics();
         // Select MQTT server
         if (Ping.ping(mqtt_server)) {
-                // mqttClient.setServer(mqtt_server, 8883);
                 mqttClient.setServer(mqtt_server, 1883);
                 stat = true;
                 alternativeMQTTserver  =false;

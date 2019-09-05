@@ -9,22 +9,23 @@
 #include <myJSON.h>
 #include <Arduino.h>
 #include <TimeLib.h>
+#include <EEPROM.h>
 
 // ********** Sketch Services  ***********
-#define VER              "Sonoff_2.3"
+#define VER              "Sonoff_3.0"
 #define USE_INPUTS       true
 #define STATE_AT_BOOT    false // On or OFF at boot (Usually when using inputs, at boot/PowerOn - state should be off
 #define USE_DAILY_TO     true
 #define IS_SONOFF        true
-
+#define HARD_REBOOT      true
 // ********** TimeOut Time vars  ***********
 #define NUM_SWITCHES     1
 #define TIMEOUT_SW0      3*60 // mins for SW0
 #define TIMEOUT_SW1      2*60 // mins
-int TIMEOUTS[2] = {TIMEOUT_SW0,TIMEOUT_SW1};
+int TIMEOUTS[2]       = {TIMEOUT_SW0,TIMEOUT_SW1};
 // ********** myIOT Class ***********
 //~~~~~ Services ~~~~~~~~~~~
-#define USE_SERIAL       false
+#define USE_SERIAL       true
 #define USE_WDT          true
 #define USE_OTA          true
 #define USE_RESETKEEPER  true
@@ -32,7 +33,7 @@ int TIMEOUTS[2] = {TIMEOUT_SW0,TIMEOUT_SW1};
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 // ~~~~~~~ MQTT Topics ~~~~~~
-#define DEVICE_TOPIC "Stove"
+#define DEVICE_TOPIC "Stove2"
 #define MQTT_PREFIX  "myHome"
 #define MQTT_GROUP   "Lights"
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -75,6 +76,12 @@ dTO dailyTO_1   = {{20,30,0},{23,0,0},1,0};
 dTO *dailyTO[]  = {&dailyTO_0,&dailyTO_1};
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+// ~~~~~ Use Reset Counter for hardReboot ~~~~
+#if HARD_REBOOT
+myJSON hardReboot("HbootCounter.json", true);
+#endif
+char *hBoot_key     = "hBoot_couter";
+bool on_using_hBoot = false;
 
 // ~~~~ HW Pins and Statdes ~~~~
 #if IS_SONOFF
@@ -97,7 +104,7 @@ byte inputs[]  = {INPUT1, INPUT2};
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 // ~~~~ ResetKeeper Vars ~~~~~~~
-int rebootState        = 0;
+int rebootState         = 0;
 bool checkrebootState   = true;
 bool boot_overide       = true;
 
@@ -105,8 +112,8 @@ bool boot_overide       = true;
 #define RelayOn          HIGH
 #define SwitchOn         LOW
 
-bool swState [NUM_SWITCHES];
-bool last_swState [NUM_SWITCHES];
+bool swState[NUM_SWITCHES];
+bool last_swState[NUM_SWITCHES];
 bool inputs_lastState[NUM_SWITCHES];
 //####################################################
 
@@ -141,8 +148,8 @@ void checkSwitch_Pressed (byte sw, bool momentary=true){
         if (momentary) {
                 if (digitalRead(inputs[sw])==LOW) {
                         delay(50);
-                        if (digitalRead(inputs[sw])==LOW) {
-                                if (digitalRead(relays[sw])==RelayOn) {
+                        if (digitalRead(inputs[sw]) == LOW) {
+                                if (digitalRead(relays[sw]) == RelayOn) {
                                         TO[sw]->endNow();
                                 }
                                 else {
@@ -176,7 +183,7 @@ void startIOTservices(){
         iot.resetFailNTP   = USE_FAILNTP;
         strcpy(iot.prefixTopic, MQTT_PREFIX);
         strcpy(iot.addGroupTopic, MQTT_GROUP);
-        iot.start_services(ADD_MQTT_FUNC);
+        iot.start_services(ADD_MQTT_FUNC);//,"GuyDvir","guyd5161");
 }
 void startGPIOs() {
         for (int i = 0; i < NUM_SWITCHES; i++) {
@@ -194,14 +201,49 @@ void startGPIOs() {
                 pinMode(LEDpin, OUTPUT);
         }
 }
+bool check_hardReboot(byte i, int threshold = 2){
+        byte retVal = EEPROM.read(i);
+      
+
+        // if ()
+        //
+        // if (hardReboot.file_exists()) {
+        //         if(hardReboot.getValue(hBoot_key,retVal)) { // succ to get value
+        //                 if (retVal >=threshold) {
+        //                         hardReboot.setValue(hBoot_key,0);
+        //                         Serial.println("hardReboot");
+        //                         return true;
+        //                 }
+        //                 else{
+        //                         retVal +=1;
+        //                         Serial.println(retVal);
+        //                         hardReboot.setValue(hBoot_key,retVal);
+        //                         return false;
+        //                 }
+        //         }
+        //         else{
+        //                 return false;
+        //         }
+        // }
+        // else{ // file not exist create NULL value
+        //         hardReboot.setValue(hBoot_key,1);
+        //         Serial.println("new");
+        //
+        //         return false;
+        // }
+
+}
 void quickPwrON(){
         /*
            power on before iot starts,
            using the fact that endTimeOUT_inFlash contains value
            other than 0
          */
+
+        on_using_hBoot = check_hardReboot(0);
+
         for(int i=0; i<NUM_SWITCHES; i++) {
-                if (TO[i]->endTO_inFlash || STATE_AT_BOOT ) {
+                if (TO[i]->endTO_inFlash || STATE_AT_BOOT || on_using_hBoot) {
                         digitalWrite(relays[i], HIGH);
                 }
                 else{
@@ -224,7 +266,7 @@ void recoverReset(){
         if(rebootState != 2) { // before getting online/offline MQTT state
                 checkrebootState = false;
                 for (int i=0; i<NUM_SWITCHES; i++) {
-                        if (rebootState == 0 ) { //}|| ) {  // PowerOn - not a quickReboot
+                        if (rebootState == 0 || on_using_hBoot ) { //}|| ) {  // PowerOn - not a quickReboot
                                 TO[i]->restart_to();
                         }
                         else { // prevent quick boot to restart after succsefull end
@@ -341,6 +383,7 @@ void store_dailyTO_inFlash(dTO &dailyTO, int x){
                 }
         }
 }
+
 void addiotnalMQTT(char incoming_msg[50]) {
         char msg[150];
         char msg2[20];
@@ -484,13 +527,30 @@ void addiotnalMQTT(char incoming_msg[50]) {
 }
 
 void setup() {
-        startGPIOs();
-        quickPwrON();
-        startIOTservices();
+        Serial.begin(9600);
+        check_hardReboot(0);
+        // long boot_mil = millis();
+        // startGPIOs();
+        // quickPwrON();
+        // startIOTservices();
+        //
+        // for (int i=0; i<NUM_SWITCHES; i++) {
+        //         check_dailyTO_inFlash(*dailyTO[i], i);
+        // }
 
-        for (int i=0; i<NUM_SWITCHES; i++) {
-                check_dailyTO_inFlash(*dailyTO[i], i);
-        }
+
+        // int a = millis()-boot_mil;
+        // Serial.print("This is EEPROM Value: ");
+        // Serial.println(EEPROM.read(0));
+        // if (a < 2000){
+        //   delay(2000-a);
+        //   Serial.print("Delayed: ");
+        //   Serial.print(a);
+        //   Serial.println("ms");
+        // }
+        // hardReboot.setValue(hBoot_key,0);
+
+
 }
 void loop() {
         iot.looper();
