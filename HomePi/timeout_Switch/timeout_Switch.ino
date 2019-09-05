@@ -77,10 +77,10 @@ dTO *dailyTO[]  = {&dailyTO_0,&dailyTO_1};
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 // ~~~~~ Use Reset Counter for hardReboot ~~~~
-#if HARD_REBOOT
-myJSON hardReboot("HbootCounter.json", true);
-#endif
-char *hBoot_key     = "hBoot_couter";
+// #if HARD_REBOOT
+// myJSON hardReboot("HbootCounter.json", true);
+// #endif
+// char *hBoot_key     = "hBoot_couter";
 bool on_using_hBoot = false;
 
 // ~~~~ HW Pins and Statdes ~~~~
@@ -201,36 +201,51 @@ void startGPIOs() {
                 pinMode(LEDpin, OUTPUT);
         }
 }
-bool check_hardReboot(byte i, int threshold = 2){
-        byte retVal = EEPROM.read(i);
-      
+bool check_hardReboot(byte i=0, byte threshold = 2){
+        byte retVal        = EEPROM.read(3*i);
+        byte write_counter = EEPROM.read(3*i+1);
+        bye cell_locate    = EEPROM.read(3*i+2);
 
-        // if ()
-        //
-        // if (hardReboot.file_exists()) {
-        //         if(hardReboot.getValue(hBoot_key,retVal)) { // succ to get value
-        //                 if (retVal >=threshold) {
-        //                         hardReboot.setValue(hBoot_key,0);
-        //                         Serial.println("hardReboot");
-        //                         return true;
-        //                 }
-        //                 else{
-        //                         retVal +=1;
-        //                         Serial.println(retVal);
-        //                         hardReboot.setValue(hBoot_key,retVal);
-        //                         return false;
-        //                 }
-        //         }
-        //         else{
-        //                 return false;
-        //         }
-        // }
-        // else{ // file not exist create NULL value
-        //         hardReboot.setValue(hBoot_key,1);
-        //         Serial.println("new");
-        //
-        //         return false;
-        // }
+        byte value_cell = 3*i;
+        byte counter_cell = value_cell + 1;
+
+        if (write_counter > 30){
+
+        }
+
+
+
+        if (retVal < threshold) {
+                EEPROM.write(value_cell,retVal+1);
+                EEPROM.write(counter_cell,write_counter+1);
+                EEPROM.commit();
+                int t = EEPROM.read(value_cell);
+                Serial.print("ValueCell: ");
+                Serial.println(t);
+                t = EEPROM.read(counter_cell);
+                Serial.print("CounterCell: ");
+                Serial.println(t);
+                delay(1000);
+                return 0;
+        }
+        else {
+                EEPROM.write(value_cell,0);
+                EEPROM.write(counter_cell,write_counter+1);
+                Serial.println("RESET");
+                delay(1000);
+                EEPROM.commit();
+                int t = EEPROM.read(value_cell);
+                Serial.print("ValueCell: ");
+                Serial.println(t);
+                t = EEPROM.read(counter_cell);
+                Serial.print("CounterCell: ");
+                Serial.println(t);
+                delay(1000);
+
+                return 1;
+
+        }
+
 
 }
 void quickPwrON(){
@@ -528,29 +543,31 @@ void addiotnalMQTT(char incoming_msg[50]) {
 
 void setup() {
         Serial.begin(9600);
-        check_hardReboot(0);
-        // long boot_mil = millis();
-        // startGPIOs();
-        // quickPwrON();
-        // startIOTservices();
-        //
-        // for (int i=0; i<NUM_SWITCHES; i++) {
-        //         check_dailyTO_inFlash(*dailyTO[i], i);
-        // }
+        EEPROM.begin(1024);
+
+        long boot_mil = millis();
+        startGPIOs();
+        quickPwrON();
+        delay(1000);
+        startIOTservices();
+
+        for (int i=0; i<NUM_SWITCHES; i++) {
+                check_dailyTO_inFlash(*dailyTO[i], i);
+        }
 
 
-        // int a = millis()-boot_mil;
-        // Serial.print("This is EEPROM Value: ");
-        // Serial.println(EEPROM.read(0));
-        // if (a < 2000){
-        //   delay(2000-a);
-        //   Serial.print("Delayed: ");
-        //   Serial.print(a);
-        //   Serial.println("ms");
-        // }
-        // hardReboot.setValue(hBoot_key,0);
-
-
+        int a = millis()-boot_mil;
+        if (a < 2000) {
+                delay(2000-a);
+                Serial.print("Delayed: ");
+                Serial.print(a);
+                Serial.println("ms");
+        }
+        int retVal = EEPROM.read(0);
+        if (retVal != 0) {
+                EEPROM.write(0,0);
+                EEPROM.commit();
+        }
 }
 void loop() {
         iot.looper();
