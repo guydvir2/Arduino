@@ -1,11 +1,8 @@
-int sensorPin = D8;
+#include <EEPROM.h>
 
 void setup() {
-  pinMode(sensorPin, INPUT_PULLUP);
-  Serial.begin(9600);
 }
 
 void loop() {
-Serial.println(digitalRead(sensorPin));
-delay(500);
+
 }

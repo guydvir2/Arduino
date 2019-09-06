@@ -104,7 +104,7 @@ bool useOTA         = true;
 bool extDefine      = false; // must to set to true in order to use EXtMQTT
 bool useResetKeeper = false;
 bool resetFailNTP   = false;
-bool useTelegram    = true;
+bool useTelegram    = false;
 // ~~~~~~~~~~~~~~~~~~~~~~~~~
 char inline_param[6][20]; //values from user
 
@@ -115,7 +115,7 @@ char prefixTopic  [MaxTopicLength];
 char deviceTopic  [MaxTopicLength];
 char addGroupTopic[MaxTopicLength];
 
-const char *ver     = "iot_4.5";
+const char *ver     = "iot_4.6";
 char timeStamp[20];
 long updated_bootTime  = 0;
 int resetIntervals     = 10;
@@ -132,7 +132,7 @@ cb_func2 ext_telegram;
 const int clockUpdateInt        = 60 * 5;            // seconds to update NTP
 const int WIFItimeOut           = (1000 * 60) * 1/3;     // 20 sec try to connect WiFi
 const int OTA_upload_interval   = (1000 * 60) * 5;     // 5 minute to try OTA
-const long time2Reset_noNetwork = (1000 * 60) * 5;     // minutues pass without any network
+const long time2Reset_noNetwork = (1000 * 60) * 1;     // minutues pass without any network
 const int time2_tryReconnect    = (1000 * 60) * 3;     // time between reconnection retries
 volatile int wdtResetCounter    = 0;
 const int wdtMaxRetries         = 20;     //seconds to bITE

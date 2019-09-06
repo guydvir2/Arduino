@@ -77,12 +77,15 @@ dTO *dailyTO[]  = {&dailyTO_0,&dailyTO_1};
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 // ~~~~~ Use Reset Counter for hardReboot ~~~~
-// #if HARD_REBOOT
-// myJSON hardReboot("HbootCounter.json", true);
-// #endif
-// char *hBoot_key     = "hBoot_couter";
-bool on_using_hBoot = false;
-
+struct eeproms_storage {
+        byte jump;
+        byte val;
+        byte val_cell;
+        byte wcount;
+        byte wcount_cell;
+        bool hBoot;
+};
+eeproms_storage hReset_eeprom;
 // ~~~~ HW Pins and Statdes ~~~~
 #if IS_SONOFF
 #define RELAY1          12
@@ -201,50 +204,43 @@ void startGPIOs() {
                 pinMode(LEDpin, OUTPUT);
         }
 }
-bool check_hardReboot(byte i=0, byte threshold = 2){
-        byte retVal        = EEPROM.read(3*i);
-        byte write_counter = EEPROM.read(3*i+1);
-        bye cell_locate    = EEPROM.read(3*i+2);
+void check_hardReboot(byte i=1, byte threshold = 2){
+        hReset_eeprom.jump = EEPROM.read(0);
 
-        byte value_cell = 3*i;
-        byte counter_cell = value_cell + 1;
+        hReset_eeprom.val_cell    = hReset_eeprom.jump + i;
+        hReset_eeprom.wcount_cell = hReset_eeprom.val_cell + 1;
 
-        if (write_counter > 30){
+        hReset_eeprom.val = EEPROM.read(hReset_eeprom.val_cell);
+        hReset_eeprom.wcount = EEPROM.read(hReset_eeprom.wcount_cell);
 
-        }
+        Serial.print("jump_value: ");
+        Serial.println(hReset_eeprom.jump);
 
+        // if (hReset_eeprom.wcount > 15) {
+        //         EEPROM.write(0, hReset_eeprom.jump + 2);
+        //         EEPROM.commit();
+        // }
 
-
-        if (retVal < threshold) {
-                EEPROM.write(value_cell,retVal+1);
-                EEPROM.write(counter_cell,write_counter+1);
+        if (hReset_eeprom.val < threshold) {
+                EEPROM.write(hReset_eeprom.val_cell,hReset_eeprom.val+1);
                 EEPROM.commit();
-                int t = EEPROM.read(value_cell);
-                Serial.print("ValueCell: ");
-                Serial.println(t);
-                t = EEPROM.read(counter_cell);
-                Serial.print("CounterCell: ");
-                Serial.println(t);
-                delay(1000);
-                return 0;
+                // EEPROM.write(hReset_eeprom.wcount_cell,hReset_eeprom.wcount+1);
+                // EEPROM.commit();
+                hReset_eeprom.hBoot = false;
+
         }
         else {
-                EEPROM.write(value_cell,0);
-                EEPROM.write(counter_cell,write_counter+1);
-                Serial.println("RESET");
-                delay(1000);
+                EEPROM.write(hReset_eeprom.val_cell,0);
                 EEPROM.commit();
-                int t = EEPROM.read(value_cell);
-                Serial.print("ValueCell: ");
-                Serial.println(t);
-                t = EEPROM.read(counter_cell);
-                Serial.print("CounterCell: ");
-                Serial.println(t);
-                delay(1000);
+                // EEPROM.write(hReset_eeprom.wcount_cell,hReset_eeprom.wcount+1);
+                // EEPROM.commit();
 
-                return 1;
-
+                Serial.println("RESET");
+                hReset_eeprom.hBoot = false;
         }
+
+
+
 
 
 }
@@ -255,10 +251,11 @@ void quickPwrON(){
            other than 0
          */
 
-        on_using_hBoot = check_hardReboot(0);
+        // on_using_hBoot = check_hardReboot(0);
+        check_hardReboot();
 
         for(int i=0; i<NUM_SWITCHES; i++) {
-                if (TO[i]->endTO_inFlash || STATE_AT_BOOT || on_using_hBoot) {
+                if (TO[i]->endTO_inFlash || STATE_AT_BOOT || hReset_eeprom.hBoot) {
                         digitalWrite(relays[i], HIGH);
                 }
                 else{
@@ -281,7 +278,7 @@ void recoverReset(){
         if(rebootState != 2) { // before getting online/offline MQTT state
                 checkrebootState = false;
                 for (int i=0; i<NUM_SWITCHES; i++) {
-                        if (rebootState == 0 || on_using_hBoot ) { //}|| ) {  // PowerOn - not a quickReboot
+                        if (rebootState == 0 || hReset_eeprom.hBoot ) { //}|| ) {  // PowerOn - not a quickReboot
                                 TO[i]->restart_to();
                         }
                         else { // prevent quick boot to restart after succsefull end
@@ -542,36 +539,51 @@ void addiotnalMQTT(char incoming_msg[50]) {
 }
 
 void setup() {
-        Serial.begin(9600);
+        // Serial.begin(9600);
         EEPROM.begin(1024);
-
+        hReset_eeprom.hBoot = false;
         long boot_mil = millis();
+
         startGPIOs();
         quickPwrON();
-        delay(1000);
         startIOTservices();
 
         for (int i=0; i<NUM_SWITCHES; i++) {
                 check_dailyTO_inFlash(*dailyTO[i], i);
         }
 
+        Serial.print("value is: ");
+        Serial.print(hReset_eeprom.val);
+        Serial.print(" at cell num: ");
+        Serial.println(hReset_eeprom.val_cell);
 
-        int a = millis()-boot_mil;
-        if (a < 2000) {
-                delay(2000-a);
-                Serial.print("Delayed: ");
-                Serial.print(a);
-                Serial.println("ms");
-        }
-        int retVal = EEPROM.read(0);
-        if (retVal != 0) {
-                EEPROM.write(0,0);
-                EEPROM.commit();
+        Serial.print("wearout is: ");
+        Serial.print(hReset_eeprom.wcount);
+        Serial.print(" at cell num: ");
+        Serial.println(hReset_eeprom.wcount_cell);
+
+
+
+
+
+        // int a = millis()-boot_mil;
+        // if (a < 2000) {
+        //         delay(2000-a);
+        //         Serial.print("Delayed: ");
+        //         Serial.print(a);
+        //         Serial.println("ms");
+        // }
+        // Serial.print("value is: ");
+        // Serial.println(hReset_eeprom.val);
+        if (hReset_eeprom.val != 0){
+          EEPROM.write(hReset_eeprom.val_cell,0);
+          EEPROM.write(hReset_eeprom.wcount_cell,hReset_eeprom.wcount + 1);
+          EEPROM.commit();
+          Serial.println("zeroing");
         }
 }
 void loop() {
         iot.looper();
-
 
         if (checkrebootState == true && USE_RESETKEEPER == true) {
                 recoverReset();

@@ -128,6 +128,7 @@ void myIOT::networkStatus() {
                 }
         }
         else {                                  // NO WIFI
+
                 if (noNetwork_Clock == 0) { // first time when NO NETWORK
                         noNetwork_Clock=millis();
                 }
