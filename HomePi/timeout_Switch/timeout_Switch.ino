@@ -575,11 +575,11 @@ void setup() {
         // }
         // Serial.print("value is: ");
         // Serial.println(hReset_eeprom.val);
-        if (hReset_eeprom.val != 0){
-          EEPROM.write(hReset_eeprom.val_cell,0);
-          EEPROM.write(hReset_eeprom.wcount_cell,hReset_eeprom.wcount + 1);
-          EEPROM.commit();
-          Serial.println("zeroing");
+        if (hReset_eeprom.val != 0) {
+                EEPROM.write(hReset_eeprom.val_cell,0);
+                EEPROM.write(hReset_eeprom.wcount_cell,hReset_eeprom.wcount + 1);
+                EEPROM.commit();
+                Serial.println("zeroing");
         }
 }
 void loop() {
