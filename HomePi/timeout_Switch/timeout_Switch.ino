@@ -22,10 +22,9 @@
 #define NUM_SWITCHES     1
 #define TIMEOUT_SW0      3*60 // mins for SW0
 #define TIMEOUT_SW1      2*60 // mins
-int TIMEOUTS[2]       = {TIMEOUT_SW0,TIMEOUT_SW1};
 // ********** myIOT Class ***********
 //~~~~~ Services ~~~~~~~~~~~
-#define USE_SERIAL       true
+#define USE_SERIAL       false
 #define USE_WDT          true
 #define USE_OTA          true
 #define USE_RESETKEEPER  true
@@ -33,7 +32,7 @@ int TIMEOUTS[2]       = {TIMEOUT_SW0,TIMEOUT_SW1};
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 // ~~~~~~~ MQTT Topics ~~~~~~
-#define DEVICE_TOPIC "Stove2"
+#define DEVICE_TOPIC "test"
 #define MQTT_PREFIX  "myHome"
 #define MQTT_GROUP   "Lights"
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -43,8 +42,8 @@ myIOT iot(DEVICE_TOPIC);
 // ***************************
 
 
-
 // ~~~~~~~ TimeOuts class ~~~~~~~~~
+int TIMEOUTS[2]  = {TIMEOUT_SW0,TIMEOUT_SW1};
 timeOUT timeOut_SW0("SW0",TIMEOUTS[0]);
 #if NUM_SWITCHES == 2
 timeOUT timeOut_SW1("SW1",TIMEOUTS[1]);
@@ -90,8 +89,8 @@ eeproms_storage hReset_eeprom;
 #if IS_SONOFF
 #define RELAY1          12
 #define RELAY2          5
-#define INPUT1          14
-#define INPUT2          0
+#define INPUT1          0
+#define INPUT2          14
 #endif
 
 #if !IS_SONOFF
@@ -213,8 +212,8 @@ void check_hardReboot(byte i=1, byte threshold = 2){
         hReset_eeprom.val = EEPROM.read(hReset_eeprom.val_cell);
         hReset_eeprom.wcount = EEPROM.read(hReset_eeprom.wcount_cell);
 
-        Serial.print("jump_value: ");
-        Serial.println(hReset_eeprom.jump);
+        // Serial.print("jump_value: ");
+        // Serial.println(hReset_eeprom.jump);
 
         // if (hReset_eeprom.wcount > 15) {
         //         EEPROM.write(0, hReset_eeprom.jump + 2);
@@ -227,22 +226,16 @@ void check_hardReboot(byte i=1, byte threshold = 2){
                 // EEPROM.write(hReset_eeprom.wcount_cell,hReset_eeprom.wcount+1);
                 // EEPROM.commit();
                 hReset_eeprom.hBoot = false;
-
         }
         else {
-                EEPROM.write(hReset_eeprom.val_cell,0);
-                EEPROM.commit();
+                // EEPROM.write(hReset_eeprom.val_cell,0);
+                // EEPROM.commit();
                 // EEPROM.write(hReset_eeprom.wcount_cell,hReset_eeprom.wcount+1);
                 // EEPROM.commit();
 
-                Serial.println("RESET");
-                hReset_eeprom.hBoot = false;
+                // Serial.println("RESET");
+                hReset_eeprom.hBoot = true;
         }
-
-
-
-
-
 }
 void quickPwrON(){
         /*
@@ -539,9 +532,7 @@ void addiotnalMQTT(char incoming_msg[50]) {
 }
 
 void setup() {
-        // Serial.begin(9600);
         EEPROM.begin(1024);
-        hReset_eeprom.hBoot = false;
         long boot_mil = millis();
 
         startGPIOs();
@@ -552,15 +543,15 @@ void setup() {
                 check_dailyTO_inFlash(*dailyTO[i], i);
         }
 
-        Serial.print("value is: ");
-        Serial.print(hReset_eeprom.val);
-        Serial.print(" at cell num: ");
-        Serial.println(hReset_eeprom.val_cell);
-
-        Serial.print("wearout is: ");
-        Serial.print(hReset_eeprom.wcount);
-        Serial.print(" at cell num: ");
-        Serial.println(hReset_eeprom.wcount_cell);
+        // Serial.print("value is: ");
+        // Serial.print(hReset_eeprom.val);
+        // Serial.print(" at cell num: ");
+        // Serial.println(hReset_eeprom.val_cell);
+        //
+        // Serial.print("wearout is: ");
+        // Serial.print(hReset_eeprom.wcount);
+        // Serial.print(" at cell num: ");
+        // Serial.println(hReset_eeprom.wcount_cell);
 
 
 
@@ -577,6 +568,7 @@ void setup() {
         // Serial.println(hReset_eeprom.val);
         if (hReset_eeprom.val != 0) {
                 EEPROM.write(hReset_eeprom.val_cell,0);
+                EEPROM.commit();
                 EEPROM.write(hReset_eeprom.wcount_cell,hReset_eeprom.wcount + 1);
                 EEPROM.commit();
                 Serial.println("zeroing");
