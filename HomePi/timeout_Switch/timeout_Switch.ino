@@ -13,7 +13,7 @@
 
 // ********** Sketch Services  ***********
 #define VER              "Sonoff_3.0"
-#define USE_INPUTS       true
+#define USE_INPUTS       false
 #define STATE_AT_BOOT    false // On or OFF at boot (Usually when using inputs, at boot/PowerOn - state should be off
 #define USE_DAILY_TO     true
 #define IS_SONOFF        true
@@ -32,9 +32,9 @@
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 // ~~~~~~~ MQTT Topics ~~~~~~
-#define DEVICE_TOPIC "test"
+#define DEVICE_TOPIC "PergolaBulbs"
 #define MQTT_PREFIX  "myHome"
-#define MQTT_GROUP   "Lights"
+#define MQTT_GROUP   "OutdoorLights"
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 #define ADD_MQTT_FUNC addiotnalMQTT
@@ -70,7 +70,7 @@ struct dTO {
         bool onNow;
 };
 dTO defaultVals = {{0,0,0},{0,0,0},0,0};
-dTO dailyTO_0   = {{19,0,0},{7,30,0},1,0};
+dTO dailyTO_0   = {{19,0,0},{6,30,0},1,0};
 dTO dailyTO_1   = {{20,30,0},{23,0,0},1,0};
 dTO *dailyTO[]  = {&dailyTO_0,&dailyTO_1};
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -245,7 +245,10 @@ void quickPwrON(){
          */
 
         // on_using_hBoot = check_hardReboot(0);
-        check_hardReboot();
+        hReset_eeprom.hBoot = false;
+        if (HARD_REBOOT) {
+                check_hardReboot();
+        }
 
         for(int i=0; i<NUM_SWITCHES; i++) {
                 if (TO[i]->endTO_inFlash || STATE_AT_BOOT || hReset_eeprom.hBoot) {
@@ -532,8 +535,10 @@ void addiotnalMQTT(char incoming_msg[50]) {
 }
 
 void setup() {
-        EEPROM.begin(1024);
-        long boot_mil = millis();
+        if (HARD_REBOOT) {
+                EEPROM.begin(1024);
+        }
+        // long boot_mil = millis();
 
         startGPIOs();
         quickPwrON();
@@ -566,12 +571,14 @@ void setup() {
         // }
         // Serial.print("value is: ");
         // Serial.println(hReset_eeprom.val);
-        if (hReset_eeprom.val != 0) {
-                EEPROM.write(hReset_eeprom.val_cell,0);
-                EEPROM.commit();
-                EEPROM.write(hReset_eeprom.wcount_cell,hReset_eeprom.wcount + 1);
-                EEPROM.commit();
-                Serial.println("zeroing");
+        if (HARD_REBOOT) {
+                if (hReset_eeprom.val != 0) {
+                        EEPROM.write(hReset_eeprom.val_cell,0);
+                        EEPROM.commit();
+                        EEPROM.write(hReset_eeprom.wcount_cell,hReset_eeprom.wcount + 1);
+                        EEPROM.commit();
+                        // Serial.println("zeroing");
+                }
         }
 }
 void loop() {
@@ -586,7 +593,7 @@ void loop() {
                         daily_timeouts_looper(*dailyTO[i],i);
                 }
                 if (USE_INPUTS == true) {
-                        checkSwitch_Pressed(i, false);
+                        checkSwitch_Pressed(i);
                 }
                 timeOutLoop(i);
         }
