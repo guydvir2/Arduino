@@ -24,7 +24,7 @@
 #define TIMEOUT_SW1      2*60 // mins
 // ********** myIOT Class ***********
 //~~~~~ Services ~~~~~~~~~~~
-#define USE_SERIAL       false
+#define USE_SERIAL       true
 #define USE_WDT          true
 #define USE_OTA          true
 #define USE_RESETKEEPER  true
@@ -535,18 +535,37 @@ void addiotnalMQTT(char incoming_msg[50]) {
 }
 
 void setup() {
+        // Serial.begin(9600);
+        // Serial.println();
         if (HARD_REBOOT) {
                 EEPROM.begin(1024);
         }
+        if (HARD_REBOOT) {
+                // if (hReset_eeprom.val != 0) {
+                // EEPROM.write(hReset_eeprom.val_cell,0);
+                // EEPROM.put(0,100000);
+                // EEPROM.commit();
+                // delay(50);
+                // Serial.print("value in flash: ");
+                // Serial.println(EEPROM.get(0));
+                // Serial.print("saved value: ");
+                // Serial.println()
+                // EEPROM.write(hReset_eeprom.wcount_cell,hReset_eeprom.wcount + 1);
+
+                // EEPROM.commit();
+                // Serial.println("zeroing");
+                // }
+        }
+
         // long boot_mil = millis();
 
-        startGPIOs();
-        quickPwrON();
-        startIOTservices();
-
-        for (int i=0; i<NUM_SWITCHES; i++) {
-                check_dailyTO_inFlash(*dailyTO[i], i);
-        }
+        // startGPIOs();
+        // quickPwrON();
+        // startIOTservices();
+        //
+        // for (int i=0; i<NUM_SWITCHES; i++) {
+        //         check_dailyTO_inFlash(*dailyTO[i], i);
+        // }
 
         // Serial.print("value is: ");
         // Serial.print(hReset_eeprom.val);
@@ -571,15 +590,15 @@ void setup() {
         // }
         // Serial.print("value is: ");
         // Serial.println(hReset_eeprom.val);
-        if (HARD_REBOOT) {
-                if (hReset_eeprom.val != 0) {
-                        EEPROM.write(hReset_eeprom.val_cell,0);
-                        EEPROM.commit();
-                        EEPROM.write(hReset_eeprom.wcount_cell,hReset_eeprom.wcount + 1);
-                        EEPROM.commit();
-                        // Serial.println("zeroing");
-                }
-        }
+        // if (HARD_REBOOT) {
+        //         if (hReset_eeprom.val != 0) {
+        //                 EEPROM.write(hReset_eeprom.val_cell,0);
+        //                 EEPROM.commit();
+        //                 EEPROM.write(hReset_eeprom.wcount_cell,hReset_eeprom.wcount + 1);
+        //                 EEPROM.commit();
+        //                 // Serial.println("zeroing");
+        //         }
+        // }
 }
 void loop() {
         iot.looper();
