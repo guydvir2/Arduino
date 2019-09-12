@@ -32,7 +32,7 @@
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 // ~~~~~~~ MQTT Topics ~~~~~~
-#define DEVICE_TOPIC "PergolaBulbs"
+#define DEVICE_TOPIC "test2"
 #define MQTT_PREFIX  "myHome"
 #define MQTT_GROUP   "OutdoorLights"
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -333,10 +333,16 @@ void check_dailyTO_inFlash(dTO &dailyTO, int x){
         if (dailyTO_inFlash.file_exists()) {
                 for(int m=0; m<sizeof(clock_fields)/sizeof(clock_fields[0]); m++) {
                         sprintf(temp,"%s_%d",clock_fields[m], x);
+                        Serial.println(temp);
+                        dailyTO_inFlash.printFile();
 
                         if (m == 0 || m == 1) { // clock fileds only
+                          // Serial.print("in flash:");
+
                                 for(int i=0; i<items_each_array[m]; i++) {
                                         dailyTO_inFlash.getArrayVal(temp,i,retVal);
+
+                                        // Serial.println(retVal);
                                         if (retVal !=-1 && retVal >=0 && retVal <=59) { //valid time
                                                 if ( m == 0) {
                                                         if (retVal !=dailyTO.on[i]) {
@@ -351,6 +357,7 @@ void check_dailyTO_inFlash(dTO &dailyTO, int x){
                                         }
                                         else {
                                                 dailyTO_inFlash.setArrayVal(temp,i,0);
+                                                Serial.println("A");
                                         }
                                 }
                         }
@@ -537,35 +544,35 @@ void addiotnalMQTT(char incoming_msg[50]) {
 void setup() {
         // Serial.begin(9600);
         // Serial.println();
-        if (HARD_REBOOT) {
-                EEPROM.begin(1024);
-        }
-        if (HARD_REBOOT) {
-                // if (hReset_eeprom.val != 0) {
-                // EEPROM.write(hReset_eeprom.val_cell,0);
-                // EEPROM.put(0,100000);
-                // EEPROM.commit();
-                // delay(50);
-                // Serial.print("value in flash: ");
-                // Serial.println(EEPROM.get(0));
-                // Serial.print("saved value: ");
-                // Serial.println()
-                // EEPROM.write(hReset_eeprom.wcount_cell,hReset_eeprom.wcount + 1);
-
-                // EEPROM.commit();
-                // Serial.println("zeroing");
-                // }
-        }
+        // if (HARD_REBOOT) {
+        //         EEPROM.begin(1024);
+        // }
+        // if (HARD_REBOOT) {
+        //         // if (hReset_eeprom.val != 0) {
+        //         // EEPROM.write(hReset_eeprom.val_cell,0);
+        //         // EEPROM.put(0,100000);
+        //         // EEPROM.commit();
+        //         // delay(50);
+        //         // Serial.print("value in flash: ");
+        //         // Serial.println(EEPROM.get(0));
+        //         // Serial.print("saved value: ");
+        //         // Serial.println()
+        //         // EEPROM.write(hReset_eeprom.wcount_cell,hReset_eeprom.wcount + 1);
+        //
+        //         // EEPROM.commit();
+        //         // Serial.println("zeroing");
+        //         // }
+        // }
 
         // long boot_mil = millis();
 
-        // startGPIOs();
-        // quickPwrON();
-        // startIOTservices();
-        //
-        // for (int i=0; i<NUM_SWITCHES; i++) {
-        //         check_dailyTO_inFlash(*dailyTO[i], i);
-        // }
+        startGPIOs();
+        quickPwrON();
+        startIOTservices();
+
+        for (int i=0; i<NUM_SWITCHES; i++) {
+                check_dailyTO_inFlash(*dailyTO[i], i);
+        }
 
         // Serial.print("value is: ");
         // Serial.print(hReset_eeprom.val);

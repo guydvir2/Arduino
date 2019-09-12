@@ -31,9 +31,9 @@ void setValue(const char *key, char *value);
 void setValue(const char *key, int value);
 void setValue(const char *key, long value);
 
-void updateArray(char* array_key, char *val);
-void updateArray(char* array_key, int val);
-void updateArray(char* array_key, long val);
+void add2Array(char* array_key, char *val);
+void add2Array(char* array_key, int val);
+void add2Array(char* array_key, long val);
 
 void setArrayVal(char* array_key, int i, char *val);
 void setArrayVal(char* array_key, int i, long val);

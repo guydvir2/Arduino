@@ -642,13 +642,9 @@ timeOUT::timeOUT(char* sw_num, int def_val)
 
         if (updatedTO_inFlash != 0) {
                 _calc_TO = updatedTO_inFlash;
-                Serial.print("update");
-                Serial.print(_calc_TO);
-
         }
         else {
                 _calc_TO = inCodeTO;
-                                Serial.print(_calc_TO);
         }
 }
 bool timeOUT::looper(){
