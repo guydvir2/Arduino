@@ -268,11 +268,30 @@ void myJSON::setArrayVal(char* array_key, int i, int val){
         myJSON::saveJSON2file(tempJDOC);
 }
 void myJSON::setArrayVal(char* array_key, int i, long val){
-        // StaticJsonDocument<DOC_SIZE> tempJDOC;
-        // myJSON::readJSON_file(tempJDOC);
-        //
-        // tempJDOC[array_key][i] = val;
-        // myJSON::saveJSON2file(tempJDOC);
+  StaticJsonDocument<DOC_SIZE> tempJDOC;
+  myJSON::readJSON_file(tempJDOC);
+
+  if (tempJDOC.containsKey(array_key)) {     // Key is alreay set
+          JsonVariant data_key = tempJDOC[array_key];
+          // if (data_key.size()==0) {
+          //         Serial.println("HAVEKEY_BUT ZERO");
+          //         data_key.add(0);
+          // }
+          if(data_key.size()<=i) {
+                  for(int a=data_key.size(); a<=i; a++) {
+                          data_key.add(0);
+                  }
+          }
+          data_key[i]=val;
+  }
+  else{                                     // Create Key
+          JsonArray array_data = tempJDOC.createNestedArray(array_key);
+          for(int a=0; a<=i; a++) {
+                  array_data.add(0);
+          }
+          array_data[i]=val;
+  }
+  myJSON::saveJSON2file(tempJDOC);
 }
 void myJSON::setArrayVal(char* array_key, int i, char *val){
         // StaticJsonDocument<DOC_SIZE> tempJDOC;
