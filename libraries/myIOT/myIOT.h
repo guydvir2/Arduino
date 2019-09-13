@@ -129,13 +129,13 @@ cb_func2 ext_telegram;
 
 
 // time interval parameters
-const int clockUpdateInt        = 60 * 5;            // seconds to update NTP
+const int clockUpdateInt        = 60 * 60 * 5;            // seconds to update NTP
 const int WIFItimeOut           = (1000 * 60) * 1/3;     // 20 sec try to connect WiFi
 const int OTA_upload_interval   = (1000 * 60) * 5;     // 5 minute to try OTA
 const long time2Reset_noNetwork = (1000 * 60) * 1;     // minutues pass without any network
 const int time2_tryReconnect    = (1000 * 60) * 3;     // time between reconnection retries
 volatile int wdtResetCounter    = 0;
-const int wdtMaxRetries         = 20;     //seconds to bITE
+const int wdtMaxRetries         = 30;     //seconds to bITE
 long noNetwork_Clock            = 0;     // clock
 long allowOTA_clock             = 0;     // clock
 long lastReconnectTry           = 0;

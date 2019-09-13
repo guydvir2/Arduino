@@ -12,7 +12,7 @@
 #include <EEPROM.h>
 
 // ********** Sketch Services  ***********
-#define VER              "Sonoff_3.1"
+#define VER              "Sonoff_3.2"
 #define USE_INPUTS       false
 #define STATE_AT_BOOT    false // On or OFF at boot (Usually when using inputs, at boot/PowerOn - state should be off
 #define USE_DAILY_TO     true
@@ -24,7 +24,7 @@
 #define TIMEOUT_SW1      2*60 // mins
 // ********** myIOT Class ***********
 //~~~~~ Services ~~~~~~~~~~~
-#define USE_SERIAL       true
+#define USE_SERIAL       false
 #define USE_WDT          true
 #define USE_OTA          true
 #define USE_RESETKEEPER  true
@@ -32,7 +32,7 @@
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 // ~~~~~~~ MQTT Topics ~~~~~~
-#define DEVICE_TOPIC "test2"
+#define DEVICE_TOPIC "Empy"
 #define MQTT_PREFIX  "myHome"
 #define MQTT_GROUP   "OutdoorLights"
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -71,8 +71,8 @@ struct dTO {
         bool useFlash;
 };
 dTO defaultVals = {{0,0,0},{0,0,59},0,0,0};
-dTO dailyTO_0   = {{19,0,0},{6,30,0},1,0,0};
-dTO dailyTO_1   = {{20,30,0},{23,0,0},1,0,0};
+dTO dailyTO_0   = {{19,30,0},{02,30,0},1,0,0};
+dTO dailyTO_1   = {{20,00,0},{22,0,0},1,0,0};
 dTO *dailyTO[]  = {&dailyTO_0,&dailyTO_1};
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -208,33 +208,17 @@ void check_hardReboot(byte i=1, byte threshold = 2){
         hReset_eeprom.jump = EEPROM.read(0);
 
         hReset_eeprom.val_cell    = hReset_eeprom.jump + i;
-        hReset_eeprom.wcount_cell = hReset_eeprom.val_cell + 1;
+        // hReset_eeprom.wcount_cell = hReset_eeprom.val_cell + 1;
 
         hReset_eeprom.val = EEPROM.read(hReset_eeprom.val_cell);
-        hReset_eeprom.wcount = EEPROM.read(hReset_eeprom.wcount_cell);
-
-        // Serial.print("jump_value: ");
-        // Serial.println(hReset_eeprom.jump);
-
-        // if (hReset_eeprom.wcount > 15) {
-        //         EEPROM.write(0, hReset_eeprom.jump + 2);
-        //         EEPROM.commit();
-        // }
+        // hReset_eeprom.wcount = EEPROM.read(hReset_eeprom.wcount_cell);
 
         if (hReset_eeprom.val < threshold) {
                 EEPROM.write(hReset_eeprom.val_cell,hReset_eeprom.val+1);
                 EEPROM.commit();
-                // EEPROM.write(hReset_eeprom.wcount_cell,hReset_eeprom.wcount+1);
-                // EEPROM.commit();
                 hReset_eeprom.hBoot = false;
         }
         else {
-                // EEPROM.write(hReset_eeprom.val_cell,0);
-                // EEPROM.commit();
-                // EEPROM.write(hReset_eeprom.wcount_cell,hReset_eeprom.wcount+1);
-                // EEPROM.commit();
-
-                // Serial.println("RESET");
                 hReset_eeprom.hBoot = true;
         }
 }
@@ -245,11 +229,12 @@ void quickPwrON(){
            other than 0
          */
 
-        // on_using_hBoot = check_hardReboot(0);
-        // hReset_eeprom.hBoot = false;
-        // if (HARD_REBOOT) {
-        //         check_hardReboot();
-        // }
+        /*
+         # conditions in for loop:
+           1) Has more time to go in TO
+           2) STATE_AT_BOOT defines to be ON at bootTime
+           3) eeprom Reset counter forces to be ON_AT_BOOT
+         */
 
         for(int i=0; i<NUM_SWITCHES; i++) {
                 if (TO[i]->endTO_inFlash || STATE_AT_BOOT || hReset_eeprom.hBoot) {
@@ -275,8 +260,13 @@ void recoverReset(){
         if(rebootState != 2) { // before getting online/offline MQTT state
                 checkrebootState = false;
                 for (int i=0; i<NUM_SWITCHES; i++) {
-                        if (rebootState == 0 || hReset_eeprom.hBoot ) { //}|| ) {  // PowerOn - not a quickReboot
+                        if (rebootState == 0 ) { //}|| ) {  // PowerOn - not a quickReboot
                                 TO[i]->restart_to();
+                                iot.pub_err("--> NormalBoot");
+                        }
+                        else if (hReset_eeprom.hBoot ) { // using HardReboot
+                                TO[i]->restart_to();
+                                iot.pub_err("--> ForcedBoot");
                         }
                         else { // prevent quick boot to restart after succsefull end
                                 if (TO[i]->begin(false) == 0) { // if STATE_AT_BOOT == true turn off if not needed
@@ -332,13 +322,11 @@ void check_dailyTO_inFlash(dTO &dailyTO, int x){
         int retVal;
 
         if (dailyTO_inFlash.file_exists()) {
-                Serial.println("DO FILE");
                 sprintf(temp,"%s_%d",clock_fields[3], x);
                 dailyTO_inFlash.getValue(temp, retVal);
                 if (retVal) { //only if flag is to read values from flash
                         for(int m=0; m<sizeof(clock_fields)/sizeof(clock_fields[0]); m++) {
                                 sprintf(temp,"%s_%d",clock_fields[m], x);
-                                Serial.println(temp);
                                 if (m == 0 || m == 1) { // clock fileds only -- on or off
                                         for(int i=0; i<items_each_array[m]; i++) {
                                                 dailyTO_inFlash.getArrayVal(temp,i,retVal);
@@ -369,7 +357,6 @@ void check_dailyTO_inFlash(dTO &dailyTO, int x){
                                                 dailyTO_inFlash.setValue(temp,0);
                                         }
                                 }
-                                Serial.println(retVal);
                         }
 
                 }
@@ -401,8 +388,6 @@ void store_dailyTO_inFlash(dTO &dailyTO, int x){
 
                 }
         }
-        dailyTO_inFlash.printFile();
-
 }
 
 void addiotnalMQTT(char incoming_msg[50]) {
@@ -549,36 +534,16 @@ void addiotnalMQTT(char incoming_msg[50]) {
                                 dailyTO[atoi(iot.inline_param[0])]->off[1],
                                 dailyTO[atoi(iot.inline_param[0])]->off[2],
                                 dailyTO[atoi(iot.inline_param[0])]->flag ? "ON" : "OFF" );
-                        Serial.println(dailyTO[0]->flag);
                         iot.pub_msg(msg);
                 }
         }
 }
 
 void setup() {
-        // Serial.begin(9600);
-        // Serial.println();
         if (HARD_REBOOT) {
                 EEPROM.begin(1024);
+                check_hardReboot();
         }
-        // if (HARD_REBOOT) {
-        //         // if (hReset_eeprom.val != 0) {
-        //         // EEPROM.write(hReset_eeprom.val_cell,0);
-        //         // EEPROM.put(0,100000);
-        //         // EEPROM.commit();
-        //         // delay(50);
-        //         // Serial.print("value in flash: ");
-        //         // Serial.println(EEPROM.get(0));
-        //         // Serial.print("saved value: ");
-        //         // Serial.println()
-        //         // EEPROM.write(hReset_eeprom.wcount_cell,hReset_eeprom.wcount + 1);
-        //
-        //         // EEPROM.commit();
-        //         // Serial.println("zeroing");
-        //         // }
-        // }
-
-        // long boot_mil = millis();
 
         startGPIOs();
         quickPwrON();
@@ -588,38 +553,11 @@ void setup() {
                 check_dailyTO_inFlash(*dailyTO[i], i);
         }
 
-        // Serial.print("value is: ");
-        // Serial.print(hReset_eeprom.val);
-        // Serial.print(" at cell num: ");
-        // Serial.println(hReset_eeprom.val_cell);
-        //
-        // Serial.print("wearout is: ");
-        // Serial.print(hReset_eeprom.wcount);
-        // Serial.print(" at cell num: ");
-        // Serial.println(hReset_eeprom.wcount_cell);
+        if (HARD_REBOOT) {
+                EEPROM.write(hReset_eeprom.val_cell,0);
+                EEPROM.commit();
+        }
 
-
-
-
-
-        // int a = millis()-boot_mil;
-        // if (a < 2000) {
-        //         delay(2000-a);
-        //         Serial.print("Delayed: ");
-        //         Serial.print(a);
-        //         Serial.println("ms");
-        // }
-        // Serial.print("value is: ");
-        // Serial.println(hReset_eeprom.val);
-        // if (HARD_REBOOT) {
-        //         if (hReset_eeprom.val != 0) {
-        //                 EEPROM.write(hReset_eeprom.val_cell,0);
-        //                 EEPROM.commit();
-        //                 EEPROM.write(hReset_eeprom.wcount_cell,hReset_eeprom.wcount + 1);
-        //                 EEPROM.commit();
-        //                 // Serial.println("zeroing");
-        //         }
-        // }
 }
 void loop() {
         iot.looper();
