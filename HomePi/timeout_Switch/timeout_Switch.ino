@@ -186,7 +186,7 @@ void startIOTservices(){
         iot.resetFailNTP   = USE_FAILNTP;
         strcpy(iot.prefixTopic, MQTT_PREFIX);
         strcpy(iot.addGroupTopic, MQTT_GROUP);
-        iot.start_services(ADD_MQTT_FUNC);//,"GuyDvir","guyd5161");
+        iot.start_services(ADD_MQTT_FUNC);
 }
 void startGPIOs() {
         for (int i = 0; i < NUM_SWITCHES; i++) {
