@@ -14,7 +14,7 @@ bool _useSerial=false;
 char _filename[30];
 
 public:
-char *ver="myJSON_v1.3";
+char *ver="myJSON_v1.4";
 myJSON(char *filename, bool useserial=false);
 
 bool file_exists();

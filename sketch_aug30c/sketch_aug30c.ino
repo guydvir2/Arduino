@@ -7,7 +7,7 @@ myJSON testInflash("file0.json", true);
 
 void setup() {
         Serial.begin(9600);
-        // testInflash.format();
+        testInflash.format();
         // testInflash.setValue("val0",13);
         // testInflash.updateArray("array_key",1234);
         // int a;
@@ -15,7 +15,8 @@ void setup() {
         //         testInflash.setArrayVal("array_key",2,5);
         // }
         // testInflash.add2Array("array_key", 5);
-        testInflash.setArrayVal("array_key3",19,13056);
+        // testInflash.setArrayVal("array_key3",0,13359);
+        // testInflash.setArrayVal("array_key2",11,12313);
         // Serial.print("a=");
         // Serial.println(a);
         // StaticJsonDocument<256> doc;
@@ -37,7 +38,7 @@ void setup() {
         // testInflash.setArrayVal("val0",1,100);
         //
         testInflash.printFile();
-
+//
 
 
 }

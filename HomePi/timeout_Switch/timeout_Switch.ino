@@ -12,7 +12,7 @@
 #include <EEPROM.h>
 
 // ********** Sketch Services  ***********
-#define VER              "Sonoff_3.0"
+#define VER              "Sonoff_3.1"
 #define USE_INPUTS       false
 #define STATE_AT_BOOT    false // On or OFF at boot (Usually when using inputs, at boot/PowerOn - state should be off
 #define USE_DAILY_TO     true
@@ -60,7 +60,7 @@ timeOUT *TO[]={&timeOut_SW0};
 myJSON dailyTO_inFlash("file0.json", true);
 #endif
 
-char *clock_fields[] = {"ontime", "off_time", "flag"};
+char *clock_fields[] = {"ontime", "off_time", "flag","use_inFl_vals"};
 int items_each_array[3] = {3,3,1};
 char *clockAlias = "DailyClock";
 struct dTO {
@@ -68,10 +68,11 @@ struct dTO {
         int off[3];
         bool flag;
         bool onNow;
+        bool useFlash;
 };
-dTO defaultVals = {{0,0,0},{0,0,0},0,0};
-dTO dailyTO_0   = {{19,0,0},{6,30,0},1,0};
-dTO dailyTO_1   = {{20,30,0},{23,0,0},1,0};
+dTO defaultVals = {{0,0,0},{0,0,59},0,0,0};
+dTO dailyTO_0   = {{19,0,0},{6,30,0},1,0,0};
+dTO dailyTO_1   = {{20,30,0},{23,0,0},1,0,0};
 dTO *dailyTO[]  = {&dailyTO_0,&dailyTO_1};
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -245,10 +246,10 @@ void quickPwrON(){
          */
 
         // on_using_hBoot = check_hardReboot(0);
-        hReset_eeprom.hBoot = false;
-        if (HARD_REBOOT) {
-                check_hardReboot();
-        }
+        // hReset_eeprom.hBoot = false;
+        // if (HARD_REBOOT) {
+        //         check_hardReboot();
+        // }
 
         for(int i=0; i<NUM_SWITCHES; i++) {
                 if (TO[i]->endTO_inFlash || STATE_AT_BOOT || hReset_eeprom.hBoot) {
@@ -331,51 +332,50 @@ void check_dailyTO_inFlash(dTO &dailyTO, int x){
         int retVal;
 
         if (dailyTO_inFlash.file_exists()) {
-                for(int m=0; m<sizeof(clock_fields)/sizeof(clock_fields[0]); m++) {
-                        sprintf(temp,"%s_%d",clock_fields[m], x);
-                        Serial.println(temp);
-                        dailyTO_inFlash.printFile();
-
-                        if (m == 0 || m == 1) { // clock fileds only
-                          // Serial.print("in flash:");
-
-                                for(int i=0; i<items_each_array[m]; i++) {
-                                        dailyTO_inFlash.getArrayVal(temp,i,retVal);
-
-                                        // Serial.println(retVal);
-                                        if (retVal !=-1 && retVal >=0 && retVal <=59) { //valid time
-                                                if ( m == 0) {
-                                                        if (retVal !=dailyTO.on[i]) {
-                                                                dailyTO.on[i] = retVal;
+                Serial.println("DO FILE");
+                sprintf(temp,"%s_%d",clock_fields[3], x);
+                dailyTO_inFlash.getValue(temp, retVal);
+                if (retVal) { //only if flag is to read values from flash
+                        for(int m=0; m<sizeof(clock_fields)/sizeof(clock_fields[0]); m++) {
+                                sprintf(temp,"%s_%d",clock_fields[m], x);
+                                Serial.println(temp);
+                                if (m == 0 || m == 1) { // clock fileds only -- on or off
+                                        for(int i=0; i<items_each_array[m]; i++) {
+                                                dailyTO_inFlash.getArrayVal(temp,i,retVal);
+                                                if (retVal >=0) {
+                                                        if((i==0 && retVal<=23)||(i>0 && retVal<=59)) { //valid time
+                                                                if ( m == 0) {
+                                                                        dailyTO.on[i] = retVal;
+                                                                }
+                                                                else {
+                                                                        dailyTO.off[i] = retVal;
+                                                                }
                                                         }
                                                 }
-                                                else {
-                                                        if (retVal !=dailyTO.off[i]) {
-                                                                dailyTO.off[i] = retVal;
-                                                        }
+
+                                        }
+                                }
+                                else {       // for flag value
+                                        dailyTO_inFlash.getValue(temp, retVal);
+                                        if (retVal == 0 || retVal == 1) { //flag on or off
+                                                if(m==2) {
+                                                        dailyTO.flag = retVal;
+                                                }
+                                                else if (m==3) {
+                                                        dailyTO.useFlash = retVal;
                                                 }
                                         }
                                         else {
-                                                dailyTO_inFlash.setArrayVal(temp,i,0);
-                                                Serial.println("A");
+                                                dailyTO_inFlash.setValue(temp,0);
                                         }
                                 }
+                                Serial.println(retVal);
                         }
-                        else {               // for flag value
-                                dailyTO_inFlash.getValue(temp, retVal);
-                                if (retVal == 0 || retVal == 1) { //flag on or off
-                                        if (retVal !=dailyTO.flag) {
-                                                dailyTO.flag = retVal;
-                                        }
-                                }
-                                else {
-                                        dailyTO_inFlash.setValue(temp,0);
-                                }
-                        }
+
                 }
-        }
-        else{ // create NULL values
-                store_dailyTO_inFlash(defaultVals,0);
+                else{ // create NULL values
+                        store_dailyTO_inFlash(defaultVals,x);
+                }
         }
 }
 void store_dailyTO_inFlash(dTO &dailyTO, int x){
@@ -396,7 +396,13 @@ void store_dailyTO_inFlash(dTO &dailyTO, int x){
                 else if (m==2) {
                         dailyTO_inFlash.setValue(temp,dailyTO.flag);
                 }
+                else if (m==3) {
+                        dailyTO_inFlash.setValue(temp,dailyTO.useFlash);
+
+                }
         }
+        dailyTO_inFlash.printFile();
+
 }
 
 void addiotnalMQTT(char incoming_msg[50]) {
@@ -428,7 +434,7 @@ void addiotnalMQTT(char incoming_msg[50]) {
                 iot.pub_msg(msg);
                 sprintf(msg, "Help: Commands #3 - [status, boot, reset, ip, ota, ver, help]");
                 iot.pub_msg(msg);
-                sprintf(msg, "Help: Commands #4 - [off_daily_to, on_daily_to, flag_daily_to]");
+                sprintf(msg, "Help: Commands #4 - [off_daily_to, on_daily_to, flag_daily_to, useflash_daily_to]");
                 iot.pub_msg(msg);
         }
         else if (strcmp(incoming_msg, "flash") == 0 ) {
@@ -500,7 +506,7 @@ void addiotnalMQTT(char incoming_msg[50]) {
 
                         store_dailyTO_inFlash(*dailyTO[atoi(iot.inline_param[0])],atoi(iot.inline_param[0]));
 
-                        sprintf(msg, "%s: Clock[#%d] [ON] updated [%02d:%02d:%02d]",clockAlias,atoi(iot.inline_param[0]),
+                        sprintf(msg, "%s: Switch[#%d] [ON] updated [%02d:%02d:%02d]",clockAlias,atoi(iot.inline_param[0]),
                                 dailyTO[atoi(iot.inline_param[0])]->on[0],
                                 dailyTO[atoi(iot.inline_param[0])]->on[1],
                                 dailyTO[atoi(iot.inline_param[0])]->on[2]);
@@ -513,7 +519,7 @@ void addiotnalMQTT(char incoming_msg[50]) {
 
                         store_dailyTO_inFlash(*dailyTO[atoi(iot.inline_param[0])],atoi(iot.inline_param[0]));
 
-                        sprintf(msg, "%s: Clock[#%d] [OFF] updated %02d:%02d:%02d",clockAlias, atoi(iot.inline_param[0]),
+                        sprintf(msg, "%s: Switch[#%d] [OFF] updated [%02d:%02d:%02d]",clockAlias, atoi(iot.inline_param[0]),
                                 dailyTO[atoi(iot.inline_param[0])]->off[0],
                                 dailyTO[atoi(iot.inline_param[0])]->off[1],
                                 dailyTO[atoi(iot.inline_param[0])]->off[2]);
@@ -522,8 +528,15 @@ void addiotnalMQTT(char incoming_msg[50]) {
                 else if (strcmp(iot.inline_param[1], "flag_daily_to") == 0) {
                         dailyTO[atoi(iot.inline_param[0])]->flag=atoi(iot.inline_param[2]);
                         store_dailyTO_inFlash(*dailyTO[atoi(iot.inline_param[0])],atoi(iot.inline_param[0]));
-                        sprintf(msg, "%s: Clock[#%d] set to [%s]",clockAlias,
+                        sprintf(msg, "%s: Switch[#%d] set to [%s]",clockAlias,
                                 atoi(iot.inline_param[0]),atoi(iot.inline_param[2]) ? "ON" : "OFF");
+                        iot.pub_msg(msg);
+                }
+                else if (strcmp(iot.inline_param[1], "useflash_daily_to") == 0) {
+                        dailyTO[atoi(iot.inline_param[0])]->useFlash=atoi(iot.inline_param[2]);
+                        store_dailyTO_inFlash(*dailyTO[atoi(iot.inline_param[0])],atoi(iot.inline_param[0]));
+                        sprintf(msg, "%s: Switch[#%d] using [%s] values",clockAlias,
+                                atoi(iot.inline_param[0]),atoi(iot.inline_param[2]) ? "Flash" : "Code");
                         iot.pub_msg(msg);
                 }
                 else if (strcmp(iot.inline_param[1], "status_daily_to") == 0) {
@@ -536,6 +549,7 @@ void addiotnalMQTT(char incoming_msg[50]) {
                                 dailyTO[atoi(iot.inline_param[0])]->off[1],
                                 dailyTO[atoi(iot.inline_param[0])]->off[2],
                                 dailyTO[atoi(iot.inline_param[0])]->flag ? "ON" : "OFF" );
+                        Serial.println(dailyTO[0]->flag);
                         iot.pub_msg(msg);
                 }
         }
@@ -544,9 +558,9 @@ void addiotnalMQTT(char incoming_msg[50]) {
 void setup() {
         // Serial.begin(9600);
         // Serial.println();
-        // if (HARD_REBOOT) {
-        //         EEPROM.begin(1024);
-        // }
+        if (HARD_REBOOT) {
+                EEPROM.begin(1024);
+        }
         // if (HARD_REBOOT) {
         //         // if (hReset_eeprom.val != 0) {
         //         // EEPROM.write(hReset_eeprom.val_cell,0);
