@@ -757,6 +757,8 @@ void timeOUT::convert_epoch2clock(long t1, long t2, char* time_str, char* days_s
         sprintf(time_str, "%02d:%02d:%02d", hours, minutes, seconds);
 }
 
+
+// ~~~~~~~~~~~ myTelegram Class ~~~~~~~~~~~~
 myTelegram::myTelegram(char* Bot, char* chatID, char* ssid, char* password) : bot (Bot, client)
 {
         sprintf(_bot,Bot);

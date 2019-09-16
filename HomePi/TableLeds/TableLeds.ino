@@ -9,15 +9,16 @@
 #define USE_INPUTS       true
 #define STATE_AT_BOOT    false // On or OFF at boot (Usually when using inputs, at boot/PowerOn - state should be off
 #define USE_DAILY_TO     true
-#define IS_SONOFF        true
-#define HARD_REBOOT      true
+#define IS_SONOFF        false
+#define HARD_REBOOT      false
+#define USE_NOTIFY_TELE  true
 // ********** TimeOut Time vars  ***********
 #define NUM_SWITCHES     1
-#define TIMEOUT_SW0      3*60 // mins for SW0
+#define TIMEOUT_SW0      60 // mins for SW0
 #define TIMEOUT_SW1      2*60 // mins
 // ********** myIOT Class ***********
 //~~~~~ Services ~~~~~~~~~~~
-#define USE_SERIAL       false
+#define USE_SERIAL       true
 #define USE_WDT          true
 #define USE_OTA          true
 #define USE_RESETKEEPER  true
@@ -25,7 +26,7 @@
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 // ~~~~~~~ MQTT Topics ~~~~~~
-#define DEVICE_TOPIC "tableLEDs"
+#define DEVICE_TOPIC "tableLEDs2"
 #define MQTT_PREFIX  "myHome"
 #define MQTT_GROUP   "LEDStrips"
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -90,7 +91,7 @@ eeproms_storage hReset_eeprom;
 // ~~~~ HW Pins and Statdes ~~~~
 #define RELAY1          D2
 #define RELAY2          D3
-#define INPUT1          D1
+#define INPUT1          D8
 #define INPUT2          D4
 
 #define LEDpin          13
@@ -110,6 +111,15 @@ bool boot_overide       = true;
 bool swState[NUM_SWITCHES];
 bool last_swState[NUM_SWITCHES];
 bool inputs_lastState[NUM_SWITCHES];
+
+// ~~~~~~~~~~~ Using SMS Notification ~~~~~~
+#if USE_NOTIFY_TELE
+myTelegram teleNotify(BOT_TOKEN,CHAT_ID);
+#endif
+long sensDetectClock        = 0;
+long alerts_clock           = 0;
+byte mins2LatchDetection    = 10;
+byte alerts_interval        = 30;
 //####################################################
 
 void switchIt (char *txt1, int sw_num, bool state, char *txt2=""){
@@ -165,6 +175,46 @@ void checkSwitch_Pressed (byte sw, bool momentary=true){
                                 else{
                                         TO[sw]->endNow();
                                 }
+                        }
+                }
+        }
+}
+void checkSensor_detecttion (byte in, byte sw){
+        if (digitalRead(inputs[in]) !=inputs_lastState[in]) {
+                delay(50);
+                if (digitalRead(inputs[in]) !=inputs_lastState[in]) {
+                        inputs_lastState[in] = digitalRead(inputs[in]);
+                        if (digitalRead(inputs[in]) == true) {
+                                sensDetectClock = millis();
+                                if (USE_NOTIFY_TELE) {
+                                        if (millis() - alerts_clock >= alerts_interval*1000) {
+                                                alerts_clock = millis();
+                                                // teleNotify.send_msg("Alert");
+                                                Serial.println("Alert sent");
+                                        }
+                                }
+                                if (digitalRead(relays[sw]) != RelayOn) {
+                                        // switchIt("Sensor", sw, 1);
+                                        digitalWrite(relays[sw],RelayOn);
+                                        Serial.println("SwitchedOn");
+                                }
+                                else {
+                                        Serial.println("AlreadyOn");
+                                }
+                        }
+                }
+        }
+}
+void endTO_fromSensor(byte sw){
+        if (sensDetectClock !=0) {
+          Serial.print("Value: ");
+          Serial.println(sensDetectClock+mins2LatchDetection*1000);
+                if (millis()- (sensDetectClock+mins2LatchDetection*1000)>=0) {
+                        if (digitalRead(relays[sw]) == RelayOn) {  // shut down plny if not in TO
+                                // switchIt("Sensor", sw, 0);
+                                Serial.println("OFF");
+                                digitalWrite(relays[sw],!RelayOn);
+                                sensDetectClock = 0;
                         }
                 }
         }
@@ -253,7 +303,7 @@ void recoverReset(){
                 checkrebootState = false;
                 for (int i=0; i<NUM_SWITCHES; i++) {
                         if (rebootState == 0 ) { //}|| ) {  // PowerOn - not a quickReboot
-                                TO[i]->restart_to();
+                                // TO[i]->restart_to();
                                 iot.pub_err("--> NormalBoot");
                         }
                         else if (hReset_eeprom.hBoot ) { // using HardReboot
@@ -531,6 +581,9 @@ void addiotnalMQTT(char incoming_msg[50]) {
                 }
         }
 }
+void telecmds(String p1, String p2, String p3, char p4[40]){
+
+}
 
 void setup() {
         if (HARD_REBOOT) {
@@ -541,6 +594,10 @@ void setup() {
         startGPIOs();
         quickPwrON();
         startIOTservices();
+
+        if (USE_NOTIFY_TELE) {
+                teleNotify.begin(telecmds);
+        }
 
         for (int i=0; i<NUM_SWITCHES; i++) {
                 check_dailyTO_inFlash(*dailyTO[i], i);
@@ -555,6 +612,10 @@ void setup() {
 void loop() {
         iot.looper();
 
+        #if USE_NOTIFY_TELE
+        teleNotify.looper();
+        #endif
+
         if (checkrebootState == true && USE_RESETKEEPER == true) {
                 recoverReset();
         }
@@ -568,6 +629,9 @@ void loop() {
                 }
                 timeOutLoop(i);
         }
+
+        endTO_fromSensor(0);
+        checkSensor_detecttion(0,0);
 
         delay(100);
 }

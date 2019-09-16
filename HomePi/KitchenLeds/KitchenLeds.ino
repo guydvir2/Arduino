@@ -18,6 +18,7 @@
 #define TIMEOUT_SW0      3*60 // mins for SW0
 #define TIMEOUT_SW1      3*60 // mins
 // ********** myIOT Class ***********
+
 //~~~~~ Services ~~~~~~~~~~~
 #define USE_SERIAL       false
 #define USE_WDT          true
