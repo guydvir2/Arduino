@@ -8,10 +8,10 @@
 #define VER              "Wemos_2.0"
 #define USE_INPUTS       true
 #define STATE_AT_BOOT    false // On or OFF at boot (Usually when using inputs, at boot/PowerOn - state should be off
-#define USE_DAILY_TO     true
+#define USE_DAILY_TO     false
 #define IS_SONOFF        false
 #define HARD_REBOOT      false
-#define USE_NOTIFY_TELE  true
+#define USE_NOTIFY_TELE  false
 // ********** TimeOut Time vars  ***********
 #define NUM_SWITCHES     1
 #define TIMEOUT_SW0      60 // mins for SW0
@@ -299,11 +299,14 @@ void recoverReset(){
         char mqttmsg[30];
         rebootState = iot.mqtt_detect_reset;
 
+        Serial.println("Starting");
+
+
         if(rebootState != 2) { // before getting online/offline MQTT state
                 checkrebootState = false;
                 for (int i=0; i<NUM_SWITCHES; i++) {
                         if (rebootState == 0 ) { //}|| ) {  // PowerOn - not a quickReboot
-                                // TO[i]->restart_to();
+                                TO[i]->restart_to();
                                 iot.pub_err("--> NormalBoot");
                         }
                         else if (hReset_eeprom.hBoot ) { // using HardReboot
@@ -334,6 +337,7 @@ void timeOutLoop(byte i){
                 last_swState[i] = swState[i];
         }
 }
+#if USE_DAILY_TO
 void daily_timeouts_looper(dTO &dailyTO, byte i=0){
         char msg [50], msg2[50];
         time_t t=now();
@@ -431,6 +435,7 @@ void store_dailyTO_inFlash(dTO &dailyTO, int x){
                 }
         }
 }
+#endif
 
 void addiotnalMQTT(char incoming_msg[50]) {
         char msg[150];
@@ -527,6 +532,7 @@ void addiotnalMQTT(char incoming_msg[50]) {
                         iot.notifyOffline();
                         iot.sendReset("Restore");
                 }
+                # if USE_DAILY_TO
                 else if (strcmp(iot.inline_param[1], "on_daily_to") == 0) {
                         dailyTO[atoi(iot.inline_param[0])]->on[0]=atoi(iot.inline_param[2]); // hour
                         dailyTO[atoi(iot.inline_param[0])]->on[1]=atoi(iot.inline_param[3]); // minute
@@ -579,6 +585,7 @@ void addiotnalMQTT(char incoming_msg[50]) {
                                 dailyTO[atoi(iot.inline_param[0])]->flag ? "ON" : "OFF" );
                         iot.pub_msg(msg);
                 }
+                # endif
         }
 }
 void telecmds(String p1, String p2, String p3, char p4[40]){
@@ -595,13 +602,15 @@ void setup() {
         quickPwrON();
         startIOTservices();
 
-        if (USE_NOTIFY_TELE) {
+        #if USE_NOTIFY_TELE
                 teleNotify.begin(telecmds);
-        }
+        #endif
 
+        #if USE_DAILY_TO
         for (int i=0; i<NUM_SWITCHES; i++) {
                 check_dailyTO_inFlash(*dailyTO[i], i);
         }
+        #endif
 
         if (HARD_REBOOT) {
                 EEPROM.write(hReset_eeprom.val_cell,0);
@@ -622,10 +631,12 @@ void loop() {
 
         for (int i=0; i<NUM_SWITCHES; i++) {
                 if (USE_DAILY_TO == true) {
+                  #if USE_DAILY_TO
                         daily_timeouts_looper(*dailyTO[i],i);
+                        #endif
                 }
                 if (USE_INPUTS == true) {
-                        checkSwitch_Pressed(i);
+                        // checkSwitch_Pressed(i);
                 }
                 timeOutLoop(i);
         }
