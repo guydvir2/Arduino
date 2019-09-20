@@ -612,7 +612,6 @@ bool check_sensor(){
                                 _inTriggerMode = false;
                         }
                 }
-                return 1;
         }
 
         // HW sense stops
@@ -625,7 +624,6 @@ bool check_sensor(){
                                 Serial.print("sensor flag is off, after ");
                                 Serial.print(float(_time_from_detection));
                                 Serial.println("[sec]");
-                                return 1;
                         }
                         // T.O has ended (greater than minimal time on detection)
                         else if (_inTriggerMode == false && _timeout_counter != 0 && _calc_timeout >TIME_ON_AFTER_DETECTION) {
@@ -633,7 +631,6 @@ bool check_sensor(){
                                 Serial.print(float(_time_from_detection));
                                 Serial.println("[sec]");
                                 off_function();
-                                return 0;
                         }
                         // Minimal time on upon detection
                         else if ( _inTriggerMode == false && _time_from_detection > MIN_ON_TIME && _detection_timestamp!=0 && _timeout_counter == 0) {
@@ -641,11 +638,16 @@ bool check_sensor(){
                                 Serial.print(float(_time_from_detection));
                                 Serial.println("[sec]");
                                 off_function();
-                                return 0;
                         }
                 }
         }
 
+        if (_inTriggerMode == true || _detection_timestamp != 0 || _timeout_counter != 0) {
+                return 1;
+        }
+        else{
+                return 0;
+        }
 }
 
 void on_function(){
