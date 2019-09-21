@@ -5,13 +5,13 @@
 #include <EEPROM.h>
 
 // ********** Sketch Services  ***********
-#define VER              "Wemos_1.0"
-#define USE_INPUTS       false
+#define VER              "Wemos_1.1"
+#define USE_INPUTS       true
 #define STATE_AT_BOOT    false // On or OFF at boot (Usually when using inputs, at boot/PowerOn - state should be off
 #define USE_DAILY_TO     true
 #define IS_SONOFF        false
 #define HARD_REBOOT      false
-#define USE_NOTIFY_TELE  true
+#define USE_NOTIFY_TELE  false
 // ********** TimeOut Time vars  ***********
 #define NUM_SWITCHES     1
 #define TIMEOUT_SW0      60 // mins for SW0
@@ -26,7 +26,7 @@
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 // ~~~~~~~ MQTT Topics ~~~~~~
-#define DEVICE_TOPIC "podestLEDS"
+#define DEVICE_TOPIC "podestLEDS2"
 #define MQTT_PREFIX  "myHome"
 #define MQTT_GROUP   "OutdoorLights"
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -91,8 +91,8 @@ eeproms_storage hReset_eeprom;
 // ~~~~ HW Pins and Statdes ~~~~
 #define RELAY1          D3
 #define RELAY2          D2
-#define INPUT1          D8
-#define INPUT2          D4
+#define INPUT1          D7
+#define INPUT2          D5
 
 #define LEDpin          13
 byte relays[]  = {RELAY1, RELAY2};
@@ -641,10 +641,6 @@ bool check_sensor(){
                 return 0;
         }
 }
-
-void on_function(){
-        // Serial.println("ON");
-}
 void off_function(){
         // Serial.println("OFF");
         _detection_timestamp = 0;
@@ -652,8 +648,7 @@ void off_function(){
 }
 };
 
-SensorSwitch sensSW(INPUT1, 10, 20);
-
+SensorSwitch sensSW(D1, 10, 20);
 void check_PIR (byte sw){
         bool current_sens_state = sensSW.check_sensor();
 
@@ -662,17 +657,14 @@ void check_PIR (byte sw){
                 if (TO[sw]->remain() == 0) {
                         if (current_sens_state) {
                                 switchIt("Sensor", sw, current_sens_state,"Detect", false);
-                                Serial.println("A");
                         }
                         else{
                                 switchIt("Sensor", sw, current_sens_state,"", false);
-                                Serial.println("A");
-
                         }
                 }
     #if USE_NOTIFY_TELE
                 if (current_sens_state ) {
-                        teleNotify.send_msg("RUN FOR YOUr LIFE !!!");
+                        teleNotify.send_msg("Crzy !!!");
                 }
     #endif
         }
@@ -725,7 +717,7 @@ void loop() {
                         #endif
                 }
                 if (USE_INPUTS == true) {
-                        // checkSwitch_Pressed(i);
+                        checkSwitch_Pressed(i);
                 }
                 timeOutLoop(i);
         }
