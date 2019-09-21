@@ -8,10 +8,10 @@
 #define VER              "Wemos_1.0"
 #define USE_INPUTS       false
 #define STATE_AT_BOOT    false // On or OFF at boot (Usually when using inputs, at boot/PowerOn - state should be off
-#define USE_DAILY_TO     false
+#define USE_DAILY_TO     true
 #define IS_SONOFF        false
 #define HARD_REBOOT      false
-#define USE_NOTIFY_TELE  false
+#define USE_NOTIFY_TELE  true
 // ********** TimeOut Time vars  ***********
 #define NUM_SWITCHES     1
 #define TIMEOUT_SW0      60 // mins for SW0
@@ -89,8 +89,8 @@ eeproms_storage hReset_eeprom;
 #endif
 
 // ~~~~ HW Pins and Statdes ~~~~
-#define RELAY1          D2
-#define RELAY2          D3
+#define RELAY1          D3
+#define RELAY2          D2
 #define INPUT1          D8
 #define INPUT2          D4
 
@@ -111,15 +111,12 @@ bool boot_overide       = true;
 bool swState[NUM_SWITCHES];
 bool last_swState[NUM_SWITCHES];
 bool inputs_lastState[NUM_SWITCHES];
+bool last_sensState[NUM_SWITCHES];
 
 // ~~~~~~~~~~~ Using SMS Notification ~~~~~~
 #if USE_NOTIFY_TELE
 myTelegram teleNotify(BOT_TOKEN,CHAT_ID);
 #endif
-long sensDetectClock        = 0;
-long alerts_clock           = 0;
-byte mins2LatchDetection    = 10;
-byte alerts_interval        = 30;
 //####################################################
 
 void switchIt (char *txt1, int sw_num, bool state, char *txt2=""){
@@ -258,9 +255,6 @@ void recoverReset(){
         // Wait for indication if it was false reset(1) or
         char mqttmsg[30];
         rebootState = iot.mqtt_detect_reset;
-
-        Serial.println("Starting");
-
 
         if(rebootState != 2) { // before getting online/offline MQTT state
                 checkrebootState = false;
@@ -556,8 +550,8 @@ void telecmds(String p1, String p2, String p3, char p4[40]){
 class SensorSwitch
 {
       #define SENS_IS_TRIGGERED HIGH
-      #define MIN_ON_TIME 12
-      #define TIME_ON_AFTER_DETECTION 15
+// #define MIN_ON_TIME 12
+// #define TIME_ON_AFTER_DETECTION 15
 
 private:
 int _sensPin;
@@ -608,7 +602,7 @@ bool check_sensor(){
                         }
 
                         // very goes into T.O when sensor keeps HW sensing and time is greater than MIN_ON_TIME
-                        else if (_inTriggerMode == true && _time_from_detection > MIN_ON_TIME && _detection_timestamp!=0 && _timeout_counter == 0) {
+                        else if (_inTriggerMode == true && _time_from_detection > _min_time && _detection_timestamp!=0 && _timeout_counter == 0) {
                                 _inTriggerMode = false;
                         }
                 }
@@ -626,15 +620,15 @@ bool check_sensor(){
                                 Serial.println("[sec]");
                         }
                         // T.O has ended (greater than minimal time on detection)
-                        else if (_inTriggerMode == false && _timeout_counter != 0 && _calc_timeout >TIME_ON_AFTER_DETECTION) {
+                        else if (_inTriggerMode == false && _timeout_counter != 0 && _calc_timeout >_to_time) {
                                 Serial.print("TO ended after: ");
                                 Serial.print(float(_time_from_detection));
                                 Serial.println("[sec]");
                                 off_function();
                         }
                         // Minimal time on upon detection
-                        else if ( _inTriggerMode == false && _time_from_detection > MIN_ON_TIME && _detection_timestamp!=0 && _timeout_counter == 0) {
-                                Serial.print("MIN_ON_TIME is over after: ");
+                        else if ( _inTriggerMode == false && _time_from_detection > _min_time && _detection_timestamp!=0 && _timeout_counter == 0) {
+                                Serial.print("_min_time is over after: ");
                                 Serial.print(float(_time_from_detection));
                                 Serial.println("[sec]");
                                 off_function();
@@ -665,58 +659,73 @@ void looper(){
 
 SensorSwitch sensSW(D8, 10, 30);
 
+void check_PIR (byte sw){
+        bool current_sens_state = sensSW.check_sensor();
+
+        if ( current_sens_state!= last_sensState[sw]) {
+                last_sensState[sw] = current_sens_state;
+                if (TO[sw]->remain() == 0) {
+                        switchIt("Sensor", sw, current_sens_state);
+                }
+    #if USE_NOTIFY_TELE
+                if (current_sens_state ) {
+                        teleNotify.send_msg("RUN FOR YOUr LIFE !!!");
+                }
+    #endif
+        }
+}
+
 void setup() {
-        Serial.begin(9600);
-        sensSW.start();
-        Serial.println("\nStart!");
-// //
-//         if (HARD_REBOOT) {
-//                 EEPROM.begin(1024);
-//                 check_hardReboot();
-//         }
-//
-//         startGPIOs();
-//         quickPwrON();
-//         startIOTservices();
-//
-//         #if USE_NOTIFY_TELE
-//         teleNotify.begin(telecmds);
-//         #endif
-//
-//         #if USE_DAILY_TO
-//         for (int i=0; i<NUM_SWITCHES; i++) {
-//                 check_dailyTO_inFlash(*dailyTO[i], i);
-//         }
-//         #endif
-//
-//         if (HARD_REBOOT) {
-//                 EEPROM.write(hReset_eeprom.val_cell,0);
-//                 EEPROM.commit();
-//         }
+        // Serial.begin(9600);
+        // sensSW.start();
+        // Serial.println("\nStart!");
+        if (HARD_REBOOT) {
+                EEPROM.begin(1024);
+                check_hardReboot();
+        }
+
+        startGPIOs();
+        quickPwrON();
+        startIOTservices();
+
+        #if USE_NOTIFY_TELE
+        teleNotify.begin(telecmds);
+        #endif
+
+        #if USE_DAILY_TO
+        for (int i=0; i<NUM_SWITCHES; i++) {
+                check_dailyTO_inFlash(*dailyTO[i], i);
+        }
+        #endif
+
+        if (HARD_REBOOT) {
+                EEPROM.write(hReset_eeprom.val_cell,0);
+                EEPROM.commit();
+        }
 
 }
 void loop() {
-        // iot.looper();
-        //
-        // #if USE_NOTIFY_TELE
-        // teleNotify.looper();
-        // #endif
-        //
-        // if (checkrebootState == true && USE_RESETKEEPER == true) {
-        //         recoverReset();
-        // }
-        //
-        // for (int i=0; i<NUM_SWITCHES; i++) {
-        //         if (USE_DAILY_TO == true) {
-        //           #if USE_DAILY_TO
-        //                 daily_timeouts_looper(*dailyTO[i],i);
-        //                 #endif
-        //         }
-        //         if (USE_INPUTS == true) {
-        //                 // checkSwitch_Pressed(i);
-        //         }
-        //         timeOutLoop(i);
-        // }
-        sensSW.looper();
+        iot.looper();
+
+        #if USE_NOTIFY_TELE
+        teleNotify.looper();
+        #endif
+
+        if (checkrebootState == true && USE_RESETKEEPER == true) {
+                recoverReset();
+        }
+
+        for (int i=0; i<NUM_SWITCHES; i++) {
+                if (USE_DAILY_TO == true) {
+                  #if USE_DAILY_TO
+                        daily_timeouts_looper(*dailyTO[i],i);
+                        #endif
+                }
+                if (USE_INPUTS == true) {
+                        // checkSwitch_Pressed(i);
+                }
+                timeOutLoop(i);
+        }
+        check_PIR(0);
         delay(100);
 }
