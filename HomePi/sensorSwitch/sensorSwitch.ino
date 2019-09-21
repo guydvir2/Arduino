@@ -26,9 +26,9 @@
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 // ~~~~~~~ MQTT Topics ~~~~~~
-#define DEVICE_TOPIC "sensoredSwitch"
+#define DEVICE_TOPIC "podestLEDS"
 #define MQTT_PREFIX  "myHome"
-#define MQTT_GROUP   ""
+#define MQTT_GROUP   "OutdoorLights"
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 #define ADD_MQTT_FUNC addiotnalMQTT
@@ -65,7 +65,7 @@ struct dTO {
         bool useFlash;
 };
 dTO defaultVals = {{0,0,0},{0,0,59},0,0,0};
-dTO dailyTO_0   = {{19,30,0},{02,30,0},1,0,0};
+dTO dailyTO_0   = {{19,30,0},{0,30,0},1,0,0};
 dTO dailyTO_1   = {{20,00,0},{22,0,0},1,0,0};
 dTO *dailyTO[]  = {&dailyTO_0,&dailyTO_1};
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -119,7 +119,7 @@ myTelegram teleNotify(BOT_TOKEN,CHAT_ID);
 #endif
 //####################################################
 
-void switchIt (char *txt1, int sw_num, bool state, char *txt2=""){
+void switchIt (char *txt1, int sw_num, bool state, char *txt2="", bool show_timeout= true){
         char msg [50], msg1[50], msg2[50], states[50], tempstr[50];
         char *word={"Turned"};
 
@@ -131,7 +131,7 @@ void switchIt (char *txt1, int sw_num, bool state, char *txt2=""){
                         boot_overide = false;
                 }
                 sprintf(msg, "%s: Switch[#%d] %s[%s] %s", txt1, sw_num, word, state ? "ON" : "OFF", txt2);
-                if (state==1) {
+                if (state==1 && show_timeout) {
                         sprintf(msg2,"timeLeft[%s]", msg1);
                         strcat(msg, msg2);
                 }
@@ -550,8 +550,6 @@ void telecmds(String p1, String p2, String p3, char p4[40]){
 class SensorSwitch
 {
       #define SENS_IS_TRIGGERED HIGH
-// #define MIN_ON_TIME 12
-// #define TIME_ON_AFTER_DETECTION 15
 
 private:
 int _sensPin;
@@ -591,9 +589,9 @@ bool check_sensor(){
                         //Sensor in detect Mode 1st time
                         if (_inTriggerMode == false && _detection_timestamp == 0 && _timeout_counter == 0) {
                                 _inTriggerMode = true;
-                                Serial.println("Detection!");
+                                // Serial.println("Detection!");
                                 _detection_timestamp = millis();
-                                on_function();
+                                // on_function();
                         }
 
                         // sensor senses again after sensor is not high - it starts T.O.
@@ -615,22 +613,22 @@ bool check_sensor(){
                         // Notify when HW sense ended
                         if (_inTriggerMode == true) {
                                 _inTriggerMode = false;
-                                Serial.print("sensor flag is off, after ");
-                                Serial.print(float(_time_from_detection));
-                                Serial.println("[sec]");
+                                // Serial.print("sensor flag is off, after ");
+                                // Serial.print(float(_time_from_detection));
+                                // Serial.println("[sec]");
                         }
                         // T.O has ended (greater than minimal time on detection)
                         else if (_inTriggerMode == false && _timeout_counter != 0 && _calc_timeout >_to_time) {
-                                Serial.print("TO ended after: ");
-                                Serial.print(float(_time_from_detection));
-                                Serial.println("[sec]");
+                                // Serial.print("TO ended after: ");
+                                // Serial.print(float(_time_from_detection));
+                                // Serial.println("[sec]");
                                 off_function();
                         }
                         // Minimal time on upon detection
                         else if ( _inTriggerMode == false && _time_from_detection > _min_time && _detection_timestamp!=0 && _timeout_counter == 0) {
-                                Serial.print("_min_time is over after: ");
-                                Serial.print(float(_time_from_detection));
-                                Serial.println("[sec]");
+                                // Serial.print("_min_time is over after: ");
+                                // Serial.print(float(_time_from_detection));
+                                // Serial.println("[sec]");
                                 off_function();
                         }
                 }
@@ -645,19 +643,16 @@ bool check_sensor(){
 }
 
 void on_function(){
-        Serial.println("ON");
+        // Serial.println("ON");
 }
 void off_function(){
-        Serial.println("OFF");
+        // Serial.println("OFF");
         _detection_timestamp = 0;
         _timeout_counter = 0;
 }
-void looper(){
-        Serial.println(check_sensor());
-}
 };
 
-SensorSwitch sensSW(D8, 10, 30);
+SensorSwitch sensSW(INPUT1, 10, 20);
 
 void check_PIR (byte sw){
         bool current_sens_state = sensSW.check_sensor();
@@ -665,7 +660,15 @@ void check_PIR (byte sw){
         if ( current_sens_state!= last_sensState[sw]) {
                 last_sensState[sw] = current_sens_state;
                 if (TO[sw]->remain() == 0) {
-                        switchIt("Sensor", sw, current_sens_state);
+                        if (current_sens_state) {
+                                switchIt("Sensor", sw, current_sens_state,"Detect", false);
+                                Serial.println("A");
+                        }
+                        else{
+                                switchIt("Sensor", sw, current_sens_state,"", false);
+                                Serial.println("A");
+
+                        }
                 }
     #if USE_NOTIFY_TELE
                 if (current_sens_state ) {
@@ -676,9 +679,7 @@ void check_PIR (byte sw){
 }
 
 void setup() {
-        // Serial.begin(9600);
-        // sensSW.start();
-        // Serial.println("\nStart!");
+
         if (HARD_REBOOT) {
                 EEPROM.begin(1024);
                 check_hardReboot();
@@ -702,6 +703,8 @@ void setup() {
                 EEPROM.write(hReset_eeprom.val_cell,0);
                 EEPROM.commit();
         }
+
+        sensSW.start();
 
 }
 void loop() {
