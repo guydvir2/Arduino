@@ -87,7 +87,6 @@ bool check_sensor(){
         }
 }
 void off_function(){
-        // Serial.println("OFF");
         _detection_timestamp = 0;
         _timeout_counter = 0;
 }
@@ -186,6 +185,7 @@ eeproms_storage hReset_eeprom;
 #define RELAY2          D2
 #define INPUT1          D7
 #define INPUT2          D5
+#define SENSOR_PIN      D1
 
 #define LEDpin          13
 byte relays[]  = {RELAY1, RELAY2};
@@ -689,9 +689,7 @@ void setup() {
         startIOTservices();
         sensSW.start();
 
-        #if USE_NOTIFY_TELE
-        teleNotify.begin(telecmds);
-        #endif
+        sensSW.start();
 
         #if USE_DAILY_TO
         for (int i=0; i<NUM_SWITCHES; i++) {
@@ -699,11 +697,14 @@ void setup() {
         }
         #endif
 
-        #if HARD_REBOO
+        #if USE_NOTIFY_TELE
+        teleNotify.begin(telecmds);
+        #endif
+
+        #if HARD_REBOOT
         EEPROM.write(hReset_eeprom.val_cell,0);
         EEPROM.commit();
         #endif
-
 
 
 }
