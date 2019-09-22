@@ -678,7 +678,6 @@ void check_PIR (byte sw){
 }
 
 void setup() {
-
         #if HARD_REBOOT
         EEPROM.begin(1024);
         check_hardReboot();
@@ -687,7 +686,6 @@ void setup() {
         startGPIOs();
         quickPwrON();
         startIOTservices();
-        sensSW.start();
 
         sensSW.start();
 
@@ -705,8 +703,6 @@ void setup() {
         EEPROM.write(hReset_eeprom.val_cell,0);
         EEPROM.commit();
         #endif
-
-
 }
 void loop() {
         iot.looper();
