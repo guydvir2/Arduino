@@ -4,6 +4,96 @@
 #include <TimeLib.h>
 #include <EEPROM.h>
 
+class SensorSwitch
+{
+      #define SENS_IS_TRIGGERED HIGH
+
+private:
+int _sensPin;
+int _min_time;
+int _to_time;
+
+bool _inTriggerMode       = false;
+long _detection_timestamp = 0;
+long _timeout_counter     = 0;
+int _calc_timeout         = 0;
+int _time_from_detection  = 0;
+
+public:
+SensorSwitch(int sensPin, int min_time, int to_time){
+        _sensPin  = sensPin;
+        _min_time = min_time;
+        _to_time  = to_time;
+}
+void start(){
+        pinMode(_sensPin, INPUT);
+}
+
+bool check_sensor(){
+        _calc_timeout = (millis() - _timeout_counter)/1000;
+
+        if (_detection_timestamp !=0) {
+                _time_from_detection = (millis() - _detection_timestamp)/1000;
+        }
+        else {
+                _time_from_detection = 0;
+        }
+
+        // HW senses
+        if (digitalRead(_sensPin) == SENS_IS_TRIGGERED) {
+                delay(50);
+                if (digitalRead(_sensPin) == SENS_IS_TRIGGERED ) {
+                        if (_inTriggerMode == false && _detection_timestamp == 0 && _timeout_counter == 0) {
+                                _inTriggerMode = true;
+                                _detection_timestamp = millis();
+                        }
+
+                        // sensor senses again after sensor is not high - it starts T.O.
+                        else if ( _inTriggerMode == false ) {
+                                _timeout_counter = millis();
+                        }
+
+                        // very goes into T.O when sensor keeps HW sensing and time is greater than MIN_ON_TIME
+                        else if (_inTriggerMode == true && _time_from_detection > _min_time && _detection_timestamp!=0 && _timeout_counter == 0) {
+                                _inTriggerMode = false;
+                        }
+                }
+        }
+
+        // HW sense stops
+        else{
+                delay(50);
+                if (digitalRead(_sensPin) == !SENS_IS_TRIGGERED) {
+                        // Notify when HW sense ended
+                        if (_inTriggerMode == true) {
+                                _inTriggerMode = false;
+                        }
+                        // T.O has ended (greater than minimal time on detection)
+                        else if (_inTriggerMode == false && _timeout_counter != 0 && _calc_timeout >_to_time) {
+                                off_function();
+                        }
+                        // Minimal time on upon detection
+                        else if ( _inTriggerMode == false && _time_from_detection > _min_time && _detection_timestamp!=0 && _timeout_counter == 0) {
+                                off_function();
+                        }
+                }
+        }
+
+        if (_inTriggerMode == true || _detection_timestamp != 0 || _timeout_counter != 0) {
+                return 1;
+        }
+        else{
+                return 0;
+        }
+}
+void off_function(){
+        // Serial.println("OFF");
+        _detection_timestamp = 0;
+        _timeout_counter = 0;
+}
+};
+
+
 // ********** Sketch Services  ***********
 #define VER              "Wemos_1.1"
 #define USE_INPUTS       true
@@ -11,14 +101,16 @@
 #define USE_DAILY_TO     true
 #define IS_SONOFF        false
 #define HARD_REBOOT      false
-#define USE_NOTIFY_TELE  false
+#define USE_NOTIFY_TELE  true
+
 // ********** TimeOut Time vars  ***********
 #define NUM_SWITCHES     1
 #define TIMEOUT_SW0      60 // mins for SW0
 #define TIMEOUT_SW1      2*60 // mins
+
 // ********** myIOT Class ***********
 //~~~~~ Services ~~~~~~~~~~~
-#define USE_SERIAL       true
+#define USE_SERIAL       false
 #define USE_WDT          true
 #define USE_OTA          true
 #define USE_RESETKEEPER  true
@@ -65,7 +157,7 @@ struct dTO {
         bool useFlash;
 };
 dTO defaultVals = {{0,0,0},{0,0,59},0,0,0};
-dTO dailyTO_0   = {{19,30,0},{0,30,0},1,0,0};
+dTO dailyTO_0   = {{21,30,0},{0,30,0},1,0,0};
 dTO dailyTO_1   = {{20,00,0},{22,0,0},1,0,0};
 dTO *dailyTO[]  = {&dailyTO_0,&dailyTO_1};
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -80,6 +172,7 @@ struct eeproms_storage {
         bool hBoot;
 };
 eeproms_storage hReset_eeprom;
+
 // ~~~~ HW Pins and Statdes ~~~~
 #if IS_SONOFF
 #define RELAY1          12
@@ -118,6 +211,8 @@ bool last_sensState[NUM_SWITCHES];
 myTelegram teleNotify(BOT_TOKEN,CHAT_ID);
 #endif
 //####################################################
+
+SensorSwitch sensSW(D1, 10, 20);
 
 void switchIt (char *txt1, int sw_num, bool state, char *txt2="", bool show_timeout= true){
         char msg [50], msg1[50], msg2[50], states[50], tempstr[50];
@@ -203,6 +298,8 @@ void startGPIOs() {
                 pinMode(LEDpin, OUTPUT);
         }
 }
+
+// ~~~~~ BOOT Techniques ~~~~~~
 void check_hardReboot(byte i=1, byte threshold = 2){
         hReset_eeprom.jump = EEPROM.read(0);
 
@@ -277,6 +374,7 @@ void recoverReset(){
         }
 }
 
+// ~~~~~~ DailyTimeOuts ~~~~~~~
 void timeOutLoop(byte i){
         char msg_t[50], msg[50];
 
@@ -391,6 +489,7 @@ void store_dailyTO_inFlash(dTO &dailyTO, int x){
 }
 #endif
 
+// ~~~~~ MQTT ~~~~~
 void addiotnalMQTT(char incoming_msg[50]) {
         char msg[150];
         char msg2[20];
@@ -542,113 +641,13 @@ void addiotnalMQTT(char incoming_msg[50]) {
                 # endif
         }
 }
+
+// ~~~~~ Telegram ~~~~~~
 void telecmds(String p1, String p2, String p3, char p4[40]){
 
 }
 
-
-class SensorSwitch
-{
-      #define SENS_IS_TRIGGERED HIGH
-
-private:
-int _sensPin;
-int _min_time;
-int _to_time;
-
-bool _inTriggerMode       = false;
-long _detection_timestamp = 0;
-long _timeout_counter     = 0;
-int _calc_timeout         = 0;
-int _time_from_detection  = 0;
-
-public:
-SensorSwitch(int sensPin, int min_time, int to_time){
-        _sensPin = sensPin;
-        _min_time = min_time;
-        _to_time = to_time;
-}
-void start(){
-        pinMode(_sensPin, INPUT_PULLUP);
-}
-
-bool check_sensor(){
-        _calc_timeout = (millis() - _timeout_counter)/1000;
-
-        if (_detection_timestamp !=0) {
-                _time_from_detection = (millis() - _detection_timestamp)/1000;
-        }
-        else {
-                _time_from_detection = 0;
-        }
-
-        // HW senses
-        if (digitalRead(_sensPin) == SENS_IS_TRIGGERED) {
-                delay(50);
-                if (digitalRead(_sensPin) == SENS_IS_TRIGGERED ) {
-                        //Sensor in detect Mode 1st time
-                        if (_inTriggerMode == false && _detection_timestamp == 0 && _timeout_counter == 0) {
-                                _inTriggerMode = true;
-                                // Serial.println("Detection!");
-                                _detection_timestamp = millis();
-                                // on_function();
-                        }
-
-                        // sensor senses again after sensor is not high - it starts T.O.
-                        else if ( _inTriggerMode == false ) {
-                                _timeout_counter = millis();
-                        }
-
-                        // very goes into T.O when sensor keeps HW sensing and time is greater than MIN_ON_TIME
-                        else if (_inTriggerMode == true && _time_from_detection > _min_time && _detection_timestamp!=0 && _timeout_counter == 0) {
-                                _inTriggerMode = false;
-                        }
-                }
-        }
-
-        // HW sense stops
-        else{
-                delay(50);
-                if (digitalRead(_sensPin) == !SENS_IS_TRIGGERED) {
-                        // Notify when HW sense ended
-                        if (_inTriggerMode == true) {
-                                _inTriggerMode = false;
-                                // Serial.print("sensor flag is off, after ");
-                                // Serial.print(float(_time_from_detection));
-                                // Serial.println("[sec]");
-                        }
-                        // T.O has ended (greater than minimal time on detection)
-                        else if (_inTriggerMode == false && _timeout_counter != 0 && _calc_timeout >_to_time) {
-                                // Serial.print("TO ended after: ");
-                                // Serial.print(float(_time_from_detection));
-                                // Serial.println("[sec]");
-                                off_function();
-                        }
-                        // Minimal time on upon detection
-                        else if ( _inTriggerMode == false && _time_from_detection > _min_time && _detection_timestamp!=0 && _timeout_counter == 0) {
-                                // Serial.print("_min_time is over after: ");
-                                // Serial.print(float(_time_from_detection));
-                                // Serial.println("[sec]");
-                                off_function();
-                        }
-                }
-        }
-
-        if (_inTriggerMode == true || _detection_timestamp != 0 || _timeout_counter != 0) {
-                return 1;
-        }
-        else{
-                return 0;
-        }
-}
-void off_function(){
-        // Serial.println("OFF");
-        _detection_timestamp = 0;
-        _timeout_counter = 0;
-}
-};
-
-SensorSwitch sensSW(D1, 10, 20);
+// ~~~~~~PIR SENSOR ~~~~~
 void check_PIR (byte sw){
         bool current_sens_state = sensSW.check_sensor();
 
@@ -663,8 +662,16 @@ void check_PIR (byte sw){
                         }
                 }
     #if USE_NOTIFY_TELE
+                char time1[20];
+                char date1[20];
+                char comb[40];
+
+                iot.return_clock(time1);
+                iot.return_date(date1);
+                sprintf(comb,"[%s %s] %s", date1, time1,"front door Detection");
+
                 if (current_sens_state ) {
-                        teleNotify.send_msg("Crzy !!!");
+                        teleNotify.send_msg(comb);
                 }
     #endif
         }
@@ -672,14 +679,15 @@ void check_PIR (byte sw){
 
 void setup() {
 
-        if (HARD_REBOOT) {
-                EEPROM.begin(1024);
-                check_hardReboot();
-        }
+        #if HARD_REBOOT
+        EEPROM.begin(1024);
+        check_hardReboot();
+        #endif
 
         startGPIOs();
         quickPwrON();
         startIOTservices();
+        sensSW.start();
 
         #if USE_NOTIFY_TELE
         teleNotify.begin(telecmds);
@@ -691,12 +699,12 @@ void setup() {
         }
         #endif
 
-        if (HARD_REBOOT) {
-                EEPROM.write(hReset_eeprom.val_cell,0);
-                EEPROM.commit();
-        }
+        #if HARD_REBOO
+        EEPROM.write(hReset_eeprom.val_cell,0);
+        EEPROM.commit();
+        #endif
 
-        sensSW.start();
+
 
 }
 void loop() {
