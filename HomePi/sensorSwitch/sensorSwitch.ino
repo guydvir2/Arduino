@@ -4,6 +4,109 @@
 #include <TimeLib.h>
 #include <EEPROM.h>
 
+
+class SensorSwitch
+{
+      #define SENS_IS_TRIGGERED HIGH
+
+private:
+int _sensPin;
+int _min_time;
+int _to_time;
+
+bool _inTriggerMode       = false;
+long _detection_timestamp = 0;
+long _timeout_counter     = 0;
+int _calc_timeout         = 0;
+int _time_from_detection  = 0;
+
+public:
+SensorSwitch(int sensPin, int min_time, int to_time){
+        _sensPin = sensPin;
+        _min_time = min_time;
+        _to_time = to_time;
+}
+void start(){
+        // pinMode(_sensPin, INPUT_PULLUP);
+        pinMode(_sensPin, INPUT);
+}
+
+bool check_sensor(){
+        _calc_timeout = (millis() - _timeout_counter)/1000;
+
+        if (_detection_timestamp !=0) {
+                _time_from_detection = (millis() - _detection_timestamp)/1000;
+        }
+        else {
+                _time_from_detection = 0;
+        }
+
+        // HW senses
+        if (digitalRead(_sensPin) == SENS_IS_TRIGGERED) {
+                delay(50);
+                if (digitalRead(_sensPin) == SENS_IS_TRIGGERED ) {
+                        //Sensor in detect Mode 1st time
+                        if (_inTriggerMode == false && _detection_timestamp == 0 && _timeout_counter == 0) {
+                                _inTriggerMode = true;
+                                // Serial.println("Detection!");
+                                _detection_timestamp = millis();
+                                // on_function();
+                        }
+
+                        // sensor senses again after sensor is not high - it starts T.O.
+                        else if ( _inTriggerMode == false ) {
+                                _timeout_counter = millis();
+                        }
+
+                        // very goes into T.O when sensor keeps HW sensing and time is greater than MIN_ON_TIME
+                        else if (_inTriggerMode == true && _time_from_detection > _min_time && _detection_timestamp!=0 && _timeout_counter == 0) {
+                                _inTriggerMode = false;
+                        }
+                }
+        }
+
+        // HW sense stops
+        else{
+                delay(50);
+                if (digitalRead(_sensPin) == !SENS_IS_TRIGGERED) {
+                        // Notify when HW sense ended
+                        if (_inTriggerMode == true) {
+                                _inTriggerMode = false;
+                                // Serial.print("sensor flag is off, after ");
+                                // Serial.print(float(_time_from_detection));
+                                // Serial.println("[sec]");
+                        }
+                        // T.O has ended (greater than minimal time on detection)
+                        else if (_inTriggerMode == false && _timeout_counter != 0 && _calc_timeout >_to_time) {
+                                // Serial.print("TO ended after: ");
+                                // Serial.print(float(_time_from_detection));
+                                // Serial.println("[sec]");
+                                off_function();
+                        }
+                        // Minimal time on upon detection
+                        else if ( _inTriggerMode == false && _time_from_detection > _min_time && _detection_timestamp!=0 && _timeout_counter == 0) {
+                                // Serial.print("_min_time is over after: ");
+                                // Serial.print(float(_time_from_detection));
+                                // Serial.println("[sec]");
+                                off_function();
+                        }
+                }
+        }
+
+        if (_inTriggerMode == true || _detection_timestamp != 0 || _timeout_counter != 0) {
+                return 1;
+        }
+        else{
+                return 0;
+        }
+}
+void off_function(){
+        // Serial.println("OFF");
+        _detection_timestamp = 0;
+        _timeout_counter = 0;
+}
+};
+
 // ********** Sketch Services  ***********
 #define VER              "Wemos_1.1"
 #define USE_INPUTS       true
@@ -93,6 +196,7 @@ eeproms_storage hReset_eeprom;
 #define RELAY2          D2
 #define INPUT1          D7
 #define INPUT2          D5
+#define SENSOR_PIN      D1
 
 #define LEDpin          13
 byte relays[]  = {RELAY1, RELAY2};
@@ -546,109 +650,7 @@ void telecmds(String p1, String p2, String p3, char p4[40]){
 
 }
 
-
-class SensorSwitch
-{
-      #define SENS_IS_TRIGGERED HIGH
-
-private:
-int _sensPin;
-int _min_time;
-int _to_time;
-
-bool _inTriggerMode       = false;
-long _detection_timestamp = 0;
-long _timeout_counter     = 0;
-int _calc_timeout         = 0;
-int _time_from_detection  = 0;
-
-public:
-SensorSwitch(int sensPin, int min_time, int to_time){
-        _sensPin = sensPin;
-        _min_time = min_time;
-        _to_time = to_time;
-}
-void start(){
-        pinMode(_sensPin, INPUT_PULLUP);
-}
-
-bool check_sensor(){
-        _calc_timeout = (millis() - _timeout_counter)/1000;
-
-        if (_detection_timestamp !=0) {
-                _time_from_detection = (millis() - _detection_timestamp)/1000;
-        }
-        else {
-                _time_from_detection = 0;
-        }
-
-        // HW senses
-        if (digitalRead(_sensPin) == SENS_IS_TRIGGERED) {
-                delay(50);
-                if (digitalRead(_sensPin) == SENS_IS_TRIGGERED ) {
-                        //Sensor in detect Mode 1st time
-                        if (_inTriggerMode == false && _detection_timestamp == 0 && _timeout_counter == 0) {
-                                _inTriggerMode = true;
-                                // Serial.println("Detection!");
-                                _detection_timestamp = millis();
-                                // on_function();
-                        }
-
-                        // sensor senses again after sensor is not high - it starts T.O.
-                        else if ( _inTriggerMode == false ) {
-                                _timeout_counter = millis();
-                        }
-
-                        // very goes into T.O when sensor keeps HW sensing and time is greater than MIN_ON_TIME
-                        else if (_inTriggerMode == true && _time_from_detection > _min_time && _detection_timestamp!=0 && _timeout_counter == 0) {
-                                _inTriggerMode = false;
-                        }
-                }
-        }
-
-        // HW sense stops
-        else{
-                delay(50);
-                if (digitalRead(_sensPin) == !SENS_IS_TRIGGERED) {
-                        // Notify when HW sense ended
-                        if (_inTriggerMode == true) {
-                                _inTriggerMode = false;
-                                // Serial.print("sensor flag is off, after ");
-                                // Serial.print(float(_time_from_detection));
-                                // Serial.println("[sec]");
-                        }
-                        // T.O has ended (greater than minimal time on detection)
-                        else if (_inTriggerMode == false && _timeout_counter != 0 && _calc_timeout >_to_time) {
-                                // Serial.print("TO ended after: ");
-                                // Serial.print(float(_time_from_detection));
-                                // Serial.println("[sec]");
-                                off_function();
-                        }
-                        // Minimal time on upon detection
-                        else if ( _inTriggerMode == false && _time_from_detection > _min_time && _detection_timestamp!=0 && _timeout_counter == 0) {
-                                // Serial.print("_min_time is over after: ");
-                                // Serial.print(float(_time_from_detection));
-                                // Serial.println("[sec]");
-                                off_function();
-                        }
-                }
-        }
-
-        if (_inTriggerMode == true || _detection_timestamp != 0 || _timeout_counter != 0) {
-                return 1;
-        }
-        else{
-                return 0;
-        }
-}
-void off_function(){
-        // Serial.println("OFF");
-        _detection_timestamp = 0;
-        _timeout_counter = 0;
-}
-};
-
-SensorSwitch sensSW(D1, 10, 20);
+SensorSwitch sensSW(SENSOR_PIN, 10, 20);
 void check_PIR (byte sw){
         bool current_sens_state = sensSW.check_sensor();
 
@@ -672,18 +674,16 @@ void check_PIR (byte sw){
 
 void setup() {
 
-        if (HARD_REBOOT) {
-                EEPROM.begin(1024);
-                check_hardReboot();
-        }
+        #if HARD_REBOOT
+        EEPROM.begin(1024);
+        check_hardReboot();
+        #endif
 
         startGPIOs();
         quickPwrON();
         startIOTservices();
 
-        #if USE_NOTIFY_TELE
-        teleNotify.begin(telecmds);
-        #endif
+        sensSW.start();
 
         #if USE_DAILY_TO
         for (int i=0; i<NUM_SWITCHES; i++) {
@@ -691,12 +691,15 @@ void setup() {
         }
         #endif
 
-        if (HARD_REBOOT) {
-                EEPROM.write(hReset_eeprom.val_cell,0);
-                EEPROM.commit();
-        }
+        #if USE_NOTIFY_TELE
+        teleNotify.begin(telecmds);
+        #endif
 
-        sensSW.start();
+        #if HARD_REBOOT
+        EEPROM.write(hReset_eeprom.val_cell,0);
+        EEPROM.commit();
+        #endif
+
 
 }
 void loop() {
