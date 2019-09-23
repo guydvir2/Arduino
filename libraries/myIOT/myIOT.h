@@ -59,7 +59,7 @@ char _chatID[100];
 char _ssid[20];
 char _password[20];
 
-int _Bot_mtbs = 1000; //mean time between scan messages
+int _Bot_mtbs = 30*1000; //mean time between scan messages in millis
 long _Bot_lasttime;   //last time messages' scan has been done
 
 private:
@@ -115,7 +115,7 @@ char prefixTopic  [MaxTopicLength];
 char deviceTopic  [MaxTopicLength];
 char addGroupTopic[MaxTopicLength];
 
-const char *ver     = "iot_4.6";
+const char *ver     = "iot_4.61";
 char timeStamp[20];
 long updated_bootTime  = 0;
 int resetIntervals     = 10;

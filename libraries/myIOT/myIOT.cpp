@@ -486,7 +486,6 @@ void myIOT::sendReset(char *header) {
         }
         if (strcmp(header, "null") != 0) {
                 sprintf(temp, "[%s] - Reset sent", header);
-                Serial.println(temp);
                 pub_msg(temp);
         }
         delay(1000);
@@ -788,21 +787,21 @@ void myTelegram::begin(cb_func2 funct){
                 WiFi.disconnect();
                 delay(100);
 
-                Serial.print("Connecting Wifi: ");
-                Serial.println(_ssid);
-                WiFi.begin(_ssid, _password);
+                // Serial.print("Connecting Wifi: ");
+                // Serial.println(_ssid);
+                // WiFi.begin(_ssid, _password);
 
                 while (WiFi.status() != WL_CONNECTED) {
-                        Serial.print(".");
+                        // Serial.print(".");
                         delay(500);
                 }
                 WiFi.setAutoReconnect(true);
         }
 
-        Serial.println("");
-        Serial.println("WiFi connected");
-        Serial.print("IP address: ");
-        Serial.println(WiFi.localIP());
+        // Serial.println("");
+        // Serial.println("WiFi connected");
+        // Serial.print("IP address: ");
+        // Serial.println(WiFi.localIP());
 
         client.setInsecure();
 }
