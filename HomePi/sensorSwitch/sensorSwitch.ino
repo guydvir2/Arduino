@@ -110,7 +110,7 @@ void off_function() {
 
 // ********** myIOT Class ***********
 //~~~~~ Services ~~~~~~~~~~~
-#define USE_SERIAL       true
+#define USE_SERIAL       false
 #define USE_WDT          true
 #define USE_OTA          true
 #define USE_RESETKEEPER  true
@@ -118,7 +118,7 @@ void off_function() {
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 // ~~~~~~~ MQTT Topics ~~~~~~
-#define DEVICE_TOPIC "sensor"
+#define DEVICE_TOPIC "entrancePodest"
 #define MQTT_PREFIX  "myHome"
 #define MQTT_GROUP   "OutdoorLights"
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -213,14 +213,14 @@ bool last_sensState[NUM_SWITCHES];
 
 #define MAX_NOTI_1HR           10
 #define MIN_TIME_BETWEEN_NOTI  0.5 //in minutes
-#define MIN_TIME_FIRST_DET     5
-#define ADD_TIME_NEXT_DET      10
-#define NotifyMSG              "Detection in familyRoom"
+#define MIN_TIME_FIRST_DET     15   // sec
+#define ADD_TIME_NEXT_DET      120  // sec
+#define NotifyMSG              "frontdoor detection"
 myTelegram teleNotify(BOT_TOKEN, CHAT_ID);
 
-long lastNotify_clock      = 0;
-long firstNotify_clock     = 0;
-byte notifyCounter         = 0;
+long lastNotify_clock  = 0;
+long firstNotify_clock = 0;
+byte notifyCounter     = 0;
 
 #endif
 //####################################################
@@ -705,7 +705,7 @@ void check_PIR (byte sw) {
                 iot.return_date(date1);
                 sprintf(comb, "[%s %s] %s", date1, time1, NotifyMSG);
 
-                if (millis() - firstNotify_clock >= 1000*60*60 || firstNotify_clock == 0 ) {
+                if (millis() - firstNotify_clock >= 1000*60*60 || firstNotify_clock == 0) {
                         firstNotify_clock = millis();
                         notifyCounter = 0;
                 }
