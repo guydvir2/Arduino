@@ -105,7 +105,7 @@ void off_function() {
 
 // ********** TimeOut Time vars  ***********
 #define NUM_SWITCHES     1
-#define TIMEOUT_SW0      60 // mins for SW0
+#define TIMEOUT_SW0      3*60 // mins for SW0
 #define TIMEOUT_SW1      2*60 // mins
 
 // ********** myIOT Class ***********
@@ -118,9 +118,9 @@ void off_function() {
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 // ~~~~~~~ MQTT Topics ~~~~~~
-#define DEVICE_TOPIC "entrancePodest"
+#define DEVICE_TOPIC "TableLEDS"
 #define MQTT_PREFIX  "myHome"
-#define MQTT_GROUP   "OutdoorLights"
+#define MQTT_GROUP   "inLights"
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 #define ADD_MQTT_FUNC addiotnalMQTT
@@ -157,7 +157,7 @@ struct dTO {
         bool useFlash;
 };
 dTO defaultVals = {{0, 0, 0}, {0, 0, 59}, 0, 0, 0};
-dTO dailyTO_0   = {{21, 30, 0}, {0, 30, 0}, 1, 0, 0};
+dTO dailyTO_0   = {{16, 30, 0}, {0, 30, 0}, 1, 0, 0};
 dTO dailyTO_1   = {{20, 00, 0}, {22, 0, 0}, 1, 0, 0};
 dTO *dailyTO[]  = {&dailyTO_0, &dailyTO_1};
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -187,7 +187,7 @@ eeproms_storage hReset_eeprom;
 #define RELAY2          D2
 #define INPUT1          D7
 #define INPUT2          D5
-#define SENSOR_PIN      D1
+#define SENSOR_PIN      D8
 
 #define LEDpin          13
 byte relays[]  = {RELAY1, RELAY2};
@@ -215,7 +215,7 @@ bool last_sensState[NUM_SWITCHES];
 #define MIN_TIME_BETWEEN_NOTI  0.5 //in minutes
 #define MIN_TIME_FIRST_DET     15   // sec
 #define ADD_TIME_NEXT_DET      120  // sec
-#define NotifyMSG              "frontdoor detection"
+#define NotifyMSG              "FamilyRoom detection"
 myTelegram teleNotify(BOT_TOKEN, CHAT_ID);
 
 long lastNotify_clock  = 0;
@@ -730,8 +730,6 @@ void setup() {
         quickPwrON();
         startIOTservices();
 
-        Serial.print("time@start: ");
-        Serial.println(millis());
 #if USE_SENSOR
         sensSW.start();
 #endif

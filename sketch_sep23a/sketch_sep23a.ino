@@ -1,9 +1,9 @@
-int pin = D1;
+int pin = D2;
 int x=255;
 
 void setup() {
   // put your setup code here, to run once:
-pinMode(pin, INPUT_PULLUP);
+pinMode(pin, INPUT);
 Serial.begin(9600);
 }
 
