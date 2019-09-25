@@ -26,7 +26,7 @@ SensorSwitch(int sensPin, int min_time, int to_time) {
         _to_time  = to_time;
 }
 void start() {
-        pinMode(_sensPin, INPUT);
+        pinMode(_sensPin, INPUT_PULLUP);
 }
 
 bool check_sensor() {
@@ -94,7 +94,7 @@ void off_function() {
 
 
 // ********** Sketch Services  ***********
-#define VER              "Wemos_1.2"
+#define VER              "Wemos_1.3"
 #define USE_INPUTS       true
 #define STATE_AT_BOOT    false // On or OFF at boot (Usually when using inputs, at boot/PowerOn - state should be off
 #define USE_DAILY_TO     true
@@ -110,7 +110,7 @@ void off_function() {
 
 // ********** myIOT Class ***********
 //~~~~~ Services ~~~~~~~~~~~
-#define USE_SERIAL       false
+#define USE_SERIAL       true
 #define USE_WDT          true
 #define USE_OTA          true
 #define USE_RESETKEEPER  true
@@ -118,7 +118,7 @@ void off_function() {
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 // ~~~~~~~ MQTT Topics ~~~~~~
-#define DEVICE_TOPIC "entrancePodest"
+#define DEVICE_TOPIC "sensor"
 #define MQTT_PREFIX  "myHome"
 #define MQTT_GROUP   "OutdoorLights"
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -210,18 +210,24 @@ bool last_sensState[NUM_SWITCHES];
 
 // ~~~~~~~~~~~ Using SMS Notification ~~~~~~
 #if USE_NOTIFY_TELE
+
+#define MAX_NOTI_1HR           10
+#define MIN_TIME_BETWEEN_NOTI  0.5 //in minutes
+#define MIN_TIME_FIRST_DET     5
+#define ADD_TIME_NEXT_DET      10
+#define NotifyMSG              "Detection in familyRoom"
 myTelegram teleNotify(BOT_TOKEN, CHAT_ID);
-byte MAX_NOTI_1HR          = 10;
-byte MIN_TIME_BETWEEN_NOTI = 1 ; //in minutes
+
 long lastNotify_clock      = 0;
 long firstNotify_clock     = 0;
 byte notifyCounter         = 0;
+
 #endif
 //####################################################
 
 // ~~~~~~~~~~~ Using Sensor ~~~~~~~~~~~
 #if USE_SENSOR
-SensorSwitch sensSW(D1, 30, 120);
+SensorSwitch sensSW(SENSOR_PIN, MIN_TIME_FIRST_DET, ADD_TIME_NEXT_DET);
 #endif
 
 
@@ -682,7 +688,7 @@ void check_PIR (byte sw) {
 
         if ( current_sens_state != last_sensState[sw]) {
                 last_sensState[sw] = current_sens_state;
-                if (TO[sw]->remain() == 0) {
+                if (TO[sw]->remain() == 0) { // if not in TO mode
                         if (current_sens_state) {
                                 switchIt("Sensor", sw, current_sens_state, "Detect", false);
                         }
@@ -697,18 +703,17 @@ void check_PIR (byte sw) {
 
                 iot.return_clock(time1);
                 iot.return_date(date1);
-                sprintf(comb, "[%s %s] %s", date1, time1, "front door Detection");
+                sprintf(comb, "[%s %s] %s", date1, time1, NotifyMSG);
 
-                if (millis() - firstNotify_clock >= 1000*60*60) {
+                if (millis() - firstNotify_clock >= 1000*60*60 || firstNotify_clock == 0 ) {
                         firstNotify_clock = millis();
                         notifyCounter = 0;
                 }
-
                 if (current_sens_state ) {
-                        if(millis() - lastNotify_clock < 60*1000*MIN_TIME_BETWEEN_NOTI  && notifyCounter <MAX_NOTI_1HR) {
-                                teleNotify.send_msg(comb);
+                        if(millis() - lastNotify_clock > 60*1000*MIN_TIME_BETWEEN_NOTI && notifyCounter <MAX_NOTI_1HR) {
                                 notifyCounter +=1;
                                 lastNotify_clock = millis();
+                                teleNotify.send_msg(comb);
                         }
                 }
 #endif
@@ -724,6 +729,9 @@ void setup() {
         startGPIOs();
         quickPwrON();
         startIOTservices();
+
+        Serial.print("time@start: ");
+        Serial.println(millis());
 #if USE_SENSOR
         sensSW.start();
 #endif
