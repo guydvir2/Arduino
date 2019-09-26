@@ -8,7 +8,7 @@
 #include <Adafruit_SSD1306.h>
 
 #define SCREEN_WIDTH        128
-#define SCREEN_HEIGHT       32    // 32 2rows or 64 4 rows
+#define SCREEN_HEIGHT       64    // 32 2rows or 64 4 rows
 #define OLED_RESET          LED_BUILTIN
 #define buttonPin           D4
 
@@ -20,10 +20,9 @@ Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 #define MQTT_PREFIX         "myHome"
 #define MQTT_GROUP          "OLED"
 #define ADD_MQTT_FUNC       addiotnalMQTT
-#define USE_SERIAL          true
+#define USE_SERIAL          false
 #define USE_WDT             true
 #define USE_OTA             true
-#define USE_FAT             true // Flash Assist
 #define USE_RESETKEEPER     false
 #define USE_FAILNTP         true
 
@@ -32,8 +31,7 @@ myIOT iot(DEVICE_TOPIC);
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 // ~~~~~~~~~~~~~~ display OLED ~~~~~~~~~~~~~
-void center_text(int i, char *line1, char *line2 = "", char *line3 = "",
-                 char *line4 = "", byte shift = 0) {
+void center_text(int i, char *line1, char *line2 = "", char *line3 = "",char *line4 = "", byte shift = 0) {
         char *Lines[] = {line1, line2, line3, line4};
         display.clearDisplay();
         display.setTextSize(i);
@@ -62,51 +60,6 @@ void displayClock_OLED() {
 }
 
 void addiotnalMQTT(char *incoming_msg) {
-        // char msg[100];
-        //
-        // if (strcmp(incoming_msg, "status") == 0) {
-        //         sprintf(msg, "Status: [%s] Mode", disp_stopWatch_flag ? "StopWatch" : "Clock");
-        //         iot.pub_msg(msg);
-        // }
-        // else if (strcmp(incoming_msg, "start") == 0) {
-        //         sprintf(msg, "StopWatch: [start]");
-        //         start_stopwatch(now());
-        //         iot.pub_msg(msg);
-        // }
-        // else if (strcmp(incoming_msg, "stop") == 0 ) {
-        //         sprintf(msg, "StopWatch: [stop]");
-        //         stop_stopwatch();
-        //         iot.pub_msg(msg);
-        // }
-        // else if (strcmp(incoming_msg, "clock") == 0) {
-        //         sprintf(msg, "Mode: [Clock]");
-        //         disp_stopWatch_flag = !true;
-        //         json.setValue(DISPMODE_KEY, 0);
-        //         iot.pub_msg(msg);
-        // }
-        // else if (strcmp(incoming_msg, "stopwatch") == 0) {
-        //         sprintf(msg, "Mode: [StopWatch]");
-        //         disp_stopWatch_flag = true;
-        //         json.setValue(DISPMODE_KEY, 1);
-        //         iot.pub_msg(msg);
-        // }
-        // else if (strcmp(incoming_msg, "help") == 0) {
-        //         sprintf(msg, "Help: [status, start, stop, clock, stopwatch, uptime, format, help] , [ver, boot, reset, ip, ota]");
-        //         iot.pub_msg(msg);
-        // }
-        // else if (strcmp(incoming_msg, "ver") == 0 ) {
-        //         sprintf(msg, "ver:[%s], lib:[%s], WDT:[%d], OTA:[%d], SERIAL:[%d], FAT:[%d], tBetweenReset[%d sec]", VER, iot.ver, USE_WDT, USE_OTA, USE_SERIAL, USE_FAT, allowedTime_betweenReboots);
-        //         iot.pub_msg(msg);
-        // }
-        // else if (strcmp(incoming_msg, "uptime") == 0 ) {
-        //         sprintf(msg, "UpTime: %02d days  %02d:%02d:%02d", days, hours, minutes, seconds);
-        //         iot.pub_msg(msg);
-        // }
-        // else if (strcmp(incoming_msg, "format") == 0 ) {
-        //         sprintf(msg, "Flash Format started");
-        //         json.format();
-        //         iot.pub_msg(msg);
-        // }
 }
 
 void setup() {
@@ -125,7 +78,6 @@ void setup() {
 }
 void loop() {
         displayClock_OLED();
-
         iot.looper();
         delay(300);
 }

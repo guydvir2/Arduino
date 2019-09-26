@@ -15,7 +15,7 @@
  */
 
 #include <myIOT.h>
-#include <myJSON.h>
+// #include <myJSON.h>
 #include <Arduino.h>
 #include <TimeLib.h>
 

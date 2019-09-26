@@ -95,7 +95,7 @@ void off_function() {
 
 // ********** Sketch Services  ***********
 #define VER              "Wemos_1.3"
-#define USE_INPUTS       true
+#define USE_INPUTS       false
 #define STATE_AT_BOOT    false // On or OFF at boot (Usually when using inputs, at boot/PowerOn - state should be off
 #define USE_DAILY_TO     true
 #define IS_SONOFF        false
@@ -105,7 +105,7 @@ void off_function() {
 
 // ********** TimeOut Time vars  ***********
 #define NUM_SWITCHES     1
-#define TIMEOUT_SW0      3*60 // mins for SW0
+#define TIMEOUT_SW0      1*60 // mins for SW0
 #define TIMEOUT_SW1      2*60 // mins
 
 // ********** myIOT Class ***********
@@ -118,9 +118,9 @@ void off_function() {
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 // ~~~~~~~ MQTT Topics ~~~~~~
-#define DEVICE_TOPIC "TableLEDS"
+#define DEVICE_TOPIC "entranceLEDS"
 #define MQTT_PREFIX  "myHome"
-#define MQTT_GROUP   "inLights"
+#define MQTT_GROUP   "outLights"
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 #define ADD_MQTT_FUNC addiotnalMQTT
@@ -157,7 +157,7 @@ struct dTO {
         bool useFlash;
 };
 dTO defaultVals = {{0, 0, 0}, {0, 0, 59}, 0, 0, 0};
-dTO dailyTO_0   = {{16, 30, 0}, {0, 30, 0}, 1, 0, 0};
+dTO dailyTO_0   = {{21, 30, 0}, {23, 30, 0}, 1, 0, 0};
 dTO dailyTO_1   = {{20, 00, 0}, {22, 0, 0}, 1, 0, 0};
 dTO *dailyTO[]  = {&dailyTO_0, &dailyTO_1};
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -187,7 +187,7 @@ eeproms_storage hReset_eeprom;
 #define RELAY2          D2
 #define INPUT1          D7
 #define INPUT2          D5
-#define SENSOR_PIN      D8
+#define SENSOR_PIN      D1
 
 #define LEDpin          13
 byte relays[]  = {RELAY1, RELAY2};
@@ -212,10 +212,10 @@ bool last_sensState[NUM_SWITCHES];
 #if USE_NOTIFY_TELE
 
 #define MAX_NOTI_1HR           10
-#define MIN_TIME_BETWEEN_NOTI  0.5 //in minutes
+#define MIN_TIME_BETWEEN_NOTI  0.25 //in minutes
 #define MIN_TIME_FIRST_DET     15   // sec
 #define ADD_TIME_NEXT_DET      120  // sec
-#define NotifyMSG              "FamilyRoom detection"
+#define NotifyMSG              "frontDoor detection"
 myTelegram teleNotify(BOT_TOKEN, CHAT_ID);
 
 long lastNotify_clock  = 0;
@@ -524,10 +524,10 @@ void addiotnalMQTT(char incoming_msg[50]) {
                 }
         }
         else if (strcmp(incoming_msg, "ver") == 0 ) {
-                sprintf(msg, "ver #1: [%s], lib: [%s], WDT: [%d], OTA: [%d], SERIAL: [%d], ResetKeeper[%d], FailNTP[%d], Use_Sensor[%d], Use_Telegram[%d], HardReboot[%d]", VER, iot.ver, USE_WDT, USE_OTA, USE_SERIAL, USE_RESETKEEPER, USE_FAILNTP, USE_SENSOR, USE_NOTIFY_TELE, HARD_REBOOT);
+                sprintf(msg, "ver #1: [%s], lib: [%s], WDT: [%d], OTA: [%d], SERIAL: [%d], ResetKeeper[%d], FailNTP[%d]", VER, iot.ver, USE_WDT, USE_OTA, USE_SERIAL, USE_RESETKEEPER, USE_FAILNTP);
                 iot.pub_msg(msg);
-                sprintf(msg, "ver #2: DailyTO[%d], UseInputs[%d], STATE_AT_BOOT[%d]",
-                        USE_DAILY_TO, USE_INPUTS, STATE_AT_BOOT);
+                sprintf(msg, "ver #2: DailyTO[%d], UseInputs[%d], STATE_AT_BOOT[%d], Use_Sensor[%d], Use_Telegram[%d], HardReboot[%d]",
+                        USE_DAILY_TO, USE_INPUTS, STATE_AT_BOOT, USE_SENSOR, USE_NOTIFY_TELE, HARD_REBOOT);
                 iot.pub_msg(msg);
         }
         else if (strcmp(incoming_msg, "help") == 0) {
@@ -660,7 +660,7 @@ void addiotnalMQTT(char incoming_msg[50]) {
 }
 
 // ~~~~~ Telegram ~~~~~~
-void telecmds(String p1, String p2, String p3, char p4[40]) {
+void telecmds(String in_msg, String from, String chat_id, char snd_msg[50]) {
         // char msg[50];
         // if(p1=="/on"){
         //   TO[0]->restart_to();
@@ -673,16 +673,14 @@ void telecmds(String p1, String p2, String p3, char p4[40]) {
         // else if(p1=="/off"){
         //
         // }
-        // else if(p1=="/status"){
-        //   // teleNotify.send_msg(p1);
-        //   // teleNotify.send_msg(p2);
-        //   // teleNotify.send_msg(p3);
-        //   teleNotify.send_msg(p4);
-        // }
+        if(in_msg=="/status"){
+          sprintf(snd_msg,"FUCK+ME");
+        }
 
 }
 
 // ~~~~~~PIR SENSOR ~~~~~
+#if USE_SENSOR
 void check_PIR (byte sw) {
         bool current_sens_state = sensSW.check_sensor();
 
@@ -719,6 +717,7 @@ void check_PIR (byte sw) {
 #endif
         }
 }
+#endif
 
 void setup() {
 #if HARD_REBOOT
@@ -771,8 +770,8 @@ void loop() {
                 }
                 timeOutLoop(i);
         }
-        if (USE_SENSOR) {
-                check_PIR(0);
-        }
+        #if USE_SENSOR
+        check_PIR(0);
+        #endif
         delay(100);
 }
