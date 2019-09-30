@@ -333,6 +333,7 @@ void check_hardReboot(byte i = 1, byte threshold = 2) {
         }
 }
 #endif
+
 void quickPwrON() {
         /*
            power on before iot starts,

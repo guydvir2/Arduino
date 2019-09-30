@@ -6,3 +6,5 @@
 #define BOT_TOKEN_2 "497268459:AAESYm27tJfNXwnnnn0slbmWnkqvbWgQEyw"
 #define BOT_TOKEN "812406965:AAEaV-ONCIru8ePuisuMfm0ECygsm5adZHs"
 #define CHAT_ID  "596123373"
+
+#define IFTTT_KEY "cFLymB4JT9tlODsKLFn9TA"

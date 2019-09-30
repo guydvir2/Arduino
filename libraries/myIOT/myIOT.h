@@ -115,7 +115,7 @@ char prefixTopic  [MaxTopicLength];
 char deviceTopic  [MaxTopicLength];
 char addGroupTopic[MaxTopicLength];
 
-const char *ver     = "iot_4.61";
+const char *ver     = "iot_4.7";
 char timeStamp[20];
 long updated_bootTime  = 0;
 int resetIntervals     = 10;
@@ -144,7 +144,8 @@ long lastReconnectTry           = 0;
 
 //MQTT broker parameters
 char* mqtt_server;
-char* mqtt_server2 = "iot.eclipse.org";
+// char* mqtt_server2 = "iot.eclipse.org";
+char* mqtt_server2 = "broker.hivemq.com";
 char* user  = "";
 char* passw = "";
 // ######################################
@@ -202,6 +203,7 @@ class timeOUT {
   #define _key1 "_endTO"
   #define _key2 "_codedTO"
   #define _key3 "_updatedTO"
+  #define _key4 "_startTO"
 
 private:
 long _calc_endTO  = 0; // corrected clock ( case of restart)
@@ -212,6 +214,7 @@ public:
 int inCodeTO           = 0;   // default value for TO ( hard coded )
 int updatedTO_inFlash  = 0;
 long endTO_inFlash     = 0; // clock to stop TO
+long startTO_inFlash   = 0; // clock TO started
 
 
 public:
@@ -226,10 +229,12 @@ void endNow();
 void updateTOinflash(int TO);
 void restore_to();
 void switchOFF();
+void getStart_to(long getVal);
 
 FVars inCodeTimeOUT_inFlash;
 FVars endTimeOUT_inFlash;
 FVars updatedTimeOUT_inFlash;
+FVars startTimeOUT_inFlash;
 
 private:
 void switchON();

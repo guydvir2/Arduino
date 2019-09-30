@@ -20,7 +20,7 @@ Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 #define MQTT_PREFIX         "myHome"
 #define MQTT_GROUP          "OLED"
 #define ADD_MQTT_FUNC       addiotnalMQTT
-#define USE_SERIAL          false
+#define USE_SERIAL          true
 #define USE_WDT             true
 #define USE_OTA             true
 #define USE_RESETKEEPER     false
@@ -72,7 +72,7 @@ void setup() {
         iot.resetFailNTP   = USE_FAILNTP;
         strcpy(iot.prefixTopic, MQTT_PREFIX);
         strcpy(iot.addGroupTopic, MQTT_GROUP);
-        iot.start_services(ADD_MQTT_FUNC);
+        iot.start_services(ADD_MQTT_FUNC,"Xiaomi_ADA6","guyd5161");
 
         display.begin(SSD1306_SWITCHCAPVCC, 0x3C);
 }

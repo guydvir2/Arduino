@@ -228,7 +228,8 @@ void myIOT::startMQTT() {
                         Serial.println("MQTT SERVER1");
                 }
         }
-        else if (Ping.ping(mqtt_server2)) {
+        // else if (Ping.ping(mqtt_server2)) {
+        else{
                 mqttClient.setServer(mqtt_server2, 1883);
                 strcat(bootErrors,"** MQTT SERVER ERR **");
                 if(useSerial) {
@@ -275,9 +276,6 @@ int myIOT::subscribeMQTT() {
                                 }
                                 else {
                                         notifyOnline();
-                                        // sprintf(msg, "<< Connected to MQTT - Reload [%d]>> ", mqttFailCounter);
-                                        // pub_err(msg);
-
                                 }
                                 for (int i = 0; i < sizeof(topicArry) / sizeof(char *); i++) {
                                         if (strcmp(topicArry[i],"")!=0) {
@@ -612,7 +610,7 @@ void FVars::format(){
 
 // ~~~~~~~~~~~ TimeOut Class ~~~~~~~~~~~~
 timeOUT::timeOUT(char* sw_num, int def_val)
-        : endTimeOUT_inFlash(_key1,sw_num), inCodeTimeOUT_inFlash(_key2,sw_num), updatedTimeOUT_inFlash(_key3,sw_num)
+        : endTimeOUT_inFlash(_key1,sw_num), inCodeTimeOUT_inFlash(_key2,sw_num), updatedTimeOUT_inFlash(_key3,sw_num), startTimeOUT_inFlash(_key4,sw_num)
 {
         /* endTimeOUT_inFlash     -- Save clock when TO ends (sec from epoch)
            inCodeTimeOUT_inFlash  -- save value of TO defined in code [ minutes]
@@ -637,6 +635,9 @@ timeOUT::timeOUT(char* sw_num, int def_val)
                 if (tempVal_inFlash != inCodeTO) {
                         inCodeTimeOUT_inFlash.setValue(inCodeTO);
                 }
+        }
+        if(startTimeOUT_inFlash.getValue(startTO_inFlash) != true) { // not able to read
+                startTimeOUT_inFlash.setValue(0);
         }
 
         if (updatedTO_inFlash != 0) {
@@ -709,6 +710,8 @@ void timeOUT::setNewTimeout(int to, bool mins){
 
         }
         endTimeOUT_inFlash.setValue(_calc_endTO); // store end_to to flash
+        startTimeOUT_inFlash.setValue(now());
+
         switchON();
 }
 void timeOUT::restart_to(){
@@ -755,7 +758,9 @@ void timeOUT::convert_epoch2clock(long t1, long t2, char* time_str, char* days_s
         sprintf(days_str, "%02d days", days);
         sprintf(time_str, "%02d:%02d:%02d", hours, minutes, seconds);
 }
-
+void timeOUT::getStart_to(long getVal){
+  startTimeOUT_inFlash.getValue(getVal);
+}
 
 // ~~~~~~~~~~~ myTelegram Class ~~~~~~~~~~~~
 myTelegram::myTelegram(char* Bot, char* chatID, char* ssid, char* password) : bot (Bot, client)

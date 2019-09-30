@@ -11,7 +11,7 @@
 #include <WiFiClientSecure.h>
 
 //------- Replace the following! ------
-char ssid[] = "Xiaomi_D6C8";       // your network SSID (name)
+char ssid[] = "Xiaomi_ADA6";       // your network SSID (name)
 char password[] = "guyd5161";  // your network key
 
 
