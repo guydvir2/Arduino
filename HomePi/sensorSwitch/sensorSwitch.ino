@@ -110,7 +110,7 @@ void off_function() {
 
 // ********** myIOT Class ***********
 //~~~~~ Services ~~~~~~~~~~~
-#define USE_SERIAL       false
+#define USE_SERIAL       true
 #define USE_WDT          true
 #define USE_OTA          true
 #define USE_RESETKEEPER  true
@@ -118,9 +118,9 @@ void off_function() {
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 // ~~~~~~~ MQTT Topics ~~~~~~
-#define DEVICE_TOPIC "entranceLEDS"
+#define DEVICE_TOPIC "tableLEDS"
 #define MQTT_PREFIX  "myHome"
-#define MQTT_GROUP   "outLights"
+#define MQTT_GROUP   "inLights"
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 #define ADD_MQTT_FUNC addiotnalMQTT
@@ -157,7 +157,7 @@ struct dTO {
         bool useFlash;
 };
 dTO defaultVals = {{0, 0, 0}, {0, 0, 59}, 0, 0, 0};
-dTO dailyTO_0   = {{21, 30, 0}, {23, 30, 0}, 1, 0, 0};
+dTO dailyTO_0   = {{16, 30, 0}, {0, 30, 0}, 1, 0, 0};
 dTO dailyTO_1   = {{20, 00, 0}, {22, 0, 0}, 1, 0, 0};
 dTO *dailyTO[]  = {&dailyTO_0, &dailyTO_1};
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -213,27 +213,34 @@ bool last_sensState[NUM_SWITCHES];
 
 #define MAX_NOTI_1HR           10
 #define MIN_TIME_BETWEEN_NOTI  0.25 //in minutes
-#define MIN_TIME_FIRST_DET     15   // sec
-#define ADD_TIME_NEXT_DET      120  // sec
-#define NotifyMSG              "frontDoor detection"
+#define NotifyMSG              "familyRoom detection"
 myTelegram teleNotify(BOT_TOKEN, CHAT_ID);
 
 long lastNotify_clock  = 0;
 long firstNotify_clock = 0;
 byte notifyCounter     = 0;
+bool stop_tele_noti    = false;
 
 #endif
 //####################################################
 
 // ~~~~~~~~~~~ Using Sensor ~~~~~~~~~~~
 #if USE_SENSOR
+
+#define MIN_TIME_FIRST_DET     60   // sec
+#define ADD_TIME_NEXT_DET      600  // sec
+dTO allowed_on_time = {{9, 0, 0}, {16, 0, 0}, 0, 0, 0};
+
+
 SensorSwitch sensSW(SENSOR_PIN, MIN_TIME_FIRST_DET, ADD_TIME_NEXT_DET);
 #endif
-
 
 void switchIt (char *txt1, int sw_num, bool state, char *txt2 = "", bool show_timeout = true) {
         char msg [50], msg1[50], msg2[50], states[50], tempstr[50];
         char *word = {"Turned"};
+
+        Serial.print("realystate: ");
+        Serial.println(digitalRead(relays[sw_num]));
 
         if (digitalRead(relays[sw_num]) != state || boot_overide == true) {
                 digitalWrite(relays[sw_num], state);
@@ -307,6 +314,9 @@ void startGPIOs() {
                 if (USE_INPUTS) {
                         inputs_lastState[i] = digitalRead(inputs[i]);
                 }
+                // if (USE_SENSOR) {
+                //         last_sensState[i]=digitalRead(SENSOR_PIN);
+                // }
 
                 swState [i] = 0;
                 last_swState [i] = 0;
@@ -661,26 +671,40 @@ void addiotnalMQTT(char incoming_msg[50]) {
 
 // ~~~~~ Telegram ~~~~~~
 void telecmds(String in_msg, String from, String chat_id, char snd_msg[50]) {
-        // char msg[50];
-        // if(p1=="/on"){
-        //   TO[0]->restart_to();
-        //   sprintf(msg, "TimeOut: Switch[#%d] [Restart]",0);
-        //   iot.pub_msg(msg);
-        //   iot.notifyOffline();
-        //   iot.sendReset("TimeOut restart");
-        //
-        // }
-        // else if(p1=="/off"){
-        //
-        // }
-        if(in_msg=="/status"){
-          sprintf(snd_msg,"FUCK+ME");
+        if(in_msg=="/status") {
+                char msg [50], msg1[50], msg2[50], states[50], tempstr[50];
+                char *word = {"Turned"};
+                byte sw_num = 0;
+                bool state;
+                if (TO[sw_num]->remain() == 0) {
+                        TO[sw_num]->convert_epoch2clock(now() + TO[sw_num]->remain(), now(), msg1, msg2);
+                }
+                state = digitalRead(relays[sw_num]);
+                sprintf(snd_msg,"%s is [%s]",DEVICE_TOPIC,state ? "ON" : "OFF");
+        }
+        else if (in_msg == "/stop_notify") {
+                stop_tele_noti = true;
+                sprintf(snd_msg,"Sensor alerts canceled");
+        }
+        else if (in_msg == "/start_notify") {
+                stop_tele_noti = false;
+                sprintf(snd_msg,"Sensor alerts allowed");
         }
 
 }
 
 // ~~~~~~PIR SENSOR ~~~~~
 #if USE_SENSOR
+void led_flicker(byte sw=0){
+        long startTime = millis();
+
+        while (millis() - startTime < 3000) {
+                digitalWrite(relays[sw],!RelayOn);
+                delay(20);
+                digitalWrite(relays[sw],RelayOn);
+                delay(500);
+        }
+}
 void check_PIR (byte sw) {
         bool current_sens_state = sensSW.check_sensor();
 
@@ -688,11 +712,19 @@ void check_PIR (byte sw) {
                 last_sensState[sw] = current_sens_state;
                 if (TO[sw]->remain() == 0) { // if not in TO mode
                         if (current_sens_state) {
-                                switchIt("Sensor", sw, current_sens_state, "Detect", false);
+                                // if (allow_on_sensor(allowed_on_time)) {
+                                        switchIt("Sensor", sw, current_sens_state, "Detect", false);
+                                // }
                         }
                         else {
                                 switchIt("Sensor", sw, current_sens_state, "", false);
                         }
+                }
+                else if (current_sens_state) {
+                        char msg[20];
+                        led_flicker();
+                        sprintf(msg, "%s: Detection", "Sensor");
+                        iot.pub_msg(msg);
                 }
 #if USE_NOTIFY_TELE
                 char time1[20];
@@ -711,12 +743,41 @@ void check_PIR (byte sw) {
                         if(millis() - lastNotify_clock > 60*1000*MIN_TIME_BETWEEN_NOTI && notifyCounter <MAX_NOTI_1HR) {
                                 notifyCounter +=1;
                                 lastNotify_clock = millis();
-                                teleNotify.send_msg(comb);
+                                if (stop_tele_noti == false) {
+                                        teleNotify.send_msg(comb);
+                                }
                         }
                 }
 #endif
         }
 }
+bool allow_on_sensor(dTO &dailyTO){
+        char msg [50], msg2[50];
+        time_t t = now();
+
+        Serial.println(hour(t));
+        Serial.println(minute(t));
+        Serial.println(second(t));
+        Serial.println(dailyTO.on[0]);
+        Serial.println(dailyTO.off[0]);
+        Serial.println(dailyTO.on[1]);
+        Serial.println(dailyTO.off[1]);
+        Serial.println(dailyTO.on[2]);
+        Serial.println(dailyTO.off[2]);
+
+        // if (hour(t) > dailyTO.on[0] && hour(t) < dailyTO.off[0] ){
+        //   return 1;
+        // }
+        //
+        //     minute(t) >= dailyTO.on[1] && minute(t) <= dailyTO.off[1] &&
+        //     second(t) >= dailyTO.on[2] && second(t) <= dailyTO.off[2]) {
+        //         return 1;
+        // }
+        // else {
+        //         return 0;
+        // }
+}
+
 #endif
 
 void setup() {
