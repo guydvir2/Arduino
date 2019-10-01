@@ -203,10 +203,10 @@ bool boot_overide       = true;
 #define RelayOn          HIGH
 #define SwitchOn         LOW
 
-bool swState[NUM_SWITCHES];
-bool last_swState[NUM_SWITCHES];
-bool inputs_lastState[NUM_SWITCHES];
-bool last_sensState[NUM_SWITCHES];
+bool relState[NUM_SWITCHES];
+bool last_relState[NUM_SWITCHES];
+bool inputState[NUM_SWITCHES];
+bool sensState[NUM_SWITCHES];
 
 // ~~~~~~~~~~~ Using SMS Notification ~~~~~~
 #if USE_NOTIFY_TELE
@@ -274,10 +274,10 @@ void checkSwitch_Pressed (byte sw, bool momentary = true) {
                 }
         }
         else {
-                if (digitalRead(inputs[sw]) != inputs_lastState[sw]) {
+                if (digitalRead(inputs[sw]) != inputState[sw]) {
                         delay(50);
-                        if (digitalRead(inputs[sw]) != inputs_lastState[sw]) {
-                                inputs_lastState[sw] = digitalRead(inputs[sw]);
+                        if (digitalRead(inputs[sw]) != inputState[sw]) {
+                                inputState[sw] = digitalRead(inputs[sw]);
                                 if (digitalRead(inputs[sw]) == SwitchOn) {
                                         TO[sw]->restart_to();
                                 }
@@ -305,11 +305,11 @@ void startGPIOs() {
                 pinMode(inputs[i], INPUT_PULLUP);
 
                 if (USE_INPUTS) {
-                        inputs_lastState[i] = digitalRead(inputs[i]);
+                        inputState[i] = digitalRead(inputs[i]);
                 }
 
-                swState [i] = 0;
-                last_swState [i] = 0;
+                relState [i] = 0;
+                last_relState [i] = 0;
         }
         if (IS_SONOFF) {
                 pinMode(LEDpin, OUTPUT);
@@ -397,14 +397,14 @@ void timeOutLoop(byte i) {
         char msg_t[50], msg[50];
 
         if (iot.mqtt_detect_reset != 2) {
-                swState[i] = TO[i]->looper();
-                if (swState[i] != last_swState[i]) { // change state (ON <-->OFF)
-                        switchIt("TimeOut", i, swState[i]);
+                relState[i] = TO[i]->looper();
+                if (relState[i] != last_relState[i]) { // change state (ON <-->OFF)
+                        switchIt("TimeOut", i, relState[i]);
                         if (IS_SONOFF) {
-                                digitalWrite(LEDpin, !swState[i]);
+                                digitalWrite(LEDpin, !relState[i]);
                         }
                 }
-                last_swState[i] = swState[i];
+                last_relState[i] = relState[i];
         }
 }
 #if USE_DAILY_TO
@@ -674,8 +674,8 @@ void telecmds(String in_msg, String from, String chat_id, char snd_msg[50]) {
         // else if(p1=="/off"){
         //
         // }
-        if(in_msg=="/status"){
-          sprintf(snd_msg,"FUCK+ME");
+        if(in_msg=="/status") {
+                sprintf(snd_msg,"FUCK+ME");
         }
 
 }
@@ -685,8 +685,8 @@ void telecmds(String in_msg, String from, String chat_id, char snd_msg[50]) {
 void check_PIR (byte sw) {
         bool current_sens_state = sensSW.check_sensor();
 
-        if ( current_sens_state != last_sensState[sw]) {
-                last_sensState[sw] = current_sens_state;
+        if ( current_sens_state != sensState[sw]) {
+                sensState[sw] = current_sens_state;
                 if (TO[sw]->remain() == 0) { // if not in TO mode
                         if (current_sens_state) {
                                 switchIt("Sensor", sw, current_sens_state, "Detect", false);

@@ -10,9 +10,9 @@
 
 // ********** Sketch Services  ***********
 #define VER "Wemos_4.0"
-#define STATE_AT_BOOT    false // On or OFF at boot (Usually when using inputs, at boot/PowerOn - state should be off
 #define USE_DAILY_TO     false
-#define USE_OLED         true
+int START_dailyTO[3]={8,0,0};
+int END_dailyTO[3]={18,0,0};
 
 // ********** TimeOut Time vars  ***********
 #define NUM_SWITCHES     1
@@ -66,8 +66,8 @@ struct dTO {
         bool useFlash;
 };
 dTO defaultVals = {{0, 0, 0}, {0, 0, 59}, 0, 0, 0};
-dTO dailyTO_0   = {{18, 0, 0}, {19, 0, 0}, 1, 0, 0};
-dTO dailyTO_1   = {{20, 00, 0}, {22, 0, 0}, 1, 0, 0};
+dTO dailyTO_0   = {{18, 0, 0}, {0, 0, 59} , 1, 0, 0};
+dTO dailyTO_1   = {{20, 0, 0}, {22, 0, 0}, 1, 0, 0};
 dTO *dailyTO[]  = {&dailyTO_0, &dailyTO_1};
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -84,53 +84,39 @@ byte relays[]  = {RELAY1, RELAY2};
 byte inputs[]  = {INPUT1, INPUT2};
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-// ~~~~ ResetKeeper Vars ~~~~~~~
-int rebootState         = 0;
-bool checkrebootState   = true;
-bool boot_overide       = true;
-
 // ~~~~~~~~ state Vars ~~~~~~~~
 #define RelayOn          HIGH
 #define SwitchOn         LOW
 #define ledON            HIGH
 
-bool swState[NUM_SWITCHES];
-bool last_swState[NUM_SWITCHES];
-bool inputs_lastState[NUM_SWITCHES];
-bool relayState;
+bool relState[NUM_SWITCHES];
+bool last_relState[NUM_SWITCHES];
 //##########################
 
 // ~~~~~~~~~~~~ OLED ~~~~~~~~~~~~~~~~~~~
-#if USE_OLED
-
 #define SCREEN_WIDTH  128
 #define SCREEN_HEIGHT 64 // double screen size
 #define OLED_RESET    LED_BUILTIN
-//  int SCLpin       = D1;
-//  int SDApin       = D2;
 long swapLines_counter = 0;
 
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
-
-#endif
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 // TimeOut Constants
 int maxTO                    = 150; //minutes to timeout even in ON state
 int timeIncrements           = 15; //minutes each button press
 int timeInc_counter          = 0; // counts number of presses to TO increments
+int delayBetweenPress        = 500; // consequtive presses to reset
+int deBounceInt              = 50;
+unsigned long pressTO_input1 = 0; // TimeOUT for next press
 unsigned long startTime      = 0;
 unsigned long endTime        = 0;
-int delayBetweenPress        = 500; // consequtive presses to reset
-unsigned long pressTO_input1 = 0; // TimeOUT for next press
-const int deBounceInt        = 50;
 // ##########################
 
 char timeStamp [50];
 char dateStamp [50];
 char msg[150];
 char parameters [2][4];
-
 
 
 void switchIt (char *txt1, int sw_num, bool state, char *txt2 = "", bool show_timeout = true) {
@@ -158,39 +144,6 @@ void switchIt (char *txt1, int sw_num, bool state, char *txt2 = "", bool show_ti
 
         }
 }
-// void checkSwitch_Pressed (byte sw, bool momentary = true) {
-//         if (momentary) {
-//                 if (digitalRead(inputs[sw]) == LOW) {
-//                         delay(50);
-//                         if (digitalRead(inputs[sw]) == LOW) {
-//                                 if (digitalRead(relays[sw]) == RelayOn) {
-//                                         TO[sw]->endNow();
-//                                 }
-//                                 else {
-//                                         TO[sw]->restart_to();
-//                                 }
-//                                 delay(500);
-//                         }
-//                 }
-//         }
-//         else {
-//                 if (digitalRead(inputs[sw]) != inputs_lastState[sw]) {
-//                         delay(50);
-//                         if (digitalRead(inputs[sw]) != inputs_lastState[sw]) {
-//                                 inputs_lastState[sw] = digitalRead(inputs[sw]);
-//                                 if (digitalRead(inputs[sw]) == SwitchOn) {
-//                                         TO[sw]->restart_to();
-//                                 }
-//                                 else {
-//                                         TO[sw]->endNow();
-//                                 }
-//                         }
-//                 }
-//         }
-// }
-
-
-
 void startIOTservices() {
         iot.useSerial      = USE_SERIAL;
         iot.useWDT         = USE_WDT;
@@ -205,10 +158,9 @@ void startGPIOs() {
         for (int i = 0; i < NUM_SWITCHES; i++) {
                 pinMode(relays[i], OUTPUT);
                 pinMode(inputs[i], INPUT_PULLUP);
-                inputs_lastState[i] = digitalRead(inputs[i]);
 
-                swState [i] = 0;
-                last_swState [i] = 0;
+                relState [i] = 0;
+                last_relState [i] = 0;
         }
         pinMode(buttonLED_Pin, OUTPUT);
 }
@@ -218,11 +170,11 @@ void timeOutLoop(byte i) {
         char msg_t[50], msg[50];
 
         if (iot.mqtt_detect_reset != 2) {
-                swState[i] = TO[i]->looper();
-                if (swState[i] != last_swState[i]) { // change state (ON <-->OFF)
-                        switchIt("TimeOut", i, swState[i]);
+                relState[i] = TO[i]->looper();
+                if (relState[i] != last_relState[i]) { // change state (ON <-->OFF)
+                        switchIt("TimeOut", i, relState[i]);
                 }
-                last_swState[i] = swState[i];
+                last_relState[i] = relState[i];
         }
 }
 #if USE_DAILY_TO
@@ -344,13 +296,10 @@ void setup() {
 
 // ~~~~ OLED ~~~~~~~
 void startOLED() {
-#if (USE_OLED)
         display.begin(SSD1306_SWITCHCAPVCC, 0x3C);
         display.clearDisplay();
-#endif
 }
 void OLED_CenterTXT(int char_size, char *line1, char *line2 = "", char *line3 = "", char *line4 = "", byte x_shift = 0,  byte y_shift = 0) {
-#if (USE_OLED)
         char *Lines[] = {line1, line2, line3, line4};
         display.clearDisplay();
         display.setTextSize(char_size);
@@ -365,10 +314,8 @@ void OLED_CenterTXT(int char_size, char *line1, char *line2 = "", char *line3 = 
                 }
         }
         display.display();
-#endif
 }
 void OLED_SideTXT(int char_size, char *line1, char *line2 = "", char *line3 = "", char *line4 = "") {
-#if (USE_OLED)
         char *Lines[] = {line1, line2, line3, line4};
         display.clearDisplay();
         display.setTextSize(char_size);
@@ -415,14 +362,12 @@ void OLED_SideTXT(int char_size, char *line1, char *line2 = "", char *line3 = ""
                 }
         }
         display.display();
-#endif
 }
 void OLEDlooper() {
-#if (USE_OLED)
         char time_on_char[20];
         char time2Off_char[20];
 
-        if (last_swState[0] == RelayOn ) {
+        if (last_relState[0] == RelayOn ) {
                 long startT;
                 TO[0]->getStart_to(startT);
                 int timeON = now() - startT;
@@ -458,8 +403,6 @@ void OLEDlooper() {
                         swapLines_counter = 0;
                 }
         }
-
-#endif
 }
 // ~~~~~~~~~~~~~~~
 
@@ -530,7 +473,7 @@ void Switch_1_looper() {
                 // CASE #1 : Button is pressed. Delay creates a delay when buttons is pressed constantly
                 if (digitalRead(INPUT1) == SwitchOn && millis() - pressTO_input1 > delayBetweenPress) {
                         // CASE of it is first press and Relay was off - switch it ON, no timer.
-                        if ( timeInc_counter == 0 && last_swState[0] == !RelayOn ) { // first press turns on
+                        if ( timeInc_counter == 0 && last_relState[0] == !RelayOn ) { // first press turns on
                                 switchIt("Button", 0, 1, 0);
                                 timeInc_counter += 1;
                         }
@@ -568,7 +511,7 @@ void addiotnalMQTT(char *incoming_msg) {
                 iot.pub_msg(msg);
         }
         else if (strcmp(incoming_msg, "ver") == 0 ) {
-                sprintf(msg, "ver:[%s], lib:[%s], WDT:[%d], OTA:[%d], SERIAL:[%d], OLED[%d]", VER, iot.ver, USE_WDT, USE_OTA, USE_SERIAL, USE_OLED);
+                sprintf(msg, "ver:[%s], lib:[%s], WDT:[%d], OTA:[%d], SERIAL:[%d]", VER, iot.ver, USE_WDT, USE_OTA, USE_SERIAL);
                 iot.pub_msg(msg);
         }
         else if (strcmp(incoming_msg, "on") == 0 ) {
