@@ -1,6 +1,5 @@
-int pin = D2;
-int x=255;
-
+int swPin = D8;
+int relPin
 void setup() {
   // put your setup code here, to run once:
 pinMode(pin, INPUT);

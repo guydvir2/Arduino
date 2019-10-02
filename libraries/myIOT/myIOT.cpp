@@ -111,8 +111,10 @@ void myIOT::networkStatus() {
                 }
                 else if (noNetwork_Clock == 0) { // first time no MQTT, wifi OK
                         noNetwork_Clock  = millis();
+                        Serial.println("NO_NETWORK FAIL2");
                 }
                 else if (noNetwork_Clock !=0 ) {  // WIFI OK, no MQTT not for the first time
+                        Serial.println("NO_NETWORK FAIL1");
                         if (millis() - noNetwork_Clock >= time2Reset_noNetwork) {     // reset due to long no MQTT
                                 sendReset("NO NETWoRK");
                         }
@@ -228,8 +230,8 @@ void myIOT::startMQTT() {
                         Serial.println("MQTT SERVER1");
                 }
         }
-        // else if (Ping.ping(mqtt_server2)) {
-        else{
+        else if (Ping.ping(mqtt_server2)) {
+        // else{
                 mqttClient.setServer(mqtt_server2, 1883);
                 strcat(bootErrors,"** MQTT SERVER ERR **");
                 if(useSerial) {

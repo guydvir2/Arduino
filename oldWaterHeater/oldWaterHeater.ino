@@ -1,7 +1,6 @@
 #include <myIOT.h>
 #include <myJSON.h>
 #include <TimeLib.h>
-#include <EEPROM.h>
 #include <Wire.h>
 #include <SPI.h>
 #include <Adafruit_GFX.h>
@@ -12,7 +11,7 @@
 #define VER "Wemos_4.0"
 #define USE_DAILY_TO     false
 int START_dailyTO[3]={8,0,0};
-int END_dailyTO[3]={18,0,0};
+int END_dailyTO[3]  ={18,0,0};
 
 // ********** TimeOut Time vars  ***********
 #define NUM_SWITCHES     1
@@ -29,7 +28,7 @@ int END_dailyTO[3]={18,0,0};
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 // ~~~~~~~ MQTT Topics ~~~~~~
-#define DEVICE_TOPIC "WaterBoiler"
+#define DEVICE_TOPIC "WaterBoiler2"
 #define MQTT_PREFIX  "myHome"
 #define MQTT_GROUP   ""
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -66,7 +65,7 @@ struct dTO {
         bool useFlash;
 };
 dTO defaultVals = {{0, 0, 0}, {0, 0, 59}, 0, 0, 0};
-dTO dailyTO_0   = {{18, 0, 0}, {0, 0, 59} , 1, 0, 0};
+dTO dailyTO_0   = {{18, 0, 0}, {0, 0, 59}, 1, 0, 0};
 dTO dailyTO_1   = {{20, 0, 0}, {22, 0, 0}, 1, 0, 0};
 dTO *dailyTO[]  = {&dailyTO_0, &dailyTO_1};
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -104,7 +103,7 @@ Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 
 // TimeOut Constants
 int maxTO                    = 150; //minutes to timeout even in ON state
-int timeIncrements           = 15; //minutes each button press
+int timeIncrements           = 1; //minutes each button press
 int timeInc_counter          = 0; // counts number of presses to TO increments
 int delayBetweenPress        = 500; // consequtive presses to reset
 int deBounceInt              = 50;
@@ -133,6 +132,7 @@ void switchIt (char *txt1, int sw_num, bool state, char *txt2 = "", bool show_ti
                 }
 
                 iot.pub_msg(msg);
+                Serial.println(msg);
 
                 sprintf(states, "");
                 for (int i = 0; i < NUM_SWITCHES; i++) {
@@ -140,8 +140,6 @@ void switchIt (char *txt1, int sw_num, bool state, char *txt2 = "", bool show_ti
                         strcat(states, tempstr);
                 }
                 iot.pub_state(states);
-
-
         }
 }
 void startIOTservices() {
@@ -152,7 +150,7 @@ void startIOTservices() {
         iot.resetFailNTP   = USE_FAILNTP;
         strcpy(iot.prefixTopic, MQTT_PREFIX);
         strcpy(iot.addGroupTopic, MQTT_GROUP);
-        iot.start_services(ADD_MQTT_FUNC,"Xiaomi_ADA6","guyd5161");
+        iot.start_services(ADD_MQTT_FUNC);
 }
 void startGPIOs() {
         for (int i = 0; i < NUM_SWITCHES; i++) {
@@ -163,19 +161,24 @@ void startGPIOs() {
                 last_relState [i] = 0;
         }
         pinMode(buttonLED_Pin, OUTPUT);
+
+        // allOff();
 }
 
 // ~~~~~~ DailyTimeOuts ~~~~~~~
 void timeOutLoop(byte i) {
         char msg_t[50], msg[50];
 
-        if (iot.mqtt_detect_reset != 2) {
-                relState[i] = TO[i]->looper();
-                if (relState[i] != last_relState[i]) { // change state (ON <-->OFF)
-                        switchIt("TimeOut", i, relState[i]);
-                }
-                last_relState[i] = relState[i];
+        relState[i] = TO[i]->looper();
+        // Serial.print("relState: ");
+        // Serial.println(relState[i]);
+        // Serial.print("remain: ");
+        // Serial.println(TO[0]->remain());
+        if (relState[i] != last_relState[i]) {         // change state (ON <-->OFF)
+                switchIt("TimeOut", i, relState[i]);
+                Serial.println("E");
         }
+        last_relState[i] = relState[i];
 }
 #if USE_DAILY_TO
 void daily_timeouts_looper(dTO &dailyTO, byte i = 0) {
@@ -280,11 +283,9 @@ void store_dailyTO_inFlash(dTO &dailyTO, int x) {
 
 void setup() {
         startGPIOs();
-        // quickPwrON();
         startIOTservices();
-        // TO[0]->begin(false);
-
         startOLED();
+        TO[0]->begin(false);
 
 #if USE_DAILY_TO
         for (int i = 0; i < NUM_SWITCHES; i++) {
@@ -371,6 +372,10 @@ void OLEDlooper() {
                 long startT;
                 TO[0]->getStart_to(startT);
                 int timeON = now() - startT;
+                Serial.print("timeON: ");
+                Serial.println(timeON);
+                Serial.print("now: ");
+                Serial.println(now());
                 sec2clock(timeON, "", time_on_char);
                 if ( timeInc_counter == 1 ) { // ~~~~ON, no timer ~~~~~~~
                         OLED_SideTXT(2, "On:", time_on_char);
@@ -429,42 +434,9 @@ int splitter(char *inputstr) {
 
 // ~~~~~~~~~ GPIO switching ~~~~~~~~~~~~~
 void allOff() {
+
         digitalWrite(RELAY1, !RelayOn);
         digitalWrite(buttonLED_Pin, !ledON);
-}
-void switchIt(char *type, char *dir) {
-        bool states[2];
-        bool suc_flag = false;
-        char mqttmsg[50];
-
-        if (strcmp(dir, "on") == 0) {
-                if (digitalRead(RELAY1) != RelayOn) { // was not ON
-                        digitalWrite(RELAY1, RelayOn);
-                        digitalWrite(buttonLED_Pin, ledON);
-                        if (startTime == 0) {
-                                startTime = millis();
-                        }
-                }
-                else { // case of switching from TO mode to normal ON
-                        endTime = 0;
-                }
-                suc_flag = true;
-        }
-        else if (strcmp(dir, "off") == 0 && digitalRead(RELAY1) == RelayOn) {
-                digitalWrite(RELAY1, !RelayOn);
-                digitalWrite(buttonLED_Pin, !ledON);
-                startTime = 0;
-                timeInc_counter = 0;
-                endTime = 0;
-
-                suc_flag = true;
-        }
-
-        if (suc_flag) {
-                iot.pub_state(dir);
-                sprintf(mqttmsg, "[%s] switched [%s]", type, dir);
-                iot.pub_msg(mqttmsg);
-        }
 }
 
 void Switch_1_looper() {
@@ -472,28 +444,41 @@ void Switch_1_looper() {
                 delay(deBounceInt);
                 // CASE #1 : Button is pressed. Delay creates a delay when buttons is pressed constantly
                 if (digitalRead(INPUT1) == SwitchOn && millis() - pressTO_input1 > delayBetweenPress) {
+                        Serial.println("A");
                         // CASE of it is first press and Relay was off - switch it ON, no timer.
                         if ( timeInc_counter == 0 && last_relState[0] == !RelayOn ) { // first press turns on
-                                switchIt("Button", 0, 1, 0);
+                                switchIt("Button", 0, 1);
                                 timeInc_counter += 1;
+                                Serial.println("B");
                         }
                         // CASE of already on, and insde interval of time - to add timer Qouta
                         else if (timeInc_counter < (maxTO / timeIncrements) && (millis() - pressTO_input1) < 2500 ) { // additional presses update timer countdown
                                 endTime = timeInc_counter * timeIncrements * 1000 * 60 + startTime;
-                                int newTO = TO[0]->remain() + timeInc_counter * timeIncrements * 60;
-                                TO[0]->setNewTimeout(newTO);
+                                // int newTO = TO[0]->remain() + timeInc_counter * timeIncrements*60;
+                                int newTO = timeInc_counter * timeIncrements*60;
+                                Serial.print("newTO: ");
+                                Serial.println(newTO);
+                                TO[0]->setNewTimeout(newTO, false);
 
                                 sec2clock((timeInc_counter) * timeIncrements * 1000 * 60, "Added Timeout: +", msg);
                                 timeInc_counter += 1; // Adding time Qouta
                                 iot.pub_msg(msg);
+                                Serial.println(msg);
+                                Serial.println("C");
                         }
                         // CASE of time is begger that time out-  sets it OFF
                         else if (timeInc_counter >= (maxTO / timeIncrements) || (millis() - pressTO_input1) > 2500) { // Turn OFF
-                                TO[0]->endNow();
+                                if(TO[0]->remain()>0) {
+                                        TO[0]->endNow();
+                                }
+                                else{
+                                        switchIt("Button", 0, 0);
+                                }
                                 startTime = 0;
                                 timeInc_counter = 0;
                                 endTime = 0;
-                                // switchIt("Button", "off");
+                                Serial.println("D");
+
                         }
                         pressTO_input1 = millis();
                 }
@@ -515,11 +500,11 @@ void addiotnalMQTT(char *incoming_msg) {
                 iot.pub_msg(msg);
         }
         else if (strcmp(incoming_msg, "on") == 0 ) {
-                switchIt("MQTT", incoming_msg);
+                switchIt("MQTT", 0,1);
                 timeInc_counter = 1; // ON only
         }
         else if (strcmp(incoming_msg, "off") == 0 ) {
-                switchIt("MQTT", incoming_msg);
+                switchIt("MQTT", 0,0);
         }
         else if (strcmp(incoming_msg, "remain") == 0 ) {
                 char remTime[40];
@@ -535,7 +520,7 @@ void addiotnalMQTT(char *incoming_msg) {
                 int len = splitter (incoming_msg);
                 if (len == 2 && strcmp(parameters[0], "on") == 0 && atoi(parameters[1])) {
                         timeInc_counter = atoi(parameters[1]); /// timeIncrements; // ON + Timer
-                        switchIt("MQTT", "on");
+                        switchIt("MQTT", 0,1);
                         sec2clock(timeInc_counter * 1000 * 60, "Added Timeout: +", msg);
                         iot.pub_msg(msg);
                         endTime = timeInc_counter * 1000 * 60 + startTime;
@@ -546,8 +531,11 @@ void addiotnalMQTT(char *incoming_msg) {
 // ~~~~~~ Loopers ~~~~~~~~~~
 void loop() {
         iot.looper();
+        digitalWrite(buttonLED_Pin, digitalRead(RELAY1));
+
         OLEDlooper();
         Switch_1_looper();
+        timeOutLoop(0);
 
         for (int i = 0; i < NUM_SWITCHES; i++) {
                 if (USE_DAILY_TO == true) {
@@ -558,6 +546,5 @@ void loop() {
                 timeOutLoop(i);
         }
 
-        digitalWrite(buttonLED_Pin, digitalRead(relays[0]));
         delay(100);
 }
