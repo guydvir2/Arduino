@@ -1,6 +1,6 @@
 #include <myIOT.h>
 #include <myJSON.h>
-#include <TimeLib.h>
+// #include <TimeLib.h>
 #include <Wire.h>
 #include <SPI.h>
 #include <Adafruit_GFX.h>
@@ -161,8 +161,6 @@ void startGPIOs() {
                 last_relState [i] = 0;
         }
         pinMode(buttonLED_Pin, OUTPUT);
-
-        // allOff();
 }
 
 // ~~~~~~ DailyTimeOuts ~~~~~~~
@@ -170,10 +168,6 @@ void timeOutLoop(byte i) {
         char msg_t[50], msg[50];
 
         relState[i] = TO[i]->looper();
-        // Serial.print("relState: ");
-        // Serial.println(relState[i]);
-        // Serial.print("remain: ");
-        // Serial.println(TO[0]->remain());
         if (relState[i] != last_relState[i]) {         // change state (ON <-->OFF)
                 switchIt("TimeOut", i, relState[i]);
                 Serial.println("E");
@@ -368,20 +362,15 @@ void OLEDlooper() {
         char time_on_char[20];
         char time2Off_char[20];
 
-        if (last_relState[0] == RelayOn ) {
-                long startT;
-                TO[0]->getStart_to(startT);
-                int timeON = now() - startT;
-                Serial.print("timeON: ");
-                Serial.println(timeON);
-                Serial.print("now: ");
-                Serial.println(now());
+        if (digitalRead(RELAY1) == RelayOn ) {
+                int timeON = now() - TO[0]->getStart_to();
                 sec2clock(timeON, "", time_on_char);
                 if ( timeInc_counter == 1 ) { // ~~~~ON, no timer ~~~~~~~
                         OLED_SideTXT(2, "On:", time_on_char);
+                        Serial.println(time_on_char);
                 }
                 else if ( timeInc_counter > 1 ) { /// ON + Timer
-                        int timeLeft = TO[0]->remain() - now();
+                        int timeLeft = TO[0]->remain();
                         sec2clock(timeLeft, "", time2Off_char);
                         OLED_SideTXT(2, "On:", time_on_char, "Remain:", time2Off_char);
                 }
@@ -413,9 +402,9 @@ void OLEDlooper() {
 
 // ~~~~ string creation ~~~~~~
 void sec2clock(int sec, char* text, char* output_text) {
-        int h = ((int)(sec) / (1000 * 60 * 60));
-        int m = ((int)(sec) - h * 1000 * 60 * 60) / (1000 * 60);
-        int s = ((int)(sec) - h * 1000 * 60 * 60 - m * 1000 * 60) / 1000;
+        int h = ((int)(sec) / ( 60 * 60));
+        int m = ((int)(sec) - h * 60 * 60) / ( 60);
+        int s = ((int)(sec) - h * 60 * 60 - m * 60);
         sprintf(output_text, "%s %01d:%02d:%02d", text, h, m, s);
 }
 int splitter(char *inputstr) {
@@ -433,12 +422,6 @@ int splitter(char *inputstr) {
 }
 
 // ~~~~~~~~~ GPIO switching ~~~~~~~~~~~~~
-void allOff() {
-
-        digitalWrite(RELAY1, !RelayOn);
-        digitalWrite(buttonLED_Pin, !ledON);
-}
-
 void Switch_1_looper() {
         if (digitalRead(INPUT1) == SwitchOn) {
                 delay(deBounceInt);
@@ -448,23 +431,22 @@ void Switch_1_looper() {
                         // CASE of it is first press and Relay was off - switch it ON, no timer.
                         if ( timeInc_counter == 0 && last_relState[0] == !RelayOn ) { // first press turns on
                                 switchIt("Button", 0, 1);
+                                TO[0]->updateStart(now());
                                 timeInc_counter += 1;
-                                Serial.println("B");
+                                // Serial.println("B");
                         }
                         // CASE of already on, and insde interval of time - to add timer Qouta
                         else if (timeInc_counter < (maxTO / timeIncrements) && (millis() - pressTO_input1) < 2500 ) { // additional presses update timer countdown
-                                endTime = timeInc_counter * timeIncrements * 1000 * 60 + startTime;
-                                // int newTO = TO[0]->remain() + timeInc_counter * timeIncrements*60;
                                 int newTO = timeInc_counter * timeIncrements*60;
-                                Serial.print("newTO: ");
-                                Serial.println(newTO);
+                                // Serial.print("newTO: ");
+                                // Serial.println(newTO);
                                 TO[0]->setNewTimeout(newTO, false);
 
-                                sec2clock((timeInc_counter) * timeIncrements * 1000 * 60, "Added Timeout: +", msg);
+                                sec2clock((timeInc_counter) * timeIncrements * 60, "Added Timeout: +", msg);
                                 timeInc_counter += 1; // Adding time Qouta
                                 iot.pub_msg(msg);
-                                Serial.println(msg);
-                                Serial.println("C");
+                                // Serial.println(msg);
+                                // Serial.println("C");
                         }
                         // CASE of time is begger that time out-  sets it OFF
                         else if (timeInc_counter >= (maxTO / timeIncrements) || (millis() - pressTO_input1) > 2500) { // Turn OFF
@@ -473,14 +455,14 @@ void Switch_1_looper() {
                                 }
                                 else{
                                         switchIt("Button", 0, 0);
+                                        TO[0]->updateStart(0);
                                 }
-                                startTime = 0;
                                 timeInc_counter = 0;
-                                endTime = 0;
-                                Serial.println("D");
+                                // Serial.println("D");
 
                         }
                         pressTO_input1 = millis();
+
                 }
         }
 }

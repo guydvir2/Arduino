@@ -115,7 +115,7 @@ char prefixTopic  [MaxTopicLength];
 char deviceTopic  [MaxTopicLength];
 char addGroupTopic[MaxTopicLength];
 
-const char *ver     = "iot_4.7";
+const char *ver     = "iot_4.8";
 char timeStamp[20];
 long updated_bootTime  = 0;
 int resetIntervals     = 10;
@@ -229,7 +229,9 @@ void endNow();
 void updateTOinflash(int TO);
 void restore_to();
 void switchOFF();
-void getStart_to(long getVal);
+long getStart_to();
+void updateStart(long clock);
+
 
 FVars inCodeTimeOUT_inFlash;
 FVars endTimeOUT_inFlash;

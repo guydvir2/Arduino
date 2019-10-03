@@ -231,7 +231,7 @@ void myIOT::startMQTT() {
                 }
         }
         else if (Ping.ping(mqtt_server2)) {
-        // else{
+                // else{
                 mqttClient.setServer(mqtt_server2, 1883);
                 strcat(bootErrors,"** MQTT SERVER ERR **");
                 if(useSerial) {
@@ -642,6 +642,7 @@ timeOUT::timeOUT(char* sw_num, int def_val)
                 startTimeOUT_inFlash.setValue(0);
         }
 
+
         if (updatedTO_inFlash != 0) {
                 _calc_TO = updatedTO_inFlash;
         }
@@ -709,10 +710,11 @@ void timeOUT::setNewTimeout(int to, bool mins){
         }
         else{
                 _calc_endTO=now()+to;
-
         }
         endTimeOUT_inFlash.setValue(_calc_endTO); // store end_to to flash
-        startTimeOUT_inFlash.setValue(now());
+        if (getStart_to()==0) {
+                updateStart(now());
+        }
 
         switchON();
 }
@@ -738,6 +740,8 @@ void timeOUT::switchOFF(){
 }
 void timeOUT::endNow(){
         _calc_endTO = now();
+        updateStart(0);
+
 }
 void timeOUT::convert_epoch2clock(long t1, long t2, char* time_str, char* days_str){
         byte days       = 0;
@@ -760,8 +764,13 @@ void timeOUT::convert_epoch2clock(long t1, long t2, char* time_str, char* days_s
         sprintf(days_str, "%02d days", days);
         sprintf(time_str, "%02d:%02d:%02d", hours, minutes, seconds);
 }
-void timeOUT::getStart_to(long getVal){
-  startTimeOUT_inFlash.getValue(getVal);
+long timeOUT::getStart_to(){
+        long getVal;
+        startTimeOUT_inFlash.getValue(getVal);
+        return getVal;
+}
+void timeOUT::updateStart(long clock){
+        startTimeOUT_inFlash.setValue(clock);
 }
 
 // ~~~~~~~~~~~ myTelegram Class ~~~~~~~~~~~~
