@@ -10,8 +10,8 @@
 // ********** Sketch Services  ***********
 #define VER "Wemos_4.1"
 #define USE_DAILY_TO     true
-int START_dailyTO[3]={8,0,0};
-int END_dailyTO[3]  ={18,0,0};
+int START_dailyTO[3]={16,29,30};
+int END_dailyTO[3]  ={16,30,0};
 
 // ********** TimeOut Time vars  ***********
 #define NUM_SWITCHES     1
@@ -20,7 +20,7 @@ int END_dailyTO[3]  ={18,0,0};
 
 // ********** myIOT Class ***********
 //~~~~~ Services ~~~~~~~~~~~
-#define USE_SERIAL       true
+#define USE_SERIAL       false
 #define USE_WDT          true
 #define USE_OTA          true
 #define USE_RESETKEEPER  false
@@ -28,7 +28,7 @@ int END_dailyTO[3]  ={18,0,0};
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 // ~~~~~~~ MQTT Topics ~~~~~~
-#define DEVICE_TOPIC "WaterBoiler2"
+#define DEVICE_TOPIC "WaterBoiler"
 #define MQTT_PREFIX  "myHome"
 #define MQTT_GROUP   ""
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -65,7 +65,7 @@ struct dTO {
         bool useFlash;
 };
 dTO defaultVals = {{0, 0, 0}, {0, 0, 59}, 0, 0, 0};
-dTO dailyTO_0   = {{18, 0, 0}, {0, 0, 59}, 1, 0, 0};
+dTO dailyTO_0   = {{16,30,30}, {16,31,30}, 1, 0, 0};
 dTO dailyTO_1   = {{20, 0, 0}, {22, 0, 0}, 1, 0, 0};
 dTO *dailyTO[]  = {&dailyTO_0, &dailyTO_1};
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -168,6 +168,12 @@ void timeOutLoop(byte i) {
 
         relState[i] = TO[i]->looper();
         if (relState[i] != last_relState[i]) {         // change state (ON <-->OFF)
+                if (relState[i]==0) { // when TO ends
+                        display_totalOnTime();
+                }
+                else{
+                        TO[i]->updateStart(now());
+                }
                 switchIt("TimeOut", i, relState[i]);
         }
         last_relState[i] = relState[i];
@@ -193,6 +199,7 @@ void daily_timeouts_looper(dTO &dailyTO, byte i = 0) {
                 }
         }
         else if (hour(t) == dailyTO.off[0] && minute(t) == dailyTO.off[1] && second(t) == dailyTO.off[2] && digitalRead(relays[i]) == RelayOn) {
+                display_totalOnTime();
                 TO[i]->endNow();
 
                 dailyTO.onNow = false;
@@ -286,7 +293,6 @@ void setup() {
 #endif
 }
 
-
 // ~~~~ OLED ~~~~~~~
 void startOLED() {
         display.begin(SSD1306_SWITCHCAPVCC, 0x3C);
@@ -361,13 +367,14 @@ void OLEDlooper() {
         char time2Off_char[20];
 
         if( clock_noref == 0) {
+
                 if (digitalRead(relays[0]) == RelayOn ) {
                         int timeON = now() - TO[0]->getStart_to();
                         sec2clock(timeON, "", time_on_char);
                         if ( timeInc_counter == 1 ) { // ~~~~ON, no timer ~~~~~~~
                                 OLED_SideTXT(2, "On:", time_on_char);
                         }
-                        else if ( timeInc_counter > 1 ) { /// ON + Timer
+                        else if ( timeInc_counter > 1 || relState[0] == 1 ) { /// ON + Timer or DailyTO
                                 int timeLeft = TO[0]->remain();
                                 sec2clock(timeLeft, "", time2Off_char);
                                 OLED_SideTXT(2, "On:", time_on_char, "Remain:", time2Off_char);
@@ -382,8 +389,6 @@ void OLEDlooper() {
                         if (swapLines_counter == 0) {
                                 swapLines_counter = millis();
                         }
-
-
                         if (millis() - swapLines_counter < timeQoute) {
                                 OLED_CenterTXT(2, "", timeStamp, dateStamp);
                         }
@@ -411,18 +416,11 @@ void sec2clock(int sec, char* text, char* output_text) {
         int s = ((int)(sec) - h * 60 * 60 - m * 60);
         sprintf(output_text, "%s %01d:%02d:%02d", text, h, m, s);
 }
-int splitter(char *inputstr) {
-        char * pch;
-        int i = 0;
-
-        pch = strtok (inputstr, " ,.-");
-        while (pch != NULL)
-        {
-                sprintf(parameters[i], "%s", pch);
-                pch = strtok (NULL, " ,.-");
-                i++;
-        }
-        return i;
+void display_totalOnTime(){
+        int totalONtime = now() - TO[0]->getStart_to();
+        sec2clock(totalONtime, "", msg);
+        clock_noref = millis();
+        OLED_CenterTXT(2,"ON time:","",msg);
 }
 
 // ~~~~~~~~~ GPIO switching ~~~~~~~~~~~~~
@@ -450,18 +448,15 @@ void Switch_1_looper(byte i) {
                         }
                         // CASE of time is begger that time out-  sets it OFF
                         else if (timeInc_counter >= (maxTO / timeIncrements) || (millis() - pressTO_input1) > 2500) { // Turn OFF
-                                int totalONtime = now() - TO[i]->getStart_to();
-                                sec2clock(totalONtime, "", msg);
-                                clock_noref = millis();
-                                OLED_CenterTXT(2,"ON time:","",msg);
+                                display_totalOnTime();
 
                                 if(TO[i]->remain()>0) {
                                         TO[i]->endNow();
                                 }
                                 else{
                                         switchIt("Button", i, 0, "", false);
-                                        TO[i]->updateStart(0);
                                 }
+                                TO[i]->updateStart(0);
                                 timeInc_counter = 0;
 
                         }
@@ -470,154 +465,154 @@ void Switch_1_looper(byte i) {
         }
 }
 void addiotnalMQTT(char *incoming_msg) {
-  char msg[150];
-  char msg2[20];
-  if      (strcmp(incoming_msg, "status") == 0) {
-          for (int i = 0; i < NUM_SWITCHES; i++) {
-                  if (TO[i]->remain() > 0) {
-                          TO[i]->convert_epoch2clock(now() + TO[i]->remain(), now(), msg, msg2);
-                          sprintf(msg2, "timeLeft[%s]", msg);
-                  }
-                  else {
-                          sprintf(msg2, "");
-                  }
-                  sprintf(msg, "Status: Switch[#%d] [%s] %s", i, digitalRead(relays[i]) ? "ON" : "OFF", msg2);
-                  iot.pub_msg(msg);
-          }
-  }
-  else if (strcmp(incoming_msg, "ver") == 0 ) {
-          sprintf(msg, "ver #1: [%s], lib: [%s], WDT: [%d], OTA: [%d], SERIAL: [%d], ResetKeeper[%d], FailNTP[%d]", VER, iot.ver, USE_WDT, USE_OTA, USE_SERIAL, USE_RESETKEEPER, USE_FAILNTP);
-          iot.pub_msg(msg);
-          sprintf(msg, "ver #2: DailyTO[%d]",USE_DAILY_TO);
-          iot.pub_msg(msg);
-  }
-  else if (strcmp(incoming_msg, "help") == 0) {
-          sprintf(msg, "Help: Commands #1 - [on, off, flash, format]");
-          iot.pub_msg(msg);
-          sprintf(msg, "Help: Commands #2 - [remain, restart_to, timeout(x), end_to, updateTO(x), restore_to, status_TO]");
-          iot.pub_msg(msg);
-          sprintf(msg, "Help: Commands #3 - [status, boot, reset, ip, ota, ver, help]");
-          iot.pub_msg(msg);
-          sprintf(msg, "Help: Commands #4 - [off_daily_to, on_daily_to, flag_daily_to, useflash_daily_to]");
-          iot.pub_msg(msg);
-  }
-  else if (strcmp(incoming_msg, "flash") == 0 ) {
-          TO[0]->inCodeTimeOUT_inFlash.printFile();
-  }
-  else if (strcmp(incoming_msg, "format") == 0 ) {
-          TO[0]->inCodeTimeOUT_inFlash.format();
-  }
-  else {
-          iot.inline_read(incoming_msg);
+        char msg[150];
+        char msg2[20];
+        if      (strcmp(incoming_msg, "status") == 0) {
+                for (int i = 0; i < NUM_SWITCHES; i++) {
+                        if (TO[i]->remain() > 0) {
+                                TO[i]->convert_epoch2clock(now() + TO[i]->remain(), now(), msg, msg2);
+                                sprintf(msg2, "timeLeft[%s]", msg);
+                        }
+                        else {
+                                sprintf(msg2, "");
+                        }
+                        sprintf(msg, "Status: Switch[#%d] [%s] %s", i, digitalRead(relays[i]) ? "ON" : "OFF", msg2);
+                        iot.pub_msg(msg);
+                }
+        }
+        else if (strcmp(incoming_msg, "ver") == 0 ) {
+                sprintf(msg, "ver #1: [%s], lib: [%s], WDT: [%d], OTA: [%d], SERIAL: [%d], ResetKeeper[%d], FailNTP[%d]", VER, iot.ver, USE_WDT, USE_OTA, USE_SERIAL, USE_RESETKEEPER, USE_FAILNTP);
+                iot.pub_msg(msg);
+                sprintf(msg, "ver #2: DailyTO[%d]",USE_DAILY_TO);
+                iot.pub_msg(msg);
+        }
+        else if (strcmp(incoming_msg, "help") == 0) {
+                sprintf(msg, "Help: Commands #1 - [on, off, flash, format]");
+                iot.pub_msg(msg);
+                sprintf(msg, "Help: Commands #2 - [remain, restart_to, timeout(x), end_to, updateTO(x), restore_to, status_TO]");
+                iot.pub_msg(msg);
+                sprintf(msg, "Help: Commands #3 - [status, boot, reset, ip, ota, ver, help]");
+                iot.pub_msg(msg);
+                sprintf(msg, "Help: Commands #4 - [off_daily_to, on_daily_to, flag_daily_to, useflash_daily_to]");
+                iot.pub_msg(msg);
+        }
+        else if (strcmp(incoming_msg, "flash") == 0 ) {
+                TO[0]->inCodeTimeOUT_inFlash.printFile();
+        }
+        else if (strcmp(incoming_msg, "format") == 0 ) {
+                TO[0]->inCodeTimeOUT_inFlash.format();
+        }
+        else {
+                iot.inline_read(incoming_msg);
 
-          if (strcmp(iot.inline_param[1], "on") == 0 ) {
-                  switchIt("MQTT", atoi(iot.inline_param[0]), 1);
-          }
-          else if (strcmp(iot.inline_param[1], "off") == 0) {
-                  switchIt("MQTT", atoi(iot.inline_param[0]), 0);
-          }
-          else if (strcmp(iot.inline_param[1], "timeout") == 0) {
-                  TO[atoi(iot.inline_param[0])]->setNewTimeout(atoi(iot.inline_param[2]));
-                  TO[atoi(iot.inline_param[0])]->convert_epoch2clock(now() + atoi(iot.inline_param[2]) * 60, now(), msg2, msg);
-                  sprintf(msg, "TimeOut: Switch[#%d] one-time TimeOut %s", atoi(iot.inline_param[0]), msg2);
-                  iot.pub_msg(msg);
-          }
-          else if (strcmp(iot.inline_param[1], "updateTO") == 0) {
-                  TO[atoi(iot.inline_param[0])]->updateTOinflash(atoi(iot.inline_param[2]));
-                  sprintf(msg, "TimeOut: Switch[%d] Updated in flash to [%d min.]", atoi(iot.inline_param[0]), atoi(iot.inline_param[2]));
-                  iot.pub_msg(msg);
-                  delay(1000);
-                  iot.notifyOffline();
-                  iot.sendReset("TimeOut update");
-          }
-          else if (strcmp(iot.inline_param[1], "remain") == 0) {
-                  TO[atoi(iot.inline_param[0])]->convert_epoch2clock(now() + TO[atoi(iot.inline_param[0])]->remain(), now(), msg2, msg);
-                  sprintf(msg, "TimeOut: Switch[#%d] Remain [%s]", atoi(iot.inline_param[0]), msg2);
-                  iot.pub_msg(msg);
-          }
-          else if (strcmp(iot.inline_param[1], "restart_to") == 0) {
-                  TO[atoi(iot.inline_param[0])]->restart_to();
-                  sprintf(msg, "TimeOut: Switch[#%d] [Restart]", atoi(iot.inline_param[0]));
-                  iot.pub_msg(msg);
-                  iot.notifyOffline();
-                  iot.sendReset("TimeOut restart");
-          }
-          else if (strcmp(iot.inline_param[1], "status_TO") == 0) {
-                  sprintf(msg, "%s: Switch [#%d] {inCode: [%d] mins} {Flash: [%d] mins}, {Active: [%s]}",
-                          "TimeOut", atoi(iot.inline_param[0]),
-                          TIMEOUTS[atoi(iot.inline_param[0])],
-                          TO[atoi(iot.inline_param[0])]->updatedTO_inFlash,
-                          TO[atoi(iot.inline_param[0])]->updatedTO_inFlash ? "Flash" : "inCode" );
-                  iot.pub_msg(msg);
-          }
-          else if (strcmp(iot.inline_param[1], "end_to") == 0) {
-                  TO[atoi(iot.inline_param[0])]->endNow();
-                  sprintf(msg, "TimeOut: Switch[#%d] [Abort]", atoi(iot.inline_param[0]));
-                  iot.pub_msg(msg);
-          }
-          else if (strcmp(iot.inline_param[1], "restore_to") == 0) {
-                  TO[atoi(iot.inline_param[0])]->restore_to();
-                  TO[atoi(iot.inline_param[0])]->restart_to();
-                  sprintf(msg, "TimeOut: Switch[#%d], Restore hardCoded Value [%d mins.]", atoi(iot.inline_param[0]), TIMEOUT_SW0);
-                  iot.pub_msg(msg);
-                  iot.notifyOffline();
-                  iot.sendReset("Restore");
-          }
+                if (strcmp(iot.inline_param[1], "on") == 0 ) {
+                        switchIt("MQTT", atoi(iot.inline_param[0]), 1);
+                }
+                else if (strcmp(iot.inline_param[1], "off") == 0) {
+                        switchIt("MQTT", atoi(iot.inline_param[0]), 0);
+                }
+                else if (strcmp(iot.inline_param[1], "timeout") == 0) {
+                        TO[atoi(iot.inline_param[0])]->setNewTimeout(atoi(iot.inline_param[2]));
+                        TO[atoi(iot.inline_param[0])]->convert_epoch2clock(now() + atoi(iot.inline_param[2]) * 60, now(), msg2, msg);
+                        sprintf(msg, "TimeOut: Switch[#%d] one-time TimeOut %s", atoi(iot.inline_param[0]), msg2);
+                        iot.pub_msg(msg);
+                }
+                else if (strcmp(iot.inline_param[1], "updateTO") == 0) {
+                        TO[atoi(iot.inline_param[0])]->updateTOinflash(atoi(iot.inline_param[2]));
+                        sprintf(msg, "TimeOut: Switch[%d] Updated in flash to [%d min.]", atoi(iot.inline_param[0]), atoi(iot.inline_param[2]));
+                        iot.pub_msg(msg);
+                        delay(1000);
+                        iot.notifyOffline();
+                        iot.sendReset("TimeOut update");
+                }
+                else if (strcmp(iot.inline_param[1], "remain") == 0) {
+                        TO[atoi(iot.inline_param[0])]->convert_epoch2clock(now() + TO[atoi(iot.inline_param[0])]->remain(), now(), msg2, msg);
+                        sprintf(msg, "TimeOut: Switch[#%d] Remain [%s]", atoi(iot.inline_param[0]), msg2);
+                        iot.pub_msg(msg);
+                }
+                else if (strcmp(iot.inline_param[1], "restart_to") == 0) {
+                        TO[atoi(iot.inline_param[0])]->restart_to();
+                        sprintf(msg, "TimeOut: Switch[#%d] [Restart]", atoi(iot.inline_param[0]));
+                        iot.pub_msg(msg);
+                        // iot.notifyOffline();
+                        // iot.sendReset("TimeOut restart");
+                }
+                else if (strcmp(iot.inline_param[1], "status_TO") == 0) {
+                        sprintf(msg, "%s: Switch [#%d] {inCode: [%d] mins} {Flash: [%d] mins}, {Active: [%s]}",
+                                "TimeOut", atoi(iot.inline_param[0]),
+                                TIMEOUTS[atoi(iot.inline_param[0])],
+                                TO[atoi(iot.inline_param[0])]->updatedTO_inFlash,
+                                TO[atoi(iot.inline_param[0])]->updatedTO_inFlash ? "Flash" : "inCode" );
+                        iot.pub_msg(msg);
+                }
+                else if (strcmp(iot.inline_param[1], "end_to") == 0) {
+                        TO[atoi(iot.inline_param[0])]->endNow();
+                        sprintf(msg, "TimeOut: Switch[#%d] [Abort]", atoi(iot.inline_param[0]));
+                        iot.pub_msg(msg);
+                }
+                else if (strcmp(iot.inline_param[1], "restore_to") == 0) {
+                        TO[atoi(iot.inline_param[0])]->restore_to();
+                        TO[atoi(iot.inline_param[0])]->restart_to();
+                        sprintf(msg, "TimeOut: Switch[#%d], Restore hardCoded Value [%d mins.]", atoi(iot.inline_param[0]), TIMEOUT_SW0);
+                        iot.pub_msg(msg);
+                        iot.notifyOffline();
+                        iot.sendReset("Restore");
+                }
 # if USE_DAILY_TO
-          else if (strcmp(iot.inline_param[1], "on_daily_to") == 0) {
-                  dailyTO[atoi(iot.inline_param[0])]->on[0] = atoi(iot.inline_param[2]); // hour
-                  dailyTO[atoi(iot.inline_param[0])]->on[1] = atoi(iot.inline_param[3]); // minute
-                  dailyTO[atoi(iot.inline_param[0])]->on[2] = atoi(iot.inline_param[4]); // seconds
+                else if (strcmp(iot.inline_param[1], "on_daily_to") == 0) {
+                        dailyTO[atoi(iot.inline_param[0])]->on[0] = atoi(iot.inline_param[2]); // hour
+                        dailyTO[atoi(iot.inline_param[0])]->on[1] = atoi(iot.inline_param[3]); // minute
+                        dailyTO[atoi(iot.inline_param[0])]->on[2] = atoi(iot.inline_param[4]); // seconds
 
-                  store_dailyTO_inFlash(*dailyTO[atoi(iot.inline_param[0])], atoi(iot.inline_param[0]));
+                        store_dailyTO_inFlash(*dailyTO[atoi(iot.inline_param[0])], atoi(iot.inline_param[0]));
 
-                  sprintf(msg, "%s: Switch[#%d] [ON] updated [%02d:%02d:%02d]", clockAlias, atoi(iot.inline_param[0]),
-                          dailyTO[atoi(iot.inline_param[0])]->on[0],
-                          dailyTO[atoi(iot.inline_param[0])]->on[1],
-                          dailyTO[atoi(iot.inline_param[0])]->on[2]);
-                  iot.pub_msg(msg);
-          }
-          else if (strcmp(iot.inline_param[1], "off_daily_to") == 0) {
-                  dailyTO[atoi(iot.inline_param[0])]->off[0] = atoi(iot.inline_param[2]); // hour
-                  dailyTO[atoi(iot.inline_param[0])]->off[1] = atoi(iot.inline_param[3]); // minute
-                  dailyTO[atoi(iot.inline_param[0])]->off[2] = atoi(iot.inline_param[4]); // seconds
+                        sprintf(msg, "%s: Switch[#%d] [ON] updated [%02d:%02d:%02d]", clockAlias, atoi(iot.inline_param[0]),
+                                dailyTO[atoi(iot.inline_param[0])]->on[0],
+                                dailyTO[atoi(iot.inline_param[0])]->on[1],
+                                dailyTO[atoi(iot.inline_param[0])]->on[2]);
+                        iot.pub_msg(msg);
+                }
+                else if (strcmp(iot.inline_param[1], "off_daily_to") == 0) {
+                        dailyTO[atoi(iot.inline_param[0])]->off[0] = atoi(iot.inline_param[2]); // hour
+                        dailyTO[atoi(iot.inline_param[0])]->off[1] = atoi(iot.inline_param[3]); // minute
+                        dailyTO[atoi(iot.inline_param[0])]->off[2] = atoi(iot.inline_param[4]); // seconds
 
-                  store_dailyTO_inFlash(*dailyTO[atoi(iot.inline_param[0])], atoi(iot.inline_param[0]));
+                        store_dailyTO_inFlash(*dailyTO[atoi(iot.inline_param[0])], atoi(iot.inline_param[0]));
 
-                  sprintf(msg, "%s: Switch[#%d] [OFF] updated [%02d:%02d:%02d]", clockAlias, atoi(iot.inline_param[0]),
-                          dailyTO[atoi(iot.inline_param[0])]->off[0],
-                          dailyTO[atoi(iot.inline_param[0])]->off[1],
-                          dailyTO[atoi(iot.inline_param[0])]->off[2]);
-                  iot.pub_msg(msg);
-          }
-          else if (strcmp(iot.inline_param[1], "flag_daily_to") == 0) {
-                  dailyTO[atoi(iot.inline_param[0])]->flag = atoi(iot.inline_param[2]);
-                  store_dailyTO_inFlash(*dailyTO[atoi(iot.inline_param[0])], atoi(iot.inline_param[0]));
-                  sprintf(msg, "%s: Switch[#%d] set to [%s]", clockAlias,
-                          atoi(iot.inline_param[0]), atoi(iot.inline_param[2]) ? "ON" : "OFF");
-                  iot.pub_msg(msg);
-          }
-          else if (strcmp(iot.inline_param[1], "useflash_daily_to") == 0) {
-                  dailyTO[atoi(iot.inline_param[0])]->useFlash = atoi(iot.inline_param[2]);
-                  store_dailyTO_inFlash(*dailyTO[atoi(iot.inline_param[0])], atoi(iot.inline_param[0]));
-                  sprintf(msg, "%s: Switch[#%d] using [%s] values", clockAlias,
-                          atoi(iot.inline_param[0]), atoi(iot.inline_param[2]) ? "Flash" : "Code");
-                  iot.pub_msg(msg);
-          }
-          else if (strcmp(iot.inline_param[1], "status_daily_to") == 0) {
-                  sprintf(msg, "%s: Switch [#%d] {ON, %02d:%02d:%02d} {OFF, %02d:%02d:%02d} {Flag: %s}",
-                          clockAlias, atoi(iot.inline_param[0]),
-                          dailyTO[atoi(iot.inline_param[0])]->on[0],
-                          dailyTO[atoi(iot.inline_param[0])]->on[1],
-                          dailyTO[atoi(iot.inline_param[0])]->on[2],
-                          dailyTO[atoi(iot.inline_param[0])]->off[0],
-                          dailyTO[atoi(iot.inline_param[0])]->off[1],
-                          dailyTO[atoi(iot.inline_param[0])]->off[2],
-                          dailyTO[atoi(iot.inline_param[0])]->flag ? "ON" : "OFF" );
-                  iot.pub_msg(msg);
-          }
+                        sprintf(msg, "%s: Switch[#%d] [OFF] updated [%02d:%02d:%02d]", clockAlias, atoi(iot.inline_param[0]),
+                                dailyTO[atoi(iot.inline_param[0])]->off[0],
+                                dailyTO[atoi(iot.inline_param[0])]->off[1],
+                                dailyTO[atoi(iot.inline_param[0])]->off[2]);
+                        iot.pub_msg(msg);
+                }
+                else if (strcmp(iot.inline_param[1], "flag_daily_to") == 0) {
+                        dailyTO[atoi(iot.inline_param[0])]->flag = atoi(iot.inline_param[2]);
+                        store_dailyTO_inFlash(*dailyTO[atoi(iot.inline_param[0])], atoi(iot.inline_param[0]));
+                        sprintf(msg, "%s: Switch[#%d] set to [%s]", clockAlias,
+                                atoi(iot.inline_param[0]), atoi(iot.inline_param[2]) ? "ON" : "OFF");
+                        iot.pub_msg(msg);
+                }
+                else if (strcmp(iot.inline_param[1], "useflash_daily_to") == 0) {
+                        dailyTO[atoi(iot.inline_param[0])]->useFlash = atoi(iot.inline_param[2]);
+                        store_dailyTO_inFlash(*dailyTO[atoi(iot.inline_param[0])], atoi(iot.inline_param[0]));
+                        sprintf(msg, "%s: Switch[#%d] using [%s] values", clockAlias,
+                                atoi(iot.inline_param[0]), atoi(iot.inline_param[2]) ? "Flash" : "Code");
+                        iot.pub_msg(msg);
+                }
+                else if (strcmp(iot.inline_param[1], "status_daily_to") == 0) {
+                        sprintf(msg, "%s: Switch [#%d] {ON, %02d:%02d:%02d} {OFF, %02d:%02d:%02d} {Flag: %s}",
+                                clockAlias, atoi(iot.inline_param[0]),
+                                dailyTO[atoi(iot.inline_param[0])]->on[0],
+                                dailyTO[atoi(iot.inline_param[0])]->on[1],
+                                dailyTO[atoi(iot.inline_param[0])]->on[2],
+                                dailyTO[atoi(iot.inline_param[0])]->off[0],
+                                dailyTO[atoi(iot.inline_param[0])]->off[1],
+                                dailyTO[atoi(iot.inline_param[0])]->off[2],
+                                dailyTO[atoi(iot.inline_param[0])]->flag ? "ON" : "OFF" );
+                        iot.pub_msg(msg);
+                }
 # endif
-  }
+        }
 
         // else if (strcmp(incoming_msg, "pins") == 0 ) {
         //         sprintf(msg, "Switch: [%d], Relay: [%d], Led: [%d]", INPUT1, relays[0], buttonLED_Pin);
@@ -659,11 +654,9 @@ void addiotnalMQTT(char *incoming_msg) {
 // ~~~~~~ Loopers ~~~~~~~~~~
 void loop() {
         iot.looper();
+        OLEDlooper();
         digitalWrite(buttonLED_Pin, digitalRead(relays[0]));
 
-        OLEDlooper();
-        Switch_1_looper(0);
-        timeOutLoop(0);
 
         for (int i = 0; i < NUM_SWITCHES; i++) {
                 if (USE_DAILY_TO == true) {
@@ -672,6 +665,7 @@ void loop() {
                     #endif
                 }
                 timeOutLoop(i);
+                Switch_1_looper(i);
         }
 
         delay(100);

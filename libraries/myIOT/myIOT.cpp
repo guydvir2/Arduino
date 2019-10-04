@@ -111,10 +111,8 @@ void myIOT::networkStatus() {
                 }
                 else if (noNetwork_Clock == 0) { // first time no MQTT, wifi OK
                         noNetwork_Clock  = millis();
-                        Serial.println("NO_NETWORK FAIL2");
                 }
                 else if (noNetwork_Clock !=0 ) {  // WIFI OK, no MQTT not for the first time
-                        Serial.println("NO_NETWORK FAIL1");
                         if (millis() - noNetwork_Clock >= time2Reset_noNetwork) {     // reset due to long no MQTT
                                 sendReset("NO NETWoRK");
                         }
@@ -712,9 +710,6 @@ void timeOUT::setNewTimeout(int to, bool mins){
                 _calc_endTO=now()+to;
         }
         endTimeOUT_inFlash.setValue(_calc_endTO); // store end_to to flash
-        if (getStart_to()==0) {
-                updateStart(now());
-        }
 
         switchON();
 }
@@ -740,8 +735,6 @@ void timeOUT::switchOFF(){
 }
 void timeOUT::endNow(){
         _calc_endTO = now();
-        updateStart(0);
-
 }
 void timeOUT::convert_epoch2clock(long t1, long t2, char* time_str, char* days_str){
         byte days       = 0;
