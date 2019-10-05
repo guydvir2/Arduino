@@ -1,8 +1,9 @@
 int swPin = D8;
-int relPin
+int ledPin = D7;
 void setup() {
   // put your setup code here, to run once:
-pinMode(pin, INPUT);
+pinMode(swPin, INPUT_PULLUP);
+// pinMode(ledPin, OUTPUT);
 Serial.begin(9600);
 }
 
@@ -15,7 +16,11 @@ void loop() {
   //   x=15;
   // }
   // analogWrite(D4,x);
-  delay(200);
-  Serial.println(digitalRead(pin));
+  delay(1000);
+  Serial.print("wdPin: ");
+  Serial.println(digitalRead(swPin));
+  // Serial.print("ledPin: ");
+  //   Serial.println(digitalRead(ledPin));
+  //   digitalWrite(ledPin,!digitalRead(ledPin));
 
 }

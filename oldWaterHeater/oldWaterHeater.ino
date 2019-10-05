@@ -1,6 +1,5 @@
 #include <myIOT.h>
 #include <myJSON.h>
-// #include <TimeLib.h>
 #include <Wire.h>
 #include <SPI.h>
 #include <Adafruit_GFX.h>
@@ -8,15 +7,15 @@
 #include <Arduino.h>
 
 // ********** Sketch Services  ***********
-#define VER "Wemos_4.1"
+#define VER "Wemos_4.3"
 #define USE_DAILY_TO     true
-int START_dailyTO[3]={16,29,30};
-int END_dailyTO[3]  ={16,30,0};
 
 // ********** TimeOut Time vars  ***********
 #define NUM_SWITCHES     1
 #define TIMEOUT_SW0      1*60 // mins for SW0
 #define TIMEOUT_SW1      2*60 // mins
+int START_dailyTO[3]   ={18,30,0};
+int END_dailyTO[3]     ={19,30,0};
 
 // ********** myIOT Class ***********
 //~~~~~ Services ~~~~~~~~~~~
@@ -65,18 +64,18 @@ struct dTO {
         bool useFlash;
 };
 dTO defaultVals = {{0, 0, 0}, {0, 0, 59}, 0, 0, 0};
-dTO dailyTO_0   = {{16,30,30}, {16,31,30}, 1, 0, 0};
+dTO dailyTO_0   = {{19, 0, 0}, {20, 0, 0}, 1, 0, 0};
 dTO dailyTO_1   = {{20, 0, 0}, {22, 0, 0}, 1, 0, 0};
 dTO *dailyTO[]  = {&dailyTO_0, &dailyTO_1};
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 
 // ~~~~ HW Pins and Statdes ~~~~
-#define RELAY1          D6
+#define RELAY1          D5
 #define RELAY2          D2
-#define INPUT1          D7
+#define INPUT1          D6
 #define INPUT2          D5
-#define buttonLED_Pin   D8
+#define buttonLED_Pin   D7
 
 byte relays[]  = {RELAY1, RELAY2};
 byte inputs[]  = {INPUT1, INPUT2};
@@ -96,7 +95,8 @@ bool last_relState[NUM_SWITCHES];
 #define SCREEN_HEIGHT 64 // double screen size
 #define OLED_RESET    LED_BUILTIN
 long swapLines_counter = 0;
-
+char timeStamp [50];
+char dateStamp [50];
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -113,10 +113,7 @@ unsigned long startTime      = 0;
 unsigned long endTime        = 0;
 // ##########################
 
-char timeStamp [50];
-char dateStamp [50];
 char msg[150];
-char parameters [2][4];
 
 
 void switchIt (char *txt1, int sw_num, bool state, char *txt2 = "", bool show_timeout = true) {
@@ -170,8 +167,9 @@ void timeOutLoop(byte i) {
         if (relState[i] != last_relState[i]) {         // change state (ON <-->OFF)
                 if (relState[i]==0) { // when TO ends
                         display_totalOnTime();
+                        TO[i]->updateStart(0);
                 }
-                else{
+                else{ // when TO starts
                         TO[i]->updateStart(now());
                 }
                 switchIt("TimeOut", i, relState[i]);
@@ -183,7 +181,7 @@ void daily_timeouts_looper(dTO &dailyTO, byte i = 0) {
         char msg [50], msg2[50];
         time_t t = now();
 
-        if (dailyTO.onNow == false && dailyTO.flag == true) {
+        if (dailyTO.onNow == false && dailyTO.flag == true) { // start
                 if (hour(t) == dailyTO.on[0] && minute(t) == dailyTO.on[1] && second(t) == dailyTO.on[2]) {
                         int secs   = dailyTO.off[2] - dailyTO.on[2];
                         int mins   = dailyTO.off[1] - dailyTO.on[1];
@@ -197,12 +195,6 @@ void daily_timeouts_looper(dTO &dailyTO, byte i = 0) {
                         TO[i]->setNewTimeout(total_time, false);
                         dailyTO.onNow = true;
                 }
-        }
-        else if (hour(t) == dailyTO.off[0] && minute(t) == dailyTO.off[1] && second(t) == dailyTO.off[2] && digitalRead(relays[i]) == RelayOn) {
-                display_totalOnTime();
-                TO[i]->endNow();
-
-                dailyTO.onNow = false;
         }
 }
 void check_dailyTO_inFlash(dTO &dailyTO, int x) {
@@ -248,10 +240,11 @@ void check_dailyTO_inFlash(dTO &dailyTO, int x) {
                         }
 
                 }
-                else { // create NULL values
-                        store_dailyTO_inFlash(defaultVals, x);
-                }
         }
+        else {         // create NULL values
+                store_dailyTO_inFlash(defaultVals, x);
+        }
+
 }
 void store_dailyTO_inFlash(dTO &dailyTO, int x) {
         char temp[10];
@@ -444,21 +437,18 @@ void Switch_1_looper(byte i) {
                                 timeInc_counter += 1; // Adding time Qouta
                                 sprintf(tempstr,"Button: Switch[#%d] %s", i, msg);
                                 iot.pub_msg(tempstr);
-
                         }
                         // CASE of time is begger that time out-  sets it OFF
                         else if (timeInc_counter >= (maxTO / timeIncrements) || (millis() - pressTO_input1) > 2500) { // Turn OFF
-                                display_totalOnTime();
-
                                 if(TO[i]->remain()>0) {
                                         TO[i]->endNow();
                                 }
                                 else{
+                                        display_totalOnTime();
                                         switchIt("Button", i, 0, "", false);
+                                        TO[i]->updateStart(0);
                                 }
-                                TO[i]->updateStart(0);
                                 timeInc_counter = 0;
-
                         }
                         pressTO_input1 = millis();
                 }
@@ -493,7 +483,7 @@ void addiotnalMQTT(char *incoming_msg) {
                 iot.pub_msg(msg);
                 sprintf(msg, "Help: Commands #3 - [status, boot, reset, ip, ota, ver, help]");
                 iot.pub_msg(msg);
-                sprintf(msg, "Help: Commands #4 - [off_daily_to, on_daily_to, flag_daily_to, useflash_daily_to]");
+                sprintf(msg, "Help: Commands #4 - [off_daily_to, on_daily_to, flag_daily_to, useflash_daily_to, status_daily_to]");
                 iot.pub_msg(msg);
         }
         else if (strcmp(incoming_msg, "flash") == 0 ) {
@@ -519,7 +509,7 @@ void addiotnalMQTT(char *incoming_msg) {
                 }
                 else if (strcmp(iot.inline_param[1], "updateTO") == 0) {
                         TO[atoi(iot.inline_param[0])]->updateTOinflash(atoi(iot.inline_param[2]));
-                        sprintf(msg, "TimeOut: Switch[%d] Updated in flash to [%d min.]", atoi(iot.inline_param[0]), atoi(iot.inline_param[2]));
+                        sprintf(msg, "TimeOut: Switch [%d] Updated in flash to [%d min.]", atoi(iot.inline_param[0]), atoi(iot.inline_param[2]));
                         iot.pub_msg(msg);
                         delay(1000);
                         iot.notifyOffline();
@@ -579,7 +569,7 @@ void addiotnalMQTT(char *incoming_msg) {
 
                         store_dailyTO_inFlash(*dailyTO[atoi(iot.inline_param[0])], atoi(iot.inline_param[0]));
 
-                        sprintf(msg, "%s: Switch[#%d] [OFF] updated [%02d:%02d:%02d]", clockAlias, atoi(iot.inline_param[0]),
+                        sprintf(msg, "%s: Switch [#%d] [OFF] updated [%02d:%02d:%02d]", clockAlias, atoi(iot.inline_param[0]),
                                 dailyTO[atoi(iot.inline_param[0])]->off[0],
                                 dailyTO[atoi(iot.inline_param[0])]->off[1],
                                 dailyTO[atoi(iot.inline_param[0])]->off[2]);
@@ -613,42 +603,6 @@ void addiotnalMQTT(char *incoming_msg) {
                 }
 # endif
         }
-
-        // else if (strcmp(incoming_msg, "pins") == 0 ) {
-        //         sprintf(msg, "Switch: [%d], Relay: [%d], Led: [%d]", INPUT1, relays[0], buttonLED_Pin);
-        //         iot.pub_msg(msg);
-        // }
-        // else if (strcmp(incoming_msg, "ver") == 0 ) {
-        //         sprintf(msg, "ver:[%s], lib:[%s], WDT:[%d], OTA:[%d], SERIAL:[%d]", VER, iot.ver, USE_WDT, USE_OTA, USE_SERIAL);
-        //         iot.pub_msg(msg);
-        // }
-        // else if (strcmp(incoming_msg, "on") == 0 ) {
-        //         switchIt("MQTT", 0,1);
-        //         timeInc_counter = 1; // ON only
-        // }
-        // else if (strcmp(incoming_msg, "off") == 0 ) {
-        //         switchIt("MQTT", 0,0);
-        // }
-        // else if (strcmp(incoming_msg, "remain") == 0 ) {
-        //         char remTime[40];
-        //         if (endTime == 0) {
-        //                 sec2clock(0, "Remain Time: ", remTime);
-        //         }
-        //         else if (endTime > 0) {
-        //                 sec2clock(endTime - millis(), "Remain Time: ", remTime);
-        //         }
-        //         iot.pub_msg(remTime);
-        // }
-        // else {
-        //         int len = splitter (incoming_msg);
-        //         if (len == 2 && strcmp(parameters[0], "on") == 0 && atoi(parameters[1])) {
-        //                 timeInc_counter = atoi(parameters[1]); /// timeIncrements; // ON + Timer
-        //                 switchIt("MQTT", 0,1);
-        //                 sec2clock(timeInc_counter * 1000 * 60, "Added Timeout: +", msg);
-        //                 iot.pub_msg(msg);
-        //                 endTime = timeInc_counter * 1000 * 60 + startTime;
-        //         }
-        // }
 }
 
 // ~~~~~~ Loopers ~~~~~~~~~~
@@ -656,7 +610,6 @@ void loop() {
         iot.looper();
         OLEDlooper();
         digitalWrite(buttonLED_Pin, digitalRead(relays[0]));
-
 
         for (int i = 0; i < NUM_SWITCHES; i++) {
                 if (USE_DAILY_TO == true) {
@@ -667,6 +620,5 @@ void loop() {
                 timeOutLoop(i);
                 Switch_1_looper(i);
         }
-
         delay(100);
 }
