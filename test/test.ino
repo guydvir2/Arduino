@@ -1,21 +1,17 @@
 #include <myIOT.h>
-#include <myJSON.h>
-#include <Wire.h>
-#include <SPI.h>
-#include <Adafruit_GFX.h>
-#include <Adafruit_SSD1306.h>
-#include <Arduino.h>
 
 // ********** Sketch Services  ***********
-#define VER "Wemos_4.3"
-#define USE_DAILY_TO     true
+#define VER "Wemos_5.0"
+#define USE_DAILY_TO  true
+#define ON_AT_BOOT    false // true only for switches that powers up with device.
+int START_dailyTO[3]   ={18,30,0};
+int END_dailyTO[3]     ={19,30,0};
 
 // ********** TimeOut Time vars  ***********
 #define NUM_SWITCHES     1
 #define TIMEOUT_SW0      1*60 // mins for SW0
 #define TIMEOUT_SW1      2*60 // mins
-int START_dailyTO[3]   ={18,30,0};
-int END_dailyTO[3]     ={19,30,0};
+
 
 // ********** myIOT Class ***********
 //~~~~~ Services ~~~~~~~~~~~
@@ -27,7 +23,7 @@ int END_dailyTO[3]     ={19,30,0};
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 // ~~~~~~~ MQTT Topics ~~~~~~
-#define DEVICE_TOPIC "WaterBoiler"
+#define DEVICE_TOPIC "test123"
 #define MQTT_PREFIX  "myHome"
 #define MQTT_GROUP   ""
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -49,24 +45,8 @@ timeOUT *TO[] = {&timeOut_SW0};
 
 
 // ~~~~~~~~~ Use Daily Clock ~~~~
-#if USE_DAILY_TO
-myJSON dailyTO_inFlash("file0.json", true);
-#endif
-
-char *clock_fields[] = {"ontime", "off_time", "flag", "use_inFl_vals"};
-int items_each_array[3] = {3, 3, 1};
 char *clockAlias = "DailyClock";
-struct dTO {
-        int on[3];
-        int off[3];
-        bool flag;
-        bool onNow;
-        bool useFlash;
-};
-dTO defaultVals = {{0, 0, 0}, {0, 0, 59}, 0, 0, 0};
-dTO dailyTO_0   = {{19, 0, 0}, {20, 0, 0}, 1, 0, 0};
-dTO dailyTO_1   = {{20, 0, 0}, {22, 0, 0}, 1, 0, 0};
-dTO *dailyTO[]  = {&dailyTO_0, &dailyTO_1};
+
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 
@@ -97,7 +77,7 @@ bool last_relState[NUM_SWITCHES];
 long swapLines_counter = 0;
 char timeStamp [50];
 char dateStamp [50];
-Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
+// Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 // TimeOut Constants
@@ -160,7 +140,19 @@ void startGPIOs() {
 }
 
 // ~~~~~~ DailyTimeOuts ~~~~~~~
-void timeOutLoop(byte i) {
+void startTO(){
+        for (int i=0; i<NUM_SWITCHES; i++) {
+                TO[i]->begin(ON_AT_BOOT);
+                if (USE_DAILY_TO) {
+                        start_dailyTO(i);
+                }
+        }
+}
+void start_dailyTO(byte i){
+        TO[i]->dailyTO={{10, 28, 0}, {10, 28, 30}, USE_DAILY_TO, 0, 0};
+        TO[i]->check_dailyTO_inFlash(TO[i]->dailyTO,i);
+}
+void TO_looper(byte i) {
         char msg_t[50], msg[50];
 
         relState[i] = TO[i]->looper();
@@ -176,229 +168,126 @@ void timeOutLoop(byte i) {
         }
         last_relState[i] = relState[i];
 }
-#if USE_DAILY_TO
-void daily_timeouts_looper(dTO &dailyTO, byte i = 0) {
-        char msg [50], msg2[50];
-        time_t t = now();
-
-        if (dailyTO.onNow == false && dailyTO.flag == true) { // start
-                if (hour(t) == dailyTO.on[0] && minute(t) == dailyTO.on[1] && second(t) == dailyTO.on[2]) {
-                        int secs   = dailyTO.off[2] - dailyTO.on[2];
-                        int mins   = dailyTO.off[1] - dailyTO.on[1];
-                        int delt_h = dailyTO.off[0] - dailyTO.on[0];
-
-                        int total_time = secs + mins * 60 + delt_h * 60 * 60;
-                        if (total_time < 0) {
-                                total_time += 24 * 60 * 60;
-                        }
-
-                        TO[i]->setNewTimeout(total_time, false);
-                        dailyTO.onNow = true;
-                }
-        }
-}
-void check_dailyTO_inFlash(dTO &dailyTO, int x) {
-        char temp[10];
-        int retVal;
-
-        if (dailyTO_inFlash.file_exists()) {
-                sprintf(temp, "%s_%d", clock_fields[3], x);
-                dailyTO_inFlash.getValue(temp, retVal);
-                if (retVal) { //only if flag is to read values from flash
-                        for (int m = 0; m < sizeof(clock_fields) / sizeof(clock_fields[0]); m++) {
-                                sprintf(temp, "%s_%d", clock_fields[m], x);
-                                if (m == 0 || m == 1) { // clock fileds only -- on or off
-                                        for (int i = 0; i < items_each_array[m]; i++) {
-                                                dailyTO_inFlash.getArrayVal(temp, i, retVal);
-                                                if (retVal >= 0) {
-                                                        if ((i == 0 && retVal <= 23) || (i > 0 && retVal <= 59)) { //valid time
-                                                                if ( m == 0) {
-                                                                        dailyTO.on[i] = retVal;
-                                                                }
-                                                                else {
-                                                                        dailyTO.off[i] = retVal;
-                                                                }
-                                                        }
-                                                }
-
-                                        }
-                                }
-                                else { // for flag value
-                                        dailyTO_inFlash.getValue(temp, retVal);
-                                        if (retVal == 0 || retVal == 1) { //flag on or off
-                                                if (m == 2) {
-                                                        dailyTO.flag = retVal;
-                                                }
-                                                else if (m == 3) {
-                                                        dailyTO.useFlash = retVal;
-                                                }
-                                        }
-                                        else {
-                                                dailyTO_inFlash.setValue(temp, 0);
-                                        }
-                                }
-                        }
-
-                }
-        }
-        else {         // create NULL values
-                store_dailyTO_inFlash(defaultVals, x);
-        }
-
-}
-void store_dailyTO_inFlash(dTO &dailyTO, int x) {
-        char temp[10];
-
-        for (int m = 0; m < sizeof(clock_fields) / sizeof(clock_fields[0]); m++) {
-                sprintf(temp, "%s_%d", clock_fields[m], x);
-                if (m == 0) {
-                        for (int i = 0; i < items_each_array[m]; i++) {
-                                dailyTO_inFlash.setArrayVal(temp, i, dailyTO.on[i]);
-                        }
-                }
-                else if (m == 1) {
-                        for (int i = 0; i < items_each_array[m]; i++) {
-                                dailyTO_inFlash.setArrayVal(temp, i, dailyTO.off[i]);
-                        }
-                }
-                else if (m == 2) {
-                        dailyTO_inFlash.setValue(temp, dailyTO.flag);
-                }
-                else if (m == 3) {
-                        dailyTO_inFlash.setValue(temp, dailyTO.useFlash);
-
-                }
-        }
-}
-#endif
-
 
 void setup() {
         startGPIOs();
         startIOTservices();
-        startOLED();
-        TO[0]->begin(false);
-
-#if USE_DAILY_TO
-        for (int i = 0; i < NUM_SWITCHES; i++) {
-                check_dailyTO_inFlash(*dailyTO[i], i);
-        }
-#endif
+        startTO();
 }
 
 // ~~~~ OLED ~~~~~~~
 void startOLED() {
-        display.begin(SSD1306_SWITCHCAPVCC, 0x3C);
-        display.clearDisplay();
+        // display.begin(SSD1306_SWITCHCAPVCC, 0x3C);
+        // display.clearDisplay();
 }
 void OLED_CenterTXT(int char_size, char *line1, char *line2 = "", char *line3 = "", char *line4 = "", byte x_shift = 0,  byte y_shift = 0) {
-        char *Lines[] = {line1, line2, line3, line4};
-        display.clearDisplay();
-        display.setTextSize(char_size);
-        display.setTextColor(WHITE);
-        byte line_space = pow(2, (2 + char_size));
-
-        for (int n = 0; n < 4; n++) {
-                if (strcmp(Lines[n], "") != 0) {
-                        int strLength = strlen(Lines[n]);
-                        display.setCursor((ceil)((21 / char_size - strLength) / 2 * (128 / (21 / char_size))) + x_shift,  line_space * n + y_shift);
-                        display.print(Lines[n]);
-                }
-        }
-        display.display();
+        // char *Lines[] = {line1, line2, line3, line4};
+        // display.clearDisplay();
+        // display.setTextSize(char_size);
+        // display.setTextColor(WHITE);
+        // byte line_space = pow(2, (2 + char_size));
+        //
+        // for (int n = 0; n < 4; n++) {
+        //         if (strcmp(Lines[n], "") != 0) {
+        //                 int strLength = strlen(Lines[n]);
+        //                 display.setCursor((ceil)((21 / char_size - strLength) / 2 * (128 / (21 / char_size))) + x_shift,  line_space * n + y_shift);
+        //                 display.print(Lines[n]);
+        //         }
+        // }
+        // display.display();
 }
 void OLED_SideTXT(int char_size, char *line1, char *line2 = "", char *line3 = "", char *line4 = "") {
-        char *Lines[] = {line1, line2, line3, line4};
-        display.clearDisplay();
-        display.setTextSize(char_size);
-        byte line_space = pow(2, (2 + char_size));
-
-
-        if (strcmp(line3, "") == 0 && strcmp(line4, "") == 0) { // for ON state only - 2rows
-                for (int n = 0; n < 2; n++) {
-                        if (strcmp(Lines[n], "") != 0) {
-                                if (n == 1) { // Clock line
-                                        display.setTextSize(char_size);
-                                        display.setTextColor(WHITE);
-                                        int strLength = strlen(Lines[n]);
-                                        display.setCursor((ceil)((21 / char_size - strLength) * (128 / (21 / char_size))),  line_space * (n + 1) - 3);
-                                        display.print(Lines[n]);
-                                }
-                                else { // Title line
-                                        display.setTextSize(char_size - 1);
-                                        display.setTextColor(BLACK, WHITE);
-                                        display.setCursor(0, line_space * (n + 1));
-                                        display.print(Lines[n]);
-                                }
-                        }
-                }
-
-        }
-        else {
-                for (int n = 0; n < 4; n++) {
-                        if (strcmp(Lines[n], "") != 0) {
-                                if (n == 1 || n == 3) { // Clocks
-                                        display.setTextSize(char_size);
-                                        display.setTextColor(WHITE);
-                                        int strLength = strlen(Lines[n]);
-                                        display.setCursor((ceil)((21 / char_size - strLength) * (128 / (21 / char_size))),  line_space * n - 3);
-                                        display.print(Lines[n]);
-                                }
-                                else { // Title
-                                        display.setTextSize(char_size - 1);
-                                        display.setTextColor(BLACK, WHITE);
-                                        display.setCursor(0, line_space * n);
-                                        display.print(Lines[n]);
-                                }
-                        }
-                }
-        }
-        display.display();
+        // char *Lines[] = {line1, line2, line3, line4};
+        // display.clearDisplay();
+        // display.setTextSize(char_size);
+        // byte line_space = pow(2, (2 + char_size));
+        //
+        //
+        // if (strcmp(line3, "") == 0 && strcmp(line4, "") == 0) { // for ON state only - 2rows
+        //         for (int n = 0; n < 2; n++) {
+        //                 if (strcmp(Lines[n], "") != 0) {
+        //                         if (n == 1) { // Clock line
+        //                                 display.setTextSize(char_size);
+        //                                 display.setTextColor(WHITE);
+        //                                 int strLength = strlen(Lines[n]);
+        //                                 display.setCursor((ceil)((21 / char_size - strLength) * (128 / (21 / char_size))),  line_space * (n + 1) - 3);
+        //                                 display.print(Lines[n]);
+        //                         }
+        //                         else { // Title line
+        //                                 display.setTextSize(char_size - 1);
+        //                                 display.setTextColor(BLACK, WHITE);
+        //                                 display.setCursor(0, line_space * (n + 1));
+        //                                 display.print(Lines[n]);
+        //                         }
+        //                 }
+        //         }
+        //
+        // }
+        // else {
+        //         for (int n = 0; n < 4; n++) {
+        //                 if (strcmp(Lines[n], "") != 0) {
+        //                         if (n == 1 || n == 3) { // Clocks
+        //                                 display.setTextSize(char_size);
+        //                                 display.setTextColor(WHITE);
+        //                                 int strLength = strlen(Lines[n]);
+        //                                 display.setCursor((ceil)((21 / char_size - strLength) * (128 / (21 / char_size))),  line_space * n - 3);
+        //                                 display.print(Lines[n]);
+        //                         }
+        //                         else { // Title
+        //                                 display.setTextSize(char_size - 1);
+        //                                 display.setTextColor(BLACK, WHITE);
+        //                                 display.setCursor(0, line_space * n);
+        //                                 display.print(Lines[n]);
+        //                         }
+        //                 }
+        //         }
+        // }
+        // display.display();
 }
 void OLEDlooper() {
-        char time_on_char[20];
-        char time2Off_char[20];
-
-        if( clock_noref == 0) {
-
-                if (digitalRead(relays[0]) == RelayOn ) {
-                        int timeON = now() - TO[0]->getStart_to();
-                        sec2clock(timeON, "", time_on_char);
-                        if ( timeInc_counter == 1 ) { // ~~~~ON, no timer ~~~~~~~
-                                OLED_SideTXT(2, "On:", time_on_char);
-                        }
-                        else if ( timeInc_counter > 1 || relState[0] == 1 ) { /// ON + Timer or DailyTO
-                                int timeLeft = TO[0]->remain();
-                                sec2clock(timeLeft, "", time2Off_char);
-                                OLED_SideTXT(2, "On:", time_on_char, "Remain:", time2Off_char);
-                        }
-                }
-                else { // OFF state - clock only
-                        iot.return_clock(timeStamp);
-                        iot.return_date(dateStamp);
-
-                        int timeQoute = 5000;
-
-                        if (swapLines_counter == 0) {
-                                swapLines_counter = millis();
-                        }
-                        if (millis() - swapLines_counter < timeQoute) {
-                                OLED_CenterTXT(2, "", timeStamp, dateStamp);
-                        }
-                        else if (millis() - swapLines_counter >= timeQoute && millis() - swapLines_counter < 2 * timeQoute)
-                        {
-                                OLED_CenterTXT(2, timeStamp, "", "", dateStamp);
-                        }
-                        else if (millis() - swapLines_counter > 2 * timeQoute) {
-                                swapLines_counter = 0;
-                        }
-                }
-        }
-        else{
-                if (millis() - clock_noref > time_NOref_OLED*1000) { // time in millis
-                        clock_noref = 0;
-                }
-        }
+        // char time_on_char[20];
+        // char time2Off_char[20];
+        //
+        // if( clock_noref == 0) {
+        //
+        //         if (digitalRead(relays[0]) == RelayOn ) {
+        //                 int timeON = now() - TO[0]->getStart_to();
+        //                 sec2clock(timeON, "", time_on_char);
+        //                 if ( timeInc_counter == 1 ) { // ~~~~ON, no timer ~~~~~~~
+        //                         OLED_SideTXT(2, "On:", time_on_char);
+        //                 }
+        //                 else if ( timeInc_counter > 1 || relState[0] == 1 ) { /// ON + Timer or DailyTO
+        //                         int timeLeft = TO[0]->remain();
+        //                         sec2clock(timeLeft, "", time2Off_char);
+        //                         OLED_SideTXT(2, "On:", time_on_char, "Remain:", time2Off_char);
+        //                 }
+        //         }
+        //         else { // OFF state - clock only
+        //                 iot.return_clock(timeStamp);
+        //                 iot.return_date(dateStamp);
+        //
+        //                 int timeQoute = 5000;
+        //
+        //                 if (swapLines_counter == 0) {
+        //                         swapLines_counter = millis();
+        //                 }
+        //                 if (millis() - swapLines_counter < timeQoute) {
+        //                         OLED_CenterTXT(2, "", timeStamp, dateStamp);
+        //                 }
+        //                 else if (millis() - swapLines_counter >= timeQoute && millis() - swapLines_counter < 2 * timeQoute)
+        //                 {
+        //                         OLED_CenterTXT(2, timeStamp, "", "", dateStamp);
+        //                 }
+        //                 else if (millis() - swapLines_counter > 2 * timeQoute) {
+        //                         swapLines_counter = 0;
+        //                 }
+        //         }
+        // }
+        // else{
+        //         if (millis() - clock_noref > time_NOref_OLED*1000) { // time in millis
+        //                 clock_noref = 0;
+        //         }
+        // }
 }
 // ~~~~~~~~~~~~~~~
 
@@ -473,8 +362,8 @@ void addiotnalMQTT(char *incoming_msg) {
         else if (strcmp(incoming_msg, "ver") == 0 ) {
                 sprintf(msg, "ver #1: [%s], lib: [%s], WDT: [%d], OTA: [%d], SERIAL: [%d], ResetKeeper[%d], FailNTP[%d]", VER, iot.ver, USE_WDT, USE_OTA, USE_SERIAL, USE_RESETKEEPER, USE_FAILNTP);
                 iot.pub_msg(msg);
-                sprintf(msg, "ver #2: DailyTO[%d]",USE_DAILY_TO);
-                iot.pub_msg(msg);
+                // sprintf(msg, "ver #2: DailyTO[%d]",USE_DAILY_TO);
+                // iot.pub_msg(msg);
         }
         else if (strcmp(incoming_msg, "help") == 0) {
                 sprintf(msg, "Help: Commands #1 - [on, off, flash, format]");
@@ -483,7 +372,7 @@ void addiotnalMQTT(char *incoming_msg) {
                 iot.pub_msg(msg);
                 sprintf(msg, "Help: Commands #3 - [status, boot, reset, ip, ota, ver, help]");
                 iot.pub_msg(msg);
-                sprintf(msg, "Help: Commands #4 - [off_daily_to, on_daily_to, flag_daily_to, useflash_daily_to, status_daily_to]");
+                sprintf(msg, "Help: Commands #4 - [off_dailyTO, on_dailyTO, flag_dailyTO, useflash_dailyTO, status_dailyTO]");
                 iot.pub_msg(msg);
         }
         else if (strcmp(incoming_msg, "flash") == 0 ) {
@@ -524,8 +413,6 @@ void addiotnalMQTT(char *incoming_msg) {
                         TO[atoi(iot.inline_param[0])]->restart_to();
                         sprintf(msg, "TimeOut: Switch[#%d] [Restart]", atoi(iot.inline_param[0]));
                         iot.pub_msg(msg);
-                        // iot.notifyOffline();
-                        // iot.sendReset("TimeOut restart");
                 }
                 else if (strcmp(iot.inline_param[1], "status_TO") == 0) {
                         sprintf(msg, "%s: Switch [#%d] {inCode: [%d] mins} {Flash: [%d] mins}, {Active: [%s]}",
@@ -548,76 +435,71 @@ void addiotnalMQTT(char *incoming_msg) {
                         iot.notifyOffline();
                         iot.sendReset("Restore");
                 }
-# if USE_DAILY_TO
-                else if (strcmp(iot.inline_param[1], "on_daily_to") == 0) {
-                        dailyTO[atoi(iot.inline_param[0])]->on[0] = atoi(iot.inline_param[2]); // hour
-                        dailyTO[atoi(iot.inline_param[0])]->on[1] = atoi(iot.inline_param[3]); // minute
-                        dailyTO[atoi(iot.inline_param[0])]->on[2] = atoi(iot.inline_param[4]); // seconds
+                else if (strcmp(iot.inline_param[1], "on_dailyTO") == 0) {
+                        TO[atoi(iot.inline_param[0])]->dailyTO.on[0] = atoi(iot.inline_param[2]); //hours
+                        TO[atoi(iot.inline_param[0])]->dailyTO.on[1] = atoi(iot.inline_param[3]); // minutes
+                        TO[atoi(iot.inline_param[0])]->dailyTO.on[2] = atoi(iot.inline_param[4]); // seconds
 
-                        store_dailyTO_inFlash(*dailyTO[atoi(iot.inline_param[0])], atoi(iot.inline_param[0]));
+                        TO[atoi(iot.inline_param[0])]->store_dailyTO_inFlash(TO[atoi(iot.inline_param[0])]->dailyTO, atoi(iot.inline_param[0]));
 
-                        sprintf(msg, "%s: Switch[#%d] [ON] updated [%02d:%02d:%02d]", clockAlias, atoi(iot.inline_param[0]),
-                                dailyTO[atoi(iot.inline_param[0])]->on[0],
-                                dailyTO[atoi(iot.inline_param[0])]->on[1],
-                                dailyTO[atoi(iot.inline_param[0])]->on[2]);
+                        sprintf(msg, "%s: Switch [#%d] [ON] updated [%02d:%02d:%02d]", clockAlias, atoi(iot.inline_param[0]),
+                                TO[atoi(iot.inline_param[0])]->dailyTO.on[0], TO[atoi(iot.inline_param[0])]->dailyTO.on[1],
+                                TO[atoi(iot.inline_param[0])]->dailyTO.on[2]);
+
                         iot.pub_msg(msg);
                 }
-                else if (strcmp(iot.inline_param[1], "off_daily_to") == 0) {
-                        dailyTO[atoi(iot.inline_param[0])]->off[0] = atoi(iot.inline_param[2]); // hour
-                        dailyTO[atoi(iot.inline_param[0])]->off[1] = atoi(iot.inline_param[3]); // minute
-                        dailyTO[atoi(iot.inline_param[0])]->off[2] = atoi(iot.inline_param[4]); // seconds
+                else if (strcmp(iot.inline_param[1], "off_dailyTO") == 0) {
+                        TO[atoi(iot.inline_param[0])]->dailyTO.off[0] = atoi(iot.inline_param[2]); //hours
+                        TO[atoi(iot.inline_param[0])]->dailyTO.off[1] = atoi(iot.inline_param[3]); // minutes
+                        TO[atoi(iot.inline_param[0])]->dailyTO.off[2] = atoi(iot.inline_param[4]); // seconds
 
-                        store_dailyTO_inFlash(*dailyTO[atoi(iot.inline_param[0])], atoi(iot.inline_param[0]));
+                        TO[atoi(iot.inline_param[0])]->store_dailyTO_inFlash(TO[atoi(iot.inline_param[0])]->dailyTO, atoi(iot.inline_param[0]));
 
                         sprintf(msg, "%s: Switch [#%d] [OFF] updated [%02d:%02d:%02d]", clockAlias, atoi(iot.inline_param[0]),
-                                dailyTO[atoi(iot.inline_param[0])]->off[0],
-                                dailyTO[atoi(iot.inline_param[0])]->off[1],
-                                dailyTO[atoi(iot.inline_param[0])]->off[2]);
+                                TO[atoi(iot.inline_param[0])]->dailyTO.off[0], TO[atoi(iot.inline_param[0])]->dailyTO.off[1],
+                                TO[atoi(iot.inline_param[0])]->dailyTO.off[2]);
+
                         iot.pub_msg(msg);
                 }
-                else if (strcmp(iot.inline_param[1], "flag_daily_to") == 0) {
-                        dailyTO[atoi(iot.inline_param[0])]->flag = atoi(iot.inline_param[2]);
-                        store_dailyTO_inFlash(*dailyTO[atoi(iot.inline_param[0])], atoi(iot.inline_param[0]));
-                        sprintf(msg, "%s: Switch[#%d] set to [%s]", clockAlias,
+                else if (strcmp(iot.inline_param[1], "flag_dailyTO") == 0) {
+                        TO[atoi(iot.inline_param[0])]->dailyTO.flag = atoi(iot.inline_param[2]);
+                        TO[atoi(iot.inline_param[0])]->store_dailyTO_inFlash(TO[atoi(iot.inline_param[0])]->dailyTO, atoi(iot.inline_param[0]));
+
+                        sprintf(msg, "%s: Switch[#%d] using [%s] values", clockAlias,
                                 atoi(iot.inline_param[0]), atoi(iot.inline_param[2]) ? "ON" : "OFF");
+
                         iot.pub_msg(msg);
                 }
-                else if (strcmp(iot.inline_param[1], "useflash_daily_to") == 0) {
-                        dailyTO[atoi(iot.inline_param[0])]->useFlash = atoi(iot.inline_param[2]);
-                        store_dailyTO_inFlash(*dailyTO[atoi(iot.inline_param[0])], atoi(iot.inline_param[0]));
+                else if (strcmp(iot.inline_param[1], "useflash_dailyTO") == 0) {
+                        TO[atoi(iot.inline_param[0])]->dailyTO.useFlash = atoi(iot.inline_param[2]);
+                        TO[atoi(iot.inline_param[0])]->store_dailyTO_inFlash(TO[atoi(iot.inline_param[0])]->dailyTO, atoi(iot.inline_param[0]));
+
                         sprintf(msg, "%s: Switch[#%d] using [%s] values", clockAlias,
                                 atoi(iot.inline_param[0]), atoi(iot.inline_param[2]) ? "Flash" : "Code");
+
                         iot.pub_msg(msg);
                 }
-                else if (strcmp(iot.inline_param[1], "status_daily_to") == 0) {
+                else if (strcmp(iot.inline_param[1], "status_dailyTO") == 0) {
                         sprintf(msg, "%s: Switch [#%d] {ON, %02d:%02d:%02d} {OFF, %02d:%02d:%02d} {Flag: %s}",
                                 clockAlias, atoi(iot.inline_param[0]),
-                                dailyTO[atoi(iot.inline_param[0])]->on[0],
-                                dailyTO[atoi(iot.inline_param[0])]->on[1],
-                                dailyTO[atoi(iot.inline_param[0])]->on[2],
-                                dailyTO[atoi(iot.inline_param[0])]->off[0],
-                                dailyTO[atoi(iot.inline_param[0])]->off[1],
-                                dailyTO[atoi(iot.inline_param[0])]->off[2],
-                                dailyTO[atoi(iot.inline_param[0])]->flag ? "ON" : "OFF" );
+                                TO[atoi(iot.inline_param[0])]->dailyTO.on[0],
+                                TO[atoi(iot.inline_param[0])]->dailyTO.on[1],
+                                TO[atoi(iot.inline_param[0])]->dailyTO.on[2],
+                                TO[atoi(iot.inline_param[0])]->dailyTO.off[0],
+                                TO[atoi(iot.inline_param[0])]->dailyTO.off[1],
+                                TO[atoi(iot.inline_param[0])]->dailyTO.off[2],
+                                TO[atoi(iot.inline_param[0])]->dailyTO.flag ? "ON" : "OFF" );
+                        TO[atoi(iot.inline_param[0])]->dailyTO_inFlash.printFile();
                         iot.pub_msg(msg);
                 }
-# endif
         }
 }
 
 // ~~~~~~ Loopers ~~~~~~~~~~
 void loop() {
         iot.looper();
-        OLEDlooper();
-        digitalWrite(buttonLED_Pin, digitalRead(relays[0]));
-
         for (int i = 0; i < NUM_SWITCHES; i++) {
-                if (USE_DAILY_TO == true) {
-                    #if USE_DAILY_TO
-                        daily_timeouts_looper(*dailyTO[i], i);
-                    #endif
-                }
-                timeOutLoop(i);
+                TO_looper(i);
                 Switch_1_looper(i);
         }
         delay(100);

@@ -610,7 +610,9 @@ void FVars::format(){
 
 // ~~~~~~~~~~~ TimeOut Class ~~~~~~~~~~~~
 timeOUT::timeOUT(char* sw_num, int def_val)
-        : endTimeOUT_inFlash(_key1,sw_num), inCodeTimeOUT_inFlash(_key2,sw_num), updatedTimeOUT_inFlash(_key3,sw_num), startTimeOUT_inFlash(_key4,sw_num)
+        : endTimeOUT_inFlash(_key1,sw_num), inCodeTimeOUT_inFlash(_key2,sw_num),
+        updatedTimeOUT_inFlash(_key3,sw_num), startTimeOUT_inFlash(_key4,sw_num),
+        dailyTO_inFlash("TO.json", true)
 {
         /* endTimeOUT_inFlash     -- Save clock when TO ends (sec from epoch)
            inCodeTimeOUT_inFlash  -- save value of TO defined in code [ minutes]
@@ -649,6 +651,8 @@ timeOUT::timeOUT(char* sw_num, int def_val)
         }
 }
 bool timeOUT::looper(){
+        dailyTO_looper(dailyTO);
+
         if (_calc_endTO >now()) {
                 return 1;
         }
@@ -662,12 +666,12 @@ bool timeOUT::looper(){
 bool timeOUT::begin(bool newReboot){   // NewReboot come to not case of sporadic reboot
 
         // ~~~~~~~~ Check if stored end value stil valid ~~~~~~~~~~~~~~
-        if (endTO_inFlash > now()) {                 // get saved value- still have to go
-                _calc_endTO = endTO_inFlash;           //clock time to stop
+        if (endTO_inFlash > now()) {                         // get saved value- still have to go
+                _calc_endTO = endTO_inFlash;                   //clock time to stop
                 switchON();
                 return 1;
         }
-        else if (endTO_inFlash >0 && endTO_inFlash <=now()) {          // saved but time passed
+        else if (endTO_inFlash >0 && endTO_inFlash <=now()) {                  // saved but time passed
                 switchOFF();
                 return 0;
         }
@@ -680,7 +684,7 @@ bool timeOUT::begin(bool newReboot){   // NewReboot come to not case of sporadic
          */
 
         // ~~~~~~~~~ Case of fresh Start - not a quick boot ~~~~~~~~~~~~~~~~
-        else if (endTO_inFlash == 0 && newReboot == true) {           // fresh start
+        else if (endTO_inFlash == 0 && newReboot == true) {                   // fresh start
                 if (_calc_TO != 0) {
                         setNewTimeout(_calc_TO);
                         return 1;
@@ -690,7 +694,7 @@ bool timeOUT::begin(bool newReboot){   // NewReboot come to not case of sporadic
                         return 0;
                 }
         }
-        else if (endTO_inFlash == 0) {          // saved but time passed
+        else if (endTO_inFlash == 0) {                  // saved but time passed
                 return 0;
         }
 }
@@ -765,6 +769,102 @@ long timeOUT::getStart_to(){
 void timeOUT::updateStart(long clock){
         startTimeOUT_inFlash.setValue(clock);
 }
+
+void timeOUT::dailyTO_looper(dTO &dailyTO) {
+        char msg [50], msg2[50];
+        time_t t = now();
+
+        if (dailyTO.onNow == false && dailyTO.flag == true) { // start
+                if (hour(t) == dailyTO.on[0] && minute(t) == dailyTO.on[1] && second(t) == dailyTO.on[2]) {
+                        int secs   = dailyTO.off[2] - dailyTO.on[2];
+                        int mins   = dailyTO.off[1] - dailyTO.on[1];
+                        int delt_h = dailyTO.off[0] - dailyTO.on[0];
+
+                        int total_time = secs + mins * 60 + delt_h * 60 * 60;
+                        if (total_time < 0) {
+                                total_time += 24 * 60 * 60;
+                        }
+
+                        setNewTimeout(total_time, false);
+                        dailyTO.onNow = true;
+                }
+        }
+}
+void timeOUT::check_dailyTO_inFlash(dTO &dailyTO, int x) {
+        char temp[10];
+        int retVal;
+
+        if (dailyTO_inFlash.file_exists()) {
+                sprintf(temp, "%s_%d", clock_fields[3], x);
+                dailyTO_inFlash.getValue(temp, retVal);
+                if (retVal) { //only if flag is to read values from flash
+                        for (int m = 0; m < sizeof(clock_fields) / sizeof(clock_fields[0]); m++) {
+                                sprintf(temp, "%s_%d", clock_fields[m], x);
+                                if (m == 0 || m == 1) { // clock fileds only -- on or off
+                                        for (int i = 0; i < items_each_array[m]; i++) {
+                                                dailyTO_inFlash.getArrayVal(temp, i, retVal);
+                                                if (retVal >= 0) {
+                                                        if ((i == 0 && retVal <= 23) || (i > 0 && retVal <= 59)) { //valid time
+                                                                if ( m == 0) {
+                                                                        dailyTO.on[i] = retVal;
+                                                                }
+                                                                else {
+                                                                        dailyTO.off[i] = retVal;
+                                                                }
+                                                        }
+                                                }
+
+                                        }
+                                }
+                                else { // for flag value
+                                        dailyTO_inFlash.getValue(temp, retVal);
+                                        if (retVal == 0 || retVal == 1) { //flag on or off
+                                                if (m == 2) {
+                                                        dailyTO.flag = retVal;
+                                                }
+                                                else if (m == 3) {
+                                                        dailyTO.useFlash = retVal;
+                                                }
+                                        }
+                                        else {
+                                                dailyTO_inFlash.setValue(temp, 0);
+                                        }
+                                }
+                        }
+
+                }
+        }
+        else {         // create NULL values
+                store_dailyTO_inFlash(defaultVals, x);
+        }
+}
+void timeOUT::store_dailyTO_inFlash(dTO &dailyTO, int x) {
+        char temp[10];
+        if (dailyTO_inFlash.file_exists()) {
+                for (int m = 0; m < sizeof(clock_fields) / sizeof(clock_fields[0]); m++) {
+                        sprintf(temp, "%s_%d", clock_fields[m], x);
+                        if (m == 0) {
+                                for (int i = 0; i < items_each_array[m]; i++) {
+                                        dailyTO_inFlash.setArrayVal(temp, i, dailyTO.on[i]);
+                                }
+                        }
+                        else if (m == 1) {
+                                for (int i = 0; i < items_each_array[m]; i++) {
+                                        dailyTO_inFlash.setArrayVal(temp, i, dailyTO.off[i]);
+                                }
+                        }
+                        else if (m == 2) {
+                                dailyTO_inFlash.setValue(temp, dailyTO.flag);
+                        }
+                        else if (m == 3) {
+                                dailyTO_inFlash.setValue(temp, dailyTO.useFlash);
+                        }
+                }
+        }
+        else {
+        }
+}
+
 
 // ~~~~~~~~~~~ myTelegram Class ~~~~~~~~~~~~
 myTelegram::myTelegram(char* Bot, char* chatID, char* ssid, char* password) : bot (Bot, client)
