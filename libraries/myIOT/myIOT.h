@@ -75,7 +75,7 @@ void looper();
 };
 
 class myIOT {
-static const int MaxTopicLength = 64;           //topics
+static const int MaxTopicLength = 64;                           //topics
 
 public:
 WiFiClient espClient;
@@ -103,12 +103,12 @@ int inline_read(char *inputstr);
 bool useSerial      = false;
 bool useWDT         = true;
 bool useOTA         = true;
-bool extDefine      = false;           // must to set to true in order to use EXtMQTT
+bool extDefine      = false;                           // must to set to true in order to use EXtMQTT
 bool useResetKeeper = false;
 bool resetFailNTP   = false;
 bool useTelegram    = false;
 // ~~~~~~~~~~~~~~~~~~~~~~~~~
-char inline_param[6][20];           //values from user
+char inline_param[6][20];                           //values from user
 
 bool mqttConnected         = 0;
 bool alternativeMQTTserver = false;
@@ -131,15 +131,15 @@ cb_func2 ext_telegram;
 
 
 // time interval parameters
-const int clockUpdateInt        = 60 * 60 * 5;                      // seconds to update NTP
-const int WIFItimeOut           = (1000 * 60) * 1/3;               // 20 sec try to connect WiFi
-const int OTA_upload_interval   = (1000 * 60) * 5;               // 5 minute to try OTA
-const long time2Reset_noNetwork = (1000 * 60) * 1;               // minutues pass without any network
-const int time2_tryReconnect    = (1000 * 60) * 3;               // time between reconnection retries
+const int clockUpdateInt        = 60 * 60 * 5;                                      // seconds to update NTP
+const int WIFItimeOut           = (1000 * 60) * 1/3;                               // 20 sec try to connect WiFi
+const int OTA_upload_interval   = (1000 * 60) * 5;                               // 5 minute to try OTA
+const long time2Reset_noNetwork = (1000 * 60) * 1;                               // minutues pass without any network
+const int time2_tryReconnect    = (1000 * 60) * 3;                               // time between reconnection retries
 volatile int wdtResetCounter    = 0;
-const int wdtMaxRetries         = 30;               //seconds to bITE
-long noNetwork_Clock            = 0;               // clock
-long allowOTA_clock             = 0;               // clock
+const int wdtMaxRetries         = 30;                               //seconds to bITE
+long noNetwork_Clock            = 0;                               // clock
+long allowOTA_clock             = 0;                               // clock
 long lastReconnectTry           = 0;
 // ############################
 
@@ -166,8 +166,8 @@ char* topicArry[4] = {deviceTopic, _groupTopic, _availTopic, addGroupTopic};
 
 
 // MQTT connection flags
-int mqttFailCounter = 0;               // count tries to reconnect
-int MQTTretries     = 2;               // allowed tries to reconnect
+int mqttFailCounter = 0;                               // count tries to reconnect
+int MQTTretries     = 2;                               // allowed tries to reconnect
 // ######################
 
 
@@ -217,13 +217,14 @@ struct dTO {
         int on[3];
         int off[3];
         bool flag;
-        bool onNow;
         bool useFlash;
+        bool onNow;
+
 };
 const char *clock_fields[4] = {"ontime", "off_time", "flag", "use_inFl_vals"};
 const int items_each_array[3] = {3, 3, 1};
 
-dTO defaultVals = {{0, 0, 0}, {0, 0, 59}, 0, 0, 0};
+dTO defaultVals = {{0, 0, 0}, {0, 0, 59}, 1, 1, 0};
 
 
 public:
@@ -231,7 +232,8 @@ int inCodeTO           = 0;   // default value for TO ( hard coded )
 int updatedTO_inFlash  = 0;
 long endTO_inFlash     = 0; // clock to stop TO
 long startTO_inFlash   = 0; // clock TO started
-dTO dailyTO          = {{19, 15, 0}, {20, 37, 0}, 0, 0, 0};
+dTO dailyTO          = {{19, 15, 0}, {20, 37, 0}, 1, 1, 0};
+dTO dailyTO2         = {{1, 1, 0}, {17, 14, 0}, 1, 1, 0};
 
 
 public:

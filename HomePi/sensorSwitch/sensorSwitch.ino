@@ -1,6 +1,5 @@
 #include <myIOT.h>
 #include <Arduino.h>
-#include <TimeLib.h>
 #include <EEPROM.h>
 
 
@@ -220,6 +219,7 @@ telNotify telNotify = {0, 0, 0, NotifyMSG};
 
 
 //  ############################## STRART CORE #################################
+
 void switchIt (char *txt1, int sw_num, bool state, char *txt2 = "", bool show_timeout = true) {
         char msg [50], msg1[50], msg2[50], states[50], tempstr[50];
         char *word = {"Turned"};
@@ -674,7 +674,7 @@ void setup() {
 void loop() {
         iot.looper();
 
-        for (int i=0; i<NUM_SWITCHES; i++) {
+        for (int i = 0; i < NUM_SWITCHES; i++) {
                 TO_looper(i);
                 if (USE_INPUTS == true) {
                         checkSwitch_Pressed(i);

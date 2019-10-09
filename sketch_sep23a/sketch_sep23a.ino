@@ -1,26 +1,23 @@
-int swPin = D8;
-int ledPin = D7;
+#include <myIOT.h>
+// #include <myJSON.h>
+timeOUT TO("SW0",13);
+
 void setup() {
-  // put your setup code here, to run once:
-pinMode(swPin, INPUT_PULLUP);
-// pinMode(ledPin, OUTPUT);
 Serial.begin(9600);
+Serial.println("\nStarT");
+TO.begin();
+// TO.setNewTimeout(10, false);
+// TO.store_dailyTO_inFlash(TO.dailyTO,0);
+TO.check_dailyTO_inFlash(TO.dailyTO2,0);
+
+
+
 }
 
 void loop() {
-  // put your main code here, to run repeatedly:
-  // if (x <=255){
-  //   x=x+40;
-  // }
-  // else{
-  //   x=15;
-  // }
-  // analogWrite(D4,x);
-  delay(1000);
-  Serial.print("wdPin: ");
-  Serial.println(digitalRead(swPin));
-  // Serial.print("ledPin: ");
-  //   Serial.println(digitalRead(ledPin));
-  //   digitalWrite(ledPin,!digitalRead(ledPin));
+  TO.looper();
+  // Serial.println(TO.remain());
+  delay(100);
+
 
 }

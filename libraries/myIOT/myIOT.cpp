@@ -796,74 +796,73 @@ void timeOUT::check_dailyTO_inFlash(dTO &dailyTO, int x) {
 
         if (dailyTO_inFlash.file_exists()) {
                 sprintf(temp, "%s_%d", clock_fields[3], x);
-                dailyTO_inFlash.getValue(temp, retVal);
-                if (retVal) { //only if flag is to read values from flash
-                        for (int m = 0; m < sizeof(clock_fields) / sizeof(clock_fields[0]); m++) {
-                                sprintf(temp, "%s_%d", clock_fields[m], x);
-                                if (m == 0 || m == 1) { // clock fileds only -- on or off
-                                        for (int i = 0; i < items_each_array[m]; i++) {
-                                                dailyTO_inFlash.getArrayVal(temp, i, retVal);
-                                                if (retVal >= 0) {
-                                                        if ((i == 0 && retVal <= 23) || (i > 0 && retVal <= 59)) { //valid time
-                                                                if ( m == 0) {
-                                                                        dailyTO.on[i] = retVal;
-                                                                }
-                                                                else {
-                                                                        dailyTO.off[i] = retVal;
+                if(dailyTO_inFlash.getValue(temp, retVal)) {
+
+                        if (retVal) { //only if flag is to read values from flash
+                                for (int m = 0; m < sizeof(clock_fields) / sizeof(clock_fields[0]); m++) {
+                                        sprintf(temp, "%s_%d", clock_fields[m], x);
+                                        if (m == 0 || m == 1) { // clock fileds only -- on or off
+                                                for (int i = 0; i < items_each_array[m]; i++) {
+                                                        dailyTO_inFlash.getArrayVal(temp, i, retVal);
+                                                        if (retVal >= 0) {
+                                                                if ((i == 0 && retVal <= 23) || (i > 0 && retVal <= 59)) { //valid time
+                                                                        if ( m == 0) {
+                                                                                dailyTO.on[i] = retVal;
+                                                                        }
+                                                                        else {
+                                                                                dailyTO.off[i] = retVal;
+                                                                        }
                                                                 }
                                                         }
-                                                }
 
-                                        }
-                                }
-                                else { // for flag value
-                                        dailyTO_inFlash.getValue(temp, retVal);
-                                        if (retVal == 0 || retVal == 1) { //flag on or off
-                                                if (m == 2) {
-                                                        dailyTO.flag = retVal;
-                                                }
-                                                else if (m == 3) {
-                                                        dailyTO.useFlash = retVal;
                                                 }
                                         }
-                                        else {
-                                                dailyTO_inFlash.setValue(temp, 0);
+                                        else { // for flag value
+                                                dailyTO_inFlash.getValue(temp, retVal);
+                                                if (retVal == 0 || retVal == 1) { //flag on or off
+                                                        if (m == 2) {
+                                                                dailyTO.flag = retVal;
+                                                        }
+                                                        else if (m == 3) {
+                                                                dailyTO.useFlash = retVal;
+                                                        }
+                                                }
+                                                else {
+                                                        dailyTO_inFlash.setValue(temp, 0);
+                                                }
                                         }
                                 }
+
                         }
-
                 }
-        }
-        else {         // create NULL values
-                store_dailyTO_inFlash(defaultVals, x);
+                else { // create NULL values
+                        store_dailyTO_inFlash(defaultVals, x);
+                }
         }
 }
 void timeOUT::store_dailyTO_inFlash(dTO &dailyTO, int x) {
         char temp[10];
-        if (dailyTO_inFlash.file_exists()) {
-                for (int m = 0; m < sizeof(clock_fields) / sizeof(clock_fields[0]); m++) {
-                        sprintf(temp, "%s_%d", clock_fields[m], x);
-                        if (m == 0) {
-                                for (int i = 0; i < items_each_array[m]; i++) {
-                                        dailyTO_inFlash.setArrayVal(temp, i, dailyTO.on[i]);
-                                }
-                        }
-                        else if (m == 1) {
-                                for (int i = 0; i < items_each_array[m]; i++) {
-                                        dailyTO_inFlash.setArrayVal(temp, i, dailyTO.off[i]);
-                                }
-                        }
-                        else if (m == 2) {
-                                dailyTO_inFlash.setValue(temp, dailyTO.flag);
-                        }
-                        else if (m == 3) {
-                                dailyTO_inFlash.setValue(temp, dailyTO.useFlash);
+        for (int m = 0; m < sizeof(clock_fields) / sizeof(clock_fields[0]); m++) {
+                sprintf(temp, "%s_%d", clock_fields[m], x);
+                if (m == 0) {
+                        for (int i = 0; i < items_each_array[m]; i++) {
+                                dailyTO_inFlash.setArrayVal(temp, i, dailyTO.on[i]);
                         }
                 }
-        }
-        else {
+                else if (m == 1) {
+                        for (int i = 0; i < items_each_array[m]; i++) {
+                                dailyTO_inFlash.setArrayVal(temp, i, dailyTO.off[i]);
+                        }
+                }
+                else if (m == 2) {
+                        dailyTO_inFlash.setValue(temp, dailyTO.flag);
+                }
+                else if (m == 3) {
+                        dailyTO_inFlash.setValue(temp, dailyTO.useFlash);
+                }
         }
 }
+
 
 
 // ~~~~~~~~~~~ myTelegram Class ~~~~~~~~~~~~
