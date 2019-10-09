@@ -117,7 +117,7 @@ char prefixTopic  [MaxTopicLength];
 char deviceTopic  [MaxTopicLength];
 char addGroupTopic[MaxTopicLength];
 
-const char *ver     = "iot_4.9";
+const char *ver     = "iot_5.0";
 char timeStamp[20];
 long updated_bootTime  = 0;
 int resetIntervals     = 10;
@@ -231,7 +231,7 @@ int inCodeTO           = 0;   // default value for TO ( hard coded )
 int updatedTO_inFlash  = 0;
 long endTO_inFlash     = 0; // clock to stop TO
 long startTO_inFlash   = 0; // clock TO started
-dTO dailyTO          = {{19, 0, 0}, {20, 0, 0}, 0, 0, 0};
+dTO dailyTO          = {{19, 15, 0}, {20, 37, 0}, 0, 0, 0};
 
 
 public:

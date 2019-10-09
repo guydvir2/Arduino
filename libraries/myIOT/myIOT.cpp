@@ -574,7 +574,7 @@ void myIOT::startWDT() {
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 
-// ~~~~~~ FVars CLASS ~~~~~~~~~~~ //
+// ############################### FVars CLASS #################################
 FVars::FVars(char* key, char* pref){
         sprintf(_key,"%s%s",pref,key);
 }
@@ -684,16 +684,16 @@ bool timeOUT::begin(bool newReboot){   // NewReboot come to not case of sporadic
          */
 
         // ~~~~~~~~~ Case of fresh Start - not a quick boot ~~~~~~~~~~~~~~~~
-        else if (endTO_inFlash == 0 && newReboot == true) {                   // fresh start
-                if (_calc_TO != 0) {
-                        setNewTimeout(_calc_TO);
-                        return 1;
-                }
-                else {
-                        _calc_endTO = 0;
-                        return 0;
-                }
-        }
+        // else if (endTO_inFlash == 0 && newReboot == true) {                   // fresh start
+        //         if (_calc_TO != 0) {
+        //                 setNewTimeout(_calc_TO);
+        //                 return 1;
+        //         }
+        //         else {
+        //                 _calc_endTO = 0;
+        //                 return 0;
+        //         }
+        // }
         else if (endTO_inFlash == 0) {                  // saved but time passed
                 return 0;
         }
