@@ -10,7 +10,7 @@
 #define USE_DAILY_TO     true
 #define IS_SONOFF        false
 #define HARD_REBOOT      true
-#define USE_NOTIFY_TELE  false
+#define USE_NOTIFY_TELE  true
 #define USE_SENSOR       true
 
 // ********** myIOT Class ***********
@@ -60,10 +60,8 @@ char *clockAlias = "Daily TimeOut";
 #define RELAY2          5
 #define INPUT1          0
 #define INPUT2          14
-#define LEDpin          13
 #endif
 
-// ~~~~ HW Pins and Statdes ~~~~
 #if !IS_SONOFF
 #define RELAY1          D3
 #define RELAY2          D2
@@ -71,6 +69,8 @@ char *clockAlias = "Daily TimeOut";
 #define INPUT2          D5
 #define SENSOR_PIN      D1
 #endif
+
+#define indic_LEDpin          13
 
 
 byte relays[]  = {RELAY1, RELAY2};
@@ -101,7 +101,9 @@ struct eeproms_storage {
         byte wcount_cell;
         bool hBoot;
 };
+
 eeproms_storage hReset_eeprom;
+
 int rebootState         = 0;
 bool checkrebootState   = true;
 bool boot_overide       = true;
@@ -110,7 +112,7 @@ bool boot_overide       = true;
 #define MAX_NOTI_1HR           10
 #define MIN_TIME_BETWEEN_NOTI  0.25 //in minutes
 #define MIN_TIME_FIRST_DET     10*60   // sec
-#define ADD_TIME_NEXT_DET      30*30  // sec
+#define ADD_TIME_NEXT_DET      30*60  // sec
 
 class SensorSwitch
 {
@@ -202,7 +204,7 @@ void off_function() {
 
 // ~~~~~~~~~~~ Using SMS Notification ~~~~~~~
 #if USE_NOTIFY_TELE
-#define NotifyMSG "FamilyRoom detection"
+#define NotifyMSG "familyRoom detection"
 myTelegram teleNotify(BOT_TOKEN, CHAT_ID);
 
 struct telNotify {
@@ -303,9 +305,7 @@ void startGPIOs() {
                 relState [i] = 0;
                 last_relState [i] = 0;
         }
-        #if (IS_SONOFF)
-        pinMode(LEDpin, OUTPUT);
-        #endif
+        pinMode(indic_LEDpin, OUTPUT);
 }
 
 // ~~~~~~ TimeOuts ~~~~~~~~~
@@ -330,9 +330,6 @@ void TO_looper(byte i) {
                 relState[i] = TO[i]->looper();
                 if (relState[i] != last_relState[i]) { // change state (ON <-->OFF)
                         switchIt("TimeOut", i, relState[i]);
-                         #if IS_SONOFF
-                        digitalWrite(LEDpin, !relState[i]);
-                        #endif
                 }
                 last_relState[i] = relState[i];
         }
@@ -520,7 +517,17 @@ void telecmds(String in_msg, String from, String chat_id, char snd_msg[50]) {
 #if USE_SENSOR
 SensorSwitch sensSW(SENSOR_PIN, MIN_TIME_FIRST_DET, ADD_TIME_NEXT_DET);
 
-void check_PIR (byte sw) {
+void detectionBlink(byte sw, int duration=2000){
+        unsigned long startTime = millis();
+        while (millis() - startTime < duration) {
+                digitalWrite(relays[sw], RelayOn);
+                delay(200);
+                digitalWrite(relays[sw], !RelayOn);
+                delay(50);
+        }
+
+}
+void checkSensor_looper (byte sw) {
         bool current_sens_state = sensSW.check_sensor();
 
         if ( current_sens_state != sensState[sw]) {
@@ -533,7 +540,7 @@ void check_PIR (byte sw) {
                                 switchIt("Sensor", sw, current_sens_state, "", false);
                         }
                 }
-#if USE_NOTIFY_TELE
+                #if USE_NOTIFY_TELE
                 char time1[20];
                 char date1[20];
                 char comb[40];
@@ -545,6 +552,7 @@ void check_PIR (byte sw) {
                 if (millis() - telNotify.firstTime >= 1000*60*60 || telNotify.firstTime == 0) {
                         telNotify.firstTime = millis();
                         telNotify.nCounter = 0;
+                        // detectionBlink(sw);
                 }
                 if (current_sens_state ) {
                         if(millis() - telNotify.lastTime > 60*1000*MIN_TIME_BETWEEN_NOTI && telNotify.nCounter <MAX_NOTI_1HR) {
@@ -553,9 +561,10 @@ void check_PIR (byte sw) {
                                 teleNotify.send_msg(comb);
                         }
                 }
-#endif
+                #endif
         }
 }
+
 #endif
 
 // ~~~~~ BOOT ASSIST SERVICES ~~~~~~~~~
@@ -680,6 +689,7 @@ void loop() {
                         checkSwitch_Pressed(i);
                 }
         }
+        digitalWrite(indic_LEDpin, !relState[0]);
 
 
 #if USE_NOTIFY_TELE
@@ -693,7 +703,7 @@ void loop() {
 #endif
 
 #if USE_SENSOR
-        check_PIR(0);
+        checkSensor_looper(0);
 #endif
 
         delay(100);

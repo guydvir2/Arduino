@@ -14,7 +14,7 @@
 
 // ********** myIOT Class ***********
 //~~~~~ Services ~~~~~~~~~~~
-#define USE_SERIAL       true // Serial Monitor
+#define USE_SERIAL       false // Serial Monitor
 #define USE_WDT          true  // watchDog resets
 #define USE_OTA          true  // OTA updates
 #define USE_RESETKEEPER  true // detect quick reboot and real reboots
@@ -59,7 +59,7 @@ char *clockAlias = "Daily TimeOut";
 #define RELAY2          D2
 #define INPUT1          D6
 #define INPUT2          D5
-#define buttonLED_Pin   D7
+#define indic_LEDpin   D7
 
 byte relays[]  = {RELAY1, RELAY2};
 byte inputs[]  = {INPUT1, INPUT2};
@@ -148,7 +148,7 @@ void switchIt (char *txt1, int sw_num, bool state, char *txt2 = "", bool show_ti
                 iot.pub_state(states);
         }
 }
-void Switch_1_looper(byte i) {
+void checkSwitch_Pressed(byte i) {
         char tempstr[20];
         char msg[50];
         if (digitalRead(inputs[i]) == SwitchOn) {
@@ -204,7 +204,7 @@ void startGPIOs() {
                 relState [i] = 0;
                 last_relState [i] = 0;
         }
-        pinMode(buttonLED_Pin, OUTPUT);
+        pinMode(indic_LEDpin, OUTPUT);
 }
 
 // ~~~~~~ TimeOuts ~~~~~~~~~
@@ -224,12 +224,14 @@ void start_dailyTO(byte i){
 }
 void TO_looper(byte i) {
         char msg_t[50], msg[50];
+
         if (iot.mqtt_detect_reset != 2) {
                 relState[i] = TO[i]->looper();
                 if (relState[i] != last_relState[i]) { // change state (ON <-->OFF)
                         if (relState[i]==0) { // when TO ends
                                 display_totalOnTime();
                                 TO[i]->updateStart(0);
+                                timeInc_counter = 0;
                         }
                         else{ // when TO starts
                                 TO[i]->updateStart(now());
@@ -259,6 +261,8 @@ void addiotnalMQTT(char *incoming_msg) {
         }
         else if (strcmp(incoming_msg, "ver") == 0 ) {
                 sprintf(msg, "ver #1: [%s], lib: [%s], WDT: [%d], OTA: [%d], SERIAL: [%d], ResetKeeper[%d], FailNTP[%d]", VER, iot.ver, USE_WDT, USE_OTA, USE_SERIAL, USE_RESETKEEPER, USE_FAILNTP);
+                iot.pub_msg(msg);
+                sprintf(msg, "ver #2: DailyTO[%d], ON_AT_BOOT[%d], HardReboot[%d]", USE_DAILY_TO, ON_AT_BOOT, HARD_REBOOT);
                 iot.pub_msg(msg);
         }
         else if (strcmp(incoming_msg, "help") == 0) {
@@ -626,8 +630,9 @@ void loop() {
 
         for (int i = 0; i < NUM_SWITCHES; i++) {
                 TO_looper(i);
-                Switch_1_looper(i);
+                checkSwitch_Pressed(i);
         }
+        digitalWrite(indic_LEDpin, digitalRead(relays[0]));
 
         #if USE_RESETKEEPER
         if (checkrebootState == true) {
@@ -636,7 +641,7 @@ void loop() {
         #endif
 
         OLEDlooper();
-        digitalWrite(buttonLED_Pin, digitalRead(relays[0]));
+
 
         delay(100);
 }

@@ -7,13 +7,13 @@
 
 #include <myIOT.h>
 #include <Arduino.h>
-#include <TimeLib.h>
 #include <EEPROM.h>
 
+
 // ********** Sketch Services  ***********
-#define VER              "Sonoff_3.2"
+#define VER              "Sonoff_4.0"
 #define USE_INPUTS       false
-#define ON_AT_BOOT    false // On or OFF at boot (Usually when using inputs, at boot/PowerOn - state should be off
+#define ON_AT_BOOT       true // On or OFF at boot (Usually when using inputs, at boot/PowerOn - state should be off
 #define USE_DAILY_TO     true
 #define IS_SONOFF        true
 #define HARD_REBOOT      true
@@ -28,9 +28,9 @@
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 // ~~~~~~~ MQTT Topics ~~~~~~
-#define DEVICE_TOPIC "Empy"
+#define DEVICE_TOPIC "frontDoor"
 #define MQTT_PREFIX  "myHome"
-#define MQTT_GROUP   "OutdoorLights"
+#define MQTT_GROUP   "extLights"
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 #define ADD_MQTT_FUNC addiotnalMQTT
@@ -40,11 +40,11 @@ myIOT iot(DEVICE_TOPIC);
 
 // ********** TimeOut Time vars  ***********
 #define NUM_SWITCHES     1
-#define TIMEOUT_SW0      1*60 // mins for SW0
+#define TIMEOUT_SW0      2*60 // mins for SW0
 #define TIMEOUT_SW1      2*60 // mins
 
-const int START_dailyTO[] = {16,0,0};
-const int END_dailyTO[]   = {0,30,0};
+const int START_dailyTO[] = {18,0,0};
+const int END_dailyTO[]   = {2,30,0};
 
 int TIMEOUTS[2]  = {TIMEOUT_SW0, TIMEOUT_SW1};
 timeOUT timeOut_SW0("SW0", TIMEOUTS[0]);
@@ -55,10 +55,6 @@ timeOUT *TO[] = {&timeOut_SW0, &timeOut_SW1};
 #if NUM_SWITCHES == 1
 timeOUT *TO[] = {&timeOut_SW0};
 #endif
-// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-
-// ~~~~~~~~~ Use Daily Clock ~~~~
 char *clockAlias = "Daily TimeOut";
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -78,10 +74,26 @@ char *clockAlias = "Daily TimeOut";
 #define INPUT2          3
 #endif
 
-#define LEDpin          13
+#define indic_LEDpin          13
+
+
 byte relays[]  = {RELAY1, RELAY2};
 byte inputs[]  = {INPUT1, INPUT2};
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+// ~~~~~~~~ state Vars ~~~~~~~~
+#define RelayOn          HIGH
+#define SwitchOn         LOW
+
+bool relState[NUM_SWITCHES];
+bool last_relState[NUM_SWITCHES];
+bool inputState[NUM_SWITCHES];
+
+// #################################  END CORE #################################
+
+
+
+//  ######################### ADDITIONAL SERVICES ##############################
 
 // ~~~~~ Use Reset Counter for hardReboot ~~~~
 struct eeproms_storage {
@@ -99,14 +111,7 @@ int rebootState         = 0;
 bool checkrebootState   = true;
 bool boot_overide       = true;
 
-// ~~~~~~~~ state Vars ~~~~~~~~
-#define RelayOn          HIGH
-#define SwitchOn         LOW
 
-bool relState[NUM_SWITCHES];
-bool last_relState[NUM_SWITCHES];
-bool inputState[NUM_SWITCHES];
-//####################################################
 
 void switchIt (char *txt1, int sw_num, bool state, char *txt2 = "", bool show_timeout = true){
         char msg [50], msg1[50], msg2[50], states[50], tempstr[50];
@@ -140,10 +145,14 @@ void checkSwitch_Pressed (byte sw, bool momentary = true) {
                 if (digitalRead(inputs[sw]) == LOW) {
                         delay(50);
                         if (digitalRead(inputs[sw]) == LOW) {
+                                char temp[20];
+                                sprintf(temp,"Button: Switch [#%d] Turned [%s]", sw, digitalRead(relays[sw]) ? "OFF" : "ON");
                                 if (digitalRead(relays[sw]) == RelayOn) {
+                                        iot.pub_msg(temp);
                                         TO[sw]->endNow();
                                 }
                                 else {
+                                        iot.pub_msg(temp);
                                         TO[sw]->restart_to();
                                 }
                                 delay(500);
@@ -165,7 +174,6 @@ void checkSwitch_Pressed (byte sw, bool momentary = true) {
                 }
         }
 }
-
 void startIOTservices() {
         iot.useSerial      = USE_SERIAL;
         iot.useWDT         = USE_WDT;
@@ -188,12 +196,10 @@ void startGPIOs() {
                 relState [i] = 0;
                 last_relState [i] = 0;
         }
-        if (IS_SONOFF) {
-                pinMode(LEDpin, OUTPUT);
-        }
+        pinMode(indic_LEDpin, OUTPUT);
 }
 
-// ~~~~~~ TimeOuts ~~~~~~~
+// ~~~~~~ TimeOuts ~~~~~~~~~
 void startTO(){
         for (int i=0; i<NUM_SWITCHES; i++) {
                 TO[i]->begin(ON_AT_BOOT);
@@ -215,90 +221,12 @@ void TO_looper(byte i) {
                 relState[i] = TO[i]->looper();
                 if (relState[i] != last_relState[i]) { // change state (ON <-->OFF)
                         switchIt("TimeOut", i, relState[i]);
-                        if (IS_SONOFF) {
-                                digitalWrite(LEDpin, !relState[i]);
-                        }
                 }
                 last_relState[i] = relState[i];
         }
 }
 
-
-// ~~~~~ BOOT Techniques ~~~~~~
-#if HARD_REBOOT
-void check_hardReboot(byte i = 1, byte threshold = 2) {
-        hReset_eeprom.jump = EEPROM.read(0);
-        hReset_eeprom.val_cell    = hReset_eeprom.jump + i;
-        hReset_eeprom.val = EEPROM.read(hReset_eeprom.val_cell);
-
-        if (hReset_eeprom.val < threshold) {
-                EEPROM.write(hReset_eeprom.val_cell, hReset_eeprom.val + 1);
-                EEPROM.commit();
-                hReset_eeprom.hBoot = false;
-        }
-        else {
-                hReset_eeprom.hBoot = true;
-        }
-}
-#endif
-
-void quickPwrON() {
-        /*
-           power on before iot starts,
-           using the fact that endTimeOUT_inFlash contains value
-           other than 0
-         */
-
-        /*
-         # conditions in for loop:
-           1) Has more time to go in TO
-           2) ON_AT_BOOT defines to be ON at bootTime
-           3) eeprom Reset counter forces to be ON_AT_BOOT
-         */
-
-        for (int i = 0; i < NUM_SWITCHES; i++) {
-                if (TO[i]->endTO_inFlash || ON_AT_BOOT || hReset_eeprom.hBoot) {
-                        digitalWrite(relays[i], HIGH);
-                }
-                else {
-                        digitalWrite(relays[i], LOW);
-                }
-        }
-}
-void recoverReset() {
-        /*
-           Using KeepAlive Service.
-           This function determines if boot up caused be a regular PowerOn or caused
-           by a power glich.
-           The criteria is whther KeepAlive value was changed from
-           "online" to "offline".
-         */
-        // Wait for indication if it was false reset(1) or
-        char mqttmsg[30];
-        rebootState = iot.mqtt_detect_reset;
-
-        if (rebootState != 2) { // before getting online/offline MQTT state
-                checkrebootState = false;
-                for (int i = 0; i < NUM_SWITCHES; i++) {
-                        if (rebootState == 0 ) { //}|| ) {  // PowerOn - not a quickReboot
-                                TO[i]->restart_to();
-                                iot.pub_err("--> NormalBoot");
-                        }
-                        #if HARD_REBOOT
-                        else if (hReset_eeprom.hBoot ) { // using HardReboot
-                                TO[i]->restart_to();
-                                iot.pub_err("--> ForcedBoot");
-                        }
-                        #endif
-                        else { // prevent quick boot to restart after succsefull end
-                                if (TO[i]->begin(false) == 0) { // if ON_AT_BOOT == true turn off if not needed
-                                        digitalWrite(relays[i], LOW);
-                                }
-                                iot.pub_err("--> Quick-Reset");
-                        }
-                }
-        }
-}
+// ~~~~ MQTT Commands ~~~~~
 void addiotnalMQTT(char *incoming_msg) {
         char msg[150];
         char msg2[20];
@@ -316,9 +244,9 @@ void addiotnalMQTT(char *incoming_msg) {
                 }
         }
         else if (strcmp(incoming_msg, "ver") == 0 ) {
-                sprintf(msg, "ver #1: [%s], lib: [%s], WDT: [%d], OTA: [%d], SERIAL: [%d], ResetKeeper[%d], FailNTP[%d]", VER, iot.ver, USE_WDT, USE_OTA,USE_SERIAL, USE_RESETKEEPER, USE_FAILNTP);
+                sprintf(msg, "ver #1: [%s], lib: [%s], WDT: [%d], OTA: [%d], SERIAL: [%d], ResetKeeper[%d], FailNTP[%d]", VER, iot.ver, USE_WDT, USE_OTA, USE_SERIAL, USE_RESETKEEPER, USE_FAILNTP);
                 iot.pub_msg(msg);
-                sprintf(msg, "ver #2: DailyTO[%d], UseInputs[%d], ON_AT_BOOT[%d], IS_SONOFF[%d], HardReboot[%d]",USE_DAILY_TO, USE_INPUTS, ON_AT_BOOT, IS_SONOFF, HARD_REBOOT);
+                sprintf(msg, "ver #2: DailyTO[%d], UseInputs[%d], ON_AT_BOOT[%d], HardReboot[%d]", USE_DAILY_TO, USE_INPUTS, ON_AT_BOOT, HARD_REBOOT);
                 iot.pub_msg(msg);
         }
         else if (strcmp(incoming_msg, "help") == 0) {
@@ -451,6 +379,97 @@ void addiotnalMQTT(char *incoming_msg) {
         }
 }
 
+
+//  ######################### ADDITIONAL SERVICES ##############################
+
+// ~~~~~ BOOT ASSIST SERVICES ~~~~~~~~~
+#if HARD_REBOOT
+void check_hardReboot(byte i = 1, byte threshold = 2) {
+        hReset_eeprom.jump = EEPROM.read(0);
+        hReset_eeprom.val_cell    = hReset_eeprom.jump + i;
+        hReset_eeprom.val = EEPROM.read(hReset_eeprom.val_cell);
+
+        if (hReset_eeprom.val < threshold) {
+                EEPROM.write(hReset_eeprom.val_cell, hReset_eeprom.val + 1);
+                EEPROM.commit();
+                hReset_eeprom.hBoot = false;
+        }
+        else {
+                hReset_eeprom.hBoot = true;
+        }
+}
+#endif
+
+void quickPwrON() {
+        /*
+           power on before iot starts,
+           using the fact that endTimeOUT_inFlash contains value
+           other than 0
+         */
+
+        /*
+         # conditions in for loop:
+           1) Has more time to go in TO
+           2) ON_AT_BOOT defines to be ON at bootTime
+           3) eeprom Reset counter forces to be ON_AT_BOOT
+         */
+
+        for (int i = 0; i < NUM_SWITCHES; i++) {
+                if (TO[i]->endTO_inFlash || ON_AT_BOOT || hReset_eeprom.hBoot) {
+                        digitalWrite(relays[i], RelayOn);
+                }
+                else {
+                        digitalWrite(relays[i], !RelayOn);
+                }
+        }
+}
+void recoverReset() {
+        /*
+           Using KeepAlive Service.
+           This function determines if boot up caused be a regular PowerOn or caused
+           by a power glich.
+           The criteria is whther KeepAlive value was changed from
+           "online" to "offline".
+         */
+        // Wait for indication if it was false reset(1) or
+        char mqttmsg[30];
+        rebootState = iot.mqtt_detect_reset;
+
+        if (rebootState != 2) { // before getting online/offline MQTT state
+                checkrebootState = false;
+                for (int i = 0; i < NUM_SWITCHES; i++) {
+                        if (rebootState == 0 && ON_AT_BOOT == true) {  // PowerOn - not a quickReboot
+                                TO[i]->restart_to();
+                                iot.pub_err("--> NormalBoot. On-at-Boot");
+                        }
+                        #if HARD_REBOOT
+                        else if (hReset_eeprom.hBoot ) { // using HardReboot
+                                TO[i]->restart_to();
+                                iot.pub_err("--> ForcedBoot");
+                        }
+                        #endif
+                        else if (rebootState == 1) {
+                                iot.pub_err("--> PowerLoss Boot");
+                        }
+                        else if (TO[i]->looper() == 0) {
+                                digitalWrite(relays[i], !RelayOn);
+                                iot.pub_err("--> Stopping Quick-PowerON");
+                        }
+
+                        // else { // prevent quick boot to restart after succsefull end
+                        //         if (TO[i]->begin(false) == 0) { // if ON_AT_BOOT == true turn off if not needed
+                        //                 digitalWrite(relays[i], !RelayOn);
+                        //                 Serial.println("AD");
+                        //         }
+                        //         iot.pub_err("--> Quick-Reset");
+                        // }
+                }
+        }
+}
+
+// ########################### END ADDITIONAL SERVICE ##########################
+
+
 void setup() {
 #if HARD_REBOOT
         EEPROM.begin(1024);
@@ -471,18 +490,19 @@ void setup() {
 void loop() {
         iot.looper();
 
-        if (checkrebootState == true && USE_RESETKEEPER == true) {
-                recoverReset();
-        }
-
-        for (int i=0; i<NUM_SWITCHES; i++) {
-                if (USE_DAILY_TO == true) {
-                        daily_timeouts_looper(*dailyTO[i],i);
-                }
+        for (int i = 0; i < NUM_SWITCHES; i++) {
+                TO_looper(i);
                 if (USE_INPUTS == true) {
                         checkSwitch_Pressed(i);
                 }
         }
+       digitalWrite(indic_LEDpin, !relState[0]);
+
+#if USE_RESETKEEPER
+        if (checkrebootState == true) {
+                recoverReset();
+        }
+#endif
 
         delay(100);
 }
