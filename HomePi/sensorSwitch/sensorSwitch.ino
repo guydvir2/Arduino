@@ -1,17 +1,19 @@
 #include <myIOT.h>
-#include <Arduino.h>
 #include <EEPROM.h>
+#include <Arduino.h>
 
 
 // ********** Sketch Services  ***********
-#define VER              "Wemos_2.0"
+#define VER              "SONOFF_3.2"
 #define USE_INPUTS       true
 #define ON_AT_BOOT       false // On or OFF at boot (Usually when using inputs, at boot/PowerOn - state should be off
 #define USE_DAILY_TO     true
-#define IS_SONOFF        false
+#define IS_SONOFF        true
 #define HARD_REBOOT      true
-#define USE_NOTIFY_TELE  true
-#define USE_SENSOR       true
+#define USE_NOTIFY_TELE  false
+#define USE_SENSOR       false
+#define USE_IR_REMOTE    false
+#define USE_TIMEOUTS     false
 
 // ********** myIOT Class ***********
 //~~~~~ Services ~~~~~~~~~~~
@@ -23,9 +25,9 @@
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 // ~~~~~~~ MQTT Topics ~~~~~~
-#define DEVICE_TOPIC "TableLEDs"
+#define DEVICE_TOPIC "PergolaLEDs"
 #define MQTT_PREFIX  "myHome"
-#define MQTT_GROUP   "intLights"
+#define MQTT_GROUP   "extLights"
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 #define ADD_MQTT_FUNC addiotnalMQTT
@@ -34,12 +36,12 @@ myIOT iot(DEVICE_TOPIC);
 
 
 // ********** TimeOut Time vars  ***********
-#define NUM_SWITCHES     1
-#define TIMEOUT_SW0      1*60 // mins for SW0
+#define NUM_SWITCHES     2
+#define TIMEOUT_SW0      3*60 // mins for SW0
 #define TIMEOUT_SW1      2*60 // mins
 
-const int START_dailyTO[] = {16,0,0};
-const int END_dailyTO[]   = {0,30,0};
+const int START_dailyTO[] = {18,0,0};
+const int END_dailyTO[]   = {0,0,0};
 
 int TIMEOUTS[2]  = {TIMEOUT_SW0, TIMEOUT_SW1};
 timeOUT timeOut_SW0("SW0", TIMEOUTS[0]);
@@ -54,37 +56,44 @@ char *clockAlias = "Daily TimeOut";
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-// ~~~~ HW Pins and Statdes ~~~~
+
+// ~~~~ HW Pins and States ~~~~
 #if IS_SONOFF
 #define RELAY1          12
 #define RELAY2          5
 #define INPUT1          0
 #define INPUT2          14
+#define indic_LEDpin    13
 #endif
 
 #if !IS_SONOFF
 #define RELAY1          D3
 #define RELAY2          D2
 #define INPUT1          D7
-#define INPUT2          D5
+#define INPUT2          D6
 #define SENSOR_PIN      D1
+#define indic_LEDpin    D8
 #endif
 
-#define indic_LEDpin          13
+#define IR_SENSOR_PIN D5
 
-
-byte relays[]  = {RELAY1, RELAY2};
-byte inputs[]  = {INPUT1, INPUT2};
+byte relays[]       = {RELAY1, RELAY2};
+byte inputs[]       = {INPUT1, INPUT2};
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 // ~~~~~~~~ state Vars ~~~~~~~~
 #define RelayOn          HIGH
 #define SwitchOn         LOW
+#define ledON            HIGH
 
 bool relState[NUM_SWITCHES];
 bool last_relState[NUM_SWITCHES];
 bool inputState[NUM_SWITCHES];
 bool sensState[NUM_SWITCHES];
+int rebootState         = 0;
+bool checkrebootState   = true;
+bool boot_overide[]     = {true, true};
+
 
 // #################################  END CORE #################################
 
@@ -101,12 +110,7 @@ struct eeproms_storage {
         byte wcount_cell;
         bool hBoot;
 };
-
 eeproms_storage hReset_eeprom;
-
-int rebootState         = 0;
-bool checkrebootState   = true;
-bool boot_overide       = true;
 
 // ~~~~~~~~~~~~~ Sensor Switch ~~~~~~~~~~~~~~
 #define MAX_NOTI_1HR           10
@@ -216,6 +220,22 @@ struct telNotify {
 
 telNotify telNotify = {0, 0, 0, NotifyMSG};
 #endif
+
+//~~~~~~~ IR Remote ~~~~~~~~
+#if USE_IR_REMOTE
+#include <IRremoteESP8266.h>
+#include <IRutils.h>
+
+const uint16_t kRecvPin        = IR_SENSOR_PIN;
+const uint32_t kBaudRate       = 115200;
+const uint16_t kMinUnknownSize = 12;
+unsigned long key_value        = 0;
+
+IRrecv irrecv(kRecvPin);
+decode_results results;
+
+#endif
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // #############################################################################
 
 
@@ -226,12 +246,12 @@ void switchIt (char *txt1, int sw_num, bool state, char *txt2 = "", bool show_ti
         char msg [50], msg1[50], msg2[50], states[50], tempstr[50];
         char *word = {"Turned"};
 
-        if (digitalRead(relays[sw_num]) != state || boot_overide == true) {
+        if (digitalRead(relays[sw_num]) != state || boot_overide[sw_num] == true) {
                 digitalWrite(relays[sw_num], state);
                 TO[sw_num]->convert_epoch2clock(now() + TO[sw_num]->remain(), now(), msg1, msg2);
-                if (boot_overide == true && iot.mqtt_detect_reset == 1) { //BOOT TIME ONLY for after quick boot
+                if (boot_overide[sw_num] == true && iot.mqtt_detect_reset == 1 || TO[sw_num]->remain() > 0) { //BOOT TIME ONLY for after quick boot
                         word = {"Resume"};
-                        boot_overide = false;
+                        boot_overide[sw_num] = false;
                 }
                 sprintf(msg, "%s: Switch[#%d] %s[%s] %s", txt1, sw_num, word, state ? "ON" : "OFF", txt2);
                 if (state == 1 && show_timeout) {
@@ -251,11 +271,12 @@ void switchIt (char *txt1, int sw_num, bool state, char *txt2 = "", bool show_ti
 }
 void checkSwitch_Pressed (byte sw, bool momentary = true) {
         if (momentary) {
-                if (digitalRead(inputs[sw]) == LOW) {
+                if (digitalRead(inputs[sw]) == SwitchOn) {
                         delay(50);
-                        if (digitalRead(inputs[sw]) == LOW) {
+                        if (digitalRead(inputs[sw]) == SwitchOn) {
                                 char temp[20];
                                 sprintf(temp,"Button: Switch [#%d] Turned [%s]", sw, digitalRead(relays[sw]) ? "OFF" : "ON");
+                                Serial.println(temp);
                                 if (digitalRead(relays[sw]) == RelayOn) {
                                         iot.pub_msg(temp);
                                         TO[sw]->endNow();
@@ -296,9 +317,8 @@ void startIOTservices() {
 void startGPIOs() {
         for (int i = 0; i < NUM_SWITCHES; i++) {
                 pinMode(relays[i], OUTPUT);
-                pinMode(inputs[i], INPUT_PULLUP);
-
                 if (USE_INPUTS) {
+                        pinMode(inputs[i], INPUT_PULLUP);
                         inputState[i] = digitalRead(inputs[i]);
                 }
 
@@ -399,9 +419,11 @@ void addiotnalMQTT(char *incoming_msg) {
                         iot.sendReset("TimeOut update");
                 }
                 else if (strcmp(iot.inline_param[1], "remain") == 0) {
-                        TO[atoi(iot.inline_param[0])]->convert_epoch2clock(now() + TO[atoi(iot.inline_param[0])]->remain(), now(), msg2, msg);
-                        sprintf(msg, "TimeOut: Switch[#%d] Remain [%s]", atoi(iot.inline_param[0]), msg2);
-                        iot.pub_msg(msg);
+                        if (TO[atoi(iot.inline_param[0])]->remain()>0) {
+                                TO[atoi(iot.inline_param[0])]->convert_epoch2clock(now() + TO[atoi(iot.inline_param[0])]->remain(), now(), msg2, msg);
+                                sprintf(msg, "TimeOut: Switch[#%d] Remain [%s]", atoi(iot.inline_param[0]), msg2);
+                                iot.pub_msg(msg);
+                        }
                 }
                 else if (strcmp(iot.inline_param[1], "restartTO") == 0) {
                         TO[atoi(iot.inline_param[0])]->restart_to();
@@ -486,6 +508,12 @@ void addiotnalMQTT(char *incoming_msg) {
                         TO[atoi(iot.inline_param[0])]->dailyTO_inFlash.printFile();
                         iot.pub_msg(msg);
                 }
+                else{
+                        if (strcmp(incoming_msg,"offline")!=0 && strcmp(incoming_msg,"online")!=0) {
+                                sprintf(msg,"Unrecognized Command: [%s]", incoming_msg);
+                                iot.pub_err(msg);
+                        }
+                }
         }
 }
 
@@ -519,12 +547,14 @@ SensorSwitch sensSW(SENSOR_PIN, MIN_TIME_FIRST_DET, ADD_TIME_NEXT_DET);
 
 void detectionBlink(byte sw, int duration=2000){
         unsigned long startTime = millis();
+        bool last = digitalRead(relays[sw]);
         while (millis() - startTime < duration) {
                 digitalWrite(relays[sw], RelayOn);
-                delay(200);
+                delay(500);
                 digitalWrite(relays[sw], !RelayOn);
                 delay(50);
         }
+        digitalWrite(relays[sw],last);
 
 }
 void checkSensor_looper (byte sw) {
@@ -552,7 +582,7 @@ void checkSensor_looper (byte sw) {
                 if (millis() - telNotify.firstTime >= 1000*60*60 || telNotify.firstTime == 0) {
                         telNotify.firstTime = millis();
                         telNotify.nCounter = 0;
-                        // detectionBlink(sw);
+                        detectionBlink(sw);
                 }
                 if (current_sens_state ) {
                         if(millis() - telNotify.lastTime > 60*1000*MIN_TIME_BETWEEN_NOTI && telNotify.nCounter <MAX_NOTI_1HR) {
@@ -564,12 +594,13 @@ void checkSensor_looper (byte sw) {
                 #endif
         }
 }
+// ~~~~~~~~~~~~~~~
 
 #endif
 
 // ~~~~~ BOOT ASSIST SERVICES ~~~~~~~~~
 #if HARD_REBOOT
-void check_hardReboot(byte i = 1, byte threshold = 2) {
+void check_hardReboot(byte i = 1, byte threshold = 1) {
         hReset_eeprom.jump = EEPROM.read(0);
         hReset_eeprom.val_cell    = hReset_eeprom.jump + i;
         hReset_eeprom.val = EEPROM.read(hReset_eeprom.val_cell);
@@ -578,9 +609,11 @@ void check_hardReboot(byte i = 1, byte threshold = 2) {
                 EEPROM.write(hReset_eeprom.val_cell, hReset_eeprom.val + 1);
                 EEPROM.commit();
                 hReset_eeprom.hBoot = false;
+                Serial.println("false");
         }
         else {
                 hReset_eeprom.hBoot = true;
+                Serial.println("true");
         }
 }
 #endif
@@ -623,16 +656,14 @@ void recoverReset() {
         if (rebootState != 2) { // before getting online/offline MQTT state
                 checkrebootState = false;
                 for (int i = 0; i < NUM_SWITCHES; i++) {
-                        if (rebootState == 0 && ON_AT_BOOT == true) {  // PowerOn - not a quickReboot
+                        if (hReset_eeprom.hBoot && HARD_REBOOT) { // using HardReboot
                                 TO[i]->restart_to();
-                                iot.pub_err("--> NormalBoot. On-at-Boot");
+                                iot.pub_err("--> ForcedBoot. Restarting TimeOUT");
                         }
-                        #if HARD_REBOOT
-                        else if (hReset_eeprom.hBoot ) { // using HardReboot
+                        else if (rebootState == 0 && ON_AT_BOOT == true) {  // PowerOn - not a quickReboot
                                 TO[i]->restart_to();
-                                iot.pub_err("--> ForcedBoot");
+                                iot.pub_err("--> NormalBoot & On-at-Boot. Restarting TimeOUT");
                         }
-                        #endif
                         else if (rebootState == 1) {
                                 iot.pub_err("--> PowerLoss Boot");
                         }
@@ -640,71 +671,181 @@ void recoverReset() {
                                 digitalWrite(relays[i], !RelayOn);
                                 iot.pub_err("--> Stopping Quick-PowerON");
                         }
-
-                        // else { // prevent quick boot to restart after succsefull end
-                        //         if (TO[i]->begin(false) == 0) { // if ON_AT_BOOT == true turn off if not needed
-                        //                 digitalWrite(relays[i], !RelayOn);
-                        //                 Serial.println("AD");
-                        //         }
-                        //         iot.pub_err("--> Quick-Reset");
-                        // }
+                        else{
+                          iot.pub_err("--> Continue unfinished processes only");
+                        }
                 }
+
+                // Erases EEPROM value for HARD_REBOOT
+                #if HARD_REBOOT
+                EEPROM.write(hReset_eeprom.val_cell, 0);
+                EEPROM.commit();
+                #endif
         }
+}
+
+//~~~~~~~Run IR Remote ~~~~~~~~
+void recvIRinputs() {
+#if USE_IR_REMOTE
+        char msg[50];
+
+        if (irrecv.decode(&results)) {
+
+                if (results.value == 0XFFFFFFFF)
+                        results.value = key_value;
+                char msg[50];
+
+                switch (results.value) {
+                case 0xFFA25D:
+                        //Serial.println("CH-");
+                        break;
+                case 0xFF629D:
+                        //Serial.println("CH");
+                        iot.sendReset("RemoteControl");
+                        break;
+                case 0xFFE21D:
+                        //Serial.println("CH+");
+                        break;
+                case 0xFF22DD:
+                        //Serial.println("|<<");
+                        break;
+                case 0xFF02FD:
+                        //Serial.println(">>|");
+                        break;
+                case 0xFFC23D:
+                        //Serial.println(">|");
+                        break;
+                case 0xFFE01F:
+                        //Serial.println("-");
+                        TO[0]->endNow();
+                        sprintf(msg, "TimeOut: IRremote[Abort]");
+                        iot.pub_msg(msg);
+                        break;
+                case 0xFFA857:
+                        //Serial.println("+");
+                        TO[0]->restart_to();
+                        sprintf(msg, "TimeOut: IRremote[Restart]");
+                        iot.pub_msg(msg);
+                        break;
+                case 0xFF906F:
+                        //Serial.println("EQ");
+                        break;
+                case 0xFF6897:
+                        //Serial.println("0");
+                        break;
+                case 0xFF9867:
+                        //Serial.println("100+");
+                        break;
+                case 0xFFB04F:
+                        //Serial.println("200+");
+                        break;
+                case 0xFF30CF:
+                        // blinker_state = !blinker_state;
+                        // sprintf(msg, "IRremote: [Blinker], [%s]", blinker_state ? "ON" : "OFF");
+                        // iot.pub_msg(msg);
+                        break;
+                case 0xFF18E7:
+                        // strobe_state = !strobe_state;
+                        // sprintf(msg, "Switch: [Strobe], [%s]", strobe_state ? "ON" : "OFF");
+                        // iot.pub_msg(msg);
+                        break;
+                case 0xFF7A85:
+                        break;
+                case 0xFF10EF:
+                        //change_color(4);
+                        break;
+                case 0xFF38C7:
+                        //change_color(5);
+                        break;
+                case 0xFF5AA5:
+                        //Serial.println("6");
+                        //                        change_color(6);
+                        break;
+                case 0xFF42BD:
+                        //Serial.println("7");
+                        //                        change_color(7);
+                        break;
+                case 0xFF4AB5:
+                        //Serial.println("8");
+                        //                        change_color(8);
+                        break;
+                case 0xFF52AD:
+                        //Serial.println("9");
+                        //                        change_color(9);
+                        break;
+                }
+                key_value = results.value;
+                irrecv.resume();
+        }
+#endif
+}
+void start_IR() {
+#if USE_IR_REMOTE
+#if DECODE_HASH
+        // Ignore messages with less than minimum on or off pulses.
+        irrecv.setUnknownThreshold(kMinUnknownSize);
+#endif                  // DECODE_HASH
+        irrecv.enableIRIn(); // Start the receiver
+#endif
 }
 
 // ########################### END ADDITIONAL SERVICE ##########################
 
 
 void setup() {
-#if HARD_REBOOT
+
+        #if HARD_REBOOT
         EEPROM.begin(1024);
         check_hardReboot();
-#endif
+        #endif
 
         startGPIOs();
         quickPwrON();
         startIOTservices();
         startTO();
 
-#if USE_SENSOR
+        #if USE_SENSOR
         sensSW.start();
-#endif
+        #endif
 
-#if USE_NOTIFY_TELE
+        #if USE_NOTIFY_TELE
         teleNotify.begin(telecmds);
-#endif
+        #endif
 
-#if HARD_REBOOT
-        EEPROM.write(hReset_eeprom.val_cell, 0);
-        EEPROM.commit();
-#endif
+        #if USE_IR_REMOTE
+        start_IR();
+        #endif
 
 }
 void loop() {
         iot.looper();
 
+        #if USE_RESETKEEPER
+        if (checkrebootState == true) {
+                recoverReset();
+        }
+        #endif
+
         for (int i = 0; i < NUM_SWITCHES; i++) {
-                TO_looper(i);
-                if (USE_INPUTS == true) {
+                if (USE_INPUTS) {
                         checkSwitch_Pressed(i);
                 }
+                TO_looper(i);
         }
         digitalWrite(indic_LEDpin, !relState[0]);
 
 
-#if USE_NOTIFY_TELE
+        #if USE_NOTIFY_TELE
         teleNotify.looper();
-#endif
+        #endif
 
-#if USE_RESETKEEPER
-        if (checkrebootState == true) {
-                recoverReset();
-        }
-#endif
-
-#if USE_SENSOR
+        #if USE_SENSOR
         checkSensor_looper(0);
-#endif
+        #endif
+
+        #if USE_IR_REMOTE
+        recvIRinputs(); // IR signals
+        #endif
 
         delay(100);
 }

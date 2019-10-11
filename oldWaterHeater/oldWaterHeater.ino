@@ -8,13 +8,13 @@
 
 
 // ********** Sketch Services  ***********
-#define VER "Wemos_5.2"
+#define VER "Wemos_5.21"
 #define USE_DAILY_TO  true
 #define HARD_REBOOT   false
 
 // ********** myIOT Class ***********
 //~~~~~ Services ~~~~~~~~~~~
-#define USE_SERIAL       false // Serial Monitor
+#define USE_SERIAL       true // Serial Monitor
 #define USE_WDT          true  // watchDog resets
 #define USE_OTA          true  // OTA updates
 #define USE_RESETKEEPER  true // detect quick reboot and real reboots
@@ -59,7 +59,7 @@ char *clockAlias = "Daily TimeOut";
 #define RELAY2          D2
 #define INPUT1          D6
 #define INPUT2          D5
-#define indic_LEDpin   D7
+#define indic_LEDpin    D7
 
 byte relays[]  = {RELAY1, RELAY2};
 byte inputs[]  = {INPUT1, INPUT2};
@@ -88,7 +88,9 @@ struct eeproms_storage {
         byte wcount_cell;
         bool hBoot;
 };
+
 eeproms_storage hReset_eeprom;
+
 int rebootState         = 0;
 bool checkrebootState   = true;
 bool boot_overide       = true;
@@ -305,9 +307,11 @@ void addiotnalMQTT(char *incoming_msg) {
                         iot.sendReset("TimeOut update");
                 }
                 else if (strcmp(iot.inline_param[1], "remain") == 0) {
-                        TO[atoi(iot.inline_param[0])]->convert_epoch2clock(now() + TO[atoi(iot.inline_param[0])]->remain(), now(), msg2, msg);
-                        sprintf(msg, "TimeOut: Switch[#%d] Remain [%s]", atoi(iot.inline_param[0]), msg2);
-                        iot.pub_msg(msg);
+                        if (TO[atoi(iot.inline_param[0])]->remain()>0) {
+                                TO[atoi(iot.inline_param[0])]->convert_epoch2clock(now() + TO[atoi(iot.inline_param[0])]->remain(), now(), msg2, msg);
+                                sprintf(msg, "TimeOut: Switch[#%d] Remain [%s]", atoi(iot.inline_param[0]), msg2);
+                                iot.pub_msg(msg);
+                        }
                 }
                 else if (strcmp(iot.inline_param[1], "restartTO") == 0) {
                         TO[atoi(iot.inline_param[0])]->restart_to();
@@ -392,6 +396,10 @@ void addiotnalMQTT(char *incoming_msg) {
                         TO[atoi(iot.inline_param[0])]->dailyTO_inFlash.printFile();
                         iot.pub_msg(msg);
                 }
+                else{
+                  sprintf(msg,"Unrecognized Command: [%s]", incoming_msg);
+                  iot.pub_err(msg);
+                }
         }
 }
 
@@ -471,16 +479,19 @@ void OLEDlooper() {
         char time_on_char[20];
         char time2Off_char[20];
 
-        if( clock_noref == 0) {
+        if( clock_noref == 0) { // freeze OLED display
 
                 if (digitalRead(relays[0]) == RelayOn ) {
                         int timeON = now() - TO[0]->getStart_to();
+                        int timeLeft = TO[0]->remain();
+
                         sec2clock(timeON, "", time_on_char);
-                        if ( timeInc_counter == 1 ) { // ~~~~ON, no timer ~~~~~~~
+                        // if ( timeInc_counter == 1 ) { // ~~~~ON, no timer ~~~~~~~
+                        if (timeLeft == 0) {
                                 OLED_SideTXT(2, "On:", time_on_char);
                         }
-                        else if ( timeInc_counter > 1 || relState[0] == 1 ) { /// ON + Timer or DailyTO
-                                int timeLeft = TO[0]->remain();
+                        // else if ( timeInc_counter > 1 || relState[0] == 1 ) { /// ON + Timer or DailyTO
+                        else{
                                 sec2clock(timeLeft, "", time2Off_char);
                                 OLED_SideTXT(2, "On:", time_on_char, "Remain:", time2Off_char);
                         }
