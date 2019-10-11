@@ -6,7 +6,7 @@
 // ********** Sketch Services  ***********
 #define VER              "SONOFF_3.2"
 #define USE_INPUTS       true
-#define ON_AT_BOOT       false // On or OFF at boot (Usually when using inputs, at boot/PowerOn - state should be off
+#define ON_AT_BOOT       true // On or OFF at boot (Usually when using inputs, at boot/PowerOn - state should be off
 #define USE_DAILY_TO     true
 #define IS_SONOFF        true
 #define HARD_REBOOT      true
@@ -75,7 +75,7 @@ char *clockAlias = "Daily TimeOut";
 #define indic_LEDpin    D8
 #endif
 
-#define IR_SENSOR_PIN D5
+#define IR_SENSOR_PIN   D5
 
 byte relays[]       = {RELAY1, RELAY2};
 byte inputs[]       = {INPUT1, INPUT2};
