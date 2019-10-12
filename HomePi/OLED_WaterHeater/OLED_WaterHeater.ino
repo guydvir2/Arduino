@@ -8,7 +8,7 @@
 
 
 // ********** Sketch Services  ***********
-#define VER "Wemos_5.21"
+#define VER "Wemos_5.3"
 #define USE_DAILY_TO  true
 #define HARD_REBOOT   false
 
@@ -131,9 +131,11 @@ void switchIt (char *txt1, int sw_num, bool state, char *txt2 = "", bool show_ti
         if (digitalRead(relays[sw_num]) != state || boot_overide[sw_num] == true) {
                 digitalWrite(relays[sw_num], state);
                 TO[sw_num]->convert_epoch2clock(now() + TO[sw_num]->remain(), now(), msg1, msg2);
-                if (boot_overide[sw_num] == true && iot.mqtt_detect_reset == 1 || TO[sw_num]->remain() > 0) { //BOOT TIME ONLY for after quick boot
-                        word = {"Resume"};
-                        boot_overide[sw_num] = false;
+                if (boot_overide[sw_num] == true) {
+                        if(iot.mqtt_detect_reset == 1 || TO[sw_num]->remain() > 0) { //BOOT TIME ONLY for after quick boot
+                                word = {"Resume"};
+                                boot_overide[sw_num] = false;
+                        }
                 }
                 sprintf(msg, "%s: Switch[#%d] %s[%s] %s", txt1, sw_num, word, state ? "ON" : "OFF", txt2);
                 if (state == 1 && show_timeout) {
@@ -288,10 +290,10 @@ void addiotnalMQTT(char *incoming_msg) {
                 iot.inline_read(incoming_msg);
 
                 if (strcmp(iot.inline_param[1], "on") == 0 ) {
-                        switchIt("MQTT", atoi(iot.inline_param[0]), 1);
+                        switchIt("MQTT", atoi(iot.inline_param[0]), 1, "", false);
                 }
                 else if (strcmp(iot.inline_param[1], "off") == 0) {
-                        switchIt("MQTT", atoi(iot.inline_param[0]), 0);
+                        switchIt("MQTT", atoi(iot.inline_param[0]), 0, "", false);
                 }
                 else if (strcmp(iot.inline_param[1], "timeout") == 0) {
                         TO[atoi(iot.inline_param[0])]->setNewTimeout(atoi(iot.inline_param[2]));
