@@ -4,9 +4,9 @@
 
 
 // ********** Sketch Services  ***********
-#define VER              "SONOFF_3.4"
+#define VER              "SONOFF_3.5"
 #define USE_INPUTS       true
-#define IS_MOMENTARY     true  // is switch latch or momentary
+#define IS_MOMENTARY     false  // is switch latch or momentary
 #define ON_AT_BOOT       true // On or OFF at boot (Usually when using inputs, at boot/PowerOn - state should be off
 #define USE_DAILY_TO     true
 #define IS_SONOFF        true
@@ -26,7 +26,7 @@
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 // ~~~~~~~ MQTT Topics ~~~~~~
-#define DEVICE_TOPIC "LivingRoom"
+#define DEVICE_TOPIC "Stove"
 #define MQTT_PREFIX  "myHome"
 #define MQTT_GROUP   "intLights"
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -42,7 +42,7 @@ myIOT iot(DEVICE_TOPIC);
 #define TIMEOUT_SW1      2*60 // mins
 
 const int START_dailyTO[] = {16,00,0};
-const int END_dailyTO[]   = {7,30,0};
+const int END_dailyTO[]   = {0,30,0};
 
 int TIMEOUTS[2]  = {TIMEOUT_SW0, TIMEOUT_SW1};
 timeOUT timeOut_SW0("SW0", TIMEOUTS[0]);
@@ -62,7 +62,7 @@ char *clockAlias = "Daily TimeOut";
 #if IS_SONOFF
 #define RELAY1          12
 #define RELAY2          5
-#define INPUT1          0 // 0 for onBoard Button
+#define INPUT1          14 // 0 for onBoard Button
 #define INPUT2          14 // 14 for extButton
 #define indic_LEDpin    13
 #endif
@@ -253,9 +253,11 @@ void switchIt (char *txt1, int sw_num, bool state, char *txt2 = "", bool show_ti
         if (digitalRead(relays[sw_num]) != state || boot_overide[sw_num] == true) {
                 digitalWrite(relays[sw_num], state);
                 TO[sw_num]->convert_epoch2clock(now() + TO[sw_num]->remain(), now(), msg1, msg2);
-                if (boot_overide[sw_num] == true && iot.mqtt_detect_reset == 1 || TO[sw_num]->remain() > 0) { //BOOT TIME ONLY for after quick boot
-                        word = {"Resume"};
-                        boot_overide[sw_num] = false;
+                if (boot_overide[sw_num] == true) {
+                        if(iot.mqtt_detect_reset == 1 || TO[sw_num]->remain() > 0) { //BOOT TIME ONLY for after quick boot
+                                word = {"Resume"};
+                                boot_overide[sw_num] = false;
+                        }
                 }
                 sprintf(msg, "%s: Switch[#%d] %s[%s] %s", txt1, sw_num, word, state ? "ON" : "OFF", txt2);
                 if (state == 1 && show_timeout) {
@@ -302,21 +304,20 @@ void checkSwitch_Pressed (byte sw, bool momentary = true) {
                         delay(50);
                         if (digitalRead(inputs[sw]) != inputState[sw]) {
                                 inputState[sw] = digitalRead(inputs[sw]);
-                                if (digitalRead(inputs[sw]) == SwitchOn) {
+                                if (inputState[sw] == SwitchOn && digitalRead(relays[sw]) != RelayOn) { // turn in TO
                                         TO[sw]->restart_to();
                                 }
-                                else {
-                                        if(TO[sw]->remain()>0) {
+                                else if( inputState[sw] != SwitchOn ) { // turn off 
+                                        if(TO[sw]->remain()>0) {  // turn off when in TO
                                                 TO[sw]->endNow();
                                         }
-                                        else{
+                                        else if (digitalRead(relays[sw]) == RelayOn && TO[sw]->remain()==0) { // turn off when only ON
                                                 switchIt("Button:", sw, 0,"", false);
                                         }
                                 }
                         }
                 }
         }
-        // }
 }
 void startIOTservices() {
         iot.useSerial      = USE_SERIAL;
@@ -413,10 +414,10 @@ void addiotnalMQTT(char *incoming_msg) {
                 iot.inline_read(incoming_msg);
 
                 if (strcmp(iot.inline_param[1], "on") == 0 ) {
-                        switchIt("MQTT", atoi(iot.inline_param[0]), 1);
+                        switchIt("MQTT", atoi(iot.inline_param[0]), 1, "", false);
                 }
                 else if (strcmp(iot.inline_param[1], "off") == 0) {
-                        switchIt("MQTT", atoi(iot.inline_param[0]), 0);
+                        switchIt("MQTT", atoi(iot.inline_param[0]), 0, "", false);
                 }
                 else if (strcmp(iot.inline_param[1], "timeout") == 0) {
                         TO[atoi(iot.inline_param[0])]->setNewTimeout(atoi(iot.inline_param[2]));
