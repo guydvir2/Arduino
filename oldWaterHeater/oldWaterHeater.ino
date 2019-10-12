@@ -72,6 +72,10 @@ byte inputs[]  = {INPUT1, INPUT2};
 
 bool relState[NUM_SWITCHES];
 bool last_relState[NUM_SWITCHES];
+int rebootState         = 0;
+bool checkrebootState   = true;
+bool boot_overide[]     = {true, true};
+
 
 // #################################  END CORE #################################
 
@@ -91,9 +95,6 @@ struct eeproms_storage {
 
 eeproms_storage hReset_eeprom;
 
-int rebootState         = 0;
-bool checkrebootState   = true;
-bool boot_overide       = true;
 
 // ~~~~~~~~~~~~ OLED ~~~~~~~~~~~~~~~~~~~
 #define SCREEN_WIDTH  128
@@ -127,12 +128,12 @@ void switchIt (char *txt1, int sw_num, bool state, char *txt2 = "", bool show_ti
         char msg [50], msg1[50], msg2[50], states[50], tempstr[50];
         char *word = {"Turned"};
 
-        if (digitalRead(relays[sw_num]) != state || boot_overide == true) {
+        if (digitalRead(relays[sw_num]) != state || boot_overide[sw_num] == true) {
                 digitalWrite(relays[sw_num], state);
                 TO[sw_num]->convert_epoch2clock(now() + TO[sw_num]->remain(), now(), msg1, msg2);
-                if (boot_overide == true && iot.mqtt_detect_reset == 1) { //BOOT TIME ONLY for after quick boot
+                if (boot_overide[sw_num] == true && iot.mqtt_detect_reset == 1 || TO[sw_num]->remain() > 0) { //BOOT TIME ONLY for after quick boot
                         word = {"Resume"};
-                        boot_overide = false;
+                        boot_overide[sw_num] = false;
                 }
                 sprintf(msg, "%s: Switch[#%d] %s[%s] %s", txt1, sw_num, word, state ? "ON" : "OFF", txt2);
                 if (state == 1 && show_timeout) {
@@ -397,8 +398,10 @@ void addiotnalMQTT(char *incoming_msg) {
                         iot.pub_msg(msg);
                 }
                 else{
-                  sprintf(msg,"Unrecognized Command: [%s]", incoming_msg);
-                  iot.pub_err(msg);
+                        if (strcmp(incoming_msg,"offline")!=0 && strcmp(incoming_msg,"online")!=0) {
+                                sprintf(msg,"Unrecognized Command: [%s]", incoming_msg);
+                                iot.pub_err(msg);
+                        }
                 }
         }
 }
@@ -543,7 +546,7 @@ void display_totalOnTime(){
 
 // ~~~~~ BOOT ASSIST SERVICES ~~~~~~~~~
 #if HARD_REBOOT
-void check_hardReboot(byte i = 1, byte threshold = 2) {
+void check_hardReboot(byte i = 1, byte threshold = 1) {
         hReset_eeprom.jump = EEPROM.read(0);
         hReset_eeprom.val_cell    = hReset_eeprom.jump + i;
         hReset_eeprom.val = EEPROM.read(hReset_eeprom.val_cell);
@@ -597,16 +600,14 @@ void recoverReset() {
         if (rebootState != 2) { // before getting online/offline MQTT state
                 checkrebootState = false;
                 for (int i = 0; i < NUM_SWITCHES; i++) {
-                        if (rebootState == 0 && ON_AT_BOOT == true) {  // PowerOn - not a quickReboot
+                        if (hReset_eeprom.hBoot && HARD_REBOOT) { // using HardReboot
                                 TO[i]->restart_to();
-                                iot.pub_err("--> NormalBoot. On-at-Boot");
+                                iot.pub_err("--> ForcedBoot. Restarting TimeOUT");
                         }
-                        #if HARD_REBOOT
-                        else if (hReset_eeprom.hBoot ) { // using HardReboot
+                        else if (rebootState == 0 && ON_AT_BOOT == true) {  // PowerOn - not a quickReboot
                                 TO[i]->restart_to();
-                                iot.pub_err("--> ForcedBoot");
+                                iot.pub_err("--> NormalBoot & On-at-Boot. Restarting TimeOUT");
                         }
-                        #endif
                         else if (rebootState == 1) {
                                 iot.pub_err("--> PowerLoss Boot");
                         }
@@ -614,22 +615,30 @@ void recoverReset() {
                                 digitalWrite(relays[i], !RelayOn);
                                 iot.pub_err("--> Stopping Quick-PowerON");
                         }
-
-                        // else { // prevent quick boot to restart after succsefull end
-                        //         if (TO[i]->begin(false) == 0) { // if ON_AT_BOOT == true turn off if not needed
-                        //                 digitalWrite(relays[i], !RelayOn);
-                        //                 Serial.println("AD");
-                        //         }
-                        //         iot.pub_err("--> Quick-Reset");
-                        // }
+                        else{
+                                iot.pub_err("--> Continue unfinished processes only");
+                        }
                 }
-        }
+
+                // Erases EEPROM value for HARD_REBOOT
+                #if HARD_REBOOT
+                EEPROM.write(hReset_eeprom.val_cell, 0);
+                EEPROM.commit();
+                #endif
+
+                }
 }
 
 // ########################### END ADDITIONAL SERVICE ##########################
 
 
 void setup() {
+
+        #if HARD_REBOOT
+        EEPROM.begin(1024);
+        check_hardReboot();
+        #endif
+
         startGPIOs();
         quickPwrON();
         startIOTservices();

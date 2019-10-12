@@ -4,12 +4,13 @@
 
 
 // ********** Sketch Services  ***********
-#define VER              "SONOFF_3.2"
+#define VER              "SONOFF_3.4"
 #define USE_INPUTS       true
+#define IS_MOMENTARY     true  // is switch latch or momentary
 #define ON_AT_BOOT       true // On or OFF at boot (Usually when using inputs, at boot/PowerOn - state should be off
 #define USE_DAILY_TO     true
 #define IS_SONOFF        true
-#define HARD_REBOOT      true
+#define HARD_REBOOT      false
 #define USE_NOTIFY_TELE  false
 #define USE_SENSOR       false
 #define USE_IR_REMOTE    false
@@ -25,9 +26,9 @@
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 // ~~~~~~~ MQTT Topics ~~~~~~
-#define DEVICE_TOPIC "PergolaLEDs"
+#define DEVICE_TOPIC "LivingRoom"
 #define MQTT_PREFIX  "myHome"
-#define MQTT_GROUP   "extLights"
+#define MQTT_GROUP   "intLights"
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 #define ADD_MQTT_FUNC addiotnalMQTT
@@ -36,12 +37,12 @@ myIOT iot(DEVICE_TOPIC);
 
 
 // ********** TimeOut Time vars  ***********
-#define NUM_SWITCHES     2
+#define NUM_SWITCHES     1
 #define TIMEOUT_SW0      3*60 // mins for SW0
 #define TIMEOUT_SW1      2*60 // mins
 
-const int START_dailyTO[] = {18,0,0};
-const int END_dailyTO[]   = {0,0,0};
+const int START_dailyTO[] = {16,00,0};
+const int END_dailyTO[]   = {7,30,0};
 
 int TIMEOUTS[2]  = {TIMEOUT_SW0, TIMEOUT_SW1};
 timeOUT timeOut_SW0("SW0", TIMEOUTS[0]);
@@ -61,13 +62,13 @@ char *clockAlias = "Daily TimeOut";
 #if IS_SONOFF
 #define RELAY1          12
 #define RELAY2          5
-#define INPUT1          0
-#define INPUT2          14
+#define INPUT1          0 // 0 for onBoard Button
+#define INPUT2          14 // 14 for extButton
 #define indic_LEDpin    13
 #endif
 
 #if !IS_SONOFF
-#define RELAY1          D3
+#define RELAY1          D2 // <--- D3 most devices, but KitchenLEDs
 #define RELAY2          D2
 #define INPUT1          D7
 #define INPUT2          D6
@@ -110,13 +111,15 @@ struct eeproms_storage {
         byte wcount_cell;
         bool hBoot;
 };
+
 eeproms_storage hReset_eeprom;
 
 // ~~~~~~~~~~~~~ Sensor Switch ~~~~~~~~~~~~~~
 #define MAX_NOTI_1HR           10
 #define MIN_TIME_BETWEEN_NOTI  0.25 //in minutes
-#define MIN_TIME_FIRST_DET     10*60   // sec
-#define ADD_TIME_NEXT_DET      30*60  // sec
+#define MIN_TIME_FIRST_DET     5   // sec
+#define ADD_TIME_NEXT_DET      10  // sec
+#define NotifyMSG "familyRoom detection"
 
 class SensorSwitch
 {
@@ -157,6 +160,7 @@ bool check_sensor() {
         if (digitalRead(_sensPin) == SENS_IS_TRIGGERED) {
                 delay(50);
                 if (digitalRead(_sensPin) == SENS_IS_TRIGGERED ) {
+                        // First detection after TO  is OFF
                         if (_inTriggerMode == false && _detection_timestamp == 0 && _timeout_counter == 0) {
                                 _inTriggerMode = true;
                                 _detection_timestamp = millis();
@@ -206,19 +210,19 @@ void off_function() {
 }
 };
 
-// ~~~~~~~~~~~ Using SMS Notification ~~~~~~~
-#if USE_NOTIFY_TELE
-#define NotifyMSG "familyRoom detection"
-myTelegram teleNotify(BOT_TOKEN, CHAT_ID);
-
-struct telNotify {
+struct sensorNotify {
         unsigned long firstTime;
         unsigned long lastTime;
         byte nCounter;
         char msg[50];
 };
 
-telNotify telNotify = {0, 0, 0, NotifyMSG};
+sensorNotify sensorNotify = {0, 0, 0, NotifyMSG};
+
+// ~~~~~~~~~~~ Using SMS Notification ~~~~~~~
+#if USE_NOTIFY_TELE
+
+myTelegram teleNotify(BOT_TOKEN, CHAT_ID);
 #endif
 
 //~~~~~~~ IR Remote ~~~~~~~~
@@ -276,10 +280,14 @@ void checkSwitch_Pressed (byte sw, bool momentary = true) {
                         if (digitalRead(inputs[sw]) == SwitchOn) {
                                 char temp[20];
                                 sprintf(temp,"Button: Switch [#%d] Turned [%s]", sw, digitalRead(relays[sw]) ? "OFF" : "ON");
-                                Serial.println(temp);
                                 if (digitalRead(relays[sw]) == RelayOn) {
-                                        iot.pub_msg(temp);
-                                        TO[sw]->endNow();
+                                        if (TO[sw]->remain() == 0) { // was ON but not in TO state
+                                                switchIt("Button", sw, 0);
+                                        }
+                                        else {
+                                                TO[sw]->endNow();
+                                                iot.pub_msg(temp);
+                                        }
                                 }
                                 else {
                                         iot.pub_msg(temp);
@@ -298,11 +306,17 @@ void checkSwitch_Pressed (byte sw, bool momentary = true) {
                                         TO[sw]->restart_to();
                                 }
                                 else {
-                                        TO[sw]->endNow();
+                                        if(TO[sw]->remain()>0) {
+                                                TO[sw]->endNow();
+                                        }
+                                        else{
+                                                switchIt("Button:", sw, 0,"", false);
+                                        }
                                 }
                         }
                 }
         }
+        // }
 }
 void startIOTservices() {
         iot.useSerial      = USE_SERIAL;
@@ -542,9 +556,6 @@ void telecmds(String in_msg, String from, String chat_id, char snd_msg[50]) {
 #endif
 
 // ~~~~~~~~~~~ Using Sensor ~~~~~~~~~~~
-#if USE_SENSOR
-SensorSwitch sensSW(SENSOR_PIN, MIN_TIME_FIRST_DET, ADD_TIME_NEXT_DET);
-
 void detectionBlink(byte sw, int duration=2000){
         unsigned long startTime = millis();
         bool last = digitalRead(relays[sw]);
@@ -557,45 +568,50 @@ void detectionBlink(byte sw, int duration=2000){
         digitalWrite(relays[sw],last);
 
 }
+#if USE_SENSOR
+SensorSwitch sensSW(SENSOR_PIN, MIN_TIME_FIRST_DET, ADD_TIME_NEXT_DET);
+void notify_detection(byte sw){
+        char time1[20];
+        char date1[20];
+        char comb[40];
+
+        iot.return_clock(time1);
+        iot.return_date(date1);
+        sprintf(comb, "[%s %s] %s", date1, time1, sensorNotify.msg);
+
+        if (millis() - sensorNotify.firstTime >= 1000*60*60 || sensorNotify.firstTime == 0) { // first time or reset counter after 1hr
+                sensorNotify.firstTime = millis();
+                sensorNotify.nCounter = 0;
+        }
+        if(millis() - sensorNotify.lastTime > 60*1000*MIN_TIME_BETWEEN_NOTI && sensorNotify.nCounter <MAX_NOTI_1HR) {
+                detectionBlink(sw);
+                sensorNotify.nCounter +=1;
+                sensorNotify.lastTime = millis();
+                sprintf(comb,"Sensor: Detection [#%d] in [%s]",sensorNotify.nCounter,DEVICE_TOPIC);
+            #if USE_NOTIFY_TELE
+                teleNotify.send_msg(comb);
+            #endif
+                iot.pub_msg(comb);
+        }
+}
 void checkSensor_looper (byte sw) {
         bool current_sens_state = sensSW.check_sensor();
 
         if ( current_sens_state != sensState[sw]) {
                 sensState[sw] = current_sens_state;
-                if (TO[sw]->remain() == 0) { // if not in TO mode
-                        if (current_sens_state) {
+                if (current_sens_state) {
+                        if (TO[sw]->remain() == 0 && digitalRead(relays[sw]) == !RelayOn) { // not in TO mode nor Relay is ON
                                 switchIt("Sensor", sw, current_sens_state, "Detect", false);
                         }
-                        else {
-                                switchIt("Sensor", sw, current_sens_state, "", false);
+                        else if (TO[sw]->remain() > 0 && digitalRead(relays[sw]) == RelayOn) {
+                                notify_detection(sw);
                         }
                 }
-                #if USE_NOTIFY_TELE
-                char time1[20];
-                char date1[20];
-                char comb[40];
-
-                iot.return_clock(time1);
-                iot.return_date(date1);
-                sprintf(comb, "[%s %s] %s", date1, time1, telNotify.msg);
-
-                if (millis() - telNotify.firstTime >= 1000*60*60 || telNotify.firstTime == 0) {
-                        telNotify.firstTime = millis();
-                        telNotify.nCounter = 0;
-                        detectionBlink(sw);
+                else if (current_sens_state == false && TO[sw]->remain() == 0) {
+                        switchIt("Sensor", sw, current_sens_state, "", false);
                 }
-                if (current_sens_state ) {
-                        if(millis() - telNotify.lastTime > 60*1000*MIN_TIME_BETWEEN_NOTI && telNotify.nCounter <MAX_NOTI_1HR) {
-                                telNotify.nCounter +=1;
-                                telNotify.lastTime = millis();
-                                teleNotify.send_msg(comb);
-                        }
-                }
-                #endif
         }
 }
-// ~~~~~~~~~~~~~~~
-
 #endif
 
 // ~~~~~ BOOT ASSIST SERVICES ~~~~~~~~~
@@ -609,11 +625,9 @@ void check_hardReboot(byte i = 1, byte threshold = 1) {
                 EEPROM.write(hReset_eeprom.val_cell, hReset_eeprom.val + 1);
                 EEPROM.commit();
                 hReset_eeprom.hBoot = false;
-                Serial.println("false");
         }
         else {
                 hReset_eeprom.hBoot = true;
-                Serial.println("true");
         }
 }
 #endif
@@ -672,7 +686,7 @@ void recoverReset() {
                                 iot.pub_err("--> Stopping Quick-PowerON");
                         }
                         else{
-                          iot.pub_err("--> Continue unfinished processes only");
+                                iot.pub_err("--> Continue unfinished processes only");
                         }
                 }
 
@@ -828,7 +842,7 @@ void loop() {
 
         for (int i = 0; i < NUM_SWITCHES; i++) {
                 if (USE_INPUTS) {
-                        checkSwitch_Pressed(i);
+                        checkSwitch_Pressed(i,IS_MOMENTARY);
                 }
                 TO_looper(i);
         }
