@@ -1,20 +1,16 @@
 #include <myIOT.h>
+#include <Wire.h>
+#include <SPI.h>
+#include <Adafruit_GFX.h>
+#include <Adafruit_SSD1306.h>
 #include <EEPROM.h>
 #include <Arduino.h>
 
 
 // ********** Sketch Services  ***********
-#define VER              "SONOFF_3.5"
-#define USE_INPUTS       true
-#define IS_MOMENTARY     true  // is switch latch or momentary
-#define ON_AT_BOOT       true // On or OFF at boot (Usually when using inputs, at boot/PowerOn - state should be off
-#define USE_DAILY_TO     true
-#define IS_SONOFF        true
-#define HARD_REBOOT      false
-#define USE_NOTIFY_TELE  false
-#define USE_SENSOR       false
-#define USE_IR_REMOTE    false
-#define USE_TIMEOUTS     false
+#define VER "Wemos_5.21"
+#define USE_DAILY_TO  true
+#define HARD_REBOOT   false
 
 // ********** myIOT Class ***********
 //~~~~~ Services ~~~~~~~~~~~
@@ -26,10 +22,9 @@
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 // ~~~~~~~ MQTT Topics ~~~~~~
-#define DEVICE_TOPIC "LivingRoom"
+#define DEVICE_TOPIC "WaterBoiler"
 #define MQTT_PREFIX  "myHome"
-#define MQTT_GROUP   "intLights"
-// ~~~~~~~~~~~~~~~~~~~~~~~~~~
+#define MQTT_GROUP   ""
 
 #define ADD_MQTT_FUNC addiotnalMQTT
 myIOT iot(DEVICE_TOPIC);
@@ -38,11 +33,12 @@ myIOT iot(DEVICE_TOPIC);
 
 // ********** TimeOut Time vars  ***********
 #define NUM_SWITCHES     1
-#define TIMEOUT_SW0      3*60 // mins for SW0
+#define TIMEOUT_SW0      1*60 // mins for SW0
 #define TIMEOUT_SW1      2*60 // mins
+#define ON_AT_BOOT       false // true only for switches that powers up with device.
 
-const int START_dailyTO[] = {16,00,0};
-const int END_dailyTO[]   = {10,30,0};
+const int START_dailyTO[] = {18,0,0};
+const int END_dailyTO[]   = {19,30,0};
 
 int TIMEOUTS[2]  = {TIMEOUT_SW0, TIMEOUT_SW1};
 timeOUT timeOut_SW0("SW0", TIMEOUTS[0]);
@@ -58,28 +54,15 @@ char *clockAlias = "Daily TimeOut";
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 
-// ~~~~ HW Pins and States ~~~~
-#if IS_SONOFF
-#define RELAY1          12
-#define RELAY2          5
-#define INPUT1          0 // 0 for onBoard Button
-#define INPUT2          14 // 14 for extButton
-#define indic_LEDpin    13
-#endif
-
-#if !IS_SONOFF
-#define RELAY1          D2 // <--- D3 most devices, but KitchenLEDs
+// ~~~~ HW Pins and Statdes ~~~~
+#define RELAY1          D5
 #define RELAY2          D2
-#define INPUT1          D7
-#define INPUT2          D6
-#define SENSOR_PIN      D1
-#define indic_LEDpin    D8
-#endif
+#define INPUT1          D6
+#define INPUT2          D5
+#define indic_LEDpin    D7
 
-#define IR_SENSOR_PIN   D5
-
-byte relays[]       = {RELAY1, RELAY2};
-byte inputs[]       = {INPUT1, INPUT2};
+byte relays[]  = {RELAY1, RELAY2};
+byte inputs[]  = {INPUT1, INPUT2};
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 // ~~~~~~~~ state Vars ~~~~~~~~
@@ -89,8 +72,6 @@ byte inputs[]       = {INPUT1, INPUT2};
 
 bool relState[NUM_SWITCHES];
 bool last_relState[NUM_SWITCHES];
-bool inputState[NUM_SWITCHES];
-bool sensState[NUM_SWITCHES];
 int rebootState         = 0;
 bool checkrebootState   = true;
 bool boot_overide[]     = {true, true};
@@ -114,132 +95,29 @@ struct eeproms_storage {
 
 eeproms_storage hReset_eeprom;
 
-// ~~~~~~~~~~~~~ Sensor Switch ~~~~~~~~~~~~~~
-#define MAX_NOTI_1HR           10
-#define MIN_TIME_BETWEEN_NOTI  0.25 //in minutes
-#define MIN_TIME_FIRST_DET     5   // sec
-#define ADD_TIME_NEXT_DET      10  // sec
-#define NotifyMSG "familyRoom detection"
 
-class SensorSwitch
-{
-#define SENS_IS_TRIGGERED LOW
+// ~~~~~~~~~~~~ OLED ~~~~~~~~~~~~~~~~~~~
+#define SCREEN_WIDTH  128
+#define SCREEN_HEIGHT 64 // double screen size
+#define OLED_RESET    LED_BUILTIN
+long swapLines_counter = 0;
+char timeStamp [50];
+char dateStamp [50];
+Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-private:
-int _sensPin;
-int _min_time;
-int _to_time;
+// TimeOut Constants
+int maxTO                    = 150; //minutes to timeout even in ON state
+int timeIncrements           = 15; //minutes each button press
+int timeInc_counter          = 0; // counts number of presses to TO increments
+int delayBetweenPress        = 500; // consequtive presses to reset
+int deBounceInt              = 50;
+int time_NOref_OLED          = 10; // seconds to stop refresh OLED
+unsigned long clock_noref    = 0;
+unsigned long pressTO_input1 = 0; // TimeOUT for next press
+unsigned long startTime      = 0;
+unsigned long endTime        = 0;
 
-bool _inTriggerMode       = false;
-long _detection_timestamp = 0;
-long _timeout_counter     = 0;
-int _calc_timeout         = 0;
-int _time_from_detection  = 0;
-
-public:
-SensorSwitch(int sensPin, int min_time, int to_time) {
-        _sensPin  = sensPin;
-        _min_time = min_time;
-        _to_time  = to_time;
-}
-void start() {
-        pinMode(_sensPin, INPUT_PULLUP);
-}
-
-bool check_sensor() {
-        _calc_timeout = (millis() - _timeout_counter) / 1000;
-
-        if (_detection_timestamp != 0) {
-                _time_from_detection = (millis() - _detection_timestamp) / 1000;
-        }
-        else {
-                _time_from_detection = 0;
-        }
-
-        // HW senses
-        if (digitalRead(_sensPin) == SENS_IS_TRIGGERED) {
-                delay(50);
-                if (digitalRead(_sensPin) == SENS_IS_TRIGGERED ) {
-                        // First detection after TO  is OFF
-                        if (_inTriggerMode == false && _detection_timestamp == 0 && _timeout_counter == 0) {
-                                _inTriggerMode = true;
-                                _detection_timestamp = millis();
-                        }
-
-                        // sensor senses again after sensor is not high - it starts T.O.
-                        else if ( _inTriggerMode == false ) {
-                                _timeout_counter = millis();
-                        }
-
-                        // very goes into T.O when sensor keeps HW sensing and time is greater than MIN_ON_TIME
-                        else if (_inTriggerMode == true && _time_from_detection > _min_time && _detection_timestamp != 0 && _timeout_counter == 0) {
-                                _inTriggerMode = false;
-                        }
-                }
-        }
-
-        // HW sense stops
-        else {
-                delay(50);
-                if (digitalRead(_sensPin) == !SENS_IS_TRIGGERED) {
-                        // Notify when HW sense ended
-                        if (_inTriggerMode == true) {
-                                _inTriggerMode = false;
-                        }
-                        // T.O has ended (greater than minimal time on detection)
-                        else if (_inTriggerMode == false && _timeout_counter != 0 && _calc_timeout > _to_time) {
-                                off_function();
-                        }
-                        // Minimal time on upon detection
-                        else if ( _inTriggerMode == false && _time_from_detection > _min_time && _detection_timestamp != 0 && _timeout_counter == 0) {
-                                off_function();
-                        }
-                }
-        }
-
-        if (_inTriggerMode == true || _detection_timestamp != 0 || _timeout_counter != 0) {
-                return 1;
-        }
-        else {
-                return 0;
-        }
-}
-void off_function() {
-        _detection_timestamp = 0;
-        _timeout_counter = 0;
-}
-};
-
-struct sensorNotify {
-        unsigned long firstTime;
-        unsigned long lastTime;
-        byte nCounter;
-        char msg[50];
-};
-
-sensorNotify sensorNotify = {0, 0, 0, NotifyMSG};
-
-// ~~~~~~~~~~~ Using SMS Notification ~~~~~~~
-#if USE_NOTIFY_TELE
-
-myTelegram teleNotify(BOT_TOKEN, CHAT_ID);
-#endif
-
-//~~~~~~~ IR Remote ~~~~~~~~
-#if USE_IR_REMOTE
-#include <IRremoteESP8266.h>
-#include <IRutils.h>
-
-const uint16_t kRecvPin        = IR_SENSOR_PIN;
-const uint32_t kBaudRate       = 115200;
-const uint16_t kMinUnknownSize = 12;
-unsigned long key_value        = 0;
-
-IRrecv irrecv(kRecvPin);
-decode_results results;
-
-#endif
-//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // #############################################################################
 
 
@@ -253,11 +131,9 @@ void switchIt (char *txt1, int sw_num, bool state, char *txt2 = "", bool show_ti
         if (digitalRead(relays[sw_num]) != state || boot_overide[sw_num] == true) {
                 digitalWrite(relays[sw_num], state);
                 TO[sw_num]->convert_epoch2clock(now() + TO[sw_num]->remain(), now(), msg1, msg2);
-                if (boot_overide[sw_num] == true) {
-                        if(iot.mqtt_detect_reset == 1 || TO[sw_num]->remain() > 0) { //BOOT TIME ONLY for after quick boot
-                                word = {"Resume"};
-                                boot_overide[sw_num] = false;
-                        }
+                if (boot_overide[sw_num] == true && iot.mqtt_detect_reset == 1 || TO[sw_num]->remain() > 0) { //BOOT TIME ONLY for after quick boot
+                        word = {"Resume"};
+                        boot_overide[sw_num] = false;
                 }
                 sprintf(msg, "%s: Switch[#%d] %s[%s] %s", txt1, sw_num, word, state ? "ON" : "OFF", txt2);
                 if (state == 1 && show_timeout) {
@@ -275,47 +151,41 @@ void switchIt (char *txt1, int sw_num, bool state, char *txt2 = "", bool show_ti
                 iot.pub_state(states);
         }
 }
-void checkSwitch_Pressed (byte sw, bool momentary = true) {
-        if (momentary) {
-                if (digitalRead(inputs[sw]) == SwitchOn) {
-                        delay(50);
-                        if (digitalRead(inputs[sw]) == SwitchOn) {
-                                char temp[20];
-                                sprintf(temp,"Button: Switch [#%d] Turned [%s]", sw, digitalRead(relays[sw]) ? "OFF" : "ON");
-                                if (digitalRead(relays[sw]) == RelayOn) {
-                                        if (TO[sw]->remain() == 0) { // was ON but not in TO state
-                                                switchIt("Button", sw, 0);
-                                        }
-                                        else {
-                                                TO[sw]->endNow();
-                                                iot.pub_msg(temp);
-                                        }
-                                }
-                                else {
-                                        iot.pub_msg(temp);
-                                        TO[sw]->restart_to();
-                                }
-                                delay(500);
+void checkSwitch_Pressed(byte i) {
+        char tempstr[20];
+        char msg[50];
+        if (digitalRead(inputs[i]) == SwitchOn) {
+                delay(deBounceInt);
+                // CASE #1 : Button is pressed. Delay creates a delay when buttons is pressed constantly
+                if (digitalRead(inputs[i]) == SwitchOn && millis() - pressTO_input1 > delayBetweenPress) {
+                        // CASE of it is first press and Relay was off - switch it ON, no timer.
+                        if ( timeInc_counter == 0 && last_relState[i] == !RelayOn ) { // first press turns on
+                                switchIt("Button", i, 1,"", false);
+                                TO[i]->updateStart(now());
+                                timeInc_counter += 1;
                         }
-                }
-        }
-        else {
-                if (digitalRead(inputs[sw]) != inputState[sw]) {
-                        delay(50);
-                        if (digitalRead(inputs[sw]) != inputState[sw]) {
-                                inputState[sw] = digitalRead(inputs[sw]);
-                                if (inputState[sw] == SwitchOn && digitalRead(relays[sw]) != RelayOn) { // turn in TO
-                                        TO[sw]->restart_to();
-                                }
-                                else if( inputState[sw] != SwitchOn ) { // turn off 
-                                        if(TO[sw]->remain()>0) {  // turn off when in TO
-                                                TO[sw]->endNow();
-                                        }
-                                        else if (digitalRead(relays[sw]) == RelayOn && TO[sw]->remain()==0) { // turn off when only ON
-                                                switchIt("Button:", sw, 0,"", false);
-                                        }
-                                }
+                        // CASE of already on, and insde interval of time - to add timer Qouta
+                        else if (timeInc_counter < (maxTO / timeIncrements) && (millis() - pressTO_input1) < 2500 ) { // additional presses update timer countdown
+                                int newTO = timeInc_counter * timeIncrements*60;
+                                TO[i]->setNewTimeout(newTO, false);
+                                sec2clock((timeInc_counter) * timeIncrements * 60, "Added Timeout: +", msg);
+                                timeInc_counter += 1; // Adding time Qouta
+                                sprintf(tempstr,"Button: Switch[#%d] %s", i, msg);
+                                iot.pub_msg(tempstr);
                         }
+                        // CASE of time is begger that time out-  sets it OFF
+                        else if (timeInc_counter >= (maxTO / timeIncrements) || (millis() - pressTO_input1) > 2500) { // Turn OFF
+                                if(TO[i]->remain()>0) {
+                                        TO[i]->endNow();
+                                }
+                                else{
+                                        display_totalOnTime();
+                                        switchIt("Button", i, 0, "", false);
+                                        TO[i]->updateStart(0);
+                                }
+                                timeInc_counter = 0;
+                        }
+                        pressTO_input1 = millis();
                 }
         }
 }
@@ -332,10 +202,7 @@ void startIOTservices() {
 void startGPIOs() {
         for (int i = 0; i < NUM_SWITCHES; i++) {
                 pinMode(relays[i], OUTPUT);
-                if (USE_INPUTS) {
-                        pinMode(inputs[i], INPUT_PULLUP);
-                        inputState[i] = digitalRead(inputs[i]);
-                }
+                pinMode(inputs[i], INPUT_PULLUP);
 
                 relState [i] = 0;
                 last_relState [i] = 0;
@@ -364,6 +231,14 @@ void TO_looper(byte i) {
         if (iot.mqtt_detect_reset != 2) {
                 relState[i] = TO[i]->looper();
                 if (relState[i] != last_relState[i]) { // change state (ON <-->OFF)
+                        if (relState[i]==0) { // when TO ends
+                                display_totalOnTime();
+                                TO[i]->updateStart(0);
+                                timeInc_counter = 0;
+                        }
+                        else{ // when TO starts
+                                TO[i]->updateStart(now());
+                        }
                         switchIt("TimeOut", i, relState[i]);
                 }
                 last_relState[i] = relState[i];
@@ -390,8 +265,7 @@ void addiotnalMQTT(char *incoming_msg) {
         else if (strcmp(incoming_msg, "ver") == 0 ) {
                 sprintf(msg, "ver #1: [%s], lib: [%s], WDT: [%d], OTA: [%d], SERIAL: [%d], ResetKeeper[%d], FailNTP[%d]", VER, iot.ver, USE_WDT, USE_OTA, USE_SERIAL, USE_RESETKEEPER, USE_FAILNTP);
                 iot.pub_msg(msg);
-                sprintf(msg, "ver #2: DailyTO[%d], UseInputs[%d], ON_AT_BOOT[%d], Use_Sensor[%d], Use_Telegram[%d], HardReboot[%d]",
-                        USE_DAILY_TO, USE_INPUTS, ON_AT_BOOT, USE_SENSOR, USE_NOTIFY_TELE, HARD_REBOOT);
+                sprintf(msg, "ver #2: DailyTO[%d], ON_AT_BOOT[%d], HardReboot[%d]", USE_DAILY_TO, ON_AT_BOOT, HARD_REBOOT);
                 iot.pub_msg(msg);
         }
         else if (strcmp(incoming_msg, "help") == 0) {
@@ -414,10 +288,10 @@ void addiotnalMQTT(char *incoming_msg) {
                 iot.inline_read(incoming_msg);
 
                 if (strcmp(iot.inline_param[1], "on") == 0 ) {
-                        switchIt("MQTT", atoi(iot.inline_param[0]), 1, "", false);
+                        switchIt("MQTT", atoi(iot.inline_param[0]), 1);
                 }
                 else if (strcmp(iot.inline_param[1], "off") == 0) {
-                        switchIt("MQTT", atoi(iot.inline_param[0]), 0, "", false);
+                        switchIt("MQTT", atoi(iot.inline_param[0]), 0);
                 }
                 else if (strcmp(iot.inline_param[1], "timeout") == 0) {
                         TO[atoi(iot.inline_param[0])]->setNewTimeout(atoi(iot.inline_param[2]));
@@ -534,86 +408,141 @@ void addiotnalMQTT(char *incoming_msg) {
 
 
 //  ######################### ADDITIONAL SERVICES ##############################
-// ~~~~~~~~~~~ Telegram Notify ~~~~~~~
-#if USE_NOTIFY_TELE
-void telecmds(String in_msg, String from, String chat_id, char snd_msg[50]) {
-        // char msg[50];
-        // if(p1=="/on"){
-        //   TO[0]->restart_to();
-        //   sprintf(msg, "TimeOut: Switch[#%d] [Restart]",0);
-        //   iot.pub_msg(msg);
-        //   iot.notifyOffline();
-        //   iot.sendReset("TimeOut restart");
-        //
-        // }
-        // else if(p1=="/off"){
-        //
-        // }
-        if(in_msg=="/status") {
-                sprintf(snd_msg,"FUCK+ME");
-        }
 
+// ~~~~ OLED ~~~~~~~
+void startOLED() {
+        display.begin(SSD1306_SWITCHCAPVCC, 0x3C);
+        display.clearDisplay();
 }
-#endif
+void OLED_CenterTXT(int char_size, char *line1, char *line2 = "", char *line3 = "", char *line4 = "", byte x_shift = 0,  byte y_shift = 0) {
+        char *Lines[] = {line1, line2, line3, line4};
+        display.clearDisplay();
+        display.setTextSize(char_size);
+        display.setTextColor(WHITE);
+        byte line_space = pow(2, (2 + char_size));
 
-// ~~~~~~~~~~~ Using Sensor ~~~~~~~~~~~
-void detectionBlink(byte sw, int duration=2000){
-        unsigned long startTime = millis();
-        bool last = digitalRead(relays[sw]);
-        while (millis() - startTime < duration) {
-                digitalWrite(relays[sw], RelayOn);
-                delay(500);
-                digitalWrite(relays[sw], !RelayOn);
-                delay(50);
-        }
-        digitalWrite(relays[sw],last);
-
-}
-#if USE_SENSOR
-SensorSwitch sensSW(SENSOR_PIN, MIN_TIME_FIRST_DET, ADD_TIME_NEXT_DET);
-void notify_detection(byte sw){
-        char time1[20];
-        char date1[20];
-        char comb[40];
-
-        iot.return_clock(time1);
-        iot.return_date(date1);
-        sprintf(comb, "[%s %s] %s", date1, time1, sensorNotify.msg);
-
-        if (millis() - sensorNotify.firstTime >= 1000*60*60 || sensorNotify.firstTime == 0) { // first time or reset counter after 1hr
-                sensorNotify.firstTime = millis();
-                sensorNotify.nCounter = 0;
-        }
-        if(millis() - sensorNotify.lastTime > 60*1000*MIN_TIME_BETWEEN_NOTI && sensorNotify.nCounter <MAX_NOTI_1HR) {
-                detectionBlink(sw);
-                sensorNotify.nCounter +=1;
-                sensorNotify.lastTime = millis();
-                sprintf(comb,"Sensor: Detection [#%d] in [%s]",sensorNotify.nCounter,DEVICE_TOPIC);
-            #if USE_NOTIFY_TELE
-                teleNotify.send_msg(comb);
-            #endif
-                iot.pub_msg(comb);
-        }
-}
-void checkSensor_looper (byte sw) {
-        bool current_sens_state = sensSW.check_sensor();
-
-        if ( current_sens_state != sensState[sw]) {
-                sensState[sw] = current_sens_state;
-                if (current_sens_state) {
-                        if (TO[sw]->remain() == 0 && digitalRead(relays[sw]) == !RelayOn) { // not in TO mode nor Relay is ON
-                                switchIt("Sensor", sw, current_sens_state, "Detect", false);
-                        }
-                        else if (TO[sw]->remain() > 0 && digitalRead(relays[sw]) == RelayOn) {
-                                notify_detection(sw);
-                        }
-                }
-                else if (current_sens_state == false && TO[sw]->remain() == 0) {
-                        switchIt("Sensor", sw, current_sens_state, "", false);
+        for (int n = 0; n < 4; n++) {
+                if (strcmp(Lines[n], "") != 0) {
+                        int strLength = strlen(Lines[n]);
+                        display.setCursor((ceil)((21 / char_size - strLength) / 2 * (128 / (21 / char_size))) + x_shift,  line_space * n + y_shift);
+                        display.print(Lines[n]);
                 }
         }
+        display.display();
 }
-#endif
+void OLED_SideTXT(int char_size, char *line1, char *line2 = "", char *line3 = "", char *line4 = "") {
+        char *Lines[] = {line1, line2, line3, line4};
+        display.clearDisplay();
+        display.setTextSize(char_size);
+        byte line_space = pow(2, (2 + char_size));
+
+
+        if (strcmp(line3, "") == 0 && strcmp(line4, "") == 0) { // for ON state only - 2rows
+                for (int n = 0; n < 2; n++) {
+                        if (strcmp(Lines[n], "") != 0) {
+                                if (n == 1) { // Clock line
+                                        display.setTextSize(char_size);
+                                        display.setTextColor(WHITE);
+                                        int strLength = strlen(Lines[n]);
+                                        display.setCursor((ceil)((21 / char_size - strLength) * (128 / (21 / char_size))),  line_space * (n + 1) - 3);
+                                        display.print(Lines[n]);
+                                }
+                                else { // Title line
+                                        display.setTextSize(char_size - 1);
+                                        display.setTextColor(BLACK, WHITE);
+                                        display.setCursor(0, line_space * (n + 1));
+                                        display.print(Lines[n]);
+                                }
+                        }
+                }
+
+        }
+        else {
+                for (int n = 0; n < 4; n++) {
+                        if (strcmp(Lines[n], "") != 0) {
+                                if (n == 1 || n == 3) { // Clocks
+                                        display.setTextSize(char_size);
+                                        display.setTextColor(WHITE);
+                                        int strLength = strlen(Lines[n]);
+                                        display.setCursor((ceil)((21 / char_size - strLength) * (128 / (21 / char_size))),  line_space * n - 3);
+                                        display.print(Lines[n]);
+                                }
+                                else { // Title
+                                        display.setTextSize(char_size - 1);
+                                        display.setTextColor(BLACK, WHITE);
+                                        display.setCursor(0, line_space * n);
+                                        display.print(Lines[n]);
+                                }
+                        }
+                }
+        }
+        display.display();
+}
+void OLEDlooper() {
+        char time_on_char[20];
+        char time2Off_char[20];
+
+        if( clock_noref == 0) { // freeze OLED display
+
+                if (digitalRead(relays[0]) == RelayOn ) {
+                        int timeON = now() - TO[0]->getStart_to();
+                        int timeLeft = TO[0]->remain();
+
+                        sec2clock(timeON, "", time_on_char);
+                        // if ( timeInc_counter == 1 ) { // ~~~~ON, no timer ~~~~~~~
+                        if (timeLeft == 0) {
+                                OLED_SideTXT(2, "On:", time_on_char);
+                        }
+                        // else if ( timeInc_counter > 1 || relState[0] == 1 ) { /// ON + Timer or DailyTO
+                        else{
+                                sec2clock(timeLeft, "", time2Off_char);
+                                OLED_SideTXT(2, "On:", time_on_char, "Remain:", time2Off_char);
+                        }
+                }
+                else { // OFF state - clock only
+                        iot.return_clock(timeStamp);
+                        iot.return_date(dateStamp);
+
+                        int timeQoute = 5000;
+
+                        if (swapLines_counter == 0) {
+                                swapLines_counter = millis();
+                        }
+                        if (millis() - swapLines_counter < timeQoute) {
+                                OLED_CenterTXT(2, "", timeStamp, dateStamp);
+                        }
+                        else if (millis() - swapLines_counter >= timeQoute && millis() - swapLines_counter < 2 * timeQoute)
+                        {
+                                OLED_CenterTXT(2, timeStamp, "", "", dateStamp);
+                        }
+                        else if (millis() - swapLines_counter > 2 * timeQoute) {
+                                swapLines_counter = 0;
+                        }
+                }
+        }
+        else{
+                if (millis() - clock_noref > time_NOref_OLED*1000) { // time in millis
+                        clock_noref = 0;
+                }
+        }
+}
+// ~~~~~~~~~~~~~~~
+
+// ~~~~ string creation ~~~~~~
+void sec2clock(int sec, char* text, char* output_text) {
+        int h = ((int)(sec) / ( 60 * 60));
+        int m = ((int)(sec) - h * 60 * 60) / ( 60);
+        int s = ((int)(sec) - h * 60 * 60 - m * 60);
+        sprintf(output_text, "%s %01d:%02d:%02d", text, h, m, s);
+}
+void display_totalOnTime(){
+        char msg[150];
+        int totalONtime = now() - TO[0]->getStart_to();
+        sec2clock(totalONtime, "", msg);
+        clock_noref = millis();
+        OLED_CenterTXT(2,"ON time:","",msg);
+}
+
 
 // ~~~~~ BOOT ASSIST SERVICES ~~~~~~~~~
 #if HARD_REBOOT
@@ -696,112 +625,8 @@ void recoverReset() {
                 EEPROM.write(hReset_eeprom.val_cell, 0);
                 EEPROM.commit();
                 #endif
-        }
-}
 
-//~~~~~~~Run IR Remote ~~~~~~~~
-void recvIRinputs() {
-#if USE_IR_REMOTE
-        char msg[50];
-
-        if (irrecv.decode(&results)) {
-
-                if (results.value == 0XFFFFFFFF)
-                        results.value = key_value;
-                char msg[50];
-
-                switch (results.value) {
-                case 0xFFA25D:
-                        //Serial.println("CH-");
-                        break;
-                case 0xFF629D:
-                        //Serial.println("CH");
-                        iot.sendReset("RemoteControl");
-                        break;
-                case 0xFFE21D:
-                        //Serial.println("CH+");
-                        break;
-                case 0xFF22DD:
-                        //Serial.println("|<<");
-                        break;
-                case 0xFF02FD:
-                        //Serial.println(">>|");
-                        break;
-                case 0xFFC23D:
-                        //Serial.println(">|");
-                        break;
-                case 0xFFE01F:
-                        //Serial.println("-");
-                        TO[0]->endNow();
-                        sprintf(msg, "TimeOut: IRremote[Abort]");
-                        iot.pub_msg(msg);
-                        break;
-                case 0xFFA857:
-                        //Serial.println("+");
-                        TO[0]->restart_to();
-                        sprintf(msg, "TimeOut: IRremote[Restart]");
-                        iot.pub_msg(msg);
-                        break;
-                case 0xFF906F:
-                        //Serial.println("EQ");
-                        break;
-                case 0xFF6897:
-                        //Serial.println("0");
-                        break;
-                case 0xFF9867:
-                        //Serial.println("100+");
-                        break;
-                case 0xFFB04F:
-                        //Serial.println("200+");
-                        break;
-                case 0xFF30CF:
-                        // blinker_state = !blinker_state;
-                        // sprintf(msg, "IRremote: [Blinker], [%s]", blinker_state ? "ON" : "OFF");
-                        // iot.pub_msg(msg);
-                        break;
-                case 0xFF18E7:
-                        // strobe_state = !strobe_state;
-                        // sprintf(msg, "Switch: [Strobe], [%s]", strobe_state ? "ON" : "OFF");
-                        // iot.pub_msg(msg);
-                        break;
-                case 0xFF7A85:
-                        break;
-                case 0xFF10EF:
-                        //change_color(4);
-                        break;
-                case 0xFF38C7:
-                        //change_color(5);
-                        break;
-                case 0xFF5AA5:
-                        //Serial.println("6");
-                        //                        change_color(6);
-                        break;
-                case 0xFF42BD:
-                        //Serial.println("7");
-                        //                        change_color(7);
-                        break;
-                case 0xFF4AB5:
-                        //Serial.println("8");
-                        //                        change_color(8);
-                        break;
-                case 0xFF52AD:
-                        //Serial.println("9");
-                        //                        change_color(9);
-                        break;
                 }
-                key_value = results.value;
-                irrecv.resume();
-        }
-#endif
-}
-void start_IR() {
-#if USE_IR_REMOTE
-#if DECODE_HASH
-        // Ignore messages with less than minimum on or off pulses.
-        irrecv.setUnknownThreshold(kMinUnknownSize);
-#endif                  // DECODE_HASH
-        irrecv.enableIRIn(); // Start the receiver
-#endif
 }
 
 // ########################### END ADDITIONAL SERVICE ##########################
@@ -817,23 +642,17 @@ void setup() {
         startGPIOs();
         quickPwrON();
         startIOTservices();
+        startOLED();
         startTO();
-
-        #if USE_SENSOR
-        sensSW.start();
-        #endif
-
-        #if USE_NOTIFY_TELE
-        teleNotify.begin(telecmds);
-        #endif
-
-        #if USE_IR_REMOTE
-        start_IR();
-        #endif
-
 }
 void loop() {
         iot.looper();
+
+        for (int i = 0; i < NUM_SWITCHES; i++) {
+                TO_looper(i);
+                checkSwitch_Pressed(i);
+        }
+        digitalWrite(indic_LEDpin, digitalRead(relays[0]));
 
         #if USE_RESETKEEPER
         if (checkrebootState == true) {
@@ -841,26 +660,8 @@ void loop() {
         }
         #endif
 
-        for (int i = 0; i < NUM_SWITCHES; i++) {
-                if (USE_INPUTS) {
-                        checkSwitch_Pressed(i,IS_MOMENTARY);
-                }
-                TO_looper(i);
-        }
-        digitalWrite(indic_LEDpin, !relState[0]);
+        OLEDlooper();
 
-
-        #if USE_NOTIFY_TELE
-        teleNotify.looper();
-        #endif
-
-        #if USE_SENSOR
-        checkSensor_looper(0);
-        #endif
-
-        #if USE_IR_REMOTE
-        recvIRinputs(); // IR signals
-        #endif
 
         delay(100);
 }
