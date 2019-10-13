@@ -4,13 +4,13 @@
 
 
 // ********** Sketch Services  ***********
-#define VER              "SONOFF_3.5"
-#define USE_INPUTS       true
-#define IS_MOMENTARY     true  // is switch latch or momentary
+#define VER              "SONOFF_3.51"
+#define USE_INPUTS       false
+#define IS_MOMENTARY     false  // is switch latch or momentary
 #define ON_AT_BOOT       true // On or OFF at boot (Usually when using inputs, at boot/PowerOn - state should be off
 #define USE_DAILY_TO     true
 #define IS_SONOFF        true
-#define HARD_REBOOT      false
+#define HARD_REBOOT      true
 #define USE_NOTIFY_TELE  false
 #define USE_SENSOR       false
 #define USE_IR_REMOTE    false
@@ -26,9 +26,9 @@
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 // ~~~~~~~ MQTT Topics ~~~~~~
-#define DEVICE_TOPIC "LivingRoom"
+#define DEVICE_TOPIC "frontDoor"
 #define MQTT_PREFIX  "myHome"
-#define MQTT_GROUP   "intLights"
+#define MQTT_GROUP   "extLights"
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 #define ADD_MQTT_FUNC addiotnalMQTT
@@ -41,8 +41,8 @@ myIOT iot(DEVICE_TOPIC);
 #define TIMEOUT_SW0      3*60 // mins for SW0
 #define TIMEOUT_SW1      2*60 // mins
 
-const int START_dailyTO[] = {16,00,0};
-const int END_dailyTO[]   = {10,30,0};
+const int START_dailyTO[] = {18,0,0};
+const int END_dailyTO[]   = {2,0,0};
 
 int TIMEOUTS[2]  = {TIMEOUT_SW0, TIMEOUT_SW1};
 timeOUT timeOut_SW0("SW0", TIMEOUTS[0]);
@@ -307,7 +307,7 @@ void checkSwitch_Pressed (byte sw, bool momentary = true) {
                                 if (inputState[sw] == SwitchOn && digitalRead(relays[sw]) != RelayOn) { // turn in TO
                                         TO[sw]->restart_to();
                                 }
-                                else if( inputState[sw] != SwitchOn ) { // turn off 
+                                else if( inputState[sw] != SwitchOn ) { // turn off
                                         if(TO[sw]->remain()>0) {  // turn off when in TO
                                                 TO[sw]->endNow();
                                         }
@@ -520,7 +520,6 @@ void addiotnalMQTT(char *incoming_msg) {
                                 TO[atoi(iot.inline_param[0])]->dailyTO.off[1],
                                 TO[atoi(iot.inline_param[0])]->dailyTO.off[2],
                                 TO[atoi(iot.inline_param[0])]->dailyTO.flag ? "ON" : "OFF" );
-                        TO[atoi(iot.inline_param[0])]->dailyTO_inFlash.printFile();
                         iot.pub_msg(msg);
                 }
                 else{

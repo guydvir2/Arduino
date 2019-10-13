@@ -225,6 +225,7 @@ const char *clock_fields[4] = {"ontime", "off_time", "flag", "use_inFl_vals"};
 const int items_each_array[3] = {3, 3, 1};
 
 dTO defaultVals = {{0, 0, 0}, {0, 0, 59}, 1, 1, 0};
+dTO adHocVals   = {{0, 0, 0}, {0, 0, 59}, 1, 1, 0};
 
 
 public:

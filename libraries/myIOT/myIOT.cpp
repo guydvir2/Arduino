@@ -862,7 +862,9 @@ void timeOUT::store_dailyTO_inFlash(dTO &dailyTO, int x) {
                 }
         }
 }
-
+// void timeOUT::restart_dailyTO (dTO &dailyTO, int x){
+//
+// }
 
 
 // ~~~~~~~~~~~ myTelegram Class ~~~~~~~~~~~~

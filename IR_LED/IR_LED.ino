@@ -25,7 +25,7 @@
 
 // ********** myIOT Class ***********
 //~~~~~ Services ~~~~~~~~~~~
-#define USE_SERIAL       true // Serial Monitor
+#define USE_SERIAL       false // Serial Monitor
 #define USE_WDT          true  // watchDog resets
 #define USE_OTA          true  // OTA updates
 #define USE_RESETKEEPER  false // detect quick reboot and real reboots
@@ -33,7 +33,7 @@
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 // ~~~~~~~ MQTT Topics ~~~~~~
-#define DEVICE_TOPIC    "IR_LED"
+#define DEVICE_TOPIC    "kidsColorLEDs"
 #define MQTT_PREFIX     "myHome"
 #define MQTT_GROUP      "intLights"
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
