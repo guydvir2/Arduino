@@ -770,22 +770,34 @@ void timeOUT::updateStart(long clock){
         startTimeOUT_inFlash.setValue(clock);
 }
 
+int timeOUT::calc_dailyTO(dTO &dailyTO){
+  int secs   = dailyTO.off[2] - dailyTO.on[2];
+  int mins   = dailyTO.off[1] - dailyTO.on[1];
+  int delt_h = dailyTO.off[0] - dailyTO.on[0];
+
+  int total_time = secs + mins * 60 + delt_h * 60 * 60;
+  if (total_time < 0) {
+          total_time += 24 * 60 * 60;
+  }
+  return total_time;
+}
 void timeOUT::dailyTO_looper(dTO &dailyTO) {
         char msg [50], msg2[50];
         time_t t = now();
 
         if (dailyTO.onNow == false && dailyTO.flag == true) { // start
                 if (hour(t) == dailyTO.on[0] && minute(t) == dailyTO.on[1] && second(t) == dailyTO.on[2]) {
-                        int secs   = dailyTO.off[2] - dailyTO.on[2];
-                        int mins   = dailyTO.off[1] - dailyTO.on[1];
-                        int delt_h = dailyTO.off[0] - dailyTO.on[0];
+                        // int secs   = dailyTO.off[2] - dailyTO.on[2];
+                        // int mins   = dailyTO.off[1] - dailyTO.on[1];
+                        // int delt_h = dailyTO.off[0] - dailyTO.on[0];
+                        //
+                        // int total_time = secs + mins * 60 + delt_h * 60 * 60;
+                        // if (total_time < 0) {
+                        //         total_time += 24 * 60 * 60;
+                        // }
+                        int tot_time = calc_dailyTO(dailyTO);
 
-                        int total_time = secs + mins * 60 + delt_h * 60 * 60;
-                        if (total_time < 0) {
-                                total_time += 24 * 60 * 60;
-                        }
-
-                        setNewTimeout(total_time, false);
+                        setNewTimeout(tot_time, false);
                         dailyTO.onNow = true;
                 }
         }
@@ -862,9 +874,15 @@ void timeOUT::store_dailyTO_inFlash(dTO &dailyTO, int x) {
                 }
         }
 }
-// void timeOUT::restart_dailyTO (dTO &dailyTO, int x){
-//
-// }
+void timeOUT::restart_dailyTO (dTO &dailyTO){
+  time_t t = now();
+  dTO temp_dTO = {{hour(t), minute(t), second(t)}, { dailyTO.on[0], dailyTO.on[1],  dailyTO.on[2]}, 1, 1, 0};
+  int tot_time = calc_dailyTO(temp_dTO);
+
+  setNewTimeout(tot_time, false);
+  dailyTO.onNow = true;
+
+}
 
 
 // ~~~~~~~~~~~ myTelegram Class ~~~~~~~~~~~~

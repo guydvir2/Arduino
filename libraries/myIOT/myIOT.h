@@ -252,9 +252,11 @@ void switchOFF();
 long getStart_to();
 void updateStart(long clock);
 
+int calc_dailyTO(dTO &dailyTO);
 void dailyTO_looper(dTO &dailyTO);
 void check_dailyTO_inFlash(dTO &dailyTO, int x);
 void store_dailyTO_inFlash(dTO &dailyTO, int x);
+void restart_dailyTO (dTO &dailyTO);
 
 FVars inCodeTimeOUT_inFlash;
 FVars endTimeOUT_inFlash;
