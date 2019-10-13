@@ -3,7 +3,7 @@
 #include <FastLED.h>
 
 //####################################################
-#define DEVICE_TOPIC "HomePi/Dvir/Lights/CorridorLEDs"
+#define DEVICE_TOPIC "HomePi/Dvir/Lights/CorridorLEDs_2"
 
 //~~~~~ Services ~~~~~~~~~~~
 #define USE_SERIAL    false
