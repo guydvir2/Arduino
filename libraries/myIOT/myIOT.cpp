@@ -876,7 +876,7 @@ void timeOUT::store_dailyTO_inFlash(dTO &dailyTO, int x) {
 }
 void timeOUT::restart_dailyTO (dTO &dailyTO){
   time_t t = now();
-  dTO temp_dTO = {{hour(t), minute(t), second(t)}, { dailyTO.on[0], dailyTO.on[1],  dailyTO.on[2]}, 1, 1, 0};
+  dTO temp_dTO = {{hour(t), minute(t), second(t)}, { dailyTO.off[0], dailyTO.off[1],  dailyTO.off[2]}, 1, 1, 0};
   int tot_time = calc_dailyTO(temp_dTO);
 
   setNewTimeout(tot_time, false);

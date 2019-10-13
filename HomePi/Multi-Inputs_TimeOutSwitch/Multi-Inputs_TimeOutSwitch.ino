@@ -26,7 +26,7 @@
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 // ~~~~~~~ MQTT Topics ~~~~~~
-#define DEVICE_TOPIC "frontDoor"
+#define DEVICE_TOPIC "PergolaBulbs"
 #define MQTT_PREFIX  "myHome"
 #define MQTT_GROUP   "extLights"
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -522,6 +522,12 @@ void addiotnalMQTT(char *incoming_msg) {
                                 TO[atoi(iot.inline_param[0])]->dailyTO.flag ? "ON" : "OFF" );
                         iot.pub_msg(msg);
                 }
+                else if (strcmp(iot.inline_param[1], "restart_dailyTO") == 0) {
+                        TO[atoi(iot.inline_param[0])]->restart_dailyTO(  TO[atoi(iot.inline_param[0])]->dailyTO);
+                        sprintf(msg, "%s: Switch[#%d] Resume daily Timeout", clockAlias, atoi(iot.inline_param[0]);
+                        iot.pub_msg(msg);
+                }
+
                 else{
                         if (strcmp(incoming_msg,"offline")!=0 && strcmp(incoming_msg,"online")!=0) {
                                 sprintf(msg,"Unrecognized Command: [%s]", incoming_msg);
