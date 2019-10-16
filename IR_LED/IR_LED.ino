@@ -12,8 +12,8 @@
 #define LED_DELAY        2 // ms
 #define BRIGHTNESS       5 // [0,100]
 #define LED_DIRECTION    0  // [0,1]
-#define MAX_BRIGHT       70
-#define MIN_BRIGHT       10
+#define MAX_BRIGHT       100
+#define MIN_BRIGHT       5
 #define IR_SENSOR_PIN    D5
 
 
@@ -240,8 +240,8 @@ void turn_leds_on(int col_indx = COLOR, int bright_1 = BRIGHTNESS, int del_1 = L
 }
 void set_bright(byte val){
         if (val <= MAX_BRIGHT && val>= MIN_BRIGHT) {
-                ledBrightness =val;
-                turn_leds_on(ledColor, ledBrightness);
+                ledBrightness = val;
+                turn_leds_on(ledColor, ledBrightness, 0);
                 char msg[50];
 
                 sprintf(msg, "Brightness: Changed to [%d], range:[%d/%d]",val,MIN_BRIGHT, MAX_BRIGHT);
@@ -262,7 +262,7 @@ void set_color(byte col_i){
 }
 void chng_brightness(int val) {
         if (ledBrightness + val <= MAX_BRIGHT && ledBrightness + val>= MIN_BRIGHT ) {
-                ledBrightness +=val;
+                ledBrightness += val;
         }
         else if (ledBrightness + val > MAX_BRIGHT){
           ledBrightness = MAX_BRIGHT;

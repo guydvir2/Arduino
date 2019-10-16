@@ -112,12 +112,13 @@ char inline_param[6][20];                           //values from user
 
 bool mqttConnected         = 0;
 bool alternativeMQTTserver = false;
+bool is_online             = false;
 byte mqtt_detect_reset     = 2;
 char prefixTopic  [MaxTopicLength];
 char deviceTopic  [MaxTopicLength];
 char addGroupTopic[MaxTopicLength];
 
-const char *ver     = "iot_5.0";
+const char *ver     = "iot_5.1";
 char timeStamp[20];
 long updated_bootTime  = 0;
 int resetIntervals     = 10;
@@ -167,12 +168,11 @@ char* topicArry[4] = {deviceTopic, _groupTopic, _availTopic, addGroupTopic};
 
 // MQTT connection flags
 int mqttFailCounter = 0;                               // count tries to reconnect
-int MQTTretries     = 2;                               // allowed tries to reconnect
+int MQTTretries     = 0;                               // allowed tries to reconnect
 // ######################
 
 
 // holds informamtion
-char msg[150];
 char bootTime[50];
 char bootErrors [150];
 bool firstRun = true;
@@ -225,7 +225,6 @@ const char *clock_fields[4] = {"ontime", "off_time", "flag", "use_inFl_vals"};
 const int items_each_array[3] = {3, 3, 1};
 
 dTO defaultVals = {{0, 0, 0}, {0, 0, 59}, 1, 1, 0};
-dTO adHocVals   = {{0, 0, 0}, {0, 0, 59}, 1, 1, 0};
 
 
 public:

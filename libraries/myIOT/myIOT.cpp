@@ -46,10 +46,16 @@ void myIOT::looper(){
                 acceptOTA();
         }
         // continue TO after reset
-        if(useResetKeeper) {
-                if(firstRun && mqtt_detect_reset !=2) {
-                        notifyOnline();
-                        firstRun = false;
+
+        if (firstRun) {
+                if (useResetKeeper) {
+                        if(mqtt_detect_reset !=2) {
+                                notifyOnline();
+                                firstRun = false;
+                        }
+                }
+                else{
+                        mqtt_detect_reset = 0;
                 }
         }
 }
@@ -275,7 +281,9 @@ int myIOT::subscribeMQTT() {
                                         }
                                 }
                                 else {
-                                        notifyOnline();
+                                        if (!is_online) {
+                                                notifyOnline();
+                                        }
                                 }
                                 for (int i = 0; i < sizeof(topicArry) / sizeof(char *); i++) {
                                         if (strcmp(topicArry[i],"")!=0) {
@@ -295,7 +303,7 @@ int myIOT::subscribeMQTT() {
                                 }
                                 mqttFailCounter++;
                         }
-                        delay(500);
+                        // delay(500);
                 }
 
                 // Failed to connect MQTT adter retries
@@ -336,9 +344,7 @@ void myIOT::createTopics() {
 }
 void myIOT::callback(char* topic, byte* payload, unsigned int length) {
         char incoming_msg[150];
-        char state[5];
-        char state2[5];
-        char msg2[100];
+        char msg[100];
 
         if (useSerial) {
                 Serial.print("Message arrived [");
@@ -356,14 +362,17 @@ void myIOT::callback(char* topic, byte* payload, unsigned int length) {
                 Serial.println("");
         }
 
-        // Check if Avail topic starts from OFFLINE or ONLINE mode
-        // This will flag weather unwanted Reset occured
-        if (firstRun && useResetKeeper) {
-                if(strcmp(topic,_availTopic)==0) {
-                        if (strcmp(incoming_msg,"online")==0) {
-                                mqtt_detect_reset = 1; // bad reboot
+        if(strcmp(topic,_availTopic)==0) {
+                if (strcmp(incoming_msg,"online")==0) {
+                        is_online = true;
+                        if (firstRun && useResetKeeper) { // Check if Avail topic starts from OFFLINE or ONLINE mode
+                                                          // This will flag weather unwanted Reset occured
+                                mqtt_detect_reset = 1;    // bad reboot
                         }
-                        else if (strcmp(incoming_msg,"offline")==0) {
+                }
+                else if (strcmp(incoming_msg,"offline")==0) {
+                        is_online = false;
+                        if (firstRun && useResetKeeper) {
                                 mqtt_detect_reset = 0; // ordinary boot
                         }
                 }
@@ -771,30 +780,21 @@ void timeOUT::updateStart(long clock){
 }
 
 int timeOUT::calc_dailyTO(dTO &dailyTO){
-  int secs   = dailyTO.off[2] - dailyTO.on[2];
-  int mins   = dailyTO.off[1] - dailyTO.on[1];
-  int delt_h = dailyTO.off[0] - dailyTO.on[0];
+        int secs   = dailyTO.off[2] - dailyTO.on[2];
+        int mins   = dailyTO.off[1] - dailyTO.on[1];
+        int delt_h = dailyTO.off[0] - dailyTO.on[0];
 
-  int total_time = secs + mins * 60 + delt_h * 60 * 60;
-  if (total_time < 0) {
-          total_time += 24 * 60 * 60;
-  }
-  return total_time;
+        int total_time = secs + mins * 60 + delt_h * 60 * 60;
+        if (total_time < 0) {
+                total_time += 24 * 60 * 60;
+        }
+        return total_time;
 }
 void timeOUT::dailyTO_looper(dTO &dailyTO) {
-        char msg [50], msg2[50];
         time_t t = now();
 
         if (dailyTO.onNow == false && dailyTO.flag == true) { // start
                 if (hour(t) == dailyTO.on[0] && minute(t) == dailyTO.on[1] && second(t) == dailyTO.on[2]) {
-                        // int secs   = dailyTO.off[2] - dailyTO.on[2];
-                        // int mins   = dailyTO.off[1] - dailyTO.on[1];
-                        // int delt_h = dailyTO.off[0] - dailyTO.on[0];
-                        //
-                        // int total_time = secs + mins * 60 + delt_h * 60 * 60;
-                        // if (total_time < 0) {
-                        //         total_time += 24 * 60 * 60;
-                        // }
                         int tot_time = calc_dailyTO(dailyTO);
 
                         setNewTimeout(tot_time, false);
@@ -875,12 +875,12 @@ void timeOUT::store_dailyTO_inFlash(dTO &dailyTO, int x) {
         }
 }
 void timeOUT::restart_dailyTO (dTO &dailyTO){
-  time_t t = now();
-  dTO temp_dTO = {{hour(t), minute(t), second(t)}, { dailyTO.off[0], dailyTO.off[1],  dailyTO.off[2]}, 1, 1, 0};
-  int tot_time = calc_dailyTO(temp_dTO);
+        time_t t = now();
+        dTO temp_dTO = {{hour(t), minute(t), second(t)}, { dailyTO.off[0], dailyTO.off[1],  dailyTO.off[2]}, 1, 1, 0};
+        int tot_time = calc_dailyTO(temp_dTO);
 
-  setNewTimeout(tot_time, false);
-  dailyTO.onNow = true;
+        setNewTimeout(tot_time, false);
+        dailyTO.onNow = true;
 
 }
 
