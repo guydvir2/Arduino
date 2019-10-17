@@ -4,9 +4,9 @@
 
 
 // ********** Sketch Services  ***********
-#define VER              "SONOFF_3.57"
-#define USE_INPUTS       false
-#define IS_MOMENTARY     false  // is switch latch or momentary
+#define VER              "SONOFF_3.60"
+#define USE_INPUTS       true
+#define IS_MOMENTARY     true  // is switch latch or momentary
 #define ON_AT_BOOT       true // On or OFF at boot (Usually when using inputs, at boot/PowerOn - state should be off
 #define USE_DAILY_TO     true
 #define IS_SONOFF        true
@@ -14,11 +14,10 @@
 #define USE_NOTIFY_TELE  false
 #define USE_SENSOR       false
 #define USE_IR_REMOTE    false
-#define USE_TIMEOUTS     false
 
 // ********** myIOT Class ***********
 //~~~~~ Services ~~~~~~~~~~~
-#define USE_SERIAL       true // Serial Monitor
+#define USE_SERIAL       false // Serial Monitor
 #define USE_WDT          true  // watchDog resets
 #define USE_OTA          true  // OTA updates
 #define USE_RESETKEEPER  true // detect quick reboot and real reboots
@@ -26,9 +25,9 @@
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 // ~~~~~~~ MQTT Topics ~~~~~~
-#define DEVICE_TOPIC "PergolaBulbs"
+#define DEVICE_TOPIC "sonoff_mini"
 #define MQTT_PREFIX  "myHome"
-#define MQTT_GROUP   "extLights"
+#define MQTT_GROUP   "tests"
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 #define ADD_MQTT_FUNC addiotnalMQTT
@@ -41,8 +40,8 @@ myIOT iot(DEVICE_TOPIC);
 #define TIMEOUT_SW0      3*60 // mins for SW0
 #define TIMEOUT_SW1      2*60 // mins
 
-const int START_dailyTO[] = {18,0,0};
-const int END_dailyTO[]   = {0,0,1};
+const int START_dailyTO[] = {17,30,0};
+const int END_dailyTO[]   = {6,30,0};
 
 int TIMEOUTS[2]  = {TIMEOUT_SW0, TIMEOUT_SW1};
 timeOUT timeOut_SW0("SW0", TIMEOUTS[0]);
@@ -117,9 +116,9 @@ eeproms_storage hReset_eeprom;
 // ~~~~~~~~~~~~~ Sensor Switch ~~~~~~~~~~~~~~
 #define MAX_NOTI_1HR           10
 #define MIN_TIME_BETWEEN_NOTI  0.25 //in minutes
-#define MIN_TIME_FIRST_DET     5   // sec
-#define ADD_TIME_NEXT_DET      10  // sec
-#define NotifyMSG "familyRoom detection"
+#define MIN_TIME_FIRST_DET     5    // sec
+#define ADD_TIME_NEXT_DET      10   // sec
+#define NotifyMSG "frontDoor detection"
 
 class SensorSwitch
 {
@@ -357,7 +356,7 @@ void start_dailyTO(byte i){
         memcpy(TO[i]->dailyTO.on,START_dailyTO, sizeof(START_dailyTO));
         memcpy(TO[i]->dailyTO.off,END_dailyTO, sizeof(END_dailyTO));
         TO[i]->dailyTO.flag = USE_DAILY_TO;
-        // TO[i]->check_dailyTO_inFlash(TO[i]->dailyTO,i);
+        TO[i]->check_dailyTO_inFlash(TO[i]->dailyTO,i);
 }
 void TO_looper(byte i) {
 
@@ -374,24 +373,10 @@ void TO_looper(byte i) {
 void addiotnalMQTT(char *income_msg) {
         char msg_MQTT[150];
         char msg2[20];
-        // static int msg_counter;
-
-        sprintf(msg_MQTT, "Recieved msg: %s", income_msg);
-        iot.pub_msg(msg_MQTT);
 
         if      (strcmp(income_msg, "status") == 0) {
-                for (int i = 0; i < NUM_SWITCHES; i++) {
-                        if (TO[i]->remain() > 0) {
-                                TO[i]->convert_epoch2clock(now() + TO[i]->remain(), now(), msg_MQTT, msg2);
-                                sprintf(msg2, "timeLeft[%s]", msg_MQTT);
-                        }
-                        else {
-                                sprintf(msg2, "");
-                        }
-                        sprintf(msg_MQTT, "Status: Switch[#%d] [%s] %s", i, digitalRead(relays[i]) ? "ON" : "OFF", msg2);
-                        iot.pub_msg(msg_MQTT);
-                }
-                Serial.println("IN STATUS LOOP");
+                giveStatus(msg_MQTT);
+                iot.pub_msg(msg_MQTT);
         }
         else if (strcmp(income_msg, "ver") == 0 ) {
                 sprintf(msg_MQTT, "ver #1: [%s], lib: [%s], WDT: [%d], OTA: [%d], SERIAL: [%d], ResetKeeper[%d], FailNTP[%d]", VER, iot.ver, USE_WDT, USE_OTA, USE_SERIAL, USE_RESETKEEPER, USE_FAILNTP);
@@ -415,6 +400,20 @@ void addiotnalMQTT(char *income_msg) {
         }
         else if (strcmp(income_msg, "format") == 0 ) {
                 TO[0]->inCodeTimeOUT_inFlash.format();
+        }
+        else if (strcmp(income_msg, "all_off") == 0 ) {
+                for (int i = 0; i < NUM_SWITCHES; i++) {
+                        if (TO[i]->remain() > 0 && relays[i] == RelayOn) {
+                                TO[i]->endNow();
+                        }
+                        else if (TO[i]->remain() == 0 && relays[i] == RelayOn) {
+                                switchIt("MQTT", i, false,"", false);
+                        }
+                        else if (TO[i]->remain() > 0 && relays[i] != RelayOn) {
+                                TO[i]->endNow();
+                        }
+                        sprintf(msg_MQTT,"MQTT: Switch [#%d] turned[OFF]",i);
+                }
         }
         else {
                 int num_parameters = iot.inline_read(income_msg);
@@ -517,7 +516,7 @@ void addiotnalMQTT(char *income_msg) {
                         iot.pub_msg(msg_MQTT);
                 }
                 else if (strcmp(iot.inline_param[1], "status_dailyTO") == 0) {
-                        sprintf(msg_MQTT, "%s: Switch [#%d] {ON, %02d:%02d:%02d} {OFF, %02d:%02d:%02d} {Flag: %s}",
+                        sprintf(msg_MQTT, "%s: Switch [#%d] {ON:%02d:%02d:%02d} {OFF:%02d:%02d:%02d} {Flag:%s} {Values:%s}",
                                 clockAlias, atoi(iot.inline_param[0]),
                                 TO[atoi(iot.inline_param[0])]->dailyTO.on[0],
                                 TO[atoi(iot.inline_param[0])]->dailyTO.on[1],
@@ -525,7 +524,8 @@ void addiotnalMQTT(char *income_msg) {
                                 TO[atoi(iot.inline_param[0])]->dailyTO.off[0],
                                 TO[atoi(iot.inline_param[0])]->dailyTO.off[1],
                                 TO[atoi(iot.inline_param[0])]->dailyTO.off[2],
-                                TO[atoi(iot.inline_param[0])]->dailyTO.flag ? "ON" : "OFF" );
+                                TO[atoi(iot.inline_param[0])]->dailyTO.flag ? "ON" : "OFF",
+                                TO[atoi(iot.inline_param[0])]->dailyTO.useFlash ? "Flash" : "inCode" );
                         iot.pub_msg(msg_MQTT);
 
                         Serial.println("IN STATUS_Daily LOOP");
@@ -547,7 +547,25 @@ void addiotnalMQTT(char *income_msg) {
                 }
         }
 }
+void giveStatus(char *outputmsg){
+        char t1 [50];
+        char t2 [50];
+        char t3 [50];
 
+        sprintf(t3, "Status: ");
+        for (int i = 0; i < NUM_SWITCHES; i++) {
+                if (TO[i]->remain() > 0) {
+                        TO[i]->convert_epoch2clock(now() + TO[i]->remain(), now(), t2, t1);
+                        sprintf(t1, "timeLeft[%s]", t2);
+                }
+                else {
+                        sprintf(t1, "");
+                }
+                sprintf(t2, "Switch[#%d] [%s] %s ", i, digitalRead(relays[i]) ? "ON" : "OFF", t1);
+                strcat(t3, t2);
+        }
+        sprintf(outputmsg,"%s",t3);
+}
 
 //  ######################### ADDITIONAL SERVICES ##############################
 // ~~~~~~~~~~~ Telegram Notify ~~~~~~~
@@ -566,7 +584,7 @@ void telecmds(String in_msg, String from, String chat_id, char snd_msg[50]) {
         //
         // }
         if(in_msg=="/status") {
-                sprintf(snd_msg,"FUCK+ME");
+                giveStatus(snd_msg);
         }
 
 }
@@ -696,12 +714,13 @@ void recoverReset() {
                                 TO[i]->restart_to();
                                 iot.pub_err("--> NormalBoot & On-at-Boot. Restarting TimeOUT");
                         }
-                        else if (rebootState == 1) {
-                                iot.pub_err("--> PowerLoss Boot");
-                        }
-                        else if (TO[i]->looper() == 0) {
+                        else if (TO[i]->looper() == 0) { // was not during TO
+                                if (rebootState == 1) {
+                                        iot.pub_err("--> PowerLoss Boot");
+                                }
                                 digitalWrite(relays[i], !RelayOn);
                                 iot.pub_err("--> Stopping Quick-PowerON");
+
                         }
                         else{
                                 iot.pub_err("--> Continue unfinished processes only");

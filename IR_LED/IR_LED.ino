@@ -11,9 +11,11 @@
 #define COLOR            1
 #define LED_DELAY        2 // ms
 #define BRIGHTNESS       5 // [0,100]
-#define LED_DIRECTION    0  // [0,1]
+#define LED_DIRECTION    true  // [0,1]
 #define MAX_BRIGHT       100
-#define MIN_BRIGHT       5
+#define MIN_BRIGHT       1
+#define JUMP_BRIGHT      33
+
 #define IR_SENSOR_PIN    D5
 
 
@@ -134,11 +136,11 @@ void recvIRinputs() {
                         break;
                 case 0xFFE01F:
                         //Serial.println("-");
-                        chng_brightness(-20);
+                        chng_brightness(-JUMP_BRIGHT);
                         break;
                 case 0xFFA857:
                         //Serial.println("+");
-                        chng_brightness(20);
+                        chng_brightness(JUMP_BRIGHT);
                         break;
                 case 0xFF906F:
                         //Serial.println("EQ");
@@ -217,16 +219,18 @@ void turn_leds_off() {
 void turn_leds_on(int col_indx = COLOR, int bright_1 = BRIGHTNESS, int del_1 = LED_DELAY, bool dir_1 = LED_DIRECTION) {
         char msg[100];
         if ( col_indx <= tot_colors && bright_1 <= MAX_BRIGHT && del_1 <= 1000 && dir_1 <= 1) {
+          FastLED.setBrightness((bright_1*255/100));
                 if (dir_1 == true ) { // start to end
                         for (int i = 0; i < NUM_LEDS; i++) {
-                                FastLED.setBrightness((bright_1*255/100));
+                          // FastLED.setBrightness((bright_1*255/100));
+
                                 leds[i] = colors[col_indx];
                                 FastLED.show();
                                 delay(del_1);
                         }
                 }
                 else { // end to start
-                        FastLED.setBrightness((bright_1 *255 / 100));
+                        // FastLED.setBrightness((bright_1 *255 / 100));
                         for (int i = NUM_LEDS - 1; i >= 0; i = i - 1) {
                                 leds[i] = colors[col_indx];
                                 FastLED.show();
@@ -234,8 +238,6 @@ void turn_leds_on(int col_indx = COLOR, int bright_1 = BRIGHTNESS, int del_1 = L
                         }
 
                 }
-                // sprintf(msg, "Color:[%s], Brightness:[%d], Delay[%d]ms, Direction[%d]", color_names[col_indx],bright_1, del_1, dir_1);
-                // iot.pub_msg(msg);
         }
 }
 void set_bright(byte val){
@@ -360,7 +362,7 @@ void addiotnalMQTT(char *incoming_msg) {
                 iot.inline_read(incoming_msg);
 
                 if (strcmp(iot.inline_param[0], "bright") == 0 ) {
-                        set_bright (atoi(iot.inline_param[1]));
+                        set_bright(atoi(iot.inline_param[1]));
                 }
                 else if (strcmp(iot.inline_param[0], "color") == 0 ) {
                         set_color(atoi(iot.inline_param[1]));

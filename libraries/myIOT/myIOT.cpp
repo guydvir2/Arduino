@@ -281,9 +281,7 @@ int myIOT::subscribeMQTT() {
                                         }
                                 }
                                 else {
-                                        if (!is_online) {
-                                                notifyOnline();
-                                        }
+                                  notifyOnline();
                                 }
                                 for (int i = 0; i < sizeof(topicArry) / sizeof(char *); i++) {
                                         if (strcmp(topicArry[i],"")!=0) {
