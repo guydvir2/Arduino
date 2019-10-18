@@ -11,7 +11,7 @@
 #define LED_DIRECTION    true  // [0,1]
 #define MAX_BRIGHT       100
 #define MIN_BRIGHT       5
-#define JUMP_BRIGHT      10
+#define JUMP_BRIGHT      15
 #define IR_SENSOR_PIN    D5
 
 
@@ -212,13 +212,14 @@ void turn_leds_off() {
 
 void turn_leds_on(int col_indx = COLOR, int bright_1 = BRIGHTNESS, int del_1 = LED_DELAY, bool dir_1 = LED_DIRECTION) {
 
+        ledBrightness = bright_1;
         if ( col_indx <= tot_colors && bright_1 <= MAX_BRIGHT && del_1 <= 1000 && dir_1 <= 1) {
-                FastLED.setBrightness((bright_1*255/100));
+
                 if (dir_1 == true ) { // start to end
+                        FastLED.setBrightness((bright_1*255/100));
                         for (int i = 0; i < NUM_LEDS; i++) {
                                 leds[i] = colors[col_indx];
-                                // FastLED.show();
-                                // delay(del_1);
+                                delay(del_1);
                         }
                 }
                 else { // end to start
@@ -228,19 +229,18 @@ void turn_leds_on(int col_indx = COLOR, int bright_1 = BRIGHTNESS, int del_1 = L
                                 // delay(del_1);
                         }
                 }
+
         }
         FastLED.show();
 }
 void set_bright(byte val){
         char msg[50];
 
-        if (val != ledBrightness) {
-                ledBrightness = val;
-                turn_leds_on(ledColor, ledBrightness, 0);
+        ledBrightness = val;
+        turn_leds_on(ledColor, ledBrightness, 0);
 
-                sprintf(msg, "Brightness: Changed to [%d], range:[%d/%d]",val,MIN_BRIGHT, MAX_BRIGHT);
-                iot.pub_msg(msg);
-        }
+        sprintf(msg, "Brightness: Changed to [%d], range:[%d/%d]",val,MIN_BRIGHT, MAX_BRIGHT);
+        iot.pub_msg(msg);
 }
 void set_color(byte col_i){
         char msg[50];
@@ -255,17 +255,18 @@ void set_color(byte col_i){
         }
 }
 void chng_brightness(int val) {
-        // if (ledBrightness != MIN_BRIGHT && ledBrightness != MAX_BRIGHT) {
         if (ledBrightness + val <= MAX_BRIGHT && ledBrightness + val>= MIN_BRIGHT ) {
                 ledBrightness += val;
+                set_bright(ledBrightness);
         }
         else if (ledBrightness + val > MAX_BRIGHT) {
                 ledBrightness = MAX_BRIGHT;
+                set_bright(ledBrightness);
         }
         else if (ledBrightness + val < MIN_BRIGHT) {
                 ledBrightness = MIN_BRIGHT;
+                set_bright(ledBrightness);
         }
-        set_bright(ledBrightness);
 }
 void chng_color(int col_i) {
         if ( ledColor + col_i < tot_colors - 1 && ledColor + col_i >=0) {
@@ -279,7 +280,6 @@ void chng_color(int col_i) {
 
 void start_LEDS(){
         LEDS.addLeds<WS2812,LED_DATA_PIN,RGB>(leds,NUM_LEDS);
-        LEDS.setBrightness(MAX_BRIGHT/2);
 }
 void fadeall() {
         for(int i = 0; i < NUM_LEDS; i++) {

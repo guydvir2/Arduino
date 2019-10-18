@@ -3,31 +3,31 @@
 #include <Arduino.h>
 
 // ********** Names + Strings  ***********
-#define Telegram_Nick "dev1"                         // belongs to TELEGRAM
+#define Telegram_Nick "mini"                         // belongs to TELEGRAM
 #define sensor_notification_msg "" // belongs to SENSOR
 
 // ~~~~~~~ MQTT Topics ~~~~~~                        // belonga rto myIOT
-#define DEVICE_TOPIC "WEMOS"
+#define DEVICE_TOPIC "sonoff_mini"
 #define MQTT_PREFIX  "myHome"
 #define MQTT_GROUP   "tests"
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 
 // ********** Sketch Services  ***********
-#define VER              "WEMOS_4.0"
+#define VER              "SONOFF_4.0"
 #define USE_INPUTS       true
 #define IS_MOMENTARY     true  // is switch latch or momentary
-#define ON_AT_BOOT       false // On or OFF at boot (Usually when using inputs, at boot/PowerOn - state should be off
+#define ON_AT_BOOT       true // On or OFF at boot (Usually when using inputs, at boot/PowerOn - state should be off
 #define USE_DAILY_TO     true
-#define IS_SONOFF        false
-#define HARD_REBOOT      false
+#define IS_SONOFF        true
+#define HARD_REBOOT      true
 #define USE_NOTIFY_TELE  true
-#define USE_SENSOR       true
+#define USE_SENSOR       false
 #define USE_IR_REMOTE    false
 
 // ********** myIOT Class ***********
 //~~~~~ Services ~~~~~~~~~~~
-#define USE_SERIAL       true // Serial Monitor
+#define USE_SERIAL       false // Serial Monitor
 #define USE_WDT          true  // watchDog resets
 #define USE_OTA          true  // OTA updates
 #define USE_RESETKEEPER  true // detect quick reboot and real reboots
@@ -41,12 +41,12 @@ myIOT iot(DEVICE_TOPIC);
 
 
 // ********** TimeOut Time vars  ***********
-#define NUM_SWITCHES     2
-#define TIMEOUT_SW0      3*60 // mins for SW0
+#define NUM_SWITCHES     1
+#define TIMEOUT_SW0      0.5*60 // mins for SW0
 #define TIMEOUT_SW1      2*60 // mins
 
-const int START_dailyTO[] = {17,0,0};
-const int END_dailyTO[]   = {2,0,0};
+const int START_dailyTO[] = {6,0,0};
+const int END_dailyTO[]   = {6,30,0};
 
 int TIMEOUTS[2]  = {TIMEOUT_SW0, TIMEOUT_SW1};
 timeOUT timeOut_SW0("SW0", TIMEOUTS[0]);
@@ -72,7 +72,7 @@ char *clockAlias = "Daily TimeOut";
 #endif
 
 #if !IS_SONOFF
-#define RELAY1          D2 // <--- D3 most devices, but KitchenLEDs D2
+#define RELAY1          D3 // <--- D3 most devices, but KitchenLEDs D2
 #define RELAY2          D2
 #define INPUT1          D7
 #define INPUT2          D6
