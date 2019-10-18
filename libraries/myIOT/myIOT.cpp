@@ -743,6 +743,10 @@ void timeOUT::switchOFF(){
         endTimeOUT_inFlash.setValue(0);
         endNow();
         _inTO = false;
+        if (dailyTO.onNow == true){
+          dailyTO.onNo = false;
+
+        }
 }
 void timeOUT::endNow(){
         _calc_endTO = now();
