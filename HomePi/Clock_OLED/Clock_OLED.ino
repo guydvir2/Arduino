@@ -3,7 +3,7 @@
 
 
 // ********** Sketch Services  ***********
-#define VER              "SONOFF"
+#define VER              "WEMOS_1.0"
 
 // ********** myIOT Class ***********
 //~~~~~ Services ~~~~~~~~~~~

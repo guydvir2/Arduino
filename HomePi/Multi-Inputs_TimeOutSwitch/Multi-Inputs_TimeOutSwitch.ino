@@ -42,11 +42,11 @@ myIOT iot(DEVICE_TOPIC);
 
 // ********** TimeOut Time vars  ***********
 #define NUM_SWITCHES     1
-#define TIMEOUT_SW0      0.5*60 // mins for SW0
+#define TIMEOUT_SW0      0.05*60 // mins for SW0
 #define TIMEOUT_SW1      2*60 // mins
 
-const int START_dailyTO[] = {6,0,0};
-const int END_dailyTO[]   = {6,30,0};
+const int START_dailyTO[] = {22,2,0};
+const int END_dailyTO[]   = {22,2,10};
 
 int TIMEOUTS[2]  = {TIMEOUT_SW0, TIMEOUT_SW1};
 timeOUT timeOut_SW0("SW0", TIMEOUTS[0]);
