@@ -25,7 +25,7 @@
 
 // define generic functiobs
 typedef void (*cb_func)(char msg1[50]);
-typedef void (*cb_func2)(String msg1, String msg2, String msg3, char msg4[50]);
+typedef void (*cb_func2)(String msg1, String msg2, String msg3, char msg4[150]);
 
 
 class FVars {
@@ -61,7 +61,7 @@ char _chatID[100];
 char _ssid[20];
 char _password[20];
 
-int _Bot_mtbs = 30*1000; //mean time between scan messages in millis
+int _Bot_mtbs = 10*1000; //mean time between scan messages in millis
 long _Bot_lasttime;   //last time messages' scan has been done
 
 private:

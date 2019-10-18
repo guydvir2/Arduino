@@ -2,46 +2,51 @@
 #include <EEPROM.h>
 #include <Arduino.h>
 
+// ********** Names + Strings  ***********
+#define Telegram_Nick "dev1"                         // belongs to TELEGRAM
+#define sensor_notification_msg "" // belongs to SENSOR
+
+// ~~~~~~~ MQTT Topics ~~~~~~                        // belonga rto myIOT
+#define DEVICE_TOPIC "WEMOS"
+#define MQTT_PREFIX  "myHome"
+#define MQTT_GROUP   "tests"
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 
 // ********** Sketch Services  ***********
-#define VER              "SONOFF_3.60"
+#define VER              "WEMOS_4.0"
 #define USE_INPUTS       true
 #define IS_MOMENTARY     true  // is switch latch or momentary
-#define ON_AT_BOOT       true // On or OFF at boot (Usually when using inputs, at boot/PowerOn - state should be off
+#define ON_AT_BOOT       false // On or OFF at boot (Usually when using inputs, at boot/PowerOn - state should be off
 #define USE_DAILY_TO     true
-#define IS_SONOFF        true
-#define HARD_REBOOT      true
-#define USE_NOTIFY_TELE  false
-#define USE_SENSOR       false
+#define IS_SONOFF        false
+#define HARD_REBOOT      false
+#define USE_NOTIFY_TELE  true
+#define USE_SENSOR       true
 #define USE_IR_REMOTE    false
 
 // ********** myIOT Class ***********
 //~~~~~ Services ~~~~~~~~~~~
-#define USE_SERIAL       false // Serial Monitor
+#define USE_SERIAL       true // Serial Monitor
 #define USE_WDT          true  // watchDog resets
 #define USE_OTA          true  // OTA updates
 #define USE_RESETKEEPER  true // detect quick reboot and real reboots
 #define USE_FAILNTP      true  // saves amoount of fail clock updates
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-// ~~~~~~~ MQTT Topics ~~~~~~
-#define DEVICE_TOPIC "sonoff_mini"
-#define MQTT_PREFIX  "myHome"
-#define MQTT_GROUP   "tests"
-// ~~~~~~~~~~~~~~~~~~~~~~~~~~
-
+// ~~~~~~~ MQTT ~~~~~~
 #define ADD_MQTT_FUNC addiotnalMQTT
 myIOT iot(DEVICE_TOPIC);
 // ***************************
 
 
 // ********** TimeOut Time vars  ***********
-#define NUM_SWITCHES     1
+#define NUM_SWITCHES     2
 #define TIMEOUT_SW0      3*60 // mins for SW0
 #define TIMEOUT_SW1      2*60 // mins
 
-const int START_dailyTO[] = {17,30,0};
-const int END_dailyTO[]   = {6,30,0};
+const int START_dailyTO[] = {17,0,0};
+const int END_dailyTO[]   = {2,0,0};
 
 int TIMEOUTS[2]  = {TIMEOUT_SW0, TIMEOUT_SW1};
 timeOUT timeOut_SW0("SW0", TIMEOUTS[0]);
@@ -67,7 +72,7 @@ char *clockAlias = "Daily TimeOut";
 #endif
 
 #if !IS_SONOFF
-#define RELAY1          D3 // <--- D3 most devices, but KitchenLEDs D2
+#define RELAY1          D2 // <--- D3 most devices, but KitchenLEDs D2
 #define RELAY2          D2
 #define INPUT1          D7
 #define INPUT2          D6
@@ -118,7 +123,6 @@ eeproms_storage hReset_eeprom;
 #define MIN_TIME_BETWEEN_NOTI  0.25 //in minutes
 #define MIN_TIME_FIRST_DET     5    // sec
 #define ADD_TIME_NEXT_DET      10   // sec
-#define NotifyMSG "frontDoor detection"
 
 class SensorSwitch
 {
@@ -216,7 +220,7 @@ struct sensorNotify {
         char msg[50];
 };
 
-sensorNotify sensorNotify = {0, 0, 0, NotifyMSG};
+sensorNotify sensorNotify = {0, 0, 0, sensor_notification_msg};
 
 // ~~~~~~~~~~~ Using SMS Notification ~~~~~~~
 #if USE_NOTIFY_TELE
@@ -402,18 +406,8 @@ void addiotnalMQTT(char *income_msg) {
                 TO[0]->inCodeTimeOUT_inFlash.format();
         }
         else if (strcmp(income_msg, "all_off") == 0 ) {
-                for (int i = 0; i < NUM_SWITCHES; i++) {
-                        if (TO[i]->remain() > 0 && relays[i] == RelayOn) {
-                                TO[i]->endNow();
-                        }
-                        else if (TO[i]->remain() == 0 && relays[i] == RelayOn) {
-                                switchIt("MQTT", i, false,"", false);
-                        }
-                        else if (TO[i]->remain() > 0 && relays[i] != RelayOn) {
-                                TO[i]->endNow();
-                        }
-                        sprintf(msg_MQTT,"MQTT: Switch [#%d] turned[OFF]",i);
-                }
+                all_off("MQTT");
+
         }
         else {
                 int num_parameters = iot.inline_read(income_msg);
@@ -566,27 +560,83 @@ void giveStatus(char *outputmsg){
         }
         sprintf(outputmsg,"%s",t3);
 }
+void all_off(char *from){
+        char t[50];
+        for (int i = 0; i < NUM_SWITCHES; i++) {
+                if (TO[i]->remain() > 0 && relays[i] == RelayOn) {
+                        TO[i]->endNow();
+                }
+                else if (TO[i]->remain() == 0 && relays[i] == RelayOn) {
+                        switchIt(from, i, false,"", false);
+                }
+                else if (TO[i]->remain() > 0 && relays[i] != RelayOn) {
+                        TO[i]->endNow();
+                }
+        }
+        sprintf(t,"All OFF: Received from %s",from);
+        iot.pub_msg(t);
+}
 
 //  ######################### ADDITIONAL SERVICES ##############################
 // ~~~~~~~~~~~ Telegram Notify ~~~~~~~
 #if USE_NOTIFY_TELE
-void telecmds(String in_msg, String from, String chat_id, char snd_msg[50]) {
-        // char msg[50];
-        // if(p1=="/on"){
-        //   TO[0]->restart_to();
-        //   sprintf(msg, "TimeOut: Switch[#%d] [Restart]",0);
-        //   iot.pub_msg(msg);
-        //   iot.notifyOffline();
-        //   iot.sendReset("TimeOut restart");
-        //
-        // }
-        // else if(p1=="/off"){
-        //
-        // }
-        if(in_msg=="/status") {
-                giveStatus(snd_msg);
+void telecmds(String in_msg, String from, String chat_id, char snd_msg[150]) {
+        String command_set[] = {"status", "reset", "off", "on", "timeout", "whoami","help"};
+        byte num_commands = sizeof(command_set)/sizeof(command_set[0]);
+        String comp_command[num_commands];
+        char prefix[50];
+        char t1[150];
+
+        sprintf(prefix,"/%s_",Telegram_Nick);
+        for (int i=0; i < num_commands; i++) {
+                comp_command[i].concat(prefix);
+                comp_command[i] += command_set[i];
         }
 
+        if      (in_msg==comp_command[0]) {
+                giveStatus(t1);
+                sprintf(snd_msg,"**[%s]** %s",Telegram_Nick, t1);
+        } // status
+        else if (in_msg==comp_command[1]) {
+                iot.sendReset("Telegram");
+        } // reset
+        else if (in_msg==comp_command[2]) {
+                all_off("Telegram");
+                sprintf(snd_msg,"**[%s]** All-Off signal was sent", Telegram_Nick);
+        } // off
+        else if (in_msg==comp_command[3]) {
+        }
+        else if (in_msg==comp_command[4]) {
+                char m1[20];
+                char m2[20];
+                sprintf(snd_msg,"**[%s]** TimeOut: \n", Telegram_Nick);
+
+                for(int i=0; i<NUM_SWITCHES; i++) {
+                        if (TO[i]->remain() > 0) {
+                                TO[i]->convert_epoch2clock(now() + TO[i]->remain(), now(), m1, m2);
+                                sprintf(t1,"Switch [#%d] already in TimeOut - timeLeft [%s]\n",i,m1);
+                        }
+                        else{
+                                TO[i]->restart_to();
+                                sprintf(t1,"Switch [#%d] restarting TimeOut\n",i);
+                        }
+
+                        strcat(snd_msg,t1);
+                }
+        } // timeout
+        else if (in_msg==comp_command[5]) {
+                sprintf(snd_msg,"**[%s]** is %s",Telegram_Nick, DEVICE_TOPIC);
+        } // whoami
+        else if (in_msg==comp_command[6]) {
+                char t[50];
+                sprintf(snd_msg,"**[%s]** Commands Available:\n", Telegram_Nick);
+                for (int i=0; i<num_commands; i++) {
+                        command_set[i].toCharArray(t,30);
+                        sprintf(t1,"%s\n",t);
+                        strcat(snd_msg,t1);
+                }
+
+        } // all_commands
 }
 #endif
 
