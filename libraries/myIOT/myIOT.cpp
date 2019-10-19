@@ -267,7 +267,7 @@ int myIOT::subscribeMQTT() {
                         }
                         // Attempt to connect
                         if (mqttClient.connect(_deviceName, user, passw, _availTopic, 0, true, "offline")) {
-                                if (useSerial) {
+                                  if (useSerial) {
                                         Serial.println("connected");
                                 }
                                 mqttConnected = 1;
@@ -283,6 +283,7 @@ int myIOT::subscribeMQTT() {
                                 else {
                                   notifyOnline();
                                 }
+                                // notifyOnline();
                                 for (int i = 0; i < sizeof(topicArry) / sizeof(char *); i++) {
                                         if (strcmp(topicArry[i],"")!=0) {
                                                 mqttClient.subscribe(topicArry[i]);
@@ -300,6 +301,8 @@ int myIOT::subscribeMQTT() {
                                         Serial.println(mqttFailCounter);
                                 }
                                 mqttFailCounter++;
+                                Serial.println("C");
+
                         }
                         // delay(500);
                 }
@@ -359,7 +362,7 @@ void myIOT::callback(char* topic, byte* payload, unsigned int length) {
         if (useSerial) {
                 Serial.println("");
         }
-
+        Serial.println(incoming_msg);
         if(strcmp(topic,_availTopic)==0) {
                 if (strcmp(incoming_msg,"online")==0) {
                         is_online = true;
@@ -659,6 +662,7 @@ timeOUT::timeOUT(char* sw_num, int def_val)
 }
 bool timeOUT::looper(){
         dailyTO_looper(dailyTO);
+        Serial.println("HI");
 
         if (_calc_endTO >now()) {
                 return 1;
@@ -744,8 +748,8 @@ void timeOUT::switchOFF(){
         endNow();
         _inTO = false;
         if (dailyTO.onNow == true){
-          dailyTO.onNo = false;
-
+          dailyTO.onNow = false;
+          Serial.println("set back to false");
         }
 }
 void timeOUT::endNow(){
@@ -795,7 +799,14 @@ int timeOUT::calc_dailyTO(dTO &dailyTO){
 void timeOUT::dailyTO_looper(dTO &dailyTO) {
         time_t t = now();
 
+        Serial.print("dailyON: ");
+        Serial.println(dailyTO.onNow);
+        Serial.print("Flag: ");
+        Serial.println(dailyTO.flag);
+
+
         if (dailyTO.onNow == false && dailyTO.flag == true) { // start
+          Serial.println("INSUDE");
                 if (hour(t) == dailyTO.on[0] && minute(t) == dailyTO.on[1] && second(t) == dailyTO.on[2]) {
                         int tot_time = calc_dailyTO(dailyTO);
 

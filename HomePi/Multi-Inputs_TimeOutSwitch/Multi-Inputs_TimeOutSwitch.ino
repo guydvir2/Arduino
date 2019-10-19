@@ -7,7 +7,7 @@
 #define sensor_notification_msg "" // belongs to SENSOR
 
 // ~~~~~~~ MQTT Topics ~~~~~~                        // belonga rto myIOT
-#define DEVICE_TOPIC "sonoff_mini"
+#define DEVICE_TOPIC "wemoSs"
 #define MQTT_PREFIX  "myHome"
 #define MQTT_GROUP   "tests"
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -19,18 +19,18 @@
 #define IS_MOMENTARY     true  // is switch latch or momentary
 #define ON_AT_BOOT       true // On or OFF at boot (Usually when using inputs, at boot/PowerOn - state should be off
 #define USE_DAILY_TO     true
-#define IS_SONOFF        true
+#define IS_SONOFF        false
 #define HARD_REBOOT      true
-#define USE_NOTIFY_TELE  true
+#define USE_NOTIFY_TELE  false
 #define USE_SENSOR       false
 #define USE_IR_REMOTE    false
 
 // ********** myIOT Class ***********
 //~~~~~ Services ~~~~~~~~~~~
-#define USE_SERIAL       false // Serial Monitor
+#define USE_SERIAL       true // Serial Monitor
 #define USE_WDT          true  // watchDog resets
 #define USE_OTA          true  // OTA updates
-#define USE_RESETKEEPER  true // detect quick reboot and real reboots
+#define USE_RESETKEEPER  false // detect quick reboot and real reboots
 #define USE_FAILNTP      true  // saves amoount of fail clock updates
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -45,8 +45,8 @@ myIOT iot(DEVICE_TOPIC);
 #define TIMEOUT_SW0      0.05*60 // mins for SW0
 #define TIMEOUT_SW1      2*60 // mins
 
-const int START_dailyTO[] = {22,2,0};
-const int END_dailyTO[]   = {22,2,10};
+const int START_dailyTO[] = {6,36,20};
+const int END_dailyTO[]   = {6,36,25};
 
 int TIMEOUTS[2]  = {TIMEOUT_SW0, TIMEOUT_SW1};
 timeOUT timeOut_SW0("SW0", TIMEOUTS[0]);
@@ -371,6 +371,7 @@ void TO_looper(byte i) {
                 }
                 last_relState[i] = relState[i];
         }
+        Serial.println(iot.mqtt_detect_reset);
 }
 
 // ~~~~ MQTT Commands ~~~~~
