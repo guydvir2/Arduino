@@ -3,25 +3,25 @@
 #include <Arduino.h>
 
 // ********** Names + Strings  ***********
-#define Telegram_Nick "mini"                         // belongs to TELEGRAM
+#define Telegram_Nick ""                         // belongs to TELEGRAM
 #define sensor_notification_msg "" // belongs to SENSOR
 
 // ~~~~~~~ MQTT Topics ~~~~~~                        // belonga rto myIOT
-#define DEVICE_TOPIC "sonoff_mini"
+#define DEVICE_TOPIC "familyRoomLEDs"
 #define MQTT_PREFIX  "myHome"
-#define MQTT_GROUP   "tests"
+#define MQTT_GROUP   "intLights"
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 
 // ********** Sketch Services  ***********
-#define VER              "SONOFF_4.0"
+#define VER              "WEMOS_4.1"
 #define USE_INPUTS       true
 #define IS_MOMENTARY     true  // is switch latch or momentary
-#define ON_AT_BOOT       true // On or OFF at boot (Usually when using inputs, at boot/PowerOn - state should be off
+#define ON_AT_BOOT       false // On or OFF at boot (Usually when using inputs, at boot/PowerOn - state should be off
 #define USE_DAILY_TO     true
-#define IS_SONOFF        true
-#define HARD_REBOOT      true
-#define USE_NOTIFY_TELE  true
+#define IS_SONOFF        false
+#define HARD_REBOOT      false
+#define USE_NOTIFY_TELE  false
 #define USE_SENSOR       false
 #define USE_IR_REMOTE    false
 
@@ -42,11 +42,11 @@ myIOT iot(DEVICE_TOPIC);
 
 // ********** TimeOut Time vars  ***********
 #define NUM_SWITCHES     1
-#define TIMEOUT_SW0      0.5*60 // mins for SW0
+#define TIMEOUT_SW0      2*60 // mins for SW0
 #define TIMEOUT_SW1      2*60 // mins
 
-const int START_dailyTO[] = {6,0,0};
-const int END_dailyTO[]   = {6,30,0};
+const int START_dailyTO[] = {16, 0, 0};
+const int END_dailyTO[]   = {0, 30, 0};
 
 int TIMEOUTS[2]  = {TIMEOUT_SW0, TIMEOUT_SW1};
 timeOUT timeOut_SW0("SW0", TIMEOUTS[0]);
@@ -915,6 +915,17 @@ void setup() {
         #if USE_IR_REMOTE
         start_IR();
         #endif
+        // for(int i=0;i<2;i++){
+        //   Serial.println(TO[0]->dTOlist[i]->on[0]);
+        //   Serial.println(TO[0]->dTOlist[i]->on[1]);
+        //   Serial.println(TO[0]->dTOlist[i]->on[2]);
+        //   Serial.println(TO[0]->dTOlist[i]->off[0]);
+        //   Serial.println(TO[0]->dTOlist[i]->off[1]);
+        //   Serial.println(TO[0]->dTOlist[i]->off[2]);
+        //   Serial.println(TO[0]->dTOlist[i]->flag);
+        //   Serial.println(TO[0]->dTOlist[i]->onNow);
+        // }
+
 
 }
 void loop() {

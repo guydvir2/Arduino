@@ -234,6 +234,7 @@ long endTO_inFlash     = 0; // clock to stop TO
 long startTO_inFlash   = 0; // clock TO started
 dTO dailyTO            = {{19, 15, 0}, {20, 37, 0}, 1, 0, 0};
 dTO dailyTO2           = {{1, 1, 0}, {17, 14, 0}, 1, 0, 0};
+dTO *dTOlist[2]        = {&dailyTO, &dailyTO2};
 const char *clock_fields[4] = {"ontime", "off_time", "flag", "use_inFl_vals"};
 
 
