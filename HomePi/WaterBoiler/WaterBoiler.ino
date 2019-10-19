@@ -6,9 +6,18 @@
 #include <EEPROM.h>
 #include <Arduino.h>
 
+// ********** Names + Strings  ***********
+#define Telegram_Nick "test1"                         // belongs to TELEGRAM
+#define sensor_notification_msg "" // belongs to SENSOR
+
+// ~~~~~~~ MQTT Topics ~~~~~~
+#define DEVICE_TOPIC "WaterBoiler"
+#define MQTT_PREFIX  "myHome"
+#define MQTT_GROUP   ""
+
 
 // ********** Sketch Services  ***********
-#define VER "Wemos_5.5"
+#define VER "Wemos_5.6"
 #define USE_DAILY_TO  true
 #define HARD_REBOOT   false
 
@@ -21,11 +30,7 @@
 #define USE_FAILNTP      true  // saves amoount of fail clock updates
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-// ~~~~~~~ MQTT Topics ~~~~~~
-#define DEVICE_TOPIC "WaterBoiler"
-#define MQTT_PREFIX  "myHome"
-#define MQTT_GROUP   ""
-
+// ~~~~~~~ MQTT ~~~~~~
 #define ADD_MQTT_FUNC addiotnalMQTT
 myIOT iot(DEVICE_TOPIC);
 // ***************************
@@ -38,7 +43,7 @@ myIOT iot(DEVICE_TOPIC);
 #define ON_AT_BOOT       false // true only for switches that powers up with device.
 
 const int START_dailyTO[] = {18,0,0};
-const int END_dailyTO[]   = {19,30,0};
+const int END_dailyTO[]   = {18,30,0};
 
 int TIMEOUTS[2]  = {TIMEOUT_SW0, TIMEOUT_SW1};
 timeOUT timeOut_SW0("SW0", TIMEOUTS[0]);
@@ -279,18 +284,8 @@ void addiotnalMQTT(char *income_msg) {
                 TO[0]->inCodeTimeOUT_inFlash.format();
         }
         else if (strcmp(income_msg, "all_off") == 0 ) {
-                for (int i = 0; i < NUM_SWITCHES; i++) {
-                        if (TO[i]->remain() > 0 && relays[i] == RelayOn) {
-                                TO[i]->endNow();
-                        }
-                        else if (TO[i]->remain() == 0 && relays[i] == RelayOn) {
-                                switchIt("MQTT", i, false,"", false);
-                        }
-                        else if (TO[i]->remain() > 0 && relays[i] != RelayOn) {
-                                TO[i]->endNow();
-                        }
-                        sprintf(msg_MQTT,"MQTT: Switch [#%d] turned[OFF]",i);
-                }
+                all_off("MQTT");
+
         }
         else {
                 int num_parameters = iot.inline_read(income_msg);
@@ -443,7 +438,22 @@ void giveStatus(char *outputmsg){
         }
         sprintf(outputmsg,"%s",t3);
 }
-
+void all_off(char *from){
+        char t[50];
+        for (int i = 0; i < NUM_SWITCHES; i++) {
+                if (TO[i]->remain() > 0 && relays[i] == RelayOn) {
+                        TO[i]->endNow();
+                }
+                else if (TO[i]->remain() == 0 && relays[i] == RelayOn) {
+                        switchIt(from, i, false,"", false);
+                }
+                else if (TO[i]->remain() > 0 && relays[i] != RelayOn) {
+                        TO[i]->endNow();
+                }
+        }
+        sprintf(t,"All OFF: Received from %s",from);
+        iot.pub_msg(t);
+}
 //  ######################### ADDITIONAL SERVICES ##############################
 
 // ~~~~ OLED ~~~~~~~
@@ -539,7 +549,8 @@ void OLEDlooper() {
                 else { // OFF state - clock only
                         iot.return_clock(timeStamp);
                         iot.return_date(dateStamp);
-                        char *names[4] = {"Guy","Anna","Shachar", "Oz", "Alex"};
+                        char *names[] = {"Guy","Anna","Shachar", "Oz", "Alex", "Dvir","*","**","***",":)"};
+                        int name_amount = sizeof(names)/sizeof(char *);
 
                         int timeQoute = 5000;
 
@@ -547,11 +558,11 @@ void OLEDlooper() {
                                 swapLines_counter = millis();
                         }
                         if (millis() - swapLines_counter < timeQoute) {
-                                OLED_CenterTXT(2, names[random(0, 4)], timeStamp, dateStamp,names[random(0, 4)]);
+                                OLED_CenterTXT(2, names[random(0, name_amount)], timeStamp, dateStamp,names[random(0, name_amount)]);
                         }
                         else if (millis() - swapLines_counter >= timeQoute && millis() - swapLines_counter < 2 * timeQoute)
                         {
-                                OLED_CenterTXT(2, timeStamp, names[random(0, 4)], names[random(0, 4)], dateStamp);
+                                OLED_CenterTXT(2, timeStamp, names[random(0, name_amount)], names[random(0, name_amount)], dateStamp);
                         }
                         else if (millis() - swapLines_counter > 2 * timeQoute) {
                                 swapLines_counter = 0;

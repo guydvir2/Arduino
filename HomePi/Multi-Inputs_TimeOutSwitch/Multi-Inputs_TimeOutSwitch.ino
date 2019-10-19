@@ -372,7 +372,6 @@ void TO_looper(byte i) {
                 }
                 last_relState[i] = relState[i];
         }
-        Serial.println(iot.mqtt_detect_reset);
 }
 
 // ~~~~ MQTT Commands ~~~~~
