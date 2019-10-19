@@ -281,7 +281,7 @@ int myIOT::subscribeMQTT() {
                                         }
                                 }
                                 else {
-                                  notifyOnline();
+                                        notifyOnline();
                                 }
                                 // notifyOnline();
                                 for (int i = 0; i < sizeof(topicArry) / sizeof(char *); i++) {
@@ -670,6 +670,7 @@ bool timeOUT::looper(){
         else {
                 if (_inTO == true) {
                         switchOFF();
+
                 }
                 return 0;
         }
@@ -754,6 +755,9 @@ void timeOUT::switchOFF(){
 }
 void timeOUT::endNow(){
         _calc_endTO = now();
+        if(dailyTO.onNow = true) { // for dailyTO
+                dailyTO.onNow = false;
+        }
 }
 void timeOUT::convert_epoch2clock(long t1, long t2, char* time_str, char* days_str){
         byte days       = 0;
@@ -799,19 +803,13 @@ int timeOUT::calc_dailyTO(dTO &dailyTO){
 void timeOUT::dailyTO_looper(dTO &dailyTO) {
         time_t t = now();
 
-        Serial.print("dailyON: ");
-        Serial.println(dailyTO.onNow);
-        Serial.print("Flag: ");
-        Serial.println(dailyTO.flag);
-
-
-        if (dailyTO.onNow == false && dailyTO.flag == true) { // start
-          Serial.println("INSUDE");
-                if (hour(t) == dailyTO.on[0] && minute(t) == dailyTO.on[1] && second(t) == dailyTO.on[2]) {
-                        int tot_time = calc_dailyTO(dailyTO);
-
-                        setNewTimeout(tot_time, false);
-                        dailyTO.onNow = true;
+        if (dailyTO.flag == true) {
+                if (dailyTO.onNow == false) { // start
+                        if (hour(t) == dailyTO.on[0] && minute(t) == dailyTO.on[1] && second(t) == dailyTO.on[2]) {
+                                int tot_time = calc_dailyTO(dailyTO);
+                                setNewTimeout(tot_time, false);
+                                dailyTO.onNow = true;
+                        }
                 }
         }
 }
