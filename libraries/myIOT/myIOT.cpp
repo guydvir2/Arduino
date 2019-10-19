@@ -46,10 +46,16 @@ void myIOT::looper(){
                 acceptOTA();
         }
         // continue TO after reset
-        if(useResetKeeper) {
-                if(firstRun && mqtt_detect_reset !=2) {
-                        notifyOnline();
-                        firstRun = false;
+
+        if (firstRun) {
+                if (useResetKeeper) {
+                        if(mqtt_detect_reset !=2) {
+                                notifyOnline();
+                                firstRun = false;
+                        }
+                }
+                else{
+                        mqtt_detect_reset = 0;
                 }
         }
 }
@@ -229,6 +235,7 @@ void myIOT::startMQTT() {
                 }
         }
         else if (Ping.ping(mqtt_server2)) {
+                // else{
                 mqttClient.setServer(mqtt_server2, 1883);
                 strcat(bootErrors,"** MQTT SERVER ERR **");
                 if(useSerial) {
@@ -260,7 +267,7 @@ int myIOT::subscribeMQTT() {
                         }
                         // Attempt to connect
                         if (mqttClient.connect(_deviceName, user, passw, _availTopic, 0, true, "offline")) {
-                                if (useSerial) {
+                                  if (useSerial) {
                                         Serial.println("connected");
                                 }
                                 mqttConnected = 1;
@@ -275,10 +282,8 @@ int myIOT::subscribeMQTT() {
                                 }
                                 else {
                                         notifyOnline();
-                                        // sprintf(msg, "<< Connected to MQTT - Reload [%d]>> ", mqttFailCounter);
-                                        // pub_err(msg);
-
                                 }
+                                // notifyOnline();
                                 for (int i = 0; i < sizeof(topicArry) / sizeof(char *); i++) {
                                         if (strcmp(topicArry[i],"")!=0) {
                                                 mqttClient.subscribe(topicArry[i]);
@@ -296,8 +301,10 @@ int myIOT::subscribeMQTT() {
                                         Serial.println(mqttFailCounter);
                                 }
                                 mqttFailCounter++;
+                                Serial.println("C");
+
                         }
-                        delay(500);
+                        // delay(500);
                 }
 
                 // Failed to connect MQTT adter retries
@@ -338,9 +345,7 @@ void myIOT::createTopics() {
 }
 void myIOT::callback(char* topic, byte* payload, unsigned int length) {
         char incoming_msg[150];
-        char state[5];
-        char state2[5];
-        char msg2[100];
+        char msg[100];
 
         if (useSerial) {
                 Serial.print("Message arrived [");
@@ -357,15 +362,18 @@ void myIOT::callback(char* topic, byte* payload, unsigned int length) {
         if (useSerial) {
                 Serial.println("");
         }
-
-        // Check if Avail topic starts from OFFLINE or ONLINE mode
-        // This will flag weather unwanted Reset occured
-        if (firstRun && useResetKeeper) {
-                if(strcmp(topic,_availTopic)==0) {
-                        if (strcmp(incoming_msg,"online")==0) {
-                                mqtt_detect_reset = 1; // bad reboot
+        Serial.println(incoming_msg);
+        if(strcmp(topic,_availTopic)==0) {
+                if (strcmp(incoming_msg,"online")==0) {
+                        is_online = true;
+                        if (firstRun && useResetKeeper) { // Check if Avail topic starts from OFFLINE or ONLINE mode
+                                                          // This will flag weather unwanted Reset occured
+                                mqtt_detect_reset = 1;    // bad reboot
                         }
-                        else if (strcmp(incoming_msg,"offline")==0) {
+                }
+                else if (strcmp(incoming_msg,"offline")==0) {
+                        is_online = false;
+                        if (firstRun && useResetKeeper) {
                                 mqtt_detect_reset = 0; // ordinary boot
                         }
                 }
@@ -576,7 +584,7 @@ void myIOT::startWDT() {
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 
-// ~~~~~~ FVars CLASS ~~~~~~~~~~~ //
+// ############################### FVars CLASS #################################
 FVars::FVars(char* key, char* pref){
         sprintf(_key,"%s%s",pref,key);
 }
@@ -612,7 +620,9 @@ void FVars::format(){
 
 // ~~~~~~~~~~~ TimeOut Class ~~~~~~~~~~~~
 timeOUT::timeOUT(char* sw_num, int def_val)
-        : endTimeOUT_inFlash(_key1,sw_num), inCodeTimeOUT_inFlash(_key2,sw_num), updatedTimeOUT_inFlash(_key3,sw_num)
+        : endTimeOUT_inFlash(_key1,sw_num), inCodeTimeOUT_inFlash(_key2,sw_num),
+        updatedTimeOUT_inFlash(_key3,sw_num), startTimeOUT_inFlash(_key4,sw_num),
+        dailyTO_inFlash("TO.json", true)
 {
         /* endTimeOUT_inFlash     -- Save clock when TO ends (sec from epoch)
            inCodeTimeOUT_inFlash  -- save value of TO defined in code [ minutes]
@@ -638,6 +648,10 @@ timeOUT::timeOUT(char* sw_num, int def_val)
                         inCodeTimeOUT_inFlash.setValue(inCodeTO);
                 }
         }
+        if(startTimeOUT_inFlash.getValue(startTO_inFlash) != true) { // not able to read
+                startTimeOUT_inFlash.setValue(0);
+        }
+
 
         if (updatedTO_inFlash != 0) {
                 _calc_TO = updatedTO_inFlash;
@@ -647,12 +661,16 @@ timeOUT::timeOUT(char* sw_num, int def_val)
         }
 }
 bool timeOUT::looper(){
+        dailyTO_looper(dailyTO);
+        Serial.println("HI");
+
         if (_calc_endTO >now()) {
                 return 1;
         }
         else {
                 if (_inTO == true) {
                         switchOFF();
+
                 }
                 return 0;
         }
@@ -660,12 +678,12 @@ bool timeOUT::looper(){
 bool timeOUT::begin(bool newReboot){   // NewReboot come to not case of sporadic reboot
 
         // ~~~~~~~~ Check if stored end value stil valid ~~~~~~~~~~~~~~
-        if (endTO_inFlash > now()) {                 // get saved value- still have to go
-                _calc_endTO = endTO_inFlash;           //clock time to stop
+        if (endTO_inFlash > now()) {                         // get saved value- still have to go
+                _calc_endTO = endTO_inFlash;                   //clock time to stop
                 switchON();
                 return 1;
         }
-        else if (endTO_inFlash >0 && endTO_inFlash <=now()) {          // saved but time passed
+        else if (endTO_inFlash >0 && endTO_inFlash <=now()) {                  // saved but time passed
                 switchOFF();
                 return 0;
         }
@@ -678,17 +696,17 @@ bool timeOUT::begin(bool newReboot){   // NewReboot come to not case of sporadic
          */
 
         // ~~~~~~~~~ Case of fresh Start - not a quick boot ~~~~~~~~~~~~~~~~
-        else if (endTO_inFlash == 0 && newReboot == true) {           // fresh start
-                if (_calc_TO != 0) {
-                        setNewTimeout(_calc_TO);
-                        return 1;
-                }
-                else {
-                        _calc_endTO = 0;
-                        return 0;
-                }
-        }
-        else if (endTO_inFlash == 0) {          // saved but time passed
+        // else if (endTO_inFlash == 0 && newReboot == true) {                   // fresh start
+        //         if (_calc_TO != 0) {
+        //                 setNewTimeout(_calc_TO);
+        //                 return 1;
+        //         }
+        //         else {
+        //                 _calc_endTO = 0;
+        //                 return 0;
+        //         }
+        // }
+        else if (endTO_inFlash == 0) {                  // saved but time passed
                 return 0;
         }
 }
@@ -706,9 +724,9 @@ void timeOUT::setNewTimeout(int to, bool mins){
         }
         else{
                 _calc_endTO=now()+to;
-
         }
         endTimeOUT_inFlash.setValue(_calc_endTO); // store end_to to flash
+
         switchON();
 }
 void timeOUT::restart_to(){
@@ -730,9 +748,16 @@ void timeOUT::switchOFF(){
         endTimeOUT_inFlash.setValue(0);
         endNow();
         _inTO = false;
+        if (dailyTO.onNow == true){
+          dailyTO.onNow = false;
+          Serial.println("set back to false");
+        }
 }
 void timeOUT::endNow(){
         _calc_endTO = now();
+        if(dailyTO.onNow = true) { // for dailyTO
+                dailyTO.onNow = false;
+        }
 }
 void timeOUT::convert_epoch2clock(long t1, long t2, char* time_str, char* days_str){
         byte days       = 0;
@@ -755,6 +780,120 @@ void timeOUT::convert_epoch2clock(long t1, long t2, char* time_str, char* days_s
         sprintf(days_str, "%02d days", days);
         sprintf(time_str, "%02d:%02d:%02d", hours, minutes, seconds);
 }
+long timeOUT::getStart_to(){
+        long getVal;
+        startTimeOUT_inFlash.getValue(getVal);
+        return getVal;
+}
+void timeOUT::updateStart(long clock){
+        startTimeOUT_inFlash.setValue(clock);
+}
+
+int timeOUT::calc_dailyTO(dTO &dailyTO){
+        int secs   = dailyTO.off[2] - dailyTO.on[2];
+        int mins   = dailyTO.off[1] - dailyTO.on[1];
+        int delt_h = dailyTO.off[0] - dailyTO.on[0];
+
+        int total_time = secs + mins * 60 + delt_h * 60 * 60;
+        if (total_time < 0) {
+                total_time += 24 * 60 * 60;
+        }
+        return total_time;
+}
+void timeOUT::dailyTO_looper(dTO &dailyTO) {
+        time_t t = now();
+
+        if (dailyTO.flag == true) {
+                if (dailyTO.onNow == false) { // start
+                        if (hour(t) == dailyTO.on[0] && minute(t) == dailyTO.on[1] && second(t) == dailyTO.on[2]) {
+                                int tot_time = calc_dailyTO(dailyTO);
+                                setNewTimeout(tot_time, false);
+                                dailyTO.onNow = true;
+                        }
+                }
+        }
+}
+void timeOUT::check_dailyTO_inFlash(dTO &dailyTO, int x) {
+        char temp[10];
+        int retVal;
+
+        if (dailyTO_inFlash.file_exists()) {
+                sprintf(temp, "%s_%d", clock_fields[3], x);
+                if(dailyTO_inFlash.getValue(temp, retVal)) {
+
+                        if (retVal) { //only if flag is to read values from flash
+                                for (int m = 0; m < sizeof(clock_fields) / sizeof(clock_fields[0]); m++) {
+                                        sprintf(temp, "%s_%d", clock_fields[m], x);
+                                        if (m == 0 || m == 1) { // clock fileds only -- on or off
+                                                for (int i = 0; i < items_each_array[m]; i++) {
+                                                        dailyTO_inFlash.getArrayVal(temp, i, retVal);
+                                                        if (retVal >= 0) {
+                                                                if ((i == 0 && retVal <= 23) || (i > 0 && retVal <= 59)) { //valid time
+                                                                        if ( m == 0) {
+                                                                                dailyTO.on[i] = retVal;
+                                                                        }
+                                                                        else {
+                                                                                dailyTO.off[i] = retVal;
+                                                                        }
+                                                                }
+                                                        }
+
+                                                }
+                                        }
+                                        else { // for flag value
+                                                dailyTO_inFlash.getValue(temp, retVal);
+                                                if (retVal == 0 || retVal == 1) { //flag on or off
+                                                        if (m == 2) {
+                                                                dailyTO.flag = retVal;
+                                                        }
+                                                        else if (m == 3) {
+                                                                dailyTO.useFlash = retVal;
+                                                        }
+                                                }
+                                                else {
+                                                        dailyTO_inFlash.setValue(temp, 0);
+                                                }
+                                        }
+                                }
+
+                        }
+                }
+                else { // create NULL values
+                        store_dailyTO_inFlash(defaultVals, x);
+                }
+        }
+}
+void timeOUT::store_dailyTO_inFlash(dTO &dailyTO, int x) {
+        char temp[10];
+        for (int m = 0; m < sizeof(clock_fields) / sizeof(clock_fields[0]); m++) {
+                sprintf(temp, "%s_%d", clock_fields[m], x);
+                if (m == 0) {
+                        for (int i = 0; i < items_each_array[m]; i++) {
+                                dailyTO_inFlash.setArrayVal(temp, i, dailyTO.on[i]);
+                        }
+                }
+                else if (m == 1) {
+                        for (int i = 0; i < items_each_array[m]; i++) {
+                                dailyTO_inFlash.setArrayVal(temp, i, dailyTO.off[i]);
+                        }
+                }
+                else if (m == 2) {
+                        dailyTO_inFlash.setValue(temp, dailyTO.flag);
+                }
+                else if (m == 3) {
+                        dailyTO_inFlash.setValue(temp, dailyTO.useFlash);
+                }
+        }
+}
+void timeOUT::restart_dailyTO (dTO &dailyTO){
+        time_t t = now();
+        dTO temp_dTO = {{hour(t), minute(t), second(t)}, { dailyTO.off[0], dailyTO.off[1],  dailyTO.off[2]}, 1, 1, 0};
+        int tot_time = calc_dailyTO(temp_dTO);
+
+        setNewTimeout(tot_time, false);
+        dailyTO.onNow = true;
+
+}
 
 
 // ~~~~~~~~~~~ myTelegram Class ~~~~~~~~~~~~
@@ -766,7 +905,7 @@ myTelegram::myTelegram(char* Bot, char* chatID, char* ssid, char* password) : bo
         sprintf(_password,password);
 }
 void myTelegram::handleNewMessages(int numNewMessages){
-        char sendmsg[50];
+        char sendmsg[150];
 
         for (int i=0; i<numNewMessages; i++) {
                 String chat_id = String(bot.messages[i].chat_id);

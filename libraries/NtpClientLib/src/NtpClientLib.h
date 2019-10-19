@@ -46,6 +46,8 @@ using namespace std;
 using namespace placeholders;
 
 extern "C" {
+#include "lwip/init.h"
+#include "lwip/ip_addr.h"
 #include "lwip/err.h"
 #include "lwip/dns.h"
 }
@@ -131,9 +133,9 @@ typedef enum NTPStatus {
 } NTPStatus_t; // Only for internal library use
 
 typedef enum DNSStatus {
-	idle = 0, // Idle state
-	dnsRequested = 1, // DNS resolution requested, waiting for response
-    dnsSolved = 2,
+	DNS_IDLE = 0, // Idle state
+	DNS_REQUESTED = 1, // DNS resolution requested, waiting for response
+    DNS_SOLVED = 2,
 } DNSStatus_t; // Only for internal library use//
 #endif
 
@@ -446,7 +448,7 @@ protected:
 
 #if NETWORK_TYPE == NETWORK_ESP8266 || NETWORK_TYPE == NETWORK_ESP32
     NTPStatus_t status = unsyncd; ///< Sync status
-    DNSStatus_t dnsStatus = idle; ///< DNS request status
+    DNSStatus_t dnsStatus = DNS_IDLE; ///< DNS request status
     Ticker responseTimer;       ///< Timer to trigger response timeout
     Ticker responseTimer2;       ///< Timer to trigger response timeout
 
@@ -454,7 +456,7 @@ protected:
                                 * Get packet response and update time as of its data
                                 * @param[in] UDP response packet.
                                 */
-    void processPacket (AsyncUDPPacket packet);
+    void processPacket (AsyncUDPPacket& packet);
 
     /**
     * Send NTP request to server

@@ -16,7 +16,7 @@ Yellow = Signal
 byte statusLed    = 13;
 
 byte sensorInterrupt = 0;  // 0 = digital pin 2
-const int sensorPin  = D2;
+const int sensorPin  = 4;
 
 // The hall-effect flow sensor outputs approximately 4.5 pulses per second per
 // litre/minute of flow.
