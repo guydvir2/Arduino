@@ -9,7 +9,25 @@
    2) KeyPad for entering user codes and change syste states.
    3) "the brain" has relay inputs knows as external key operation:
  */
+// Previous version 2.1, iot1.43
 
+/*
+
+    |  INPUT1  |   INPUT2    |   OUTPUT1  |  OUTPUT2   |      Sys      |
+    | Arm Indic| Alarm indic | Home Relay | Away Relay |     State     |
+    ====================================================================
+    |    1     |      1      |      0     |     0      | disarmed All  |
+    +----------+-------------+------------+------------+---------------+
+    |    0     |      1      |      1     |     0      | Home Arm code |
+    +----------+-------------+------------+------------+---------------+
+    |    0     |      1      |      0     |     1      | Away Arm code |
+    +----------+-------------+------------+------------+---------------+
+    |    0     |      1      |      0     |     0      |Home/awa keypad|
+    +----------+-------------+------------+------------+---------------+
+    |    0     |      0      |      0/1   |     0/1    |     Alarm     |
+    +----------+-------------+------------+------------+---------------+
+
+*/
 
 
 #include <myIOT.h>
@@ -26,12 +44,12 @@
 
 
 // ********** Sketch Services  ***********
-#define VER              "NODEMCU_2.0"
+#define VER              "NODEMCU_3.0"
 #define USE_NOTIFY_TELE  true
 
 // ********** myIOT Class ***********
 //~~~~~ Services ~~~~~~~~~~~
-#define USE_SERIAL       true // Serial Monitor
+#define USE_SERIAL       false // Serial Monitor
 #define USE_WDT          true  // watchDog resets
 #define USE_OTA          true  // OTA updates
 #define USE_RESETKEEPER  false // detect quick reboot and real reboots
@@ -45,10 +63,10 @@ myIOT iot(DEVICE_TOPIC);
 
 // ~~~~ HW Pins and States ~~~~
 // GPIO Pins for ESP8266
-#define INPUT1   4          // input (System State) systemState_alarm_Pin
-#define INPUT2   5          // input (System State)   systemState_armed_Pin
-#define OUTPUT1  12         //  output (Set system)  armed_Home
-#define OUTPUT2  14         //  Output (Set system)  Armed_Away
+#define INPUT1   4          //  Indication system is Armed
+#define INPUT2   5          //  Indication system is Alarmed
+#define OUTPUT1  12         //   (Set system)  armed_Home
+#define OUTPUT2  14         //   (Set system)  Armed_Away
 //##########################
 
 byte relays[]       = {OUTPUT1, OUTPUT2};
@@ -122,7 +140,7 @@ void addiotnalMQTT(char *incoming_msg){
                 sprintf(msg, "Switch: input1[%d] input2[%d], Relay: output_home[%d] output_full[%d]", INPUT1, INPUT2, OUTPUT1, OUTPUT2);
                 iot.pub_msg(msg);
         }
-        else if (strcmp(incoming_msg, "reset") == 0 ) {
+        else if (strcmp(incoming_msg, "clear") == 0 ) {
                 allReset();
                 iot.sendReset("Reset via MQTT");
         }
@@ -133,9 +151,13 @@ void addiotnalMQTT(char *incoming_msg){
         else if (strcmp(incoming_msg, "help") == 0) {
                 sprintf(msg, "Help: Commands #1 - [status, boot, reset, ip, ota, ver, help, pins]");
                 iot.pub_msg(msg);
-                sprintf(msg, "Help: Commands #2 - [armed_home, armed_away, disarmed, reset, all_off]");
+                sprintf(msg, "Help: Commands #2 - [armed_home, armed_away, disarmed, clear, all_off, debug]");
                 iot.pub_msg(msg);
         }
+        else if (strcmp(incoming_msg, "debug") == 0) {
+        sprintf(msg,"INPUT1 is [%d], INPUT2 is [%d], OUTPUT1 is [%d], OUTPUT2 is [%d]",digitalRead(INPUT1), digitalRead(INPUT2), digitalRead(OUTPUT1),digitalRead(OUTPUT2));
+              iot.pub_msg(msg);
+            }
 }
 void giveStatus(char *state){
         char t3 [50];
@@ -192,13 +214,13 @@ void allReset() {
 // ~~~~~~~~~ GPIO switching ~~~~~~~~~~~~~
 void switchIt(char *type, char *dir) {
         char mqttmsg[50];
-        bool states[2];
+        bool armed_code;
 
         if (strcmp(dir, "armed_home") == 0 ) {
                 if (digitalRead(OUTPUT1) == !RelayOn) { // verify it is not in desired state already
                         if ( digitalRead(OUTPUT2) == RelayOn) { // in armed away state
                                 digitalWrite(OUTPUT2, !RelayOn);
-                                iot.pub_msg("System is set to [Disarmed] [Away] using [Code]");
+                                iot.pub_msg("System change: [Disarmed] [Away] using [Code]");
                                 delay(systemPause);
                         }
 
@@ -206,23 +228,23 @@ void switchIt(char *type, char *dir) {
                         delay(systemPause);
 
                         if (digitalRead(INPUT1)==SwitchOn) {
-                                iot.pub_msg("System is set to [Armed] [Home] using [Code]");
+                                iot.pub_msg("System change: [Armed] [Home] using [Code]");
                                 iot.pub_state("armed_home");
                         }
                         else {
                                 allOff();
-                                iot.pub_msg("failed to [Armed] [Home]");
+                                iot.pub_msg("System change: failed to [Armed] [Home]");
                         }
                 }
                 else {
-                        iot.pub_msg("already in [Armed] [Home]");
+                        iot.pub_msg("System change: already in [Armed] [Home]");
                 }
         }
         else if (strcmp(dir, "armed_away") == 0) {
                 if ( digitalRead(OUTPUT2) == !RelayOn) {
                         if ( digitalRead(OUTPUT1) == RelayOn) { // armed home
                                 digitalWrite(OUTPUT1, !RelayOn);
-                                iot.pub_msg("System is set to [Disarmed] [Home] using [Code]");
+                                iot.pub_msg("System change: [Disarmed] [Home] using [Code]");
                                 delay(systemPause);
                         }
 
@@ -230,36 +252,42 @@ void switchIt(char *type, char *dir) {
                         delay(systemPause);
 
                         if (digitalRead(INPUT1)==SwitchOn) {
-                                iot.pub_msg("System is set to [Armed] [Away] using [Code]");
+                                iot.pub_msg("System change: [Armed] [Away] using [Code]");
                                 iot.pub_state("armed_away");
                         }
                         else {
                                 allOff();
-                                iot.pub_msg("failed to [Armed] [Away]");
+                                iot.pub_msg("System change: failed to [Armed] [Away]");
                         }
                 }
                 else {
-                        iot.pub_msg("already in [Armed] [Away]");
+                        iot.pub_msg("System change: already in [Armed] [Away]");
                 }
         }
         else if (strcmp(dir, "disarmed") == 0) {
-                if (indication_ARMED_lastState == SwitchOn) { // system is armed
-                        if (digitalRead(OUTPUT2)==RelayOn || digitalRead(OUTPUT1)==RelayOn) { // case of Remote operation
+                if (indication_ARMED_lastState == SwitchOn) { // indicatio n system is armed
+                        if (digitalRead(OUTPUT2)==RelayOn || digitalRead(OUTPUT1)==RelayOn) { // case A: armed using code
                                 allOff();
+                                armed_code = true;
+                                delay(systemPause);
                         }
-                        else { // case of manual operation
+                        else { // case B: armed using keyPad
                                 // initiate any arm state in order to disarm
                                 digitalWrite(OUTPUT1, RelayOn);
-                                delay(systemPause);
+                                delay(systemPause/2);            // Time for system to react to fake state change
                                 allOff();
+                                armed_code = false;
+                                delay(systemPause/2);
                         }
-                        if (digitalRead(INPUT1)==!SwitchOn && digitalRead(OUTPUT2)==!RelayOn && digitalRead(OUTPUT1)==!RelayOn) {
-                                iot.pub_msg("System is set to [Disarmed]");
-                                send_telegramAlert("System is set to [Disarmed]");
+                        if (digitalRead(INPUT1) != SwitchOn ){//&& digitalRead(OUTPUT2) != RelayOn && digitalRead(OUTPUT1) != RelayOn) {
+                                sprintf(mqttmsg,"System change: [Disarmed] using [Code]. Was [Armed] using [%s]", armed_code ? "Code":"KeyPad");
+                                iot.pub_msg(mqttmsg);
                                 iot.pub_state("disarmed");
                         }
                         else {
-                                iot.pub_msg("failed to [Disarmed]");
+                          sprintf(mqttmsg,"INPUT1 is [%d], INPUT2 is [%d], OUTPUT1 is [%d], OUTPUT2 is [%d]",digitalRead(INPUT1), digitalRead(INPUT2), digitalRead(OUTPUT1),digitalRead(OUTPUT2));
+                                // iot.pub_msg("System change: failed to [Disarmed]");
+                                iot.pub_msg(mqttmsg);
                         }
                 }
         }
@@ -272,29 +300,22 @@ void check_systemState_armed() { // System OUTPUT 1: arm_state
 
                         if (digitalRead(INPUT1) == SwitchOn) { // system is set to armed
                                 if (digitalRead(OUTPUT1) == !RelayOn && digitalRead(OUTPUT2) == !RelayOn) {
-                                        iot.pub_msg("system is set to [Armed] using [KeyPad] ");
+                                        iot.pub_msg("System state: [Armed] using [KeyPad]");
+                                        send_telegramAlert("System state: [Armed] using [KeyPad]");
+
                                         iot.pub_state("pending");
                                 }
                                 else if (digitalRead(OUTPUT2) == RelayOn || digitalRead(OUTPUT1) == RelayOn) {
-                                        iot.pub_msg("system is set to [Armed] using [Code]");
+                                        iot.pub_msg("System State: [Armed] using [Code]");
+                                        send_telegramAlert("System State: [Armed] using [Code]");
+
                                 }
                         }
-
                         else { // system Disarmed
-                                if (digitalRead(OUTPUT1) == !RelayOn && digitalRead(OUTPUT2) == !RelayOn) {
-                                        iot.pub_msg("system is set to [Disarmed] using [KeyPad]");
+                                if (digitalRead(OUTPUT1) != RelayOn && digitalRead(OUTPUT2) != RelayOn) {
+                                        iot.pub_msg("System State: [Disarmed]");
+                                        send_telegramAlert("System State: [Disarmed]");
                                         iot.pub_state("disarmed");
-                                }
-                                else {
-                                        allOff();
-                                        if (digitalRead(OUTPUT1) == !RelayOn && digitalRead(OUTPUT2) == !RelayOn) {
-                                                iot.pub_msg("system is set to [Disarmed] using [Code]");
-                                                iot.pub_state("disarmed");
-                                        }
-                                        else {
-                                                iot.pub_msg("failed to [Disarmed]");
-                                                iot.sendReset("failed to Disarm");
-                                        }
                                 }
                         }
                         indication_ARMED_lastState = digitalRead(INPUT1);
@@ -308,14 +329,14 @@ void check_systemState_alarming() { // // System OUTPUT 2: alarm_state
                         delay(systemPause);
                         // alarm set off
                         if (digitalRead(INPUT2) == SwitchOn) {
-                                iot.pub_msg("System is [Alarming!]");
+                                iot.pub_msg("[Alarm] is triggered");
                                 iot.pub_state("triggered");
-                                send_telegramAlert("in [Alarm]");
+                                send_telegramAlert("[Alarm] is triggered");
                         }
                         // alarm ended
                         else if (digitalRead(INPUT2) == !SwitchOn) {
-                                iot.pub_msg("System stopped [Alarming]");
-                                send_telegramAlert("[Alarm] ended");
+                                iot.pub_msg("[Alarm] stopped");
+                                send_telegramAlert("[Alarm] stopped");
                                 if (digitalRead(INPUT1)==SwitchOn) {
                                         if (digitalRead(OUTPUT2)==RelayOn) {
                                                 iot.pub_state("armed_away");
