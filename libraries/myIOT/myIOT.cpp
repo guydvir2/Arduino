@@ -905,7 +905,7 @@ myTelegram::myTelegram(char* Bot, char* chatID, char* ssid, char* password) : bo
         sprintf(_password,password);
 }
 void myTelegram::handleNewMessages(int numNewMessages){
-        char sendmsg[150];
+        char sendmsg[250];
 
         for (int i=0; i<numNewMessages; i++) {
                 String chat_id = String(bot.messages[i].chat_id);
