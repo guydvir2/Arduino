@@ -25,7 +25,7 @@
 
 // define generic functiobs
 typedef void (*cb_func)(char msg1[50]);
-typedef void (*cb_func2)(String msg1, String msg2, String msg3, char msg4[250]);
+typedef void (*cb_func2)(String msg1, String msg2, String msg3, char *msg4);
 
 
 class FVars {
@@ -118,7 +118,7 @@ char prefixTopic  [MaxTopicLength];
 char deviceTopic  [MaxTopicLength];
 char addGroupTopic[MaxTopicLength];
 
-const char *ver     = "iot_5.1";
+const char *ver     = "iot_5.2";
 char timeStamp[20];
 long updated_bootTime  = 0;
 int resetIntervals     = 10;

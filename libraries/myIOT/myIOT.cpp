@@ -662,8 +662,6 @@ timeOUT::timeOUT(char* sw_num, int def_val)
 }
 bool timeOUT::looper(){
         dailyTO_looper(dailyTO);
-        Serial.println("HI");
-
         if (_calc_endTO >now()) {
                 return 1;
         }

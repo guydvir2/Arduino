@@ -3,23 +3,22 @@
 #include <Arduino.h>
 
 // ********** Names + Strings  ***********
-#define Telegram_Nick "test1"                         // belongs to TELEGRAM
-#define sensor_notification_msg "" // belongs to SENSOR
-
 // ~~~~~~~ MQTT Topics ~~~~~~                        // belonga rto myIOT
-#define DEVICE_TOPIC "guyDvir"
+#define DEVICE_TOPIC "test1"
 #define MQTT_PREFIX  "myHome"
 #define MQTT_GROUP   "tests"
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+#define Telegram_Nick DEVICE_TOPIC                         // belongs to TELEGRAM
+#define sensor_notification_msg DEVICE_TOPIC "detection" // belongs to SENSOR
 
 // ********** Sketch Services  ***********
-#define VER              "WEMOS_4.11"
+#define VER              "SONOFF_4.2"
 #define USE_INPUTS       true
 #define IS_MOMENTARY     true  // is switch latch or momentary
 #define ON_AT_BOOT       false // On or OFF at boot (Usually when using inputs, at boot/PowerOn - state should be off
 #define USE_DAILY_TO     true
-#define IS_SONOFF        false
+#define IS_SONOFF        true
 #define HARD_REBOOT      false
 
 #define USE_NOTIFY_TELE  true
@@ -31,7 +30,7 @@
 #define USE_SERIAL       true // Serial Monitor
 #define USE_WDT          true  // watchDog resets
 #define USE_OTA          true  // OTA updates
-#define USE_RESETKEEPER  false // detect quick reboot and real reboots
+#define USE_RESETKEEPER  true // detect quick reboot and real reboots
 #define USE_FAILNTP      true  // saves amoount of fail clock updates
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -46,8 +45,8 @@ myIOT iot(DEVICE_TOPIC);
 #define TIMEOUT_SW0      3*60 // mins for SW0
 #define TIMEOUT_SW1      2*60 // mins
 
-const int START_dailyTO[] = {18, 0, 0};
-const int END_dailyTO[]   = {1, 30, 0};
+const int START_dailyTO[] = {16, 30, 0};
+const int END_dailyTO[]   = {7, 0, 0};
 
 int TIMEOUTS[2]  = {TIMEOUT_SW0, TIMEOUT_SW1};
 timeOUT timeOut_SW0("SW0", TIMEOUTS[0]);
@@ -98,7 +97,7 @@ bool inputState[NUM_SWITCHES];
 bool sensState[NUM_SWITCHES];
 int rebootState         = 0;
 bool checkrebootState   = true;
-bool boot_overide[]     = {true, true};
+bool boot_overide[]     = {false, false};
 
 
 // #################################  END CORE #################################
@@ -581,12 +580,18 @@ void all_off(char *from){
 //  ######################### ADDITIONAL SERVICES ##############################
 // ~~~~~~~~~~~ Telegram Notify ~~~~~~~
 #if USE_NOTIFY_TELE
-void telecmds(String in_msg, String from, String chat_id, char snd_msg[150]) {
-        String command_set[] = {"status", "reset", "off", "on", "timeout", "whoami","help"};
+void telecmds(String in_msg, String from, String chat_id, char *snd_msg) {
+        String command_set[] = {"whois_online", "status", "reset", "off", "on",
+                                "timeout", "whoami","help"};
         byte num_commands = sizeof(command_set)/sizeof(command_set[0]);
         String comp_command[num_commands];
         char prefix[50];
         char t1[150];
+
+        Serial.print(from);
+        Serial.print(" sent a message: ");
+        Serial.println(in_msg);
+
 
         sprintf(prefix,"/%s_",Telegram_Nick);
         for (int i=0; i < num_commands; i++) {
@@ -594,26 +599,26 @@ void telecmds(String in_msg, String from, String chat_id, char snd_msg[150]) {
                 comp_command[i] += command_set[i];
         }
 
-        if(in_msg=="/whois_online"){
-          sprintf(snd_msg,"**[%s]**",Telegram_Nick);
+        if(in_msg=="/whois_online") {
+                sprintf(snd_msg,"~%s~",Telegram_Nick);
         }
-        else if (in_msg==comp_command[0]) {
-                giveStatus(t1);
-                sprintf(snd_msg,"**[%s]** %s",Telegram_Nick, t1);
-        } // status
         else if (in_msg==comp_command[1]) {
+                giveStatus(t1);
+                sprintf(snd_msg,"~%s~ %s",Telegram_Nick, t1);
+        } // status
+        else if (in_msg==comp_command[2]) {
                 iot.sendReset("Telegram");
         } // reset
-        else if (in_msg==comp_command[2]) {
-                all_off("Telegram");
-                sprintf(snd_msg,"**[%s]** All-Off signal was sent", Telegram_Nick);
-        } // off
         else if (in_msg==comp_command[3]) {
-        }
+                all_off("Telegram");
+                sprintf(snd_msg,"~%s~ All-Off signal was sent", Telegram_Nick);
+        } // off
         else if (in_msg==comp_command[4]) {
+        }
+        else if (in_msg==comp_command[5]) {
                 char m1[20];
                 char m2[20];
-                sprintf(snd_msg,"**[%s]** TimeOut: \n", Telegram_Nick);
+                sprintf(snd_msg,"~%s~ TimeOut: \n", Telegram_Nick);
 
                 for(int i=0; i<NUM_SWITCHES; i++) {
                         if (TO[i]->remain() > 0) {
@@ -628,12 +633,12 @@ void telecmds(String in_msg, String from, String chat_id, char snd_msg[150]) {
                         strcat(snd_msg,t1);
                 }
         } // timeout
-        else if (in_msg==comp_command[5]) {
-                sprintf(snd_msg,"**[%s]** is %s",Telegram_Nick, DEVICE_TOPIC);
-        } // whoami
         else if (in_msg==comp_command[6]) {
+                sprintf(snd_msg,"~%s~ is %s",Telegram_Nick, DEVICE_TOPIC);
+        } // whoami
+        else if (in_msg==comp_command[7]) {
                 char t[50];
-                sprintf(snd_msg,"**[%s]** Commands Available:\n", Telegram_Nick);
+                sprintf(snd_msg,"~%s~ Commands Available:\n", Telegram_Nick);
                 for (int i=0; i<num_commands; i++) {
                         command_set[i].toCharArray(t,30);
                         sprintf(t1,"%s\n",t);
@@ -641,6 +646,7 @@ void telecmds(String in_msg, String from, String chat_id, char snd_msg[150]) {
                 }
 
         } // all_commands
+        Serial.println(snd_msg);
 }
 #endif
 
@@ -777,7 +783,8 @@ void recoverReset() {
 
                         }
                         else{
-                                iot.pub_err("--> Continue unfinished processes only");
+                                iot.pub_err("--> Continue unfinished TimeOuts");
+                                boot_overide[i] = true;
                         }
                 }
 
