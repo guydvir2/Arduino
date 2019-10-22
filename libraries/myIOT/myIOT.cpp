@@ -910,9 +910,11 @@ void myTelegram::handleNewMessages(int numNewMessages){
                 String text = bot.messages[i].text;
                 String from_name = bot.messages[i].from_name;
                 if (from_name == "") from_name = "Guest";
+                _ext_func(text,from_name,chat_id, sendmsg);
 
-                _ext_func (text,from_name,chat_id, sendmsg);
+                if(strcmp(sendmsg,"")!=0){
                 bot.sendMessage(chat_id, sendmsg, "");
+              }
         }
 }
 void myTelegram::begin(cb_func2 funct){

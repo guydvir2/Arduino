@@ -44,8 +44,8 @@
 
 
 // ********** Sketch Services  ***********
-#define VER              "NODEMCU_3.1"
-#define USE_NOTIFY_TELE  true
+#define VER              "NODEMCU_3.11"
+#define USE_NOTIFY_TELE  false
 
 // ********** myIOT Class ***********
 //~~~~~ Services ~~~~~~~~~~~
@@ -388,6 +388,7 @@ void telecmds(String in_msg, String from, String chat_id, char snd_msg[250]) {
         String comp_command[num_commands];
         char prefix[50];
         char t1[150];
+        sprintf(snd_msg,"");
 
         sprintf(prefix,"/%s_",Telegram_Nick);
         for (int i=0; i < num_commands; i++) {

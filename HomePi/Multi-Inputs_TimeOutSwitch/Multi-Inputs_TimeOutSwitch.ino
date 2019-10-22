@@ -4,21 +4,20 @@
 
 // ********** Names + Strings  ***********
 // ~~~~~~~ MQTT Topics ~~~~~~                        // belonga rto myIOT
-#define DEVICE_TOPIC "test1"
+#define DEVICE_TOPIC "tesets"
 #define MQTT_PREFIX  "myHome"
-#define MQTT_GROUP   "tests"
+#define MQTT_GROUP   "extLights"
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-#define Telegram_Nick DEVICE_TOPIC                         // belongs to TELEGRAM
-#define sensor_notification_msg DEVICE_TOPIC "detection" // belongs to SENSOR
+// belongs to TELEGRAM
 
 // ********** Sketch Services  ***********
-#define VER              "SONOFF_4.2"
+#define VER              "WEMOS_4.2"
 #define USE_INPUTS       true
 #define IS_MOMENTARY     true  // is switch latch or momentary
 #define ON_AT_BOOT       false // On or OFF at boot (Usually when using inputs, at boot/PowerOn - state should be off
 #define USE_DAILY_TO     true
-#define IS_SONOFF        true
+#define IS_SONOFF        false
 #define HARD_REBOOT      false
 
 #define USE_NOTIFY_TELE  true
@@ -27,7 +26,7 @@
 
 // ********** myIOT Class ***********
 //~~~~~ Services ~~~~~~~~~~~
-#define USE_SERIAL       true // Serial Monitor
+#define USE_SERIAL       false // Serial Monitor
 #define USE_WDT          true  // watchDog resets
 #define USE_OTA          true  // OTA updates
 #define USE_RESETKEEPER  true // detect quick reboot and real reboots
@@ -45,8 +44,8 @@ myIOT iot(DEVICE_TOPIC);
 #define TIMEOUT_SW0      3*60 // mins for SW0
 #define TIMEOUT_SW1      2*60 // mins
 
-const int START_dailyTO[] = {16, 30, 0};
-const int END_dailyTO[]   = {7, 0, 0};
+const int START_dailyTO[] = {18, 30, 0};
+const int END_dailyTO[]   = {0, 0, 0};
 
 int TIMEOUTS[2]  = {TIMEOUT_SW0, TIMEOUT_SW1};
 timeOUT timeOut_SW0("SW0", TIMEOUTS[0]);
@@ -220,10 +219,12 @@ struct sensorNotify {
         char msg[50];
 };
 
-sensorNotify sensorNotify = {0, 0, 0, sensor_notification_msg};
+char *sensor_notification_msg= "detection";
+sensorNotify sensorNotify = {0, 0, 0, "detection"};
 
 // ~~~~~~~~~~~ Using SMS Notification ~~~~~~~
 #if USE_NOTIFY_TELE
+char *Telegram_Nick = "guy";
 
 myTelegram teleNotify(BOT_TOKEN, CHAT_ID);
 #endif
@@ -586,14 +587,14 @@ void telecmds(String in_msg, String from, String chat_id, char *snd_msg) {
         byte num_commands = sizeof(command_set)/sizeof(command_set[0]);
         String comp_command[num_commands];
         char prefix[50];
+        char prefix2[50];
         char t1[150];
+        sprintf(snd_msg,"");
 
-        Serial.print(from);
-        Serial.print(" sent a message: ");
-        Serial.println(in_msg);
+        from.toCharArray(t1,10);
+        sprintf(prefix,"/%s_", Telegram_Nick);
+        sprintf(prefix2,"%s asked ~%s~:\n", t1,Telegram_Nick);
 
-
-        sprintf(prefix,"/%s_",Telegram_Nick);
         for (int i=0; i < num_commands; i++) {
                 comp_command[i].concat(prefix);
                 comp_command[i] += command_set[i];
@@ -604,7 +605,7 @@ void telecmds(String in_msg, String from, String chat_id, char *snd_msg) {
         }
         else if (in_msg==comp_command[1]) {
                 giveStatus(t1);
-                sprintf(snd_msg,"~%s~ %s",Telegram_Nick, t1);
+                sprintf(snd_msg,"%s %s",prefix2, t1);
         } // status
         else if (in_msg==comp_command[2]) {
                 iot.sendReset("Telegram");
@@ -646,7 +647,7 @@ void telecmds(String in_msg, String from, String chat_id, char *snd_msg) {
                 }
 
         } // all_commands
-        Serial.println(snd_msg);
+
 }
 #endif
 
