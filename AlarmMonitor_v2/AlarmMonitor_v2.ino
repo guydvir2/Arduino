@@ -305,7 +305,8 @@ void check_systemState_armed() { // System OUTPUT 1: arm_state
                 if (digitalRead(INPUT1) != indication_ARMED_lastState) {
                         delay(systemPause);
 
-                        if (digitalRead(INPUT1) == SwitchOn) { // system is set to armed
+                        indication_ARMED_lastState = digitalRead(INPUT1);
+                        if (indication_ARMED_lastState == SwitchOn) { // system is set to armed
                                 if (digitalRead(OUTPUT1) == !RelayOn && digitalRead(OUTPUT2) == !RelayOn) {
                                         iot.pub_msg("System state: [Armed] using [KeyPad]");
                                         send_telegramAlert("[Armed]");
@@ -322,11 +323,14 @@ void check_systemState_armed() { // System OUTPUT 1: arm_state
                                         send_telegramAlert("[Armed] [Away]");
 
                                 }
+                                else{
+                                  iot.pub_err("Error Arming system");
+                                }
                         }
                         else { // system detected a disarmed indication :
                                 if (digitalRead(OUTPUT2)==RelayOn || digitalRead(OUTPUT1)==RelayOn) { // case A: armed using code, but disarmed by keypad
                                         allOff();
-                                        delay(systemPause);
+                                        // delay(systemPause); //seems tooo much
                                 }
                                 if (digitalRead(OUTPUT1) != RelayOn && digitalRead(OUTPUT2) != RelayOn) {
                                         iot.pub_msg("System State: [Disarmed]");
@@ -334,7 +338,6 @@ void check_systemState_armed() { // System OUTPUT 1: arm_state
                                         iot.pub_state("disarmed");
                                 }
                         }
-                        indication_ARMED_lastState = digitalRead(INPUT1);
                 }
         }
 }
