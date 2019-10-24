@@ -60,7 +60,8 @@ char _bot[100];
 char _chatID[100];
 char _ssid[20];
 char _password[20];
-int _Bot_mtbs = 10; //mean time between scan messages in millis
+int _Bot_mtbs = 10; //mean time between scan messages in sec
+#define def_time_check_M 5
 
 long _Bot_lasttime;   //last time messages' scan has been done
 
@@ -68,7 +69,7 @@ private:
 void handleNewMessages(int numNewMessages);
 
 public:
-myTelegram(char* Bot, char* chatID, char* ssid = SSID_ID, char* password = PASS_WIFI int checkServer_interval = _Bot_mtbs);
+myTelegram(char* Bot, char* chatID, int checkServer_interval = def_time_check_M, char* ssid = SSID_ID, char* password = PASS_WIFI);
 void begin(cb_func2 funct);
 void send_msg(char *msg);
 void looper();

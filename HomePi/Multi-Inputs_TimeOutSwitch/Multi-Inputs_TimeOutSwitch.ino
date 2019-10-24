@@ -5,14 +5,14 @@
 // ********** Names + Strings  ***********
 // ~~~~~~~ MQTT Topics ~~~~~~                        // belonga rto myIOT
 #define DEVICE_TOPIC "tesets"
-#define MQTT_PREFIX  "myHome"
-#define MQTT_GROUP   "extLights"
+#define MQTT_PREFIX  "TEST"
+#define MQTT_GROUP   ""
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 // belongs to TELEGRAM
 
 // ********** Sketch Services  ***********
-#define VER              "WEMOS_4.2"
+#define VER              "WEMOS_4.21"
 #define USE_INPUTS       true
 #define IS_MOMENTARY     true  // is switch latch or momentary
 #define ON_AT_BOOT       false // On or OFF at boot (Usually when using inputs, at boot/PowerOn - state should be off
@@ -225,8 +225,8 @@ sensorNotify sensorNotify = {0, 0, 0, "detection"};
 // ~~~~~~~~~~~ Using SMS Notification ~~~~~~~
 #if USE_NOTIFY_TELE
 char *Telegram_Nick = "guy";
-
-myTelegram teleNotify(BOT_TOKEN, CHAT_ID);
+int time_check_messages = 1; //sec
+myTelegram teleNotify(BOT_TOKEN, CHAT_ID, time_check_messages);
 #endif
 
 //~~~~~~~ IR Remote ~~~~~~~~
@@ -595,13 +595,11 @@ void telecmds(String in_msg, String from, String chat_id, char *snd_msg) {
         in_msg.toCharArray(t2, in_msg.length()+1);
 
         sprintf(prefix,"/%s_", Telegram_Nick);
-        sprintf(prefix2,"from user: %s\ndevice replies: %s\ncommand: %s\nreply: ", t1,Telegram_Nick, t2);
+        sprintf(prefix2,"from user: %s\ndevice replies: %s\ncommand: %s\n~~~~~~~~~~~~~~~~~~~~\n ", t1,Telegram_Nick, t2);
 
         for (int i=0; i < num_commands; i++) {
-                // comp_command[i].concat(prefix);
                 comp_command[i] = prefix;
                 comp_command[i] += command_set[i];
-                //
                 // Serial.print("command #");
                 // Serial.print(i);
                 // Serial.print(": ");
@@ -621,7 +619,7 @@ void telecmds(String in_msg, String from, String chat_id, char *snd_msg) {
         } // reset
         else if (in_msg==comp_command[3]) {
                 all_off("Telegram");
-                sprintf(snd_msg,"%sAll-Off signal was sent",prefix2, Telegram_Nick);
+                sprintf(snd_msg,"%sAll-Off signal was sent",prefix2);
         } // off
         else if (in_msg==comp_command[4]) {
         }
