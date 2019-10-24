@@ -26,7 +26,7 @@
 
 // ********** myIOT Class ***********
 //~~~~~ Services ~~~~~~~~~~~
-#define USE_SERIAL       false // Serial Monitor
+#define USE_SERIAL       true // Serial Monitor
 #define USE_WDT          true  // watchDog resets
 #define USE_OTA          true  // OTA updates
 #define USE_RESETKEEPER  true // detect quick reboot and real reboots
@@ -586,40 +586,49 @@ void telecmds(String in_msg, String from, String chat_id, char *snd_msg) {
                                 "timeout", "whoami","help"};
         byte num_commands = sizeof(command_set)/sizeof(command_set[0]);
         String comp_command[num_commands];
-        char prefix[50];
-        char prefix2[50];
-        char t1[150];
-        sprintf(snd_msg,"");
+        char prefix[100], prefix2[100];
+        char t1[50], t2[50];
 
-        from.toCharArray(t1,10);
+        sprintf(snd_msg,""); // when not meeting any conditions, has to be empty
+
+        from.toCharArray(t1,from.length()+1);
+        in_msg.toCharArray(t2, in_msg.length()+1);
+
         sprintf(prefix,"/%s_", Telegram_Nick);
-        sprintf(prefix2,"%s asked ~%s~:\n", t1,Telegram_Nick);
+        sprintf(prefix2,"from user: %s\ndevice replies: %s\ncommand: %s\nreply: ", t1,Telegram_Nick, t2);
 
         for (int i=0; i < num_commands; i++) {
-                comp_command[i].concat(prefix);
+                // comp_command[i].concat(prefix);
+                comp_command[i] = prefix;
                 comp_command[i] += command_set[i];
+                //
+                // Serial.print("command #");
+                // Serial.print(i);
+                // Serial.print(": ");
+                // Serial.println(comp_command[i]);
         }
 
         if(in_msg=="/whois_online") {
-                sprintf(snd_msg,"~%s~",Telegram_Nick);
+                sprintf(snd_msg,"%s%s",prefix2, Telegram_Nick);
         }
         else if (in_msg==comp_command[1]) {
                 giveStatus(t1);
-                sprintf(snd_msg,"%s %s",prefix2, t1);
+                sprintf(snd_msg,"%s%s",prefix2, t1);
         } // status
         else if (in_msg==comp_command[2]) {
+                sprintf(snd_msg,"%s",prefix2);
                 iot.sendReset("Telegram");
         } // reset
         else if (in_msg==comp_command[3]) {
                 all_off("Telegram");
-                sprintf(snd_msg,"~%s~ All-Off signal was sent", Telegram_Nick);
+                sprintf(snd_msg,"%sAll-Off signal was sent",prefix2, Telegram_Nick);
         } // off
         else if (in_msg==comp_command[4]) {
         }
         else if (in_msg==comp_command[5]) {
                 char m1[20];
                 char m2[20];
-                sprintf(snd_msg,"~%s~ TimeOut: \n", Telegram_Nick);
+                sprintf(snd_msg,"%s", prefix2);
 
                 for(int i=0; i<NUM_SWITCHES; i++) {
                         if (TO[i]->remain() > 0) {
@@ -635,11 +644,11 @@ void telecmds(String in_msg, String from, String chat_id, char *snd_msg) {
                 }
         } // timeout
         else if (in_msg==comp_command[6]) {
-                sprintf(snd_msg,"~%s~ is %s",Telegram_Nick, DEVICE_TOPIC);
+                sprintf(snd_msg,"%s~%s~ is %s",prefix2, Telegram_Nick, DEVICE_TOPIC);
         } // whoami
         else if (in_msg==comp_command[7]) {
                 char t[50];
-                sprintf(snd_msg,"~%s~ Commands Available:\n", Telegram_Nick);
+                sprintf(snd_msg,"%sCommands Available:\n", prefix2, Telegram_Nick);
                 for (int i=0; i<num_commands; i++) {
                         command_set[i].toCharArray(t,30);
                         sprintf(t1,"%s\n",t);
@@ -647,6 +656,10 @@ void telecmds(String in_msg, String from, String chat_id, char *snd_msg) {
                 }
 
         } // all_commands
+        Serial.print("in_msg: ");
+        Serial.println(in_msg);
+        Serial.print("snd_msg: ");
+        Serial.println(snd_msg);
 
 }
 #endif

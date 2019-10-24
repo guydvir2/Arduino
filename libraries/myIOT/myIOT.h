@@ -60,15 +60,15 @@ char _bot[100];
 char _chatID[100];
 char _ssid[20];
 char _password[20];
+int _Bot_mtbs = 10; //mean time between scan messages in millis
 
-int _Bot_mtbs = 10*1000; //mean time between scan messages in millis
 long _Bot_lasttime;   //last time messages' scan has been done
 
 private:
 void handleNewMessages(int numNewMessages);
 
 public:
-myTelegram(char* Bot, char* chatID, char* ssid = SSID_ID, char* password = PASS_WIFI);
+myTelegram(char* Bot, char* chatID, char* ssid = SSID_ID, char* password = PASS_WIFI int checkServer_interval = _Bot_mtbs);
 void begin(cb_func2 funct);
 void send_msg(char *msg);
 void looper();
@@ -118,7 +118,7 @@ char prefixTopic  [MaxTopicLength];
 char deviceTopic  [MaxTopicLength];
 char addGroupTopic[MaxTopicLength];
 
-const char *ver     = "iot_5.2";
+const char *ver     = "iot_5.3";
 char timeStamp[20];
 long updated_bootTime  = 0;
 int resetIntervals     = 10;
