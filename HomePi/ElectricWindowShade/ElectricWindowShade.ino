@@ -102,7 +102,7 @@ void addiotnalMQTT(char incoming_msg[50]) {
                 else if (digitalRead(outputUpPin) == RelayOn && digitalRead(outputDownPin) == !RelayOn) {
                         sprintf(state, "UP");
                 }
-                else {
+                else {tttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttt5555tt                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      
                         sprintf(state, "OFF");
                 }
 

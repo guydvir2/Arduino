@@ -44,7 +44,7 @@
 
 
 // ********** Sketch Services  ***********
-#define VER              "NODEMCU_3.11"
+#define VER              "NODEMCU_3.2"
 #define USE_NOTIFY_TELE  true
 
 // ********** myIOT Class ***********
@@ -90,8 +90,8 @@ const int deBounceInt = 50;
 
 // ~~~~~~~~~~~ Using SMS Notification ~~~~~~~
 #if USE_NOTIFY_TELE
-
-myTelegram teleNotify(BOT_TOKEN, CHAT_ID);
+#define MSG_INTERVAL 2
+myTelegram teleNotify(BOT_TOKEN, CHAT_ID, MSG_INTERVAL);
 
 #endif
 
@@ -386,45 +386,51 @@ void telecmds(String in_msg, String from, String chat_id, char snd_msg[250]) {
                                 "start_monOnly", "stop_monOnly"};
         byte num_commands = sizeof(command_set)/sizeof(command_set[0]);
         String comp_command[num_commands];
-        char prefix[50];
-        char t1[150];
+        char prefix[100], prefix2[100];
+        char t1[50], t2[50];
+
         sprintf(snd_msg,"");
 
-        sprintf(prefix,"/%s_",Telegram_Nick);
+        from.toCharArray(t1,from.length()+1);
+        in_msg.toCharArray(t2, in_msg.length()+1);
+
+        sprintf(prefix,"/%s_", Telegram_Nick);
+        sprintf(prefix2,"from user: %s\ndevice replies: %s\ncommand: %s\n~~~~~~~~~~~~~~~~~~~~\n ", t1,Telegram_Nick, t2);
+
         for (int i=0; i < num_commands; i++) {
                 comp_command[i].concat(prefix);
                 comp_command[i] += command_set[i];
         }
 
         if(in_msg=="/whois_online") {
-                sprintf(snd_msg,"~%s~",Telegram_Nick);
+                sprintf(snd_msg,"%s%s",prefix2, Telegram_Nick);
         }  // all devices should answer this
         else if (in_msg==comp_command[1]) {
                 giveStatus(t1);
-                sprintf(snd_msg,"~%s~ %s",DEVICE_TOPIC, t1);
+                sprintf(snd_msg,"%s%s",prefix2, t1);
         } // status
         else if (in_msg==comp_command[2]) {
-                sprintf(snd_msg,"~%s~ Reset command sent", DEVICE_TOPIC);
+                sprintf(snd_msg,"%s",prefix2);
                 iot.sendReset("Telegram");
         } // reset
         else if (in_msg==comp_command[3]) {
                 switchIt("Telegram", "armed_home");
-                sprintf(snd_msg,"~%s~ Armed-Home command sent", DEVICE_TOPIC);
+                sprintf(snd_msg,"%sArmed-Home command sent", prefix2);
         } //home
         else if (in_msg==comp_command[4]) {
                 switchIt("Telegram", "armed_away");
-                sprintf(snd_msg,"~%s~ Armed-Away command sent",DEVICE_TOPIC);
+                sprintf(snd_msg,"%sArmed-Away command sent",prefix2);
         } // away
         else if (in_msg==comp_command[5]) {
                 switchIt("Telegram", "disarmed");
-                sprintf(snd_msg,"~%s~ Disarmed command sent",DEVICE_TOPIC);
+                sprintf(snd_msg,"%sDisarmed command sent",prefix2);
         } // away
         else if (in_msg==comp_command[6]) {
-                sprintf(snd_msg,"~%s~ is %s", DEVICE_TOPIC,Telegram_Nick);
+                sprintf(snd_msg,"%sI'm %s", prefix2,Telegram_Nick);
         } // whoami
         else if (in_msg==comp_command[7]) {
                 char t[50];
-                sprintf(snd_msg,"~%s~ Available commands:\n", DEVICE_TOPIC);
+                sprintf(snd_msg,"%sAvailable commands:\n", prefix2);
                 for (int i=0; i<num_commands; i++) {
                         command_set[i].toCharArray(t,30);
                         sprintf(t1,"%s\n",t);
@@ -435,23 +441,23 @@ void telecmds(String in_msg, String from, String chat_id, char snd_msg[250]) {
         else if (in_msg==comp_command[8]) {
                 useTelegram.setValue(1);
                 useT = 1;
-                sprintf(snd_msg,"~%s~ Turn-On Telegram messages", DEVICE_TOPIC);
+                sprintf(snd_msg,"%sTurn-On Telegram messages", prefix2);
         } // turn on messages
         else if (in_msg==comp_command[9]) {
                 useTelegram.setValue(0);
                 useT = 0;
-                sprintf(snd_msg,"~%s~ Turn-Off Telegram messages", DEVICE_TOPIC);
+                sprintf(snd_msg,"%sTurn-Off Telegram messages", prefix2);
         } // turn on messages
         else if (in_msg==comp_command[10]) {
                 monitorOnly.setValue(1);
                 monOnly = 1;
-                sprintf(snd_msg,"~%s~ set to Monitor-Only mode", DEVICE_TOPIC);
+                sprintf(snd_msg,"%sset to Monitor-Only mode", prefix2);
         } // start monitor only
         else if (in_msg==comp_command[11]) {
                 monitorOnly.setValue(0);
                 monOnly = 0;
-                sprintf(snd_msg,"~%s~ stopped Monitor-Only mode", DEVICE_TOPIC);
-        } // start monitor only
+                sprintf(snd_msg,"%sstopped Monitor-Only mode", prefix2);
+        } // stop monitor only
 }
 #endif
 void send_telegramAlert(char *msg){

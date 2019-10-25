@@ -895,12 +895,15 @@ void timeOUT::restart_dailyTO (dTO &dailyTO){
 
 
 // ~~~~~~~~~~~ myTelegram Class ~~~~~~~~~~~~
-myTelegram::myTelegram(char* Bot, char* chatID, char* ssid, char* password, int checkServer_interval) : bot (Bot, client)
+myTelegram::myTelegram(char* Bot, char* chatID, int checkServer_interval, char* ssid, char* password) : bot (Bot, client)
 {
         sprintf(_bot,Bot);
         sprintf(_chatID,chatID);
         sprintf(_ssid,ssid);
         sprintf(_password,password);
+
+        _Bot_mtbs = checkServer_interval*1000; // time to check messages on Telegram server
+
 }
 void myTelegram::handleNewMessages(int numNewMessages){
         char sendmsg[250];
