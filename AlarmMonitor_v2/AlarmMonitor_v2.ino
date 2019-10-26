@@ -45,7 +45,7 @@
 
 // ********** Sketch Services  ***********
 #define VER              "NODEMCU_3.2"
-#define USE_NOTIFY_TELE  true
+#define USE_NOTIFY_TELE  false
 
 // ********** myIOT Class ***********
 //~~~~~ Services ~~~~~~~~~~~

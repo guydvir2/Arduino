@@ -60,7 +60,7 @@ char _bot[100];
 char _chatID[100];
 char _ssid[20];
 char _password[20];
-int _Bot_mtbs = 10; //mean time between scan messages in sec
+int _Bot_mtbs = 10000; //mean time between scan messages in sec
 #define def_time_check_M 5
 
 long _Bot_lasttime;   //last time messages' scan has been done

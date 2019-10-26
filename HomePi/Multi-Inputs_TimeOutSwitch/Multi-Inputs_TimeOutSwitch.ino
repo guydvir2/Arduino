@@ -224,7 +224,7 @@ sensorNotify sensorNotify = {0, 0, 0, "detection"};
 
 // ~~~~~~~~~~~ Using SMS Notification ~~~~~~~
 #if USE_NOTIFY_TELE
-char *Telegram_Nick = "guy";
+char *Telegram_Nick = "iotTest";
 int time_check_messages = 1; //sec
 myTelegram teleNotify(BOT_TOKEN, CHAT_ID, time_check_messages);
 #endif
@@ -938,18 +938,6 @@ void setup() {
         #if USE_IR_REMOTE
         start_IR();
         #endif
-        // for(int i=0;i<2;i++){
-        //   Serial.println(TO[0]->dTOlist[i]->on[0]);
-        //   Serial.println(TO[0]->dTOlist[i]->on[1]);
-        //   Serial.println(TO[0]->dTOlist[i]->on[2]);
-        //   Serial.println(TO[0]->dTOlist[i]->off[0]);
-        //   Serial.println(TO[0]->dTOlist[i]->off[1]);
-        //   Serial.println(TO[0]->dTOlist[i]->off[2]);
-        //   Serial.println(TO[0]->dTOlist[i]->flag);
-        //   Serial.println(TO[0]->dTOlist[i]->onNow);
-        // }
-
-
 }
 void loop() {
         iot.looper();

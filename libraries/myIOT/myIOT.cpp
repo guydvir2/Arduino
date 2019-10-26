@@ -267,7 +267,7 @@ int myIOT::subscribeMQTT() {
                         }
                         // Attempt to connect
                         if (mqttClient.connect(_deviceName, user, passw, _availTopic, 0, true, "offline")) {
-                                  if (useSerial) {
+                                if (useSerial) {
                                         Serial.println("connected");
                                 }
                                 mqttConnected = 1;
@@ -746,9 +746,9 @@ void timeOUT::switchOFF(){
         endTimeOUT_inFlash.setValue(0);
         endNow();
         _inTO = false;
-        if (dailyTO.onNow == true){
-          dailyTO.onNow = false;
-          Serial.println("set back to false");
+        if (dailyTO.onNow == true) {
+                dailyTO.onNow = false;
+                Serial.println("set back to false");
         }
 }
 void timeOUT::endNow(){
@@ -901,9 +901,6 @@ myTelegram::myTelegram(char* Bot, char* chatID, int checkServer_interval, char* 
         sprintf(_chatID,chatID);
         sprintf(_ssid,ssid);
         sprintf(_password,password);
-
-        _Bot_mtbs = checkServer_interval*1000; // time to check messages on Telegram server
-
 }
 void myTelegram::handleNewMessages(int numNewMessages){
         char sendmsg[250];
@@ -915,9 +912,9 @@ void myTelegram::handleNewMessages(int numNewMessages){
                 if (from_name == "") from_name = "Guest";
                 _ext_func(text,from_name,chat_id, sendmsg);
 
-                if(strcmp(sendmsg,"")!=0){
-                bot.sendMessage(chat_id, sendmsg, "");
-              }
+                if(strcmp(sendmsg,"")!=0) {
+                        bot.sendMessage(chat_id, sendmsg, "");
+                }
         }
 }
 void myTelegram::begin(cb_func2 funct){
@@ -952,11 +949,16 @@ void myTelegram::send_msg(char *msg){
 }
 void myTelegram::looper(){
         if (millis() > _Bot_lasttime + _Bot_mtbs)  {
+                Serial.println("in");
                 int numNewMessages = bot.getUpdates(bot.last_message_received + 1);
+                Serial.println("out");
 
                 while(numNewMessages) {
                         handleNewMessages(numNewMessages);
                         numNewMessages = bot.getUpdates(bot.last_message_received + 1);
+                        Serial.print("numNewMessages");
+                        Serial.println(numNewMessages);
+
                 }
                 _Bot_lasttime = millis();
         }
