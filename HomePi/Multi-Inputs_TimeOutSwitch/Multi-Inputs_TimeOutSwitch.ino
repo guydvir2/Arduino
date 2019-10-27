@@ -20,7 +20,7 @@
 #define IS_SONOFF        false
 #define HARD_REBOOT      false
 
-#define USE_NOTIFY_TELE  true
+#define USE_NOTIFY_TELE  false
 #define USE_SENSOR       false
 #define USE_IR_REMOTE    false
 
@@ -41,10 +41,10 @@ myIOT iot(DEVICE_TOPIC);
 
 // ********** TimeOut Time vars  ***********
 #define NUM_SWITCHES     1
-#define TIMEOUT_SW0      3*60 // mins for SW0
+#define TIMEOUT_SW0      2*60 // mins for SW0
 #define TIMEOUT_SW1      2*60 // mins
 
-const int START_dailyTO[] = {18, 30, 0};
+const int START_dailyTO[] = {15, 12, 0};
 const int END_dailyTO[]   = {0, 0, 0};
 
 int TIMEOUTS[2]  = {TIMEOUT_SW0, TIMEOUT_SW1};

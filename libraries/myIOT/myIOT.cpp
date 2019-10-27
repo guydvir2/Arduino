@@ -949,9 +949,7 @@ void myTelegram::send_msg(char *msg){
 }
 void myTelegram::looper(){
         if (millis() > _Bot_lasttime + _Bot_mtbs)  {
-                Serial.println("in");
                 int numNewMessages = bot.getUpdates(bot.last_message_received + 1);
-                Serial.println("out");
 
                 while(numNewMessages) {
                         handleNewMessages(numNewMessages);
@@ -960,6 +958,6 @@ void myTelegram::looper(){
                         Serial.println(numNewMessages);
 
                 }
-                _Bot_lasttime = millis();
+
         }
 }
