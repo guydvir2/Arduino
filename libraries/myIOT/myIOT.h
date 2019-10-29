@@ -119,7 +119,7 @@ char prefixTopic  [MaxTopicLength];
 char deviceTopic  [MaxTopicLength];
 char addGroupTopic[MaxTopicLength];
 
-const char *ver     = "iot_5.3";
+const char *ver     = "iot_5.4";
 char timeStamp[20];
 long updated_bootTime  = 0;
 int resetIntervals     = 10;
@@ -237,6 +237,7 @@ dTO dailyTO            = {{19, 15, 0}, {20, 37, 0}, 1, 0, 0};
 dTO dailyTO2           = {{1, 1, 0}, {17, 14, 0}, 1, 0, 0};
 dTO *dTOlist[2]        = {&dailyTO, &dailyTO2};
 const char *clock_fields[4] = {"ontime", "off_time", "flag", "use_inFl_vals"};
+char dTO_pubMsg[40];
 
 
 public:

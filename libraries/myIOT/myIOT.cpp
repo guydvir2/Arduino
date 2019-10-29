@@ -668,7 +668,6 @@ bool timeOUT::looper(){
         else {
                 if (_inTO == true) {
                         switchOFF();
-
                 }
                 return 0;
         }
@@ -707,6 +706,7 @@ bool timeOUT::begin(bool newReboot){   // NewReboot come to not case of sporadic
         else if (endTO_inFlash == 0) {                  // saved but time passed
                 return 0;
         }
+        sprintf(dTO_pubMsg,"");
 }
 int timeOUT::remain(){
         if (_inTO == true) {
@@ -718,7 +718,7 @@ int timeOUT::remain(){
 }
 void timeOUT::setNewTimeout(int to, bool mins){
         if (mins==true) {
-                _calc_endTO=now()+to*60; // when given in mintes
+                _calc_endTO=now()+to*60; // when given in mintes -- which is default
         }
         else{
                 _calc_endTO=now()+to;
@@ -746,15 +746,12 @@ void timeOUT::switchOFF(){
         endTimeOUT_inFlash.setValue(0);
         endNow();
         _inTO = false;
-        if (dailyTO.onNow == true) {
-                dailyTO.onNow = false;
-                Serial.println("set back to false");
-        }
 }
 void timeOUT::endNow(){
         _calc_endTO = now();
-        if(dailyTO.onNow = true) { // for dailyTO
+        if(dailyTO.onNow == true) { // for dailyTO
                 dailyTO.onNow = false;
+                sprintf(dTO_pubMsg,"DailyTimeOut: [End]");
         }
 }
 void timeOUT::convert_epoch2clock(long t1, long t2, char* time_str, char* days_str){
@@ -805,8 +802,11 @@ void timeOUT::dailyTO_looper(dTO &dailyTO) {
                 if (dailyTO.onNow == false) { // start
                         if (hour(t) == dailyTO.on[0] && minute(t) == dailyTO.on[1] && second(t) == dailyTO.on[2]) {
                                 int tot_time = calc_dailyTO(dailyTO);
+                                char time_str[20], date_str[20];
+                                convert_epoch2clock(now()+tot_time, now(), time_str, date_str);
                                 setNewTimeout(tot_time, false);
                                 dailyTO.onNow = true;
+                                sprintf(dTO_pubMsg,"DailyTimeOut: [Start] until [%02d:%02d:%02d]",dailyTO.off[0],dailyTO.off[1],dailyTO.off[2]);
                         }
                 }
         }
@@ -892,6 +892,7 @@ void timeOUT::restart_dailyTO (dTO &dailyTO){
         dailyTO.onNow = true;
 
 }
+
 
 
 // ~~~~~~~~~~~ myTelegram Class ~~~~~~~~~~~~

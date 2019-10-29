@@ -4,21 +4,21 @@
 
 // ********** Names + Strings  ***********
 // ~~~~~~~ MQTT Topics ~~~~~~                        // belonga rto myIOT
-#define DEVICE_TOPIC "tesets"
-#define MQTT_PREFIX  "TEST"
-#define MQTT_GROUP   ""
+#define DEVICE_TOPIC "PergolaLEDs"
+#define MQTT_PREFIX  "myHome"
+#define MQTT_GROUP   "extLights"
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 // belongs to TELEGRAM
 
 // ********** Sketch Services  ***********
-#define VER              "WEMOS_4.21"
-#define USE_INPUTS       true
+#define VER              "SONOFF_4.3"
+#define USE_INPUTS       false
 #define IS_MOMENTARY     true  // is switch latch or momentary
-#define ON_AT_BOOT       false // On or OFF at boot (Usually when using inputs, at boot/PowerOn - state should be off
+#define ON_AT_BOOT       true // On or OFF at boot (Usually when using inputs, at boot/PowerOn - state should be off
 #define USE_DAILY_TO     true
-#define IS_SONOFF        false
-#define HARD_REBOOT      false
+#define IS_SONOFF        true
+#define HARD_REBOOT      true
 
 #define USE_NOTIFY_TELE  false
 #define USE_SENSOR       false
@@ -26,7 +26,7 @@
 
 // ********** myIOT Class ***********
 //~~~~~ Services ~~~~~~~~~~~
-#define USE_SERIAL       true // Serial Monitor
+#define USE_SERIAL       false // Serial Monitor
 #define USE_WDT          true  // watchDog resets
 #define USE_OTA          true  // OTA updates
 #define USE_RESETKEEPER  true // detect quick reboot and real reboots
@@ -40,12 +40,12 @@ myIOT iot(DEVICE_TOPIC);
 
 
 // ********** TimeOut Time vars  ***********
-#define NUM_SWITCHES     1
-#define TIMEOUT_SW0      2*60 // mins for SW0
+#define NUM_SWITCHES     2
+#define TIMEOUT_SW0      3*60 // mins for SW0
 #define TIMEOUT_SW1      2*60 // mins
 
-const int START_dailyTO[] = {15, 12, 0};
-const int END_dailyTO[]   = {0, 0, 0};
+const int START_dailyTO[] = {17,0, 0};
+const int END_dailyTO[]   = {6, 30, 0};
 
 int TIMEOUTS[2]  = {TIMEOUT_SW0, TIMEOUT_SW1};
 timeOUT timeOut_SW0("SW0", TIMEOUTS[0]);
@@ -363,10 +363,17 @@ void start_dailyTO(byte i){
         TO[i]->dailyTO.flag = USE_DAILY_TO;
         TO[i]->check_dailyTO_inFlash(TO[i]->dailyTO,i);
 }
+void notify_dailyTO(byte i){
+  if (strcmp(TO[i]->dTO_pubMsg,"")!=0) {
+          iot.pub_msg(TO[i]->dTO_pubMsg);
+          sprintf(TO[i]->dTO_pubMsg,"");
+  }
+}
 void TO_looper(byte i) {
 
         if (iot.mqtt_detect_reset != 2) {
                 relState[i] = TO[i]->looper();
+                notify_dailyTO(i);
                 if (relState[i] != last_relState[i]) { // change state (ON <-->OFF)
                         switchIt("TimeOut", i, relState[i]);
                 }
