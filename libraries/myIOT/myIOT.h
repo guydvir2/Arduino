@@ -95,7 +95,7 @@ void return_date(char ret_tuple[20]);
 void sendReset(char *header);
 void notifyOnline();
 void notifyOffline();
-void pub_state(char *inmsg);
+void pub_state(char *inmsg, byte i=0);
 void pub_msg(char *inmsg);
 void pub_err(char *inmsg);
 int inline_read(char *inputstr);
@@ -119,7 +119,7 @@ char prefixTopic  [MaxTopicLength];
 char deviceTopic  [MaxTopicLength];
 char addGroupTopic[MaxTopicLength];
 
-const char *ver     = "iot_5.4";
+const char *ver     = "iot_5.5";
 char timeStamp[20];
 long updated_bootTime  = 0;
 int resetIntervals     = 10;
@@ -134,10 +134,10 @@ cb_func2 ext_telegram;
 
 // time interval parameters
 const int clockUpdateInt        = 60 * 60 * 5;                                      // seconds to update NTP
-const int WIFItimeOut           = (1000 * 60) * 1/3;                               // 20 sec try to connect WiFi
+const int WIFItimeOut           = (1000 * 60) * 1/2;                               // 20 sec try to connect WiFi
 const int OTA_upload_interval   = (1000 * 60) * 5;                               // 5 minute to try OTA
-const long time2Reset_noNetwork = (1000 * 60) * 1;                               // minutues pass without any network
-const int time2_tryReconnect    = (1000 * 60) * 3;                               // time between reconnection retries
+const long time2Reset_noNetwork = (1000 * 60) * 1.5;                               // minutues pass without any network
+const int time2_tryReconnect    = (1000 * 60) * 0.5;                               // time between reconnection retries
 volatile int wdtResetCounter    = 0;
 const int wdtMaxRetries         = 30;                               //seconds to bITE
 long noNetwork_Clock            = 0;                               // clock
@@ -149,7 +149,8 @@ long lastReconnectTry           = 0;
 //MQTT broker parameters
 char* mqtt_server;
 // char* mqtt_server2 = "iot.eclipse.org";
-char* mqtt_server2 = "broker.hivemq.com";
+// char* mqtt_server2 = "broker.hivemq.com";
+char* mqtt_server2 = "192.168.3.200";
 char* user  = "";
 char* passw = "";
 // ######################################
@@ -162,6 +163,7 @@ char _errorTopic[MaxTopicLength];
 char _deviceName[MaxTopicLength];
 char _availTopic[MaxTopicLength];
 char _stateTopic[MaxTopicLength];
+char _stateTopic2[MaxTopicLength];
 
 char* topicArry[4] = {deviceTopic, _groupTopic, _availTopic, addGroupTopic};
 // ##############################################

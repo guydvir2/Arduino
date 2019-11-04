@@ -76,7 +76,7 @@ void myIOT::startNetwork(char *ssid, char *password) {
 
         // in case of reboot - timeOUT to wifi
         while (WiFi.status() != WL_CONNECTED && millis() - startWifiConnection < WIFItimeOut) {
-                delay(150);
+                delay(500);
                 if (useSerial) {
                         Serial.print(".");
                 }
@@ -134,7 +134,6 @@ void myIOT::networkStatus() {
                 }
         }
         else {                                  // NO WIFI
-
                 if (noNetwork_Clock == 0) { // first time when NO NETWORK
                         noNetwork_Clock=millis();
                 }
@@ -237,7 +236,7 @@ void myIOT::startMQTT() {
         else if (Ping.ping(mqtt_server2)) {
                 // else{
                 mqttClient.setServer(mqtt_server2, 1883);
-                strcat(bootErrors,"** MQTT SERVER ERR **");
+                strcat(bootErrors,"** MQTT BACKUP SERVER **");
                 if(useSerial) {
                         strcat(bootErrors,"Coonected to MQTT SERVER2");
                 }
@@ -261,7 +260,7 @@ int myIOT::subscribeMQTT() {
                 if (useSerial) {
                         Serial.println("have wifi, entering MQTT connection");
                 }
-                while (!mqttClient.connected() && mqttFailCounter <= MQTTretries) {
+                if (!mqttClient.connected()) {
                         if (useSerial) {
                                 Serial.print("Attempting MQTT connection...");
                         }
@@ -289,30 +288,16 @@ int myIOT::subscribeMQTT() {
                                                 mqttClient.subscribe(topicArry[i]);
                                         }
                                 }
-
-                                mqttFailCounter = 0;
                                 return 1;
                         }
                         else {
                                 if (useSerial) {
                                         Serial.print("failed, rc=");
                                         Serial.print(mqttClient.state());
-                                        Serial.print("number of fails to reconnect MQTT :");
-                                        Serial.println(mqttFailCounter);
                                 }
-                                mqttFailCounter++;
-                                Serial.println("C");
-
+                                return 0;
                         }
-                        // delay(500);
                 }
-
-                // Failed to connect MQTT adter retries
-                if (useSerial) {
-                        Serial.println("Exit without connecting MQTT");
-                }
-                mqttFailCounter = 0;
-                return 0;
         }
         else {
                 if (useSerial) {
@@ -339,6 +324,7 @@ void myIOT::createTopics() {
         }
 
         snprintf(_stateTopic, MaxTopicLength, "%s/State", deviceTopic);
+        snprintf(_stateTopic2, MaxTopicLength, "%s/State_2", deviceTopic);
         snprintf(_availTopic, MaxTopicLength, "%s/Avail", deviceTopic);
 
 
@@ -359,10 +345,10 @@ void myIOT::callback(char* topic, byte* payload, unsigned int length) {
                 incoming_msg[i] = (char)payload[i];
         }
         incoming_msg[length] = 0;
+
         if (useSerial) {
                 Serial.println("");
         }
-        Serial.println(incoming_msg);
         if(strcmp(topic,_availTopic)==0) {
                 if (strcmp(incoming_msg,"online")==0) {
                         is_online = true;
@@ -418,9 +404,15 @@ void myIOT::pub_msg(char *inmsg) {
                 msgSplitter(inmsg, 200, tmpmsg, "#" );
         }
 }
-void myIOT::pub_state(char *inmsg) {
+void myIOT::pub_state(char *inmsg, byte i) {
         if (mqttConnected == true) {
-                mqttClient.publish(_stateTopic, inmsg, true);
+                if(i==0) {
+                        mqttClient.publish(_stateTopic, inmsg, true);
+                }
+                else if(i==1) {
+                        mqttClient.publish(_stateTopic2, inmsg, true);
+                }
+
         }
 }
 void myIOT::pub_err(char *inmsg) {

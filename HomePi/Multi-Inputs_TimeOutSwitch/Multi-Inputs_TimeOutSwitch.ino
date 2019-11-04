@@ -12,7 +12,7 @@
 // belongs to TELEGRAM
 
 // ********** Sketch Services  ***********
-#define VER              "SONOFF_4.3"
+#define VER              "SONOFF_4.4"
 #define USE_INPUTS       false
 #define IS_MOMENTARY     true  // is switch latch or momentary
 #define ON_AT_BOOT       true // On or OFF at boot (Usually when using inputs, at boot/PowerOn - state should be off
@@ -273,10 +273,10 @@ void switchIt (char *txt1, int sw_num, bool state, char *txt2 = "", bool show_ti
 
                 sprintf(states, "");
                 for (int i = 0; i < NUM_SWITCHES; i++) {
-                        sprintf(tempstr, "[%s]", digitalRead(relays[i]) ? "ON" : "OFF");
-                        strcat(states, tempstr);
+                        sprintf(states, "[%s]", digitalRead(relays[i]) ? "ON" : "OFF");
+                        // strcat(states, tempstr);
+                        iot.pub_state(states, i);
                 }
-                iot.pub_state(states);
         }
 }
 void checkSwitch_Pressed (byte sw, bool momentary = true) {
