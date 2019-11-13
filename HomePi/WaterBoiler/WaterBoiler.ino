@@ -11,8 +11,8 @@
 // #define sensor_notification_msg "" // belongs to SENSOR
 
 // ~~~~~~~ MQTT Topics ~~~~~~
-#define DEVICE_TOPIC "WaterBoiler2"
-#define MQTT_PREFIX  "TESTS"
+#define DEVICE_TOPIC "WaterBoiler"
+#define MQTT_PREFIX  "myHome"
 #define MQTT_GROUP   ""
 
 

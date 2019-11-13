@@ -120,6 +120,7 @@ void myIOT::networkStatus() {
                         else {
                                 if (subscribeMQTT() == 1) { // try to reconnect MQTT
                                         mqttClient.loop();
+                                        reset_badNetwork = false;
                                         noNetwork_Clock  = 0;
                                         mqttConnected    = 1;
                                 }
