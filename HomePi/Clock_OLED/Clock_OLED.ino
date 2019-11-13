@@ -7,7 +7,7 @@
 
 // ********** myIOT Class ***********
 //~~~~~ Services ~~~~~~~~~~~
-#define USE_SERIAL       true // Serial Monitor
+#define USE_SERIAL       false // Serial Monitor
 #define USE_WDT          true  // watchDog resets
 #define USE_OTA          true  // OTA updates
 #define USE_RESETKEEPER  false // detect quick reboot and real reboots
@@ -16,7 +16,7 @@
 
 // ~~~~~~~ MQTT Topics ~~~~~~
 #define DEVICE_TOPIC "OLED_Clock"
-#define MQTT_PREFIX  "Tests"
+#define MQTT_PREFIX  "myHome"
 #define MQTT_GROUP   ""
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -49,7 +49,7 @@ void startIOTservices() {
         iot.resetFailNTP   = USE_FAILNTP;
         strcpy(iot.prefixTopic, MQTT_PREFIX);
         strcpy(iot.addGroupTopic, MQTT_GROUP);
-        iot.start_services(ADD_MQTT_FUNC,"TP-LINK","21903519","guy","kupelu9e","192.168.2.125");
+        iot.start_services(ADD_MQTT_FUNC);//,"TP-LINK","21903519","guy","kupelu9e","192.168.2.125");
         // char *ssid=SSID_ID, char *password=PASS_WIFI, char *mqtt_user=MQTT_USER, char *mqtt_passw=MQTT_PASS, char *mqtt_broker="192.168.3.200"
 }
 void addiotnalMQTT(char *incoming_msg) {

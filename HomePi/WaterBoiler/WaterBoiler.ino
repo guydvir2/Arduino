@@ -7,23 +7,23 @@
 #include <Arduino.h>
 
 // ********** Names + Strings  ***********
-#define Telegram_Nick "test1"                         // belongs to TELEGRAM
-#define sensor_notification_msg "" // belongs to SENSOR
+// #define Telegram_Nick "test1"      // belongs to TELEGRAM
+// #define sensor_notification_msg "" // belongs to SENSOR
 
 // ~~~~~~~ MQTT Topics ~~~~~~
-#define DEVICE_TOPIC "WaterBoiler"
-#define MQTT_PREFIX  "myHome"
+#define DEVICE_TOPIC "WaterBoiler2"
+#define MQTT_PREFIX  "TESTS"
 #define MQTT_GROUP   ""
 
 
 // ********** Sketch Services  ***********
-#define VER "Wemos_5.6"
+#define VER "Wemos_5.7"
 #define USE_DAILY_TO  true
 #define HARD_REBOOT   false
 
 // ********** myIOT Class ***********
 //~~~~~ Services ~~~~~~~~~~~
-#define USE_SERIAL       false // Serial Monitor
+#define USE_SERIAL       true // Serial Monitor
 #define USE_WDT          true  // watchDog resets
 #define USE_OTA          true  // OTA updates
 #define USE_RESETKEEPER  true // detect quick reboot and real reboots

@@ -4,21 +4,21 @@
 
 // ********** Names + Strings  ***********
 // ~~~~~~~ MQTT Topics ~~~~~~                        // belonga rto myIOT
-#define DEVICE_TOPIC "PergolaLEDs"
+#define DEVICE_TOPIC "familyRoomLEDs"
 #define MQTT_PREFIX  "myHome"
-#define MQTT_GROUP   "extLights"
+#define MQTT_GROUP   "intLights"
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 // belongs to TELEGRAM
 
 // ********** Sketch Services  ***********
-#define VER              "SONOFF_4.4"
-#define USE_INPUTS       false
+#define VER              "WEMOS_4.4"
+#define USE_INPUTS       true
 #define IS_MOMENTARY     true  // is switch latch or momentary
-#define ON_AT_BOOT       true // On or OFF at boot (Usually when using inputs, at boot/PowerOn - state should be off
+#define ON_AT_BOOT       false // On or OFF at boot (Usually when using inputs, at boot/PowerOn - state should be off
 #define USE_DAILY_TO     true
-#define IS_SONOFF        true
-#define HARD_REBOOT      true
+#define IS_SONOFF        false
+#define HARD_REBOOT      false
 
 #define USE_NOTIFY_TELE  false
 #define USE_SENSOR       false
@@ -40,12 +40,12 @@ myIOT iot(DEVICE_TOPIC);
 
 
 // ********** TimeOut Time vars  ***********
-#define NUM_SWITCHES     2
+#define NUM_SWITCHES     1
 #define TIMEOUT_SW0      3*60 // mins for SW0
 #define TIMEOUT_SW1      2*60 // mins
 
-const int START_dailyTO[] = {17,0, 0};
-const int END_dailyTO[]   = {6, 30, 0};
+const int START_dailyTO[] = {18,0, 0};
+const int END_dailyTO[]   = {0, 30, 0};
 
 int TIMEOUTS[2]  = {TIMEOUT_SW0, TIMEOUT_SW1};
 timeOUT timeOut_SW0("SW0", TIMEOUTS[0]);
@@ -76,7 +76,7 @@ char *clockAlias = "Daily TimeOut";
 #define INPUT1          D7
 #define INPUT2          D6
 #define SENSOR_PIN      D1
-#define indic_LEDpin    D8
+#define indic_LEDpin    D4
 #endif
 
 #define IR_SENSOR_PIN   D5
@@ -120,7 +120,7 @@ eeproms_storage hReset_eeprom;
 // ~~~~~~~~~~~~~ Sensor Switch ~~~~~~~~~~~~~~
 #define MAX_NOTI_1HR           10
 #define MIN_TIME_BETWEEN_NOTI  0.25 //in minutes
-#define MIN_TIME_FIRST_DET     5    // sec
+#define MIN_TIME_FIRST_DET     10    // sec
 #define ADD_TIME_NEXT_DET      10   // sec
 
 class SensorSwitch
@@ -224,7 +224,7 @@ sensorNotify sensorNotify = {0, 0, 0, "detection"};
 
 // ~~~~~~~~~~~ Using SMS Notification ~~~~~~~
 #if USE_NOTIFY_TELE
-char *Telegram_Nick = "iotTest";
+char *Telegram_Nick = DEVICE_TOPIC;//"iotTest";
 int time_check_messages = 1; //sec
 myTelegram teleNotify(BOT_TOKEN, CHAT_ID, time_check_messages);
 #endif
@@ -976,5 +976,7 @@ void loop() {
         recvIRinputs(); // IR signals
         #endif
 
-        delay(300);
+        delay(50);
+
+        // Serial.println("LOOOP");
 }

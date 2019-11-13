@@ -44,7 +44,7 @@
 
 
 // ********** Sketch Services  ***********
-#define VER              "NODEMCU_3.2"
+#define VER              "NODEMCU_3.21"
 #define USE_NOTIFY_TELE  false
 
 // ********** myIOT Class ***********
@@ -76,8 +76,8 @@ byte inputs[]       = {INPUT1, INPUT2};
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 // GPIO status flags
-bool indication_ARMED_lastState   = true;
-bool indication_ALARMED_lastState = true;
+bool indication_ARMED_lastState;//   = true;
+bool indication_ALARMED_lastState;// = true;
 
 const int systemPause = 2000; // milli-seconds, delay to system react
 const int deBounceInt = 50;
@@ -121,6 +121,8 @@ void startGPIOs() {
                 pinMode(relays[i],OUTPUT);
                 pinMode(inputs[i],INPUT_PULLUP);
         }
+        indication_ARMED_lastState = digitalRead(inputs[0]);
+        indication_ALARMED_lastState = digitalRead(inputs[1]);
 }
 
 // ~~~~ MQTT Commands ~~~~~
@@ -324,7 +326,7 @@ void check_systemState_armed() { // System OUTPUT 1: arm_state
 
                                 }
                                 else{
-                                  iot.pub_err("Error Arming system");
+                                        iot.pub_err("Error Arming system");
                                 }
                         }
                         else { // system detected a disarmed indication :
@@ -493,12 +495,12 @@ void setup() {
 void loop() {
         iot.looper();
 
-            #if USE_NOTIFY_TELE
+        #if USE_NOTIFY_TELE
         teleNotify.looper();
-            #endif
+        #endif
 
         check_systemState_armed();
         check_systemState_alarming();
 
-        delay(200);
+        delay(100);
 }

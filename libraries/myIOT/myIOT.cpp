@@ -45,17 +45,12 @@ void myIOT::looper(){
         if (useOTA) {
                 acceptOTA();
         }
+        
         // continue TO after reset
+        if (reset_badNetwork) {
+                if (millis() - noNetwork_Clock > time2Reset_noNetwork) {
+                        sendReset("NO NETWoRK");
 
-        if (firstRun) {
-                if (useResetKeeper) {
-                        if(mqtt_detect_reset !=2) {
-                                notifyOnline();
-                                firstRun = false;
-                        }
-                }
-                else{
-                        mqtt_detect_reset = 0;
                 }
         }
 }
@@ -109,29 +104,46 @@ void myIOT::networkStatus() {
                         mqttClient.loop();
                         mqttConnected    = 1;
                         noNetwork_Clock  = 0;
+                        reset_badNetwork = false;
                         if ( alternativeMQTTserver ==true) { // connected to temp MQTT
                                 if  (millis() - noNetwork_Clock >= time2Reset_noNetwork) {// reset due to long no MQTT
                                         sendReset("fail MQTT");
                                 }
                         }
                 }
-                else if (noNetwork_Clock == 0) { // first time no MQTT, wifi OK
-                        noNetwork_Clock  = millis();
-                }
-                else if (noNetwork_Clock !=0 ) {  // WIFI OK, no MQTT not for the first time
-                        if (millis() - noNetwork_Clock >= time2Reset_noNetwork) {     // reset due to long no MQTT
-                                sendReset("NO NETWoRK");
+                else {
+                        if (reset_badNetwork == false) { // first time fail MQTT
+                                reset_badNetwork = true;
+                                noNetwork_Clock  = millis();
+                                mqttConnected    = 0;
                         }
-                        else if (millis() - noNetwork_Clock <= time2_tryReconnect) { // time interval to try again to connect MQTT
-                                if (subscribeMQTT() == 1) {                           //try successfully reconnect mqtt
+                        else {
+                                if (subscribeMQTT() == 1) { // try to reconnect MQTT
+                                        mqttClient.loop();
                                         noNetwork_Clock  = 0;
                                         mqttConnected    = 1;
                                 }
-                                else {         // fail connect to MQTT server
-                                        mqttConnected = 0;
-                                }
                         }
                 }
+                // else if (noNetwork_Clock == 0) { // first time no MQTT, wifi OK
+                //         noNetwork_Clock  = millis();
+                // }
+                // else if (noNetwork_Clock !=0 ) {  // WIFI OK, no MQTT not for the first time
+                //         if (millis() - noNetwork_Clock >= time2Reset_noNetwork) {     // reset due to long no MQTT
+                //                 sendReset("NO NETWoRK");
+                //         }
+                //         else if (millis() - noNetwork_Clock <= time2_tryReconnect) { // time interval to try again to connect MQTT
+                //                 if (subscribeMQTT() == 1) {
+                //                         mqttClient.loop();
+                //                         //try successfully reconnect mqtt
+                //                         noNetwork_Clock  = 0;
+                //                         mqttConnected    = 1;
+                //                 }
+                //                 else {         // fail connect to MQTT server
+                //                         mqttConnected = 0;
+                //                 }
+                //         }
+                // }
         }
         else {                                  // NO WIFI
                 if (noNetwork_Clock == 0) { // first time when NO NETWORK
@@ -254,13 +266,73 @@ void myIOT::startMQTT() {
                 }
         }
 }
+// int myIOT::subscribeMQTT() {
+//         // verify wifi connected
+//         if (WiFi.status() == WL_CONNECTED) {
+//                 if (useSerial) {
+//                         Serial.println("have wifi, entering MQTT connection");
+//                 }
+//                 while (!mqttClient.connected() && mqttFailCounter <= MQTTretries) {
+//                         // if (!mqttClient.connected()) {
+//                         if (useSerial) {
+//                                 Serial.print("Attempting MQTT connection...");
+//                         }
+//                         // Attempt to connect
+//                         if (mqttClient.connect(_deviceName, user, passw, _availTopic, 0, true, "offline")) {
+//                                 if (useSerial) {
+//                                         Serial.println("connected");
+//                                 }
+//                                 mqttConnected = 1;
+//                                 if (firstRun) {
+//                                         pub_err("<< Boot >>");
+//                                         if (!useResetKeeper) {
+//                                                 firstRun = false;
+//                                                 mqtt_detect_reset = 0;
+//                                         }
+//                                 }
+//                                 else {
+//                                         if (!is_online) {
+//                                                 notifyOnline();
+//                                         }
+//                                 }
+//                                 for (int i = 0; i < sizeof(topicArry) / sizeof(char *); i++) {
+//                                         if (strcmp(topicArry[i],"")!=0) {
+//                                                 mqttClient.subscribe(topicArry[i]);
+//                                         }
+//                                 }
+//                                 mqttFailCounter = 0;
+//                                 return 1;
+//                         }
+//                         else {
+//                                 if (useSerial) {
+//                                         Serial.print("failed, rc=");
+//                                         Serial.print(mqttClient.state());
+//                                 }
+//                                 mqttFailCounter++;
+//                                 delay(100);
+//                         }
+//                 }
+//                 mqttFailCounter = 0;
+//                 return 0;
+//         }
+//         else {
+//                 if (useSerial) {
+//                         Serial.println("Not connected to Wifi, abort try to connect MQTT broker");
+//                 }
+//                 strcat(bootErrors,"** NoWifi ** ");
+//                 return 0;
+//         }
+// }
 int myIOT::subscribeMQTT() {
         // verify wifi connected
-        if (WiFi.status() == WL_CONNECTED) {
+        if (WiFi.status() == WL_CONNECTED) { // wifi OK
                 if (useSerial) {
                         Serial.println("have wifi, entering MQTT connection");
                 }
-                if (!mqttClient.connected()) {
+                while (!mqttClient.connected() && mqttFailCounter <= MQTTretries) {
+                        Serial.print("MQTT loop Try: ");
+                        Serial.println(mqttFailCounter);
+
                         if (useSerial) {
                                 Serial.print("Attempting MQTT connection...");
                         }
@@ -270,36 +342,53 @@ int myIOT::subscribeMQTT() {
                                         Serial.println("connected");
                                 }
                                 mqttConnected = 1;
-                                if (useResetKeeper == false) {
-                                        notifyOnline();
-                                }
-                                if (firstRun == true) {
+                                if (firstRun) {
                                         pub_err("<< Boot >>");
-                                        if (useResetKeeper == false) {
+                                        if (!useResetKeeper) {
                                                 firstRun = false;
+                                                mqtt_detect_reset = 0;
+                                                notifyOnline();
+                                        }
+                                        else { // using reset keeper
+                                                // TEST PURPOSE
+                                                Serial.println("Entering firstTime run bypass");
+                                                notifyOnline();
+                                                mqtt_detect_reset = 0;
+                                                firstRun = false;
+                                                // END
                                         }
                                 }
-                                else {
-                                        notifyOnline();
+                                else { // not first run
+                                        if (!is_online) { // not on line
+                                                notifyOnline();
+                                        }
+                                        else { // was already online
+
+                                        }
                                 }
-                                // notifyOnline();
+
                                 for (int i = 0; i < sizeof(topicArry) / sizeof(char *); i++) {
                                         if (strcmp(topicArry[i],"")!=0) {
                                                 mqttClient.subscribe(topicArry[i]);
                                         }
                                 }
+                                mqttFailCounter = 0;
+                                Serial.println("Exit successfull MQTT LOOP");
                                 return 1;
                         }
-                        else {
+                        else { // fail to connect MQTT
                                 if (useSerial) {
                                         Serial.print("failed, rc=");
                                         Serial.print(mqttClient.state());
                                 }
-                                return 0;
+                                mqttFailCounter++;
+                                delay(100);
                         }
                 }
+                mqttFailCounter = 0;
+                return 0;
         }
-        else {
+        else { // No wifi available
                 if (useSerial) {
                         Serial.println("Not connected to Wifi, abort try to connect MQTT broker");
                 }
@@ -349,21 +438,32 @@ void myIOT::callback(char* topic, byte* payload, unsigned int length) {
         if (useSerial) {
                 Serial.println("");
         }
-        if(strcmp(topic,_availTopic)==0) {
-                if (strcmp(incoming_msg,"online")==0) {
-                        is_online = true;
-                        if (firstRun && useResetKeeper) { // Check if Avail topic starts from OFFLINE or ONLINE mode
-                                                          // This will flag weather unwanted Reset occured
-                                mqtt_detect_reset = 1;    // bad reboot
-                        }
-                }
-                else if (strcmp(incoming_msg,"offline")==0) {
-                        is_online = false;
-                        if (firstRun && useResetKeeper) {
-                                mqtt_detect_reset = 0; // ordinary boot
-                        }
-                }
-        }
+        // if(strcmp(topic,_availTopic)==0) {
+        //         if (strcmp(incoming_msg,"online")==0) {
+        //                 is_online = true;
+        //                 if (firstRun && useResetKeeper) { // Check if Avail topic starts from OFFLINE or ONLINE mode
+        //                                                   // This will flag weather unwanted Reset occured
+        //                         mqtt_detect_reset = 1;    // bad reboot
+        //                         firstRun = false;
+        //                 }
+        //         }
+        //         else if (strcmp(incoming_msg,"offline")==0) {
+        //                 notifyOnline();
+        //                 if(useResetKeeper && firstRun) {
+        //                         mqtt_detect_reset = 0; // ordinary boot
+        //                         firstRun = false;
+        //                 }
+        //
+        //         }
+        //         else if (strcmp(incoming_msg,"")==0 && firstRun ) {
+        //                 notifyOnline();
+        //                 firstRun = false;
+        //                 if(useResetKeeper) {
+        //                         mqtt_detect_reset = 0; // ordinary boot
+        //                 }
+        //
+        //         }
+        // }
 
         if      (strcmp(incoming_msg, "boot") == 0 ) {
                 sprintf(msg, "Boot:[%s]", bootTime);
@@ -466,9 +566,11 @@ int myIOT::inline_read(char *inputstr) {
 }
 void myIOT::notifyOnline(){
         mqttClient.publish(_availTopic, "online", true);
+        is_online = true;
 }
 void myIOT::notifyOffline(){
         mqttClient.publish(_availTopic, "offline", true);
+        is_online = false;
 }
 void myIOT::publish_errs(){
         if (strcmp(bootErrors,"")!=0 &&mqttConnected==true) {
@@ -906,6 +1008,7 @@ void myTelegram::handleNewMessages(int numNewMessages){
                 _ext_func(text,from_name,chat_id, sendmsg);
 
                 if(strcmp(sendmsg,"")!=0) {
+                        // Serial.println(bot.sendMessage(chat_id, sendmsg, ""));
                         bot.sendMessage(chat_id, sendmsg, "");
                 }
         }
@@ -941,16 +1044,19 @@ void myTelegram::send_msg(char *msg){
         bot.sendMessage(_chatID, msg, "");
 }
 void myTelegram::looper(){
+
         if (millis() > _Bot_lasttime + _Bot_mtbs)  {
                 int numNewMessages = bot.getUpdates(bot.last_message_received + 1);
 
                 while(numNewMessages) {
+                        Serial.print("numNewMessages: ");
+                        Serial.println(numNewMessages);
                         handleNewMessages(numNewMessages);
                         numNewMessages = bot.getUpdates(bot.last_message_received + 1);
-                        Serial.print("numNewMessages");
+                        Serial.print("numNewMessages: ");
                         Serial.println(numNewMessages);
-
                 }
+                _Bot_lasttime = millis();
 
         }
 }

@@ -60,7 +60,7 @@ char _bot[100];
 char _chatID[100];
 char _ssid[20];
 char _password[20];
-int _Bot_mtbs = 10000; //mean time between scan messages in sec
+int _Bot_mtbs = 1000; //mean time between scan messages in sec
 #define def_time_check_M 5
 
 long _Bot_lasttime;   //last time messages' scan has been done
@@ -114,12 +114,13 @@ char inline_param[6][20];                           //values from user
 bool mqttConnected         = 0;
 bool alternativeMQTTserver = false;
 bool is_online             = false;
+bool reset_badNetwork      = false;
 byte mqtt_detect_reset     = 2;
 char prefixTopic  [MaxTopicLength];
 char deviceTopic  [MaxTopicLength];
 char addGroupTopic[MaxTopicLength];
 
-const char *ver     = "iot_5.5";
+const char *ver     = "iot_5.8";
 char timeStamp[20];
 long updated_bootTime  = 0;
 int resetIntervals     = 10;
@@ -171,7 +172,7 @@ char* topicArry[4] = {deviceTopic, _groupTopic, _availTopic, addGroupTopic};
 
 // MQTT connection flags
 int mqttFailCounter = 0;                               // count tries to reconnect
-int MQTTretries     = 0;                               // allowed tries to reconnect
+int MQTTretries     = 2;                               // allowed tries to reconnect
 // ######################
 
 
