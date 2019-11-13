@@ -120,7 +120,7 @@ char prefixTopic  [MaxTopicLength];
 char deviceTopic  [MaxTopicLength];
 char addGroupTopic[MaxTopicLength];
 
-const char *ver     = "iot_5.8";
+const char *ver     = "iot_5.9";
 char timeStamp[20];
 long updated_bootTime  = 0;
 int resetIntervals     = 10;
@@ -136,7 +136,7 @@ cb_func2 ext_telegram;
 // time interval parameters
 const int clockUpdateInt        = 60 * 60 * 5;                                      // seconds to update NTP
 const int WIFItimeOut           = (1000 * 60) * 1/2;                               // 20 sec try to connect WiFi
-const int OTA_upload_interval   = (1000 * 60) * 5;                               // 5 minute to try OTA
+const int OTA_upload_interval   = (1000 * 60) * 5;                                 // 5 minute to try OTA
 const long time2Reset_noNetwork = (1000 * 60) * 1.5;                               // minutues pass without any network
 const int time2_tryReconnect    = (1000 * 60) * 0.5;                               // time between reconnection retries
 volatile int wdtResetCounter    = 0;

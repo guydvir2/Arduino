@@ -45,8 +45,8 @@ void myIOT::looper(){
         if (useOTA) {
                 acceptOTA();
         }
-        
-        // continue TO after reset
+
+        // Force Reset after no Wifi or no MQTT
         if (reset_badNetwork) {
                 if (millis() - noNetwork_Clock > time2Reset_noNetwork) {
                         sendReset("NO NETWoRK");
@@ -105,9 +105,9 @@ void myIOT::networkStatus() {
                         mqttConnected    = 1;
                         noNetwork_Clock  = 0;
                         reset_badNetwork = false;
-                        if ( alternativeMQTTserver ==true) { // connected to temp MQTT
-                                if  (millis() - noNetwork_Clock >= time2Reset_noNetwork) {// reset due to long no MQTT
-                                        sendReset("fail MQTT");
+                        if ( alternativeMQTTserver == true) { // connected to temp MQTT
+                                if (millis() >1000*60*60L) { // 1 hrs
+                                        sendReset("Reset- restore main MQTT server");
                                 }
                         }
                 }
@@ -125,25 +125,6 @@ void myIOT::networkStatus() {
                                 }
                         }
                 }
-                // else if (noNetwork_Clock == 0) { // first time no MQTT, wifi OK
-                //         noNetwork_Clock  = millis();
-                // }
-                // else if (noNetwork_Clock !=0 ) {  // WIFI OK, no MQTT not for the first time
-                //         if (millis() - noNetwork_Clock >= time2Reset_noNetwork) {     // reset due to long no MQTT
-                //                 sendReset("NO NETWoRK");
-                //         }
-                //         else if (millis() - noNetwork_Clock <= time2_tryReconnect) { // time interval to try again to connect MQTT
-                //                 if (subscribeMQTT() == 1) {
-                //                         mqttClient.loop();
-                //                         //try successfully reconnect mqtt
-                //                         noNetwork_Clock  = 0;
-                //                         mqttConnected    = 1;
-                //                 }
-                //                 else {         // fail connect to MQTT server
-                //                         mqttConnected = 0;
-                //                 }
-                //         }
-                // }
         }
         else {                                  // NO WIFI
                 if (noNetwork_Clock == 0) { // first time when NO NETWORK
@@ -329,7 +310,7 @@ int myIOT::subscribeMQTT() {
                 if (useSerial) {
                         Serial.println("have wifi, entering MQTT connection");
                 }
-                while (!mqttClient.connected() && mqttFailCounter <= MQTTretries) {
+                while (!mqttClient.connected() && mqttFailCounter < MQTTretries) {
                         Serial.print("MQTT loop Try: ");
                         Serial.println(mqttFailCounter);
 
@@ -382,7 +363,7 @@ int myIOT::subscribeMQTT() {
                                         Serial.print(mqttClient.state());
                                 }
                                 mqttFailCounter++;
-                                delay(100);
+                                delay(200);
                         }
                 }
                 mqttFailCounter = 0;
@@ -438,32 +419,30 @@ void myIOT::callback(char* topic, byte* payload, unsigned int length) {
         if (useSerial) {
                 Serial.println("");
         }
-        // if(strcmp(topic,_availTopic)==0) {
-        //         if (strcmp(incoming_msg,"online")==0) {
-        //                 is_online = true;
-        //                 if (firstRun && useResetKeeper) { // Check if Avail topic starts from OFFLINE or ONLINE mode
-        //                                                   // This will flag weather unwanted Reset occured
-        //                         mqtt_detect_reset = 1;    // bad reboot
-        //                         firstRun = false;
-        //                 }
-        //         }
-        //         else if (strcmp(incoming_msg,"offline")==0) {
-        //                 notifyOnline();
-        //                 if(useResetKeeper && firstRun) {
-        //                         mqtt_detect_reset = 0; // ordinary boot
-        //                         firstRun = false;
-        //                 }
-        //
-        //         }
-        //         else if (strcmp(incoming_msg,"")==0 && firstRun ) {
-        //                 notifyOnline();
-        //                 firstRun = false;
-        //                 if(useResetKeeper) {
-        //                         mqtt_detect_reset = 0; // ordinary boot
-        //                 }
-        //
-        //         }
-        // }
+        if(strcmp(topic,_availTopic)==0) {
+                if (strcmp(incoming_msg,"online")==0) {
+                        is_online = true;
+                        if (firstRun && useResetKeeper) { // Check if Avail topic starts from OFFLINE or ONLINE mode
+                                                          // This will flag weather unwanted Reset occured
+                                mqtt_detect_reset = 1;    // bad reboot
+                                firstRun = false;
+                        }
+                }
+                else if (strcmp(incoming_msg,"offline")==0) {
+                        notifyOnline();
+                        if(useResetKeeper && firstRun) {
+                                mqtt_detect_reset = 0; // ordinary boot
+                                firstRun = false;
+                        }
+                }
+                else if (strcmp(incoming_msg,"")==0 ) {
+                        notifyOnline();
+                        if(useResetKeeper  && firstRun ) {
+                                mqtt_detect_reset = 0; // ordinary boot
+                                firstRun = false;
+                        }
+                }
+        }
 
         if      (strcmp(incoming_msg, "boot") == 0 ) {
                 sprintf(msg, "Boot:[%s]", bootTime);

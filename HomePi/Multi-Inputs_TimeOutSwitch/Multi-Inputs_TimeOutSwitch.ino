@@ -12,7 +12,7 @@
 // belongs to TELEGRAM
 
 // ********** Sketch Services  ***********
-#define VER              "WEMOS_4.4"
+#define VER              "WEMOS_4.5"
 #define USE_INPUTS       true
 #define IS_MOMENTARY     true  // is switch latch or momentary
 #define ON_AT_BOOT       false // On or OFF at boot (Usually when using inputs, at boot/PowerOn - state should be off
@@ -977,6 +977,4 @@ void loop() {
         #endif
 
         delay(50);
-
-        // Serial.println("LOOOP");
 }

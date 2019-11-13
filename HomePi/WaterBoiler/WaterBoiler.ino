@@ -17,7 +17,7 @@
 
 
 // ********** Sketch Services  ***********
-#define VER "Wemos_5.7"
+#define VER "Wemos_5.8"
 #define USE_DAILY_TO  true
 #define HARD_REBOOT   false
 
