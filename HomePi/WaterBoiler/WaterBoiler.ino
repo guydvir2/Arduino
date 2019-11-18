@@ -11,10 +11,9 @@
 // #define sensor_notification_msg "" // belongs to SENSOR
 
 // ~~~~~~~ MQTT Topics ~~~~~~
-#define DEVICE_TOPIC "WaterBoiler"
+#define DEVICE_TOPIC "guy"
 #define MQTT_PREFIX  "myHome"
 #define MQTT_GROUP   ""
-
 
 // ********** Sketch Services  ***********
 #define VER "Wemos_5.8"
@@ -32,6 +31,7 @@
 
 // ~~~~~~~ MQTT ~~~~~~
 #define ADD_MQTT_FUNC addiotnalMQTT
+
 myIOT iot(DEVICE_TOPIC);
 // ***************************
 
@@ -205,6 +205,7 @@ void startIOTservices() {
         strcpy(iot.prefixTopic, MQTT_PREFIX);
         strcpy(iot.addGroupTopic, MQTT_GROUP);
         iot.start_services(ADD_MQTT_FUNC);
+        // iot.start_services(ADD_MQTT_FUNC, "Xiaomi_D6C8", "guyd5161", "guy", "kupelu9e", "192.168.3.128");
 }
 void startGPIOs() {
         for (int i = 0; i < NUM_SWITCHES; i++) {

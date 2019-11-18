@@ -4,9 +4,9 @@
 
 // ********** Names + Strings  ***********
 // ~~~~~~~ MQTT Topics ~~~~~~                        // belonga rto myIOT
-#define DEVICE_TOPIC "familyRoomLEDs"
+#define DEVICE_TOPIC "frontDoorLEDs"
 #define MQTT_PREFIX  "myHome"
-#define MQTT_GROUP   "intLights"
+#define MQTT_GROUP   "extLights"
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 // belongs to TELEGRAM
@@ -21,7 +21,7 @@
 #define HARD_REBOOT      false
 
 #define USE_NOTIFY_TELE  false
-#define USE_SENSOR       false
+#define USE_SENSOR       true
 #define USE_IR_REMOTE    false
 
 // ********** myIOT Class ***********

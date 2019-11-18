@@ -4,7 +4,7 @@
 // ********** Sketch Services  ***********
 #define VER              "NodeMCU_5.0"
 #define USE_BOUNCE_DEBUG false
-#define USE_2_EXT_INPUT  true // Only for dual input window
+#define USE_2_EXT_INPUT  false // Only for dual input window
 #define USE_NOTIFY_TELE  false
 
 // ********** myIOT Class ***********
@@ -17,8 +17,8 @@
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 // ~~~~~~~ MQTT Topics ~~~~~~
-#define DEVICE_TOPIC        "SaloonExit"
-#define MQTT_PREFIX         "HomePi/Dvir"
+#define DEVICE_TOPIC        "LaundryRoom"
+#define MQTT_PREFIX         "myHome"
 #define MQTT_GROUP          "Windows"
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
