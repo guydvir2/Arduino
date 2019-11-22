@@ -2,7 +2,7 @@
 #include <Arduino.h>
 
 // ********** Sketch Services  ***********
-#define VER              "NodeMCU_5.0"
+#define VER              "NodeMCU_5.1"
 #define USE_BOUNCE_DEBUG false
 #define USE_2_EXT_INPUT  false // Only for dual input window
 #define USE_NOTIFY_TELE  false
@@ -17,7 +17,7 @@
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 // ~~~~~~~ MQTT Topics ~~~~~~
-#define DEVICE_TOPIC        "LaundryRoom"
+#define DEVICE_TOPIC        "TEST"
 #define MQTT_PREFIX         "myHome"
 #define MQTT_GROUP          "Windows"
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -259,11 +259,11 @@ void switchIt(char *type, char *dir) {
                 digitalWrite(outputUpPin, states[0]);
                 digitalWrite(outputDownPin, states[1]);
         }
-        if (iot.mqttConnected == true) {
+        // if (iot.mqttConnected == true) {
                 iot.pub_state(dir);
                 sprintf(mqttmsg, "%s: Switched [%s]", type, dir);
                 iot.pub_msg(mqttmsg);
-        }
+        // }
 }
 void checkSwitch_looper( const int &pin, char *dir, bool &lastState, char* type="Button") {
         if (digitalRead(pin) != lastState) {

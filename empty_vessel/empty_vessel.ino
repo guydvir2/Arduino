@@ -7,7 +7,7 @@
 
 // ********** myIOT Class ***********
 //~~~~~ Services ~~~~~~~~~~~
-#define USE_SERIAL       false
+#define USE_SERIAL       true
 #define USE_WDT          true
 #define USE_OTA          true
 #define USE_RESETKEEPER  true
@@ -15,7 +15,7 @@
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 // ~~~~~~~ MQTT Topics ~~~~~~
-#define DEVICE_TOPIC        "t1"
+#define DEVICE_TOPIC        "t2"
 #define MQTT_PREFIX         "myHome"
 #define MQTT_GROUP          "TESTS"
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -89,6 +89,8 @@ void telecmds(String in_msg, String from, String chat_id, char *snd_msg) {
 #endif
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+long counter=0;
+
 void startIOTservices(){
         iot.useSerial      = USE_SERIAL;
         iot.useWDT         = USE_WDT;
@@ -129,4 +131,11 @@ void loop() {
         #endif
 
         delay(100);
+        long now2 = millis();
+        if (now2-counter > 1000) {
+                if(now2-counter > 1300) {
+                        Serial.println((float)(now2-counter)/1000);
+                }
+                counter=now2;
+        }
 }

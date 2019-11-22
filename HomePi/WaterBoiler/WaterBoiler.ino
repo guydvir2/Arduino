@@ -11,18 +11,18 @@
 // #define sensor_notification_msg "" // belongs to SENSOR
 
 // ~~~~~~~ MQTT Topics ~~~~~~
-#define DEVICE_TOPIC "guy"
+#define DEVICE_TOPIC "WaterBoiler"
 #define MQTT_PREFIX  "myHome"
 #define MQTT_GROUP   ""
 
 // ********** Sketch Services  ***********
-#define VER "Wemos_5.8"
+#define VER "Wemos_5.9"
 #define USE_DAILY_TO  true
 #define HARD_REBOOT   false
 
 // ********** myIOT Class ***********
 //~~~~~ Services ~~~~~~~~~~~
-#define USE_SERIAL       true // Serial Monitor
+#define USE_SERIAL       false // Serial Monitor
 #define USE_WDT          true  // watchDog resets
 #define USE_OTA          true  // OTA updates
 #define USE_RESETKEEPER  true // detect quick reboot and real reboots
@@ -47,14 +47,19 @@ const int END_dailyTO[]   = {18,30,0};
 
 int TIMEOUTS[2]  = {TIMEOUT_SW0, TIMEOUT_SW1};
 timeOUT timeOut_SW0("SW0", TIMEOUTS[0]);
+
 #if NUM_SWITCHES == 2
 timeOUT timeOut_SW1("SW1", TIMEOUTS[1]);
 timeOUT *TO[] = {&timeOut_SW0, &timeOut_SW1};
 #endif
+
 #if NUM_SWITCHES == 1
 timeOUT *TO[] = {&timeOut_SW0};
 #endif
 char *clockAlias = "Daily TimeOut";
+
+FVars FailSafe_clock;
+long on_clock=0;
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -252,7 +257,35 @@ void TO_looper(byte i) {
                 last_relState[i] = relState[i];
         }
 }
+void FailSafe_looper(byte i, int timeout_val){
+        static bool lastRead;
+        static bool inTimeout;
+        bool curRead = digitalRead(relays[i]);
 
+        if ( curRead !=lastRead ) {
+                // FailSafe_clock.setValue(millis());
+                lastRead = curRead;
+                if (curRead == RelayOn) {
+                        on_clock   = millis();
+                        inTimeout  = true;
+                }
+                else {
+                        on_clock   = 0;
+                        inTimeout  = false;
+                }
+
+        }
+        if (inTimeout) {
+                if ((millis() - on_clock)/1000 > timeout_val) {
+                        all_off("Failsafe");
+                        // switchIt("Failsafe",0, "ShutDwon",0);
+                        delay(100);
+                        if (digitalRead(relays[i]) == RelayOn) {
+                                iot.sendReset("Reached TimeOut");
+                        }
+                }
+        }
+}
 // ~~~~ MQTT Commands ~~~~~
 void addiotnalMQTT(char *income_msg) {
         char msg_MQTT[150];
@@ -677,7 +710,7 @@ void recoverReset() {
                 EEPROM.write(hReset_eeprom.val_cell, 0);
                 EEPROM.commit();
                 #endif
-                }
+        }
 }
 
 // ########################### END ADDITIONAL SERVICE ##########################
@@ -713,6 +746,7 @@ void loop() {
 
         OLEDlooper();
 
+        // FailSafe_looper(0,10);
 
         delay(100);
 }

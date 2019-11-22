@@ -97,7 +97,7 @@ void notifyOnline();
 void notifyOffline();
 void pub_state(char *inmsg, byte i=0);
 void pub_msg(char *inmsg);
-void pub_err(char *inmsg);
+bool pub_err(char *inmsg);
 int inline_read(char *inputstr);
 
 // ~~~~~~ Services ~~~~~~~~~
@@ -111,19 +111,19 @@ bool useTelegram    = false;
 // ~~~~~~~~~~~~~~~~~~~~~~~~~
 char inline_param[6][20];                           //values from user
 
-bool mqttConnected         = 0;
 bool alternativeMQTTserver = false;
 bool is_online             = false;
-bool reset_badNetwork      = false;
+bool noNetwork_flag      = false;
 byte mqtt_detect_reset     = 2;
 char prefixTopic  [MaxTopicLength];
 char deviceTopic  [MaxTopicLength];
 char addGroupTopic[MaxTopicLength];
 
-const char *ver     = "iot_6.0";
+
+const char *ver     = "iot_6.1";
 char timeStamp[20];
-long updated_bootTime  = 0;
-int resetIntervals     = 10;
+// long updated_bootTime  = 0;
+// int resetIntervals     = 10;
 
 
 private:
@@ -135,17 +135,21 @@ cb_func2 ext_telegram;
 
 // time interval parameters
 
-const int clockUpdateInt        = 60 * 60 * 5;                                      // seconds to update NTP
-const int WIFItimeOut           = (1000 * 60) * 1/2;                               // 20 sec try to connect WiFi
+const int clockUpdateInt        = 60 * 60 * 5;                                     // seconds to update NTP
+const int WIFItimeOut           = (1000 * 60) * 1/2;                               // 30 sec try to connect WiFi
 const int OTA_upload_interval   = (1000 * 60) * 5;                                 // 5 minute to try OTA
-const long time2Reset_noNetwork = (1000 * 60) * 0.5;                               // minutues pass without any network
-const int time2_tryReconnect    = (1000 * 60) * 0.5;                               // time between reconnection retries
+const long time2Reset_noNetwork = (1000 * 60) * 5;                                 // minutues pass without any network
+// const int time2_tryReconnect    = (1000 * 60) * 0.5;                            // time between reconnection retries
 volatile int wdtResetCounter    = 0;
 const int wdtMaxRetries         = 30;                               //seconds to bITE
 long noNetwork_Clock            = 0;                               // clock
 long allowOTA_clock             = 0;                               // clock
-long lastReconnectTry           = 0;
+long check_wifi_RSSI_clock      = 0;
+// long lastReconnectTry           = 0;
 long lastReconnectAttempt       = 0;
+
+int failsCounter = 0;
+long offLine_counter = 0;
 // ############################
 
 
@@ -167,6 +171,7 @@ char _deviceName[MaxTopicLength];
 char _availTopic[MaxTopicLength];
 char _stateTopic[MaxTopicLength];
 char _stateTopic2[MaxTopicLength];
+char _signalTopic[MaxTopicLength];
 
 char* topicArry[4] = {deviceTopic, _groupTopic, _availTopic, addGroupTopic};
 // ##############################################
@@ -184,10 +189,11 @@ char bootErrors [150];
 bool firstRun = true;
 bool _failNTP = false;
 FVars _failNTPcounter_inFlash;
+FVars _failSafeCounter_inFlash;
 // ###################
 
 // ~~~~~~~~~~~~~~WIFI ~~~~~~~~~~~~~~~~~~~~~
-void startNetwork(char *ssid, char *password);
+bool startNetwork(char *ssid, char *password);
 bool startNTP();
 void start_clock();
 void networkStatus();
