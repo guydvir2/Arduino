@@ -154,9 +154,9 @@ long reconClock  = 0;
 
 //MQTT broker parameters
 char* mqtt_server;
-// char* mqtt_server2 = "iot.eclipse.org";
+char* mqtt_server2 = "iot.eclipse.org";
 // char* mqtt_server2 = "broker.hivemq.com";
-char* mqtt_server2 = "192.168.3.200";
+// char* mqtt_server2 = "192.168.3.200";
 char* user  = "";
 char* passw = "";
 // ######################################

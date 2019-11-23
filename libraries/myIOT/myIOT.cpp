@@ -111,11 +111,11 @@ void myIOT::network_looper() {
                         mqttClient.loop();
                         lastMQTTcon = millis();
                         // noNetwork_Clock  = 0;
-                        // if ( alternativeMQTTserver == true) { // connected to temp MQTT
-                        //         if (millis() >1000*60*60L) { // 1 hrs
-                        //                 sendReset("Reset- restore main MQTT server");
-                        //         }
-                        // }
+                        if ( alternativeMQTTserver == true) { // connected to temp MQTT
+                                if (millis() >1000*60*60L) { // 1 hrs
+                                        sendReset("Reset- restore main MQTT server");
+                                }
+                        }
                 }
                 else{ // not connected mqtt
 
@@ -240,13 +240,11 @@ void myIOT::startMQTT() {
                 }
         }
         else if (Ping.ping(mqtt_server2)) {
-                // else{
                 mqttClient.setServer(mqtt_server2, 1883);
-                register_err("MQTT BACKUP SERVER");
                 if(useSerial) {
-                        register_err("Coonected to MQTT SERVER2");
+                        Serial.println("Coonected to MQTT SERVER2");
                 }
-                alternativeMQTTserver  =false;
+                alternativeMQTTserver = true;
                 stat = true;
         }
         // Set callback function
