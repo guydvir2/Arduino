@@ -4,7 +4,7 @@
 
 // ********** Names + Strings  ***********
 // ~~~~~~~ MQTT Topics ~~~~~~                        // belonga rto myIOT
-#define DEVICE_TOPIC "frontDoorLEDs"
+#define DEVICE_TOPIC "PergolaLEDs"
 #define MQTT_PREFIX  "myHome"
 #define MQTT_GROUP   "extLights"
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -13,15 +13,15 @@
 
 // ********** Sketch Services  ***********
 #define VER              "WEMOS_4.5"
-#define USE_INPUTS       true
+#define USE_INPUTS       false
 #define IS_MOMENTARY     true  // is switch latch or momentary
-#define ON_AT_BOOT       false // On or OFF at boot (Usually when using inputs, at boot/PowerOn - state should be off
+#define ON_AT_BOOT       true // On or OFF at boot (Usually when using inputs, at boot/PowerOn - state should be off
 #define USE_DAILY_TO     true
-#define IS_SONOFF        false
-#define HARD_REBOOT      false
+#define IS_SONOFF        true
+#define HARD_REBOOT      true
 
 #define USE_NOTIFY_TELE  false
-#define USE_SENSOR       true
+#define USE_SENSOR       false
 #define USE_IR_REMOTE    false
 
 // ********** myIOT Class ***********
@@ -40,12 +40,12 @@ myIOT iot(DEVICE_TOPIC);
 
 
 // ********** TimeOut Time vars  ***********
-#define NUM_SWITCHES     1
+#define NUM_SWITCHES     2
 #define TIMEOUT_SW0      3*60 // mins for SW0
 #define TIMEOUT_SW1      2*60 // mins
 
-const int START_dailyTO[] = {18,0, 0};
-const int END_dailyTO[]   = {0, 30, 0};
+const int START_dailyTO[] = {17,0, 0};
+const int END_dailyTO[]   = {23, 30, 0};
 
 int TIMEOUTS[2]  = {TIMEOUT_SW0, TIMEOUT_SW1};
 timeOUT timeOut_SW0("SW0", TIMEOUTS[0]);
@@ -541,7 +541,7 @@ void addiotnalMQTT(char *income_msg) {
                 else{
                         if (strcmp(income_msg,"offline")!=0 && strcmp(income_msg,"online")!=0) {
                                 sprintf(msg_MQTT,"Unrecognized Command: [%s]", income_msg);
-                                iot.pub_err(msg_MQTT);
+                                iot.pub_log(msg_MQTT);
                         }
                 }
                 for (int n=0; n<=num_parameters -1; n++) {
@@ -787,22 +787,22 @@ void recoverReset() {
                 for (int i = 0; i < NUM_SWITCHES; i++) {
                         if (hReset_eeprom.hBoot && HARD_REBOOT) { // using HardReboot
                                 TO[i]->restart_to();
-                                iot.pub_err("--> ForcedBoot. Restarting TimeOUT");
+                                iot.pub_log("--> ForcedBoot. Restarting TimeOUT");
                         }
                         else if (rebootState == 0 && ON_AT_BOOT == true) {  // PowerOn - not a quickReboot
                                 TO[i]->restart_to();
-                                iot.pub_err("--> NormalBoot & On-at-Boot. Restarting TimeOUT");
+                                iot.pub_log("--> NormalBoot & On-at-Boot. Restarting TimeOUT");
                         }
                         else if (TO[i]->looper() == 0) { // was not during TO
                                 if (rebootState == 1) {
-                                        iot.pub_err("--> PowerLoss Boot");
+                                        iot.pub_log("--> PowerLoss Boot");
                                 }
                                 digitalWrite(relays[i], !RelayOn);
-                                iot.pub_err("--> Stopping Quick-PowerON");
+                                iot.pub_log("--> Stopping Quick-PowerON");
 
                         }
                         else{
-                                iot.pub_err("--> Continue unfinished TimeOuts");
+                                iot.pub_log("--> Continue unfinished TimeOuts");
                                 boot_overide[i] = true;
                         }
                 }

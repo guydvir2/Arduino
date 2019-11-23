@@ -97,7 +97,7 @@ void notifyOnline();
 void notifyOffline();
 void pub_state(char *inmsg, byte i=0);
 void pub_msg(char *inmsg);
-bool pub_err(char *inmsg);
+bool pub_log(char *inmsg);
 int inline_read(char *inputstr);
 
 // ~~~~~~ Services ~~~~~~~~~
@@ -112,23 +112,22 @@ bool useTelegram    = false;
 char inline_param[6][20];                           //values from user
 
 bool alternativeMQTTserver = false;
-bool is_online             = false;
-bool noNetwork_flag      = false;
+bool noNetwork_flag        = false;
 byte mqtt_detect_reset     = 2;
 char prefixTopic  [MaxTopicLength];
 char deviceTopic  [MaxTopicLength];
 char addGroupTopic[MaxTopicLength];
 
 
-const char *ver     = "iot_6.1";
+const char *ver     = "iot_6.4";
 char timeStamp[20];
 // long updated_bootTime  = 0;
 // int resetIntervals     = 10;
 
 
 private:
-char* ssid;
-char* password;
+char* Ssid;
+char* Password;
 cb_func ext_mqtt;
 cb_func2 ext_telegram;
 
@@ -136,20 +135,20 @@ cb_func2 ext_telegram;
 // time interval parameters
 
 const int clockUpdateInt        = 60 * 60 * 5;                                     // seconds to update NTP
-const int WIFItimeOut           = (1000 * 60) * 1/2;                               // 30 sec try to connect WiFi
-const int OTA_upload_interval   = (1000 * 60) * 5;                                 // 5 minute to try OTA
+const int WIFItimeOut           = (1000 * 60) * 1/3;                               // 30 sec try to connect WiFi
+const int OTA_upload_interval   = (1000 * 60) * 10;                                 // 5 minute to try OTA
 const long time2Reset_noNetwork = (1000 * 60) * 5;                                 // minutues pass without any network
-// const int time2_tryReconnect    = (1000 * 60) * 0.5;                            // time between reconnection retries
 volatile int wdtResetCounter    = 0;
 const int wdtMaxRetries         = 30;                               //seconds to bITE
 long noNetwork_Clock            = 0;                               // clock
 long allowOTA_clock             = 0;                               // clock
 long check_wifi_RSSI_clock      = 0;
-// long lastReconnectTry           = 0;
 long lastReconnectAttempt       = 0;
 
 int failsCounter = 0;
 long offLine_counter = 0;
+long lastMQTTcon = 0;
+long reconClock  = 0;
 // ############################
 
 
@@ -178,8 +177,6 @@ char* topicArry[4] = {deviceTopic, _groupTopic, _availTopic, addGroupTopic};
 
 
 // MQTT connection flags
-int mqttFailCounter = 0;                               // count tries to reconnect
-int MQTTretries     = 2;                               // allowed tries to reconnect
 // ######################
 
 
@@ -193,11 +190,12 @@ FVars _failSafeCounter_inFlash;
 // ###################
 
 // ~~~~~~~~~~~~~~WIFI ~~~~~~~~~~~~~~~~~~~~~
-bool startNetwork(char *ssid, char *password);
+bool startWifi(char *ssid, char *password);
 bool startNTP();
 void start_clock();
-void networkStatus();
+void network_looper();
 bool bootKeeper();
+void start_network_services();
 
 
 // ~~~~~~~ MQTT ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -206,7 +204,8 @@ int subscribeMQTT();
 void createTopics();
 void callback(char* topic, byte* payload, unsigned int length);
 void msgSplitter( const char* msg_in, int max_msgSize, char *prefix, char *split_msg);
-void publish_errs();
+void pub_offline_errs();
+void register_err(char *inmsg);
 // ~~~~~~~ Services  ~~~~~~~~~~~~~~~~~~~~~~~~
 void feedTheDog();
 void startWDT();

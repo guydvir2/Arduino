@@ -326,7 +326,7 @@ void check_systemState_armed() { // System OUTPUT 1: arm_state
 
                                 }
                                 else{
-                                        iot.pub_err("Error Arming system");
+                                        iot.pub_log("Error Arming system");
                                 }
                         }
                         else { // system detected a disarmed indication :

@@ -2,7 +2,7 @@
 #include <Arduino.h>
 
 // ********** Sketch Services  ***********
-#define VER              "NodeMCU_5.1"
+#define VER              "NodeMCU_5.2"
 #define USE_BOUNCE_DEBUG false
 #define USE_2_EXT_INPUT  false // Only for dual input window
 #define USE_NOTIFY_TELE  false
@@ -17,7 +17,7 @@
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 // ~~~~~~~ MQTT Topics ~~~~~~
-#define DEVICE_TOPIC        "TEST"
+#define DEVICE_TOPIC        "LaundryRoom"
 #define MQTT_PREFIX         "myHome"
 #define MQTT_GROUP          "Windows"
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -55,7 +55,7 @@ bool inputDownExt_lastState;
 const int deBounceInt = 50;
 
 // ~~~~~~~ Using Telegram ~~~~~~~~~~~~~~
-char *Telegram_Nick = "winExit";
+char *Telegram_Nick = DEVICE_TOPIC;
 int time_check_messages = 2; //sec
 #if USE_NOTIFY_TELE
 myTelegram teleNotify(BOT_TOKEN, CHAT_ID, time_check_messages);
@@ -281,7 +281,7 @@ void checkSwitch_looper( const int &pin, char *dir, bool &lastState, char* type=
                 else if (USE_BOUNCE_DEBUG) { // for debug only
                         char tMsg [100];
                         sprintf(tMsg, "[%s] Bounce: cRead[%d] lRead[%d]", dir, digitalRead(pin), lastState);
-                        iot.pub_err(tMsg);
+                        iot.pub_log(tMsg);
                 }
         }
 }

@@ -16,13 +16,13 @@
 #define MQTT_GROUP   ""
 
 // ********** Sketch Services  ***********
-#define VER "Wemos_5.9"
+#define VER "Wemos_5.91"
 #define USE_DAILY_TO  true
 #define HARD_REBOOT   false
 
 // ********** myIOT Class ***********
 //~~~~~ Services ~~~~~~~~~~~
-#define USE_SERIAL       false // Serial Monitor
+#define USE_SERIAL       true // Serial Monitor
 #define USE_WDT          true  // watchDog resets
 #define USE_OTA          true  // OTA updates
 #define USE_RESETKEEPER  true // detect quick reboot and real reboots
@@ -280,9 +280,10 @@ void FailSafe_looper(byte i, int timeout_val){
                         all_off("Failsafe");
                         // switchIt("Failsafe",0, "ShutDwon",0);
                         delay(100);
-                        if (digitalRead(relays[i]) == RelayOn) {
-                                iot.sendReset("Reached TimeOut");
-                        }
+                        // if (digitalRead(relays[i]) == RelayOn) {
+                        //         iot.sendReset("Reached TimeOut");
+                        // }
+                        inTimeout = false;
                 }
         }
 }
@@ -445,7 +446,7 @@ void addiotnalMQTT(char *income_msg) {
                 else{
                         if (strcmp(income_msg,"offline")!=0 && strcmp(income_msg,"online")!=0) {
                                 sprintf(msg_MQTT,"Unrecognized Command: [%s]", income_msg);
-                                iot.pub_err(msg_MQTT);
+                                iot.pub_log(msg_MQTT);
                         }
                 }
                 for (int n=0; n<=num_parameters -1; n++) {
@@ -686,22 +687,22 @@ void recoverReset() {
                 for (int i = 0; i < NUM_SWITCHES; i++) {
                         if (hReset_eeprom.hBoot && HARD_REBOOT) { // using HardReboot
                                 TO[i]->restart_to();
-                                iot.pub_err("--> ForcedBoot. Restarting TimeOUT");
+                                iot.pub_log("--> ForcedBoot. Restarting TimeOUT");
                         }
                         else if (rebootState == 0 && ON_AT_BOOT == true) {  // PowerOn - not a quickReboot
                                 TO[i]->restart_to();
-                                iot.pub_err("--> NormalBoot & On-at-Boot. Restarting TimeOUT");
+                                iot.pub_log("--> NormalBoot & On-at-Boot. Restarting TimeOUT");
                         }
                         else if (TO[i]->looper() == 0) { // was not during TO
                                 if (rebootState == 1) {
-                                        iot.pub_err("--> PowerLoss Boot");
+                                        iot.pub_log("--> PowerLoss Boot");
                                 }
                                 digitalWrite(relays[i], !RelayOn);
-                                iot.pub_err("--> Stopping Quick-PowerON");
+                                iot.pub_log("--> Stopping Quick-PowerON");
 
                         }
                         else{
-                                iot.pub_err("--> Continue unfinished processes only");
+                                iot.pub_log("--> Continue unfinished processes only");
                         }
                 }
 
