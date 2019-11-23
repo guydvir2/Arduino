@@ -200,7 +200,7 @@ void start_network_services();
 
 // ~~~~~~~ MQTT ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 void startMQTT();
-int subscribeMQTT();
+bool subscribeMQTT();
 void createTopics();
 void callback(char* topic, byte* payload, unsigned int length);
 void msgSplitter( const char* msg_in, int max_msgSize, char *prefix, char *split_msg);
