@@ -4,7 +4,7 @@
 
 // ********** Names + Strings  ***********
 // ~~~~~~~ MQTT Topics ~~~~~~                        // belonga rto myIOT
-#define DEVICE_TOPIC "PergolaLEDs"
+#define DEVICE_TOPIC "frontDoor"
 #define MQTT_PREFIX  "myHome"
 #define MQTT_GROUP   "extLights"
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -12,7 +12,7 @@
 // belongs to TELEGRAM
 
 // ********** Sketch Services  ***********
-#define VER              "WEMOS_4.5"
+#define VER              "SONOFF_4.5"
 #define USE_INPUTS       false
 #define IS_MOMENTARY     true  // is switch latch or momentary
 #define ON_AT_BOOT       true // On or OFF at boot (Usually when using inputs, at boot/PowerOn - state should be off
@@ -27,7 +27,7 @@
 // ********** myIOT Class ***********
 //~~~~~ Services ~~~~~~~~~~~
 #define USE_SERIAL       false // Serial Monitor
-#define USE_WDT          true  // watchDog resets
+#define USE_WDT           true  // watchDog resets
 #define USE_OTA          true  // OTA updates
 #define USE_RESETKEEPER  true // detect quick reboot and real reboots
 #define USE_FAILNTP      true  // saves amoount of fail clock updates

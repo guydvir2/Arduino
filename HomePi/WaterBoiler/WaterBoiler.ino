@@ -16,7 +16,7 @@
 #define MQTT_GROUP   ""
 
 // ********** Sketch Services  ***********
-#define VER "Wemos_5.91"
+#define VER "Wemos_6.0"
 #define USE_DAILY_TO  true
 #define HARD_REBOOT   false
 
@@ -38,9 +38,10 @@ myIOT iot(DEVICE_TOPIC);
 
 // ********** TimeOut Time vars  ***********
 #define NUM_SWITCHES     1
-#define TIMEOUT_SW0      1*60 // mins for SW0
-#define TIMEOUT_SW1      2*60 // mins
+#define TIMEOUT_SW0      1*60  // mins for SW0
+#define TIMEOUT_SW1      2*60  // mins
 #define ON_AT_BOOT       false // true only for switches that powers up with device.
+#define MAX_TIME_ON      120   // minutes. if on or TO exceeds this value - auto off will occur
 
 const int START_dailyTO[] = {18,0,0};
 const int END_dailyTO[]   = {18,30,0};
@@ -257,33 +258,30 @@ void TO_looper(byte i) {
                 last_relState[i] = relState[i];
         }
 }
-void FailSafe_looper(byte i, int timeout_val){
+void FailSafe_looper(byte i, float timeout_val){ // timeout_val in minutes - to force shut down
         static bool lastRead;
         static bool inTimeout;
+        long time_factor = 1000*60; // millis to minutes
+        int wait_to_reset = 5000;   // millis to reset
+        timeout_val *=time_factor;  // convert
         bool curRead = digitalRead(relays[i]);
 
-        if ( curRead !=lastRead ) {
-                // FailSafe_clock.setValue(millis());
+        if ( curRead != lastRead ) {
                 lastRead = curRead;
                 if (curRead == RelayOn) {
                         on_clock   = millis();
                         inTimeout  = true;
                 }
-                else {
-                        on_clock   = 0;
-                        inTimeout  = false;
-                }
-
+        }
+        if (digitalRead(relays[i]) == RelayOn && (millis()-on_clock) >= timeout_val + wait_to_reset) {
+                iot.sendReset("Reached TimeOut");
         }
         if (inTimeout) {
-                if ((millis() - on_clock)/1000 > timeout_val) {
+                if ((millis() - on_clock) >= timeout_val) {
                         all_off("Failsafe");
-                        // switchIt("Failsafe",0, "ShutDwon",0);
-                        delay(100);
-                        // if (digitalRead(relays[i]) == RelayOn) {
-                        //         iot.sendReset("Reached TimeOut");
-                        // }
                         inTimeout = false;
+                        on_clock  = 0;
+                        lastRead = !RelayOn;
                 }
         }
 }
@@ -732,6 +730,8 @@ void setup() {
 }
 void loop() {
         iot.looper();
+        OLEDlooper();
+        FailSafe_looper(0,MAX_TIME_ON);
 
         for (int i = 0; i < NUM_SWITCHES; i++) {
                 TO_looper(i);
@@ -744,10 +744,6 @@ void loop() {
                 recoverReset();
         }
         #endif
-
-        OLEDlooper();
-
-        // FailSafe_looper(0,10);
 
         delay(100);
 }

@@ -87,7 +87,6 @@ myIOT(char *devTopic, char *key="failNTPcount");
 void start_services(cb_func funct, char *ssid=SSID_ID, char *password=PASS_WIFI, char *mqtt_user=MQTT_USER, char *mqtt_passw=MQTT_PASS, char *mqtt_broker="192.168.3.200");
 void looper();
 void startOTA();
-// void startTelegram(cb_func2 funct2);
 void get_timeStamp(time_t t = 0);
 void return_clock(char ret_tuple[20]);
 void return_date(char ret_tuple[20]);
@@ -118,11 +117,8 @@ char prefixTopic  [MaxTopicLength];
 char deviceTopic  [MaxTopicLength];
 char addGroupTopic[MaxTopicLength];
 
-
-const char *ver     = "iot_6.4";
+const char *ver     = "iot_6.51";
 char timeStamp[20];
-// long updated_bootTime  = 0;
-// int resetIntervals     = 10;
 
 
 private:
@@ -142,13 +138,7 @@ volatile int wdtResetCounter    = 0;
 const int wdtMaxRetries         = 30;                               //seconds to bITE
 long noNetwork_Clock            = 0;                               // clock
 long allowOTA_clock             = 0;                               // clock
-long check_wifi_RSSI_clock      = 0;
 long lastReconnectAttempt       = 0;
-
-int failsCounter = 0;
-long offLine_counter = 0;
-long lastMQTTcon = 0;
-long reconClock  = 0;
 // ############################
 
 
@@ -156,7 +146,6 @@ long reconClock  = 0;
 char* mqtt_server;
 char* mqtt_server2 = "iot.eclipse.org";
 // char* mqtt_server2 = "broker.hivemq.com";
-// char* mqtt_server2 = "192.168.3.200";
 char* user  = "";
 char* passw = "";
 // ######################################
@@ -205,6 +194,7 @@ void createTopics();
 void callback(char* topic, byte* payload, unsigned int length);
 void msgSplitter( const char* msg_in, int max_msgSize, char *prefix, char *split_msg);
 void pub_offline_errs();
+void firstRun_ResetKeeper(char *msg);
 void register_err(char *inmsg);
 // ~~~~~~~ Services  ~~~~~~~~~~~~~~~~~~~~~~~~
 void feedTheDog();
