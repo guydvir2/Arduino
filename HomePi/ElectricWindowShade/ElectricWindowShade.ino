@@ -4,7 +4,7 @@
 // ********** Sketch Services  ***********
 #define VER "NodeMCU_5.3"
 #define USE_BOUNCE_DEBUG false
-#define USE_2_EXT_INPUT false // Only for dual input window
+#define USE_2_EXT_INPUT true // Only for dual input window
 #define USE_NOTIFY_TELE false
 
 // ********** myIOT Class ***********
@@ -17,7 +17,7 @@
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 // ~~~~~~~ MQTT Topics ~~~~~~
-#define DEVICE_TOPIC "familyRoom"
+#define DEVICE_TOPIC "TEST"
 #define MQTT_PREFIX "myHome"
 #define MQTT_GROUP "Windows"
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~

@@ -38,7 +38,7 @@
 
 // ~~~~~~~ MQTT Topics ~~~~~~                        // belonga rto myIOT
 #define DEVICE_TOPIC "alarmMonitor"
-#define MQTT_PREFIX  "HomePi/Dvir"
+#define MQTT_PREFIX  "myHome"
 #define MQTT_GROUP   ""
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 

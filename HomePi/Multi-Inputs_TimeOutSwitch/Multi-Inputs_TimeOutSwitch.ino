@@ -4,32 +4,32 @@
 
 // ********** Names + Strings  ***********
 // ~~~~~~~ MQTT Topics ~~~~~~                        // belonga rto myIOT
-#define DEVICE_TOPIC "frontDoor"
+#define DEVICE_TOPIC "KitchenLEDs"
 #define MQTT_PREFIX  "myHome"
-#define MQTT_GROUP   "extLights"
+#define MQTT_GROUP   "intLights"
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 // belongs to TELEGRAM
 
 // ********** Sketch Services  ***********
-#define VER              "SONOFF_4.5"
+#define VER              "WEMOS_4.6"
 #define USE_INPUTS       false
 #define IS_MOMENTARY     true  // is switch latch or momentary
-#define ON_AT_BOOT       true // On or OFF at boot (Usually when using inputs, at boot/PowerOn - state should be off
+#define ON_AT_BOOT       false  // On or OFF at boot (Usually when using inputs, at boot/PowerOn - state should be off
 #define USE_DAILY_TO     true
-#define IS_SONOFF        true
-#define HARD_REBOOT      true
+#define IS_SONOFF        false
+#define HARD_REBOOT      false
 
 #define USE_NOTIFY_TELE  false
 #define USE_SENSOR       false
-#define USE_IR_REMOTE    false
+#define USE_IR_REMOTE    true
 
 // ********** myIOT Class ***********
 //~~~~~ Services ~~~~~~~~~~~
 #define USE_SERIAL       false // Serial Monitor
-#define USE_WDT           true  // watchDog resets
+#define USE_WDT          true  // watchDog resets
 #define USE_OTA          true  // OTA updates
-#define USE_RESETKEEPER  true // detect quick reboot and real reboots
+#define USE_RESETKEEPER  true  // detect quick reboot and real reboots
 #define USE_FAILNTP      true  // saves amoount of fail clock updates
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -40,7 +40,7 @@ myIOT iot(DEVICE_TOPIC);
 
 
 // ********** TimeOut Time vars  ***********
-#define NUM_SWITCHES     2
+#define NUM_SWITCHES     1
 #define TIMEOUT_SW0      3*60 // mins for SW0
 #define TIMEOUT_SW1      2*60 // mins
 
@@ -94,7 +94,7 @@ bool relState[NUM_SWITCHES];
 bool last_relState[NUM_SWITCHES];
 bool inputState[NUM_SWITCHES];
 bool sensState[NUM_SWITCHES];
-int rebootState         = 0;
+int  rebootState        = 0;
 bool checkrebootState   = true;
 bool boot_overide[]     = {false, false};
 
@@ -370,7 +370,6 @@ void notify_dailyTO(byte i){
   }
 }
 void TO_looper(byte i) {
-
         if (iot.mqtt_detect_reset != 2) {
                 relState[i] = TO[i]->looper();
                 notify_dailyTO(i);
@@ -539,7 +538,7 @@ void addiotnalMQTT(char *income_msg) {
                 }
 
                 else{
-                        if (strcmp(income_msg,"offline")!=0 && strcmp(income_msg,"online")!=0) {
+                        if (strcmp(income_msg,"offline")!=0 && strcmp(income_msg,"online")!=0 && strcmp(income_msg,"resetKeeper")!=0) {
                                 sprintf(msg_MQTT,"Unrecognized Command: [%s]", income_msg);
                                 iot.pub_log(msg_MQTT);
                         }
@@ -732,13 +731,16 @@ void checkSensor_looper (byte sw) {
 #if HARD_REBOOT
 void check_hardReboot(byte i = 1, byte threshold = 2) {
         // hReset_eeprom.jump = EEPROM.read(0);
-        hReset_eeprom.val_cell    = hReset_eeprom.jump + i;
+        hReset_eeprom.val_cell    = 0;//hReset_eeprom.jump + i;
         hReset_eeprom.val = EEPROM.read(hReset_eeprom.val_cell);
+        // delay(100);
+        // Serial.print("eeprom val: ");
+        //         Serial.println(hReset_eeprom.val);
 
         if (hReset_eeprom.val < threshold) {
                 EEPROM.write(hReset_eeprom.val_cell, hReset_eeprom.val + 1);
                 EEPROM.commit();
-                hReset_eeprom.val = EEPROM.read(hReset_eeprom.val_cell);
+                hReset_eeprom.val = hReset_eeprom.val + 1;//EEPROM.read(hReset_eeprom.val_cell);
                 hReset_eeprom.hBoot = false;
         }
         else {
@@ -788,6 +790,7 @@ void recoverReset() {
                         if (hReset_eeprom.hBoot && HARD_REBOOT) { // using HardReboot
                                 TO[i]->restart_to();
                                 iot.pub_log("--> ForcedBoot. Restarting TimeOUT");
+                                boot_overide[i] = true;
                         }
                         else if (rebootState == 0 && ON_AT_BOOT == true) {  // PowerOn - not a quickReboot
                                 TO[i]->restart_to();
@@ -923,7 +926,6 @@ void start_IR() {
 
 
 void setup() {
-
         #if HARD_REBOOT
         EEPROM.begin(1024);
         check_hardReboot();

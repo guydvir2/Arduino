@@ -84,7 +84,7 @@ PubSubClient mqttClient;
 Ticker wdt;
 
 myIOT(char *devTopic, char *key="failNTPcount");
-void start_services(cb_func funct, char *ssid=SSID_ID, char *password=PASS_WIFI, char *mqtt_user=MQTT_USER, char *mqtt_passw=MQTT_PASS, char *mqtt_broker="192.168.3.200");
+void start_services(cb_func funct, char *ssid=SSID_ID, char *password=PASS_WIFI, char *mqtt_user=MQTT_USER, char *mqtt_passw=MQTT_PASS, char *mqtt_broker=MQTT_SERVER1);
 void looper();
 void startOTA();
 void get_timeStamp(time_t t = 0);
@@ -117,7 +117,7 @@ char prefixTopic  [MaxTopicLength];
 char deviceTopic  [MaxTopicLength];
 char addGroupTopic[MaxTopicLength];
 
-const char *ver     = "iot_6.51";
+const char *ver     = "iot_6.52";
 char timeStamp[20];
 
 
@@ -130,21 +130,21 @@ cb_func2 ext_telegram;
 
 // time interval parameters
 
-const int clockUpdateInt        = 60 * 60 * 5;                                     // seconds to update NTP
-const int WIFItimeOut           = (1000 * 60) * 1/3;                               // 30 sec try to connect WiFi
-const int OTA_upload_interval   = (1000 * 60) * 10;                                 // 5 minute to try OTA
-const long time2Reset_noNetwork = (1000 * 60) * 5;                                 // minutues pass without any network
+const int clockUpdateInt        = 60 * 60 * 5;      // seconds to update NTP
+const int WIFItimeOut           = (1000 * 60) * 1/2;// 30 sec try to connect WiFi
+const int OTA_upload_interval   = (1000 * 60) * 10; // 10 minute to try OTA
+const long time2Reset_noNetwork = (1000 * 60) * 30L;  // minutues pass without any network
 volatile int wdtResetCounter    = 0;
-const int wdtMaxRetries         = 30;                               //seconds to bITE
-long noNetwork_Clock            = 0;                               // clock
-long allowOTA_clock             = 0;                               // clock
+const int wdtMaxRetries         = 30;               //seconds to bITE
+long noNetwork_Clock            = 0;                // clock
+long allowOTA_clock             = 0;                // clock
 long lastReconnectAttempt       = 0;
 // ############################
 
 
 //MQTT broker parameters
 char* mqtt_server;
-char* mqtt_server2 = "iot.eclipse.org";
+char* mqtt_server2 = MQTT_SERVER2;
 // char* mqtt_server2 = "broker.hivemq.com";
 char* user  = "";
 char* passw = "";
