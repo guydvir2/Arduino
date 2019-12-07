@@ -322,7 +322,6 @@ void FailSafe_looper(byte i, float timeout_val)
                 if ((millis() - on_clock) >= timeout_val)
                 {
                         all_off("Failsafe");
-                        // lastRead  = !RelayOn; //
                 }
         }
         if (digitalRead(relays[i]) == RelayOn && (millis() - on_clock) >= timeout_val + wait_to_reset)

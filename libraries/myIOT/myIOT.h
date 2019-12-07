@@ -117,7 +117,7 @@ char prefixTopic  [MaxTopicLength];
 char deviceTopic  [MaxTopicLength];
 char addGroupTopic[MaxTopicLength];
 
-const char *ver     = "iot_6.52";
+const char *ver     = "iot_6.53";
 char timeStamp[20];
 
 

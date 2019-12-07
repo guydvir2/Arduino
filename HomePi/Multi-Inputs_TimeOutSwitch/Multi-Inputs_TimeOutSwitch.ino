@@ -3,7 +3,7 @@
 #include <Arduino.h>
 
 // ********** Names + Strings  ***********
-// ~~~~~~~ MQTT Topics ~~~~~~                        // belonga rto myIOT
+// ~~~~~~~ MQTT Topics ~~~~~~                        // belong to myIOT
 #define DEVICE_TOPIC "KitchenLEDs"
 #define MQTT_PREFIX  "myHome"
 #define MQTT_GROUP   "intLights"
@@ -29,7 +29,7 @@
 #define USE_SERIAL       false // Serial Monitor
 #define USE_WDT          true  // watchDog resets
 #define USE_OTA          true  // OTA updates
-#define USE_RESETKEEPER  true  // detect quick reboot and real reboots
+#define USE_RESETKEEPER  false  // detect quick reboot and real reboots
 #define USE_FAILNTP      true  // saves amoount of fail clock updates
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -95,7 +95,7 @@ bool last_relState[NUM_SWITCHES];
 bool inputState[NUM_SWITCHES];
 bool sensState[NUM_SWITCHES];
 int  rebootState        = 0;
-bool checkrebootState   = true;
+bool checkrebootState   = true;                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     
 bool boot_overide[]     = {false, false};
 
 

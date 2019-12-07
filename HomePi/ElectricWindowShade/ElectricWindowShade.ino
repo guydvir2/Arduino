@@ -2,24 +2,24 @@
 #include <Arduino.h>
 
 // ********** Sketch Services  ***********
-#define VER "NodeMCU_5.3"
+#define VER "NodeMCU_5.4"
 #define USE_BOUNCE_DEBUG false
-#define USE_2_EXT_INPUT true // Only for dual input window
-#define USE_NOTIFY_TELE false
+#define USE_2_EXT_INPUT  false // Only for dual input window
+#define USE_NOTIFY_TELE  false
 
 // ********** myIOT Class ***********
 //~~~~~ Services ~~~~~~~~~~~
-#define USE_SERIAL false
-#define USE_WDT true
-#define USE_OTA true
-#define USE_RESETKEEPER true
-#define USE_FAILNTP true
+#define USE_SERIAL      false
+#define USE_WDT         true
+#define USE_OTA         true
+#define USE_RESETKEEPER false
+#define USE_FAILNTP     true
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 // ~~~~~~~ MQTT Topics ~~~~~~
-#define DEVICE_TOPIC "TEST"
-#define MQTT_PREFIX "myHome"
-#define MQTT_GROUP "Windows"
+#define DEVICE_TOPIC "saloonDual"
+#define MQTT_PREFIX  "myHome"
+#define MQTT_GROUP   "Windows"
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 #define ADD_MQTT_FUNC addiotnalMQTT
@@ -27,26 +27,24 @@ myIOT iot(DEVICE_TOPIC);
 // ***************************
 
 // state definitions
-#define RelayOn LOW
+#define RelayOn  LOW
 #define SwitchOn LOW
 
 // GPIO Pins for ESP8266
 //~~~~Internal Switch ~~~~~~
-const int inputUpPin = 4;
-const int inputDownPin = 5;
-const int outputUpPin = 14;
-const int outputDownPin = 12;
-//~~~~External Input ~~~~~~~
-const int inputUpExtPin = 0;
+const int inputUpPin      = 4;
+const int inputDownPin    = 5;
+const int outputUpPin     = 14;
+const int outputDownPin   = 12;
+//~~~~External Input ~~~~~~~~~
+const int inputUpExtPin   = 0;
 const int inputDownExtPin = 2;
-//##########################
+//############################
 
 // GPIO status flags
 //~~~~Internal Switch ~~~~~~
 bool inputUp_lastState;
 bool inputDown_lastState;
-// bool inputUp_currentState;
-// bool inputDown_currentState;
 //~~~~External Input ~~~~~~~
 bool inputUpExt_lastState;
 bool inputDownExt_lastState;
@@ -212,11 +210,6 @@ void addiotnalMQTT(char incoming_msg[50])
         {
                 switchIt("MQTT", incoming_msg);
         }
-        else if (strcmp(incoming_msg, "pbit") == 0)
-        {
-                iot.pub_msg("PowerOnBit");
-                PBit();
-        }
         else if (strcmp(incoming_msg, "ver") == 0)
         {
                 sprintf(msg, "ver:[%s], lib:[%s], WDT:[%d], OTA:[%d], SERIAL:[%d],ResetKeeper[%d], FailNTP[%d]", VER, iot.ver, USE_WDT, USE_OTA, USE_SERIAL, USE_RESETKEEPER, USE_FAILNTP);
@@ -226,29 +219,16 @@ void addiotnalMQTT(char incoming_msg[50])
         {
                 sprintf(msg, "Help: Commands #1 - [status, boot, reset, ip, ota, ver, help]");
                 iot.pub_msg(msg);
-                sprintf(msg, "Help: Commands #2 - [up, down, off, pbit]");
+                sprintf(msg, "Help: Commands #2 - [up, down, off]");
                 iot.pub_msg(msg);
         }
 }
 // ~~~~ maintability ~~~~~~
-void PBit()
-{
-        int pause = 2 * 5 * deBounceInt;
-        allOff();
-        delay(pause);
-        digitalWrite(outputUpPin, RelayOn);
-        delay(pause);
-        digitalWrite(outputUpPin, !RelayOn);
-        delay(pause);
-        digitalWrite(outputDownPin, RelayOn);
-        delay(pause);
-        allOff();
-}
 void allOff()
 {
         digitalWrite(outputUpPin, !RelayOn);
         digitalWrite(outputDownPin, !RelayOn);
-        inputUp_lastState = digitalRead(inputUpPin);
+        inputUp_lastState   = digitalRead(inputUpPin);
         inputDown_lastState = digitalRead(inputDownPin);
         if (USE_2_EXT_INPUT)
         {
@@ -293,11 +273,9 @@ void switchIt(char *type, char *dir)
                 digitalWrite(outputUpPin, states[0]);
                 digitalWrite(outputDownPin, states[1]);
         }
-        // if (iot.mqttConnected == true) {
         iot.pub_state(dir);
         sprintf(mqttmsg, "%s: Switched [%s]", type, dir);
         iot.pub_msg(mqttmsg);
-        // }
 }
 void checkSwitch_looper(const int &pin, char *dir, bool &lastState, char *type = "Button")
 {
@@ -333,15 +311,10 @@ void verifyNotHazardState()
                 iot.sendReset("HazradState");
         }
 }
-// void readGpioStates() {
-//         inputDown_currentState = digitalRead(inputDownPin);
-//         inputUp_currentState = digitalRead(inputUpPin);
-// }
 
 void loop()
 {
         iot.looper();
-        // readGpioStates();
         verifyNotHazardState(); // both up and down are ---> OFF
 
         checkSwitch_looper(inputUpPin, "up", inputUp_lastState, "inButton");

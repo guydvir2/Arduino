@@ -49,8 +49,7 @@ void startIOTservices() {
         iot.resetFailNTP   = USE_FAILNTP;
         strcpy(iot.prefixTopic, MQTT_PREFIX);
         strcpy(iot.addGroupTopic, MQTT_GROUP);
-        iot.start_services(ADD_MQTT_FUNC);//,"TP-LINK","21903519","guy","kupelu9e","192.168.2.125");
-        // char *ssid=SSID_ID, char *password=PASS_WIFI, char *mqtt_user=MQTT_USER, char *mqtt_passw=MQTT_PASS, char *mqtt_broker="192.168.3.200"
+        iot.start_services(ADD_MQTT_FUNC);
 }
 void addiotnalMQTT(char *incoming_msg) {
         char msg[150];
@@ -169,5 +168,5 @@ void setup() {
 void loop() {
         iot.looper();
         OLEDlooper();
-        delay(250);
+        delay(100);
 }

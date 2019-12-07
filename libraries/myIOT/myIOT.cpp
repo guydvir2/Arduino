@@ -287,7 +287,7 @@ bool myIOT::subscribeMQTT() {
                                 }
                                 else {         // not first run
                                         notifyOnline();
-                                        pub_log("<< MQTT loop >>");
+                                        // pub_log("<< MQTT loop >>");
                                 }
                                 return 1;
                         }
@@ -480,11 +480,12 @@ void myIOT::register_err(char *inmsg){
 void myIOT::sendReset(char *header) {
         char temp[150];
 
+        sprintf(temp, "[%s] - Reset sent", header);
+
         if (useSerial) {
-                Serial.println("Sending Reset command");
+                Serial.println(temp);
         }
         if (strcmp(header, "null") != 0) {
-                sprintf(temp, "[%s] - Reset sent", header);
                 pub_msg(temp);
         }
         delay(1000);

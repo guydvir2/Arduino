@@ -5,13 +5,23 @@
             "includePath": [
                 "/home/guy/.arduino15/packages/esp8266/tools/**",
                 "/home/guy/.arduino15/packages/esp8266/hardware/esp8266/2.6.1/**",
-                "${workspaceFolder}/**"
+                "${workspaceFolder}/**",
+                "/Users/guydvir/Library/Arduino15/packages/esp8266/hardware/esp8266/2.6.2/**",
+                "/Users/guydvir/Library/Arduino15/packages/esp8266/tools/**"
             ],
             "defines": [],
             "compilerPath": "/usr/bin/clang",
             "cStandard": "c11",
             "cppStandard": "c++17",
             "intelliSenseMode": "clang-x64",
+            "forcedInclude": []
+        },
+        {
+            "name": "Mac",
+            "includePath": [
+                "/Users/guydvir/Library/Arduino15/packages/esp8266/tools/**",
+                "/Users/guydvir/Library/Arduino15/packages/esp8266/hardware/esp8266/2.6.2/**"
+            ],
             "forcedInclude": []
         }
     ],
