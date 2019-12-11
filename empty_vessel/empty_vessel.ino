@@ -2,8 +2,8 @@
 #include <Arduino.h>
 
 // ********** Sketch Services  ***********
-#define VER              "1.0"
-#define USE_NOTIFY_TELE  false
+#define VER              "WEMOS_1.1"
+#define USE_NOTIFY_TELE  true
 
 // ********** myIOT Class ***********
 //~~~~~ Services ~~~~~~~~~~~
@@ -15,7 +15,7 @@
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 // ~~~~~~~ MQTT Topics ~~~~~~
-#define DEVICE_TOPIC        "t2"
+#define DEVICE_TOPIC        "solarPanel"
 #define MQTT_PREFIX         "myHome"
 #define MQTT_GROUP          "TESTS"
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -24,6 +24,7 @@
 myIOT iot(DEVICE_TOPIC);
 // ***************************
 
+float V_val = 0;
 
 // ~~~~~~~ Using Telegram ~~~~~~~~~~~~~~
 char *Telegram_Nick = DEVICE_TOPIC;
@@ -73,18 +74,18 @@ void telecmds(String in_msg, String from, String chat_id, char *snd_msg) {
                         strcat(snd_msg,t1);
                 }
         }
-        else if (in_msg==comp_command[5]) {
-                switchIt("Telegram", "up");
-                sprintf(snd_msg,"%s[UP]",prefix2 );
-        }//up
-        else if (in_msg==comp_command[6]) {
-                switchIt("Telegram", "down");
-                sprintf(snd_msg,"%s[DOWN]",prefix2 );
-        }//down
-        else if (in_msg==comp_command[7]) {
-                switchIt("Telegram", "off");
-                sprintf(snd_msg,"%s[OFF]",prefix2 );
-        }//off
+//        else if (in_msg==comp_command[5]) {
+//                switchIt("Telegram", "up");
+//                sprintf(snd_msg,"%s[UP]",prefix2 );
+//        }//up
+//        else if (in_msg==comp_command[6]) {
+//                switchIt("Telegram", "down");
+//                sprintf(snd_msg,"%s[DOWN]",prefix2 );
+//        }//down
+//        else if (in_msg==comp_command[7]) {
+//                switchIt("Telegram", "off");
+//                sprintf(snd_msg,"%s[OFF]",prefix2 );
+//        }//off
 }
 #endif
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -106,6 +107,7 @@ void setup() {
         startIOTservices();
         #if USE_NOTIFY_TELE
         teleNotify.begin(telecmds);
+        teleNotify.send_msg("BOOT UP");
         #endif
 }
 
@@ -122,6 +124,12 @@ void addiotnalMQTT(char incoming_msg[50]) {
                 sprintf(msg, "ver:[%s], lib:[%s], WDT:[%d], OTA:[%d], SERIAL:[%d],ResetKeeper[%d], FailNTP[%d]", VER, iot.ver, USE_WDT, USE_OTA, USE_SERIAL, USE_RESETKEEPER, USE_FAILNTP);
                 iot.pub_msg(msg);
         }
+        else if (strcmp(incoming_msg, "bat") == 0) {
+                char battery_value[50];
+                V_val = analogRead(2)/1023.0*100;
+                sprintf(msg,"Bat is %.1f",V_val);
+                iot.pub_msg(msg);
+        }
 }
 void loop() {
         iot.looper();
@@ -131,11 +139,11 @@ void loop() {
         #endif
 
         delay(100);
-        long now2 = millis();
-        if (now2-counter > 1000) {
-                if(now2-counter > 1300) {
-                        Serial.println((float)(now2-counter)/1000);
-                }
-                counter=now2;
-        }
+        // long now2 = millis();
+        // if (now2-counter > 1000) {
+        //         if(now2-counter > 1300) {
+        //                 Serial.println((float)(now2-counter)/1000);
+        //         }
+        //         counter=now2;
+        // }
 }

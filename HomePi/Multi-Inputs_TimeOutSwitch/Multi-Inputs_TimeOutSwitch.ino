@@ -21,8 +21,8 @@
 #define HARD_REBOOT      false
 
 #define USE_NOTIFY_TELE  false
-#define USE_SENSOR       false
-#define USE_IR_REMOTE    true
+#define USE_SENSOR       true
+#define USE_IR_REMOTE    false
 
 // ********** myIOT Class ***********
 //~~~~~ Services ~~~~~~~~~~~
@@ -71,7 +71,7 @@ char *clockAlias = "Daily TimeOut";
 #endif
 
 #if !IS_SONOFF
-#define RELAY1          D3 // <--- D3 most devices, but KitchenLEDs D2
+#define RELAY1          D3 // <--- D2 most devices, but KitchenLEDs D2
 #define RELAY2          D2
 #define INPUT1          D7
 #define INPUT2          D6
