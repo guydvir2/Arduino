@@ -13,10 +13,10 @@
 
 // ********** Sketch Services  ***********
 #define VER              "WEMOS_4.6"
-#define USE_INPUTS       false
+#define USE_INPUTS       true
 #define IS_MOMENTARY     true  // is switch latch or momentary
-#define ON_AT_BOOT       false  // On or OFF at boot (Usually when using inputs, at boot/PowerOn - state should be off
-#define USE_DAILY_TO     true
+#define ON_AT_BOOT       true  // On or OFF at boot (Usually when using inputs, at boot/PowerOn - state should be off
+#define USE_DAILY_TO     false
 #define IS_SONOFF        false
 #define HARD_REBOOT      false
 
@@ -29,7 +29,7 @@
 #define USE_SERIAL       false // Serial Monitor
 #define USE_WDT          true  // watchDog resets
 #define USE_OTA          true  // OTA updates
-#define USE_RESETKEEPER  false  // detect quick reboot and real reboots
+#define USE_RESETKEEPER  true  // detect quick reboot and real reboots
 #define USE_FAILNTP      true  // saves amoount of fail clock updates
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -71,7 +71,7 @@ char *clockAlias = "Daily TimeOut";
 #endif
 
 #if !IS_SONOFF
-#define RELAY1          D3 // <--- D3 most devices, but KitchenLEDs D2
+#define RELAY1          D2 // <--- D3 most devices, but KitchenLEDs D2
 #define RELAY2          D2
 #define INPUT1          D7
 #define INPUT2          D6
