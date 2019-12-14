@@ -20,19 +20,20 @@ char pass[] = "guyd5161";
 
 BLYNK_WRITE(V1)
 {
-  long pinValue = param.asLong(); // assigning incoming value from pin V1 to a variable
+  bool pinValue = param.asLong(); // assigning incoming value from pin V1 to a variable
 
 }
 BLYNK_READ(V5)
 {
   // This command writes Arduino's uptime in seconds to Virtual Pin (5)
-  Blynk.virtualWrite(V5, millis() / 1000);
+  Blynk.virtualWrite(V5, analogRead(2)*(100/1023));
 }
 
 void setup()
 {
   // Debug console
   Serial.begin(9600);
+  pinMode(D2, OUTPUT);
 
   Blynk.begin(auth, ssid, pass);
 }

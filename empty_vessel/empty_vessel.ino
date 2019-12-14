@@ -1,5 +1,6 @@
 #include <myIOT.h>
 #include <Arduino.h>
+#include <BlynkSimpleEsp8266.h>
 
 // ********** Sketch Services  ***********
 #define VER              "WEMOS_1.1"
@@ -7,7 +8,7 @@
 
 // ********** myIOT Class ***********
 //~~~~~ Services ~~~~~~~~~~~
-#define USE_SERIAL       true
+#define USE_SERIAL       false
 #define USE_WDT          true
 #define USE_OTA          true
 #define USE_RESETKEEPER  true
@@ -103,8 +104,22 @@ void startIOTservices(){
         iot.start_services(ADD_MQTT_FUNC);
 
 }
+BLYNK_READ(V5)
+{
+  // This command writes Arduino's uptime in seconds to Virtual Pin (5)
+  Blynk.virtualWrite(V5, (analogRead(D2)/1023)*3.3);
+}
+char auth[] = "yyJsC24RBVrsgts59QoZ_LYWj1ZEfx74";
+char ssid[] = "Xiaomi_D6C8";
+char pass[] = "guyd5161";
+
+
 void setup() {
         startIOTservices();
+        pinMode(D2, INPUT);
+        analogWrite(D2,0);
+        Blynk.begin(auth, ssid, pass);
+
         #if USE_NOTIFY_TELE
         teleNotify.begin(telecmds);
         teleNotify.send_msg("BOOT UP");
@@ -137,6 +152,8 @@ void loop() {
         #if USE_NOTIFY_TELE
         teleNotify.looper();
         #endif
+
+         Blynk.run();
 
         delay(100);
         // long now2 = millis();

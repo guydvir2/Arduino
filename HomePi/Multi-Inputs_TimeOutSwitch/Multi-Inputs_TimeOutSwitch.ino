@@ -1,6 +1,7 @@
 #include <myIOT.h>
 #include <EEPROM.h>
 #include <Arduino.h>
+#include <BlynkSimpleEsp8266.h>
 
 // ********** Names + Strings  ***********
 // ~~~~~~~ MQTT Topics ~~~~~~                        // belong to myIOT
@@ -14,7 +15,7 @@
 // ********** Sketch Services  ***********
 #define VER              "WEMOS_4.6"
 #define USE_INPUTS       true
-#define IS_MOMENTARY     true  // is switch latch or momentary
+#define IS_MOMENTARY     false  // is switch latch or momentary
 #define ON_AT_BOOT       true  // On or OFF at boot (Usually when using inputs, at boot/PowerOn - state should be off
 #define USE_DAILY_TO     false
 #define IS_SONOFF        false
@@ -727,6 +728,8 @@ void checkSensor_looper (byte sw) {
 }
 #endif
 
+// void BLYNK_READ(D7)
+
 // ~~~~~ BOOT ASSIST SERVICES ~~~~~~~~~
 #if HARD_REBOOT
 void check_hardReboot(byte i = 1, byte threshold = 2) {
@@ -947,6 +950,10 @@ void setup() {
         #if USE_IR_REMOTE
         start_IR();
         #endif
+
+        char auth[] = "yyJsC24RBVrsgts59QoZ_LYWj1ZEfx74";
+
+        Blynk.begin(auth, SSID_ID, PASS_WIFI);
 }
 void loop() {
         iot.looper();
@@ -977,6 +984,8 @@ void loop() {
         #if USE_IR_REMOTE
         recvIRinputs(); // IR signals
         #endif
+
+        Blynk.run();
 
         delay(50);
 }
