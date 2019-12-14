@@ -23,7 +23,7 @@ BLYNK_WRITE(V1)
   bool pinValue = param.asLong(); // assigning incoming value from pin V1 to a variable
 
 }
-BLYNK_READ(V5)
+BLYNK_READ(A0)
 {
   // This command writes Arduino's uptime in seconds to Virtual Pin (5)
   Blynk.virtualWrite(V5, analogRead(2)*(100/1023));
