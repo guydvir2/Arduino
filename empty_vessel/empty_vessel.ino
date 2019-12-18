@@ -3,13 +3,13 @@
 #include <BlynkSimpleEsp8266.h>
 
 // ********** Sketch Services  ***********
-#define VER "WEMOS_1.1"
-#define USE_NOTIFY_TELE false
+#define VER "WEMOS_1.2"
+#define USE_NOTIFY_TELE true
 
 // ********** myIOT Class ***********
 //~~~~~ Services ~~~~~~~~~~~
-#define USE_SERIAL true
-#define USE_WDT false
+#define USE_SERIAL false
+#define USE_WDT true
 #define USE_OTA true
 #define USE_RESETKEEPER true
 #define USE_FAILNTP true
@@ -25,22 +25,24 @@
 myIOT iot(DEVICE_TOPIC);
 // ***************************
 
-float Vbat         = 0;
+#define MINUTE 60e6L
+float Vbat = 0;
 float Vbat_precent = 0;
-float Vbat_max     = 4.2;
-float Vbat_min_to_operate = 3.0;
-long LowBat_sleepPeriod   = 1000000*10L; // in seconds
-long sleepPeriod_1 = 1000000*60*10L;
-long lastsleep =0;
+float Vbat_max = 4.3;
+float Vbat_min_to_operate = 2.8;
+long LowBat_sleepPeriod = 1e6 * 10L; // in seconds
+unsigned long sleepPeriod_1 = MINUTE * 60;
+long timeOn = 0;
+long time_stay_On = 1000 * 10;
 
-    // ~~~~~~~ Using Telegram ~~~~~~~~~~~~~~
-    char *Telegram_Nick = DEVICE_TOPIC;
+// ~~~~~~~ Using Telegram ~~~~~~~~~~~~~~
+char *Telegram_Nick = DEVICE_TOPIC;
 int time_check_messages = 2; //sec
 #if USE_NOTIFY_TELE
 myTelegram teleNotify(BOT_TOKEN, CHAT_ID, time_check_messages);
 void telecmds(String in_msg, String from, String chat_id, char *snd_msg)
 {
-        String command_set[] = {"whois_online", "status", "reset", "whoami", "help", "up", "down", "off"};
+        String command_set[] = {"whois_online", "status", "reset", "whoami", "help", "bat_level", "sleep_now"};
         byte num_commands = sizeof(command_set) / sizeof(command_set[0]);
         String comp_command[num_commands];
         char prefix[100], prefix2[100];
@@ -89,18 +91,17 @@ void telecmds(String in_msg, String from, String chat_id, char *snd_msg)
                         strcat(snd_msg, t1);
                 }
         }
-        //        else if (in_msg==comp_command[5]) {
-        //                switchIt("Telegram", "up");
-        //                sprintf(snd_msg,"%s[UP]",prefix2 );
-        //        }//up
-        //        else if (in_msg==comp_command[6]) {
-        //                switchIt("Telegram", "down");
-        //                sprintf(snd_msg,"%s[DOWN]",prefix2 );
-        //        }//down
-        //        else if (in_msg==comp_command[7]) {
-        //                switchIt("Telegram", "off");
-        //                sprintf(snd_msg,"%s[OFF]",prefix2 );
-        //        }//off
+        else if (in_msg == comp_command[5])
+        {
+                calc_Vbat();
+                sprintf(snd_msg, "Battery is %.2f [v]", Vbat);
+        }
+        else if (in_msg == comp_command[6])
+        {
+                sprintf(snd_msg, "Sending a Sleep Command");
+                ESP.deepSleep(LowBat_sleepPeriod, WAKE_NO_RFCAL);
+                delay(100);
+        }
 }
 #endif
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -123,33 +124,37 @@ void startIOTservices()
 }
 BLYNK_READ(V5)
 {
-  // This command writes Arduino's uptime in seconds to Virtual Pin (5)
-  Blynk.virtualWrite(V5, (analogRead(D2)/1023)*3.3);
+        // This command writes Arduino's uptime in seconds to Virtual Pin (5)
+        calc_Vbat();
+        Blynk.virtualWrite(V5, Vbat);
 }
 char auth[] = "yyJsC24RBVrsgts59QoZ_LYWj1ZEfx74";
 char ssid[] = "Xiaomi_D6C8";
 char pass[] = "guyd5161";
 
-
+char tmsg[50];
 
 void setup()
 {
         pinMode(A0, INPUT);
         calc_Vbat();
+        // Blynk.begin(auth, ssid, pass);
 
-        // if (Vbat > Vbat_min_to_operate)
-        // {
-
+        if (Vbat > Vbat_min_to_operate)
+        {
                 startIOTservices();
 #if USE_NOTIFY_TELE
                 teleNotify.begin(telecmds);
-                teleNotify.send_msg("BOOT UP");
+                iot.get_timeStamp();
+                sprintf(tmsg, "[%s] %s power up with %.2f[v]",iot.timeStamp, DEVICE_TOPIC, Vbat);
+                teleNotify.send_msg(tmsg);
 #endif
-        // }
-        // else
-        // {
-        //         ESP.deepSleep(LowBat_sleepPeriod);
-        // }
+        }
+        else
+        {
+                ESP.deepSleep(LowBat_sleepPeriod, WAKE_NO_RFCAL);
+                delay(100);
+        }
 }
 
 void addiotnalMQTT(char incoming_msg[50])
@@ -172,36 +177,36 @@ void addiotnalMQTT(char incoming_msg[50])
         {
                 char battery_value[50];
                 calc_Vbat();
-                sprintf(msg,"Bat is %.1f, %.1f percent",Vbat, Vbat_precent);
+                sprintf(msg, "Bat is %.1f, %.1f percent", Vbat, Vbat_precent);
                 iot.pub_msg(msg);
         }
 }
 void loop()
 {
         iot.looper();
+        calc_Vbat();
+        if (Vbat < Vbat_min_to_operate)
+        {
+                iot.get_timeStamp();
+                sprintf(tmsg, "[%s] Low Bat %.2f- Power down",iot.timeStamp, Vbat);
+                teleNotify.send_msg(tmsg);
+                ESP.deepSleep(sleepPeriod_1, WAKE_NO_RFCAL);
+                delay(100);
+        }
 
 #if USE_NOTIFY_TELE
         teleNotify.looper();
 #endif
-
-        delay(500);
-        if (millis() >30*1000){
-                ESP.deepSleep(10e6);
+        if (millis() >= time_stay_On)
+        {
+                iot.get_timeStamp();
+                sprintf(tmsg, "[%s] going to sleep for %.1f minutes", iot.timeStamp, (float)sleepPeriod_1/(MINUTE));
+                teleNotify.send_msg(tmsg);
+                ESP.deepSleep(sleepPeriod_1 - micros(), WAKE_NO_RFCAL);
+                delay(10);
         }
-        else{
-                Serial.print("waiting...");
-                Serial.println(millis());
-        }
 
-
-        //  Blynk.run();
+        // Blynk.run();
 
         delay(100);
-        // long now2 = millis();
-        // if (now2-counter > 1000) {
-        //         if(now2-counter > 1300) {
-        //                 Serial.println((float)(now2-counter)/1000);
-        //         }
-        //         counter=now2;
-        // }
 }

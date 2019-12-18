@@ -5,7 +5,7 @@
 
 // ********** Names + Strings  ***********
 // ~~~~~~~ MQTT Topics ~~~~~~                        // belong to myIOT
-#define DEVICE_TOPIC "KitchenLEDs"
+#define DEVICE_TOPIC "LivingRoom"
 #define MQTT_PREFIX  "myHome"
 #define MQTT_GROUP   "intLights"
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -13,17 +13,17 @@
 // belongs to TELEGRAM
 
 // ********** Sketch Services  ***********
-#define VER              "WEMOS_4.6"
-#define USE_INPUTS       true
+#define VER              "SONOFF_Mini_4.6"
+#define USE_INPUTS       false
 #define IS_MOMENTARY     false  // is switch latch or momentary
 #define ON_AT_BOOT       true  // On or OFF at boot (Usually when using inputs, at boot/PowerOn - state should be off
-#define USE_DAILY_TO     false
-#define IS_SONOFF        false
-#define HARD_REBOOT      false
+#define USE_DAILY_TO     true
+#define IS_SONOFF        true
+#define HARD_REBOOT      true
 
 #define USE_NOTIFY_TELE  false
 #define USE_SENSOR       false
-#define USE_IR_REMOTE    true
+#define USE_IR_REMOTE    false
 
 // ********** myIOT Class ***********
 //~~~~~ Services ~~~~~~~~~~~

@@ -287,7 +287,6 @@ bool myIOT::subscribeMQTT() {
                                 }
                                 else {         // not first run
                                         notifyOnline();
-                                        // pub_log("<< MQTT loop >>");
                                 }
                                 return 1;
                         }
