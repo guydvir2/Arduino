@@ -138,7 +138,7 @@ void setup()
 {
         pinMode(A0, INPUT);
         calc_Vbat();
-        // Blynk.begin(auth, ssid, pass);
+        Blynk.begin(auth, ssid, pass);
 
         if (Vbat > Vbat_min_to_operate)
         {
