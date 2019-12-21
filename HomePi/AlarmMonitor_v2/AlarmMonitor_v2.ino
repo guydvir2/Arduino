@@ -13,22 +13,36 @@
 
 /*
 
- |  INPUT1  |   INPUT2    |   OUTPUT1  |  OUTPUT2   |      Sys      |
- | Arm Indic| Alarm indic | Home Relay | Away Relay |     State     |
- +==========+=============+============+============+===============+
- |    1     |      1      |      0     |     0      | disarmed All  |
- +----------+-------------+------------+------------+---------------+
- |    0     |      1      |      1     |     0      | Home Arm code |
- +----------+-------------+------------+------------+---------------+
- |    0     |      1      |      0     |     1      | Away Arm code |
- +----------+-------------+------------+------------+---------------+
- |    0     |      1      |      0     |     0      |Home/awa keypad|
- +----------+-------------+------------+------------+---------------+
- |    0     |      0      |      0/1   |     0/1    |     Alarm     |
- +----------+-------------+------------+------------+---------------+
+                +==========+=============+============+============+===============+
+                |  INPUT1  |   INPUT2    |   OUTPUT1  |  OUTPUT2   |      Sys      |
+                | Arm Indic| Alarm indic | Home Relay | Away Relay |     State     |
+                +==========+=============+============+============+===============+
+                |    1     |      1      |      0     |     0      | disarmed All  |
+                +----------+-------------+------------+------------+---------------+
+                |    0     |      1      |      1     |     0      | Home Arm code |
+                +----------+-------------+------------+------------+---------------+
+                |    0     |      1      |      0     |     1      | Away Arm code |
+                +----------+-------------+------------+------------+---------------+
+                |    0     |      1      |      0     |     0      |Home/awa keypad|
+                +----------+-------------+------------+------------+---------------+
+                |    0     |      0      |      0/1   |     0/1    |     Alarm     |
+                +----------+-------------+------------+------------+---------------+
 
- */
 
+                +==============+=============+=============+
+                |  System      |     GPIO    |     I/O     |
+                |  State       |   ESP8266   |     PIMA    |
+                +==============+=============+=============+
+                | Alarm IND    | D4 PULL_UP  |     ALARM   |
+                +--------------+-------------+-------------+
+                | Armed IND    | D3 PULL_UP  |    ON/OFF   |
+                +--------------+-------------+-------------+
+                | Arm-Home CMD |      ?      |     KEY?    |
+                +--------------+-------------+-------------+
+                | Arm-Away CMD |      ?      |     Z8?     |
+                +--------------+-------------+-------------+
+ 
+*/
 
 #include <myIOT.h>
 #include <Arduino.h>
@@ -44,7 +58,7 @@
 
 
 // ********** Sketch Services  ***********
-#define VER              "NODEMCU_3.21"
+#define VER              "Wemos_3.3"
 #define USE_NOTIFY_TELE  false
 
 // ********** myIOT Class ***********
@@ -63,10 +77,15 @@ myIOT iot(DEVICE_TOPIC);
 
 // ~~~~ HW Pins and States ~~~~
 // GPIO Pins for ESP8266
-#define INPUT1   4          //  Indication system is Armed
-#define INPUT2   5          //  Indication system is Alarmed
-#define OUTPUT1  12         //   (Set system)  armed_Home
-#define OUTPUT2  14         //   (Set system)  Armed_Away
+#define INPUT1   D3          //  Indication system is Armed
+#define INPUT2   D4          //  Indication system is Alarmed
+#define OUTPUT1  D6          //   (Set system)  armed_Home
+#define OUTPUT2  D5          //   (Set system)  Armed_Away
+
+// #define INPUT1 4            //  Indication system is Armed
+// #define INPUT2 5            //  Indication system is Alarmed
+// #define OUTPUT1  12         //   (Set system)  armed_Home
+// #define OUTPUT2  14         //   (Set system)  Armed_Away
 
 #define RelayOn HIGH
 #define SwitchOn LOW
@@ -76,8 +95,8 @@ byte inputs[]       = {INPUT1, INPUT2};
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 // GPIO status flags
-bool indication_ARMED_lastState;//   = true;
-bool indication_ALARMED_lastState;// = true;
+bool indication_ARMED_lastState;
+bool indication_ALARMED_lastState;
 
 const int systemPause = 2000; // milli-seconds, delay to system react
 const int deBounceInt = 50;
@@ -488,7 +507,6 @@ void setup() {
         }
         if(useTelegram.getValue(useT)==0) {    // not able to read flash value
                 useTelegram.setValue(1);       // store default
-
         }
 
 }
