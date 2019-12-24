@@ -37,11 +37,33 @@
                 +--------------+-------------+-------------+
                 | Armed IND    | D3 PULL_UP  |    ON/OFF   |
                 +--------------+-------------+-------------+
-                | Arm-Home CMD |      ?      |     KEY?    |
+                | Arm-Home CMD |      D6     |     KEY     |
                 +--------------+-------------+-------------+
-                | Arm-Away CMD |      ?      |     Z8?     |
+                | Arm-Away CMD |      D5     |     Z8      |
                 +--------------+-------------+-------------+
  
+                
+                              ------ > PIMA SIDE <------- 
+                +---------------------------------------------------+
+                |   *       *       *       *           *     *     |
+                |  ARM    ALARM    12V     GND         KEY   Z8     |
+                |  [INDICATIONS]            |         [COMMANDS]    |
+                |                           |                       |
+                |   ###    ###              |          ###   ###    |
+                |   ###    ###              |          ###   ###    |
+                |   12v    12V              |          3v    3v     |
+                |   FET    FET              |          FET   FET    |
+                |                           |                       |
+                |                           +------------------+    |
+                |   [INPUTS]                     [OUTPUTS]     |    |
+                |   *       *                    *      *      *    |
+                |  D3      D4                   D6     D5      GND  |
+                +----------------------------------------------------
+                               ------ > ESP SIDE <------- 
+
+
+
+
 */
 
 #include <myIOT.h>
@@ -58,7 +80,7 @@
 
 
 // ********** Sketch Services  ***********
-#define VER              "Wemos_3.3"
+#define VER              "NodeMCU_3.4"
 #define USE_NOTIFY_TELE  false
 
 // ********** myIOT Class ***********
@@ -81,11 +103,6 @@ myIOT iot(DEVICE_TOPIC);
 #define INPUT2   D4          //  Indication system is Alarmed
 #define OUTPUT1  D6          //   (Set system)  armed_Home
 #define OUTPUT2  D5          //   (Set system)  Armed_Away
-
-// #define INPUT1 4            //  Indication system is Armed
-// #define INPUT2 5            //  Indication system is Alarmed
-// #define OUTPUT1  12         //   (Set system)  armed_Home
-// #define OUTPUT2  14         //   (Set system)  Armed_Away
 
 #define RelayOn HIGH
 #define SwitchOn LOW

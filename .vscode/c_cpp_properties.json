@@ -7,16 +7,9 @@
                 "/Users/guydvir/Library/Arduino15/packages/esp8266/hardware/esp8266/2.6.2/**",
                 "/Users/guydvir/Library/Arduino15/packages/esp8266/tools/**",
                 "/home/guy/.arduino15/packages/esp8266/hardware/esp8266/2.6.2/**",
-<<<<<<< HEAD
                 "/home/guy/.arduino15/packages/esp8266/tools/**",
-                "/home/guy/.arduino15/packages/esp8266/hardware/esp8266/2.6.3/**"
-=======
-<<<<<<< HEAD
+                "/home/guy/.arduino15/packages/esp8266/hardware/esp8266/2.6.3/**",
                 "/Users/guydvir/Library/Arduino15/packages/esp8266/hardware/esp8266/2.6.3/**"
-=======
-                "/home/guy/.arduino15/packages/esp8266/tools/**"
->>>>>>> 3ddf550aa0c35f38fa26c635714c7bf9dc88d278
->>>>>>> b61623b0d9318cf18b1b0512ce6054163df25b73
             ],
             "defines": [],
             "compilerPath": "/usr/bin/clang",

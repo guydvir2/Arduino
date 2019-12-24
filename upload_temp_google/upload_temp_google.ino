@@ -1,13 +1,7 @@
-
-// Google Sheet
+#include <myIOT.h>
 #include <ESP8266WiFi.h>
 #include <WiFiClientSecure.h>
-#include <Arduino.h>
-
-// DHT libs
 #include "DHT.h"
-
-#include <myIOT.h>
 #include <Arduino.h>
 
 // ********** Sketch Services  ***********
@@ -33,12 +27,10 @@
 myIOT iot(DEVICE_TOPIC);
 // ***************************
 
-// ~~~~~ Wifi ~~~~~~~~~
+// ~~~~~ Wifi Google Certificates ~~~~~~~~~
 WiFiClientSecure client;
 const char *host = "script.google.com";
 const int httpsPort = 443;
-
-// ~~~~~~~ Google Certificates ~~~~~~
 const char *fingerprint = "46 B2 C3 44 9C 59 09 8B 01 B6 F8 BD 4C FB 00 74 91 2F EF F6";
 String google_ID = "AKfycbwV7RGU3rEBcXIfCyKZpFCHUlhEWbyB19kd9WfLtCrF49Napbs";
 
@@ -51,10 +43,10 @@ float humidity, temperature, heatIndex;
 char str_humidity[10], str_temperature[10], str_heatIndex[10];
 
 // ~~~~~~~~~~ Time intervals ~~~~~~~~~~
-const int sleepSeconds = 30;
-const int stayawakeSeconds = 60;
-const int uploadintervalSeconds = 10;//60 * 30;
-unsigned longlastupload = 0;
+const int sleepSeconds = 60*30;
+const int stayawakeSeconds = 120;
+const int uploadintervalSeconds = 20;
+unsigned long lastupload = 0;
 
 void startIOTservices()
 {
@@ -67,7 +59,6 @@ void startIOTservices()
   strcpy(iot.addGroupTopic, MQTT_GROUP);
   iot.start_services(ADD_MQTT_FUNC);
 }
-
 
 void startDHT()
 {
@@ -98,10 +89,10 @@ void print_sensorData()
   Serial.printf("Humidity:    %s %%\nTemperature: %s *C\nHeat index:  %s *C\n", str_humidity, str_temperature, str_heatIndex);
 }
 
-void gotoSleep(int seconds = 10)
+void gotoSleep(int secs)
 {
-  Serial.printf("Sleep for %d seconds\n\n", sleepSeconds);
-  ESP.deepSleep(seconds * 1000000);
+  Serial.printf("Sleep for %d seconds\n\n", secs);
+  ESP.deepSleep(secs * 1000000);
   delay(10);
 }
 
@@ -190,8 +181,8 @@ void setup()
   get_setsorData();
   print_sensorData();
 
-  // connectWIFI();
   sendData(temperature, humidity, 2);
+  lastupload = millis();
 }
 
 void loop()
@@ -203,12 +194,12 @@ void loop()
     gotoSleep(sleepSeconds);
   }
 
-  if (longlastupload >= uploadintervalSeconds)
-  {
-    longlastupload = 0;
-    get_setsorData();
-    sendData(temperature, humidity, 2);
-  }
+  // if (millis()-lastupload >= uploadintervalSeconds * 1000)
+  // {
+  //   get_setsorData();
+  //   sendData(temperature, humidity, 2);
+  //   lastupload = millis();
+  // }
 
   delay(100);
 }
