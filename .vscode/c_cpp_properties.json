@@ -22,7 +22,8 @@
             "name": "Mac",
             "includePath": [
                 "/Users/guydvir/Library/Arduino15/packages/esp8266/tools/**",
-                "/Users/guydvir/Library/Arduino15/packages/esp8266/hardware/esp8266/2.6.2/**"
+                "/Users/guydvir/Library/Arduino15/packages/esp8266/hardware/esp8266/2.6.2/**",
+                "${workspaceFolder}/libraries/ESP8266Ping/src"
             ],
             "forcedInclude": []
         }

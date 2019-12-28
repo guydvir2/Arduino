@@ -5,15 +5,15 @@
 
 // ********** Names + Strings  ***********
 // ~~~~~~~ MQTT Topics ~~~~~~                        // belong to myIOT
-#define DEVICE_TOPIC "LivingRoom"
+#define DEVICE_TOPIC "AC"
 #define MQTT_PREFIX  "myHome"
-#define MQTT_GROUP   "intLights"
+#define MQTT_GROUP   "TESTS"
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 // belongs to TELEGRAM
 
 // ********** Sketch Services  ***********
-#define VER              "SONOFF_Mini_4.6"
+#define VER              "WEMOS_Mini_4.6"
 #define USE_INPUTS       false
 #define IS_MOMENTARY     false  // is switch latch or momentary
 #define ON_AT_BOOT       true  // On or OFF at boot (Usually when using inputs, at boot/PowerOn - state should be off
@@ -21,7 +21,7 @@
 #define IS_SONOFF        true
 #define HARD_REBOOT      true
 
-#define USE_NOTIFY_TELE  false
+#define USE_NOTIFY_TELE  true
 #define USE_SENSOR       false
 #define USE_IR_REMOTE    false
 
@@ -529,8 +529,6 @@ void addiotnalMQTT(char *income_msg) {
                                 TO[atoi(iot.inline_param[0])]->dailyTO.flag ? "ON" : "OFF",
                                 TO[atoi(iot.inline_param[0])]->dailyTO.useFlash ? "Flash" : "inCode" );
                         iot.pub_msg(msg_MQTT);
-
-                        Serial.println("IN STATUS_Daily LOOP");
                 }
                 else if (strcmp(iot.inline_param[1], "restart_dailyTO") == 0) {
                         TO[atoi(iot.inline_param[0])]->restart_dailyTO(TO[atoi(iot.inline_param[0])]->dailyTO);

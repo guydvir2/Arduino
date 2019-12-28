@@ -7,7 +7,7 @@
 
 // ********** myIOT Class ***********
 //~~~~~ Services ~~~~~~~~~~~
-#define USE_SERIAL       false // Serial Monitor
+#define USE_SERIAL       true  // Serial Monitor
 #define USE_WDT          true  // watchDog resets
 #define USE_OTA          true  // OTA updates
 #define USE_RESETKEEPER  false // detect quick reboot and real reboots
@@ -31,7 +31,7 @@ myIOT iot(DEVICE_TOPIC);
 #include <Adafruit_SSD1306.h>
 
 #define SCREEN_WIDTH        128
-#define SCREEN_HEIGHT       64    // 32 2rows or 64 4 rows
+#define SCREEN_HEIGHT       32    // 32 2rows or 64 4 rows
 #define OLED_RESET          LED_BUILTIN
 
 long swapLines_counter = 0;
@@ -49,8 +49,9 @@ void startIOTservices() {
         iot.resetFailNTP   = USE_FAILNTP;
         strcpy(iot.prefixTopic, MQTT_PREFIX);
         strcpy(iot.addGroupTopic, MQTT_GROUP);
-        iot.start_services(ADD_MQTT_FUNC);
+        iot.start_services(ADD_MQTT_FUNC, "Xiaomi_ADA6", "guyd5161", MQTT_USER, MQTT_PASS); 
 }
+
 void addiotnalMQTT(char *incoming_msg) {
         char msg[150];
         char msg2[20];
@@ -159,8 +160,6 @@ void OLEDlooper(int swapTime=5000) {
                 swapLines_counter = 0;
         }
 }
-
-
 void setup() {
         startIOTservices();
         startOLED();

@@ -90,35 +90,36 @@ void startOTA();
 void get_timeStamp(time_t t = 0);
 void return_clock(char ret_tuple[20]);
 void return_date(char ret_tuple[20]);
+bool checkInternet(char externalSite[40]);
 
-void sendReset(char *header);
-void notifyOnline();
-void notifyOffline();
-void pub_state(char *inmsg, byte i=0);
-void pub_msg(char *inmsg);
-bool pub_log(char *inmsg);
-int inline_read(char *inputstr);
+  void sendReset(char *header);
+  void notifyOnline();
+  void notifyOffline();
+  void pub_state(char *inmsg, byte i = 0);
+  void pub_msg(char *inmsg);
+  bool pub_log(char *inmsg);
+  int inline_read(char *inputstr);
 
-// ~~~~~~ Services ~~~~~~~~~
-bool useSerial      = false;
-bool useWDT         = true;
-bool useOTA         = true;
-bool extDefine      = false;                           // must to set to true in order to use EXtMQTT
-bool useResetKeeper = false;
-bool resetFailNTP   = false;
-bool useTelegram    = false;
-// ~~~~~~~~~~~~~~~~~~~~~~~~~
-char inline_param[6][20];                           //values from user
+  // ~~~~~~ Services ~~~~~~~~~
+  bool useSerial = false;
+  bool useWDT = true;
+  bool useOTA = true;
+  bool extDefine = false; // must to set to true in order to use EXtMQTT
+  bool useResetKeeper = false;
+  bool resetFailNTP = false;
+  bool useTelegram = false;
+  // ~~~~~~~~~~~~~~~~~~~~~~~~~
+  char inline_param[6][20]; //values from user
 
-bool alternativeMQTTserver = false;
-bool noNetwork_flag        = false;
-byte mqtt_detect_reset     = 2;
-char prefixTopic  [MaxTopicLength];
-char deviceTopic  [MaxTopicLength];
-char addGroupTopic[MaxTopicLength];
+  bool alternativeMQTTserver = false;
+  bool noNetwork_flag = false;
+  byte mqtt_detect_reset = 2;
+  char prefixTopic[MaxTopicLength];
+  char deviceTopic[MaxTopicLength];
+  char addGroupTopic[MaxTopicLength];
 
-const char *ver     = "iot_6.53";
-char timeStamp[20];
+  const char *ver = "iot_6.6";
+  char timeStamp[20];
 
 
 private:
