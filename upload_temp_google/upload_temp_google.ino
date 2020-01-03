@@ -1,7 +1,6 @@
 #include <myIOT.h>
 #include <ESP8266WiFi.h>
 #include <WiFiClientSecure.h>
-#include "DHT.h"
 #include <Arduino.h>
 
 // ********** Sketch Services  ***********
@@ -18,7 +17,7 @@
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 // ~~~~~~~ MQTT Topics ~~~~~~
-#define DEVICE_TOPIC "TempHumid"
+#define DEVICE_TOPIC "DC_Measure"
 #define MQTT_PREFIX "myHome"
 #define MQTT_GROUP "TESTS"
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -32,19 +31,20 @@ WiFiClientSecure client;
 const char *host = "script.google.com";
 const int httpsPort = 443;
 const char *fingerprint = "46 B2 C3 44 9C 59 09 8B 01 B6 F8 BD 4C FB 00 74 91 2F EF F6";
-String google_ID = "AKfycbwV7RGU3rEBcXIfCyKZpFCHUlhEWbyB19kd9WfLtCrF49Napbs";
+// String google_ID = "AKfycbwV7RGU3rEBcXIfCyKZpFCHUlhEWbyB19kd9WfLtCrF49Napbs"; // TEMPS
+String google_ID = "AKfycbykLwmZvUUaPq2duFYC3dvEyfTnpcvKdX9YUuyJZY9IBLfhV3c"; //TESTS
 
 // ~~~~~~~~~ DHT Sensor ~~~~~~~~~~~~
 #define DHTPIN D4
 #define DHTTYPE DHT11
-DHT dht(DHTPIN, DHTTYPE);
+    DHT dht(DHTPIN, DHTTYPE);
 
 float humidity, temperature, heatIndex;
 char str_humidity[10], str_temperature[10], str_heatIndex[10];
 
 // ~~~~~~~~~~ Time intervals ~~~~~~~~~~
 const int sleepSeconds = 60*30;
-const int stayawakeSeconds = 120;
+const int stayawakeSeconds = 5;
 const int uploadintervalSeconds = 20;
 unsigned long lastupload = 0;
 
@@ -177,9 +177,9 @@ void setup()
   Serial.println("\n\nWake up");
   pinMode(D0, WAKEUP_PULLUP);
 
-  startDHT();
-  get_setsorData();
-  print_sensorData();
+  // startDHT();
+  // get_setsorData();
+  // print_sensorData();
 
   sendData(temperature, humidity, 2);
   lastupload = millis();

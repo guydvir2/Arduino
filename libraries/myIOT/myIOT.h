@@ -9,6 +9,8 @@
 
 
 #include <ESP8266WiFi.h>
+// #include "WiFi.h"
+
 #include <PubSubClient.h> //MQTT
 #include <Ticker.h>       //WDT
 #include <NtpClientLib.h>
@@ -234,7 +236,7 @@ int inCodeTO           = 0;   // default value for TO ( hard coded )
 int updatedTO_inFlash  = 0;
 long endTO_inFlash     = 0; // clock to stop TO
 long startTO_inFlash   = 0; // clock TO started
-dTO dailyTO            = {{19, 15, 0}, {20, 37, 0}, 1, 0, 0};
+dTO dailyTO            = {{22, 16, 0}, {22, 16, 10}, 1, 0, 0};
 dTO dailyTO2           = {{1, 1, 0}, {17, 14, 0}, 1, 0, 0};
 dTO *dTOlist[2]        = {&dailyTO, &dailyTO2};
 const char *clock_fields[4] = {"ontime", "off_time", "flag", "use_inFl_vals"};

@@ -969,7 +969,6 @@ int timeOUT::calc_dailyTO(dTO &dailyTO)
 void timeOUT::dailyTO_looper(dTO &dailyTO)
 {
         time_t t = now();
-
         if (dailyTO.flag == true)
         {
                 if (dailyTO.onNow == false)

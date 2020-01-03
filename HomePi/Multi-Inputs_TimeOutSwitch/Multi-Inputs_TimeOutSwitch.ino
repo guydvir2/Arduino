@@ -5,29 +5,30 @@
 
 // ********** Names + Strings  ***********
 // ~~~~~~~ MQTT Topics ~~~~~~                        // belong to myIOT
-#define DEVICE_TOPIC "AC"
+#define DEVICE_TOPIC "shacharBedLEDs"
 #define MQTT_PREFIX  "myHome"
-#define MQTT_GROUP   "TESTS"
+#define MQTT_GROUP   "intLights"
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 // belongs to TELEGRAM
 
 // ********** Sketch Services  ***********
-#define VER              "WEMOS_Mini_4.6"
+#define VER              "WEMOS_4.8"
 #define USE_INPUTS       false
-#define IS_MOMENTARY     false  // is switch latch or momentary
-#define ON_AT_BOOT       true  // On or OFF at boot (Usually when using inputs, at boot/PowerOn - state should be off
-#define USE_DAILY_TO     true
-#define IS_SONOFF        true
-#define HARD_REBOOT      true
+#define IS_MOMENTARY     true      // is switch latch or momentary
+#define ON_AT_BOOT       false  // On or OFF at boot (Usually when using inputs, at boot/PowerOn - state should be off
+#define USE_DAILY_TO     false
+#define IS_SONOFF        false
+#define HARD_REBOOT      false
 
-#define USE_NOTIFY_TELE  true
-#define USE_SENSOR       false
+#define USE_NOTIFY_TELE  false
+#define USE_SENSOR       true
 #define USE_IR_REMOTE    false
+#define USE_BLYNK        false
 
 // ********** myIOT Class ***********
 //~~~~~ Services ~~~~~~~~~~~
-#define USE_SERIAL       false // Serial Monitor
+#define USE_SERIAL       false  // Serial Monitor
 #define USE_WDT          true  // watchDog resets
 #define USE_OTA          true  // OTA updates
 #define USE_RESETKEEPER  true  // detect quick reboot and real reboots
@@ -45,8 +46,8 @@ myIOT iot(DEVICE_TOPIC);
 #define TIMEOUT_SW0      3*60 // mins for SW0
 #define TIMEOUT_SW1      2*60 // mins
 
-const int START_dailyTO[] = {17,0, 0};
-const int END_dailyTO[]   = {23, 30, 0};
+const int START_dailyTO[] = {18,0, 0};
+const int END_dailyTO[]   = {23,30,0};
 
 int TIMEOUTS[2]  = {TIMEOUT_SW0, TIMEOUT_SW1};
 timeOUT timeOut_SW0("SW0", TIMEOUTS[0]);
@@ -72,7 +73,7 @@ char *clockAlias = "Daily TimeOut";
 #endif
 
 #if !IS_SONOFF
-#define RELAY1          D2 // <--- D3 most devices, but KitchenLEDs D2
+#define RELAY1          D3 // <--- D3 most devices, but KitchenLEDs D2
 #define RELAY2          D2
 #define INPUT1          D7
 #define INPUT2          D6
@@ -116,7 +117,7 @@ struct eeproms_storage {
         bool hBoot;
 };
 
-eeproms_storage hReset_eeprom;
+eeproms_storage hReset_eeprom = {0,0,0,0,0,false};
 
 // ~~~~~~~~~~~~~ Sensor Switch ~~~~~~~~~~~~~~
 #define MAX_NOTI_1HR           10
@@ -333,6 +334,7 @@ void startIOTservices() {
         strcpy(iot.prefixTopic, MQTT_PREFIX);
         strcpy(iot.addGroupTopic, MQTT_GROUP);
         iot.start_services(ADD_MQTT_FUNC);
+        // iot.start_services(ADD_MQTT_FUNC, "Xiaomi_ADA6", "guyd5161", MQTT_USER, MQTT_PASS);
 }
 void startGPIOs() {
         for (int i = 0; i < NUM_SWITCHES; i++) {
@@ -352,9 +354,7 @@ void startGPIOs() {
 void startTO(){
         for (int i=0; i<NUM_SWITCHES; i++) {
                 TO[i]->begin(ON_AT_BOOT);
-                if (USE_DAILY_TO) {
                         start_dailyTO(i);
-                }
         }
 }
 void start_dailyTO(byte i){
@@ -730,7 +730,7 @@ void checkSensor_looper (byte sw) {
 
 // ~~~~~ BOOT ASSIST SERVICES ~~~~~~~~~
 #if HARD_REBOOT
-void check_hardReboot(byte i = 1, byte threshold = 2) {
+void check_hardReboot(byte i = 1, byte threshold = 1) {
         // hReset_eeprom.jump = EEPROM.read(0);
         hReset_eeprom.val_cell    = 0;//hReset_eeprom.jump + i;
         hReset_eeprom.val = EEPROM.read(hReset_eeprom.val_cell);
@@ -788,12 +788,12 @@ void recoverReset() {
         if (rebootState != 2) { // before getting online/offline MQTT state
                 checkrebootState = false;
                 for (int i = 0; i < NUM_SWITCHES; i++) {
-                        if (hReset_eeprom.hBoot && HARD_REBOOT) { // using HardReboot
+                        if (hReset_eeprom.hBoot) { // using HardReboot
                                 TO[i]->restart_to();
                                 iot.pub_log("--> ForcedBoot. Restarting TimeOUT");
                                 boot_overide[i] = true;
                         }
-                        else if (rebootState == 0 && ON_AT_BOOT == true) {  // PowerOn - not a quickReboot
+                        else if (rebootState == 0 && ON_AT_BOOT) {  // PowerOn - not a quickReboot
                                 TO[i]->restart_to();
                                 iot.pub_log("--> NormalBoot & On-at-Boot. Restarting TimeOUT");
                         }
@@ -949,9 +949,10 @@ void setup() {
         start_IR();
         #endif
 
+        #if USE_BLYNK
         char auth[] = "yyJsC24RBVrsgts59QoZ_LYWj1ZEfx74";
-
         Blynk.begin(auth, SSID_ID, PASS_WIFI);
+        #endif
 }
 void loop() {
         iot.looper();
@@ -983,7 +984,9 @@ void loop() {
         recvIRinputs(); // IR signals
         #endif
 
+        #if USE_BLYNK
         Blynk.run();
+        #endif
 
         delay(50);
 }
