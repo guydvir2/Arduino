@@ -49,7 +49,7 @@ void startIOTservices() {
         iot.resetFailNTP   = USE_FAILNTP;
         strcpy(iot.prefixTopic, MQTT_PREFIX);
         strcpy(iot.addGroupTopic, MQTT_GROUP);
-        iot.start_services(ADD_MQTT_FUNC, "Xiaomi_ADA6", "guyd5161", MQTT_USER, MQTT_PASS); 
+        iot.start_services(ADD_MQTT_FUNC);
 }
 
 void addiotnalMQTT(char *incoming_msg) {

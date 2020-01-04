@@ -1,6 +1,7 @@
 #include <myIOT.h>
 #include <ESP8266WiFi.h>
 #include <WiFiClientSecure.h>
+#include "DHT.h"
 #include <Arduino.h>
 
 // ********** Sketch Services  ***********
@@ -37,7 +38,7 @@ String google_ID = "AKfycbykLwmZvUUaPq2duFYC3dvEyfTnpcvKdX9YUuyJZY9IBLfhV3c"; //
 // ~~~~~~~~~ DHT Sensor ~~~~~~~~~~~~
 #define DHTPIN D4
 #define DHTTYPE DHT11
-    DHT dht(DHTPIN, DHTTYPE);
+DHT dht(DHTPIN, DHTTYPE);
 
 float humidity, temperature, heatIndex;
 char str_humidity[10], str_temperature[10], str_heatIndex[10];

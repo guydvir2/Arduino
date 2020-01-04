@@ -2,7 +2,14 @@
 #include <PubSubClient.h>
 #include "time.h"
 #include <Arduino.h>
-#include <Time.h>
+// #include <TimeLib.h>
+// #include <Time.h>
+#include <NTPClient.h>
+#include <WiFiUdp.h>
+
+// Define NTP Client to get time
+WiFiUDP ntpUDP;
+NTPClient timeClient(ntpUDP);
 
 WiFiClient espClient;
 PubSubClient mqttClient(espClient);
@@ -16,7 +23,7 @@ struct tm timeinfo;
 const int gmtOffset_sec = 2 * 3600;
 const int daylightOffset_sec = 0; //3600;
 #define uS_TO_S_FACTOR 1000000ULL /* Conversion micro seconds to seconds */
-#define TIME_TO_SLEEP 60 * 30
+#define TIME_TO_SLEEP 60 * 60
 #define TIME_AWAKE 15
 
 // +++++++++++ IFTT  ++++++++++++++
@@ -83,7 +90,15 @@ bool startWifi()
 
   if (WiFi.status() == WL_CONNECTED)
   {
-    configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);
+    // Initialize a NTPClient to get time
+    timeClient.begin();
+    // Set offset time in seconds to adjust for your timezone, for example:
+    // GMT +1 = 3600
+    // GMT +8 = 28800
+    // GMT -1 = -3600
+    // GMT 0 = 0
+    timeClient.setTimeOffset(3600);
+    // configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);
     Serial.println(WiFi.localIP());
     return 1;
   }
@@ -146,7 +161,7 @@ void mqttReconnect()
   {
     Serial.print("Attempting MQTT connection...");
     // Attempt to connect
-    if (mqttClient.connect("ESP8266Client"))
+    if (mqttClient.connect("ESP32"))
     {
       Serial.println("connected");
       // Subscribe
@@ -178,10 +193,7 @@ void setup()
 
   makeIFTTTRequest(1.13, 1.1, 13);
   // Serial.println(&timeinfo, "%A, %B %d %Y %H:%M:%S");
-  Serial.println(&timeinfo);
-  mqtt_pubmsg("goto sleep");
-  time_t t = now();
-  Serial.println(t);
+  // mqtt_pubmsg("goto sleep");
 }
 
 void loop()
@@ -194,12 +206,17 @@ void loop()
   mqttClient.loop();
   if (millis() >= TIME_AWAKE * 1000)
   {
-    // mqtt_pubmsg("goto sleep");
     Serial.println("Going to sleep now");
+    mqtt_pubmsg("goto sleep");
     Serial.flush();
     esp_sleep_enable_timer_wakeup((TIME_TO_SLEEP - TIME_AWAKE) * uS_TO_S_FACTOR);
 
     esp_deep_sleep_start();
   }
+  while (!timeClient.update())
+  {
+    timeClient.forceUpdate();
+  }
+
   delay(100);
 }
