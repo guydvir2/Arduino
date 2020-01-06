@@ -293,10 +293,11 @@ long lastDHTRead = 0;
 
 void getTH_reading()
 {
-        if (millis() - lastDHTRead >= 2000)
+        if (millis() - lastDHTRead >= 5000)
         {
                 h = dht.readHumidity();
                 t = dht.readTemperature();
+                lastDHTRead = millis();
         }
 
         if (isnan(h) || isnan(t))
