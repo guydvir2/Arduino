@@ -44,7 +44,7 @@ float humidity, temperature, heatIndex;
 char str_humidity[10], str_temperature[10], str_heatIndex[10];
 
 // ~~~~~~~~~~ Time intervals ~~~~~~~~~~
-const int sleepSeconds = 60*30;
+const int sleepSeconds = 60*1;
 const int stayawakeSeconds = 5;
 const int uploadintervalSeconds = 20;
 unsigned long lastupload = 0;

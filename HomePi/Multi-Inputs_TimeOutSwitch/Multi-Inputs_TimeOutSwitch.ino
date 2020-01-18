@@ -10,8 +10,6 @@
 #define MQTT_GROUP "intLights"
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-// belongs to TELEGRAM
-
 // ********** Sketch Services  ***********
 #define VER "WEMOS_5.0"
 #define USE_INPUTS true
@@ -27,10 +25,11 @@
 #define USE_SENSOR true
 #define USE_IR_REMOTE false
 #define USE_BLYNK false
+#define USE_IFTTT true
 
 // ********** myIOT Class ***********
 //~~~~~ Services ~~~~~~~~~~~
-#define USE_SERIAL false     // Serial Monitor
+#define USE_SERIAL false      // Serial Monitor
 #define USE_WDT true         // watchDog resets
 #define USE_OTA true         // OTA updates
 #define USE_RESETKEEPER true // detect quick reboot and real reboots
@@ -44,7 +43,7 @@ myIOT iot(DEVICE_TOPIC);
 
 // ********** TimeOut Time vars  ***********
 #define NUM_SWITCHES 1
-#define TIMEOUT_SW0 3 * 60 // mins for SW0
+#define TIMEOUT_SW0 1 * 60 // mins for SW0
 #define TIMEOUT_SW1 2 * 60 // mins
 
 const int START_dailyTO[] = {18, 0, 0};
@@ -283,35 +282,74 @@ Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 // ~~~~~~~~ Temp & Humid Sensor ~~~~~~~
 #if USE_TEMP_HUMID
 #include "DHT.h"
-#define DHTPIN D4     // Digital pin connected to the DHT sens
-#define DHTTYPE DHT11 // DHT 11
+#define DHTPIN D4              // Digital pin connected to the DHT sens
+#define DHTTYPE DHT11          // DHT 11
+#define SAMPLE_INTERVAL 60 * 5 // Seconds - how often to read sensor
+#define AVG_SAMPLES 3          // Seconds to AVG reading
+
 DHT dht(DHTPIN, DHTTYPE);
 
+bool firstUpload = true;
+bool wait_avg = false;
 float h = 0;
 float t = 0;
 long lastDHTRead = 0;
+long sample_count = 0;
+long t_correction = -2.0;
+int t_samples[AVG_SAMPLES];
 
+void startDHT()
+{
+        dht.begin();
+}
+void moving_avg(float &sample, float &retval, int win_size = 3)
+{
+        float sum = 0;
+        t_samples[0] = sample;
+
+        for (int a = AVG_SAMPLES; a > 0; a--)
+        {
+                t_samples[a] = t_samples[a - 1];
+                sum = sum + t_samples[a];
+        }
+        if (sample_count > AVG_SAMPLES) // avg only all array is filled
+        {
+                retval = (sum) / float(AVG_SAMPLES);
+        }
+        else
+        {
+                sample_count++;
+                retval = sample;
+        }
+}
 void getTH_reading()
 {
-        if (millis() - lastDHTRead >= 5000)
+        if (millis() - lastDHTRead >= SAMPLE_INTERVAL * 1000 || firstUpload)
         {
-                h = dht.readHumidity();
-                t = dht.readTemperature();
+                float h_temp = dht.readHumidity();
+                float t_temp = dht.readTemperature() + t_correction;
                 lastDHTRead = millis();
-        }
+                firstUpload = false;
 
-        if (isnan(h) || isnan(t))
-        {
-                Serial.println(F("Failed to read from DHT sensor!"));
-                return;
-        }
+                if (isnan(h_temp) || isnan(t_temp))
+                {
+                        Serial.println(F("Failed to read from DHT sensor!"));
+                        return;
+                }
+                else
+                {
+                        moving_avg(t_temp, t, AVG_SAMPLES);
+                        h = h_temp;
 
-        Serial.print(F("Humidity: "));
-        Serial.print(h);
-        Serial.print(F("%  Temperature: "));
-        Serial.print(t);
-        Serial.print(F("°C "));
+                        Serial.print(F("Humidity: "));
+                        Serial.print(h);
+                        Serial.print(F("%  Temperature: "));
+                        Serial.print(t);
+                        Serial.println(F("°C "));
+                }
+        }
 }
+
 #endif
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -399,14 +437,14 @@ void OLED_SideTXT(int char_size, char *line1, char *line2 = "", char *line3 = ""
 }
 void OLEDlooper(int swapTime = 5000)
 {
-        char DHTreading[20];
-
         iot.return_clock(timeStamp);
         iot.return_date(dateStamp);
+
+        char DHTreading[20];
         char DEGREE_SYMBOL = {167};
         sprintf(DHTreading, "%.1fC %.0f%%", t, h);
-        // Serial.print(F("°C "));
 
+        // OLED_CenterTXT(2, timeStamp, DHTreading);
 
         if (swapLines_counter == 0)
         {
@@ -416,7 +454,7 @@ void OLEDlooper(int swapTime = 5000)
         {
                 OLED_CenterTXT(2, timeStamp, dateStamp);
         }
-        else if (millis() - swapLines_counter >= swapTime && millis() - swapLines_counter < 2 * swapTime)
+        else if (millis() - swapLines_counter >= swapTime && millis() - swapLines_counter <= 2 * swapTime)
         {
                 OLED_CenterTXT(2, timeStamp, DHTreading);
         }
@@ -427,6 +465,73 @@ void OLEDlooper(int swapTime = 5000)
 }
 #endif
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+// ~~~~~~~~~~~~~~ IFTTT ~~~~~~~~~~~
+#if USE_IFTTT
+const char *resource = "/trigger/DHT_KidsRoom/with/key/cFLymB4JT9tlODsKLFn9TA";
+const char *server = "maker.ifttt.com";
+#define UPLOAD_INTERVAL 60 * 30 // Seconds to upload IFTTT
+long lastUPLOAD = 0;
+bool first_iftt_upload = true;
+
+void makeIFTTTRequest(float val1, float val2, float val3)
+{
+        Serial.print("Connecting to ");
+        Serial.print(server);
+
+        WiFiClient client;
+        int retries = 5;
+        while (!!!client.connect(server, 80) && (retries-- > 0))
+        {
+                Serial.print(".");
+        }
+        Serial.println();
+        if (!!!client.connected())
+        {
+                Serial.println("Failed to connect...");
+        }
+
+        Serial.print("Request resource: ");
+        Serial.println(resource);
+
+        String jsonObject = String("{\"value1\":\"") + val1 + "\",\"value2\":\"" + val2 + "\",\"value3\":\"" + val3 + "\"}";
+
+        client.println(String("POST ") + resource + " HTTP/1.1");
+        client.println(String("Host: ") + server);
+        client.println("Connection: close\r\nContent-Type: application/json");
+        client.print("Content-Length: ");
+        client.println(jsonObject.length());
+        client.println();
+        client.println(jsonObject);
+
+        int timeout = 5 * 10; // 5 seconds
+        while (!!!client.available() && (timeout-- > 0))
+        {
+                delay(100);
+        }
+        if (!!!client.available())
+        {
+                Serial.println("No response...");
+        }
+        while (client.available())
+        {
+                Serial.write(client.read());
+        }
+
+        Serial.println("\nclosing connection");
+        client.stop();
+}
+void IFTT_lopper()
+{
+        if (millis() - lastUPLOAD >= UPLOAD_INTERVAL * 1000 || first_iftt_upload)
+        {
+                makeIFTTTRequest(t, h, 1.1111);
+                first_iftt_upload = false;
+                lastUPLOAD = millis();
+        }
+}
+#endif
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 // #############################################################################
 
@@ -536,7 +641,6 @@ void startIOTservices()
         strcpy(iot.prefixTopic, MQTT_PREFIX);
         strcpy(iot.addGroupTopic, MQTT_GROUP);
         iot.start_services(ADD_MQTT_FUNC);
-        // iot.start_services(ADD_MQTT_FUNC, "Xiaomi_ADA6", "guyd5161", MQTT_USER, MQTT_PASS);
 }
 void startGPIOs()
 {
@@ -1250,7 +1354,7 @@ void setup()
 #endif
 
 #if USE_TEMP_HUMID
-        dht.begin();
+        startDHT();
 #endif
 }
 
@@ -1297,6 +1401,10 @@ void loop()
 
 #if USE_TEMP_HUMID
         getTH_reading();
+#endif
+
+#if USE_IFTTT
+        IFTT_lopper();
 #endif
 
         delay(50);

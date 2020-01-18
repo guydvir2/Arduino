@@ -37,8 +37,8 @@ String col1 = "val1";
 String col2 = "val2";
 
 // ~~~~~~~~~~ Time intervals ~~~~~~~~~~
-const int sleepSeconds = 60 * 120;
-const int stayawakeSeconds = 5;
+const int sleepSeconds = 60 * 45;
+const int stayawakeSeconds = 60;
 const int uploadintervalSeconds = 20;
 unsigned long lastupload = 0;
 

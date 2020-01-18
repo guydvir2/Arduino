@@ -1,5 +1,6 @@
 #include <myIOT.h>
 #include <LiquidCrystal_I2C.h>
+
 #include <Arduino.h>
 
 // ********** Sketch Services  ***********
@@ -61,29 +62,72 @@ void addiotnalMQTT(char incoming_msg[50])
   }
 }
 
+// ~~~~~~~~~~~ BMP ~~~~~~~~~~~
+#include <Wire.h>
+#include <Adafruit_BMP085.h>
+#include "DHT.h"
+#define DHTPIN D4     // Digital pin connected to the DHT sens
+#define DHTTYPE DHT11 // DHT 11
+
+Adafruit_BMP085 bmp;
+DHT dht(DHTPIN, DHTTYPE);
+
+void startBMP()
+{
+  bmp.begin();
+}
+void startDHT()
+{
+  dht.begin();
+}
+
 void setup()
 {
   startIOTservices();
-  
+
   lcd.init();
   lcd.backlight();
+
+  startBMP();
+  startDHT();
 }
 
 void loop()
 {
   iot.looper();
   // set cursor to first column, first row
-  lcd.setCursor(0, 0);
-  // print message
-  lcd.print("Hello, World!");
-  delay(1000);
-  // clears the display to print new message
-  lcd.clear();
-  // set cursor to first column, second row
-  lcd.setCursor(0, 1);
-  lcd.print("Hello, World!");
-  delay(1000);
+  // lcd.setCursor(0, 0);
+  // // print message
+  // lcd.print("Hello, World!");
+  // delay(1000);
+  // // clears the display to print new message
+  // lcd.clear();
+  // // set cursor to first column, second row
+  // lcd.setCursor(0, 1);
+  // lcd.print("Hello, World!");
+  // delay(1000);
+  // lcd.clear();
+
+  
+  float h_temp = dht.readHumidity();
+  float t_temp = dht.readTemperature();
+  delay(2000);
   lcd.clear();
 
-  delay(100);
+  lcd.setCursor(0, 0);
+  lcd.print(bmp.readTemperature());
+  lcd.print(char(223));
+  lcd.print("C");
+
+  lcd.print(" / ");
+  lcd.print(t_temp);
+  lcd.print(char(223));
+  lcd.print("C");
+
+  lcd.setCursor(0, 1);
+  lcd.print(bmp.readAltitude(101500));
+  delay(1000);
+  
+
+  delay(10);
 }

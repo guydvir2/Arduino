@@ -1,134 +1,15 @@
-#include "WiFi.h"
-#include <PubSubClient.h>
-#include "time.h"
-#include <LiquidCrystal_I2C.h>
-
-#include <ESPmDNS.h>
-#include <WiFiUdp.h>
 #include <ArduinoOTA.h>
 
-#include <Arduino.h>
+#define USE_OTA true
+#define USE_IFTTT true
+#define USE_SLEEP true
+#define USE_DHT true
+#define USE_LCD false
 
 // ~~~~~~~~~ WiFi ~~~~~~~~~~~~~~~~
+#include "WiFi.h"
 const char *ssid = "Xiaomi_D6C8";
 const char *password = "guyd5161";
-// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-// ~~~~~~~~~~~~~~ MQTT ~~~~~~~~~~~~~~~~~~~
-const char *mqtt_server = "192.168.3.200";
-WiFiClient espClient;
-PubSubClient mqttClient(espClient);
-
-const char *MQTT_group = "myHome/TESTS/";
-const char *MQTT_deviceName = "ESP32";
-const char *MQTT_publishMSG = "myHome/Messages";
-const char *MQTT_publishLOG = "myHome/log";
-
-// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-// ~~~~~~~~~~~~ NTP ~~~~~~~~~~~~~~~~~~~~~
-const int gmtOffset_sec = 2 * 3600;
-const int daylightOffset_sec = 0; //3600;
-time_t now;
-struct tm timeinfo;
-// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-// ~~~~~~~~~~~ Sleep ~~~~~~~~~~~~~~
-#define uS_TO_S_FACTOR 1000000ULL /* Conversion micro seconds to seconds */
-#define TIME_TO_SLEEP 60 * 60     /* Seconds in deep sleep */
-#define TIME_AWAKE 120            /* Seconds until deep sleep */
-// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-// +++++++++++ IFTT  ++++++++++++++
-const char *resource = "/trigger/send_reading/with/key/cFLymB4JT9tlODsKLFn9TA";
-const char *server = "maker.ifttt.com";
-#define UPLOAD_INTERVAL 60 * 15 // Seconds to upload IFTTT
-long lastUPLOAD = 0;
-
-// ~~~~~~~~~~~~~ LCD Display ~~~~~~~~~~
-int lcdColumns = 16;
-int lcdRows = 2;
-
-LiquidCrystal_I2C lcd(0x27, lcdColumns, lcdRows);
-// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-// ~~~~~~~~ Temp & Humid Sensor ~~~~~~~
-#include "DHT.h"
-#define DHTPIN 13     // Digital pin connected to the DHT sens
-#define DHTTYPE DHT11 // DHT 11
-DHT dht(DHTPIN, DHTTYPE);
-
-float h = 0;
-float t = 0;
-long lastDHTRead = 0;
-bool firstUpload = true;
-
-void getDHTreading()
-{
-  if (millis() - lastDHTRead >= 5000)
-  {
-    h = dht.readHumidity();
-    t = dht.readTemperature();
-    lastDHTRead = millis();
-    //   Serial.println(F("°C "));
-    // }
-
-    if (isnan(h) || isnan(t))
-    {
-      Serial.println(F("Failed to read from DHT sensor!"));
-      return;
-    }
-  }
-}
-// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-void makeIFTTTRequest(float val1, float val2, float val3)
-{
-  Serial.print("Connecting to ");
-  Serial.print(server);
-
-  WiFiClient client;
-  int retries = 5;
-  while (!!!client.connect(server, 80) && (retries-- > 0))
-  {
-    Serial.print(".");
-  }
-  Serial.println();
-  if (!!!client.connected())
-  {
-    Serial.println("Failed to connect...");
-  }
-
-  Serial.print("Request resource: ");
-  Serial.println(resource);
-
-  String jsonObject = String("{\"value1\":\"") + val1 + "\",\"value2\":\"" + val2 + "\",\"value3\":\"" + val3 + "\"}";
-
-  client.println(String("POST ") + resource + " HTTP/1.1");
-  client.println(String("Host: ") + server);
-  client.println("Connection: close\r\nContent-Type: application/json");
-  client.print("Content-Length: ");
-  client.println(jsonObject.length());
-  client.println();
-  client.println(jsonObject);
-
-  int timeout = 5 * 10; // 5 seconds
-  while (!!!client.available() && (timeout-- > 0))
-  {
-    delay(100);
-  }
-  if (!!!client.available())
-  {
-    Serial.println("No response...");
-  }
-  while (client.available())
-  {
-    Serial.write(client.read());
-  }
-
-  Serial.println("\nclosing connection");
-  client.stop();
-}
 
 bool startWifi()
 {
@@ -151,12 +32,128 @@ bool startWifi()
     return 0;
   }
 }
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+// ~~~~~~~~~~~~ NTP ~~~~~~~~~~~~~~~~~~~~~
+#include "time.h"
+const int gmtOffset_sec = 2 * 3600;
+const int daylightOffset_sec = 0; //3600;
+struct tm timeinfo;
+char clock1[20];
+char date1[20];
+
 void startNTP()
 {
   const char *ntpServer = "pool.ntp.org";
   const char *mqtt_server = "192.168.3.200";
   configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);
 }
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+// ~~~~~~~~ Temp & Humid Sensor ~~~~~~~
+#if USE_DHT
+#include "DHT.h"
+#define DHTPIN 13     // Digital pin connected to the DHT sens
+#define DHTTYPE DHT11 // DHT 11
+DHT dht(DHTPIN, DHTTYPE);
+
+float h = 0;
+float t = 0;
+long lastDHTRead = 0;
+bool firstUpload = true;
+
+void startDHT()
+{
+  dht.begin();
+}
+
+void getDHTreading()
+{
+  if (millis() - lastDHTRead >= 5000)
+  {
+    h = dht.readHumidity();
+    t = dht.readTemperature();
+    lastDHTRead = millis();
+    //   Serial.println(F("°C "));
+    // }
+
+    if (isnan(h) || isnan(t))
+    {
+      Serial.println(F("Failed to read from DHT sensor!"));
+      return;
+    }
+  }
+}
+#endif
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+// ~~~~~~~~~~~~~ LCD Display ~~~~~~~~~~
+#if USE_LCD
+#include <LiquidCrystal_I2C.h>
+int lcdColumns = 16;
+int lcdRows = 2;
+
+LiquidCrystal_I2C lcd(0x27, lcdColumns, lcdRows);
+
+void startLCD()
+{
+  lcd.init();
+  lcd.backlight();
+}
+void clock_update()
+{
+  getLocalTime(&timeinfo);
+  sprintf(clock1, "%02d:%02d:%02d     %.0fC", timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec, t);
+  sprintf(date1, "%04d-%02d-%02d   %.0f%%", timeinfo.tm_year + 1900, timeinfo.tm_mon + 1, timeinfo.tm_mday, h);
+}
+void update_clock_lcd()
+{
+  clock_update();
+  // lcd.clear();
+  lcd.setCursor(0, 0);
+  lcd.print(clock1);
+  lcd.setCursor(0, 1);
+  lcd.print(date1);
+}
+#endif
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+// ~~~~~~~~~ DAC & Solar Panel ~~~~~~~~~~~
+int Vbat_pin = 39;
+int Vsolar_pin = 36;
+long Vbat = 0;
+long Vsolar = 0;
+int Vsamples = 10;
+long Vbat_divider = 1/2;
+long Vsolar_divider = 1/3;
+long Vbat_correctionF = 1.1;
+long Vsolar_correctionF = 1.1;
+
+void Vmeasure()
+{
+  for (int a = 0; a < Vsamples; a++)
+  {
+    Vbat += analogRead(Vbat_pin);
+    Vsolar += analogRead(Vsolar_pin);
+    delay(50);
+  }
+  Vbat = Vbat / Vsamples;
+  Vsolar = Vsolar / Vsamples;
+}
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+// ~~~~~~~~~~~~~~ MQTT ~~~~~~~~~~~~~~~~~~~
+#include <PubSubClient.h>
+const char *mqtt_server = "192.168.3.200";
+bool firstmsg = true;
+WiFiClient espClient;
+PubSubClient mqttClient(espClient);
+
+const char *MQTT_group = "myHome/TESTS/";
+const char *MQTT_deviceName = "ESP32";
+const char *MQTT_publishMSG = "myHome/Messages";
+const char *MQTT_publishLOG = "myHome/log";
+
 void mqttConnect()
 {
   mqttClient.setServer(mqtt_server, 1883);
@@ -218,30 +215,56 @@ void mqttReconnect()
     }
   }
 }
+
 void mqtt_pubmsg(char *msg)
 {
-  mqttClient.publish("myHome/Messages", msg);
+  char t[150];
+  getLocalTime(&timeinfo);
+  sprintf(clock1, "%02d:%02d:%02d     %.0fC", timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec, t);
+  sprintf(date1, "%04d-%02d-%02d   %.0f%%", timeinfo.tm_year + 1900, timeinfo.tm_mon + 1, timeinfo.tm_mday, h);
+  sprintf(t, "[%04d-%02d-%02d %02d:%02d:%02d] [%s%s] %s ",
+          timeinfo.tm_year + 1900, timeinfo.tm_mon + 1, timeinfo.tm_mday,
+          timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec,
+          MQTT_group, MQTT_deviceName, msg);
+  mqttClient.publish(MQTT_publishMSG, t);
 }
 
-void startDHT()
+void mqtt_publog(char *msg)
 {
-  dht.begin();
+  char t[150];
+  getLocalTime(&timeinfo);
+  sprintf(clock1, "%02d:%02d:%02d     %.0fC", timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec, t);
+  sprintf(date1, "%04d-%02d-%02d   %.0f%%", timeinfo.tm_year + 1900, timeinfo.tm_mon + 1, timeinfo.tm_mday, h);
+  sprintf(t, "[%04d-%02d-%02d %02d:%02d:%02d] [%s%s] %s ",
+          timeinfo.tm_year + 1900, timeinfo.tm_mon + 1, timeinfo.tm_mday,
+          timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec,
+          MQTT_group, MQTT_deviceName, msg);
+  mqttClient.publish(MQTT_publishLOG, t);
 }
 
-void sleepNOW()
+void mqtt_loop()
 {
-  Serial.println("Going to sleep now");
-  mqtt_pubmsg("goto sleep");
-  Serial.flush();
-  esp_sleep_enable_timer_wakeup((TIME_TO_SLEEP - TIME_AWAKE) * uS_TO_S_FACTOR);
-  esp_deep_sleep_start();
+  if (!mqttClient.connected())
+  {
+    mqttReconnect();
+  }
+  else
+  {
+    mqttClient.loop();
+  }
+  if (firstmsg)
+  {
+    // char tmsg[30];
+    // sprintf(tmsg, " << BOOT >>, Awake for [%d] sec", TIME_AWAKE);
+    mqtt_publog("<< BOOT >>");
+    firstmsg = false;
+  }
 }
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-void startLCD()
-{
-  lcd.init();
-  lcd.backlight();
-}
+// ~~~~~~~~~~~~~~~ OTA ~~~~~~~~~~~~~~~~~~~
+#include <ESPmDNS.h>
+#include <WiFiUdp.h>
 
 void startOTA()
 {
@@ -288,65 +311,142 @@ void OTAlooper()
     ArduinoOTA.handle();
   }
 }
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+// ~~~~~~~~~~~ Sleep ~~~~~~~~~~~~~~
+#if USE_SLEEP
+#define uS_TO_S_FACTOR 1000000ULL /* Conversion micro seconds to seconds */
+#define TIME_TO_SLEEP 60 * 45     /* Seconds in deep sleep */
+#define TIME_AWAKE 15             /* Seconds until deep sleep */
+
+void sleepNOW()
+{
+  char tmsg[30];
+  sprintf(tmsg, "Going to DeepSleep for [%d] sec", TIME_TO_SLEEP);
+  Serial.println(tmsg);
+  mqtt_pubmsg(tmsg);
+  Serial.flush();
+  esp_sleep_enable_timer_wakeup((TIME_TO_SLEEP - TIME_AWAKE - millis() / 1000) * uS_TO_S_FACTOR);
+  esp_deep_sleep_start();
+}
+#endif
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+// +++++++++++ IFTT  ++++++++++++++
+#if USE_IFTTT
+const char *resource = "/trigger/send_reading/with/key/cFLymB4JT9tlODsKLFn9TA";
+const char *server = "maker.ifttt.com";
+#define UPLOAD_INTERVAL 60 * 15 // Seconds to upload IFTTT
+long lastUPLOAD = 0;
+
+void makeIFTTTRequest(float val1, float val2, float val3)
+{
+  Serial.print("Connecting to ");
+  Serial.print(server);
+
+  WiFiClient client;
+  int retries = 5;
+  while (!!!client.connect(server, 80) && (retries-- > 0))
+  {
+    Serial.print(".");
+  }
+  Serial.println();
+  if (!!!client.connected())
+  {
+    Serial.println("Failed to connect...");
+  }
+
+  Serial.print("Request resource: ");
+  Serial.println(resource);
+
+  String jsonObject = String("{\"value1\":\"") + val1 + "\",\"value2\":\"" + val2 + "\",\"value3\":\"" + val3 + "\"}";
+
+  client.println(String("POST ") + resource + " HTTP/1.1");
+  client.println(String("Host: ") + server);
+  client.println("Connection: close\r\nContent-Type: application/json");
+  client.print("Content-Length: ");
+  client.println(jsonObject.length());
+  client.println();
+  client.println(jsonObject);
+
+  int timeout = 5 * 10; // 5 seconds
+  while (!!!client.available() && (timeout-- > 0))
+  {
+    delay(100);
+  }
+  if (!!!client.available())
+  {
+    Serial.println("No response...");
+  }
+  while (client.available())
+  {
+    Serial.write(client.read());
+  }
+
+  Serial.println("\nclosing connection");
+  client.stop();
+}
+#endif
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 void setup()
 {
   Serial.begin(9600);
   Serial.printf("Connecting to %s ", ssid);
+  pinMode(Vbat_pin, INPUT);
+  pinMode(Vsolar_pin, INPUT);
+
+  Vmeasure();
+
+  Serial.print("Vsolar: ");
+  Serial.println(Vsolar);
+  Serial.print("Vbat: ");
+  Serial.println(Vbat);
+
   if (startWifi())
   {
     mqttConnect();
     startNTP();
-    // Serial.println("wifi OK");
   }
+#if USE_DHT
   startDHT();
-  delay(100);
-  // Serial.println(time(&now));
+#endif
 
+#if USE_LCD
   startLCD();
+#endif
+
+#if USE_OTA
   startOTA();
+#endif
 }
 
 void loop()
 {
-  if (!mqttClient.connected())
+  mqtt_loop();
+#if USE_SLEEP
+  if (millis() >= TIME_AWAKE * 1000)
   {
-    mqttReconnect();
+    sleepNOW();
   }
-  else
-  {
-    mqttClient.loop();
-  }
+#endif
+
+#if USE_OTA
   OTAlooper();
-
-      char clock[20];
-  char date[20];
-
-  sprintf(clock, "%02d:%02d:%02d     %.0fC", timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec, t);
-  sprintf(date, "%04d-%02d-%02d   %.0f%%", timeinfo.tm_year + 1900, timeinfo.tm_mon + 1, timeinfo.tm_mday, h);
-
+#endif
+#if USE_DHT
   getDHTreading();
-
+#endif
+#if USE_LCD
+  update_clock_lcd();
+#endif
+#if USE_IFTTT
   if (millis() - lastUPLOAD >= UPLOAD_INTERVAL * 1000 || firstUpload && (h != 0 && t != 0))
   {
-    makeIFTTTRequest(t, h, 1.1111);
+    makeIFTTTRequest(t, analogRead(36), analogRead(39));
     firstUpload = false;
     lastUPLOAD = millis();
   }
-
-  // if (millis() >= TIME_AWAKE * 1000)
-  // {
-  //   sleepNOW();
-  // }
-
-  getLocalTime(&timeinfo);
-  lcd.setCursor(0, 0);
-  lcd.print(clock);
-  lcd.setCursor(0, 1);
-  lcd.print(date);
-  // Serial.println(time(&now));
-
-  delay(10);
-
-  // lcd.clear();
+#endif
+  delay(100);
 }
