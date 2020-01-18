@@ -1,6 +1,6 @@
 #include <myIOT.h>
 #include <Arduino.h>
-#include <BlynkSimpleEsp8266.h>
+// #include <BlynkSimpleEsp8266.h>
 
 // ********** Sketch Services  ***********
 #define VER "WEMOS_1.2"
@@ -9,7 +9,7 @@
 
 // ********** myIOT Class ***********
 //~~~~~ Services ~~~~~~~~~~~
-#define USE_SERIAL true
+#define USE_SERIAL false
 #define USE_WDT true
 #define USE_OTA true
 #define USE_RESETKEEPER true
@@ -33,8 +33,8 @@ float Vbat_min = 2.8;
 
 bool use_sleep = ALLOW_SLEEP;
 int LowBat_sleepPeriod = 100; // in micro-seconds
-int sleepPeriod_1  = 45 * 60;   // seconds
-int on_untillSleep = 40; // seconds
+int sleepPeriod_1  = 20 * 60;   // seconds
+int on_untillSleep = 5; // seconds
 
 // ~~~~~~~ Using Telegram ~~~~~~~~~~~~~~
 char *Telegram_Nick = DEVICE_TOPIC;
@@ -129,16 +129,16 @@ void startIOTservices()
         iot.start_services(ADD_MQTT_FUNC);
 }
 
-BLYNK_READ(V4)
-{
-        Blynk.virtualWrite(V4, millis() / 1000);
-}
+// BLYNK_READ(V4)
+// {
+//         Blynk.virtualWrite(V4, millis() / 1000);
+// }
 
-BLYNK_READ(V5)
-{
-        calc_Vbat();
-        Blynk.virtualWrite(V5, Vbat);
-}
+// BLYNK_READ(V5)
+// {
+//         calc_Vbat();
+//         Blynk.virtualWrite(V5, Vbat);
+// }
 
 char auth[] = "yyJsC24RBVrsgts59QoZ_LYWj1ZEfx74";
 char ssid[] = "Xiaomi_D6C8";
@@ -150,9 +150,9 @@ void setup()
 {
         pinMode(A0, INPUT);
         calc_Vbat();
-        Blynk.begin(auth, ssid, pass);
+        // Blynk.begin(auth, ssid, pass);
 
-        Blynk.begin(auth, ssid, pass);
+        // Blynk.begin(auth, ssid, pass);
 
         if ((Vbat > Vbat_min && use_sleep) || use_sleep == false)
         {
@@ -203,6 +203,7 @@ void loop()
 {
         iot.looper();
         calc_Vbat();
+        
         if (Vbat < Vbat_min && use_sleep)
         {
                 iot.get_timeStamp();
@@ -224,7 +225,7 @@ void loop()
                 delay(10);
         }
 
-        Blynk.run();
+        // Blynk.run();
 
         delay(100);
 }

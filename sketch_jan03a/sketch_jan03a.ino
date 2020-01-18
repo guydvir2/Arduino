@@ -1,9 +1,9 @@
 #include <ArduinoOTA.h>
 
 #define USE_OTA true
-#define USE_IFTTT true
+#define USE_IFTTT false
 #define USE_SLEEP true
-#define USE_DHT true
+#define USE_DHT false
 #define USE_LCD false
 
 // ~~~~~~~~~ WiFi ~~~~~~~~~~~~~~~~
@@ -119,26 +119,28 @@ void update_clock_lcd()
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 // ~~~~~~~~~ DAC & Solar Panel ~~~~~~~~~~~
-int Vbat_pin = 39;
-int Vsolar_pin = 36;
-long Vbat = 0;
-long Vsolar = 0;
-int Vsamples = 10;
-long Vbat_divider = 1/2;
-long Vsolar_divider = 1/3;
-long Vbat_correctionF = 1.1;
-long Vsolar_correctionF = 1.1;
+const int Vbat_pin = 39;
+const int Vsolar_pin = 36;
+float Vbat = 0.0;
+float Vsolar = 0.0;
+const int Vsamples = 10;
+float Vbat_divider = 1 / 2;
+float Vsolar_divider = 1 / 3;
+float Vbat_correctionF = 1.1;
+float Vsolar_correctionF = 1.1;
 
 void Vmeasure()
 {
+  Vbat = 0.0;
+  Vsolar = 0.0;
   for (int a = 0; a < Vsamples; a++)
   {
     Vbat += analogRead(Vbat_pin);
     Vsolar += analogRead(Vsolar_pin);
     delay(50);
   }
-  Vbat = Vbat / Vsamples;
-  Vsolar = Vsolar / Vsamples;
+  Vbat = Vbat / (float)Vsamples;
+  Vsolar = Vsolar / (float)Vsamples;
 }
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -172,37 +174,15 @@ void mqttCallback(char *topic, byte *message, unsigned int length)
     messageTemp += (char)message[i];
   }
   Serial.println();
-
-  // Feel free to add more if statements to control more GPIOs with MQTT
-
-  // If a message is received on the topic esp32/output, you check if the message is either "on" or "off".
-  // Changes the output state according to the message
-  // if (String(topic) == "esp32/output")
-  // {
-  //   Serial.print("Changing output to ");
-  //   if (messageTemp == "on")
-  //   {
-  //     Serial.println("on");
-  //     digitalWrite(ledPin, HIGH);
-  //   }
-  //   else if (messageTemp == "off")
-  //   {
-  //     Serial.println("off");
-  //     digitalWrite(ledPin, LOW);
-  //   }
-  // }
 }
 void mqttReconnect()
 {
-  // Loop until we're reconnected
   while (!mqttClient.connected())
   {
     Serial.print("Attempting MQTT connection...");
-    // Attempt to connect
     if (mqttClient.connect("ESP32"))
     {
       Serial.println("connected");
-      // Subscribe
       mqttClient.subscribe("myHome/TESTS/esp32");
     }
     else
@@ -210,7 +190,6 @@ void mqttReconnect()
       Serial.print("failed, rc=");
       Serial.print(mqttClient.state());
       Serial.println(" try again in 5 seconds");
-      // Wait 5 seconds before retrying
       delay(5000);
     }
   }
@@ -220,8 +199,8 @@ void mqtt_pubmsg(char *msg)
 {
   char t[150];
   getLocalTime(&timeinfo);
-  sprintf(clock1, "%02d:%02d:%02d     %.0fC", timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec, t);
-  sprintf(date1, "%04d-%02d-%02d   %.0f%%", timeinfo.tm_year + 1900, timeinfo.tm_mon + 1, timeinfo.tm_mday, h);
+  // sprintf(clock1, "%02d:%02d:%02d     %.0fC", timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec, t);
+  // sprintf(date1, "%04d-%02d-%02d   %.0f%%", timeinfo.tm_year + 1900, timeinfo.tm_mon + 1, timeinfo.tm_mday, h);
   sprintf(t, "[%04d-%02d-%02d %02d:%02d:%02d] [%s%s] %s ",
           timeinfo.tm_year + 1900, timeinfo.tm_mon + 1, timeinfo.tm_mday,
           timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec,
@@ -233,8 +212,8 @@ void mqtt_publog(char *msg)
 {
   char t[150];
   getLocalTime(&timeinfo);
-  sprintf(clock1, "%02d:%02d:%02d     %.0fC", timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec, t);
-  sprintf(date1, "%04d-%02d-%02d   %.0f%%", timeinfo.tm_year + 1900, timeinfo.tm_mon + 1, timeinfo.tm_mday, h);
+  // sprintf(clock1, "%02d:%02d:%02d     %.0fC", timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec, t);
+  // sprintf(date1, "%04d-%02d-%02d   %.0f%%", timeinfo.tm_year + 1900, timeinfo.tm_mon + 1, timeinfo.tm_mday, h);
   sprintf(t, "[%04d-%02d-%02d %02d:%02d:%02d] [%s%s] %s ",
           timeinfo.tm_year + 1900, timeinfo.tm_mon + 1, timeinfo.tm_mday,
           timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec,
@@ -389,6 +368,21 @@ void makeIFTTTRequest(float val1, float val2, float val3)
 #endif
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+// ~~~~~~~ Boot ~~~~~~~~~~~~
+bool firstboot = true;
+
+void firsttime_loop()
+{
+  if (firstboot)
+  {
+    Vmeasure();
+    Serial.print("\nVsolar: ");
+    Serial.println((Vsolar/(float)4095)*3.3);
+    Serial.print("Vbat: ");
+    Serial.println((Vbat/(float)4095)*3.3*1.1);
+  }
+}
+
 void setup()
 {
   Serial.begin(9600);
@@ -396,18 +390,6 @@ void setup()
   pinMode(Vbat_pin, INPUT);
   pinMode(Vsolar_pin, INPUT);
 
-  Vmeasure();
-
-  Serial.print("Vsolar: ");
-  Serial.println(Vsolar);
-  Serial.print("Vbat: ");
-  Serial.println(Vbat);
-
-  if (startWifi())
-  {
-    mqttConnect();
-    startNTP();
-  }
 #if USE_DHT
   startDHT();
 #endif
@@ -416,14 +398,21 @@ void setup()
   startLCD();
 #endif
 
+  if (startWifi())
+  {
+    mqttConnect();
+    startNTP();
 #if USE_OTA
-  startOTA();
+    startOTA();
 #endif
+  }
+  firsttime_loop();
 }
 
 void loop()
 {
   mqtt_loop();
+
 #if USE_SLEEP
   if (millis() >= TIME_AWAKE * 1000)
   {
@@ -443,10 +432,13 @@ void loop()
 #if USE_IFTTT
   if (millis() - lastUPLOAD >= UPLOAD_INTERVAL * 1000 || firstUpload && (h != 0 && t != 0))
   {
-    makeIFTTTRequest(t, analogRead(36), analogRead(39));
+    makeIFTTTRequest(t, analogRead(Vsolar_pin), analogRead(Vbat_pin));
     firstUpload = false;
     lastUPLOAD = millis();
   }
 #endif
-  delay(100);
+  firsttime_loop();
+  firstboot = false;
+
+  delay(5000);
 }
