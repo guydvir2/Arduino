@@ -1,16 +1,24 @@
+int pin1 = 2;
+int pin2 = 3;
+bool last = false;
 void setup() {
-  // put your setup code here, to run once:
   Serial.begin(9600);
-  Serial.print("bat is: ");
-  Serial.print(analogRead(36));//*1.1/4095*3.3);
-  Serial.println("[v]");
-    Serial.print("SolarPanel is: ");
-  Serial.print(analogRead(39));//*1.1/4095*3.3);
-  Serial.println("[v]");
-
+  Serial.println("Start");
+  pinMode(pin1, INPUT);
+  //  digitalWrite(pin2, 0);
 }
 
 void loop() {
   // put your main code here, to run repeatedly:
-
+  bool stat = digitalRead(pin1);
+  if (stat != last ) {
+    last = stat;
+    if (stat) {
+      Serial.println("detection");
+    }
+    else {
+      Serial.println("END detection");
+    }
+  }
+  delay(500);
 }

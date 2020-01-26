@@ -45,13 +45,12 @@ void startDHT()
 
 void readDHT()
 {
+  static bool readDHTonce = false;
   if (millis() - lastRead_DHT > readInterval)
   {
-
     humidity = dht.readHumidity();
     temperature = dht.readTemperature();
     lastRead_DHT = millis();
-    delay(2000);
   }
 }
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -59,6 +58,8 @@ void readDHT()
 // ~~~~~~~~~~~~~~~~~~~~ LCD ~~~~~~~~~~~~~~~~~~~~
 int lcdColumns = 16;
 int lcdRows = 2;
+byte time_display_clock = 5; //seconds
+byte time_display_DHT = 2;   //seconds
 
 LiquidCrystal_I2C lcd(0x27, lcdColumns, lcdRows);
 void startLCD()
@@ -68,18 +69,17 @@ void startLCD()
 }
 void LCD_DHT()
 {
-  readDHT();
   char t[16];
   char h[16];
-  sprintf(t, "%.1f%cC %.0f%%", temperature,223, humidity);
-  Serial.println(sizeof(t)/(sizeof(t[0])));
-  // lcd.print(temperature);
-  // lcd.print(char(223));
-  // lcd.print("C  ");
-  lcd.setCursor(0, 0);
+
+  readDHT();
+  sprintf(t, "Temp: %.1f%cC", temperature, 223);
+  sprintf(h, "Humidity: %.0f%%", humidity);
+  lcd.setCursor((int)(16 - strlen(t)) / 2, 0);
   lcd.print(t);
-  // lcd.print(humidity);
-  // lcd.print("%");
+  lcd.setCursor((int)(16 - strlen(h)) / 2, 1);
+  lcd.print(h);
+  // lcd.clear();
 }
 
 void LCD_Clock()
@@ -90,17 +90,29 @@ void LCD_Clock()
   iot.return_clock(timeStamp);
   iot.return_date(dateStamp);
 
-  // lcd.clear();
-  lcd.setCursor(0, 0);
-  lcd.print(dateStamp);
-  lcd.setCursor(0, 1);
+  lcd.clear();
+  lcd.setCursor((int)(16 - strlen(timeStamp)) / 2, 0);
   lcd.print(timeStamp);
+  lcd.setCursor((16 - strlen(dateStamp)) / 2, 1);
+  lcd.print(dateStamp);
 }
 
 void LCD_loop()
 {
-  LCD_DHT();
-  // LCD_Clock();
+
+  static long time_shuffle = 0;
+  if (millis() - time_shuffle <= 5000)
+  {
+    LCD_Clock();
+  }
+  else if (millis() - time_shuffle <= 7000 && millis() - time_shuffle > 5000)
+  {
+    LCD_DHT();
+  }
+  else
+  {
+    time_shuffle = millis();
+  }
 }
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -145,5 +157,5 @@ void loop()
 {
   iot.looper();
   LCD_loop();
-  delay(300);
+  delay(250);
 }

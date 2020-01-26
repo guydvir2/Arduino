@@ -1,7 +1,7 @@
 #include <ArduinoOTA.h>
 
 #define USE_OTA true
-#define USE_IFTTT false
+#define USE_IFTTT true
 #define USE_SLEEP true
 #define USE_DHT false
 #define USE_LCD false
@@ -60,7 +60,6 @@ DHT dht(DHTPIN, DHTTYPE);
 float h = 0;
 float t = 0;
 long lastDHTRead = 0;
-bool firstUpload = true;
 
 void startDHT()
 {
@@ -119,28 +118,33 @@ void update_clock_lcd()
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 // ~~~~~~~~~ DAC & Solar Panel ~~~~~~~~~~~
-const int Vbat_pin = 39;
-const int Vsolar_pin = 36;
-float Vbat = 0.0;
-float Vsolar = 0.0;
+struct voltReader
+{
+  int pin;
+  float measure_value;
+  float v_divider;
+  float correctF;
+  float calc_value;
+};
+
+voltReader battery = {39, 0.0, 0.5, 1.15, 0};
+voltReader solarPanel = {36, 0.0, 1 / 3, 1.1, 0};
 const int Vsamples = 10;
-float Vbat_divider = 1 / 2;
-float Vsolar_divider = 1 / 3;
-float Vbat_correctionF = 1.1;
-float Vsolar_correctionF = 1.1;
 
 void Vmeasure()
 {
-  Vbat = 0.0;
-  Vsolar = 0.0;
+  battery.measure_value = 0.0;
+  solarPanel.measure_value = 0.0;
   for (int a = 0; a < Vsamples; a++)
   {
-    Vbat += analogRead(Vbat_pin);
-    Vsolar += analogRead(Vsolar_pin);
+    battery.measure_value += analogRead(battery.pin);
+    solarPanel.measure_value += analogRead(solarPanel.pin);
     delay(50);
   }
-  Vbat = Vbat / (float)Vsamples;
-  Vsolar = Vsolar / (float)Vsamples;
+  battery.measure_value /= (float)Vsamples;
+  battery.calc_value = battery.measure_value / (float)4095 * 3.3 * battery.correctF / battery.v_divider;
+  solarPanel.measure_value /= (float)Vsamples;
+  solarPanel.calc_value = solarPanel.measure_value / (float)4095 * 3.3 * solarPanel.correctF / solarPanel.v_divider;
 }
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -152,7 +156,7 @@ WiFiClient espClient;
 PubSubClient mqttClient(espClient);
 
 const char *MQTT_group = "myHome/TESTS/";
-const char *MQTT_deviceName = "ESP32";
+const char *MQTT_deviceName = "ESP32_lite";
 const char *MQTT_publishMSG = "myHome/Messages";
 const char *MQTT_publishLOG = "myHome/log";
 
@@ -244,6 +248,7 @@ void mqtt_loop()
 // ~~~~~~~~~~~~~~~ OTA ~~~~~~~~~~~~~~~~~~~
 #include <ESPmDNS.h>
 #include <WiFiUdp.h>
+#define OTA_TIME 10 // minutes
 
 void startOTA()
 {
@@ -285,7 +290,7 @@ void startOTA()
 }
 void OTAlooper()
 {
-  if (millis() < 1000 * 60 * 10)
+  if (millis() < 1000 * 60 * OTA_TIME)
   {
     ArduinoOTA.handle();
   }
@@ -305,7 +310,7 @@ void sleepNOW()
   Serial.println(tmsg);
   mqtt_pubmsg(tmsg);
   Serial.flush();
-  esp_sleep_enable_timer_wakeup((TIME_TO_SLEEP - TIME_AWAKE - millis() / 1000) * uS_TO_S_FACTOR);
+  esp_sleep_enable_timer_wakeup((TIME_TO_SLEEP - millis() / 1000) * uS_TO_S_FACTOR);
   esp_deep_sleep_start();
 }
 #endif
@@ -317,6 +322,7 @@ const char *resource = "/trigger/send_reading/with/key/cFLymB4JT9tlODsKLFn9TA";
 const char *server = "maker.ifttt.com";
 #define UPLOAD_INTERVAL 60 * 15 // Seconds to upload IFTTT
 long lastUPLOAD = 0;
+bool firstUpload = true;
 
 void makeIFTTTRequest(float val1, float val2, float val3)
 {
@@ -376,10 +382,20 @@ void firsttime_loop()
   if (firstboot)
   {
     Vmeasure();
-    Serial.print("\nVsolar: ");
-    Serial.println((Vsolar/(float)4095)*3.3);
-    Serial.print("Vbat: ");
-    Serial.println((Vbat/(float)4095)*3.3*1.1);
+    // Serial.print("\nsolarPanel.measure_value: ");
+    // Serial.println(battery.calc_value);//(solarPanel.measure_value/(float)4095)*3.3*solarPanel.correctF/solarPanel.v_divider);
+    // Serial.print("battery.measure_value: ");
+    // Serial.println((battery.measure_value/(float)4095)*3.3*battery.correctF/battery.v_divider);
+  }
+}
+
+void lowbat_sleep(int vbat=1800){
+  Vmeasure();
+  Serial.print("battery value is: ");
+  Serial.println(battery.measure_value);
+  if (battery.measure_value < vbat)
+  {
+    sleepNOW();
   }
 }
 
@@ -387,8 +403,10 @@ void setup()
 {
   Serial.begin(9600);
   Serial.printf("Connecting to %s ", ssid);
-  pinMode(Vbat_pin, INPUT);
-  pinMode(Vsolar_pin, INPUT);
+  pinMode(battery.pin, INPUT);
+  pinMode(solarPanel.pin, INPUT);
+
+  lowbat_sleep(1600);
 
 #if USE_DHT
   startDHT();
@@ -406,7 +424,6 @@ void setup()
     startOTA();
 #endif
   }
-  firsttime_loop();
 }
 
 void loop()
@@ -430,15 +447,13 @@ void loop()
   update_clock_lcd();
 #endif
 #if USE_IFTTT
-  if (millis() - lastUPLOAD >= UPLOAD_INTERVAL * 1000 || firstUpload && (h != 0 && t != 0))
+  if (millis() - lastUPLOAD >= UPLOAD_INTERVAL * 1000 || firstUpload) // && (h != 0 && t != 0))
   {
-    makeIFTTTRequest(t, analogRead(Vsolar_pin), analogRead(Vbat_pin));
+    Vmeasure();
+    makeIFTTTRequest(battery.measure_value, battery.calc_value, solarPanel.measure_value);
     firstUpload = false;
     lastUPLOAD = millis();
   }
 #endif
-  firsttime_loop();
-  firstboot = false;
-
-  delay(5000);
+  delay(100);
 }
