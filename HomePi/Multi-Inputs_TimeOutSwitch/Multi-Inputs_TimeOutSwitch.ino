@@ -5,13 +5,13 @@
 
 // ********** Names + Strings  ***********
 // ~~~~~~~ MQTT Topics ~~~~~~                        // belong to myIOT
-#define DEVICE_TOPIC "shacharBedLEDs"
+#define DEVICE_TOPIC "familyRoomLEDs"
 #define MQTT_PREFIX "myHome"
 #define MQTT_GROUP "intLights"
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 // ********** Sketch Services  ***********
-#define VER "WEMOS_5.0"
+#define VER "WEMOS_6.0"
 #define USE_INPUTS true
 #define IS_MOMENTARY true // is switch latch or momentary
 #define ON_AT_BOOT false  // On or OFF at boot (Usually when using inputs, at boot/PowerOn - state should be off
@@ -20,16 +20,17 @@
 #define HARD_REBOOT false
 #define USE_OLED true
 #define USE_TEMP_HUMID true
+#define USE_PWM true
 
 #define USE_NOTIFY_TELE false
-#define USE_SENSOR true
+#define USE_SENSOR false
 #define USE_IR_REMOTE false
 #define USE_BLYNK false
-#define USE_IFTTT true
+#define USE_IFTTT false
 
 // ********** myIOT Class ***********
 //~~~~~ Services ~~~~~~~~~~~
-#define USE_SERIAL false      // Serial Monitor
+#define USE_SERIAL true      // Serial Monitor
 #define USE_WDT true         // watchDog resets
 #define USE_OTA true         // OTA updates
 #define USE_RESETKEEPER true // detect quick reboot and real reboots
@@ -43,7 +44,7 @@ myIOT iot(DEVICE_TOPIC);
 
 // ********** TimeOut Time vars  ***********
 #define NUM_SWITCHES 1
-#define TIMEOUT_SW0 1 * 60 // mins for SW0
+#define TIMEOUT_SW0 3 * 60 // mins for SW0
 #define TIMEOUT_SW1 2 * 60 // mins
 
 const int START_dailyTO[] = {18, 0, 0};
@@ -98,6 +99,13 @@ bool sensState[NUM_SWITCHES];
 int rebootState = 0;
 bool checkrebootState = true;
 bool boot_overide[] = {false, false};
+
+// ~~~~~~ PWM for lights/ LED ~~~~~~~~
+#define PWM_RES 1024.0
+const float maxPWM = 0.90;
+const float PWMinc = 0.1; // increment precentage
+const float defaultPWM = 0.6; // for boot & TO
+float PWMvalue = defaultPWM; // percentage
 
 // #################################  END CORE #################################
 
@@ -271,7 +279,7 @@ decode_results results;
 #include <Adafruit_SSD1306.h>
 
 #define SCREEN_WIDTH 128
-#define SCREEN_HEIGHT 32 // 32 2rows or 64 4 rows
+#define SCREEN_HEIGHT 64 // 32 2rows or 64 4 rows
 #define OLED_RESET LED_BUILTIN
 
 long swapLines_counter = 0;
@@ -537,14 +545,41 @@ void IFTT_lopper()
 
 //  ############################## STRART CORE #################################
 
-void switchIt(char *txt1, int sw_num, bool state, char *txt2 = "", bool show_timeout = true)
+void switchIt(char *txt1, int sw_num, bool state, char *txt2 = "", bool show_timeout = true, float PWMval = -1)
 {
         char msg[50], msg1[50], msg2[50], states[50], tempstr[50];
         char *word = {"Turned"};
 
-        if (digitalRead(relays[sw_num]) != state || boot_overide[sw_num] == true)
+        if (digitalRead(relays[sw_num]) != state || boot_overide[sw_num] == true || (USE_PWM && PWMval >= 0.0))
         {
-                digitalWrite(relays[sw_num], state);
+                if (PWMval >= 0.0)
+                {
+                        if (analogRead(relays[sw_num]) != 0)// || PWMval != 0.0)
+                        {
+                                sprintf(msg, "%s: Switch[#%d] changed from [%.0f%%] to [%.0f%%]", txt1, sw_num, PWMvalue * 100, PWMval * 100);
+                                state = true;
+                        }
+                        else
+                        {
+                                sprintf(msg, "%s: Switch[#%d] %s[%s] %s", txt1, sw_num, word, state ? "ON" : "OFF", txt2);
+                                if (PWMval == 0.0)
+                                {
+                                        state = false;
+                                }
+                                else
+                                {
+                                        state = true;
+                                }
+                        }
+                        analogWrite(relays[sw_num], PWMval * PWM_RES);
+                        PWMvalue = PWMval;
+                }
+                else
+                {
+                        digitalWrite(relays[sw_num], state);
+                        Serial.println("digital write");
+                }
+
                 TO[sw_num]->convert_epoch2clock(now() + TO[sw_num]->remain(), now(), msg1, msg2);
                 if (boot_overide[sw_num] == true)
                 {
@@ -554,10 +589,14 @@ void switchIt(char *txt1, int sw_num, bool state, char *txt2 = "", bool show_tim
                                 boot_overide[sw_num] = false;
                         }
                 }
-                sprintf(msg, "%s: Switch[#%d] %s[%s] %s", txt1, sw_num, word, state ? "ON" : "OFF", txt2);
+                if (PWMval < 0)
+                {
+                        sprintf(msg, "%s: Switch[#%d] %s[%s] %s", txt1, sw_num, word, state ? "ON" : "OFF", txt2);
+                }
+
                 if (state == 1 && show_timeout)
                 {
-                        sprintf(msg2, "timeLeft[%s]", msg1);
+                        sprintf(msg2, " timeLeft[%s]", msg1);
                         strcat(msg, msg2);
                 }
 
@@ -581,26 +620,56 @@ void checkSwitch_Pressed(byte sw, bool momentary = true)
                         delay(50);
                         if (digitalRead(inputs[sw]) == SwitchOn)
                         {
-                                char temp[20];
-                                sprintf(temp, "Button: Switch [#%d] Turned [%s]", sw, digitalRead(relays[sw]) ? "OFF" : "ON");
-                                if (digitalRead(relays[sw]) == RelayOn)
+                                if (USE_PWM)
                                 {
-                                        if (TO[sw]->remain() == 0)
-                                        { // was ON but not in TO state
-                                                switchIt("Button", sw, 0);
-                                        }
-                                        else
+                                        if (PWMvalue + PWMinc > maxPWM)
                                         {
-                                                TO[sw]->endNow();
-                                                iot.pub_msg(temp);
+                                                if (TO[sw]->remain() == 0)
+                                                { // ON but not in TO state. Turning it off
+                                                        switchIt("Button", sw, 0, "", false, 0);
+                                                        Serial.println("no TO");
+                                                }
+                                                else
+                                                { // in TO state. End TO now and turn off.
+                                                        TO[sw]->endNow();
+                                                        Serial.println("ENDING TO");
+                                                }
+                                                Serial.println("MAX VAL");
+                                        }
+                                        else if (PWMvalue == 0.0)
+                                        {
+                                                TO[sw]->restart_to();
+                                                switchIt("Button", sw, 1, "", true, PWMvalue + PWMinc);
+                                                Serial.println("IM here");
+                                        }
+                                        else if (PWMvalue + PWMinc <= maxPWM)
+                                        {
+                                                switchIt("Button", sw, 1, "", true, PWMvalue + PWMinc);
                                         }
                                 }
                                 else
                                 {
-                                        iot.pub_msg(temp);
-                                        TO[sw]->restart_to();
+                                        char temp[20];
+                                        sprintf(temp, "Button: Switch [#%d] Turned [%s]", sw, digitalRead(relays[sw]) ? "OFF" : "ON");
+                                        if (digitalRead(relays[sw]) == RelayOn)
+                                        {
+                                                if (TO[sw]->remain() == 0)
+                                                { // ON but not in TO state. Turning it off
+                                                        switchIt("Button", sw, 0);
+                                                }
+                                                else
+                                                { // in TO state. End TO now and turn off.
+                                                        TO[sw]->endNow();
+                                                        iot.pub_msg(temp);
+                                                }
+                                        }
+                                        else // relay was OFF. start it in TO mode
+                                        {
+                                                iot.pub_msg(temp);
+                                                TO[sw]->restart_to();
+                                        }
+                                        delay(500);
                                 }
-                                delay(500);
                         }
                 }
         }
@@ -630,6 +699,7 @@ void checkSwitch_Pressed(byte sw, bool momentary = true)
                         }
                 }
         }
+        delay(100);
 }
 void startIOTservices()
 {
@@ -692,7 +762,22 @@ void TO_looper(byte i)
                 notify_dailyTO(i);
                 if (relState[i] != last_relState[i])
                 { // change state (ON <-->OFF)
-                        switchIt("TimeOut", i, relState[i]);
+                        if (USE_PWM)
+                        {
+                                if (relState[i] == 0)
+                                {
+                                        switchIt("TimeOut", i, relState[i], "", false, 0.0);
+                                }
+                                else
+                                {
+
+                                        switchIt("TimeOut", i, relState[i], "", false, PWMvalue);
+                                }
+                        }
+                        else
+                        {
+                                switchIt("TimeOut", i, relState[i]);
+                        }
                 }
                 last_relState[i] = relState[i];
         }
