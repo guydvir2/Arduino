@@ -1,7 +1,7 @@
 #include <ArduinoOTA.h>
 
 #define USE_OTA true
-#define USE_IFTTT false
+#define USE_IFTTT true
 #define USE_SLEEP true
 #define USE_DHT false
 #define USE_LCD false
