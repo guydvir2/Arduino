@@ -1,15 +1,7 @@
 #include "EspMQTTClient.h"
 #include "secrets.h"
 
-EspMQTTClient client(
-    SSID_ID,
-    PASS_WIFI,
-    MQTT_SERVER1, // MQTT Broker server ip
-    MQTT_USER,    // Can be omitted if not needed
-    MQTT_PASS,    // Can be omitted if not needed
-    "TestClient", // Client name that uniquely identify your device
-    1883          // The MQTT port, default to 1883. this line can be omitted
-);
+EspMQTTClient client(SSID_ID, PASS_WIFI, MQTT_SERVER1, MQTT_USER, MQTT_PASS, "TestClient", 1883);
 
 void setup()
 {

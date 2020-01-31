@@ -1,43 +1,24 @@
-int pwmPin = D3;
-int buttonPin = D7;
-int sensorPin = D4;
-
+int pin1 = 2;
+int pin2 = 3;
+bool last = false;
 void setup() {
-  // put your setup code here, to run once:
   Serial.begin(9600);
-  pinMode(pwmPin, INPUT);
-  pinMode (buttonPin, INPUT_PULLUP);
-  pinMode(sensorPin, INPUT_PULLUP);
+  Serial.println("Start");
+  pinMode(pin1, INPUT);
+  //  digitalWrite(pin2, 0);
 }
 
 void loop() {
   // put your main code here, to run repeatedly:
-  // for (int a=0;  a<=1023; a+=20){
-  //   analogWrite(pwmPin, a);
-  //   Serial.println(a);
-  //   if (digitalRead(buttonPin)==LOW){
-  //     Serial.println("LOW");
-
-  //   }
-  //   else{
-  //     Serial.println("HIGH");
-  //   }
-  //   delay(10);
-  // }
-  if (digitalRead(buttonPin)==LOW){
-      Serial.println("LOW");
-
+  bool stat = digitalRead(pin1);
+  if (stat != last ) {
+    last = stat;
+    if (stat) {
+      Serial.println("detection");
     }
-    else{
-      Serial.println("HIGH");
+    else {
+      Serial.println("END detection");
     }
-    if (digitalRead(sensorPin)==LOW){
-      Serial.println("snLOW");
-
-    }
-    else{
-      Serial.println("snHIGH");
-    }
-
-    delay(500);
+  }
+  delay(500);
 }

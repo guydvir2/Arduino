@@ -17,7 +17,7 @@
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 // ~~~~~~~ MQTT Topics ~~~~~~
-#define DEVICE_TOPIC "saloonDual"
+#define DEVICE_TOPIC "kidsRoom"
 #define MQTT_PREFIX  "myHome"
 #define MQTT_GROUP   "Windows"
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~

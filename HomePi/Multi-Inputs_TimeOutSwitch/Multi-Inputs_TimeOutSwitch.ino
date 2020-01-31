@@ -284,7 +284,7 @@ decode_results results;
 
 long swapLines_counter = 0;
 char timeStamp[50];
-char dateStamp[50];
+char d                                                                                                                                                                                                                                                                                                                                                                    eStamp[50];
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 
 // ~~~~~~~~ Temp & Humid Sensor ~~~~~~~

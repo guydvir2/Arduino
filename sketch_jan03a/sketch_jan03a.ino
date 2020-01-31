@@ -1,5 +1,6 @@
 #include <ArduinoOTA.h>
 
+#define USE_WIFI true
 #define USE_OTA true
 #define USE_IFTTT true
 #define USE_SLEEP true
@@ -49,101 +50,6 @@ void startNTP()
   configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);
 }
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-// ~~~~~~~~ Temp & Humid Sensor ~~~~~~~
-#if USE_DHT
-#include "DHT.h"
-#define DHTPIN 13     // Digital pin connected to the DHT sens
-#define DHTTYPE DHT11 // DHT 11
-DHT dht(DHTPIN, DHTTYPE);
-
-float h = 0;
-float t = 0;
-long lastDHTRead = 0;
-bool firstUpload = true;
-
-void startDHT()
-{
-  dht.begin();
-}
-
-void getDHTreading()
-{
-  if (millis() - lastDHTRead >= 5000)
-  {
-    h = dht.readHumidity();
-    t = dht.readTemperature();
-    lastDHTRead = millis();
-    //   Serial.println(F("°C "));
-    // }
-
-    if (isnan(h) || isnan(t))
-    {
-      Serial.println(F("Failed to read from DHT sensor!"));
-      return;
-    }
-  }
-}
-#endif
-// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-// ~~~~~~~~~~~~~ LCD Display ~~~~~~~~~~
-#if USE_LCD
-#include <LiquidCrystal_I2C.h>
-int lcdColumns = 16;
-int lcdRows = 2;
-
-LiquidCrystal_I2C lcd(0x27, lcdColumns, lcdRows);
-
-void startLCD()
-{
-  lcd.init();
-  lcd.backlight();
-}
-void clock_update()
-{
-  getLocalTime(&timeinfo);
-  sprintf(clock1, "%02d:%02d:%02d     %.0fC", timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec, t);
-  sprintf(date1, "%04d-%02d-%02d   %.0f%%", timeinfo.tm_year + 1900, timeinfo.tm_mon + 1, timeinfo.tm_mday, h);
-}
-void update_clock_lcd()
-{
-  clock_update();
-  // lcd.clear();
-  lcd.setCursor(0, 0);
-  lcd.print(clock1);
-  lcd.setCursor(0, 1);
-  lcd.print(date1);
-}
-#endif
-// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-// ~~~~~~~~~ DAC & Solar Panel ~~~~~~~~~~~
-const int Vbat_pin = 39;
-const int Vsolar_pin = 36;
-float Vbat = 0.0;
-float Vsolar = 0.0;
-const int Vsamples = 10;
-float Vbat_divider = 1 / 2;
-float Vsolar_divider = 1 / 3;
-float Vbat_correctionF = 1.1;
-float Vsolar_correctionF = 1.1;
-
-void Vmeasure()
-{
-  Vbat = 0.0;
-  Vsolar = 0.0;
-  for (int a = 0; a < Vsamples; a++)
-  {
-    Vbat += analogRead(Vbat_pin);
-    Vsolar += analogRead(Vsolar_pin);
-    delay(50);
-  }
-  Vbat = Vbat / (float)Vsamples;
-  Vsolar = Vsolar / (float)Vsamples;
-}
-// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
 // ~~~~~~~~~~~~~~ MQTT ~~~~~~~~~~~~~~~~~~~
 #include <PubSubClient.h>
 const char *mqtt_server = "192.168.3.200";
@@ -152,7 +58,7 @@ WiFiClient espClient;
 PubSubClient mqttClient(espClient);
 
 const char *MQTT_group = "myHome/TESTS/";
-const char *MQTT_deviceName = "ESP32";
+const char *MQTT_deviceName = "ESP32_lolin";
 const char *MQTT_publishMSG = "myHome/Messages";
 const char *MQTT_publishLOG = "myHome/log";
 
@@ -244,6 +150,7 @@ void mqtt_loop()
 // ~~~~~~~~~~~~~~~ OTA ~~~~~~~~~~~~~~~~~~~
 #include <ESPmDNS.h>
 #include <WiFiUdp.h>
+#define OTA_TIME 10 // minutes
 
 void startOTA()
 {
@@ -285,27 +192,129 @@ void startOTA()
 }
 void OTAlooper()
 {
-  if (millis() < 1000 * 60 * 10)
+  if (millis() < 1000 * 60 * OTA_TIME)
   {
     ArduinoOTA.handle();
   }
 }
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+// ~~~~~~~~ Temp & Humid Sensor ~~~~~~~
+#if USE_DHT
+#include "DHT.h"
+#define DHTPIN 13     // Digital pin connected to the DHT sens
+#define DHTTYPE DHT11 // DHT 11
+DHT dht(DHTPIN, DHTTYPE);
+
+float h = 0;
+float t = 0;
+long lastDHTRead = 0;
+
+void startDHT()
+{
+  dht.begin();
+}
+
+void getDHTreading()
+{
+  if (millis() - lastDHTRead >= 5000)
+  {
+    h = dht.readHumidity();
+    t = dht.readTemperature();
+    lastDHTRead = millis();
+    //   Serial.println(F("°C "));
+    // }
+
+    if (isnan(h) || isnan(t))
+    {
+      Serial.println(F("Failed to read from DHT sensor!"));
+      return;
+    }
+  }
+}
+#endif
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+// ~~~~~~~~~~~~~ LCD Display ~~~~~~~~~~
+#if USE_LCD
+#include <LiquidCrystal_I2C.h>
+int lcdColumns = 16;
+int lcdRows = 2;
+
+LiquidCrystal_I2C lcd(0x27, lcdColumns, lcdRows);
+
+void startLCD()
+{
+  lcd.init();
+  lcd.backlight();
+}
+void clock_update()
+{
+  getLocalTime(&timeinfo);
+  sprintf(clock1, "%02d:%02d:%02d     %.0fC", timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec, t);
+  sprintf(date1, "%04d-%02d-%02d   %.0f%%", timeinfo.tm_year + 1900, timeinfo.tm_mon + 1, timeinfo.tm_mday, h);
+}
+void update_clock_lcd()
+{
+  clock_update();
+  // lcd.clear();
+  lcd.setCursor(0, 0);
+  lcd.print(clock1);
+  lcd.setCursor(0, 1);
+  lcd.print(date1);
+}
+#endif
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+// ~~~~~~~~~ DAC & Solar Panel ~~~~~~~~~~~
+struct voltReader
+{
+  int pin;
+  float ADC_value;
+  float v_divider;
+  float correctF;
+  float calc_value;
+  float vlogic;
+  float ADC_res;
+};
+
+voltReader battery = {39, 0.0, 0.5, 1.15, 0, 3.3, 4096};
+voltReader solarPanel = {36, 0.0, 1 / 3, 1.1, 0};
+const int Vsamples = 10;
+float batADC_atBoot;
+
+void Vmeasure()
+{
+  battery.ADC_value = 0.0;
+  solarPanel.ADC_value = 0.0;
+  for (int a = 0; a < Vsamples; a++)
+  {
+    battery.ADC_value += analogRead(battery.pin);
+    solarPanel.ADC_value += analogRead(solarPanel.pin);
+    delay(50);
+  }
+  battery.ADC_value /= (float)Vsamples;
+  battery.calc_value = battery.ADC_value / battery.ADC_res * battery.vlogic * battery.correctF / battery.v_divider;
+  solarPanel.ADC_value /= (float)Vsamples;
+  solarPanel.calc_value = solarPanel.ADC_value / solarPanel.ADC_res * solarPanel.vlogic * solarPanel.correctF / solarPanel.v_divider;
+}
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 // ~~~~~~~~~~~ Sleep ~~~~~~~~~~~~~~
 #if USE_SLEEP
 #define uS_TO_S_FACTOR 1000000ULL /* Conversion micro seconds to seconds */
-#define TIME_TO_SLEEP 60 * 45     /* Seconds in deep sleep */
-#define TIME_AWAKE 15             /* Seconds until deep sleep */
+#define TIME_TO_SLEEP 20          /* Seconds in deep sleep */
+#define TIME_AWAKE 10             /* Seconds until deep sleep */
+RTC_DATA_ATTR long lastsleeptime = 0;
 
-void sleepNOW()
+void sleepNOW(int sec2sleep = 2700)
 {
   char tmsg[30];
-  sprintf(tmsg, "Going to DeepSleep for [%d] sec", TIME_TO_SLEEP);
+  sprintf(tmsg, "Going to DeepSleep for [%d] sec", sec2sleep);
   Serial.println(tmsg);
-  mqtt_pubmsg(tmsg);
+  // mqtt_pubmsg(tmsg);
   Serial.flush();
-  esp_sleep_enable_timer_wakeup((TIME_TO_SLEEP - TIME_AWAKE - millis() / 1000) * uS_TO_S_FACTOR);
+  esp_sleep_enable_timer_wakeup(sec2sleep * uS_TO_S_FACTOR);
   esp_deep_sleep_start();
 }
 #endif
@@ -317,6 +326,7 @@ const char *resource = "/trigger/send_reading/with/key/cFLymB4JT9tlODsKLFn9TA";
 const char *server = "maker.ifttt.com";
 #define UPLOAD_INTERVAL 60 * 15 // Seconds to upload IFTTT
 long lastUPLOAD = 0;
+bool firstUpload = true;
 
 void makeIFTTTRequest(float val1, float val2, float val3)
 {
@@ -369,26 +379,42 @@ void makeIFTTTRequest(float val1, float val2, float val3)
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 // ~~~~~~~ Boot ~~~~~~~~~~~~
-bool firstboot = true;
+// bool firstboot = true;
+int firstLoop_clock = 0;
+int secs2sample_adc = 5; // seconds to measure ADC voltage
 
-void firsttime_loop()
+// void firsttime_loop()
+// {
+//   if (firstboot)
+//   {
+//     Vmeasure();
+//     // Serial.print("\nsolarPanel.ADC_value: ");
+//     // Serial.println(battery.calc_value);//(solarPanel.ADC_value/(float)4095)*3.3*solarPanel.correctF/solarPanel.v_divider);
+//     // Serial.print("battery.ADC_value: ");
+//     // Serial.println((battery.ADC_value/(float)4095)*3.3*battery.correctF/battery.v_divider);
+//   }
+// }
+
+void lowbat_sleep(int vbat = 1800)
 {
-  if (firstboot)
-  {
-    Vmeasure();
-    Serial.print("\nVsolar: ");
-    Serial.println((Vsolar/(float)4095)*3.3);
-    Serial.print("Vbat: ");
-    Serial.println((Vbat/(float)4095)*3.3*1.1);
-  }
+  Vmeasure();
+  Serial.print("battery value is: ");
+  Serial.println(battery.ADC_value);
+  // if (battery.ADC_value < vbat)
+  // {
+  //   sleepNOW();
+  // }
 }
 
 void setup()
 {
   Serial.begin(9600);
   Serial.printf("Connecting to %s ", ssid);
-  pinMode(Vbat_pin, INPUT);
-  pinMode(Vsolar_pin, INPUT);
+  pinMode(battery.pin, INPUT);
+  pinMode(solarPanel.pin, INPUT);
+
+  lowbat_sleep(1000);
+  batADC_atBoot = battery.ADC_value;
 
 #if USE_DHT
   startDHT();
@@ -398,47 +424,87 @@ void setup()
   startLCD();
 #endif
 
+#if USE_WIFI
   if (startWifi())
   {
-    mqttConnect();
+    // mqttConnect();
     startNTP();
 #if USE_OTA
     startOTA();
 #endif
   }
-  firsttime_loop();
+#endif
+  firstLoop_clock = millis();
 }
 
 void loop()
 {
-  mqtt_loop();
+
+#if USE_WIFI
+  if (millis() - firstLoop_clock > secs2sample_adc * 1000)
+  {
+#if USE_IFTTT
+    if (firstUpload)
+    {
+      Vmeasure();
+      makeIFTTTRequest(batADC_atBoot, battery.ADC_value, solarPanel.ADC_value);
+      firstUpload = false;
+    }
+#endif
+  }
+#if USE_OTA
+  OTAlooper();
+#endif
+
+  // mqtt_loop();
+#endif
 
 #if USE_SLEEP
   if (millis() >= TIME_AWAKE * 1000)
   {
-    sleepNOW();
+    getLocalTime(&timeinfo);
+    time_t now;
+    time(&now);
+    Serial.print("Current Time: ");
+    Serial.println(now);
+
+    Serial.print("Last Sleep: ");
+    Serial.println(lastsleeptime);
+
+    int minCycle = 20;
+    long clockCount = minCycle * 60 - (timeinfo.tm_min * 60 + timeinfo.tm_sec) % (minCycle * 60);
+    Serial.print(timeinfo.tm_hour);
+    Serial.print(":");
+    Serial.print(timeinfo.tm_min);
+    Serial.print(":");
+    Serial.print(timeinfo.tm_sec);
+    Serial.println("");
+    Serial.print("Time left: ");
+    Serial.println(clockCount);
+
+    lastsleeptime = now;
+
+    sleepNOW(clockCount);
+
+    // Serial.println("NIGHT");
   }
 #endif
 
-#if USE_OTA
-  OTAlooper();
-#endif
 #if USE_DHT
   getDHTreading();
 #endif
 #if USE_LCD
   update_clock_lcd();
 #endif
-#if USE_IFTTT
-  if (millis() - lastUPLOAD >= UPLOAD_INTERVAL * 1000 || firstUpload && (h != 0 && t != 0))
-  {
-    makeIFTTTRequest(t, analogRead(Vsolar_pin), analogRead(Vbat_pin));
-    firstUpload = false;
-    lastUPLOAD = millis();
-  }
-#endif
-  firsttime_loop();
-  firstboot = false;
+// #if USE_IFTTT
+//   if (millis() - lastUPLOAD >= UPLOAD_INTERVAL * 1000 || firstUpload)
+//   {
+//     Vmeasure();
+//     makeIFTTTRequest(batADC_atBoot, battery.ADC_value, solarPanel.ADC_value);
+//     firstUpload = false;
+//     lastUPLOAD = millis();
+//   }
+// #endif
 
-  delay(5000);
+  delay(100);
 }
