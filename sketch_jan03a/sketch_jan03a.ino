@@ -1,7 +1,7 @@
 #include <ArduinoOTA.h>
 
 #define USE_WIFI true
-#define USE_OTA true
+#define USE_OTA false
 #define USE_IFTTT true
 #define USE_SLEEP true
 #define USE_DHT true
@@ -301,9 +301,10 @@ void Vmeasure()
 // ~~~~~~~~~~~ Sleep ~~~~~~~~~~~~~~
 #if USE_SLEEP
 #define uS_TO_S_FACTOR 1000000ULL /* Conversion micro seconds to seconds */
-#define TIME_TO_SLEEP 1         /* minutes in deep sleep */
+#define TIME_TO_SLEEP 20          /* minutes in deep sleep */
 #define TIME_AWAKE 10             /* Seconds until deep sleep */
 RTC_DATA_ATTR long lastsleeptime = 0;
+RTC_DATA_ATTR long calc_waketime = 0;
 
 void sleepNOW(int sec2sleep = 2700)
 {
@@ -326,22 +327,26 @@ bool check_awake_ontime()
       time_t now1;
       time(&now1);
       long current_boottime = now1;
-      int t_delta = current_boottime - lastsleeptime;
+      int t_delta = now1  - calc_waketime;
+      // int t_delta1 = TIME_TO_SLEEP * 60 - (t_delta + TIME_AWAKE);
+      Serial.print("now is: ");
+      Serial.println(now1);
+      Serial.print("sleep time was: ");
+      Serial.println(lastsleeptime);
+      Serial.print("expected wake time: ");
+      Serial.println(calc_waketime);
 
-      Serial.print("time_delta=");
+      Serial.print("total time delta: ");
       Serial.println(t_delta);
-
-      if (t_delta >= TIME_TO_SLEEP * 60)
+      if (t_delta >= 0)
       {
-        Serial.print("awake after due time: ");
-        Serial.println(t_delta);
+        Serial.println("OK - WOKE UP after due time: ");
         return 1;
       }
       else
       {
-        Serial.println("woke up ahead time: ");
-        Serial.println(t_delta);
-        sleepNOW(t_delta);
+        Serial.println("FAIL- woke up before time: ");
+        sleepNOW(-1*t_delta);
         return 0;
       }
     }
@@ -438,10 +443,10 @@ void lowbat_sleep(int vbat = 1800)
   Vmeasure();
   Serial.print("battery value is: ");
   Serial.println(battery.ADC_value);
-  // if (battery.ADC_value < vbat)
-  // {
-  //   sleepNOW();
-  // }
+  if (battery.ADC_value < vbat)
+  {
+    sleepNOW();
+  }
 }
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Start Main ~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -452,7 +457,7 @@ void setup()
   pinMode(battery.pin, INPUT);
   pinMode(solarPanel.pin, INPUT);
 
-  lowbat_sleep(1000);
+  // lowbat_sleep(1000);
   batADC_atBoot = battery.ADC_value;
 
 #if USE_DHT
@@ -475,7 +480,7 @@ void setup()
   startOTA();
 #endif
 #endif
-firstLoop_clock = millis();
+  firstLoop_clock = millis();
 }
 
 void loop()
@@ -491,8 +496,8 @@ void loop()
     if (firstUpload)
     {
       Vmeasure();
-      char str[30];
-      sprintf(str, "T=%.1fC;H=%.0f%%; ADC_bat_boot=%d", t, h, batADC_atBoot);
+      char str[150];
+      sprintf(str, "T=%.1fC;H=%.0f%%; ADC_bat_boot=%.0f", t, h, batADC_atBoot);
       makeIFTTTRequest(battery.ADC_value, solarPanel.ADC_value, str);
       firstUpload = false;
     }
@@ -505,33 +510,32 @@ void loop()
   mqtt_loop();
 #endif
 
-// #if USE_SLEEP
-//   if (millis() >= TIME_AWAKE * 1000)
-//   {
-//     getLocalTime(&timeinfo);
-//     time_t now;
-//     time(&now);
-//     Serial.print("Current Time: ");
-//     Serial.println(now);
+#if USE_SLEEP
+  if (millis() >= TIME_AWAKE * 1000)
+  {
+    getLocalTime(&timeinfo);
+    time_t now;
+    time(&now);
 
-//     Serial.print("Last Sleep: ");
-//     Serial.println(lastsleeptime);
+    Serial.print("Last Sleep: ");
+    Serial.println(lastsleeptime);
 
-//     long clockCount = TIME_TO_SLEEP * 60 - (timeinfo.tm_min * 60 + timeinfo.tm_sec) % (TIME_TO_SLEEP * 60);
-//     Serial.print(timeinfo.tm_hour);
-//     Serial.print(":");
-//     Serial.print(timeinfo.tm_min);
-//     Serial.print(":");
-//     Serial.print(timeinfo.tm_sec);
-//     Serial.println("");
-//     Serial.print("Time left: ");
-//     Serial.println(clockCount);
+    long clockCount = TIME_TO_SLEEP * 60 - (timeinfo.tm_min * 60 + timeinfo.tm_sec) % (TIME_TO_SLEEP * 60);
+    // Serial.print(timeinfo.tm_hour);
+    // Serial.print(":");
+    // Serial.print(timeinfo.tm_min);
+    // Serial.print(":");
+    // Serial.print(timeinfo.tm_sec);
+    // Serial.println("");
+    Serial.print("Time left: ");
+    Serial.println(clockCount);
 
-//     // lastsleeptime = now;
+    lastsleeptime = now;
+    calc_waketime = now + clockCount;
 
-//     sleepNOW(clockCount);
-//   }
-// #endif
+    sleepNOW(clockCount);
+  }
+#endif
 
 #if USE_LCD
   update_clock_lcd();
