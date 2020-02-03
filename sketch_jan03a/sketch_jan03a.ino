@@ -4,8 +4,11 @@
 #define USE_OTA false
 #define USE_IFTTT true
 #define USE_SLEEP true
-#define USE_DHT true
+#define USE_DHT false
 #define USE_LCD false
+
+#define DEEPSLEEP_TIME 30
+#define DEEPSLEEP_ADD 12
 
 // ~~~~~~~~~ WiFi ~~~~~~~~~~~~~~~~
 #include "WiFi.h"
@@ -40,16 +43,29 @@ bool startWifi()
 const int gmtOffset_sec = 2 * 3600;
 const int daylightOffset_sec = 0; //3600;
 struct tm timeinfo;
-char clock1[20];
-char date1[20];
+time_t epoch_time;
+char clock_char[20];
+char date_char[20];
 
 void startNTP()
 {
   const char *ntpServer = "pool.ntp.org";
-  const char *mqtt_server = "192.168.3.200";
   configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);
 }
-// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+bool getTime()
+{
+  if (getLocalTime(&timeinfo))
+  {
+    time(&epoch_time);
+    return 1;
+  }
+  else
+  {
+    return 0;
+  }
+}
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 // ~~~~~~~~~~~~~~ MQTT ~~~~~~~~~~~~~~~~~~~
 #include <PubSubClient.h>
 const char *mqtt_server = "192.168.3.200";
@@ -105,8 +121,6 @@ void mqtt_pubmsg(char *msg)
 {
   char t[150];
   getLocalTime(&timeinfo);
-  // sprintf(clock1, "%02d:%02d:%02d     %.0fC", timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec, t);
-  // sprintf(date1, "%04d-%02d-%02d   %.0f%%", timeinfo.tm_year + 1900, timeinfo.tm_mon + 1, timeinfo.tm_mday, h);
   sprintf(t, "[%04d-%02d-%02d %02d:%02d:%02d] [%s%s] %s ",
           timeinfo.tm_year + 1900, timeinfo.tm_mon + 1, timeinfo.tm_mday,
           timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec,
@@ -249,17 +263,17 @@ void startLCD()
 void clock_update()
 {
   getLocalTime(&timeinfo);
-  sprintf(clock1, "%02d:%02d:%02d     %.0fC", timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec, t);
-  sprintf(date1, "%04d-%02d-%02d   %.0f%%", timeinfo.tm_year + 1900, timeinfo.tm_mon + 1, timeinfo.tm_mday, h);
+  sprintf(clock_char, "%02d:%02d:%02d     %.0fC", timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec, t);
+  sprintf(date_char, "%04d-%02d-%02d   %.0f%%", timeinfo.tm_year + 1900, timeinfo.tm_mon + 1, timeinfo.tm_mday, h);
 }
 void update_clock_lcd()
 {
   clock_update();
   // lcd.clear();
   lcd.setCursor(0, 0);
-  lcd.print(clock1);
+  lcd.print(clock_char);
   lcd.setCursor(0, 1);
-  lcd.print(date1);
+  lcd.print(date_char);
 }
 #endif
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -301,7 +315,7 @@ void Vmeasure()
 // ~~~~~~~~~~~ Sleep ~~~~~~~~~~~~~~
 #if USE_SLEEP
 #define uS_TO_S_FACTOR 1000000ULL /* Conversion micro seconds to seconds */
-#define TIME_TO_SLEEP 20          /* minutes in deep sleep */
+#define TIME_TO_SLEEP DEEPSLEEP_TIME  /* minutes in deep sleep */
 #define TIME_AWAKE 10             /* Seconds until deep sleep */
 RTC_DATA_ATTR long lastsleeptime = 0;
 RTC_DATA_ATTR long calc_waketime = 0;
@@ -317,27 +331,38 @@ void sleepNOW(int sec2sleep = 2700)
   esp_deep_sleep_start();
 }
 
+void printClock()
+{
+  Serial.print(timeinfo.tm_hour);
+  Serial.print(":");
+  Serial.print(timeinfo.tm_min);
+  Serial.print(":");
+  Serial.print(timeinfo.tm_sec);
+  Serial.println("");
+}
+
 bool check_awake_ontime()
 {
-  getLocalTime(&timeinfo);
+  delay(2500);
+  getTime();
   if (timeinfo.tm_year >= 120) // year 2020
   {
     if (lastsleeptime != 0)
     { // not first boot
-      time_t now1;
-      time(&now1);
-      long current_boottime = now1;
-      int t_delta = now1  - calc_waketime;
-      // int t_delta1 = TIME_TO_SLEEP * 60 - (t_delta + TIME_AWAKE);
+      long current_boottime = epoch_time;
+      int t_delta = epoch_time - calc_waketime;
+
       Serial.print("now is: ");
-      Serial.println(now1);
+      Serial.println(epoch_time);
       Serial.print("sleep time was: ");
       Serial.println(lastsleeptime);
       Serial.print("expected wake time: ");
       Serial.println(calc_waketime);
-
       Serial.print("total time delta: ");
       Serial.println(t_delta);
+
+      Serial.println("Clock at check_awake");
+      printClock();
       if (t_delta >= 0)
       {
         Serial.println("OK - WOKE UP after due time: ");
@@ -346,7 +371,7 @@ bool check_awake_ontime()
       else
       {
         Serial.println("FAIL- woke up before time: ");
-        sleepNOW(-1*t_delta);
+        sleepNOW(-1 * t_delta);
         return 0;
       }
     }
@@ -359,6 +384,33 @@ bool check_awake_ontime()
   {
     return 0;
   }
+}
+
+void lowbat_sleep(int vbat = 1800)
+{
+  Vmeasure();
+  Serial.print("battery value is: ");
+  Serial.println(battery.ADC_value);
+  if (battery.ADC_value < vbat)
+  {
+    sleepNOW();
+  }
+}
+void calc_sleepTime()
+{
+  getTime();
+  printClock();
+  Serial.print("Last Sleep: ");
+  Serial.println(lastsleeptime);
+
+  long clockCount = TIME_TO_SLEEP * 60 - (timeinfo.tm_min * 60 + timeinfo.tm_sec) % (TIME_TO_SLEEP * 60);
+  Serial.print("Time left: ");
+  Serial.println(clockCount);
+
+  lastsleeptime = epoch_time;
+  calc_waketime = epoch_time + clockCount;
+
+  sleepNOW(clockCount+DEEPSLEEP_ADD);
 }
 #endif
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -422,32 +474,8 @@ void makeIFTTTRequest(float val1, float val2, char *val3)
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 // ~~~~~~~ Boot ~~~~~~~~~~~~
-// bool firstboot = true;
 int firstLoop_clock = 0;
-int secs2sample_adc = 5; // seconds to measure ADC voltage
-
-// void firsttime_loop()
-// {
-//   if (firstboot)
-//   {
-//     Vmeasure();
-//     // Serial.print("\nsolarPanel.ADC_value: ");
-//     // Serial.println(battery.calc_value);//(solarPanel.ADC_value/(float)4095)*3.3*solarPanel.correctF/solarPanel.v_divider);
-//     // Serial.print("battery.ADC_value: ");
-//     // Serial.println((battery.ADC_value/(float)4095)*3.3*battery.correctF/battery.v_divider);
-//   }
-// }
-
-void lowbat_sleep(int vbat = 1800)
-{
-  Vmeasure();
-  Serial.print("battery value is: ");
-  Serial.println(battery.ADC_value);
-  if (battery.ADC_value < vbat)
-  {
-    sleepNOW();
-  }
-}
+int secs2sample_adc = 5; // seconds untill measuring ADC voltage
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Start Main ~~~~~~~~~~~~~~~~~~~~~~~~~~
 void setup()
@@ -474,7 +502,11 @@ void setup()
   {
     mqttConnect();
     startNTP();
+#if USE_SLEEP
     check_awake_ontime();
+    Serial.print("CLOck at boot:");
+    printClock();
+#endif
   }
 #if USE_OTA
   startOTA();
@@ -497,12 +529,17 @@ void loop()
     {
       Vmeasure();
       char str[150];
+#if USE_DHT
       sprintf(str, "T=%.1fC;H=%.0f%%; ADC_bat_boot=%.0f", t, h, batADC_atBoot);
       makeIFTTTRequest(battery.ADC_value, solarPanel.ADC_value, str);
-      firstUpload = false;
-    }
+#else
+      makeIFTTTRequest(battery.ADC_value, solarPanel.ADC_value, "NONE");
 #endif
+    }
+    firstUpload = false;
   }
+#endif
+
 #if USE_OTA
   OTAlooper();
 #endif
@@ -513,27 +550,7 @@ void loop()
 #if USE_SLEEP
   if (millis() >= TIME_AWAKE * 1000)
   {
-    getLocalTime(&timeinfo);
-    time_t now;
-    time(&now);
-
-    Serial.print("Last Sleep: ");
-    Serial.println(lastsleeptime);
-
-    long clockCount = TIME_TO_SLEEP * 60 - (timeinfo.tm_min * 60 + timeinfo.tm_sec) % (TIME_TO_SLEEP * 60);
-    // Serial.print(timeinfo.tm_hour);
-    // Serial.print(":");
-    // Serial.print(timeinfo.tm_min);
-    // Serial.print(":");
-    // Serial.print(timeinfo.tm_sec);
-    // Serial.println("");
-    Serial.print("Time left: ");
-    Serial.println(clockCount);
-
-    lastsleeptime = now;
-    calc_waketime = now + clockCount;
-
-    sleepNOW(clockCount);
+    calc_sleepTime();
   }
 #endif
 
