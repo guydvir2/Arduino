@@ -9,6 +9,8 @@
 
 #define DEEPSLEEP_TIME 30
 #define DEEPSLEEP_ADD 12
+// #define DEEPSLEEP_TIME 10
+// #define DEEPSLEEP_ADD 5
 
 // ~~~~~~~~~ WiFi ~~~~~~~~~~~~~~~~
 #include "WiFi.h"
@@ -74,7 +76,7 @@ WiFiClient espClient;
 PubSubClient mqttClient(espClient);
 
 const char *MQTT_group = "myHome/TESTS/";
-const char *MQTT_deviceName = "ESP32";
+const char *MQTT_deviceName = "ESP32_SOLAR";
 const char *MQTT_publishMSG = "myHome/Messages";
 const char *MQTT_publishLOG = "myHome/log";
 
@@ -314,11 +316,12 @@ void Vmeasure()
 
 // ~~~~~~~~~~~ Sleep ~~~~~~~~~~~~~~
 #if USE_SLEEP
-#define uS_TO_S_FACTOR 1000000ULL /* Conversion micro seconds to seconds */
-#define TIME_TO_SLEEP DEEPSLEEP_TIME  /* minutes in deep sleep */
-#define TIME_AWAKE 10             /* Seconds until deep sleep */
+#define uS_TO_S_FACTOR 1000000ULL    /* Conversion micro seconds to seconds */
+#define TIME_TO_SLEEP DEEPSLEEP_TIME /* minutes in deep sleep */
+#define TIME_AWAKE 10                /* Seconds until deep sleep */
 RTC_DATA_ATTR long lastsleeptime = 0;
 RTC_DATA_ATTR long calc_waketime = 0;
+char sleepstr[100];
 
 void sleepNOW(int sec2sleep = 2700)
 {
@@ -345,9 +348,10 @@ bool check_awake_ontime()
 {
   delay(2500);
   getTime();
+  sprintf(sleepstr, "Wake: %02d:%02d:%02d; Epoch: %.0f; ", timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec, epoch_time);
   if (timeinfo.tm_year >= 120) // year 2020
   {
-    if (lastsleeptime != 0)
+    if (lastsleeptime > 0)
     { // not first boot
       long current_boottime = epoch_time;
       int t_delta = epoch_time - calc_waketime;
@@ -363,6 +367,11 @@ bool check_awake_ontime()
 
       Serial.println("Clock at check_awake");
       printClock();
+
+      char tt[20];
+      sprintf(tt, "t_delta: %d; ", t_delta);
+      strcat(sleepstr, tt);
+
       if (t_delta >= 0)
       {
         Serial.println("OK - WOKE UP after due time: ");
@@ -396,7 +405,7 @@ void lowbat_sleep(int vbat = 1800)
     sleepNOW();
   }
 }
-void calc_sleepTime()
+long calc_sleepTime()
 {
   getTime();
   printClock();
@@ -410,7 +419,12 @@ void calc_sleepTime()
   lastsleeptime = epoch_time;
   calc_waketime = epoch_time + clockCount;
 
-  sleepNOW(clockCount+DEEPSLEEP_ADD);
+  char tt[50];
+  sprintf(tt, "Sleep: %02d:%02d:%02d; Duration: %.0f; ", timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec, clockCount);
+  strcat(sleepstr, tt);
+  Serial.println(sleepstr);
+
+  return clockCount;
 }
 #endif
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -485,7 +499,7 @@ void setup()
   pinMode(battery.pin, INPUT);
   pinMode(solarPanel.pin, INPUT);
 
-  // lowbat_sleep(1000);
+  // lowbat_sleep(1750);
   batADC_atBoot = battery.ADC_value;
 
 #if USE_DHT
@@ -528,34 +542,34 @@ void loop()
     if (firstUpload)
     {
       Vmeasure();
-      char str[150];
 #if USE_DHT
+      char str[150];
       sprintf(str, "T=%.1fC;H=%.0f%%; ADC_bat_boot=%.0f", t, h, batADC_atBoot);
       makeIFTTTRequest(battery.ADC_value, solarPanel.ADC_value, str);
-#else
-      makeIFTTTRequest(battery.ADC_value, solarPanel.ADC_value, "NONE");
+// #else
+//       makeIFTTTRequest(battery.ADC_value, solarPanel.ADC_value, "NONE");
 #endif
     }
     firstUpload = false;
   }
 #endif
-
-#if USE_OTA
-  OTAlooper();
-#endif
-
   mqtt_loop();
 #endif
 
 #if USE_SLEEP
   if (millis() >= TIME_AWAKE * 1000)
   {
-    calc_sleepTime();
+    long a = calc_sleepTime();
+    makeIFTTTRequest(battery.ADC_value, solarPanel.ADC_value, sleepstr);
+    sleepNOW(a + DEEPSLEEP_ADD);
   }
 #endif
 
 #if USE_LCD
   update_clock_lcd();
+#endif
+#if USE_OTA
+  OTAlooper();
 #endif
   delay(100);
 }
