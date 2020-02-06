@@ -101,11 +101,11 @@ bool checkrebootState = true;
 bool boot_overide[] = {false, false};
 
 // ~~~~~~ PWM for lights/ LED ~~~~~~~~
-#define PWM_RES 1024.0
-const float maxPWM = 0.90;
-const float PWMinc = 0.1; // increment precentage
-const float defaultPWM = 0.6; // for boot & TO
-float PWMvalue = defaultPWM; // percentage
+#define PWM_RES 1024
+const int maxPWM = 100;
+const int PWMinc = 10; // increment precentage
+const int defaultPWM = 60; // for boot & TO
+int PWMvalue = defaultPWM; // percentage
 
 // #################################  END CORE #################################
 
@@ -284,7 +284,7 @@ decode_results results;
 
 long swapLines_counter = 0;
 char timeStamp[50];
-char d                                                                                                                                                                                                                                                                                                                                                                    eStamp[50];
+char dateStamp[50];
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 
 // ~~~~~~~~ Temp & Humid Sensor ~~~~~~~
@@ -545,24 +545,24 @@ void IFTT_lopper()
 
 //  ############################## STRART CORE #################################
 
-void switchIt(char *txt1, int sw_num, bool state, char *txt2 = "", bool show_timeout = true, float PWMval = -1)
+void switchIt(char *txt1, int sw_num, bool state, char *txt2 = "", bool show_timeout = true, int PWMval = -1)
 {
         char msg[50], msg1[50], msg2[50], states[50], tempstr[50];
         char *word = {"Turned"};
 
-        if (digitalRead(relays[sw_num]) != state || boot_overide[sw_num] == true || (USE_PWM && PWMval >= 0.0))
+        if (digitalRead(relays[sw_num]) != state || boot_overide[sw_num] == true || (USE_PWM && PWMval >= 0))
         {
-                if (PWMval >= 0.0)
+                if (PWMval >= 0)
                 {
-                        if (analogRead(relays[sw_num]) != 0)// || PWMval != 0.0)
+                        if (PWMval >0)
                         {
-                                sprintf(msg, "%s: Switch[#%d] changed from [%.0f%%] to [%.0f%%]", txt1, sw_num, PWMvalue * 100, PWMval * 100);
+                                sprintf(msg, "%s: Switch[#%d] changed from [%d%%] to [%d%%]", txt1, sw_num, PWMvalue, PWMval);
                                 state = true;
                         }
                         else
                         {
                                 sprintf(msg, "%s: Switch[#%d] %s[%s] %s", txt1, sw_num, word, state ? "ON" : "OFF", txt2);
-                                if (PWMval == 0.0)
+                                if (PWMval == 0)
                                 {
                                         state = false;
                                 }
@@ -571,7 +571,7 @@ void switchIt(char *txt1, int sw_num, bool state, char *txt2 = "", bool show_tim
                                         state = true;
                                 }
                         }
-                        analogWrite(relays[sw_num], PWMval * PWM_RES);
+                        analogWrite(relays[sw_num], PWMval * PWM_RES/100);
                         PWMvalue = PWMval;
                 }
                 else
@@ -632,11 +632,9 @@ void checkSwitch_Pressed(byte sw, bool momentary = true)
                                                 else
                                                 { // in TO state. End TO now and turn off.
                                                         TO[sw]->endNow();
-                                                        Serial.println("ENDING TO");
                                                 }
-                                                Serial.println("MAX VAL");
                                         }
-                                        else if (PWMvalue == 0.0)
+                                        else if (PWMvalue == 0)
                                         {
                                                 TO[sw]->restart_to();
                                                 switchIt("Button", sw, 1, "", true, PWMvalue + PWMinc);
@@ -645,6 +643,10 @@ void checkSwitch_Pressed(byte sw, bool momentary = true)
                                         else if (PWMvalue + PWMinc <= maxPWM)
                                         {
                                                 switchIt("Button", sw, 1, "", true, PWMvalue + PWMinc);
+                                                // if (TO[sw]->remain() == 0){
+                                                //         TO[sw]->restart_to();
+                                                //         Serial.println("REMAN 0");
+                                                // }
                                         }
                                 }
                                 else
