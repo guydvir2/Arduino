@@ -1,16 +1,17 @@
 #include <ArduinoOTA.h>
 
+// ~~~~~~ Scrpit Services ~~~~~~
 #define USE_WIFI true
 #define USE_OTA false
 #define USE_IFTTT true
 #define USE_SLEEP true
 #define USE_DHT false
 #define USE_LCD false
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-#define DEEPSLEEP_TIME 30
-#define DEEPSLEEP_ADD 12
-// #define DEEPSLEEP_TIME 10
-// #define DEEPSLEEP_ADD 5
+#define DEEPSLEEP_TIME 60
+#define FORCED_WAKE_TIME 10 // seconds till sleep
+#define DEV_NAME "ESP32lite"
 
 // ~~~~~~~~~ WiFi ~~~~~~~~~~~~~~~~
 #include "WiFi.h"
@@ -56,15 +57,18 @@ void startNTP()
 }
 bool getTime()
 {
-  if (getLocalTime(&timeinfo))
+  byte a;
+  while (a <= 2)
   {
-    time(&epoch_time);
-    return 1;
+    if (getLocalTime(&timeinfo))
+    {
+      time(&epoch_time);
+      return 1;
+    }
+    delay(50);
+    a++;
   }
-  else
-  {
-    return 0;
-  }
+  return 0;
 }
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -76,7 +80,7 @@ WiFiClient espClient;
 PubSubClient mqttClient(espClient);
 
 const char *MQTT_group = "myHome/TESTS/";
-const char *MQTT_deviceName = "ESP32_SOLAR";
+const char *MQTT_deviceName = DEV_NAME;
 const char *MQTT_publishMSG = "myHome/Messages";
 const char *MQTT_publishLOG = "myHome/log";
 
@@ -101,10 +105,13 @@ void mqttCallback(char *topic, byte *message, unsigned int length)
 }
 void mqttReconnect()
 {
-  while (!mqttClient.connected())
+  long loopclock = millis();
+  int sec_retry_reconnect = 20;
+
+  while (!mqttClient.connected() && millis() - loopclock <= sec_retry_reconnect * 1000)
   {
     Serial.print("Attempting MQTT connection...");
-    if (mqttClient.connect("ESP32"))
+    if (mqttClient.connect(MQTT_deviceName))
     {
       Serial.println("connected");
       mqttClient.subscribe("myHome/TESTS/esp32");
@@ -118,7 +125,6 @@ void mqttReconnect()
     }
   }
 }
-
 void mqtt_pubmsg(char *msg)
 {
   char t[150];
@@ -318,10 +324,10 @@ void Vmeasure()
 #if USE_SLEEP
 #define uS_TO_S_FACTOR 1000000ULL    /* Conversion micro seconds to seconds */
 #define TIME_TO_SLEEP DEEPSLEEP_TIME /* minutes in deep sleep */
-#define TIME_AWAKE 10                /* Seconds until deep sleep */
+#define TIME_AWAKE FORCED_WAKE_TIME  /* Seconds until deep sleep */
 RTC_DATA_ATTR long lastsleeptime = 0;
 RTC_DATA_ATTR long calc_waketime = 0;
-char sleepstr[100];
+char sleepstr[150];
 
 void sleepNOW(int sec2sleep = 2700)
 {
@@ -348,25 +354,13 @@ bool check_awake_ontime()
 {
   delay(2500);
   getTime();
-  sprintf(sleepstr, "Wake: %02d:%02d:%02d; Epoch: %.0f; ", timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec, epoch_time);
+  sprintf(sleepstr, "deviceName:[%s]; Wake: [%02d:%02d:%02d]; ", DEV_NAME, timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec);
   if (timeinfo.tm_year >= 120) // year 2020
   {
     if (lastsleeptime > 0)
     { // not first boot
       long current_boottime = epoch_time;
       int t_delta = epoch_time - calc_waketime;
-
-      Serial.print("now is: ");
-      Serial.println(epoch_time);
-      Serial.print("sleep time was: ");
-      Serial.println(lastsleeptime);
-      Serial.print("expected wake time: ");
-      Serial.println(calc_waketime);
-      Serial.print("total time delta: ");
-      Serial.println(t_delta);
-
-      Serial.println("Clock at check_awake");
-      printClock();
 
       char tt[20];
       sprintf(tt, "t_delta: %d; ", t_delta);
@@ -408,21 +402,15 @@ void lowbat_sleep(int vbat = 1800)
 long calc_sleepTime()
 {
   getTime();
-  printClock();
-  Serial.print("Last Sleep: ");
-  Serial.println(lastsleeptime);
-
-  long clockCount = TIME_TO_SLEEP * 60 - (timeinfo.tm_min * 60 + timeinfo.tm_sec) % (TIME_TO_SLEEP * 60);
-  Serial.print("Time left: ");
-  Serial.println(clockCount);
-
+  float correctionFactor = 1.0070;
+  long clockCount = correctionFactor * (TIME_TO_SLEEP * 60 - (timeinfo.tm_min * 60 + timeinfo.tm_sec) % (TIME_TO_SLEEP * 60));
   lastsleeptime = epoch_time;
   calc_waketime = epoch_time + clockCount;
 
-  char tt[50];
-  sprintf(tt, "Sleep: %02d:%02d:%02d; Duration: %.0f; ", timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec, clockCount);
+  char tt[100];
+  sprintf(tt, "wakeDuration: [%.2fs]; startSleep: [%02d:%02d:%02d]; sleepDuration: [%ds]; driftFactor: [%.0fs]",
+          (float)millis() / 1000.0, timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec, clockCount, clockCount * (1 - 1 / correctionFactor));
   strcat(sleepstr, tt);
-  Serial.println(sleepstr);
 
   return clockCount;
 }
@@ -488,8 +476,6 @@ void makeIFTTTRequest(float val1, float val2, char *val3)
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 // ~~~~~~~ Boot ~~~~~~~~~~~~
-int firstLoop_clock = 0;
-int secs2sample_adc = 5; // seconds untill measuring ADC voltage
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Start Main ~~~~~~~~~~~~~~~~~~~~~~~~~~
 void setup()
@@ -518,15 +504,12 @@ void setup()
     startNTP();
 #if USE_SLEEP
     check_awake_ontime();
-    Serial.print("CLOck at boot:");
-    printClock();
 #endif
   }
 #if USE_OTA
   startOTA();
 #endif
 #endif
-  firstLoop_clock = millis();
 }
 
 void loop()
@@ -536,21 +519,17 @@ void loop()
 #endif
 
 #if USE_WIFI
-  if (millis() - firstLoop_clock > secs2sample_adc * 1000)
-  {
 #if USE_IFTTT
-    if (firstUpload)
-    {
-      Vmeasure();
+  if (firstUpload)
+  {
+    Vmeasure();
 #if USE_DHT
-      char str[150];
-      sprintf(str, "T=%.1fC;H=%.0f%%; ADC_bat_boot=%.0f", t, h, batADC_atBoot);
-      makeIFTTTRequest(battery.ADC_value, solarPanel.ADC_value, str);
+    char str[150];
+    sprintf(str, "T=%.1fC;H=%.0f%%; ADC_bat_boot=%.0f", t, h, batADC_atBoot);
+    makeIFTTTRequest(battery.ADC_value, solarPanel.ADC_value, str);
 // #else
 //       makeIFTTTRequest(battery.ADC_value, solarPanel.ADC_value, "NONE");
 #endif
-    }
-    firstUpload = false;
   }
 #endif
   mqtt_loop();
@@ -561,7 +540,7 @@ void loop()
   {
     long a = calc_sleepTime();
     makeIFTTTRequest(battery.ADC_value, solarPanel.ADC_value, sleepstr);
-    sleepNOW(a + DEEPSLEEP_ADD);
+    sleepNOW(a);
   }
 #endif
 
