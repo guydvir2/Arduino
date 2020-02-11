@@ -3,5 +3,10 @@
 		{
 			"path": "/home/guy/Documents/git/Arduino"
 		}
-	]
+	],
+	"settings": {
+		"files.associations": {
+			"random": "cpp"
+		}
+	}
 }

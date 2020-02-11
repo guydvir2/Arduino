@@ -5,12 +5,16 @@
 #define USE_OTA false
 #define USE_IFTTT true
 #define USE_SLEEP true
+#define USE_VMEASURE false
 #define USE_DHT false
 #define USE_LCD false
+#define USE_EEPROM true
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 #define DEEPSLEEP_TIME 60
-#define FORCED_WAKE_TIME 10 // seconds till sleep
+#define FORCED_WAKE_TIME 15      // seconds till sleep
+#define CLOCK_DRIFT_FACTOR 1.008 /* Add seconds to deepsleep */
+
 #define DEV_NAME "ESP32lite"
 
 // ~~~~~~~~~ WiFi ~~~~~~~~~~~~~~~~
@@ -20,6 +24,7 @@ const char *password = "guyd5161";
 
 bool startWifi()
 {
+#if USE_WIFI
   WiFi.begin(ssid, password);
   while (WiFi.status() != WL_CONNECTED && millis() < 30000)
   {
@@ -38,6 +43,7 @@ bool startWifi()
     Serial.println("Failed connect to wifi");
     return 0;
   }
+#endif
 }
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -52,11 +58,14 @@ char date_char[20];
 
 void startNTP()
 {
+#if USE_WIFI
   const char *ntpServer = "pool.ntp.org";
   configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);
+#endif
 }
 bool getTime()
 {
+#if USE_WIFI
   byte a;
   while (a <= 2)
   {
@@ -69,6 +78,7 @@ bool getTime()
     a++;
   }
   return 0;
+#endif
 }
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -76,8 +86,10 @@ bool getTime()
 #include <PubSubClient.h>
 const char *mqtt_server = "192.168.3.200";
 bool firstmsg = true;
+#if USE_WIFI
 WiFiClient espClient;
 PubSubClient mqttClient(espClient);
+#endif
 
 const char *MQTT_group = "myHome/TESTS/";
 const char *MQTT_deviceName = DEV_NAME;
@@ -86,11 +98,14 @@ const char *MQTT_publishLOG = "myHome/log";
 
 void mqttConnect()
 {
+#if USE_WIFI
   mqttClient.setServer(mqtt_server, 1883);
   mqttClient.setCallback(mqttCallback);
+#endif
 }
 void mqttCallback(char *topic, byte *message, unsigned int length)
 {
+#if USE_WIFI
   Serial.print("Message arrived on topic: ");
   Serial.print(topic);
   Serial.print(". Message: ");
@@ -102,9 +117,11 @@ void mqttCallback(char *topic, byte *message, unsigned int length)
     messageTemp += (char)message[i];
   }
   Serial.println();
+#endif
 }
 void mqttReconnect()
 {
+#if USE_WIFI
   long loopclock = millis();
   int sec_retry_reconnect = 20;
 
@@ -124,9 +141,11 @@ void mqttReconnect()
       delay(5000);
     }
   }
+#endif
 }
 void mqtt_pubmsg(char *msg)
 {
+#if USE_WIFI
   char t[150];
   getLocalTime(&timeinfo);
   sprintf(t, "[%04d-%02d-%02d %02d:%02d:%02d] [%s%s] %s ",
@@ -134,10 +153,12 @@ void mqtt_pubmsg(char *msg)
           timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec,
           MQTT_group, MQTT_deviceName, msg);
   mqttClient.publish(MQTT_publishMSG, t);
+#endif
 }
 
 void mqtt_publog(char *msg)
 {
+#if USE_WIFI
   char t[150];
   getLocalTime(&timeinfo);
   sprintf(t, "[%04d-%02d-%02d %02d:%02d:%02d] [%s%s] %s ",
@@ -145,10 +166,12 @@ void mqtt_publog(char *msg)
           timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec,
           MQTT_group, MQTT_deviceName, msg);
   mqttClient.publish(MQTT_publishLOG, t);
+#endif
 }
 
 void mqtt_loop()
 {
+#if USE_WIFI
   if (!mqttClient.connected())
   {
     mqttReconnect();
@@ -164,6 +187,7 @@ void mqtt_loop()
     mqtt_publog("<< BOOT >>");
     firstmsg = false;
   }
+#endif
 }
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -174,6 +198,7 @@ void mqtt_loop()
 
 void startOTA()
 {
+#if USE_OTA
   char host_name[30];
   sprintf(host_name, "%s%s", MQTT_group, MQTT_deviceName);
   ArduinoOTA.setHostname(host_name);
@@ -209,22 +234,26 @@ void startOTA()
       });
 
   ArduinoOTA.begin();
+#endif
 }
 void OTAlooper()
 {
+#if USE_OTA
   if (millis() < 1000 * 60 * OTA_TIME)
   {
     ArduinoOTA.handle();
   }
+#endif
 }
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 // ~~~~~~~~ Temp & Humid Sensor ~~~~~~~
-#if USE_DHT
 #include "DHT.h"
 #define DHTPIN 14     // Digital pin connected to the DHT sens
 #define DHTTYPE DHT11 // DHT 11
+#if USE_DHT
 DHT dht(DHTPIN, DHTTYPE);
+#endif
 
 float h = 0;
 float t = 0;
@@ -232,11 +261,14 @@ long lastDHTRead = 0;
 
 void startDHT()
 {
+#if USE_DHT
   dht.begin();
+#endif
 }
 
 void getDHTreading()
 {
+#if USE_DHT
   if (millis() - lastDHTRead >= 5000)
   {
     h = dht.readHumidity();
@@ -251,39 +283,45 @@ void getDHTreading()
       return;
     }
   }
-}
 #endif
+}
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 // ~~~~~~~~~~~~~ LCD Display ~~~~~~~~~~
-#if USE_LCD
 #include <LiquidCrystal_I2C.h>
 int lcdColumns = 16;
 int lcdRows = 2;
 
+#if USE_LCD
 LiquidCrystal_I2C lcd(0x27, lcdColumns, lcdRows);
+#endif
 
 void startLCD()
 {
+#if USE_LCD
   lcd.init();
   lcd.backlight();
+#endif
 }
 void clock_update()
 {
+#if USE_LCD
   getLocalTime(&timeinfo);
   sprintf(clock_char, "%02d:%02d:%02d     %.0fC", timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec, t);
   sprintf(date_char, "%04d-%02d-%02d   %.0f%%", timeinfo.tm_year + 1900, timeinfo.tm_mon + 1, timeinfo.tm_mday, h);
+#endif
 }
 void update_clock_lcd()
 {
+#if USE_LCD
   clock_update();
   // lcd.clear();
   lcd.setCursor(0, 0);
   lcd.print(clock_char);
   lcd.setCursor(0, 1);
   lcd.print(date_char);
-}
 #endif
+}
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 // ~~~~~~~~~ DAC & Solar Panel ~~~~~~~~~~~
@@ -305,6 +343,7 @@ float batADC_atBoot;
 
 void Vmeasure()
 {
+#if USE_VMEASURE
   battery.ADC_value = 0.0;
   solarPanel.ADC_value = 0.0;
   for (int a = 0; a < Vsamples; a++)
@@ -317,27 +356,91 @@ void Vmeasure()
   battery.calc_value = battery.ADC_value / battery.ADC_res * battery.vlogic * battery.correctF / battery.v_divider;
   solarPanel.ADC_value /= (float)Vsamples;
   solarPanel.calc_value = solarPanel.ADC_value / solarPanel.ADC_res * solarPanel.vlogic * solarPanel.correctF / solarPanel.v_divider;
+#endif
 }
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+// ~~~~~~~~~ USE EEPROM ~~~~~~~~~~~
+#include "EEPROM.h"
+#define EEPROM_SIZE 64
+
+int getEEPROMvalue(byte i = 0)
+{
+#if USE_EEPROM
+  int eeprom_drift = EEPROM.read(i) * pow(-1, EEPROM.read(i + 1));
+  return eeprom_drift;
+#endif
+}
+
+void saveEEPROMvalue(int val, byte i = 0)
+{
+#if USE_EEPROM
+  EEPROM.write(i, abs(val));
+  if (val < 0)
+  {
+    EEPROM.write(i + 1, 1);
+    EEPROM.commit();
+  }
+  else
+  {
+    EEPROM.write(i + 1, 2);
+    EEPROM.commit();
+  }
+#endif
+}
+
+void start_eeprom(byte i = 0)
+{
+#if USE_EEPROM
+  if (!EEPROM.begin(EEPROM_SIZE))
+  {
+    Serial.println("Fail to load EEPROM");
+  }
+#endif
+}
+
+bool updateDrift_EEPROM(int drift_value, byte cell = 0)
+{
+#if USE_EEPROM
+  byte min_clock_err = 2; //seconds, drifts to ignore
+
+  if (abs(drift_value) >= min_clock_err)
+  {
+    int savedDrift = getEEPROMvalue();
+    saveEEPROMvalue(savedDrift + drift_value, cell);
+    return 1;
+  }
+  else
+  {
+    return 0;
+  }
+#endif
+}
+
 // ~~~~~~~~~~~ Sleep ~~~~~~~~~~~~~~
-#if USE_SLEEP
 #define uS_TO_S_FACTOR 1000000ULL    /* Conversion micro seconds to seconds */
 #define TIME_TO_SLEEP DEEPSLEEP_TIME /* minutes in deep sleep */
 #define TIME_AWAKE FORCED_WAKE_TIME  /* Seconds until deep sleep */
-RTC_DATA_ATTR long lastsleeptime = 0;
-RTC_DATA_ATTR long calc_waketime = 0;
+
+RTC_DATA_ATTR long clock_beforeSleep = 0;
+RTC_DATA_ATTR long clock_expectedWake = 0;
+RTC_DATA_ATTR int bootCounter = 0;
+
 char sleepstr[150];
 
 void sleepNOW(int sec2sleep = 2700)
 {
+#if USE_SLEEP
   char tmsg[30];
+
   sprintf(tmsg, "Going to DeepSleep for [%d] sec", sec2sleep);
   Serial.println(tmsg);
+  Serial.println("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
   // mqtt_pubmsg(tmsg);
   Serial.flush();
   esp_sleep_enable_timer_wakeup(sec2sleep * uS_TO_S_FACTOR);
   esp_deep_sleep_start();
+#endif
 }
 
 void printClock()
@@ -350,47 +453,80 @@ void printClock()
   Serial.println("");
 }
 
-bool check_awake_ontime()
+void check_awake_ontime()
 {
+#if USE_SLEEP
+  int min_t_avoidSleep = 10; // seconds to wait to wake. greater than this will to sleep
   delay(2500);
   getTime();
-  sprintf(sleepstr, "deviceName:[%s]; Wake: [%02d:%02d:%02d]; ", DEV_NAME, timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec);
+  bootCounter++;
+  Serial.print("WAKE CLOCK: ");
+  printClock();
+  Serial.print("WAKE epoch:");
+  Serial.println(epoch_time);
+  Serial.print("last epoch:");
+  Serial.println(clock_beforeSleep);
+  sprintf(sleepstr, "deviceName:[%s]; Boot#: [%d]; Wake: [%02d:%02d:%02d]; ", DEV_NAME, bootCounter, timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec);
+
   if (timeinfo.tm_year >= 120) // year 2020
   {
-    if (lastsleeptime > 0)
-    { // not first boot
-      long current_boottime = epoch_time;
-      int t_delta = epoch_time - calc_waketime;
+    if (clock_beforeSleep > 0)
+    {                                                                         // not first boot
+      int t_delta = epoch_time - clock_expectedWake - (int)(millis() / 1000); // diff between calc wake clock and current time
 
       char tt[20];
       sprintf(tt, "t_delta: %d; ", t_delta);
+      Serial.println(tt);
       strcat(sleepstr, tt);
+
+#if USE_EEPROM
+      if (updateDrift_EEPROM(t_delta, 0))
+      {
+        Serial.print("drift value updated: ");
+        Serial.print(t_delta);
+        Serial.println(" sec");
+      }
+#endif
 
       if (t_delta >= 0)
       {
         Serial.println("OK - WOKE UP after due time: ");
-        return 1;
       }
       else
       {
         Serial.println("FAIL- woke up before time: ");
-        sleepNOW(-1 * t_delta);
-        return 0;
+        int tempSleep = epoch_time - clock_expectedWake;
+        if (abs(tempSleep) < min_t_avoidSleep)
+        {
+          Serial.print("pausing ");
+          Serial.print(tempSleep);
+          Serial.println(" sec");
+
+          delay(1000 * abs(tempSleep));
+        }
+        else
+        {
+          Serial.println("going to temp sleep");
+          sleepNOW(-1 * tempSleep);
+        }
       }
     }
     else
     {
-      return 1;
+      saveEEPROMvalue(0, 0);
     }
   }
   else
   {
-    return 0;
+    Serial.println("BAD NTP");
   }
+#endif
 }
 
 void lowbat_sleep(int vbat = 1800)
 {
+#if USE_SLEEP
+#if USE_VMEASURE
   Vmeasure();
   Serial.print("battery value is: ");
   Serial.println(battery.ADC_value);
@@ -398,27 +534,34 @@ void lowbat_sleep(int vbat = 1800)
   {
     sleepNOW();
   }
+#endif
+#endif
 }
-long calc_sleepTime()
+long calc_nominal_sleepTime()
 {
+#if USE_SLEEP
   getTime();
-  float correctionFactor = 1.0070;
-  long clockCount = correctionFactor * (TIME_TO_SLEEP * 60 - (timeinfo.tm_min * 60 + timeinfo.tm_sec) % (TIME_TO_SLEEP * 60));
-  lastsleeptime = epoch_time;
-  calc_waketime = epoch_time + clockCount;
+
+  long nominal_nextSleep = TIME_TO_SLEEP * 60 - (timeinfo.tm_min * 60 + timeinfo.tm_sec) % (TIME_TO_SLEEP * 60);
+  clock_beforeSleep = epoch_time;                      // RTC var
+  clock_expectedWake = epoch_time + nominal_nextSleep; // RTC var
+
+  Serial.print("\ngoing to sleep at:");
+  Serial.println(clock_beforeSleep);
+  Serial.print("going to wake at:");
+  Serial.println(clock_expectedWake);
 
   char tt[100];
   sprintf(tt, "wakeDuration: [%.2fs]; startSleep: [%02d:%02d:%02d]; sleepDuration: [%ds]; driftFactor: [%.0fs]",
-          (float)millis() / 1000.0, timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec, clockCount, clockCount * (1 - 1 / correctionFactor));
+          (float)millis() / 1000.0, timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec, nominal_nextSleep, nominal_nextSleep * (CLOCK_DRIFT_FACTOR - 1));
   strcat(sleepstr, tt);
 
-  return clockCount;
-}
+  return nominal_nextSleep;
 #endif
+}
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 // +++++++++++ IFTT  ++++++++++++++
-#if USE_IFTTT
 const char *resource = "/trigger/send_reading/with/key/cFLymB4JT9tlODsKLFn9TA";
 const char *server = "maker.ifttt.com";
 #define UPLOAD_INTERVAL 60 * 15 // Seconds to upload IFTTT
@@ -427,6 +570,7 @@ bool firstUpload = true;
 
 void makeIFTTTRequest(float val1, float val2, char *val3)
 {
+#if USE_IFTTT
   Serial.print("Connecting to ");
   Serial.print(server);
 
@@ -471,8 +615,8 @@ void makeIFTTTRequest(float val1, float val2, char *val3)
 
   Serial.println("\nclosing connection");
   client.stop();
-}
 #endif
+}
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 // ~~~~~~~ Boot ~~~~~~~~~~~~
@@ -481,6 +625,7 @@ void makeIFTTTRequest(float val1, float val2, char *val3)
 void setup()
 {
   Serial.begin(9600);
+  Serial.println("\n±±±±±±±±±±± START ±±±±±±±±±±±±±±");
   Serial.printf("Connecting to %s ", ssid);
   pinMode(battery.pin, INPUT);
   pinMode(solarPanel.pin, INPUT);
@@ -488,67 +633,53 @@ void setup()
   // lowbat_sleep(1750);
   batADC_atBoot = battery.ADC_value;
 
-#if USE_DHT
   startDHT();
   getDHTreading();
-#endif
-
-#if USE_LCD
   startLCD();
-#endif
+  start_eeprom();
 
-#if USE_WIFI
   if (startWifi())
   {
-    mqttConnect();
     startNTP();
-#if USE_SLEEP
+    mqttConnect();
     check_awake_ontime();
-#endif
+    startOTA();
   }
-#if USE_OTA
-  startOTA();
-#endif
-#endif
 }
 
 void loop()
 {
-#if USE_DHT
   getDHTreading();
-#endif
 
-#if USE_WIFI
-#if USE_IFTTT
-  if (firstUpload)
-  {
-    Vmeasure();
-#if USE_DHT
-    char str[150];
-    sprintf(str, "T=%.1fC;H=%.0f%%; ADC_bat_boot=%.0f", t, h, batADC_atBoot);
-    makeIFTTTRequest(battery.ADC_value, solarPanel.ADC_value, str);
-// #else
-//       makeIFTTTRequest(battery.ADC_value, solarPanel.ADC_value, "NONE");
-#endif
-  }
-#endif
+  // if (firstUpload)
+  // {
+  //   Vmeasure();
+  //   char str[150];
+  //   sprintf(str, "T=%.1fC;H=%.0f%%; ADC_bat_boot=%.0f", t, h, batADC_atBoot);
+  //   makeIFTTTRequest(battery.ADC_value, solarPanel.ADC_value, str);
+  //   // #else
+  //   //       makeIFTTTRequest(battery.ADC_value, solarPanel.ADC_value, "NONE");
+  // }
   mqtt_loop();
-#endif
 
-#if USE_SLEEP
   if (millis() >= TIME_AWAKE * 1000)
   {
-    long a = calc_sleepTime();
-    makeIFTTTRequest(battery.ADC_value, solarPanel.ADC_value, sleepstr);
-    sleepNOW(a);
-  }
-#endif
+    int a = calc_nominal_sleepTime();
+    int b = getEEPROMvalue();
 
-#if USE_LCD
+    Serial.println("~~~~~~~~ SLEEP CALC ~~~~~~~~");
+    Serial.print("Nominal Sleep: ");
+    Serial.println(a);
+    Serial.print("drift is: ");
+    Serial.println(b);
+    Serial.println("~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n");
+
+    makeIFTTTRequest(battery.ADC_value, solarPanel.ADC_value, sleepstr);
+
+    sleepNOW(a - b);
+  }
+
   update_clock_lcd();
-#endif
-#if USE_OTA
   OTAlooper();
-#endif
   delay(100);
 }

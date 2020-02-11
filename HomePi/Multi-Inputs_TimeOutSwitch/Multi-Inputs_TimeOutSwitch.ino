@@ -5,7 +5,7 @@
 
 // ********** Names + Strings  ***********
 // ~~~~~~~ MQTT Topics ~~~~~~              // belong to myIOT
-#define DEVICE_TOPIC "shacharBedLEDs"
+#define DEVICE_TOPIC "familyRoomLEDs"
 #define MQTT_PREFIX "myHome"
 #define MQTT_GROUP "intLights"
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -282,7 +282,7 @@ decode_results results;
 #include <Adafruit_SSD1306.h>
 
 #define SCREEN_WIDTH 128
-#define SCREEN_HEIGHT 32 // 32 2rows or 64 4 rows
+#define SCREEN_HEIGHT 64 // 32 2rows or 64 4 rows
 #define OLED_RESET LED_BUILTIN
 
 long swapLines_counter = 0;
@@ -466,6 +466,22 @@ bool burstMSG()
                 return 0;
         }
 }
+void swapLines(char *line1,char *line2, char *line3,char *line4, byte num_lines=2){
+        char *txtLines[]={line1, line2, line3, line4};
+        static byte line_shift = 0;
+        if (num_lines == 2){
+                OLED_CenterTXT(2,txtLines[0+line_shift] , );
+
+        }
+        
+
+        byte empty_lines = 0;
+        for(int a=0; a<4;a++){
+                if(strcmp(txtLines[a],"")==0){
+                        empty_lines++;
+                }
+        }
+}
 
 void OLEDlooper(int swapTime = 5000)
 {
@@ -479,6 +495,7 @@ void OLEDlooper(int swapTime = 5000)
         // OLED_CenterTXT(2, timeStamp, DHTreading);
         if (burstMSG() == 0)
         {
+                swapLines(timeStamp, dateStamp, DHTreading,"",SCREEN_HEIGHT/16);
                 if (swapLines_counter == 0)
                 {
                         swapLines_counter = millis();
