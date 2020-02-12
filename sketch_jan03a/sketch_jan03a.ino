@@ -12,9 +12,7 @@
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 #define DEEPSLEEP_TIME 60
-#define FORCED_WAKE_TIME 15      // seconds till sleep
-#define CLOCK_DRIFT_FACTOR 1.008 /* Add seconds to deepsleep */
-
+#define FORCED_WAKE_TIME 15 // seconds till sleep
 #define DEV_NAME "ESP32lite"
 
 // ~~~~~~~~~ WiFi ~~~~~~~~~~~~~~~~
@@ -399,11 +397,9 @@ void start_eeprom(byte i = 0)
 #endif
 }
 
-bool updateDrift_EEPROM(int drift_value, byte cell = 0)
+bool updateDrift_EEPROM(int drift_value, byte cell = 0, byte min_clock_err = 2)
 {
 #if USE_EEPROM
-  byte min_clock_err = 2; //seconds, drifts to ignore
-
   if (abs(drift_value) >= min_clock_err)
   {
     int savedDrift = getEEPROMvalue();
@@ -426,7 +422,7 @@ RTC_DATA_ATTR long clock_beforeSleep = 0;
 RTC_DATA_ATTR long clock_expectedWake = 0;
 RTC_DATA_ATTR int bootCounter = 0;
 
-char sleepstr[150];
+char sleepstr[250];
 
 void sleepNOW(int sec2sleep = 2700)
 {
@@ -443,30 +439,31 @@ void sleepNOW(int sec2sleep = 2700)
 #endif
 }
 
-void printClock()
-{
-  Serial.print(timeinfo.tm_hour);
-  Serial.print(":");
-  Serial.print(timeinfo.tm_min);
-  Serial.print(":");
-  Serial.print(timeinfo.tm_sec);
-  Serial.println("");
-}
+// void printClock()
+// {
+//   Serial.print(timeinfo.tm_hour);
+//   Serial.print(":");
+//   Serial.print(timeinfo.tm_min);
+//   Serial.print(":");
+//   Serial.print(timeinfo.tm_sec);
+//   Serial.println("");
+// }
 
-void check_awake_ontime()
+void check_awake_ontime(int min_t_avoidSleep = 10)
 {
 #if USE_SLEEP
-  int min_t_avoidSleep = 10; // seconds to wait to wake. greater than this will to sleep
   delay(2500);
   getTime();
   bootCounter++;
-  Serial.print("WAKE CLOCK: ");
-  printClock();
-  Serial.print("WAKE epoch:");
-  Serial.println(epoch_time);
-  Serial.print("last epoch:");
-  Serial.println(clock_beforeSleep);
-  sprintf(sleepstr, "deviceName:[%s]; Boot#: [%d]; Wake: [%02d:%02d:%02d]; ", DEV_NAME, bootCounter, timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec);
+
+  // Serial.print("WAKE CLOCK: ");
+  // printClock();
+  // Serial.print("WAKE epoch:");
+  // Serial.println(epoch_time);
+  // Serial.print("last epoch:");
+  // Serial.println(clock_beforeSleep);
+  sprintf(sleepstr, "deviceName:[%s]; nominalSleep: [%d min]; ForcedWakeTime: [%d sec];  Boot#: [%d]; WakeupClock: [%02d:%02d:%02d];",
+          DEV_NAME, DEEPSLEEP_TIME, FORCED_WAKE_TIME, bootCounter, timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec);
 
   if (timeinfo.tm_year >= 120) // year 2020
   {
@@ -474,17 +471,21 @@ void check_awake_ontime()
     {                                                                         // not first boot
       int t_delta = epoch_time - clock_expectedWake - (int)(millis() / 1000); // diff between calc wake clock and current time
 
-      char tt[20];
-      sprintf(tt, "t_delta: %d; ", t_delta);
+      char tt[100];
+      sprintf(tt, "lastSleep: [%d sec]; drift_lastSleep: [%d sec]; ", clock_expectedWake - clock_beforeSleep, t_delta);
       Serial.println(tt);
       strcat(sleepstr, tt);
 
 #if USE_EEPROM
-      if (updateDrift_EEPROM(t_delta, 0))
+      bool up = updateDrift_EEPROM(t_delta, 0);
       {
-        Serial.print("drift value updated: ");
-        Serial.print(t_delta);
-        Serial.println(" sec");
+        sprintf(tt, "driftUpdate: [%s]; ", up ? "YES" : "NO");
+        Serial.println(tt);
+        strcat(sleepstr, tt);
+
+        // Serial.print("drift value updated: ");
+        // Serial.print(t_delta);
+        // Serial.println(" sec");
       }
 #endif
 
@@ -498,15 +499,17 @@ void check_awake_ontime()
         int tempSleep = epoch_time - clock_expectedWake;
         if (abs(tempSleep) < min_t_avoidSleep)
         {
-          Serial.print("pausing ");
-          Serial.print(tempSleep);
-          Serial.println(" sec");
+          sprintf(tt, "syncPause: [%d sec]; ", abs(tempSleep));
+          strcat(sleepstr, tt);
+          // Serial.print("pausing ");
+          // Serial.print(tempSleep);
+          // Serial.println(" sec");
 
           delay(1000 * abs(tempSleep));
         }
         else
         {
-          Serial.println("going to temp sleep");
+          // Serial.println("going to temp sleep");
           sleepNOW(-1 * tempSleep);
         }
       }
@@ -540,20 +543,28 @@ void lowbat_sleep(int vbat = 1800)
 long calc_nominal_sleepTime()
 {
 #if USE_SLEEP
-  getTime();
+long nominal_nextSleep =0;
 
-  long nominal_nextSleep = TIME_TO_SLEEP * 60 - (timeinfo.tm_min * 60 + timeinfo.tm_sec) % (TIME_TO_SLEEP * 60);
-  clock_beforeSleep = epoch_time;                      // RTC var
-  clock_expectedWake = epoch_time + nominal_nextSleep; // RTC var
+  if (getTime())
+  {
 
-  Serial.print("\ngoing to sleep at:");
-  Serial.println(clock_beforeSleep);
-  Serial.print("going to wake at:");
-  Serial.println(clock_expectedWake);
+    nominal_nextSleep = TIME_TO_SLEEP * 60 - (timeinfo.tm_min * 60 + timeinfo.tm_sec) % (TIME_TO_SLEEP * 60);
+    clock_beforeSleep = epoch_time;                      // RTC var
+    clock_expectedWake = epoch_time + nominal_nextSleep; // RTC var
+  }
+  else // fail to obtain clock
+  {
+    nominal_nextSleep = TIME_TO_SLEEP * 60;
+  }
+
+  // Serial.print("\ngoing to sleep at:");
+  // Serial.println(clock_beforeSleep);
+  // Serial.print("going to wake at:");
+  // Serial.println(clock_expectedWake);
 
   char tt[100];
-  sprintf(tt, "wakeDuration: [%.2fs]; startSleep: [%02d:%02d:%02d]; sleepDuration: [%ds]; driftFactor: [%.0fs]",
-          (float)millis() / 1000.0, timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec, nominal_nextSleep, nominal_nextSleep * (CLOCK_DRIFT_FACTOR - 1));
+  sprintf(tt, "wakeDuration: [%.2fs]; startSleep: [%02d:%02d:%02d]; sleepFor: [%d sec]; drift: [%d sec]",
+          (float)millis() / 1000.0, timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec, nominal_nextSleep, getEEPROMvalue());
   strcat(sleepstr, tt);
 
   return nominal_nextSleep;
