@@ -11,7 +11,7 @@
 #define USE_EEPROM true
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-#define DEEPSLEEP_TIME 60
+#define DEEPSLEEP_TIME 30
 #define FORCED_WAKE_TIME 15 // seconds till sleep
 #define DEV_NAME "ESP32lite"
 
@@ -397,21 +397,6 @@ void start_eeprom(byte i = 0)
 #endif
 }
 
-bool updateDrift_EEPROM(int drift_value, byte cell = 0, byte min_clock_err = 2)
-{
-#if USE_EEPROM
-  if (abs(drift_value) >= min_clock_err)
-  {
-    int savedDrift = getEEPROMvalue();
-    saveEEPROMvalue(savedDrift + drift_value, cell);
-    return 1;
-  }
-  else
-  {
-    return 0;
-  }
-#endif
-}
 
 // ~~~~~~~~~~~ Sleep ~~~~~~~~~~~~~~
 #define uS_TO_S_FACTOR 1000000ULL    /* Conversion micro seconds to seconds */
@@ -421,8 +406,28 @@ bool updateDrift_EEPROM(int drift_value, byte cell = 0, byte min_clock_err = 2)
 RTC_DATA_ATTR long clock_beforeSleep = 0;
 RTC_DATA_ATTR long clock_expectedWake = 0;
 RTC_DATA_ATTR int bootCounter = 0;
+RTC_DATA_ATTR int driftRTC = 0;
 
 char sleepstr[250];
+
+bool driftUpdate(int drift_value, byte cell = 0, byte update_freq = 10)
+{
+
+  driftRTC += drift_value;
+
+  if (bootCounter <= 2 || bootCounter % update_freq == 0)
+  {
+    if (abs(driftRTC - getEEPROMvalue(cell)) > 2)
+    {
+      saveEEPROMvalue(driftRTC, cell);
+      return 1;
+    }
+  }
+  else
+  {
+    return 0;
+  }
+}
 
 void sleepNOW(int sec2sleep = 2700)
 {
@@ -473,19 +478,13 @@ void check_awake_ontime(int min_t_avoidSleep = 10)
 
       char tt[100];
       sprintf(tt, "lastSleep: [%d sec]; drift_lastSleep: [%d sec]; ", clock_expectedWake - clock_beforeSleep, t_delta);
-      Serial.println(tt);
       strcat(sleepstr, tt);
 
 #if USE_EEPROM
-      bool up = updateDrift_EEPROM(t_delta, 0);
+      bool up = driftUpdate(t_delta, 0, 5);
       {
         sprintf(tt, "driftUpdate: [%s]; ", up ? "YES" : "NO");
-        Serial.println(tt);
         strcat(sleepstr, tt);
-
-        // Serial.print("drift value updated: ");
-        // Serial.print(t_delta);
-        // Serial.println(" sec");
       }
 #endif
 
@@ -547,7 +546,6 @@ long calc_nominal_sleepTime()
 
   if (getTime())
   {
-
     nominal_nextSleep = TIME_TO_SLEEP * 60 - (timeinfo.tm_min * 60 + timeinfo.tm_sec) % (TIME_TO_SLEEP * 60);
     clock_beforeSleep = epoch_time;                      // RTC var
     clock_expectedWake = epoch_time + nominal_nextSleep; // RTC var
@@ -564,7 +562,7 @@ long calc_nominal_sleepTime()
 
   char tt[100];
   sprintf(tt, "wakeDuration: [%.2fs]; startSleep: [%02d:%02d:%02d]; sleepFor: [%d sec]; drift: [%d sec]",
-          (float)millis() / 1000.0, timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec, nominal_nextSleep, getEEPROMvalue());
+          (float)millis() / 1000.0, timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec, nominal_nextSleep, driftRTC);
   strcat(sleepstr, tt);
 
   return nominal_nextSleep;
@@ -676,18 +674,17 @@ void loop()
   if (millis() >= TIME_AWAKE * 1000)
   {
     int a = calc_nominal_sleepTime();
-    int b = getEEPROMvalue();
 
     Serial.println("~~~~~~~~ SLEEP CALC ~~~~~~~~");
     Serial.print("Nominal Sleep: ");
     Serial.println(a);
     Serial.print("drift is: ");
-    Serial.println(b);
+    Serial.println(driftRTC);
     Serial.println("~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n");
 
     makeIFTTTRequest(battery.ADC_value, solarPanel.ADC_value, sleepstr);
 
-    sleepNOW(a - b);
+    sleepNOW(a - driftRTC);
   }
 
   update_clock_lcd();
