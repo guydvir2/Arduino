@@ -5,7 +5,8 @@ You just need to provide your credentials and it will manage the following thing
 - Connecting to a WiFi network.
 - Connecting to a MQTT broker.
 - Automatically detecting connection lost either from the WiFi client or the MQTT broker and it will retry a connection automatically.
-- Subscrubing/unsubscrubing to/from MQTT topics by a friendly callback system.
+- Subscribing/unsubscrubing to/from MQTT topics by a friendly callback system.
+- Supports a single occurrence of a '+' or '#' wildcard in subscriptions
 - Provide a callback handling to advise once everything is connected (Wifi and MQTT).
 - Provide a function to enable printing of useful debug information related to MQTT and Wifi connections.
 - Provide some other useful utilities for MQTT and Wifi management.
@@ -17,6 +18,39 @@ The MQTT communication depends on the PubSubClient Library (https://github.com/k
 
 From PubSubClient:
 "The maximum message size, including header, is 128 bytes by default. This is configurable via `MQTT_MAX_PACKET_SIZE` in `PubSubClient.h`"
+
+## Example
+
+```c++
+#include "EspMQTTClient.h"
+
+EspMQTTClient client(
+  "WifiSSID",
+  "WifiPassword",
+  "192.168.1.100",  // MQTT Broker server ip
+  "MQTTUsername",   // Can be omitted if not needed
+  "MQTTPassword",   // Can be omitted if not needed
+  "TestClient"      // Client name that uniquely identify your device
+);
+
+void setup() {}
+
+void onConnectionEstablished() {
+
+  client.subscribe("mytopic/test", [] (const String &payload)  {
+    Serial.println(payload);
+  });
+
+  client.publish("mytopic/test", "This is a message");
+}
+
+void loop() {
+  client.loop();
+}
+```
+
+See "SimpleMQTTClient.ino" for the complete example.
+
 
 ## Documentation
 
@@ -110,34 +144,3 @@ void setOnConnectionEstablishedCallback(ConnectionEstablishedCallback callback);
 ```
 See exemple "twoMQTTClientHandling.ino" for more details.
 
-## Example
-
-```c++
-#include "EspMQTTClient.h"
-
-EspMQTTClient client(
-  "WifiSSID",
-  "WifiPassword",
-  "192.168.1.100",  // MQTT Broker server ip
-  "MQTTUsername",   // Can be omitted if not needed
-  "MQTTPassword",   // Can be omitted if not needed
-  "TestClient"      // Client name that uniquely identify your device
-);
-
-void setup() {}
-
-void onConnectionEstablished() {
-
-  client.subscribe("mytopic/test", [] (const String &payload)  {
-    Serial.println(payload);
-  });
-
-  client.publish("mytopic/test", "This is a message");
-}
-
-void loop() {
-  client.loop();
-}
-```
-
-See "SimpleMQTTClient.ino" for the complete example.

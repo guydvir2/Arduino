@@ -15,7 +15,7 @@
 #define FORCED_WAKE_TIME 15 // seconds till sleep
 #define DEV_NAME "ESP32lite"
 
-// ~~~~~~~~~ WiFi ~~~~~~~~~~~~~~~~
+// ~~~~~                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         b ~~~~ WiFi ~~~~~~~~~~~~~~~~
 #include "WiFi.h"
 const char *ssid = "Xiaomi_D6C8";
 const char *password = "guyd5161";
@@ -543,7 +543,7 @@ void lowbat_sleep(int vbat = 1800)
 long calc_nominal_sleepTime()
 {
 #if USE_SLEEP
-long nominal_nextSleep =0;
+  long nominal_nextSleep = 0;
 
   if (getTime())
   {
