@@ -8,6 +8,7 @@ LiquidCrystal_I2C lcd(0x27, 20, 4); // set the LCD address to 0x27 for a 16 char
 int detCounter = 0;
 bool lastState = false;
 bool detection = HIGH;
+int sensorPin = D1;
 
 void printlin1(char *txt) {
   lcd.clear();
@@ -24,23 +25,25 @@ void printlin2(int i) {
 
 void setup()
 {
-  pinMode(2, INPUT);
+  pinMode(sensorPin, INPUT);
+  Serial.begin(9600);
   lcd.init();                      // initialize the lcd
   lcd.backlight();
 }
 
 void loop()
 {
-  if (digitalRead(2) != lastState) {
-    lastState = !lastState;
-    if ( lastState == detection ) {
-      printlin1("Detection");
-      detCounter++;
-    }
-    else {
-      printlin1("no Detect");
-    }
-    printlin2(detCounter);
-  }
+  // if (digitalRead(2) != lastState) {
+  //   lastState = !lastState;
+  //   if ( lastState == detection ) {
+  //     printlin1("Detection");
+  //     detCounter++;
+  //   }
+  //   else {
+  //     printlin1("no Detect");
+  //   }
+  //   printlin2(detCounter);
+  // }
+  Serial.println(digitalRead(sensorPin));
   delay(200);
 }

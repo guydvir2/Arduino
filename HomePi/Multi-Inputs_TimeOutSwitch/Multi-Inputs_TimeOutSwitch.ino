@@ -5,25 +5,25 @@
 
 // ********** Names + Strings  ***********
 // ~~~~~~~ MQTT Topics ~~~~~~              // belong to myIOT
-#define DEVICE_TOPIC "familyRoomLEDs"
+#define DEVICE_TOPIC "PIRsensor"
 #define MQTT_PREFIX "myHome"
-#define MQTT_GROUP "intLights"
+#define MQTT_GROUP ""
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 // ********** Sketch Services  ***********
 #define VER "WEMOS_6.3"
-#define USE_INPUTS true
-#define IS_MOMENTARY true // is switch latch or momentary
-#define ON_AT_BOOT false  // On or OFF at boot (Usually when using inputs, at boot/PowerOn - state should be off
+#define USE_INPUTS false
+#define IS_MOMENTARY false // is switch latch or momentary
+#define ON_AT_BOOT false   // On or OFF at boot (Usually when using inputs, at boot/PowerOn - state should be off
 #define USE_DAILY_TO false
 #define IS_SONOFF false
 #define HARD_REBOOT false
-#define USE_OLED true
-#define USE_TEMP_HUMID true
-#define USE_PWM true
+#define USE_OLED false
+#define USE_TEMP_HUMID false
+#define USE_PWM false
 
-#define USE_NOTIFY_TELE false
-#define USE_SENSOR false
+#define USE_NOTIFY_TELE true
+#define USE_SENSOR true
 #define USE_IR_REMOTE false
 #define USE_BLYNK false
 #define USE_IFTTT false
@@ -77,7 +77,7 @@ char *clockAlias = "Daily TimeOut";
 #define RELAY2 D2
 #define INPUT1 D7
 #define INPUT2 D6
-#define SENSOR_PIN D7 // WHHAT???
+#define SENSOR_PIN D1 // WHHAT???
 #define indic_LEDpin D4
 #endif
 
@@ -130,12 +130,12 @@ eeproms_storage hReset_eeprom = {0, 0, 0, 0, 0, false};
 // ~~~~~~~~~~~~~ Sensor Switch ~~~~~~~~~~~~~~
 #define MAX_NOTI_1HR 10
 #define MIN_TIME_BETWEEN_NOTI 0.25 //in minutes
-#define MIN_TIME_FIRST_DET 10      // sec
+#define MIN_TIME_FIRST_DET 30      // sec
 #define ADD_TIME_NEXT_DET 10       // sec
 
 class SensorSwitch
 {
-#define SENS_IS_TRIGGERED LOW
+#define SENS_IS_TRIGGERED HIGH
 
 private:
         int _sensPin;
@@ -466,18 +466,20 @@ bool burstMSG()
                 return 0;
         }
 }
-void swapLines(char *line1,char *line2, char *line3,char *line4, byte num_lines=2){
-        char *txtLines[]={line1, line2, line3, line4};
+void swapLines(char *line1, char *line2, char *line3, char *line4, byte num_lines = 2)
+{
+        char *txtLines[] = {line1, line2, line3, line4};
         static byte line_shift = 0;
-        if (num_lines == 2){
-                OLED_CenterTXT(2,txtLines[0+line_shift] , );
-
+        if (num_lines == 2)
+        {
+                OLED_CenterTXT(2, txtLines[0 + line_shift], );
         }
-        
 
         byte empty_lines = 0;
-        for(int a=0; a<4;a++){
-                if(strcmp(txtLines[a],"")==0){
+        for (int a = 0; a < 4; a++)
+        {
+                if (strcmp(txtLines[a], "") == 0)
+                {
                         empty_lines++;
                 }
         }
@@ -495,7 +497,7 @@ void OLEDlooper(int swapTime = 5000)
         // OLED_CenterTXT(2, timeStamp, DHTreading);
         if (burstMSG() == 0)
         {
-                swapLines(timeStamp, dateStamp, DHTreading,"",SCREEN_HEIGHT/16);
+                swapLines(timeStamp, dateStamp, DHTreading, "", SCREEN_HEIGHT / 16);
                 if (swapLines_counter == 0)
                 {
                         swapLines_counter = millis();
@@ -604,7 +606,9 @@ void switchIt(char *txt1, int sw_num, bool state, char *txt2 = "", bool show_tim
                                         sprintf(msg, "%s: Switch[#%d] %s[%s]", txt1, sw_num, word, state ? "ON" : "OFF");
                                         TO[sw_num]->endNow();
                                         pwmState = false;
+#if USE_OLED
                                         edit_burstMSG("Switched", "OFF", 4);
+#endif
                                 }
                                 else if (PWMval > 0 && PWMval <= maxPWM)
                                 {
@@ -612,7 +616,9 @@ void switchIt(char *txt1, int sw_num, bool state, char *txt2 = "", bool show_tim
 
                                         char atemp[10];
                                         sprintf(atemp, "%d%% Power", PWMval);
+#if USE_OLED
                                         edit_burstMSG("Switched", atemp, 3);
+#endif
                                 }
                         }
                         else // in OFF state
@@ -622,7 +628,9 @@ void switchIt(char *txt1, int sw_num, bool state, char *txt2 = "", bool show_tim
 
                                 char atemp[10];
                                 sprintf(atemp, "%d%% Power", PWMval);
+#if USE_OLED
                                 edit_burstMSG("Switched", atemp, 3);
+#endif
                         }
                         analogWrite(relays[sw_num], PWMval * PWM_RES / 100);
                 }
@@ -1253,6 +1261,7 @@ void notify_detection(byte sw)
 void checkSensor_looper(byte sw)
 {
         bool current_sens_state = sensSW.check_sensor();
+        // Serial.println(current_sens_state);
 
         if (current_sens_state != sensState[sw])
         {
@@ -1265,8 +1274,10 @@ void checkSensor_looper(byte sw)
                 {
                         relaySwitcher(sw, "Sensor");
                 }
-                // if (current_sens_state)
-                // {
+                if (current_sens_state)
+                {
+                        notify_detection(sw);
+                }
 
                 //         // if (TO[sw]->remain() == 0 && digitalRead(relays[sw]) == !RelayOn)
                 //         // { // not in TO mode nor Relay is ON
