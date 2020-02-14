@@ -22,7 +22,7 @@
 
 // ********** myIOT Class ***********
 //~~~~~ Services ~~~~~~~~~~~
-#define USE_SERIAL true      // Serial Monitor
+#define USE_SERIAL false      // Serial Monitor
 #define USE_WDT true         // watchDog resets
 #define USE_OTA true         // OTA updates
 #define USE_RESETKEEPER true // detect quick reboot and real reboots
@@ -40,7 +40,7 @@ myIOT iot(DEVICE_TOPIC);
 #define TIMEOUT_SW0 1 * 60 // mins for SW0
 #define TIMEOUT_SW1 2 * 60 // mins
 #define ON_AT_BOOT false   // true only for switches that powers up with device.
-#define MAX_TIME_ON 120    // minutes. if on or TO exceeds this value - auto off will occur
+#define MAX_TIME_ON 180    // minutes. if on or TO exceeds this value - auto off will occur
 
 const int START_dailyTO[] = {18, 0, 0};
 const int END_dailyTO[] = {18, 30, 0};
