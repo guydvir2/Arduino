@@ -1,11 +1,18 @@
 RTC_DATA_ATTR long clock_beforeSleep = 0;
 RTC_DATA_ATTR long clock_expectedWake = 0;
 RTC_DATA_ATTR int bootCounter = 0;
+RTC_DATA_ATTR int driftRTC = 0;
 
 class esp32Sleep
 {
+#include "EEPROM.h"
+#define EEPROM_SIZE 64
+
 #define DEV_NAME "ESP32lite"
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     
+#define DEEPSLEEP_TIME 30
+#define FORCED_WAKE_TIME 15 // seconds till sleep
+#define DEV_NAME "ESP32lite"
+
 #define uS_TO_S_FACTOR 1000000ULL    /* Conversion micro seconds to seconds */
 #define TIME_TO_SLEEP DEEPSLEEP_TIME /* minutes in deep sleep */
 #define TIME_AWAKE FORCED_WAKE_TIME  /* Seconds until deep sleep */
@@ -18,6 +25,35 @@ private:
   time_t epoch_time;
   char clock_char[20];
   char date_char[20];
+
+  int getEEPROMvalue(byte i = 0)
+  {
+    int eeprom_drift = EEPROM.read(i) * pow(-1, EEPROM.read(i + 1));
+    return eeprom_drift;
+  }
+
+  void saveEEPROMvalue(int val, byte i = 0)
+  {
+    EEPROM.write(i, abs(val));
+    if (val < 0)
+    {
+      EEPROM.write(i + 1, 1);
+      EEPROM.commit();
+    }
+    else
+    {
+      EEPROM.write(i + 1, 2);
+      EEPROM.commit();
+    }
+  }
+
+  void start_eeprom(byte i = 0)
+  {
+    if (!EEPROM.begin(EEPROM_SIZE))
+    {
+      Serial.println("Fail to load EEPROM");
+    }
+  }
 
   void startNTP()
   {
@@ -41,12 +77,31 @@ private:
     return 0;
   }
 
+  bool driftUpdate(int drift_value, byte cell = 0, byte update_freq = 10)
+  {
+    driftRTC += drift_value;
+
+    if (bootCounter <= 2 || bootCounter % update_freq == 0)
+    {
+      if (abs(driftRTC - getEEPROMvalue(cell)) > 2)
+      {
+        saveEEPROMvalue(driftRTC, cell);
+        return 1;
+      }
+    }
+    else
+    {
+      return 0;
+    }
+  }
+
 public:
 #include "time.h"
 
   void esp32()
   {
   }
+
   void sleepNOW(int sec2sleep = 2700)
   {
     char tmsg[30];
@@ -86,7 +141,7 @@ public:
         Serial.println(tt);
         strcat(sleepstr, tt);
 
-        bool up = updateDrift_EEPROM(t_delta, 0);
+        bool up = 0;//updateDrift_EEPROM(t_delta, 0);
         {
           sprintf(tt, "driftUpdate: [%s]; ", up ? "YES" : "NO");
           Serial.println(tt);

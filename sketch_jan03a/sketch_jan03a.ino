@@ -28,7 +28,7 @@ bool startWifi()
   {
     delay(500);
     Serial.print(".");
-  }
+  } 
   Serial.println();
 
   if (WiFi.status() == WL_CONNECTED)
@@ -374,6 +374,7 @@ void saveEEPROMvalue(int val, byte i = 0)
 {
 #if USE_EEPROM
   EEPROM.write(i, abs(val));
+  EEPROM.commit();
   if (val < 0)
   {
     EEPROM.write(i + 1, 1);
@@ -412,7 +413,6 @@ char sleepstr[250];
 
 bool driftUpdate(int drift_value, byte cell = 0, byte update_freq = 10)
 {
-
   driftRTC += drift_value;
 
   if (bootCounter <= 2 || bootCounter % update_freq == 0)
@@ -509,7 +509,7 @@ void check_awake_ontime(int min_t_avoidSleep = 10)
         else
         {
           // Serial.println("going to temp sleep");
-          sleepNOW(-1 * tempSleep);
+          sleepNOW(abs(tempSleep));
         }
       }
     }
