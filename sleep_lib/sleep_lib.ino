@@ -165,16 +165,10 @@ public:
         Serial.println(tt);
         strcat(sleepstr, tt);
 
-        bool up = 0; //updateDrift_EEPROM(t_delta, 0);
-        {
-          sprintf(tt, "driftUpdate: [%s]; ", up ? "YES" : "NO");
-          Serial.println(tt);
-          strcat(sleepstr, tt);
-
-          // Serial.print("drift value updated: ");
-          // Serial.print(t_delta);
-          // Serial.println(" sec");
-        }
+        bool up = driftUpdate(t_delta, 0, 5);
+        sprintf(tt, "driftUpdate: [%s]; ", up ? "YES" : "NO");
+        Serial.println(tt);
+        strcat(sleepstr, tt);
 
         if (t_delta >= 0)
         {
@@ -197,7 +191,7 @@ public:
           else
           {
             // Serial.println("going to temp sleep");
-            sleepNOW(-1 * tempSleep);
+            sleepNOW(abs(tempSleep));
           }
         }
       }
@@ -210,6 +204,28 @@ public:
     {
       Serial.println("BAD NTP");
     }
+  }
+
+  int calc_nominal_sleepTime()
+  {
+    int nominal_nextSleep = 0;
+    char tt[100];
+
+    if (getTime())
+    {
+      nominal_nextSleep = TIME_TO_SLEEP * 60 - (timeinfo.tm_min * 60 + timeinfo.tm_sec) % (TIME_TO_SLEEP * 60);
+      clock_beforeSleep = epoch_time;                      // RTC var
+      clock_expectedWake = epoch_time + nominal_nextSleep; // RTC var
+    }
+    else // fail to obtain clock
+    {
+      nominal_nextSleep = TIME_TO_SLEEP * 60;
+    }
+    
+    sprintf(tt, "wakeDuration: [%.2fs]; startSleep: [%02d:%02d:%02d]; sleepFor: [%d sec]; drift: [%d sec]",
+            (float)millis() / 1000.0, timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec, nominal_nextSleep, driftRTC);
+    strcat(sleepstr, tt);
+    return nominal_nextSleep;
   }
 };
 
