@@ -1,37 +1,33 @@
-RTC_DATA_ATTR long clock_beforeSleep = 0;
+#include "EEPROM.h"
+#include "time.h"
+#include "WiFi.h"
+
 RTC_DATA_ATTR long clock_expectedWake = 0;
 RTC_DATA_ATTR int bootCounter = 0;
 RTC_DATA_ATTR int driftRTC = 0;
+RTC_DATA_ATTR long clock_beforeSleep = 0;
 
 class esp32Sleep
 {
-#include "EEPROM.h"
-#define EEPROM_SIZE 64
-
+#define EEPROM_SIZE 16
 #define DEV_NAME "ESP32lite"
-#define DEEPSLEEP_TIME 30
-#define FORCED_WAKE_TIME 15 // seconds till sleep
-#define DEV_NAME "ESP32lite"
-
-#define uS_TO_S_FACTOR 1000000ULL    /* Conversion micro seconds to seconds */
-#define TIME_TO_SLEEP DEEPSLEEP_TIME /* minutes in deep sleep */
-#define TIME_AWAKE FORCED_WAKE_TIME  /* Seconds until deep sleep */
+#define uS_TO_S_FACTOR 1000000ULL /* Conversion micro seconds to seconds */
 
 private:
   char sleepstr[250];
-  const int gmtOffset_sec = 2 * 3600;
-  const int daylightOffset_sec = 0; //3600;
+  // RTC_DATA_ATTR long clock_expectedWake = 0;
+
   struct tm timeinfo;
   time_t epoch_time;
-  char clock_char[20];
-  char date_char[20];
+
+  const char *ssid = "Xiaomi_D6C8";
+  const char *password = "guyd5161";
 
   int getEEPROMvalue(byte i = 0)
   {
     int eeprom_drift = EEPROM.read(i) * pow(-1, EEPROM.read(i + 1));
     return eeprom_drift;
   }
-
   void saveEEPROMvalue(int val, byte i = 0)
   {
     EEPROM.write(i, abs(val));
@@ -46,7 +42,6 @@ private:
       EEPROM.commit();
     }
   }
-
   void start_eeprom(byte i = 0)
   {
     if (!EEPROM.begin(EEPROM_SIZE))
@@ -54,17 +49,36 @@ private:
       Serial.println("Fail to load EEPROM");
     }
   }
-
-  void startNTP()
+  void startNTP(const int gmtOffset_sec = 2 * 3600, const int daylightOffset_sec = 0, const char *ntpServer = "pool.ntp.org")
   {
-    const char *ntpServer = "pool.ntp.org";
     configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);
   }
+  bool startWifi()
+  {
+    WiFi.begin(ssid, password);
+    while (WiFi.status() != WL_CONNECTED && millis() < 30000)
+    {
+      delay(500);
+      Serial.print(".");
+    }
+    Serial.println();
 
+    if (WiFi.status() == WL_CONNECTED)
+    {
+      Serial.println(WiFi.localIP());
+      startNTP();
+      return 1;
+    }
+    else
+    {
+      Serial.println("Failed connect to wifi");
+      return 0;
+    }
+  }
   bool getTime()
   {
     byte a;
-    while (a <= 2)
+    while (a < 3)
     {
       if (getLocalTime(&timeinfo))
       {
@@ -75,6 +89,35 @@ private:
       a++;
     }
     return 0;
+  }
+
+public:
+  int deepsleep_time = 0;
+  int forcedwake_time = 0;
+  bool network_status = false;
+
+  esp32Sleep(int deepsleep = 30, int forcedwake = 15)
+  {
+    deepsleep_time = deepsleep;
+    forcedwake_time = forcedwake;
+  }
+  bool start_all()
+  {
+    start_eeprom();
+    network_status = startWifi();
+  }
+
+  void sleepNOW(int sec2sleep = 2700)
+  {
+    char tmsg[30];
+
+    sprintf(tmsg, "Going to DeepSleep for [%d] sec", sec2sleep);
+    Serial.println(tmsg);
+    Serial.println("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
+    // mqtt_pubmsg(tmsg);
+    Serial.flush();
+    esp_sleep_enable_timer_wakeup(sec2sleep * uS_TO_S_FACTOR);
+    esp_deep_sleep_start();
   }
 
   bool driftUpdate(int drift_value, byte cell = 0, byte update_freq = 10)
@@ -95,26 +138,6 @@ private:
     }
   }
 
-public:
-#include "time.h"
-
-  void esp32()
-  {
-  }
-
-  void sleepNOW(int sec2sleep = 2700)
-  {
-    char tmsg[30];
-
-    sprintf(tmsg, "Going to DeepSleep for [%d] sec", sec2sleep);
-    Serial.println(tmsg);
-    Serial.println("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
-    // mqtt_pubmsg(tmsg);
-    Serial.flush();
-    esp_sleep_enable_timer_wakeup(sec2sleep * uS_TO_S_FACTOR);
-    esp_deep_sleep_start();
-  }
-
   void check_awake_ontime(int min_t_avoidSleep = 10)
   {
     delay(2500);
@@ -122,15 +145,16 @@ public:
     bootCounter++;
 
     // Serial.print("WAKE CLOCK: ");
-    // printClock();
+    // // printClock();
     // Serial.print("WAKE epoch:");
     // Serial.println(epoch_time);
     // Serial.print("last epoch:");
     // Serial.println(clock_beforeSleep);
-    sprintf(sleepstr, "deviceName:[%s]; nominalSleep: [%d min]; ForcedWakeTime: [%d sec];  Boot#: [%d]; WakeupClock: [%02d:%02d:%02d];",
-            DEV_NAME, DEEPSLEEP_TIME, FORCED_WAKE_TIME, bootCounter, timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec);
 
-    if (timeinfo.tm_year >= 120) // year 2020
+    sprintf(sleepstr, "deviceName:[%s]; nominalSleep: [%d min]; ForcedWakeTime: [%d sec];  Boot#: [%d]; WakeupClock: [%02d:%02d:%02d];",
+            DEV_NAME, deepsleep_time, forcedwake_time, bootCounter, timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec);
+
+    if (timeinfo.tm_year != 0)
     {
       if (clock_beforeSleep > 0)
       {                                                                         // not first boot
@@ -141,7 +165,7 @@ public:
         Serial.println(tt);
         strcat(sleepstr, tt);
 
-        bool up = 0;//updateDrift_EEPROM(t_delta, 0);
+        bool up = 0; //updateDrift_EEPROM(t_delta, 0);
         {
           sprintf(tt, "driftUpdate: [%s]; ", up ? "YES" : "NO");
           Serial.println(tt);
@@ -189,12 +213,19 @@ public:
   }
 };
 
+esp32Sleep go2sleep(30, 15);
+
 void setup()
 {
+  Serial.begin(9600);
+  go2sleep.start_all();
+  go2sleep.check_awake_ontime();
+  go2sleep.sleepNOW(20);
   // put your setup code here, to run once:
 }
 
 void loop()
 {
+  // Serial.println("LOOP");
   // put your main code here, to run repeatedly:
 }

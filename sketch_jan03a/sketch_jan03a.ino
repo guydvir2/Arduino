@@ -11,7 +11,7 @@
 #define USE_EEPROM true
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-#define DEEPSLEEP_TIME 30
+#define DEEPSLEEP_TIME 60
 #define FORCED_WAKE_TIME 15 // seconds till sleep
 #define DEV_NAME "ESP32lite"
 
@@ -539,10 +539,11 @@ void lowbat_sleep(int vbat = 1800)
 #endif
 #endif
 }
-long calc_nominal_sleepTime()
+
+int calc_nominal_sleepTime()
 {
 #if USE_SLEEP
-  long nominal_nextSleep = 0;
+  int nominal_nextSleep = 0;
 
   if (getTime())
   {
@@ -675,12 +676,12 @@ void loop()
   {
     int a = calc_nominal_sleepTime();
 
-    Serial.println("~~~~~~~~ SLEEP CALC ~~~~~~~~");
-    Serial.print("Nominal Sleep: ");
-    Serial.println(a);
-    Serial.print("drift is: ");
-    Serial.println(driftRTC);
-    Serial.println("~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n");
+    // Serial.println("~~~~~~~~ SLEEP CALC ~~~~~~~~");
+    // Serial.print("Nominal Sleep: ");
+    // Serial.println(a);
+    // Serial.print("drift is: ");
+    // Serial.println(driftRTC);
+    // Serial.println("~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n");
 
     makeIFTTTRequest(battery.ADC_value, solarPanel.ADC_value, sleepstr);
 
