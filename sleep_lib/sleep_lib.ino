@@ -2,6 +2,8 @@
 #include "time.h"
 #include "WiFi.h"
 
+#define DEV_NAME "ESP32lite"
+
 RTC_DATA_ATTR long clock_expectedWake = 0;
 RTC_DATA_ATTR int bootCounter = 0;
 RTC_DATA_ATTR int driftRTC = 0;
@@ -9,14 +11,11 @@ RTC_DATA_ATTR long clock_beforeSleep = 0;
 
 class esp32Sleep
 {
-#define EEPROM_SIZE 16
-#define DEV_NAME "ESP32lite"
 #define uS_TO_S_FACTOR 1000000ULL /* Conversion micro seconds to seconds */
+#define EEPROM_SIZE 16
 
 private:
   char sleepstr[250];
-  // RTC_DATA_ATTR long clock_expectedWake = 0;
-
   struct tm timeinfo;
   time_t epoch_time;
 
@@ -91,35 +90,6 @@ private:
     return 0;
   }
 
-public:
-  int deepsleep_time = 0;
-  int forcedwake_time = 0;
-  bool network_status = false;
-
-  esp32Sleep(int deepsleep = 30, int forcedwake = 15)
-  {
-    deepsleep_time = deepsleep;
-    forcedwake_time = forcedwake;
-  }
-  bool start_all()
-  {
-    start_eeprom();
-    network_status = startWifi();
-  }
-
-  void sleepNOW(int sec2sleep = 2700)
-  {
-    char tmsg[30];
-
-    sprintf(tmsg, "Going to DeepSleep for [%d] sec", sec2sleep);
-    Serial.println(tmsg);
-    Serial.println("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
-    // mqtt_pubmsg(tmsg);
-    Serial.flush();
-    esp_sleep_enable_timer_wakeup(sec2sleep * uS_TO_S_FACTOR);
-    esp_deep_sleep_start();
-  }
-
   bool driftUpdate(int drift_value, byte cell = 0, byte update_freq = 10)
   {
     driftRTC += drift_value;
@@ -138,21 +108,72 @@ public:
     }
   }
 
+  int calc_nominal_sleepTime()
+  {
+    int nominal_nextSleep = 0;
+    char tt[100];
+
+    if (getTime())
+    {
+      nominal_nextSleep = deepsleep_time * 60 - (timeinfo.tm_min * 60 + timeinfo.tm_sec) % (deepsleep_time * 60);
+      clock_beforeSleep = epoch_time;                      // RTC var
+      clock_expectedWake = epoch_time + nominal_nextSleep; // RTC var
+    }
+    else // fail to obtain clock
+    {
+      nominal_nextSleep = deepsleep_time * 60;
+    }
+
+    sprintf(tt, "wakeDuration: [%.2fs]; startSleep: [%02d:%02d:%02d]; sleepFor: [%d sec]; drift: [%d sec]",
+            (float)millis() / 1000.0, timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec, nominal_nextSleep, driftRTC);
+    strcat(sleepstr, tt);
+    return nominal_nextSleep;
+  }
+
+public:
+  int deepsleep_time = 0;
+  int forcedwake_time = 0;
+  bool network_status = false;
+  bool start_wifi = false;
+  char *dev_name = "myESP32_devname";
+
+  esp32Sleep(int deepsleep = 30, int forcedwake = 15, char *devname = "dev")
+  {
+    deepsleep_time = deepsleep;
+    forcedwake_time = forcedwake;
+    dev_name = devname;
+  }
+  bool startServices()
+  {
+    start_eeprom();
+    if (start_wifi)
+    {
+      network_status = startWifi();
+    }
+  }
+
+  void sleepNOW(int sec2sleep = 2700)
+  {
+    char tmsg[30];
+
+    sprintf(tmsg, "Going to DeepSleep for [%d] sec", sec2sleep);
+    Serial.println(tmsg);
+    Serial.println("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
+    // mqtt_pubmsg(tmsg);
+    Serial.println(sleepstr);
+    Serial.flush();
+    esp_sleep_enable_timer_wakeup(sec2sleep * uS_TO_S_FACTOR);
+    esp_deep_sleep_start();
+  }
+
   void check_awake_ontime(int min_t_avoidSleep = 10)
   {
     delay(2500);
     getTime();
     bootCounter++;
 
-    // Serial.print("WAKE CLOCK: ");
-    // // printClock();
-    // Serial.print("WAKE epoch:");
-    // Serial.println(epoch_time);
-    // Serial.print("last epoch:");
-    // Serial.println(clock_beforeSleep);
-
     sprintf(sleepstr, "deviceName:[%s]; nominalSleep: [%d min]; ForcedWakeTime: [%d sec];  Boot#: [%d]; WakeupClock: [%02d:%02d:%02d];",
-            DEV_NAME, deepsleep_time, forcedwake_time, bootCounter, timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec);
+            dev_name, deepsleep_time, forcedwake_time, bootCounter, timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec);
 
     if (timeinfo.tm_year != 0)
     {
@@ -162,30 +183,19 @@ public:
 
         char tt[100];
         sprintf(tt, "lastSleep: [%d sec]; drift_lastSleep: [%d sec]; ", clock_expectedWake - clock_beforeSleep, t_delta);
-        Serial.println(tt);
         strcat(sleepstr, tt);
 
         bool up = driftUpdate(t_delta, 0, 5);
         sprintf(tt, "driftUpdate: [%s]; ", up ? "YES" : "NO");
-        Serial.println(tt);
         strcat(sleepstr, tt);
 
-        if (t_delta >= 0)
+        if (t_delta < 0)
         {
-          Serial.println("OK - WOKE UP after due time: ");
-        }
-        else
-        {
-          Serial.println("FAIL- woke up before time: ");
           int tempSleep = epoch_time - clock_expectedWake;
           if (abs(tempSleep) < min_t_avoidSleep)
           {
             sprintf(tt, "syncPause: [%d sec]; ", abs(tempSleep));
             strcat(sleepstr, tt);
-            // Serial.print("pausing ");
-            // Serial.print(tempSleep);
-            // Serial.println(" sec");
-
             delay(1000 * abs(tempSleep));
           }
           else
@@ -205,38 +215,22 @@ public:
       Serial.println("BAD NTP");
     }
   }
-
-  int calc_nominal_sleepTime()
+  void init_sleep()
   {
-    int nominal_nextSleep = 0;
-    char tt[100];
-
-    if (getTime())
-    {
-      nominal_nextSleep = TIME_TO_SLEEP * 60 - (timeinfo.tm_min * 60 + timeinfo.tm_sec) % (TIME_TO_SLEEP * 60);
-      clock_beforeSleep = epoch_time;                      // RTC var
-      clock_expectedWake = epoch_time + nominal_nextSleep; // RTC var
-    }
-    else // fail to obtain clock
-    {
-      nominal_nextSleep = TIME_TO_SLEEP * 60;
-    }
-    
-    sprintf(tt, "wakeDuration: [%.2fs]; startSleep: [%02d:%02d:%02d]; sleepFor: [%d sec]; drift: [%d sec]",
-            (float)millis() / 1000.0, timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec, nominal_nextSleep, driftRTC);
-    strcat(sleepstr, tt);
-    return nominal_nextSleep;
+    sleepNOW(calc_nominal_sleepTime() - driftRTC);
   }
 };
 
-esp32Sleep go2sleep(30, 15);
+esp32Sleep go2sleep(30, 15, DEV_NAME);
 
 void setup()
 {
   Serial.begin(9600);
-  go2sleep.start_all();
+  go2sleep.start_wifi = true;
+  go2sleep.startServices();
   go2sleep.check_awake_ontime();
-  go2sleep.sleepNOW(20);
+  go2sleep.init_sleep();
+      // go2sleep.sleepNOW(20);
   // put your setup code here, to run once:
 }
 
