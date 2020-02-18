@@ -54,10 +54,11 @@ private:
   }
   bool startWifi()
   {
+    long beginwifi = millis();
     WiFi.begin(ssid, password);
-    while (WiFi.status() != WL_CONNECTED && millis() < 30000)
+    while (WiFi.status() != WL_CONNECTED && millis() - beginwifi < 30000)
     {
-      delay(500);
+      delay(200);
       Serial.print(".");
     }
     Serial.println();
@@ -92,7 +93,10 @@ private:
 
   bool driftUpdate(int drift_value, byte cell = 0, byte update_freq = 10)
   {
-    driftRTC += drift_value;
+    if (abs(drift_value) >= 2)
+    {
+      driftRTC += drift_value;
+    }
 
     if (bootCounter <= 2 || bootCounter % update_freq == 0)
     {
@@ -118,6 +122,8 @@ private:
       nominal_nextSleep = deepsleep_time * 60 - (timeinfo.tm_min * 60 + timeinfo.tm_sec) % (deepsleep_time * 60);
       clock_beforeSleep = epoch_time;                      // RTC var
       clock_expectedWake = epoch_time + nominal_nextSleep; // RTC var
+      Serial.print("expected wake CLOCK: ");
+      Serial.println(clock_expectedWake);
     }
     else // fail to obtain clock
     {
@@ -134,7 +140,7 @@ public:
   int deepsleep_time = 0;
   int forcedwake_time = 0;
   bool network_status = false;
-  bool start_wifi = false;
+  bool start_wifi = true;
   char *dev_name = "myESP32_devname";
 
   esp32Sleep(int deepsleep = 30, int forcedwake = 15, char *devname = "dev")
@@ -149,18 +155,39 @@ public:
     if (start_wifi)
     {
       network_status = startWifi();
+      if (network_status)
+      {
+
+        check_awake_ontime();
+      }
+      return 1;
     }
+    else
+    {
+      sprintf(sleepstr, "Fail to obtain WiFi");
+      return 0;
+    }
+  }
+
+  void printClock()
+  {
+    Serial.println(&timeinfo, "%A, %B %d %Y %H:%M:%S");
+
+    // Serial.print(timeinfo.tm_hour);
+    // Serial.print(":");
+    // Serial.print(timeinfo.tm_min);
+    // Serial.print(":");
+    // Serial.print(timeinfo.tm_sec);
+    // Serial.println("");
   }
 
   void sleepNOW(int sec2sleep = 2700)
   {
     char tmsg[30];
-
+    Serial.println(sleepstr);
     sprintf(tmsg, "Going to DeepSleep for [%d] sec", sec2sleep);
     Serial.println(tmsg);
     Serial.println("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
-    // mqtt_pubmsg(tmsg);
-    Serial.println(sleepstr);
     Serial.flush();
     esp_sleep_enable_timer_wakeup(sec2sleep * uS_TO_S_FACTOR);
     esp_deep_sleep_start();
@@ -168,18 +195,30 @@ public:
 
   void check_awake_ontime(int min_t_avoidSleep = 10)
   {
-    delay(2500);
+    delay(3000);
     getTime();
+    printUpdatedClock("Wake");
+    // Serial.print("WAKE CLOCK: ");
+    // printClock();
+    // Serial.print("WAKE epoch:");
+    // Serial.println(epoch_time);
+    Serial.print("last epoch:");
+    Serial.println(clock_beforeSleep);
     bootCounter++;
 
     sprintf(sleepstr, "deviceName:[%s]; nominalSleep: [%d min]; ForcedWakeTime: [%d sec];  Boot#: [%d]; WakeupClock: [%02d:%02d:%02d];",
             dev_name, deepsleep_time, forcedwake_time, bootCounter, timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec);
 
-    if (timeinfo.tm_year != 0)
+    if (timeinfo.tm_year >= 120)
     {
       if (clock_beforeSleep > 0)
-      {                                                                         // not first boot
-        int t_delta = epoch_time - clock_expectedWake - (int)(millis() / 1000); // diff between calc wake clock and current time
+      {   
+        int wake_diff = epoch_time - clock_expectedWake;                                                                       // not first boot
+        int t_delta = wake_diff - (int)(round(millis() / 1000)); // diff between calc wake clock and current time
+
+        // int t_delta = (int)(round(millis() / 1000)) - (epoch_time - clock_expectedWake); // diff between calc wake clock and current time
+        Serial.print("T_DELTA: ");
+        Serial.println(t_delta);
 
         char tt[100];
         sprintf(tt, "lastSleep: [%d sec]; drift_lastSleep: [%d sec]; ", clock_expectedWake - clock_beforeSleep, t_delta);
@@ -191,17 +230,17 @@ public:
 
         if (t_delta < 0)
         {
-          int tempSleep = epoch_time - clock_expectedWake;
-          if (abs(tempSleep) < min_t_avoidSleep)
+          if (wake_diff < 0 && abs(wake_diff) <= min_t_avoidSleep)
           {
-            sprintf(tt, "syncPause: [%d sec]; ", abs(tempSleep));
+            sprintf(tt, "syncPause: [%d sec]; ", abs(wake_diff));
             strcat(sleepstr, tt);
-            delay(1000 * abs(tempSleep));
+            Serial.print("temp_sleep: ");
+            Serial.println(abs(wake_diff));
+            delay(1000 * abs(wake_diff));
           }
-          else
+          else if (wake_diff < 0 && abs(wake_diff) > min_t_avoidSleep)
           {
-            // Serial.println("going to temp sleep");
-            sleepNOW(abs(tempSleep));
+            sleepNOW(abs(wake_diff));
           }
         }
       }
@@ -215,27 +254,48 @@ public:
       Serial.println("BAD NTP");
     }
   }
-  void init_sleep()
+  void wait_forSleep()
   {
-    sleepNOW(calc_nominal_sleepTime() - driftRTC);
+    if (millis() >= forcedwake_time * 1000)
+    {
+      if (network_status)
+      {
+        printUpdatedClock("Sleep Summery");
+        sleepNOW(calc_nominal_sleepTime() - driftRTC);
+      }
+      else
+      {
+        Serial.println(sleepstr);
+        sleepNOW(deepsleep_time * 60);
+      }
+    }
+  }
+  void printUpdatedClock(char *hdr = "")
+  {
+    Serial.print("\n~~~~~~");
+    Serial.print(hdr);
+    Serial.print("~~~~~~\n");
+    getTime();
+    printClock();
+    Serial.print("epoch:");
+    Serial.println(epoch_time);
+    Serial.print("~~~~~~");
+    Serial.print("end");
+    Serial.print("~~~~~~\n\n");
   }
 };
 
-esp32Sleep go2sleep(30, 15, DEV_NAME);
+esp32Sleep go2sleep(60, 15, DEV_NAME);
 
 void setup()
 {
   Serial.begin(9600);
+  Serial.println("\n~~~~~~ Boot ~~~~~~");
   go2sleep.start_wifi = true;
   go2sleep.startServices();
-  go2sleep.check_awake_ontime();
-  go2sleep.init_sleep();
-      // go2sleep.sleepNOW(20);
-  // put your setup code here, to run once:
 }
 
 void loop()
 {
-  // Serial.println("LOOP");
-  // put your main code here, to run repeatedly:
+  go2sleep.wait_forSleep();
 }
