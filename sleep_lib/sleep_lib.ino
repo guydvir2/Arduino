@@ -19,8 +19,8 @@ private:
   struct tm timeinfo;
   time_t epoch_time;
 
-  const char *ssid = "Xiaomi_D6C8";
-  const char *password = "guyd5161";
+  // const char *ssid = "Xiaomi_D6C8";
+  // const char *password = "guyd5161";
 
   int getEEPROMvalue(byte i = 0)
   {
@@ -55,7 +55,7 @@ private:
   bool startWifi()
   {
     long beginwifi = millis();
-    WiFi.begin(ssid, password);
+    WiFi.begin(wifi_ssid, wifi_pass);
     while (WiFi.status() != WL_CONNECTED && millis() - beginwifi < 30000)
     {
       delay(200);
@@ -83,12 +83,13 @@ private:
       if (getLocalTime(&timeinfo))
       {
         time(&epoch_time);
-        return 1;
+        // return 1;
       }
       delay(50);
       a++;
     }
-    return 0;
+    // return 0;
+    return 1;
   }
 
   bool driftUpdate(int drift_value, byte cell = 0, byte update_freq = 10)
@@ -140,8 +141,10 @@ public:
   int deepsleep_time = 0;
   int forcedwake_time = 0;
   bool network_status = false;
-  bool start_wifi = true;
+  bool start_wifi = false;
   char *dev_name = "myESP32_devname";
+  char *wifi_ssid = "WIFI_NETWORK_BY_USER";
+  char *wifi_pass = "WIFI_PASSWORD_BY_USER";
 
   esp32Sleep(int deepsleep = 30, int forcedwake = 15, char *devname = "dev")
   {
@@ -155,7 +158,7 @@ public:
     if (start_wifi)
     {
       network_status = startWifi();
-      if (network_status)
+      if (network_s                                                                         nntatus)
       {
 
         check_awake_ontime();
@@ -195,7 +198,7 @@ public:
 
   void check_awake_ontime(int min_t_avoidSleep = 10)
   {
-    delay(3000);
+    // delay(3000);
     getTime();
     printUpdatedClock("Wake");
     // Serial.print("WAKE CLOCK: ");
@@ -285,13 +288,15 @@ public:
   }
 };
 
-esp32Sleep go2sleep(60, 15, DEV_NAME);
+esp32Sleep go2sleep(1, 15, DEV_NAME);
 
 void setup()
 {
   Serial.begin(9600);
   Serial.println("\n~~~~~~ Boot ~~~~~~");
   go2sleep.start_wifi = true;
+  go2sleep.wifi_ssid = "Xiaomi_D6C8";
+  go2sleep.wifi_pass = "guyd5161";
   go2sleep.startServices();
 }
 
