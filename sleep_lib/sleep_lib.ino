@@ -6,7 +6,7 @@
 
 RTC_DATA_ATTR long clock_expectedWake = 0;
 RTC_DATA_ATTR int bootCounter = 0;
-RTC_DATA_ATTR int driftRTC = 0;
+RTC_DATA_ATTR float driftRTC = 0;
 RTC_DATA_ATTR long clock_beforeSleep = 0;
 
 class esp32Sleep
@@ -77,15 +77,15 @@ private:
   }
   bool getTime()
   {
-    byte a;
+    int a = 0;
     while (a < 3)
     {
       if (getLocalTime(&timeinfo))
       {
+        delay(100);
         time(&epoch_time);
         // return 1;
       }
-      delay(50);
       a++;
     }
     // return 0;
@@ -94,23 +94,45 @@ private:
 
   bool driftUpdate(int drift_value, byte cell = 0, byte update_freq = 10)
   {
-    if (abs(drift_value) >= 2)
-    {
-      driftRTC += drift_value;
-    }
 
-    if (bootCounter <= 2 || bootCounter % update_freq == 0)
+    if (bootCounter <= 3)
     {
-      if (abs(driftRTC - getEEPROMvalue(cell)) > 2)
-      {
-        saveEEPROMvalue(driftRTC, cell);
-        return 1;
-      }
+      driftRTC += (float)drift_value;
+      Serial.print("UPDATED A: ");
     }
     else
     {
-      return 0;
+
+      driftRTC = ((float)(bootCounter-1.0)*driftRTC+ (float)drift_value)/(float)bootCounter;
+      Serial.print("UPDATED B: ");
     }
+    Serial.print(driftRTC);
+
+    // if (bootCounter % update_freq == 0)
+    // {
+    //   if (abs(driftRTC - getEEPROMvalue(cell)) > 1)
+    //   {
+    //     saveEEPROMvalue(driftRTC, cell);
+    //     Serial.println("UPDATED C");
+    //   }
+    // }
+
+    // if (abs(drift_value) >= 2)
+    // {
+    // }
+
+    // if (bootCounter <= 2 || bootCounter % update_freq == 0)
+    // {
+    //   if (abs(driftRTC - getEEPROMvalue(cell)) > 2)
+    //   {
+    //     saveEEPROMvalue(driftRTC, cell);
+    //     return 1;
+    //   }
+    // }
+    // else
+    // {
+    //   return 0;
+    // }
   }
 
   int calc_nominal_sleepTime()
@@ -131,7 +153,7 @@ private:
       nominal_nextSleep = deepsleep_time * 60;
     }
 
-    sprintf(tt, "wakeDuration: [%.2fs]; startSleep: [%02d:%02d:%02d]; sleepFor: [%d sec]; drift: [%d sec]",
+    sprintf(tt, "wakeDuration: [%.2fs]; startSleep: [%02d:%02d:%02d]; sleepFor: [%d sec]; drift: [%.1f sec]",
             (float)millis() / 1000.0, timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec, nominal_nextSleep, driftRTC);
     strcat(sleepstr, tt);
     return nominal_nextSleep;
@@ -158,7 +180,7 @@ public:
     if (start_wifi)
     {
       network_status = startWifi();
-      if (network_s                                                                         nntatus)
+      if (network_status)
       {
 
         check_awake_ontime();
@@ -175,22 +197,15 @@ public:
   void printClock()
   {
     Serial.println(&timeinfo, "%A, %B %d %Y %H:%M:%S");
-
-    // Serial.print(timeinfo.tm_hour);
-    // Serial.print(":");
-    // Serial.print(timeinfo.tm_min);
-    // Serial.print(":");
-    // Serial.print(timeinfo.tm_sec);
-    // Serial.println("");
   }
 
-  void sleepNOW(int sec2sleep = 2700)
+  void sleepNOW(float sec2sleep = 2700)
   {
     char tmsg[30];
     Serial.println(sleepstr);
-    sprintf(tmsg, "Going to DeepSleep for [%d] sec", sec2sleep);
+    sprintf(tmsg, "Going to DeepSleep for [%.1f] sec", sec2sleep);
     Serial.println(tmsg);
-    Serial.println("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
+    Serial.println("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
     Serial.flush();
     esp_sleep_enable_timer_wakeup(sec2sleep * uS_TO_S_FACTOR);
     esp_deep_sleep_start();
@@ -215,8 +230,8 @@ public:
     if (timeinfo.tm_year >= 120)
     {
       if (clock_beforeSleep > 0)
-      {   
-        int wake_diff = epoch_time - clock_expectedWake;                                                                       // not first boot
+      {
+        int wake_diff = epoch_time - clock_expectedWake;         // not first boot
         int t_delta = wake_diff - (int)(round(millis() / 1000)); // diff between calc wake clock and current time
 
         // int t_delta = (int)(round(millis() / 1000)) - (epoch_time - clock_expectedWake); // diff between calc wake clock and current time
@@ -243,7 +258,7 @@ public:
           }
           else if (wake_diff < 0 && abs(wake_diff) > min_t_avoidSleep)
           {
-            sleepNOW(abs(wake_diff));
+            sleepNOW((float)abs(wake_diff));
           }
         }
       }
@@ -264,7 +279,7 @@ public:
       if (network_status)
       {
         printUpdatedClock("Sleep Summery");
-        sleepNOW(calc_nominal_sleepTime() - driftRTC);
+        sleepNOW((float)calc_nominal_sleepTime() - driftRTC);
       }
       else
       {
@@ -288,7 +303,7 @@ public:
   }
 };
 
-esp32Sleep go2sleep(1, 15, DEV_NAME);
+esp32Sleep go2sleep(10, 15, DEV_NAME);
 
 void setup()
 {
