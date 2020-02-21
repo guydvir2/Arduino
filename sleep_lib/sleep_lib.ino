@@ -2,7 +2,7 @@
 #include "time.h"
 #include "WiFi.h"
 
-#define DEV_NAME "ESP32lite"
+#define DEV_NAME "ESP32"
 
 RTC_DATA_ATTR long clock_expectedWake = 0;
 RTC_DATA_ATTR int bootCounter = 0;
@@ -92,47 +92,21 @@ private:
     return 1;
   }
 
-  bool driftUpdate(int drift_value, byte cell = 0, byte update_freq = 10)
+  bool driftUpdate(float drift_value, byte cell = 0, byte update_freq = 10)
   {
 
     if (bootCounter <= 3)
     {
-      driftRTC += (float)drift_value;
+      driftRTC += drift_value;
       Serial.print("UPDATED A: ");
     }
     else
     {
 
-      driftRTC = ((float)(bootCounter-1.0)*driftRTC+ (float)drift_value)/(float)bootCounter;
+      driftRTC = ((float)(bootCounter-1.0)*driftRTC+ drift_value)/bootCounter;
       Serial.print("UPDATED B: ");
     }
     Serial.print(driftRTC);
-
-    // if (bootCounter % update_freq == 0)
-    // {
-    //   if (abs(driftRTC - getEEPROMvalue(cell)) > 1)
-    //   {
-    //     saveEEPROMvalue(driftRTC, cell);
-    //     Serial.println("UPDATED C");
-    //   }
-    // }
-
-    // if (abs(drift_value) >= 2)
-    // {
-    // }
-
-    // if (bootCounter <= 2 || bootCounter % update_freq == 0)
-    // {
-    //   if (abs(driftRTC - getEEPROMvalue(cell)) > 2)
-    //   {
-    //     saveEEPROMvalue(driftRTC, cell);
-    //     return 1;
-    //   }
-    // }
-    // else
-    // {
-    //   return 0;
-    // }
   }
 
   int calc_nominal_sleepTime()
@@ -154,7 +128,7 @@ private:
     }
 
     sprintf(tt, "wakeDuration: [%.2fs]; startSleep: [%02d:%02d:%02d]; sleepFor: [%d sec]; drift: [%.1f sec]",
-            (float)millis() / 1000.0, timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec, nominal_nextSleep, driftRTC);
+            millis() / 1000.0, timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec, nominal_nextSleep, driftRTC);
     strcat(sleepstr, tt);
     return nominal_nextSleep;
   }
@@ -258,7 +232,7 @@ public:
           }
           else if (wake_diff < 0 && abs(wake_diff) > min_t_avoidSleep)
           {
-            sleepNOW((float)abs(wake_diff));
+            sleepNOW(abs(wake_diff));
           }
         }
       }
@@ -279,7 +253,7 @@ public:
       if (network_status)
       {
         printUpdatedClock("Sleep Summery");
-        sleepNOW((float)calc_nominal_sleepTime() - driftRTC);
+        sleepNOW(calc_nominal_sleepTime() - driftRTC);
       }
       else
       {
@@ -303,7 +277,7 @@ public:
   }
 };
 
-esp32Sleep go2sleep(10, 15, DEV_NAME);
+esp32Sleep go2sleep(60, 5, DEV_NAME);
 
 void setup()
 {
