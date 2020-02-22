@@ -3,24 +3,23 @@
 #include "WiFi.h"
 
 #define DEV_NAME "ESP32lite"
+#define SLEEP_TIME 30
 
 RTC_DATA_ATTR long clock_expectedWake = 0;
 RTC_DATA_ATTR int bootCounter = 0;
 RTC_DATA_ATTR float driftRTC = 0;
 RTC_DATA_ATTR long clock_beforeSleep = 0;
+RTC_DATA_ATTR float driftAVG_RTC[AVG_SIZE];
 
 class esp32Sleep
 {
 #define uS_TO_S_FACTOR 1000000ULL /* Conversion micro seconds to seconds */
 #define EEPROM_SIZE 16
+#define AVG_SIZE 5
 
 private:
-  char sleepstr[250];
   struct tm timeinfo;
   time_t epoch_time;
-
-  // const char *ssid = "Xiaomi_D6C8";
-  // const char *password = "guyd5161";
 
   int getEEPROMvalue(byte i = 0)
   {
@@ -91,48 +90,70 @@ private:
     // return 0;
     return 1;
   }
-
-  bool driftUpdate(int drift_value, byte cell = 0, byte update_freq = 10)
+  void zero_array()
   {
-
-    if (bootCounter <= 3)
+    for (int a = 0; a < AVG_SIZE; a++)
     {
-      driftRTC += (float)drift_value;
-      Serial.print("UPDATED A: ");
+      driftAVG_RTC[a] = 0.0;
+    }
+  }
+
+  bool driftUpdate(float drift_value, byte cell = 0, byte update_freq = 10)
+  {
+    Serial.print("bootCounter :#");
+    Serial.println(bootCounter);
+    Serial.print("t_delta: ");
+    Serial.println(drift_value);
+
+    Serial.print("previous drift: ");
+    Serial.println(driftRTC);
+
+    // Serial.print("previous values in array: ");
+    // for (int a = 0; a < AVG_SIZE; a++)
+    // {
+    //   Serial.print(driftAVG_RTC[a]);
+    //   Serial.print(", ");
+    // }
+    // Serial.println("");
+
+    if (bootCounter <= AVG_SIZE + 2)
+    {
+      Serial.println("PART A:");
+      driftRTC += drift_value;
+      if (bootCounter > 2) // first 2 boots will not enter to avg_array
+      {
+        driftAVG_RTC[bootCounter - 3] = drift_value;
+      }
     }
     else
     {
-
-      driftRTC = ((float)(bootCounter-1.0)*driftRTC+ (float)drift_value)/(float)bootCounter;
-      Serial.print("UPDATED B: ");
+      float sum_avg = 0.0;
+      Serial.println("PART B: ");
+      for (int a = AVG_SIZE - 1; a > 0; a--)
+      {
+        driftAVG_RTC[a] = driftAVG_RTC[a - 1];
+        sum_avg += driftAVG_RTC[a];
+        Serial.print("cell: #");
+        Serial.print(a);
+        Serial.print("[");
+        Serial.print(driftAVG_RTC[a]);
+        Serial.print("]");
+        Serial.println(", ");
+      }
+      driftAVG_RTC[0] = drift_value;
+      sum_avg = (sum_avg + drift_value) / (float)AVG_SIZE;
+      Serial.print("cell: #");
+      Serial.print(0);
+      Serial.print("[");
+      Serial.print(driftAVG_RTC[0]);
+      Serial.print("]");
+      Serial.println(", ");
+      Serial.print("avg calc: ");
+      Serial.println(sum_avg);
+      driftRTC += sum_avg;
     }
-    Serial.print(driftRTC);
-
-    // if (bootCounter % update_freq == 0)
-    // {
-    //   if (abs(driftRTC - getEEPROMvalue(cell)) > 1)
-    //   {
-    //     saveEEPROMvalue(driftRTC, cell);
-    //     Serial.println("UPDATED C");
-    //   }
-    // }
-
-    // if (abs(drift_value) >= 2)
-    // {
-    // }
-
-    // if (bootCounter <= 2 || bootCounter % update_freq == 0)
-    // {
-    //   if (abs(driftRTC - getEEPROMvalue(cell)) > 2)
-    //   {
-    //     saveEEPROMvalue(driftRTC, cell);
-    //     return 1;
-    //   }
-    // }
-    // else
-    // {
-    //   return 0;
-    // }
+    Serial.print("Calc drift is:");
+    Serial.println(driftRTC);
   }
 
   int calc_nominal_sleepTime()
@@ -167,6 +188,7 @@ public:
   char *dev_name = "myESP32_devname";
   char *wifi_ssid = "WIFI_NETWORK_BY_USER";
   char *wifi_pass = "WIFI_PASSWORD_BY_USER";
+  char sleepstr[250];
 
   esp32Sleep(int deepsleep = 30, int forcedwake = 15, char *devname = "dev")
   {
@@ -176,6 +198,7 @@ public:
   }
   bool startServices()
   {
+    zero_array();
     start_eeprom();
     if (start_wifi)
     {
@@ -202,10 +225,10 @@ public:
   void sleepNOW(float sec2sleep = 2700)
   {
     char tmsg[30];
-    Serial.println(sleepstr);
+    // Serial.println(sleepstr);
     sprintf(tmsg, "Going to DeepSleep for [%.1f] sec", sec2sleep);
     Serial.println(tmsg);
-    Serial.println("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
+    Serial.println("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
     Serial.flush();
     esp_sleep_enable_timer_wakeup(sec2sleep * uS_TO_S_FACTOR);
     esp_deep_sleep_start();
@@ -216,10 +239,6 @@ public:
     // delay(3000);
     getTime();
     printUpdatedClock("Wake");
-    // Serial.print("WAKE CLOCK: ");
-    // printClock();
-    // Serial.print("WAKE epoch:");
-    // Serial.println(epoch_time);
     Serial.print("last epoch:");
     Serial.println(clock_beforeSleep);
     bootCounter++;
@@ -233,10 +252,6 @@ public:
       {
         int wake_diff = epoch_time - clock_expectedWake;         // not first boot
         int t_delta = wake_diff - (int)(round(millis() / 1000)); // diff between calc wake clock and current time
-
-        // int t_delta = (int)(round(millis() / 1000)) - (epoch_time - clock_expectedWake); // diff between calc wake clock and current time
-        Serial.print("T_DELTA: ");
-        Serial.println(t_delta);
 
         char tt[100];
         sprintf(tt, "lastSleep: [%d sec]; drift_lastSleep: [%d sec]; ", clock_expectedWake - clock_beforeSleep, t_delta);
@@ -303,7 +318,7 @@ public:
   }
 };
 
-esp32Sleep go2sleep(10, 15, DEV_NAME);
+esp32Sleep go2sleep(SLEEP_TIME, 15, DEV_NAME);
 
 void setup()
 {

@@ -11,9 +11,9 @@
 #define USE_EEPROM true
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-#define DEEPSLEEP_TIME 60
-#define FORCED_WAKE_TIME 15 // seconds till sleep
-#define DEV_NAME "ESP32lite"
+#define DEEPSLEEP_TIME 10
+#define FORCED_WAKE_TIME 5 // seconds till sleep
+#define DEV_NAME "ESP32"
 
 // ~~~~~                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         b ~~~~ WiFi ~~~~~~~~~~~~~~~~
 #include "WiFi.h"
@@ -675,16 +675,7 @@ void loop()
   if (millis() >= TIME_AWAKE * 1000)
   {
     int a = calc_nominal_sleepTime();
-
-    // Serial.println("~~~~~~~~ SLEEP CALC ~~~~~~~~");
-    // Serial.print("Nominal Sleep: ");
-    // Serial.println(a);
-    // Serial.print("drift is: ");
-    // Serial.println(driftRTC);
-    // Serial.println("~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n");
-
     makeIFTTTRequest(battery.ADC_value, solarPanel.ADC_value, sleepstr);
-
     sleepNOW(a - driftRTC);
   }
 
