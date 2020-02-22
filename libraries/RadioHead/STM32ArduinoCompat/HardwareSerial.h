@@ -1,6 +1,11 @@
 // ArduinoCompat/HardwareSerial.h
 // STM32 implementation of Arduino compatible serial class
 
+<<<<<<< HEAD
+=======
+#include <RadioHead.h>
+#if (RH_PLATFORM == RH_PLATFORM_STM32STD)
+>>>>>>> d27e11fba5c87a25cf468b826ee28f6e60831787
 #ifndef _HardwareSerial_h
 #define _HardwareSerial_h
 
@@ -72,3 +77,8 @@ extern HardwareSerial Serial5;
 extern HardwareSerial Serial6;
 
 #endif
+<<<<<<< HEAD
+=======
+
+#endif
+>>>>>>> d27e11fba5c87a25cf468b826ee28f6e60831787

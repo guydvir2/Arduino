@@ -1,7 +1,11 @@
 // simulator.h
 // Lets Arduino RadioHead sketches run within a simulator on Linux as a single process
 // Copyright (C) 2014 Mike McCauley
+<<<<<<< HEAD
 // $Id: simulator.h,v 1.2 2014/05/09 05:30:13 mikem Exp mikem $
+=======
+// $Id: simulator.h,v 1.4 2015/08/13 02:45:47 mikem Exp mikem $
+>>>>>>> d27e11fba5c87a25cf468b826ee28f6e60831787
 
 #ifndef simulator_h
 #define simulator_h
@@ -24,7 +28,12 @@ extern unsigned long millis();
 extern long random(long to);
 extern long random(long from, long to);
 
+<<<<<<< HEAD
 // Equavalent to HaardwareSerial in Arduino
+=======
+// Equavalent to HardwareSerial in Arduino
+// but outputs to stdout
+>>>>>>> d27e11fba5c87a25cf468b826ee28f6e60831787
 class SerialSimulator
 {
 public:
@@ -39,15 +48,24 @@ public:
     size_t println(const char* s)
     {
 	print(s);
+<<<<<<< HEAD
 	printf("\n");
     }
     size_t print(const char* s)
     {
 	printf(s);
+=======
+	return printf("\n");
+    }
+    size_t print(const char* s)
+    {
+	return printf("%s", s); // This style prevent warnings from [-Wformat-security]
+>>>>>>> d27e11fba5c87a25cf468b826ee28f6e60831787
     }
     size_t print(unsigned int n, int base = DEC)
     {
 	if (base == DEC)
+<<<<<<< HEAD
 	    printf("%d", n);
 	else if (base == HEX)
 	    printf("%02x", n);
@@ -62,6 +80,24 @@ public:
     size_t println(char ch)
     {
         printf("%c\n", ch);
+=======
+	    return printf("%d", n);
+	else if (base == HEX)
+	    return printf("%02x", n);
+	else if (base == OCT)
+	    return printf("%o", n);
+	// TODO: BIN
+	else
+	    return 0;
+    }
+    size_t print(char ch)
+    {
+        return printf("%c", ch);
+    }
+    size_t println(char ch)
+    {
+        return printf("%c\n", ch);
+>>>>>>> d27e11fba5c87a25cf468b826ee28f6e60831787
     }
     size_t print(unsigned char ch, int base = DEC)
     {
@@ -70,7 +106,11 @@ public:
     size_t println(unsigned char ch, int base = DEC)
     {
 	print((unsigned int)ch, base);
+<<<<<<< HEAD
 	printf("\n");
+=======
+	return printf("\n");
+>>>>>>> d27e11fba5c87a25cf468b826ee28f6e60831787
     }
 
 };

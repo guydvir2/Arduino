@@ -1,7 +1,11 @@
 // NRF24.cpp
 //
 // Copyright (C) 2012 Mike McCauley
+<<<<<<< HEAD
 // $Id: RH_NRF24.cpp,v 1.21 2015/03/29 03:53:47 mikem Exp mikem $
+=======
+// $Id: RH_NRF24.cpp,v 1.26 2018/01/06 23:50:45 mikem Exp $
+>>>>>>> d27e11fba5c87a25cf468b826ee28f6e60831787
 
 #include <RH_NRF24.h>
 
@@ -43,6 +47,11 @@ bool RH_NRF24::init()
             return false;
     }
 
+<<<<<<< HEAD
+=======
+    clearRxBuf();
+
+>>>>>>> d27e11fba5c87a25cf468b826ee28f6e60831787
     // Make sure we are powered down
     setModeIdle();
 
@@ -153,7 +162,13 @@ bool RH_NRF24::sleep()
 	spiWriteRegister(RH_NRF24_REG_00_CONFIG, 0); // Power Down mode
 	digitalWrite(_chipEnablePin, LOW);
 	_mode = RHModeSleep;
+<<<<<<< HEAD
     }
+=======
+	return true;
+    }
+    return false; // Already there?
+>>>>>>> d27e11fba5c87a25cf468b826ee28f6e60831787
 }
 
 void RH_NRF24::setModeRx()
@@ -185,6 +200,13 @@ bool RH_NRF24::send(const uint8_t* data, uint8_t len)
 {
     if (len > RH_NRF24_MAX_MESSAGE_LEN)
 	return false;
+<<<<<<< HEAD
+=======
+
+    if (!waitCAD()) 
+	return false;  // Check channel activity
+
+>>>>>>> d27e11fba5c87a25cf468b826ee28f6e60831787
     // Set up the headers
     _buf[0] = _txHeaderTo;
     _buf[1] = _txHeaderFrom;
@@ -208,8 +230,18 @@ bool RH_NRF24::waitPacketSent()
     // end of transmission
     // We dont actually use auto-ack, so prob dont expect to see RH_NRF24_MAX_RT
     uint8_t status;
+<<<<<<< HEAD
     while (!((status = statusRead()) & (RH_NRF24_TX_DS | RH_NRF24_MAX_RT)))
 	YIELD;
+=======
+    uint32_t start = millis();
+    while (!((status = statusRead()) & (RH_NRF24_TX_DS | RH_NRF24_MAX_RT)))
+    {
+	if (((uint32_t)millis() - start) > 100) // Longer than any possible message
+	    break;  // Should never happen: TX never completed. Why?
+	YIELD;
+    }
+>>>>>>> d27e11fba5c87a25cf468b826ee28f6e60831787
 
     // Must clear RH_NRF24_MAX_RT if it is set, else no further comm
     if (status & RH_NRF24_MAX_RT)
@@ -232,6 +264,7 @@ bool RH_NRF24::printRegisters()
     // Iterate over register range, but don't process registers not in use.
     for (uint8_t r = RH_NRF24_REG_00_CONFIG; r <= RH_NRF24_REG_1D_FEATURE; r++)
     {
+<<<<<<< HEAD
       if ((r <= RH_NRF24_REG_17_FIFO_STATUS) || (r >= RH_NRF24_REG_1C_DYNPD))
       {
         Serial.print(r, HEX);
@@ -253,6 +286,29 @@ bool RH_NRF24::printRegisters()
         }
         Serial.println("");
       }
+=======
+	if ((r <= RH_NRF24_REG_17_FIFO_STATUS) || (r >= RH_NRF24_REG_1C_DYNPD))
+	{
+	    Serial.print(r, HEX);
+	    Serial.print(": ");
+	    uint8_t len = 1;
+	    // Address registers are 5 bytes in size
+	    if (    (RH_NRF24_REG_0A_RX_ADDR_P0 == r)
+		    || (RH_NRF24_REG_0B_RX_ADDR_P1 == r)
+		    || (RH_NRF24_REG_10_TX_ADDR    == r) )
+	    {
+		len = 5;
+	    }
+	    uint8_t buf[5];
+	    spiBurstReadRegister(r, buf, len);
+	    for (uint8_t j = 0; j < len; ++j)
+	    {
+		Serial.print(buf[j], HEX);
+		Serial.print(" ");
+	    }
+	    Serial.println("");
+	}
+>>>>>>> d27e11fba5c87a25cf468b826ee28f6e60831787
     }
 #endif
 

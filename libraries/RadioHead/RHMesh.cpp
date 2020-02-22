@@ -9,7 +9,11 @@
 //
 // Author: Mike McCauley (mikem@airspayce.com)
 // Copyright (C) 2011 Mike McCauley
+<<<<<<< HEAD
 // $Id: RHMesh.cpp,v 1.7 2014/08/10 20:55:17 mikem Exp $
+=======
+// $Id: RHMesh.cpp,v 1.11 2019/09/06 04:40:40 mikem Exp $
+>>>>>>> d27e11fba5c87a25cf468b826ee28f6e60831787
 
 #include <RHMesh.h>
 
@@ -65,6 +69,7 @@ bool RHMesh::doArp(uint8_t address)
     uint8_t messageLen = sizeof(_tmpMessage);
     // FIXME: timeout should be configurable
     unsigned long starttime = millis();
+<<<<<<< HEAD
     while ((millis() - starttime) < 4000)
     {
 	if (RHRouter::recvfromAck(_tmpMessage, &messageLen))
@@ -76,6 +81,23 @@ bool RHMesh::doArp(uint8_t address)
 		// The first hop taken is the first octet
 		addRouteTo(address, headerFrom());
 		return true;
+=======
+    int32_t timeLeft;
+    while ((timeLeft = RH_MESH_ARP_TIMEOUT - (millis() - starttime)) > 0)
+    {
+	if (waitAvailableTimeout(timeLeft))
+	{
+	    if (RHRouter::recvfromAck(_tmpMessage, &messageLen))
+	    {
+		if (   messageLen > 1
+		       && p->header.msgType == RH_MESH_MESSAGE_TYPE_ROUTE_DISCOVERY_RESPONSE)
+		{
+		    // Got a reply, now add the next hop to the dest to the routing table
+		    // The first hop taken is the first octet
+		    addRouteTo(address, headerFrom());
+		    return true;
+		}
+>>>>>>> d27e11fba5c87a25cf468b826ee28f6e60831787
 	    }
 	}
 	YIELD;
@@ -103,8 +125,13 @@ void RHMesh::peekAtMessage(RoutedMessage* message, uint8_t messageLen)
 	    if (d->route[i] == _thisAddress)
 		break;
 	i++;
+<<<<<<< HEAD
 	while (i++ < numRoutes)
 	    addRouteTo(d->route[i], headerFrom());
+=======
+	while (i < numRoutes)
+	    addRouteTo(d->route[i++], headerFrom());
+>>>>>>> d27e11fba5c87a25cf468b826ee28f6e60831787
     }
     else if (   messageLen > 1 
 	     && m->msgType == RH_MESH_MESSAGE_TYPE_ROUTE_FAILURE)
@@ -193,19 +220,41 @@ bool RHMesh::recvfromAck(uint8_t* buf, uint8_t* len, uint8_t* source, uint8_t* d
 		if (d->route[i] == _thisAddress)
 		    return false; // Already been through us. Discard
 	    
+<<<<<<< HEAD
 	    // Hasnt been past us yet, record routes back to the earlier nodes
 	    addRouteTo(_source, headerFrom()); // The originator
 	    for (i = 0; i < numRoutes; i++)
 		addRouteTo(d->route[i], headerFrom());
+=======
+	        
+            addRouteTo(_source, headerFrom()); // The originator needs to be added regardless of node type
+
+	    // Hasnt been past us yet, record routes back to the earlier nodes
+            // No need to waste memory if we are not participating in routing
+            if (_isa_router)
+            {
+	        for (i = 0; i < numRoutes; i++)
+		    addRouteTo(d->route[i], headerFrom());
+            }
+
+>>>>>>> d27e11fba5c87a25cf468b826ee28f6e60831787
 	    if (isPhysicalAddress(&d->dest, d->destlen))
 	    {
 		// This route discovery is for us. Unicast the whole route back to the originator
 		// as a RH_MESH_MESSAGE_TYPE_ROUTE_DISCOVERY_RESPONSE
+<<<<<<< HEAD
 		// We are certain to have a route there, becuase we just got it
 		d->header.msgType = RH_MESH_MESSAGE_TYPE_ROUTE_DISCOVERY_RESPONSE;
 		RHRouter::sendtoWait((uint8_t*)d, tmpMessageLen, _source);
 	    }
 	    else if (i < _max_hops)
+=======
+		// We are certain to have a route there, because we just got it
+		d->header.msgType = RH_MESH_MESSAGE_TYPE_ROUTE_DISCOVERY_RESPONSE;
+		RHRouter::sendtoWait((uint8_t*)d, tmpMessageLen, _source);
+	    }
+	    else if ((i < _max_hops) && _isa_router)
+>>>>>>> d27e11fba5c87a25cf468b826ee28f6e60831787
 	    {
 		// Its for someone else, rebroadcast it, after adding ourselves to the list
 		d->route[numRoutes] = _thisAddress;
@@ -223,11 +272,23 @@ bool RHMesh::recvfromAck(uint8_t* buf, uint8_t* len, uint8_t* source, uint8_t* d
 bool RHMesh::recvfromAckTimeout(uint8_t* buf, uint8_t* len, uint16_t timeout, uint8_t* from, uint8_t* to, uint8_t* id, uint8_t* flags)
 {  
     unsigned long starttime = millis();
+<<<<<<< HEAD
     while ((millis() - starttime) < timeout)
     {
 	if (recvfromAck(buf, len, from, to, id, flags))
 	    return true;
 	YIELD;
+=======
+    int32_t timeLeft;
+    while ((timeLeft = timeout - (millis() - starttime)) > 0)
+    {
+	if (waitAvailableTimeout(timeLeft))
+	{
+	    if (recvfromAck(buf, len, from, to, id, flags))
+		return true;
+	    YIELD;
+	}
+>>>>>>> d27e11fba5c87a25cf468b826ee28f6e60831787
     }
     return false;
 }

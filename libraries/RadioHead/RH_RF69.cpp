@@ -1,7 +1,11 @@
 // RH_RF69.cpp
 //
 // Copyright (C) 2011 Mike McCauley
+<<<<<<< HEAD
 // $Id: RH_RF69.cpp,v 1.24 2015/01/02 21:38:24 mikem Exp $
+=======
+// $Id: RH_RF69.cpp,v 1.31 2019/09/02 05:21:52 mikem Exp $
+>>>>>>> d27e11fba5c87a25cf468b826ee28f6e60831787
 
 #include <RH_RF69.h>
 
@@ -106,6 +110,15 @@ bool RH_RF69::init()
     int interruptNumber = digitalPinToInterrupt(_interruptPin);
     if (interruptNumber == NOT_AN_INTERRUPT)
 	return false;
+<<<<<<< HEAD
+=======
+#ifdef RH_ATTACHINTERRUPT_TAKES_PIN_NUMBER
+    interruptNumber = _interruptPin;
+#endif
+
+    // Tell the low level SPI interface we will use SPI within this interrupt
+    spiUsingInterrupt(interruptNumber);
+>>>>>>> d27e11fba5c87a25cf468b826ee28f6e60831787
 
     // Get the device type and check it
     // This also tests whether we are really connected to a device
@@ -225,6 +238,10 @@ void RH_RF69::readFifo()
 {
     ATOMIC_BLOCK_START;
     digitalWrite(_slaveSelectPin, LOW);
+<<<<<<< HEAD
+=======
+    _spi.beginTransaction();
+>>>>>>> d27e11fba5c87a25cf468b826ee28f6e60831787
     _spi.transfer(RH_RF69_REG_00_FIFO); // Send the start address with the write mask off
     uint8_t payloadlen = _spi.transfer(0); // First byte is payload len (counting the headers)
     if (payloadlen <= RH_RF69_MAX_ENCRYPTABLE_PAYLOAD_LEN &&
@@ -248,6 +265,10 @@ void RH_RF69::readFifo()
 	}
     }
     digitalWrite(_slaveSelectPin, HIGH);
+<<<<<<< HEAD
+=======
+    _spi.endTransaction();
+>>>>>>> d27e11fba5c87a25cf468b826ee28f6e60831787
     ATOMIC_BLOCK_END;
     // Any junk remaining in the FIFO will be cleared next time we go to receive mode.
 }
@@ -255,17 +276,29 @@ void RH_RF69::readFifo()
 // These are low level functions that call the interrupt handler for the correct
 // instance of RH_RF69.
 // 3 interrupts allows us to have 3 different devices
+<<<<<<< HEAD
 void RH_RF69::isr0()
+=======
+void RH_INTERRUPT_ATTR RH_RF69::isr0()
+>>>>>>> d27e11fba5c87a25cf468b826ee28f6e60831787
 {
     if (_deviceForInterrupt[0])
 	_deviceForInterrupt[0]->handleInterrupt();
 }
+<<<<<<< HEAD
 void RH_RF69::isr1()
+=======
+void RH_INTERRUPT_ATTR RH_RF69::isr1()
+>>>>>>> d27e11fba5c87a25cf468b826ee28f6e60831787
 {
     if (_deviceForInterrupt[1])
 	_deviceForInterrupt[1]->handleInterrupt();
 }
+<<<<<<< HEAD
 void RH_RF69::isr2()
+=======
+void RH_INTERRUPT_ATTR RH_RF69::isr2()
+>>>>>>> d27e11fba5c87a25cf468b826ee28f6e60831787
 {
     if (_deviceForInterrupt[2])
 	_deviceForInterrupt[2]->handleInterrupt();
@@ -290,6 +323,10 @@ bool RH_RF69::setFrequency(float centre, float afcPullInRange)
     spiWrite(RH_RF69_REG_09_FRFLSB, frf & 0xff);
 
     // afcPullInRange is not used
+<<<<<<< HEAD
+=======
+    (void)afcPullInRange;
+>>>>>>> d27e11fba5c87a25cf468b826ee28f6e60831787
     return true;
 }
 
@@ -375,6 +412,7 @@ void RH_RF69::setModeTx()
     }
 }
 
+<<<<<<< HEAD
 void RH_RF69::setTxPower(int8_t power)
 {
     _power = power;
@@ -404,6 +442,50 @@ void RH_RF69::setTxPower(int8_t power)
 	palevel = RH_RF69_PALEVEL_PA1ON | RH_RF69_PALEVEL_PA2ON | ((_power + 14) & RH_RF69_PALEVEL_OUTPUTPOWER);
     }
     spiWrite(RH_RF69_REG_11_PALEVEL, palevel);
+=======
+void RH_RF69::setTxPower(int8_t power, bool ishighpowermodule)
+{
+  _power = power;
+  uint8_t palevel;
+  
+  if (ishighpowermodule)
+  {
+    if (_power < -2)
+      _power = -2; //RFM69HW only works down to -2. 
+    if (_power <= 13)
+    {
+      // -2dBm to +13dBm
+      //Need PA1 exclusivelly on RFM69HW
+      palevel = RH_RF69_PALEVEL_PA1ON | ((_power + 18) & 
+      RH_RF69_PALEVEL_OUTPUTPOWER);
+    }
+    else if (_power >= 18)
+    {
+      // +18dBm to +20dBm
+      // Need PA1+PA2
+      // Also need PA boost settings change when tx is turned on and off, see setModeTx()
+      palevel = RH_RF69_PALEVEL_PA1ON
+	| RH_RF69_PALEVEL_PA2ON
+	| ((_power + 11) & RH_RF69_PALEVEL_OUTPUTPOWER);
+    }
+    else
+    {
+      // +14dBm to +17dBm
+      // Need PA1+PA2
+      palevel = RH_RF69_PALEVEL_PA1ON
+	| RH_RF69_PALEVEL_PA2ON
+	| ((_power + 14) & RH_RF69_PALEVEL_OUTPUTPOWER);
+    }
+  }
+  else
+  {
+    if (_power < -18) _power = -18;
+    if (_power > 13) _power = 13; //limit for RFM69W
+    palevel = RH_RF69_PALEVEL_PA0ON
+      | ((_power + 18) & RH_RF69_PALEVEL_OUTPUTPOWER);
+  }
+  spiWrite(RH_RF69_REG_11_PALEVEL, palevel);
+>>>>>>> d27e11fba5c87a25cf468b826ee28f6e60831787
 }
 
 // Sets registers from a canned modem configuration structure
@@ -496,6 +578,12 @@ bool RH_RF69::send(const uint8_t* data, uint8_t len)
     waitPacketSent(); // Make sure we dont interrupt an outgoing message
     setModeIdle(); // Prevent RX while filling the fifo
 
+<<<<<<< HEAD
+=======
+    if (!waitCAD()) 
+	return false;  // Check channel activity
+
+>>>>>>> d27e11fba5c87a25cf468b826ee28f6e60831787
     ATOMIC_BLOCK_START;
     digitalWrite(_slaveSelectPin, LOW);
     _spi.transfer(RH_RF69_REG_00_FIFO | RH_RF69_SPI_WRITE_MASK); // Send the start address with the write mask on

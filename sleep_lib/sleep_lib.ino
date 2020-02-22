@@ -2,8 +2,12 @@
 #include "time.h"
 #include "WiFi.h"
 
+<<<<<<< HEAD
 #define DEV_NAME "ESP32lite"
 #define SLEEP_TIME 30
+=======
+#define DEV_NAME "ESP32"
+>>>>>>> d27e11fba5c87a25cf468b826ee28f6e60831787
 
 RTC_DATA_ATTR long clock_expectedWake = 0;
 RTC_DATA_ATTR int bootCounter = 0;
@@ -90,14 +94,25 @@ private:
     // return 0;
     return 1;
   }
+<<<<<<< HEAD
   void zero_array()
+=======
+
+  bool driftUpdate(float drift_value, byte cell = 0, byte update_freq = 10)
+>>>>>>> d27e11fba5c87a25cf468b826ee28f6e60831787
   {
     for (int a = 0; a < AVG_SIZE; a++)
     {
+<<<<<<< HEAD
       driftAVG_RTC[a] = 0.0;
+=======
+      driftRTC += drift_value;
+      Serial.print("UPDATED A: ");
+>>>>>>> d27e11fba5c87a25cf468b826ee28f6e60831787
     }
   }
 
+<<<<<<< HEAD
   bool driftUpdate(float drift_value, byte cell = 0, byte update_freq = 10)
   {
     Serial.print("bootCounter :#");
@@ -154,6 +169,12 @@ private:
     }
     Serial.print("Calc drift is:");
     Serial.println(driftRTC);
+=======
+      driftRTC = ((float)(bootCounter-1.0)*driftRTC+ drift_value)/bootCounter;
+      Serial.print("UPDATED B: ");
+    }
+    Serial.print(driftRTC);
+>>>>>>> d27e11fba5c87a25cf468b826ee28f6e60831787
   }
 
   int calc_nominal_sleepTime()
@@ -175,7 +196,7 @@ private:
     }
 
     sprintf(tt, "wakeDuration: [%.2fs]; startSleep: [%02d:%02d:%02d]; sleepFor: [%d sec]; drift: [%.1f sec]",
-            (float)millis() / 1000.0, timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec, nominal_nextSleep, driftRTC);
+            millis() / 1000.0, timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec, nominal_nextSleep, driftRTC);
     strcat(sleepstr, tt);
     return nominal_nextSleep;
   }
@@ -273,7 +294,7 @@ public:
           }
           else if (wake_diff < 0 && abs(wake_diff) > min_t_avoidSleep)
           {
-            sleepNOW((float)abs(wake_diff));
+            sleepNOW(abs(wake_diff));
           }
         }
       }
@@ -294,7 +315,7 @@ public:
       if (network_status)
       {
         printUpdatedClock("Sleep Summery");
-        sleepNOW((float)calc_nominal_sleepTime() - driftRTC);
+        sleepNOW(calc_nominal_sleepTime() - driftRTC);
       }
       else
       {
@@ -318,7 +339,11 @@ public:
   }
 };
 
+<<<<<<< HEAD
 esp32Sleep go2sleep(SLEEP_TIME, 15, DEV_NAME);
+=======
+esp32Sleep go2sleep(60, 5, DEV_NAME);
+>>>>>>> d27e11fba5c87a25cf468b826ee28f6e60831787
 
 void setup()
 {

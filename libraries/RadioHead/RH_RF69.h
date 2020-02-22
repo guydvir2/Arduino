@@ -1,7 +1,11 @@
 // RH_RF69.h
 // Author: Mike McCauley (mikem@airspayce.com)
 // Copyright (C) 2014 Mike McCauley
+<<<<<<< HEAD
 // $Id: RH_RF69.h,v 1.28 2015/01/02 21:38:24 mikem Exp $
+=======
+// $Id: RH_RF69.h,v 1.37 2019/07/14 00:18:48 mikem Exp $
+>>>>>>> d27e11fba5c87a25cf468b826ee28f6e60831787
 //
 ///
 
@@ -53,6 +57,19 @@
 // This is the default node address,
 #define RH_RF69_DEFAULT_NODE_ADDRESS 0
 
+<<<<<<< HEAD
+=======
+// You can define the following macro (either by editing here or by passing it as a compiler definition
+// to change the default value of the ishighpowermodule argument to setTxPower to true
+// 
+// #define RFM69_HW
+#ifdef RFM69_HW
+#define RH_RF69_DEFAULT_HIGHPOWER true
+#else
+#define RH_RF69_DEFAULT_HIGHPOWER false
+#endif
+
+>>>>>>> d27e11fba5c87a25cf468b826ee28f6e60831787
 // Register names
 #define RH_RF69_REG_00_FIFO                                 0x00
 #define RH_RF69_REG_01_OPMODE                               0x01
@@ -299,6 +316,21 @@
 /// - RFM69 modules from http://www.hoperfusa.com such as http://www.hoperfusa.com/details.jsp?pid=145
 /// - Anarduino MiniWireless -CW and -HW boards http://www.anarduino.com/miniwireless/ including
 ///  the marvellous high powered MinWireless-HW (with 20dBm output for excellent range)
+<<<<<<< HEAD
+=======
+/// - the excellent Rocket Scream Mini Ultra Pro with the RFM69HCW 
+///   http://www.rocketscream.com/blog/product/mini-ultra-pro-with-radio/
+/// - The excellent Talk2 Whisper Node boards 
+///   (https://talk2.wisen.com.au/ and https://bitbucket.org/talk2/whisper-node-avr), 
+///   an Arduino compatible board, which include an on-board RF69 radio, external antenna, 
+///   run on 2xAAA batteries and support low power operations. RF69 examples work without modification.
+///   Use Arduino Board Manager to install the Talk2 code support as described in 
+///   https://bitbucket.org/talk2/whisper-node-avr. Upeload the code with an FTDI adapter set to 3.3V.
+/// - The excellent Adafruit Feather. These are excellent boards that are available with a variety of radios. 
+///   We tested with the 
+///   Feather 32u4 with RFM69HCW radio, with Arduino IDE 1.6.8 and the Adafruit AVR Boards board manager version 1.6.10.
+///   https://www.adafruit.com/products/3076
+>>>>>>> d27e11fba5c87a25cf468b826ee28f6e60831787
 ///
 /// \par Overview
 ///
@@ -367,7 +399,11 @@
 /// programming connection and an antenna to make it work.
 ///
 /// If you have a bare RFM69W that you want to connect to an Arduino, you
+<<<<<<< HEAD
 /// might use these connections (untested): CAUTION: you must use a 3.3V type
+=======
+/// might use these connections: CAUTION: you must use a 3.3V type
+>>>>>>> d27e11fba5c87a25cf468b826ee28f6e60831787
 /// Arduino, otherwise you will also need voltage level shifters between the
 /// Arduino and the RFM69.  CAUTION, you must also ensure you connect an
 /// antenna
@@ -383,6 +419,21 @@
 ///        MISO pin D12----------MISO  (SPI Data out)
 /// \endcode
 ///
+<<<<<<< HEAD
+=======
+/// For Arduino Due, use these connections:
+/// \code
+///                 Arduino      RFM69W
+///                 GND----------GND   (ground in)
+///                 3V3----------3.3V  (3.3V in)
+/// interrupt 0 pin D2-----------DIO0  (interrupt request out)
+///          SS pin D10----------NSS   (chip select in)
+///       SCK SPI pin 3----------SCK   (SPI clock in)
+///      MOSI SPI pin 4----------MOSI  (SPI Data in)
+///      MISO SPI pin 1----------MISO  (SPI Data out)
+/// \endcode
+///
+>>>>>>> d27e11fba5c87a25cf468b826ee28f6e60831787
 /// With these connections, you can then use the default constructor RH_RF69().
 /// You can override the default settings for the SS pin and the interrupt in
 /// the RH_RF69 constructor if you wish to connect the slave select SS to other
@@ -407,6 +458,98 @@
 /// Make sure you have the MoteinoMEGA core installed in your Arduino hardware folder as described in the
 /// documentation for the MoteinoMEGA.
 ///
+<<<<<<< HEAD
+=======
+/// If you have an Arduino M0 Pro from arduino.org, 
+/// you should note that you cannot use Pin 2 for the interrupt line 
+/// (Pin 2 is for the NMI only). The same comments apply to Pin 4 on Arduino Zero from arduino.cc.
+/// Instead you can use any other pin (we use Pin 3) and initialise RH_RF69 like this:
+/// \code
+/// // Slave Select is pin 10, interrupt is Pin 3
+/// RH_RF69 driver(10, 3);
+/// \endcode
+///
+/// If you have a Rocket Scream Mini Ultra Pro with the RFM69HCW
+/// - Ensure you have Arduino SAMD board support 1.6.5 or later in Arduino IDE 1.6.8 or later.
+/// - The radio SS is hardwired to pin D5 and the DIO0 interrupt to pin D2, 
+/// so you need to initialise the radio like this:
+/// \code
+/// RH_RF69 driver(5, 2);
+/// \endcode
+/// - The name of the serial port on that board is 'SerialUSB', not 'Serial', so this may be helpful at the top of our
+///   sample sketches:
+/// \code
+/// #define Serial SerialUSB
+/// \endcode
+/// - You also need this in setup before radio initialisation  
+/// \code
+/// // Ensure serial flash is not interfering with radio communication on SPI bus
+///  pinMode(4, OUTPUT);
+///  digitalWrite(4, HIGH);
+/// \endcode
+/// - and if you have a 915MHz part, you need this after driver/manager intitalisation:
+/// \code
+/// rf69.setFrequency(915.0);
+/// rf69.setTxPower(20);
+/// \endcode
+/// which adds up to modifying sample sketches something like:
+/// \code
+/// #include <SPI.h>
+/// #include <RH_RF69.h>
+/// RH_RF69 rf69(5, 2); // Rocket Scream Mini Ultra Pro with the RFM69HCW
+/// #define Serial SerialUSB
+/// 
+/// void setup() 
+/// {
+///   // Ensure serial flash is not interfering with radio communication on SPI bus
+///   pinMode(4, OUTPUT);
+///   digitalWrite(4, HIGH);
+/// 
+///   Serial.begin(9600);
+///   while (!Serial) ; // Wait for serial port to be available
+///   if (!rf69.init())
+///     Serial.println("init failed");
+///   rf69.setFrequency(915.0);
+///   rf69.setTxPower(20);
+/// }
+/// ...
+/// \endcode
+///
+/// If you have a talk2 Whisper Node board with on-board RF69 radio, 
+/// the example rf69_* sketches work without modifications. Initialise the radio like
+/// with the default constructor:
+/// \code
+///  RH_RF69 driver;
+/// \endcode
+///
+/// If you have a Feather 32u4 with RFM69HCW you need to initialise the driver like:
+/// \code
+///  RH_RF69 driver(8, 7);
+/// \endcode
+/// and since the radio is the high power HCW model, you must set the Tx power in the
+/// range 14 to 20 like this:
+/// \code
+///  driver.setTxPower(14);
+/// \endcode
+///
+/// If you are connecting an RF69 to a ESP8266 board breakout board that exposes pins
+/// 12, 13, 14, 15 (ie NOT an ESP-01) you can connect like this:
+/// \code
+///                   ESP8266      RFM69W
+///                    GND-----------GND   (ground in)
+///                    VIN-----------3.3V  (3.3V in)
+/// interrupt D0 pin GPIO0-----------DIO0  (interrupt request out)
+///           SS pin GPIO15----------NSS   (chip select in)
+///      SCK SPI pin GPIO14----------SCK   (SPI clock in)
+///     MOSI SPI pin GPIO13----------MOSI  (SPI Data in)
+///     MISO SPI pin GPIO12----------MISO  (SPI Data out)
+/// \endcode
+/// and initialise with
+/// \code
+/// RH_RF69 driver(15, 0);
+/// \endcode
+///
+>>>>>>> d27e11fba5c87a25cf468b826ee28f6e60831787
 /// It is possible to have 2 or more radios connected to one Arduino, provided
 /// each radio has its own SS and interrupt line (SCK, SDI and SDO are common
 /// to all radios)
@@ -425,6 +568,28 @@
 /// -random termination of communication after 5-30 packets sent/received
 /// -"fake ok" state, where initialization passes fluently, but communication doesn't happen
 /// -shields hang Arduino boards, especially during the flashing
+<<<<<<< HEAD
+=======
+///
+/// \par Encryption
+///
+/// This driver support the on-chip AES encryption provided by the RF69.
+/// You can enable encryption by calling setEncryptionKey() after init() has been called.
+/// If both transmitter and receiver have been configured with the same AES key,
+/// then the receiver will recover the unencrypted message sent by the receiver.
+/// However, you should note that there is no way for RF69 nor for the RadioHead
+/// drivers to know whether the AES 
+/// key for a message is 'correct' or not. This is because the RF69 CRC covers the 
+/// _encrypted_ payload not the plaintext.
+///
+/// In RadioHead managers that support addressing,
+/// the RF69 AES encryption includes the RadioHead payload and the TO and FROM addresses, so 
+/// occasionally (average one in 256 messages), a message encrypted with the 
+/// 'wrong' key will have the 'correct' destination address, and will therefore be 
+/// accepted by RadioHead as a 'random' message content from a 'random' sender.
+/// Its up to your code to figure out whether the message makes sense or not.
+///
+>>>>>>> d27e11fba5c87a25cf468b826ee28f6e60831787
 /// \par Interrupts
 ///
 /// The RH_RF69 driver uses interrupts to react to events in the RF69 module,
@@ -617,6 +782,11 @@ public:
     /// Caution: You must specify an interrupt capable pin.
     /// On many Arduino boards, there are limitations as to which pins may be used as interrupts.
     /// On Leonardo pins 0, 1, 2 or 3. On Mega2560 pins 2, 3, 18, 19, 20, 21. On Due and Teensy, any digital pin.
+<<<<<<< HEAD
+=======
+    /// On Arduino Zero from arduino.cc, any digital pin other than 4.
+    /// On Arduino M0 Pro from arduino.org, any digital pin other than 2.
+>>>>>>> d27e11fba5c87a25cf468b826ee28f6e60831787
     /// On other Arduinos pins 2 or 3. 
     /// See http://arduino.cc/en/Reference/attachInterrupt for more details.
     /// On Chipkit Uno32, pins 38, 2, 7, 8, 35.
@@ -679,12 +849,27 @@ public:
     /// Sets the transmitter power output level.
     /// Be a good neighbour and set the lowest power level you need.
     /// Caution: legal power limits may apply in certain countries.
+<<<<<<< HEAD
     /// After init(), the power will be set to 13dBm.
     /// \param[in] power Transmitter power level in dBm. For RF69W, valid values are from -18 to +13 
     /// (higher power settings disable the transmitter).
     /// For RF69HW, valid values are from +14 to +20. Caution: at +20dBm, duty cycle is limited to 1% and a 
     /// maximum VSWR of 3:1 at the antenna port.
     void           setTxPower(int8_t power);
+=======
+    /// After init(), the power will be set to 13dBm for a low power module.
+    /// If you are using a high p[ower modfule such as an RFM69HW, you MUST set the power level
+    /// with the ishighpowermodule flag set to true. Else you wil get no measurable power output.
+    /// Simlarly if you are not using a high power module, you must NOT set the ishighpowermodule
+    /// (which is the default)
+    /// \param[in] power Transmitter power level in dBm. For RF69W (ishighpowermodule = false),
+    /// valid values are from -18 to +13.; Values outside this range are trimmed.
+    /// For RF69HW (ishighpowermodule = true), valid values are from -2 to +20.
+    /// Caution: at +20dBm, duty cycle is limited to 1% and a 
+    /// maximum VSWR of 3:1 at the antenna port.
+    /// \param ishighpowermodule Set to true if the connected module is a high power module RFM69HW
+    void           setTxPower(int8_t power, bool ishighpowermodule = RH_RF69_DEFAULT_HIGHPOWER);
+>>>>>>> d27e11fba5c87a25cf468b826ee28f6e60831787
 
     /// Sets all the registers required to configure the data modem in the RF69, including the data rate, 
     /// bandwidths etc. You can use this to configure the modem with custom configurations if none of the 
@@ -736,6 +921,12 @@ public:
     /// value on all nodes in your network. Nodes with different SyncWords set will never receive
     /// each others messages, so different SyncWords can be used to isolate different
     /// networks from each other. Default is { 0x2d, 0xd4 }.
+<<<<<<< HEAD
+=======
+    /// Caution: tests here show that with a single sync word (ie where len == 1), 
+    /// RFM69 reception can be unreliable.
+    /// To disable sync word generation and detection, call with the defaults: setSyncWords();
+>>>>>>> d27e11fba5c87a25cf468b826ee28f6e60831787
     /// \param[in] syncWords Array of sync words, 1 to 4 octets long. NULL if no sync words to be used.
     /// \param[in] len Number of sync words to set, 1 to 4. 0 if no sync words to be used.
     void           setSyncWords(const uint8_t* syncWords = NULL, uint8_t len = 0);
@@ -744,7 +935,11 @@ public:
     /// to encrypt and decrypt all messages. The default is disabled.
     /// \param[in] key The key to use. Must be 16 bytes long. The same key must be installed
     /// in other instances of RF69, otherwise communications will not work correctly. If key is NULL,
+<<<<<<< HEAD
     /// encryption is disabled.
+=======
+    /// encryption is disabled, which is the default.
+>>>>>>> d27e11fba5c87a25cf468b826ee28f6e60831787
     void           setEncryptionKey(uint8_t* key = NULL);
 
     /// Returns the time in millis since the most recent preamble was received, and when the most recent
@@ -783,6 +978,16 @@ public:
     /// \return true if sleep mode was successfully entered.
     virtual bool    sleep();
 
+<<<<<<< HEAD
+=======
+    /// Return the integer value of the device type
+    /// as read from the device in from RH_RF69_REG_10_VERSION.
+    /// Expect 0x24, depending on the type of device actually
+    /// connected.
+    /// \return The integer device type
+    uint16_t deviceType() {return _deviceType;};
+
+>>>>>>> d27e11fba5c87a25cf468b826ee28f6e60831787
 protected:
     /// This is a low level function to handle the interrupts for one instance of RF69.
     /// Called automatically by isr*()

@@ -3,6 +3,12 @@
 // Copyright (C) 2014 Mike McCauley
 // $Id: simMain.cpp,v 1.2 2014/05/09 05:30:03 mikem Exp mikem $
 
+<<<<<<< HEAD
+=======
+#include <RadioHead.h>
+#if (RH_PLATFORM == RH_PLATFORM_UNIX) 
+
+>>>>>>> d27e11fba5c87a25cf468b826ee28f6e60831787
 #include <stdio.h>
 #include <RHutil/simulator.h>
 #include <sys/time.h>
@@ -64,3 +70,8 @@ long random(long to)
 {
     return random(0, to);
 }
+<<<<<<< HEAD
+=======
+
+#endif
+>>>>>>> d27e11fba5c87a25cf468b826ee28f6e60831787

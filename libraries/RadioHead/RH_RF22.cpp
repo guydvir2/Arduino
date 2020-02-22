@@ -1,7 +1,11 @@
 // RH_RF22.cpp
 //
 // Copyright (C) 2011 Mike McCauley
+<<<<<<< HEAD
 // $Id: RH_RF22.cpp,v 1.23 2015/01/02 21:38:24 mikem Exp $
+=======
+// $Id: RH_RF22.cpp,v 1.31 2019/09/02 05:21:52 mikem Exp $
+>>>>>>> d27e11fba5c87a25cf468b826ee28f6e60831787
 
 #include <RH_RF22.h>
 
@@ -72,7 +76,11 @@ void RH_RF22::setIdleMode(uint8_t idleMode)
 }
 
 bool RH_RF22::init()
+<<<<<<< HEAD
 {
+=======
+{ 
+>>>>>>> d27e11fba5c87a25cf468b826ee28f6e60831787
     if (!RHSPIDriver::init())
 	return false;
 
@@ -80,6 +88,15 @@ bool RH_RF22::init()
     int interruptNumber = digitalPinToInterrupt(_interruptPin);
     if (interruptNumber == NOT_AN_INTERRUPT)
 	return false;
+<<<<<<< HEAD
+=======
+#ifdef RH_ATTACHINTERRUPT_TAKES_PIN_NUMBER
+    interruptNumber = _interruptPin;
+#endif
+
+    // Tell the low level SPI interface we will use SPI within this interrupt
+    spiUsingInterrupt(interruptNumber);
+>>>>>>> d27e11fba5c87a25cf468b826ee28f6e60831787
 
     // Software reset the device
     reset();
@@ -90,14 +107,32 @@ bool RH_RF22::init()
     if (   _deviceType != RH_RF22_DEVICE_TYPE_RX_TRX
         && _deviceType != RH_RF22_DEVICE_TYPE_TX)
     {
+<<<<<<< HEAD
 	return false;
     }
 
+=======
+//	Serial.print("unknown device type: ");
+//	Serial.println(_deviceType);
+	return false;
+    }
+
+    // Issue software reset to get all registers to default state
+    spiWrite(RH_RF22_REG_07_OPERATING_MODE1, RH_RF22_SWRES);
+    // Wait for chip ready
+    while (!(spiRead(RH_RF22_REG_04_INTERRUPT_STATUS2) & RH_RF22_ICHIPRDY))
+	;
+    
+>>>>>>> d27e11fba5c87a25cf468b826ee28f6e60831787
     // Add by Adrien van den Bossche <vandenbo@univ-tlse2.fr> for Teensy
     // ARM M4 requires the below. else pin interrupt doesn't work properly.
     // On all other platforms, its innocuous, belt and braces
     pinMode(_interruptPin, INPUT); 
+<<<<<<< HEAD
 
+=======
+    
+>>>>>>> d27e11fba5c87a25cf468b826ee28f6e60831787
     // Enable interrupt output on the radio. Interrupt line will now go high until
     // an interrupt occurs
     spiWrite(RH_RF22_REG_05_INTERRUPT_ENABLE1, RH_RF22_ENTXFFAEM | RH_RF22_ENRXFFAFULL | RH_RF22_ENPKSENT | RH_RF22_ENPKVALID | RH_RF22_ENCRCERROR | RH_RF22_ENFFERR);
@@ -295,17 +330,29 @@ void RH_RF22::handleInterrupt()
 // These are low level functions that call the interrupt handler for the correct
 // instance of RH_RF22.
 // 3 interrupts allows us to have 3 different devices
+<<<<<<< HEAD
 void RH_RF22::isr0()
+=======
+void RH_INTERRUPT_ATTR RH_RF22::isr0()
+>>>>>>> d27e11fba5c87a25cf468b826ee28f6e60831787
 {
     if (_deviceForInterrupt[0])
 	_deviceForInterrupt[0]->handleInterrupt();
 }
+<<<<<<< HEAD
 void RH_RF22::isr1()
+=======
+void RH_INTERRUPT_ATTR RH_RF22::isr1()
+>>>>>>> d27e11fba5c87a25cf468b826ee28f6e60831787
 {
     if (_deviceForInterrupt[1])
 	_deviceForInterrupt[1]->handleInterrupt();
 }
+<<<<<<< HEAD
 void RH_RF22::isr2()
+=======
+void RH_INTERRUPT_ATTR RH_RF22::isr2()
+>>>>>>> d27e11fba5c87a25cf468b826ee28f6e60831787
 {
     if (_deviceForInterrupt[2])
 	_deviceForInterrupt[2]->handleInterrupt();
@@ -584,6 +631,13 @@ bool RH_RF22::send(const uint8_t* data, uint8_t len)
 {
     bool ret = true;
     waitPacketSent();
+<<<<<<< HEAD
+=======
+
+    if (!waitCAD()) 
+	return false;  // Check channel activity
+
+>>>>>>> d27e11fba5c87a25cf468b826ee28f6e60831787
     ATOMIC_BLOCK_START;
     spiWrite(RH_RF22_REG_3A_TRANSMIT_HEADER3, _txHeaderTo);
     spiWrite(RH_RF22_REG_3B_TRANSMIT_HEADER2, _txHeaderFrom);
@@ -658,6 +712,10 @@ void RH_RF22::resetRxFifo()
 {
     spiWrite(RH_RF22_REG_08_OPERATING_MODE2, RH_RF22_FFCLRRX);
     spiWrite(RH_RF22_REG_08_OPERATING_MODE2, 0);
+<<<<<<< HEAD
+=======
+    _rxBufValid = false;
+>>>>>>> d27e11fba5c87a25cf468b826ee28f6e60831787
 }
 
 // CLear the TX FIFO

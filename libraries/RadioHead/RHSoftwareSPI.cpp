@@ -111,6 +111,7 @@ void RHSoftwareSPI::begin()
     digitalWrite(_sck, _clockPolarity);
 
     // Caution: these counts assume that digitalWrite is very fast, which is usually not true
+<<<<<<< HEAD
     uint8_t delayCounts;
     switch (_frequency)
     {
@@ -132,6 +133,28 @@ void RHSoftwareSPI::begin()
 
 	case Frequency16MHz:
 	    delayCounts = 0;
+=======
+    switch (_frequency)
+    {
+	case Frequency1MHz:
+	    _delayCounts = 8;
+	    break;
+
+	case Frequency2MHz:
+	    _delayCounts = 4;
+	    break;
+
+	case Frequency4MHz:
+	    _delayCounts = 2;
+	    break;
+
+	case Frequency8MHz:
+	    _delayCounts = 1;
+	    break;
+
+	case Frequency16MHz:
+	    _delayCounts = 0;
+>>>>>>> d27e11fba5c87a25cf468b826ee28f6e60831787
 	    break;
     }
 }
@@ -159,7 +182,11 @@ void RHSoftwareSPI::setPins(uint8_t miso, uint8_t mosi, uint8_t sck)
 
 void RHSoftwareSPI::delayPeriod()
 {
+<<<<<<< HEAD
     for (volatile uint8_t count; count<_delayCounts; count++)
+=======
+    for (uint8_t count = 0; count < _delayCounts; count++)
+>>>>>>> d27e11fba5c87a25cf468b826ee28f6e60831787
     {
 	__asm__ __volatile__ ("nop");
     }
