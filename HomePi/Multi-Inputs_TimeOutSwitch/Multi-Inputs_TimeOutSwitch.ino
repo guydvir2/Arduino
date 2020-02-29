@@ -5,25 +5,25 @@
 
 // ********** Names + Strings  ***********
 // ~~~~~~~ MQTT Topics ~~~~~~              // belong to myIOT
-#define DEVICE_TOPIC "PIRsensor"
+#define DEVICE_TOPIC "OZbed"
 #define MQTT_PREFIX "myHome"
-#define MQTT_GROUP ""
+#define MQTT_GROUP "intLights"
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 // ********** Sketch Services  ***********
 #define VER "WEMOS_6.3"
-#define USE_INPUTS false
-#define IS_MOMENTARY false // is switch latch or momentary
+#define USE_INPUTS true
+#define IS_MOMENTARY true // is switch latch or momentary
 #define ON_AT_BOOT false   // On or OFF at boot (Usually when using inputs, at boot/PowerOn - state should be off
 #define USE_DAILY_TO false
 #define IS_SONOFF false
 #define HARD_REBOOT false
 #define USE_OLED false
 #define USE_TEMP_HUMID false
-#define USE_PWM false
+#define USE_PWM true
 
-#define USE_NOTIFY_TELE true
-#define USE_SENSOR true
+#define USE_NOTIFY_TELE false
+#define USE_SENSOR false
 #define USE_IR_REMOTE false
 #define USE_BLYNK false
 #define USE_IFTTT false
