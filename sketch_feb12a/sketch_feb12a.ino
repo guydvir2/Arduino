@@ -2,8 +2,8 @@
 #include <LiquidCrystal_I2C.h>
 
 LiquidCrystal_I2C lcd(0x27, 20, 4);
-const int PIN_TO_SENSOR_1 = 2;
-const int PIN_TO_SENSOR_2 = 3;
+const int PIN_TO_SENSOR_1 = D8;
+const int PIN_TO_SENSOR_2 = D7;
 const int PWR_SENSOR_1 = 6;
 const int PWR_SENSOR_2 = 4;
 const int BUZ_PIN = 5;
@@ -88,7 +88,7 @@ public:
     //   Serial.print(" state: ");
     //   Serial.println(sens_state);
     // }
-      
+
     bool ignore_det = millis() > _lastDetection_clock + (long)ignore_det_interval * 1000 + (long)(_length_logic_state * 1000); // timeout - minimal time between detections
     bool first_det = millis() > (long)delay_first_detection * 1000;                                                            // timeout - detection after boot
     logic_state = (millis() <= (_lastDetection_clock + (long)(_length_logic_state * 1000)));                                   // logic flag for sensor to be indetection mode
@@ -132,7 +132,7 @@ public:
 };
 
 PIRsensor sensor0(PIN_TO_SENSOR_1, "Sensor_1", 10);
-PIRsensor sensor1(PIN_TO_SENSOR_2, "Sensor_2",10);
+PIRsensor sensor1(PIN_TO_SENSOR_2, "Sensor_2", 10);
 
 void setup()
 {
@@ -150,14 +150,14 @@ void setup()
   // sensor1.run_func(quick_buzz);
   sensor1.start();
 
-  pinMode(PWR_SENSOR_1, OUTPUT);
-  pinMode(PWR_SENSOR_2, OUTPUT);
+  // pinMode(PWR_SENSOR_1, OUTPUT);
+  // pinMode(PWR_SENSOR_2, OUTPUT);
+  // digitalWrite(PWR_SENSOR_1, 1);
+  // digitalWrite(PWR_SENSOR_2, 1);
   pinMode(BUZ_PIN, OUTPUT);
-  digitalWrite(PWR_SENSOR_1, 1);
-  digitalWrite(PWR_SENSOR_2, 1);
 
-  lcd.init(); // initialize the lcd
-  lcd.backlight();
+  // lcd.init(); // initialize the lcd
+  // lcd.backlight();
 }
 
 void loop()
@@ -185,5 +185,8 @@ void loop()
   lcd.print(det_word);
   lcd.setCursor(0, 1);
   lcd.print(lines[1]);
+
+  Serial.println(det_word);
+  Serial.println(lines[1]);
   delay(500);
 }
