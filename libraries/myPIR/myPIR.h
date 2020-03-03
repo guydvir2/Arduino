@@ -23,8 +23,8 @@ private:
 
 public:
     int detCounts = 0;
-    int ignore_det_interval = 20;
-    int timer_duration = 10;
+    int ignore_det_interval = 20;   // seconds
+    int timer_duration = 10;        // logic flag "1"
     int delay_first_detection = 15; // seconds
     char *sensNick = "sensor";
     bool use_timer = false;
@@ -35,7 +35,6 @@ public:
     void start();
     void run_func(cb_func cb);
     void run_enddet_func(cb_func cb);
-
     bool checkSensor();
 };
 
