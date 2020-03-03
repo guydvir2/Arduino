@@ -99,36 +99,6 @@ void telecmds(String in_msg, String from, String chat_id, char *snd_msg)
     sprintf(snd_msg, "%s", prefix2);
     iot.sendReset("Telegram");
   } // reset
-  // else if (in_msg == comp_command[3])
-  // {
-  //   all_off("Telegram");
-  //   sprintf(snd_msg, "%sAll-Off signal was sent", prefix2);
-  // } // off
-  // else if (in_msg == comp_command[4])
-  // {
-  // }
-  // else if (in_msg == comp_command[5])
-  // {
-  //   char m1[20];
-  //   char m2[20];
-  //   sprintf(snd_msg, "%s", prefix2);
-
-  //   for (int i = 0; i < NUM_SWITCHES; i++)
-  //   {
-  //     if (TO[i]->remain() > 0)
-  //     {
-  //       TO[i]->convert_epoch2clock(now() + TO[i]->remain(), now(), m1, m2);
-  //       sprintf(t1, "Switch [#%d] already in TimeOut - timeLeft [%s]\n", i, m1);
-  //     }
-  //     else
-  //     {
-  //       TO[i]->restart_to();
-  //       sprintf(t1, "Switch [#%d] restarting TimeOut\n", i);
-  //     }
-
-  //     strcat(snd_msg, t1);
-  //   }
-  // } // timeout
   else if (in_msg == comp_command[2])
   {
     sprintf(snd_msg, "%s~%s~ is %s", prefix2, Telegram_Nick, DEVICE_TOPIC);
@@ -203,25 +173,31 @@ void sensorLoop()
 
   if (s0 && s1 && detection == false)
   {
-    char det_word[100];
-    char timeStamp[16];
-    char dateStamp[16];
-
-    iot.return_clock(timeStamp);
-    iot.return_date(dateStamp);
-
     detCounter++;
     detection = true;
-    sprintf(det_word, "[%s %s] [%s] Detection [#%d]", dateStamp, timeStamp, DEVICE_TOPIC, detCounter);
-    iot.pub_msg(det_word);
-    #if USE_NOTIFY_TELE
-    teleNotify.send_msg(det_word);
-    #endif
+    notifyDetection(); 
   }
   else if (s0 == false && s1 == false && detection == true)
   {
     detection = false;
   }
+}
+
+void notifyDetection(){
+  char det_word[100];
+  char timeStamp[16];
+  char dateStamp[16];
+
+  iot.return_clock(timeStamp);
+  iot.return_date(dateStamp);
+
+  sprintf(det_word, "[%s %s] [%s] Detection [#%d]", dateStamp, timeStamp, Telegram_Nick, detCounter);
+  iot.pub_msg(det_word);
+  Serial.println(det_word);
+  
+  #if USE_NOTIFY_TELE
+  teleNotify.send_msg(det_word);
+  #endif
 }
 
 void make_buz(byte i, byte del = 50)

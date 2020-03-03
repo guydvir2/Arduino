@@ -11,8 +11,8 @@ struct servo_defs
   int PWMPin;
 };
 
-servo_defs pitch_defs = {120, 120, 180, 6};
-servo_defs rotate_defs = {0, 0, 180, 9};
+servo_defs pitch_defs = {120, 120, 180, 3};
+servo_defs rotate_defs = {0, 0, 180, 5};
 
 void init_servo()
 {
