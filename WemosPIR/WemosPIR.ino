@@ -10,7 +10,7 @@
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 // ********** Sketch Services  ***********
-#define VER "WEMOS_0.1"
+#define VER "WEMOS_0.2"
 #define USE_NOTIFY_TELE false
 
 // ********** myIOT Class ***********
@@ -150,8 +150,9 @@ PIRsensor sensor1(PIN_TO_SENSOR_2, "Sensor_2", 10);
 
 void startSensors()
 {
+  sensor0.use_serial = true;
   sensor0.use_timer = false;
-  sensor0.timer_duration = 15;
+  sensor0.timer_duration = DET_DURATION;
   sensor0.ignore_det_interval = 5;
   // sensor0.run_func(quick_buzz);
   sensor0.start();
@@ -171,11 +172,11 @@ void sensorLoop()
   bool s0 = sensor0.logic_state; // stays in logic "1" for pre-defined duration
   bool s1 = sensor1.logic_state;
 
-  if (s0 && s1 && detection == false)
+  if (s0 && s1 && !detection)
   {
     detCounter++;
     detection = true;
-    notifyDetection(); 
+    notifyDetection();
   }
   else if (s0 == false && s1 == false && detection == true)
   {
@@ -183,7 +184,8 @@ void sensorLoop()
   }
 }
 
-void notifyDetection(){
+void notifyDetection()
+{
   char det_word[100];
   char timeStamp[16];
   char dateStamp[16];
@@ -191,13 +193,13 @@ void notifyDetection(){
   iot.return_clock(timeStamp);
   iot.return_date(dateStamp);
 
-  sprintf(det_word, "[%s %s] [%s] Detection [#%d]", dateStamp, timeStamp, Telegram_Nick, detCounter);
+  sprintf(det_word, "[%s %s] [%s] Detection [#%d]", dateStamp, timeStamp, DEVICE_TOPIC, detCounter);
   iot.pub_msg(det_word);
   Serial.println(det_word);
-  
-  #if USE_NOTIFY_TELE
+
+#if USE_NOTIFY_TELE
   teleNotify.send_msg(det_word);
-  #endif
+#endif
 }
 
 void make_buz(byte i, byte del = 50)

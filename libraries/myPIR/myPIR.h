@@ -28,6 +28,7 @@ public:
     int delay_first_detection = 15; // seconds
     char *sensNick = "sensor";
     bool use_timer = false;
+    bool use_serial = false;
     bool sens_state = false;
     bool logic_state = false; // a flag that will be on for some time, altghot physucal state has changed
 
