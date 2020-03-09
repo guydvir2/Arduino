@@ -11,11 +11,11 @@
 
 // ********** Sketch Services  ***********
 #define VER "WEMOS_0.2"
-#define USE_NOTIFY_TELE false
+#define USE_NOTIFY_TELE true
 
 // ********** myIOT Class ***********
 //~~~~~ Services ~~~~~~~~~~~
-#define USE_SERIAL true       // Serial Monitor
+#define USE_SERIAL false       // Serial Monitor
 #define USE_WDT true          // watchDog resets
 #define USE_OTA true          // OTA updates
 #define USE_RESETKEEPER false // detect quick reboot and real reboots
@@ -65,7 +65,7 @@ myTelegram teleNotify(BOT_TOKEN, CHAT_ID, time_check_messages);
 
 void telecmds(String in_msg, String from, String chat_id, char *snd_msg)
 {
-  String command_set[] = {"whois_online", "status", "whoami", "help"};
+  String command_set[] = {"whois_online", "status", "reset", "whoami", "help"};
   byte num_commands = sizeof(command_set) / sizeof(command_set[0]);
   String comp_command[num_commands];
   char prefix[100], prefix2[100];
@@ -99,11 +99,11 @@ void telecmds(String in_msg, String from, String chat_id, char *snd_msg)
     sprintf(snd_msg, "%s", prefix2);
     iot.sendReset("Telegram");
   } // reset
-  else if (in_msg == comp_command[2])
+  else if (in_msg == comp_command[3])
   {
     sprintf(snd_msg, "%s~%s~ is %s", prefix2, Telegram_Nick, DEVICE_TOPIC);
   } // whoami
-  else if (in_msg == comp_command[3])
+  else if (in_msg == comp_command[4])
   {
     char t[50];
     sprintf(snd_msg, "%sCommands Available:\n", prefix2, Telegram_Nick);
@@ -115,10 +115,10 @@ void telecmds(String in_msg, String from, String chat_id, char *snd_msg)
     }
 
     // } // all_commands
-    Serial.print("in_msg: ");
-    Serial.println(in_msg);
-    Serial.print("snd_msg: ");
-    Serial.println(snd_msg);
+    // Serial.print("in_msg: ");
+    // Serial.println(in_msg);
+    // Serial.print("snd_msg: ");
+    // Serial.println(snd_msg);
   }
 }
 #endif
@@ -137,9 +137,8 @@ void startIOTservices()
 }
 
 // ~~~~~~~~~~~~~~~~~ PIR Sensor ~~~~~~~~~~~~~~
-#define PIN_TO_SENSOR_1 D8
+#define PIN_TO_SENSOR_1 D5
 #define PIN_TO_SENSOR_2 D7
-#define BUZ_PIN 5
 #define DET_DURATION 5 // sec in detection
 
 int detCounter = 0;
@@ -154,7 +153,7 @@ void startSensors()
   sensor0.use_timer = false;
   sensor0.timer_duration = DET_DURATION;
   sensor0.ignore_det_interval = 5;
-  // sensor0.run_func(quick_buzz);
+  // sensor0.run_func(notifyDetection);
   sensor0.start();
 
   sensor1.use_timer = false;
@@ -166,8 +165,14 @@ void startSensors()
 
 void sensorLoop()
 {
-  sensor0.checkSensor(); // triggers logic "1" upon detection.once.
-  sensor1.checkSensor();
+  if (sensor0.checkSensor()) // triggers logic "1" upon detection.once.
+  {
+    // notifyDetection(sensor0.sensNick, sensor0.detCounts);
+  }
+  if (sensor1.checkSensor())
+  {
+    // notifyDetection(sensor1.sensNick, sensor1.detCounts);
+  }
 
   bool s0 = sensor0.logic_state; // stays in logic "1" for pre-defined duration
   bool s1 = sensor1.logic_state;
@@ -176,7 +181,7 @@ void sensorLoop()
   {
     detCounter++;
     detection = true;
-    notifyDetection();
+    notifyDetection(DEVICE_TOPIC, detCounter);
   }
   else if (s0 == false && s1 == false && detection == true)
   {
@@ -184,7 +189,7 @@ void sensorLoop()
   }
 }
 
-void notifyDetection()
+void notifyDetection(char *device, int counter)
 {
   char det_word[100];
   char timeStamp[16];
@@ -193,7 +198,7 @@ void notifyDetection()
   iot.return_clock(timeStamp);
   iot.return_date(dateStamp);
 
-  sprintf(det_word, "[%s %s] [%s] Detection [#%d]", dateStamp, timeStamp, DEVICE_TOPIC, detCounter);
+  sprintf(det_word, "[%s %s] [%s] Detection [#%d]", dateStamp, timeStamp, device, counter);
   iot.pub_msg(det_word);
   Serial.println(det_word);
 
@@ -202,29 +207,12 @@ void notifyDetection()
 #endif
 }
 
-void make_buz(byte i, byte del = 50)
-{
-  for (int x = 0; x < (int)i; x++)
-  {
-    digitalWrite(BUZ_PIN, HIGH);
-    delay(del);
-    digitalWrite(BUZ_PIN, LOW);
-    delay(del);
-    x++;
-  }
-}
-void quick_buzz()
-{
-  make_buz(1, 5);
-}
-
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 void startGPIOs()
 {
   pinMode(PIN_TO_SENSOR_1, INPUT);
   pinMode(PIN_TO_SENSOR_2, INPUT);
-  pinMode(BUZ_PIN, OUTPUT);
 }
 
 void setup()
