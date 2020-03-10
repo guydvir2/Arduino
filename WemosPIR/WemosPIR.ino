@@ -15,7 +15,7 @@
 
 // ********** myIOT Class ***********
 //~~~~~ Services ~~~~~~~~~~~
-#define USE_SERIAL false       // Serial Monitor
+#define USE_SERIAL false      // Serial Monitor
 #define USE_WDT true          // watchDog resets
 #define USE_OTA true          // OTA updates
 #define USE_RESETKEEPER false // detect quick reboot and real reboots
@@ -56,6 +56,56 @@ void giveStatus(char *outputmsg)
   sprintf(outputmsg, "Status: Total detections [#%d]", detection);
 }
 
+// ~~~~~~~~~~~~~~~~~ PIR Sensor ~~~~~~~~~~~~~~
+#define PIN_TO_SENSOR_1 D5
+#define PIN_TO_SENSOR_2 D7
+#define DET_DURATION 5 // sec in detection
+
+int detCounter = 0;
+char lines[2][20];
+bool no_notify = false;
+
+PIRsensor sensor0(PIN_TO_SENSOR_1, "Sensor_1", 10);
+PIRsensor sensor1(PIN_TO_SENSOR_2, "Sensor_2", 10);
+
+void startSensors()
+{
+  sensor0.use_serial = true;
+  sensor0.use_timer = false;
+  sensor0.timer_duration = DET_DURATION;
+  sensor0.ignore_det_interval = 5;
+  // sensor0.run_func(notifyDetection);
+  sensor0.start();
+
+  sensor1.use_timer = false;
+  sensor1.timer_duration = DET_DURATION;
+  sensor1.ignore_det_interval = 5;
+  // sensor1.run_func(quick_buzz);
+  sensor1.start();
+}
+
+void sensorLoop()
+{
+  sensor0.checkSensor(); // triggers logic "1" upon detection.once.
+  sensor1.checkSensor();
+
+  bool s0 = sensor0.logic_state; // stays in logic "1" for pre-defined duration
+  bool s1 = sensor1.logic_state;
+
+  if (s0 && s1 && !detection)
+  {
+    detCounter++;
+    detection = true;
+    notifyDetection(DEVICE_TOPIC, detCounter);
+  }
+  else if (s0 == false && s1 == false && detection == true)
+  {
+    detection = false;
+  }
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 // ~~~~~~~~~~~ Using SMS Notification ~~~~~~~
 #if USE_NOTIFY_TELE
 char *Telegram_Nick = DEVICE_TOPIC; //"iotTest";
@@ -65,7 +115,8 @@ myTelegram teleNotify(BOT_TOKEN, CHAT_ID, time_check_messages);
 
 void telecmds(String in_msg, String from, String chat_id, char *snd_msg)
 {
-  String command_set[] = {"whois_online", "status", "reset", "whoami", "help"};
+  String command_set[] = {"whois_online", "status", "reset", "whoami", "help", 
+  "stop_sensor", "restore_sensor", "stop_notify", "restore_notify"};
   byte num_commands = sizeof(command_set) / sizeof(command_set[0]);
   String comp_command[num_commands];
   char prefix[100], prefix2[100];
@@ -113,12 +164,28 @@ void telecmds(String in_msg, String from, String chat_id, char *snd_msg)
       sprintf(t1, "%s\n", t);
       strcat(snd_msg, t1);
     }
-
-    // } // all_commands
-    // Serial.print("in_msg: ");
-    // Serial.println(in_msg);
-    // Serial.print("snd_msg: ");
-    // Serial.println(snd_msg);
+  }
+  else if (in_msg == comp_command[5])
+  {
+    sprintf(snd_msg, "%s~ stopped", prefix2);
+    sensor0.stop_sensor = true;
+    sensor1.stop_sensor = true;
+  }
+  else if (in_msg == comp_command[6])
+  {
+    sprintf(snd_msg, "%s~ restart", prefix2);
+    sensor0.stop_sensor = false;
+    sensor1.stop_sensor = false;
+  }
+  else if (in_msg == comp_command[7])
+  {
+    sprintf(snd_msg, "%s~ stop notifications", prefix2);
+    no_notify = true;
+  }
+  else if (in_msg == comp_command[8])
+  {
+    sprintf(snd_msg, "%s~ restart notifications", prefix2);
+    no_notify = false;
   }
 }
 #endif
@@ -136,57 +203,10 @@ void startIOTservices()
   iot.start_services(ADD_MQTT_FUNC);
 }
 
-// ~~~~~~~~~~~~~~~~~ PIR Sensor ~~~~~~~~~~~~~~
-#define PIN_TO_SENSOR_1 D5
-#define PIN_TO_SENSOR_2 D7
-#define DET_DURATION 5 // sec in detection
-
-int detCounter = 0;
-char lines[2][20];
-
-PIRsensor sensor0(PIN_TO_SENSOR_1, "Sensor_1", 10);
-PIRsensor sensor1(PIN_TO_SENSOR_2, "Sensor_2", 10);
-
-void startSensors()
+void startGPIOs()
 {
-  sensor0.use_serial = true;
-  sensor0.use_timer = false;
-  sensor0.timer_duration = DET_DURATION;
-  sensor0.ignore_det_interval = 5;
-  // sensor0.run_func(notifyDetection);
-  sensor0.start();
-
-  sensor1.use_timer = false;
-  sensor1.timer_duration = DET_DURATION;
-  sensor1.ignore_det_interval = 5;
-  // sensor1.run_func(quick_buzz);
-  sensor1.start();
-}
-
-void sensorLoop()
-{
-  if (sensor0.checkSensor()) // triggers logic "1" upon detection.once.
-  {
-    // notifyDetection(sensor0.sensNick, sensor0.detCounts);
-  }
-  if (sensor1.checkSensor())
-  {
-    // notifyDetection(sensor1.sensNick, sensor1.detCounts);
-  }
-
-  bool s0 = sensor0.logic_state; // stays in logic "1" for pre-defined duration
-  bool s1 = sensor1.logic_state;
-
-  if (s0 && s1 && !detection)
-  {
-    detCounter++;
-    detection = true;
-    notifyDetection(DEVICE_TOPIC, detCounter);
-  }
-  else if (s0 == false && s1 == false && detection == true)
-  {
-    detection = false;
-  }
+  pinMode(PIN_TO_SENSOR_1, INPUT);
+  pinMode(PIN_TO_SENSOR_2, INPUT);
 }
 
 void notifyDetection(char *device, int counter)
@@ -203,16 +223,11 @@ void notifyDetection(char *device, int counter)
   Serial.println(det_word);
 
 #if USE_NOTIFY_TELE
-  teleNotify.send_msg(det_word);
+  if (!no_notify)
+  {
+    teleNotify.send_msg(det_word);
+  }
 #endif
-}
-
-// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-void startGPIOs()
-{
-  pinMode(PIN_TO_SENSOR_1, INPUT);
-  pinMode(PIN_TO_SENSOR_2, INPUT);
 }
 
 void setup()

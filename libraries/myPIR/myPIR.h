@@ -31,6 +31,8 @@ public:
     bool use_serial = false;
     bool sens_state = false;
     bool logic_state = false; // a flag that will be on for some time, altghot physucal state has changed
+    bool stop_sensor = false;
+    float ver=1.3;
 
     PIRsensor(int Pin, char *nick = "PIRsensor", int logic_length = 5);
     void start();
