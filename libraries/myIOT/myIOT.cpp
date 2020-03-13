@@ -1100,7 +1100,7 @@ myTelegram::myTelegram(char *Bot, char *chatID, int checkServer_interval, char *
 }
 void myTelegram::handleNewMessages(int numNewMessages)
 {
-        char sendmsg[250];
+        char sendmsg[500];
 
         for (int i = 0; i < numNewMessages; i++)
         {
@@ -1113,7 +1113,6 @@ void myTelegram::handleNewMessages(int numNewMessages)
 
                 if (strcmp(sendmsg, "") != 0)
                 {
-                        // Serial.println(bot.sendMessage(chat_id, sendmsg, ""));
                         bot.sendMessage(chat_id, sendmsg, "");
                 }
         }
@@ -1161,12 +1160,8 @@ void myTelegram::looper()
 
                 while (numNewMessages)
                 {
-                        Serial.print("numNewMessages: ");
-                        Serial.println(numNewMessages);
                         handleNewMessages(numNewMessages);
                         numNewMessages = bot.getUpdates(bot.last_message_received + 1);
-                        Serial.print("numNewMessages: ");
-                        Serial.println(numNewMessages);
                 }
                 _Bot_lasttime = millis();
         }

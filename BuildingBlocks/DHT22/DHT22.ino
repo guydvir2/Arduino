@@ -22,7 +22,7 @@ void setup() {
 
 void loop() {
   // Wait a few seconds between measurements.
-  delay(2000);
+  delay(10000);
 
   // Reading temperature or humidity takes about 250 milliseconds!
   // Sensor readings may also be up to 2 seconds 'old' (its a very slow sensor)
@@ -33,10 +33,10 @@ void loop() {
   float f = dht.readTemperature(true);
 
   // Check if any reads failed and exit early (to try again).
-  if (isnan(h) || isnan(t) || isnan(f)) {
-    Serial.println("Impossible de lire la sonde DHT!");
-    return;
-  }
+//  if (isnan(h) || isnan(t) || isnan(f)) {
+//    Serial.println("Impossible de lire la sonde DHT!");
+//    return;
+//  }
 
   // Compute heat index in Fahrenheit (the default)
   float hif = dht.computeHeatIndex(f, h);

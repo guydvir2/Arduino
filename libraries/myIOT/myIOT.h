@@ -120,7 +120,7 @@ bool checkInternet(char externalSite[40]);
   char deviceTopic[MaxTopicLength];
   char addGroupTopic[MaxTopicLength];
 
-  const char *ver = "iot_6.6";
+  const char *ver = "iot_6.61";
   char timeStamp[20];
 
 
