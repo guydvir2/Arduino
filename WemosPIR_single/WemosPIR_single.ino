@@ -60,8 +60,7 @@ void giveStatus(char *outputmsg)
 }
 
 // ~~~~~~~~~~~~~~~~~ PIR Sensor ~~~~~~~~~~~~~~
-#define PIN_TO_SENSOR_1 D5
-#define PIN_TO_SENSOR_2 D7
+#define PIN_TO_SENSOR_1 D7
 #define TIMER 5            // sec in detection
 #define LOGIC_DETECTION 10 // duration to logic detection
 #define log_entries 8
@@ -71,7 +70,6 @@ char past_detection_mag[log_entries][50];
 char *initword = "EMPTY";
 
 PIRsensor sensor0(PIN_TO_SENSOR_1, "Sensor_1", LOGIC_DETECTION);
-PIRsensor sensor1(PIN_TO_SENSOR_2, "Sensor_2", LOGIC_DETECTION);
 
 void startSensors()
 {
@@ -81,29 +79,21 @@ void startSensors()
   sensor0.ignore_det_interval = 5;
   // sensor0.run_func(notifyDetection);
   sensor0.start();
-
-  sensor1.use_timer = false;
-  sensor1.timer_duration = TIMER;
-  sensor1.ignore_det_interval = 5;
-  // sensor1.run_func(quick_buzz);
-  sensor1.start();
 }
 
 void sensorLoop()
 {
   sensor0.checkSensor(); // triggers logic "1" upon detection.once.
-  sensor1.checkSensor();
 
   bool s0 = sensor0.logic_state; // stays in logic "1" for pre-defined duration
-  bool s1 = sensor1.logic_state;
 
-  if (s0 && s1 && !detection)
+  if (s0 && !detection)
   {
     detCounter++;
     detection = true;
     notifyDetection(DEVICE_TOPIC, detCounter);
   }
-  else if (s0 == false && s1 == false && detection == true)
+  else if (s0 == false && detection == true)
   {
     detection = false;
   }
@@ -174,14 +164,12 @@ void telecmds(String in_msg, String from, String chat_id, char *snd_msg)
   {
     sprintf(snd_msg, "%s~ Sensor stopped", prefix2);
     sensor0.stop_sensor = true;
-    sensor1.stop_sensor = true;
     sensor_active = false;
   }
   else if (in_msg == comp_command[6])
   {
     sprintf(snd_msg, "%s~ Sensor restored", prefix2);
     sensor0.stop_sensor = false;
-    sensor1.stop_sensor = false;
     sensor_active = true;
   }
   else if (in_msg == comp_command[7])
@@ -226,7 +214,6 @@ void startIOTservices()
 void startGPIOs()
 {
   pinMode(PIN_TO_SENSOR_1, INPUT);
-  pinMode(PIN_TO_SENSOR_2, INPUT);
 }
 
 void notifyDetection(char *device, int counter)
