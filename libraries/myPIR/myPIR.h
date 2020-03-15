@@ -26,13 +26,14 @@ public:
     int ignore_det_interval = 20;   // seconds
     int timer_duration = 10;        // logic flag "1"
     int delay_first_detection = 15; // seconds
+    int timeLeft = 0;
     char *sensNick = "sensor";
     bool use_timer = false;
     bool use_serial = false;
     bool sens_state = false;
     bool logic_state = false; // a flag that will be on for some time, altghot physucal state has changed
     bool stop_sensor = false;
-    float ver=1.3;
+    float ver=1.4;
 
     PIRsensor(int Pin, char *nick = "PIRsensor", int logic_length = 5);
     void start();
