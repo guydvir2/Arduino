@@ -2,20 +2,20 @@
 #include "time.h"
 #include "WiFi.h"
 
-#define DEV_NAME "ESP32lite"
+#define DEV_NAME "ESP32S"
 #define SLEEP_TIME 30
+#define Avg_ArraySize 10
 
 RTC_DATA_ATTR long clock_expectedWake = 0;
 RTC_DATA_ATTR int bootCounter = 0;
 RTC_DATA_ATTR float driftRTC = 0;
 RTC_DATA_ATTR long clock_beforeSleep = 0;
-RTC_DATA_ATTR float driftAVG_RTC[AVG_SIZE];
+RTC_DATA_ATTR float driftAVG_RTC[Avg_ArraySize];
 
 class esp32Sleep
 {
 #define uS_TO_S_FACTOR 1000000ULL /* Conversion micro seconds to seconds */
 #define EEPROM_SIZE 16
-#define AVG_SIZE 5
 
 private:
   struct tm timeinfo;
@@ -90,9 +90,9 @@ private:
     // return 0;
     return 1;
   }
-  void zero_array()
+  void Avg_Array_zeroing()
   {
-    for (int a = 0; a < AVG_SIZE; a++)
+    for (int a = 0; a < Avg_ArraySize; a++)
     {
       driftAVG_RTC[a] = 0.0;
     }
@@ -109,14 +109,14 @@ private:
     Serial.println(driftRTC);
 
     // Serial.print("previous values in array: ");
-    // for (int a = 0; a < AVG_SIZE; a++)
+    // for (int a = 0; a < Avg_ArraySize; a++)
     // {
     //   Serial.print(driftAVG_RTC[a]);
     //   Serial.print(", ");
     // }
     // Serial.println("");
 
-    if (bootCounter <= AVG_SIZE + 2)
+    if (bootCounter <= Avg_ArraySize + 2)
     {
       Serial.println("PART A:");
       driftRTC += drift_value;
@@ -129,7 +129,7 @@ private:
     {
       float sum_avg = 0.0;
       Serial.println("PART B: ");
-      for (int a = AVG_SIZE - 1; a > 0; a--)
+      for (int a = Avg_ArraySize - 1; a > 0; a--)
       {
         driftAVG_RTC[a] = driftAVG_RTC[a - 1];
         sum_avg += driftAVG_RTC[a];
@@ -141,7 +141,7 @@ private:
         Serial.println(", ");
       }
       driftAVG_RTC[0] = drift_value;
-      sum_avg = (sum_avg + drift_value) / (float)AVG_SIZE;
+      sum_avg = (sum_avg + drift_value) / (float)Avg_ArraySize;
       Serial.print("cell: #");
       Serial.print(0);
       Serial.print("[");
@@ -198,7 +198,7 @@ public:
   }
   bool startServices()
   {
-    zero_array();
+    Avg_Array_zeroing();
     start_eeprom();
     if (start_wifi)
     {

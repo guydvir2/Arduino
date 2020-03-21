@@ -29,15 +29,16 @@ char detectionLog[logSize][50];
 
 // ~~~~~~~~~~~~~~~~~ PIR Sensor ~~~~~~~~~~~~~~
 #define PIN_TO_SENSOR_1 D7
-#define TIMER 30           // sec in detection
+#define TIMER 120           // sec in detection
 #define LOGIC_DETECTION 10 // duration to logic detection
 
-PIRsensor sensor0(PIN_TO_SENSOR_1, DEVICE_TOPIC, LOGIC_DETECTION);
+PIRsensor sensor0(PIN_TO_SENSOR_1, DEVICE_TOPIC, LOGIC_DETECTION, HIGH);
 
 void startSensors()
 {
-  sensor0.use_serial = false;
+  sensor0.use_serial = true;
   sensor0.use_timer = true;
+  sensor0.trigger_once = false;
   sensor0.timer_duration = TIMER;
   sensor0.ignore_det_interval = 5;
   sensor0.run_func(detect_callback);
@@ -267,7 +268,7 @@ void setup()
 void loop()
 {
   iot.looper();
-  sensor0.checkSensor();
+  sensor0.looper();
 
 #if USE_NOTIFY_TELE
   teleNotify.looper();

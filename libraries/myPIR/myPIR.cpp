@@ -1,10 +1,11 @@
 #include "Arduino.h"
 #include "myPIR.h"
 
-PIRsensor::PIRsensor(int Pin, char *nick, int logic_length)
+PIRsensor::PIRsensor(int Pin, char *nick, int logic_length, bool detect)
 {
   _pin = Pin;
   _length_logic_state = logic_length;
+  _isDetect = detect;
   sensNick = nick;
 }
 void PIRsensor::start()
@@ -23,55 +24,95 @@ void PIRsensor::run_enddet_func(cb_func cb)
   _use_enddetfunc = true;
 }
 
-bool PIRsensor::checkSensor()
+void PIRsensor::update_timer_end()
 {
-  if (stop_sensor == false)
-  {
-    bool ignore_det = millis() > _lastDetection_clock + (long)((ignore_det_interval + _length_logic_state) * 1000); // timeout - minimal time between detections
-    bool first_det = millis() > (long)delay_first_detection * 1000;                                                 // timeout - detection after boot
+  _endTimer = millis() + (long)timer_duration * 1000;
+  Serial.println("update");
+}
 
-    if (use_timer && _timer_is_on)
+bool PIRsensor::check_timer()
+{
+  if (use_timer && _timer_is_on) // check if timer is on and time remains
+  {
+    if (millis() > _endTimer)
     {
-      if (millis() > _endTimer)
+      // ending Timer
+      _timer_is_on = false;
+      timeLeft = 0;
+      if (_use_enddetfunc)
       {
-        _timer_is_on = false;
-        timeLeft = 0;
-        if (_use_enddetfunc)
-        {
-          _run_enddet_func();
-        }
-      }
-      else
-      {
-        timeLeft = (int)((_endTimer - millis())/1000);
-        return 1;
+        _run_enddet_func();
+        return 0;
       }
     }
+    else
+    {
+      // Timer remains
+      timeLeft = (int)((_endTimer - millis()) / 1000);
+      return 1;
+    }
+  }
+  else
+  {
+    return 0;
+  }
+}
+void PIRsensor::detection_callback()
+{
+  detCounts++;
+  _lastState = true;
+  _lastDetection_clock = millis();
 
-    logic_state = millis() <= _lastDetection_clock + (long)(_length_logic_state * 1000); // logic flag for sensor to be indetection mode
-    sens_state = digitalRead(_pin);                                                      // physical sensor read
+  if (use_timer)
+  {
+    if (_timer_is_on == false)
+    {
+      update_timer_end();
+      _timer_is_on = true;
+    }
+    else
+    {
+      if (trigger_once == false){
+        update_timer_end();
+      }
+    }
+  }
+  if (use_serial)
+  {
+    Serial.print("~~detect ");
+    Serial.println(sensNick);
+  }
+  if (_use_detfunc)
+  {
+    _run_func();
+  }
+}
+void PIRsensor::end_detection_callback()
+{
+  _lastState = false;
+  _lastDetection_clock = 0;
+  if (use_serial)
+  {
+    Serial.print("~~end_detect ");
+    Serial.println(sensNick);
+  }
+}
 
-    if (sens_state == _isDetect && _lastState == false && logic_state == false) // && _timer_is_on == false)
+bool PIRsensor::checkSensor()
+{
+  bool ignore_det = millis() > _lastDetection_clock + (long)((ignore_det_interval + _length_logic_state) * 1000); // timeout - minimal time between detections
+  bool first_det = millis() > (long)delay_first_detection * 1000;                                                 // timeout - detection after boot
+
+  logic_state = millis() <= _lastDetection_clock + (long)(_length_logic_state * 1000); // logic flag for sensor to be indetection mode
+  sens_state = digitalRead(_pin);                                                      // physical sensor read
+
+  if (logic_state == false)
+  {
+    if (sens_state == _isDetect && _lastState == false)
     {
       if (ignore_det || first_det)
       {
-        if (use_serial)
-        {
-          Serial.print("~~detect_");
-          Serial.println(sensNick);
-        }
-        detCounts++;
-        _lastState = true;
-        _lastDetection_clock = millis();
-        if (_use_detfunc)
-        {
-          _run_func();
-        }
-        if (use_timer)
-        {
-          _endTimer = millis() + (long)timer_duration * 1000;
-          _timer_is_on = true;
-        }
+        detection_callback();
         return 1;
       }
       else
@@ -79,28 +120,35 @@ bool PIRsensor::checkSensor()
         return 0;
       }
     }
-    else if (sens_state != _isDetect && _lastState && logic_state == false)
+    else if (sens_state != _isDetect && _lastState)
     {
-      _lastState = false;
-      _lastDetection_clock = 0;
-      if (use_serial)
-      {
-        Serial.print("~~end_detect");
-        Serial.println(sensNick);
-      }
-      if (_use_enddetfunc)
-      {
-        _run_enddet_func();
-      }
-      return 0;
-    }
-    else
-    {
+      end_detection_callback();
       return 0;
     }
   }
   else
   {
     return 0;
+  }
+}
+
+bool PIRsensor::looper()
+{
+  if (stop_sensor == false)
+  {
+    // bool a = 
+    check_timer();
+    checkSensor();
+    // if (a == 0)
+    // {
+    //   checkSensor();
+    // }
+    // else if (a == 1 && checkSensor() == 1 && trigger_once == false)
+    // {
+    //   update_timer_end();
+    // }
+  }
+  else{
+    yield();
   }
 }
