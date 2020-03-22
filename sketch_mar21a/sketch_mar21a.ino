@@ -51,7 +51,6 @@ bool firstUpload = true;
 
 void makeIFTTTRequest(float val1, float val2, char *val3)
 {
-#if USE_IFTTT
   Serial.print("Connecting to ");
   Serial.print(server);
 
@@ -96,7 +95,6 @@ void makeIFTTTRequest(float val1, float val2, char *val3)
 
   Serial.println("\nclosing connection");
   client.stop();
-#endif
 }
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -113,4 +111,8 @@ void setup()
 void loop()
 {
   go2sleep.wait_forSleep();
+  if (firstUpload){
+    makeIFTTTRequest(battery.ADC_value, solarPanel.ADC_value, "str");
+    firstUpload = false;
+  }
 }
