@@ -10,7 +10,6 @@ esp32Sleep go2sleep(SLEEP_TIME, FORCE_AWAKE_TIME, DEV_NAME);
 
 // ~~~~~~~~~ DAC & Solar Panel ~~~~~~~~~~~
 #define USE_VMEASURE true
-// #if USE_VMEASURE
 struct voltReader
 {
   int pin;
@@ -26,8 +25,6 @@ voltReader battery = {39, 0.0, 0.5, 1.15, 0, 3.3, 4096};
 voltReader solarPanel = {36, 0.0, 1 / 3, 1.1, 0};
 const int Vsamples = 10;
 float batADC_atBoot;
-
-// #endif
 
 void Vmeasure()
 {
