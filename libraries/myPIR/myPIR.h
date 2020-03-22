@@ -6,6 +6,7 @@
 class PIRsensor
 {
     typedef void (*cb_func)();
+#define def_detect HIGH
 
 private:
     int _pin;
@@ -23,22 +24,36 @@ private:
 
 public:
     int detCounts = 0;
+    int timeLeft = 0;
+
     int ignore_det_interval = 20;   // seconds
     int timer_duration = 10;        // logic flag "1"
     int delay_first_detection = 15; // seconds
-    char *sensNick = "sensor";
-    bool use_timer = false;
-    bool use_serial = false;
-    bool sens_state = false;
-    bool logic_state = false; // a flag that will be on for some time, altghot physucal state has changed
-    bool stop_sensor = false;
-    float ver=1.3;
 
-    PIRsensor(int Pin, char *nick = "PIRsensor", int logic_length = 5);
+    char *sensNick = "sensorNAMES";
+
+    bool use_serial = false;  // select to use serial port
+    bool use_timer = false;   // select if detection will rise a flag for predefined time
+    bool sens_state = false;  // select detection is HIGH or LOW
+    bool logic_state = false; // a flag that will be on for some time, altghot physucal state has changed
+    bool stop_sensor = false; // during code run, select to disable sensor activity
+    bool trigger_once = true; // when using timer, how to react to re-detect ? add time ?
+    float ver = 2.0;
+
+private:
+    void update_timer_end();
+    void detection_callback();
+    void end_detection_callback();
+    
+    bool check_timer();
+    bool checkSensor();
+
+public:
+    PIRsensor(int Pin, char *nick = "PIRsensor", int logic_length = 5, bool detect = def_detect);
     void start();
     void run_func(cb_func cb);
     void run_enddet_func(cb_func cb);
-    bool checkSensor();
+    bool looper();
 };
 
 #endif
