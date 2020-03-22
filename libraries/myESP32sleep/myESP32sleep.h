@@ -10,6 +10,7 @@
 
 class esp32Sleep
 {
+    typedef void (*cb_func)();
 #define uS_TO_S_FACTOR 1000000ULL /* Conversion micro seconds to seconds */
 #define EEPROM_SIZE 16
 
@@ -19,6 +20,9 @@ private:
     int _deepsleep_time = 0;  // nominal minutes to sleep
     int _forcedwake_time = 0; // forced time to stay awake before sleep
     bool _wifi_status = false;
+    bool _use_extfunc = false;
+
+    cb_func _runFunc;
 
 public:
     bool use_wifi = false;
@@ -50,6 +54,7 @@ public:
     void check_awake_ontime(int min_t_avoidSleep = 10);
     void wait_forSleep();
     void printUpdatedClock(char *hdr = "");
+    void run_func(cb_func cb);
 };
 
 #endif

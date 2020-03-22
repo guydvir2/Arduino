@@ -1,14 +1,15 @@
 #include "Arduino.h"
 #include "myESP32sleep.h"
 
-#define Avg_ArraySize 10
+#define Avg_ArraySize 4
 
 RTC_DATA_ATTR long clock_expectedWake = 0;
 RTC_DATA_ATTR int bootCounter = 0;
 RTC_DATA_ATTR float driftRTC = 0;
 RTC_DATA_ATTR long clock_beforeSleep = 0;
-RTC_DATA_ATTR float driftAVG_RTC[Avg_ArraySize];
+RTC_DATA_ATTR float driftAVG_RTC[Avg_ArraySize] = {1.00,2.00,3.00,4.00};//   ,5.00,6.00,7.00,8.00,9.00,10.00};
 
+// ~~~~~~~ EEPROM ~~~~~~~~~
 int esp32Sleep::getEEPROMvalue(byte i)
 {
   int eeprom_drift = EEPROM.read(i) * pow(-1, EEPROM.read(i + 1));
@@ -99,17 +100,26 @@ void esp32Sleep::driftUpdate(float drift_value, byte cell, byte update_freq)
   Serial.print("previous drift: ");
   Serial.println(driftRTC);
 
-  if (bootCounter <= Avg_ArraySize + 2)
-  {
-    Serial.println("PART A:");
-    driftRTC += drift_value;
-    if (bootCounter > 2) // first 2 boots will not enter to avg_array
-    {
-      driftAVG_RTC[bootCounter - 3] = drift_value;
-    }
-  }
-  else
-  {
+  // if (bootCounter <= Avg_ArraySize + 2)
+  // {
+  //   Serial.println("PART A:");
+  //   driftRTC += drift_value;
+  //   if (bootCounter > 2) // first 2 boots will not enter to avg_array
+  //   {
+  //     driftAVG_RTC[bootCounter - 3] = drift_value;
+  //   }
+  //   for (int a = Avg_ArraySize - 1; a > 0; a--)
+  //   {
+  //     Serial.print("cell: #");
+  //     Serial.print(a);
+  //     Serial.print("[");
+  //     Serial.print(driftAVG_RTC[a], 2);
+  //     Serial.print("]");
+  //     Serial.println(", ");
+  //   }
+  // }
+  // else
+  // {
     float sum_avg = 0.0;
     Serial.println("PART B: ");
     for (int a = Avg_ArraySize - 1; a > 0; a--)
@@ -119,7 +129,7 @@ void esp32Sleep::driftUpdate(float drift_value, byte cell, byte update_freq)
       Serial.print("cell: #");
       Serial.print(a);
       Serial.print("[");
-      Serial.print(driftAVG_RTC[a]);
+      Serial.print(driftAVG_RTC[a],2);
       Serial.print("]");
       Serial.println(", ");
     }
@@ -134,7 +144,7 @@ void esp32Sleep::driftUpdate(float drift_value, byte cell, byte update_freq)
     Serial.print("avg calc: ");
     Serial.println(sum_avg);
     driftRTC += sum_avg;
-  }
+  // }
   Serial.print("Calc drift is:");
   Serial.println(driftRTC);
 }
@@ -170,7 +180,7 @@ esp32Sleep::esp32Sleep(int deepsleep, int forcedwake , char *devname)
 }
 bool esp32Sleep::startServices()
 {
-  Avg_Array_zeroing();
+  // Avg_Array_zeroing();
   start_eeprom();
   if (use_wifi)
   {
@@ -291,4 +301,8 @@ void esp32Sleep::printUpdatedClock(char *hdr)
   Serial.print("end");
   Serial.print("~~~~~~\n\n");
 }
-
+void esp32Sleep::run_func(cb_func cb)
+{
+  _runFunc = cb;
+  _use_extfunc = true;
+}

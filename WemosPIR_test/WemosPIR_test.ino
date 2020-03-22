@@ -4,14 +4,14 @@
 
 // ********** Names + Strings  ***********
 // ~~~~~~~ MQTT Topics ~~~~~~              // belong to myIOT
-#define DEVICE_TOPIC "testPIR"
+#define DEVICE_TOPIC "parentsBedLEDs"
 #define MQTT_PREFIX "myHome"
-#define MQTT_GROUP "sensors"
+#define MQTT_GROUP "intLights"
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 // ********** Sketch Services  ***********
 #define VER "WEMOS_1.0"
-#define USE_NOTIFY_TELE true
+#define USE_NOTIFY_TELE false
 
 // ********** myIOT Class ***********
 //~~~~~ Services ~~~~~~~~~~~
@@ -28,8 +28,8 @@ char *initword = "EMPTYCELL";
 char detectionLog[logSize][50];
 
 // ~~~~~~~~~~~~~~~~~ PIR Sensor ~~~~~~~~~~~~~~
-#define PIN_TO_SENSOR_1 D7
-#define TIMER 120           // sec in detection
+#define PIN_TO_SENSOR_1 D1
+#define TIMER 10           // sec in detection
 #define LOGIC_DETECTION 10 // duration to logic detection
 
 PIRsensor sensor0(PIN_TO_SENSOR_1, DEVICE_TOPIC, LOGIC_DETECTION, HIGH);
@@ -45,7 +45,6 @@ void startSensors()
   sensor0.run_enddet_func(end_detection_callback);
   sensor0.start();
 }
-
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 // ~~~~~~~ MQTT ~~~~~~
@@ -199,6 +198,7 @@ void startIOTservices()
 void startGPIOs()
 {
   pinMode(PIN_TO_SENSOR_1, INPUT);
+  pinMode(D3, OUTPUT);
 }
 
 void notifyDetection(char *device = "empTy", int counter = 0)
@@ -252,9 +252,18 @@ void update_mag(char *txt)
   sprintf(detectionLog[0], "%s", txt);
 }
 
+void turnleds_on(){
+  digitalWrite(D3, HIGH);
+}
+void turnleds_off()
+{
+  digitalWrite(D3, LOW);
+}
+
 void setup()
 {
   startGPIOs();
+  turnleds_off();
   startIOTservices();
   startSensors();
   restart_mag();
