@@ -210,7 +210,10 @@ void esp32Sleep::sleepNOW(float sec2sleep)
   Serial.println(tmsg);
   Serial.println("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
   Serial.flush();
-  esp_sleep_enable_timer_wakeup(sec2sleep * uS_TO_S_FACTOR);
+  if (_use_extfunc){
+    _runFunc();
+  }
+    esp_sleep_enable_timer_wakeup(sec2sleep * uS_TO_S_FACTOR);
   esp_deep_sleep_start();
 }
 

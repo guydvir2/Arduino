@@ -1,11 +1,12 @@
 
 // ~~~~~~~ Sleep ~~~~~~~~~~~
 #include "myESP32sleep.h"
-#define SLEEP_TIME 1
+#define SLEEP_TIME 45
 #define FORCE_AWAKE_TIME 15
 #define DEV_NAME "ESP32S"
 
 esp32Sleep go2sleep(SLEEP_TIME, FORCE_AWAKE_TIME, DEV_NAME);
+
 // ~~~~~~~~~~~~~~~~~~~~~~~~~
 
 // ~~~~~~~~~ DAC & Solar Panel ~~~~~~~~~~~
@@ -98,6 +99,10 @@ void makeIFTTTRequest(float val1, float val2, char *val3)
 }
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+void b4sleep()
+{
+  makeIFTTTRequest(0, 0, go2sleep.sleepstr);
+}
 void setup()
 {
   Serial.begin(9600);
@@ -105,14 +110,12 @@ void setup()
   go2sleep.use_wifi = true;
   go2sleep.wifi_ssid = "Xiaomi_D6C8";
   go2sleep.wifi_pass = "guyd5161";
+  go2sleep.run_func(b4sleep);
   go2sleep.startServices();
 }
 
 void loop()
 {
   go2sleep.wait_forSleep();
-  if (firstUpload){
-    makeIFTTTRequest(battery.ADC_value, solarPanel.ADC_value, "str");
-    firstUpload = false;
-  }
+delay(100);
 }
