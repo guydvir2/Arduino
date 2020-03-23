@@ -11,7 +11,8 @@
 
 // ********** Sketch Services  ***********
 #define VER "WEMOS_1.0"
-#define USE_NOTIFY_TELE false
+#define USE_NOTIFY_TELE true
+#define ON_TIME 180 // minutes
 
 // ********** myIOT Class ***********
 //~~~~~ Services ~~~~~~~~~~~
@@ -26,6 +27,7 @@ const int logSize = 8;
 bool no_notify = false;
 char *initword = "EMPTYCELL";
 char detectionLog[logSize][50];
+long on_clock = 0;
 
 // ~~~~~~~~~~~~~~~~~ PIR Sensor ~~~~~~~~~~~~~~
 #define PIN_TO_SENSOR_1 D1
@@ -71,6 +73,18 @@ void addiotnalMQTT(char *income_msg)
   else if (strcmp(income_msg, "help") == 0)
   {
     sprintf(msg_MQTT, "Help: Commands #1 - [status, boot, reset, ip, ota, ver, help]");
+    iot.pub_msg(msg_MQTT);
+  }
+  else if (strcmp(income_msg, "on") == 0)
+  {
+    turnleds_on();
+    sprintf(msg_MQTT, "Command: Turn [On]");
+    iot.pub_msg(msg_MQTT);
+  }
+  else if (strcmp(income_msg, "off") == 0)
+  {
+    turnleds_off();
+    sprintf(msg_MQTT, "Command: Turn [Off]");
     iot.pub_msg(msg_MQTT);
   }
 }
@@ -228,11 +242,13 @@ void detect_callback()
 {
   Serial.println("DETECT");
   notifyDetection(sensor0.sensNick, sensor0.detCounts);
+  turnleds_on();
 }
 
 void end_detection_callback()
 {
   Serial.println("END_DETECT");
+  turnleds_off();
 }
 
 void restart_mag()
@@ -252,8 +268,10 @@ void update_mag(char *txt)
   sprintf(detectionLog[0], "%s", txt);
 }
 
-void turnleds_on(){
+void turnleds_on()
+{
   digitalWrite(D3, HIGH);
+  on_clock = millis();
 }
 void turnleds_off()
 {
@@ -263,7 +281,7 @@ void turnleds_off()
 void setup()
 {
   startGPIOs();
-  turnleds_off();
+  turnleds_on();
   startIOTservices();
   startSensors();
   restart_mag();
@@ -278,6 +296,10 @@ void loop()
 {
   iot.looper();
   sensor0.looper();
+  if (millis() >= on_clock + ON_TIME * 1000 * 60UL)
+  {
+    turnleds_off();
+  }
 
 #if USE_NOTIFY_TELE
   teleNotify.looper();
