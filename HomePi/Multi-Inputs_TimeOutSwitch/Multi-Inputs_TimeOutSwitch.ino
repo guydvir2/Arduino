@@ -1,36 +1,34 @@
 #include <myIOT.h>
 #include <EEPROM.h>
 #include <Arduino.h>
-#include <BlynkSimpleEsp8266.h>
 
 // ********** Names + Strings  ***********
 // ~~~~~~~ MQTT Topics ~~~~~~              // belong to myIOT
-#define DEVICE_TOPIC "OZbed"
+#define DEVICE_TOPIC "parentsBedLEDs"
 #define MQTT_PREFIX "myHome"
 #define MQTT_GROUP "intLights"
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 // ********** Sketch Services  ***********
-#define VER "WEMOS_6.3"
+#define VER "WEMOS_6.4"
 #define USE_INPUTS true
 #define IS_MOMENTARY true // is switch latch or momentary
-#define ON_AT_BOOT false   // On or OFF at boot (Usually when using inputs, at boot/PowerOn - state should be off
+#define ON_AT_BOOT false  // On or OFF at boot (Usually when using inputs, at boot/PowerOn - state should be off
 #define USE_DAILY_TO false
 #define IS_SONOFF false
 #define HARD_REBOOT false
 #define USE_OLED false
 #define USE_TEMP_HUMID false
-#define USE_PWM true
+#define USE_PWM false
 
 #define USE_NOTIFY_TELE false
 #define USE_SENSOR false
 #define USE_IR_REMOTE false
-#define USE_BLYNK false
 #define USE_IFTTT false
 
 // ********** myIOT Class ***********
 //~~~~~ Services ~~~~~~~~~~~
-#define USE_SERIAL true      // Serial Monitor
+#define USE_SERIAL false     // Serial Monitor
 #define USE_WDT true         // watchDog resets
 #define USE_OTA true         // OTA updates
 #define USE_RESETKEEPER true // detect quick reboot and real reboots
@@ -914,11 +912,25 @@ void addiotnalMQTT(char *income_msg)
 
                 if (strcmp(iot.inline_param[1], "on") == 0)
                 {
-                        switchIt("MQTT", atoi(iot.inline_param[0]), 1, "", false, defaultPWM);
+                        if (USE_PWM)
+                        {
+                                switchIt("MQTT", atoi(iot.inline_param[0]), 1, "", false, defaultPWM);
+                        }
+                        else
+                        {
+                                switchIt("MQTT", atoi(iot.inline_param[0]), 1, "", false);
+                        }
                 }
                 else if (strcmp(iot.inline_param[1], "off") == 0)
                 {
-                        switchIt("MQTT", atoi(iot.inline_param[0]), 0, "", false, 0.0);
+                        if (USE_PWM)
+                        {
+                                switchIt("MQTT", atoi(iot.inline_param[0]), 0, "", false, 0.0);
+                        }
+                        else
+                        {
+                                switchIt("MQTT", atoi(iot.inline_param[0]), 0, "", false);
+                        }
                 }
                 else if (strcmp(iot.inline_param[1], "timeout") == 0)
                 {
@@ -1535,11 +1547,6 @@ void setup()
         start_IR();
 #endif
 
-#if USE_BLYNK
-        char auth[] = "yyJsC24RBVrsgts59QoZ_LYWj1ZEfx74";
-        Blynk.begin(auth, SSID_ID, PASS_WIFI);
-#endif
-
 #if USE_OLED
         startOLED();
 #endif
@@ -1580,10 +1587,6 @@ void loop()
 
 #if USE_IR_REMOTE
         recvIRinputs(); // IR signals
-#endif
-
-#if USE_BLYNK
-        Blynk.run();
 #endif
 
 #if USE_OLED
