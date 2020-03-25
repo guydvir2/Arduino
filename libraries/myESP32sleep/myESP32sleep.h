@@ -29,8 +29,7 @@ public:
     char *dev_name = "myESP32_devname";
     char *wifi_ssid = "WIFI_NETWORK_BY_USER";
     char *wifi_pass = "WIFI_PASSWORD_BY_USER";
-    // char sleepstr[250];
-    // char sys_prop_str[100];
+
     char sys_presets_str[100];
     char wake_sleep_str [150];
 

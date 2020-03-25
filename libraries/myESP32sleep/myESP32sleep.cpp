@@ -7,8 +7,7 @@ RTC_DATA_ATTR long clock_expectedWake = 0;
 RTC_DATA_ATTR int bootCounter = 0;
 RTC_DATA_ATTR float driftRTC = 0;
 RTC_DATA_ATTR long clock_beforeSleep = 0;
-RTC_DATA_ATTR float driftsArray_RTC[drift_ArraySize]; // = {1.00,2.00,3.00,4.00};//   ,5.00,6.00,7.00,8.00,9.00,10.00};
-
+RTC_DATA_ATTR float driftsArray_RTC[drift_ArraySize];
 
 // ~~~~~~~ EEPROM ~~~~~~~~~
 int esp32Sleep::getEEPROMvalue(byte i)
@@ -90,61 +89,52 @@ void esp32Sleep::Avg_Array_zeroing()
 // ~~~~~~~ Sleep & Drift calcs ~~~
 void esp32Sleep::driftUpdate(float lastboot_drift, byte cell)
 {
-  Serial.print("bootCounter :#");
-  Serial.println(bootCounter);
-  Serial.print("t_delta: ");
-  Serial.println(lastboot_drift);
-
-  Serial.print("previous drift: ");
-  Serial.println(driftRTC);
-
   if (bootCounter <= drift_ArraySize + 2)
   {
-    Serial.println("PART A:");
     driftRTC += lastboot_drift;
     if (bootCounter > 2) // first 2 boots will not enter to avg_array
     {
       driftsArray_RTC[bootCounter - 3] = lastboot_drift;
     }
-    for (int a = drift_ArraySize - 1; a > 0; a--)
-    {
-      Serial.print("cell: #");
-      Serial.print(a);
-      Serial.print("[");
-      Serial.print(driftsArray_RTC[a], 2);
-      Serial.print("]");
-      Serial.println(", ");
-    }
+    // for (int a = drift_ArraySize - 1; a > 0; a--)
+    // {
+    //   Serial.print("cell: #");
+    //   Serial.print(a);
+    //   Serial.print("[");
+    //   Serial.print(driftsArray_RTC[a], 2);
+    //   Serial.print("]");
+    //   Serial.println(", ");
+    // }
   }
   else
   {
     float sum_avg = 0.0;
-    Serial.println("PART B: ");
+    // Serial.println("PART B: ");
     for (int a = drift_ArraySize - 1; a > 0; a--)
     {
       driftsArray_RTC[a] = driftsArray_RTC[a - 1];
       sum_avg += driftsArray_RTC[a];
-      Serial.print("cell: #");
-      Serial.print(a);
-      Serial.print("[");
-      Serial.print(driftsArray_RTC[a], 2);
-      Serial.print("]");
-      Serial.println(", ");
+      // Serial.print("cell: #");
+      // Serial.print(a);
+      // Serial.print("[");
+      // Serial.print(driftsArray_RTC[a], 2);
+      // Serial.print("]");
+      // Serial.println(", ");
     }
     driftsArray_RTC[0] = lastboot_drift;
     sum_avg += lastboot_drift;
-    Serial.print("cell: #");
-    Serial.print(0);
-    Serial.print("[");
-    Serial.print(driftsArray_RTC[0]);
-    Serial.print("]");
-    Serial.println(", ");
-    Serial.print("avg calc: ");
-    Serial.println(sum_avg / (float)drift_ArraySize);
+    // Serial.print("cell: #");
+    // Serial.print(0);
+    // Serial.print("[");
+    // Serial.print(driftsArray_RTC[0]);
+    // Serial.print("]");
+    // Serial.println(", ");
+    // Serial.print("avg calc: ");
+    // Serial.println(sum_avg / (float)drift_ArraySize);
     driftRTC += sum_avg / (float)drift_ArraySize;
   }
-  Serial.print("Calc drift is:");
-  Serial.println(driftRTC);
+  // Serial.print("Calc drift is:");
+  // Serial.println(driftRTC);
 }
 
 int esp32Sleep::calc_nominal_sleepTime()
@@ -158,8 +148,8 @@ int esp32Sleep::calc_nominal_sleepTime()
     nominal_nextSleep = _deepsleep_time * 60 - (_timeinfo.tm_min * 60 + _timeinfo.tm_sec) % (_deepsleep_time * 60);
     clock_beforeSleep = _epoch_time;                      // RTC var
     clock_expectedWake = _epoch_time + nominal_nextSleep; // RTC var
-    Serial.print("expected wake CLOCK: ");
-    Serial.println(clock_expectedWake);
+    // Serial.print("expected wake CLOCK: ");
+    // Serial.println(clock_expectedWake);
   }
   else // fail to obtain clock
   {
@@ -206,10 +196,10 @@ void esp32Sleep::printClock()
 void esp32Sleep::sleepNOW(float sec2sleep)
 {
   char tmsg[30];
-  sprintf(tmsg, "Going to DeepSleep for [%.1f] sec", sec2sleep);
-  Serial.println(tmsg);
-  Serial.println("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
-  Serial.flush();
+  // sprintf(tmsg, "Going to DeepSleep for [%.1f] sec", sec2sleep);
+  // Serial.println(tmsg);
+  // Serial.println("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
+  // Serial.flush();
   if (_use_extfunc)
   {
     _runFunc();
@@ -223,12 +213,12 @@ void esp32Sleep::check_awake_ontime(int min_t_avoidSleep)
   // delay(3000);
   getTime();
   printUpdatedClock("Wake");
-  Serial.print("last epoch:");
-  Serial.println(clock_beforeSleep);
+  // Serial.print("last epoch:");
+  // Serial.println(clock_beforeSleep);
   bootCounter++;
 
   sprintf(sys_presets_str, "deviceName:[%s]; SleepTime: [%d min]; Forced-aWakeTime: [%d sec]", dev_name, _deepsleep_time, _forcedwake_time);
-  sprintf(wake_sleep_str, "Boot#: [%d]; Wake_Clock: [%02d:%02d:%02d]; Woke_after: [%d sec];", bootCounter, _timeinfo.tm_hour, _timeinfo.tm_min, _timeinfo.tm_sec, clock_beforeSleep - _epoch_time);
+  sprintf(wake_sleep_str, "Boot#: [%d]; Wake_Clock: [%02d:%02d:%02d]; ", bootCounter, _timeinfo.tm_hour, _timeinfo.tm_min, _timeinfo.tm_sec);
 
   if (_timeinfo.tm_year >= 120)
   {
@@ -238,7 +228,7 @@ void esp32Sleep::check_awake_ontime(int min_t_avoidSleep)
       int t_delta = wake_diff - (int)(round(millis() / 1000)); // diff between calc wake clock and current time
 
       char tt[100];
-      sprintf(tt, "wake_Drift: [%d sec]; ", t_delta);
+      sprintf(tt, "Woke_after: [%d sec]; wake_Drift: [%d sec]; ", _epoch_time - clock_beforeSleep, t_delta);
       strcat(wake_sleep_str, tt);
 
       driftUpdate(t_delta, 0);
@@ -250,8 +240,8 @@ void esp32Sleep::check_awake_ontime(int min_t_avoidSleep)
           // wake SHORT while before time, wait using a delay func.
           sprintf(tt, "Correct_Sleep: [%d sec]; ", abs(wake_diff));
           strcat(wake_sleep_str, tt);
-          Serial.print("temp_sleep: ");
-          Serial.println(abs(wake_diff));
+          // Serial.print("temp_sleep: ");
+          // Serial.println(abs(wake_diff));
           delay(1000 * abs(wake_diff));
         }
         else
@@ -282,28 +272,28 @@ void esp32Sleep::wait_forSleep()
   {
     if (_wifi_status)
     {
-      printUpdatedClock("Sleep Summery");
+      // printUpdatedClock("Sleep Summery");
       sleepNOW(calc_nominal_sleepTime() - driftRTC);
     }
     else
     {
-      Serial.println(wake_sleep_str);
+      // Serial.println(wake_sleep_str);
       sleepNOW(_deepsleep_time * 60);
     }
   }
 }
 void esp32Sleep::printUpdatedClock(char *hdr)
 {
-  Serial.print("\n~~~~~~");
-  Serial.print(hdr);
-  Serial.print("~~~~~~\n");
+  // Serial.print("\n~~~~~~");
+  // Serial.print(hdr);
+  // Serial.print("~~~~~~\n");
   getTime();
-  printClock();
-  Serial.print("epoch:");
-  Serial.println(_epoch_time);
-  Serial.print("~~~~~~");
-  Serial.print("end");
-  Serial.print("~~~~~~\n\n");
+  // printClock();
+  // Serial.print("epoch:");
+  // Serial.println(_epoch_time);
+  // Serial.print("~~~~~~");
+  // Serial.print("end");
+  // Serial.print("~~~~~~\n\n");
 }
 void esp32Sleep::run_func(cb_func cb)
 {

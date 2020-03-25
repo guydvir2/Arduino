@@ -1,58 +1,60 @@
 
 // ~~~~~~~ Sleep ~~~~~~~~~~~
 #include "myESP32sleep.h"
-#define SLEEP_TIME 60
+#define SLEEP_TIME 20
 #define FORCE_AWAKE_TIME 20
-#define DEV_NAME "ESP32S"
+#define DEV_NAME "ESP32light" //"ESP32-S" //
 
 esp32Sleep go2sleep(SLEEP_TIME, FORCE_AWAKE_TIME, DEV_NAME);
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~
 
-// ~~~~~~~~~ DAC & Solar Panel ~~~~~~~~~~~
+// ~~~~~~ Sketch Services ~~~~
+#define USE_BAT_SOLAR false
+#define USE_IFTTT true
 #define USE_VMEASURE true
-#define VBAT_ADC_PIN 34
-#define VSOLAR_ADC_PIN 35
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+// ~~~~~~~~~ DAC & Solar Panel ~~~~~~~~~~~
+#define VBAT_ADC_PIN 35
+#define VSOLAR_ADC_PIN 34
 
 struct voltReader
 {
   int pin;
-  float ADC_value;
+  int ADC_value;
   float v_divider;
   float correctF;
   float calc_value;
   float vlogic;
-  float ADC_res;
+  int ADC_res;
 };
 
 voltReader battery = {VBAT_ADC_PIN, 0.0, 0.5, 1, 0.0, 3.3, 4096};
 voltReader solarPanel = {VSOLAR_ADC_PIN, 0.0, 0.5, 1, 0.0, 3.3, 4096};
-const int Vsamples = 10;
-float batADC_atBoot;
 
 void Vmeasure()
 {
+  const int Vsamples = 4;
   battery.ADC_value = 0.0;
   solarPanel.ADC_value = 0.0;
+
   for (int a = 0; a < Vsamples; a++)
   {
     battery.ADC_value += analogRead(battery.pin);
     solarPanel.ADC_value += analogRead(solarPanel.pin);
     delay(50);
   }
-  battery.ADC_value /= (float)Vsamples;
-  battery.calc_value = battery.ADC_value / battery.ADC_res * battery.vlogic * battery.correctF / battery.v_divider;
 
-  solarPanel.ADC_value /= (float)Vsamples;
-  solarPanel.calc_value = solarPanel.ADC_value / solarPanel.ADC_res * solarPanel.vlogic * solarPanel.correctF / solarPanel.v_divider;
+  battery.calc_value = (((float)battery.ADC_value / (float)Vsamples) / (float)battery.ADC_res) * battery.vlogic * battery.correctF / battery.v_divider;
+  solarPanel.calc_value = (((float)solarPanel.ADC_value / (float)Vsamples) / (float)solarPanel.ADC_res) * solarPanel.vlogic * solarPanel.correctF / solarPanel.v_divider;
 }
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 // +++++++++++ IFTT  ++++++++++++++
-#define USE_IFTTT true
 const char *server = "maker.ifttt.com";
 const char *resource = "/trigger/send_reading/with/key/cFLymB4JT9tlODsKLFn9TA";
-bool firstUpload = true;
 
 void makeIFTTTRequest(char *val1, char *val2, char *val3)
 {
@@ -106,14 +108,19 @@ void makeIFTTTRequest(char *val1, char *val2, char *val3)
 void b4sleep()
 {
   char tt[50];
-  sprintf(tt, "BAT: [%dv], Solar: [%dv]", battery.ADC_value, solarPanel.ADC_value);
+  sprintf(tt, "BAT: [%.1fv], Solar: [%.1fv]", battery.calc_value, solarPanel.calc_value);
+#if USE_IFTTT
   makeIFTTTRequest(go2sleep.wake_sleep_str, go2sleep.sys_presets_str, tt);
+#endif
 }
 void setup()
 {
   Serial.begin(9600);
   Serial.println("\n~~~~~~ Boot ~~~~~~");
-  Vmeasure();
+  if (USE_BAT_SOLAR)
+  {
+    Vmeasure();
+  }
   go2sleep.use_wifi = true;
   go2sleep.wifi_ssid = "Xiaomi_D6C8";
   go2sleep.wifi_pass = "guyd5161";
