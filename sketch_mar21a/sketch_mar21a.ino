@@ -1,8 +1,8 @@
 
 // ~~~~~~~ Sleep ~~~~~~~~~~~
 #include "myESP32sleep.h"
-#define SLEEP_TIME 45
-#define FORCE_AWAKE_TIME 15
+#define SLEEP_TIME 60
+#define FORCE_AWAKE_TIME 20
 #define DEV_NAME "ESP32S"
 
 esp32Sleep go2sleep(SLEEP_TIME, FORCE_AWAKE_TIME, DEV_NAME);
@@ -11,6 +11,9 @@ esp32Sleep go2sleep(SLEEP_TIME, FORCE_AWAKE_TIME, DEV_NAME);
 
 // ~~~~~~~~~ DAC & Solar Panel ~~~~~~~~~~~
 #define USE_VMEASURE true
+#define VBAT_ADC_PIN 34
+#define VSOLAR_ADC_PIN 35
+
 struct voltReader
 {
   int pin;
@@ -22,8 +25,8 @@ struct voltReader
   float ADC_res;
 };
 
-voltReader battery = {39, 0.0, 0.5, 1.15, 0, 3.3, 4096};
-voltReader solarPanel = {36, 0.0, 1 / 3, 1.1, 0};
+voltReader battery = {VBAT_ADC_PIN, 0.0, 0.5, 1, 0.0, 3.3, 4096};
+voltReader solarPanel = {VSOLAR_ADC_PIN, 0.0, 0.5, 1, 0.0, 3.3, 4096};
 const int Vsamples = 10;
 float batADC_atBoot;
 
@@ -39,6 +42,7 @@ void Vmeasure()
   }
   battery.ADC_value /= (float)Vsamples;
   battery.calc_value = battery.ADC_value / battery.ADC_res * battery.vlogic * battery.correctF / battery.v_divider;
+
   solarPanel.ADC_value /= (float)Vsamples;
   solarPanel.calc_value = solarPanel.ADC_value / solarPanel.ADC_res * solarPanel.vlogic * solarPanel.correctF / solarPanel.v_divider;
 }
@@ -50,7 +54,7 @@ const char *server = "maker.ifttt.com";
 const char *resource = "/trigger/send_reading/with/key/cFLymB4JT9tlODsKLFn9TA";
 bool firstUpload = true;
 
-void makeIFTTTRequest(float val1, float val2, char *val3)
+void makeIFTTTRequest(char *val1, char *val2, char *val3)
 {
   Serial.print("Connecting to ");
   Serial.print(server);
@@ -101,12 +105,15 @@ void makeIFTTTRequest(float val1, float val2, char *val3)
 
 void b4sleep()
 {
-  makeIFTTTRequest(0, 0, go2sleep.sleepstr);
+  char tt[50];
+  sprintf(tt, "BAT: [%dv], Solar: [%dv]", battery.ADC_value, solarPanel.ADC_value);
+  makeIFTTTRequest(go2sleep.wake_sleep_str, go2sleep.sys_presets_str, tt);
 }
 void setup()
 {
   Serial.begin(9600);
   Serial.println("\n~~~~~~ Boot ~~~~~~");
+  Vmeasure();
   go2sleep.use_wifi = true;
   go2sleep.wifi_ssid = "Xiaomi_D6C8";
   go2sleep.wifi_pass = "guyd5161";
@@ -117,5 +124,5 @@ void setup()
 void loop()
 {
   go2sleep.wait_forSleep();
-delay(100);
+  delay(100);
 }

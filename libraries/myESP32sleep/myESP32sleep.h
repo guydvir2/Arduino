@@ -29,7 +29,10 @@ public:
     char *dev_name = "myESP32_devname";
     char *wifi_ssid = "WIFI_NETWORK_BY_USER";
     char *wifi_pass = "WIFI_PASSWORD_BY_USER";
-    char sleepstr[250];
+    // char sleepstr[250];
+    // char sys_prop_str[100];
+    char sys_presets_str[100];
+    char wake_sleep_str [150];
 
 private:
     // ~~~~~~~~ EEPROM ~~~~~~~~~~~~~
@@ -40,10 +43,10 @@ private:
     // ~~~~~~~~ Wifi & NTP ~~~~~~
     void startNTP(const int gmtOffset_sec = 2 * 3600, const int daylightOffset_sec = 0, const char *ntpServer = "pool.ntp.org");
     bool startWifi();
-    bool getTime();
+    void getTime();
     void Avg_Array_zeroing();
     // ~~~~~~~ Sleep & Drift calcs ~~~
-    void driftUpdate(float drift_value, byte cell = 0, byte update_freq = 10);
+    void driftUpdate(float drift_value, byte cell = 0);
     int calc_nominal_sleepTime();
 
 public:
