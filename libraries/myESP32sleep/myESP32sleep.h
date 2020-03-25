@@ -33,6 +33,8 @@ public:
     char sys_presets_str[100];
     char wake_sleep_str [150];
 
+    const char *ver = "1.0";
+
 private:
     // ~~~~~~~~ EEPROM ~~~~~~~~~~~~~
     int getEEPROMvalue(byte i = 0);
@@ -51,11 +53,9 @@ private:
 public:
     esp32Sleep(int deepsleep = 30, int forcedwake = 15, char *devname = "ESP32device");
     bool startServices();
-    void printClock();
     void sleepNOW(float sec2sleep = 2700);
     void check_awake_ontime(int min_t_avoidSleep = 10);
     void wait_forSleep();
-    void printUpdatedClock(char *hdr = "");
     void run_func(cb_func cb);
 };
 
