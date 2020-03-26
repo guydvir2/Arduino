@@ -1,7 +1,7 @@
 #include "Arduino.h"
 #include "myESP32sleep.h"
 
-#define drift_ArraySize 6
+#define drift_ArraySize 10
 
 RTC_DATA_ATTR long clock_expectedWake = 0;
 RTC_DATA_ATTR int bootCounter = 0;
@@ -61,7 +61,7 @@ bool esp32Sleep::startWifi()
   }
   else
   {
-    Serial.println("Failed connect to wifi");
+    // Serial.println("Failed connect to wifi");
     return 0;
   }
 }
@@ -108,6 +108,11 @@ void esp32Sleep::driftUpdate(float lastboot_drift, byte cell)
     driftsArray_RTC[0] = lastboot_drift;
     sum_avg += lastboot_drift;
     driftRTC += sum_avg / (float)drift_ArraySize;
+
+    if (bootCounter%10 == 0){
+      saveEEPROMvalue((int)driftRTC,0);
+      Serial.println("DRIFT SAVED TO EEPROM");
+    }
   }
 }
 
@@ -170,7 +175,7 @@ void esp32Sleep::sleepNOW(float sec2sleep)
 }
 void esp32Sleep::check_awake_ontime(int min_t_avoidSleep)
 {
-  // delay(3000);
+  delay(3000);
   getTime();
   bootCounter++;
 
@@ -195,7 +200,7 @@ void esp32Sleep::check_awake_ontime(int min_t_avoidSleep)
         if (abs(wake_diff) <= min_t_avoidSleep)
         {
           // wake SHORT while before time, wait using a delay func.
-          sprintf(tt, "Correct_Sleep: [%d sec]; ", abs(wake_diff));
+          sprintf(tt, "Pause_wakeBeforeTime: [%d sec]; ", abs(wake_diff));
           strcat(wake_sleep_str, tt);
           delay(1000 * abs(wake_diff));
         }
