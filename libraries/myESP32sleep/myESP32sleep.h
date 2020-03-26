@@ -33,7 +33,7 @@ public:
     char sys_presets_str[100];
     char wake_sleep_str [150];
 
-    const char *ver = "1.0";
+    const char *ver = "1.1";
 
 private:
     // ~~~~~~~~ EEPROM ~~~~~~~~~~~~~

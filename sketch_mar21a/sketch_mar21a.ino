@@ -1,16 +1,16 @@
 
 // ~~~~~~~ Sleep ~~~~~~~~~~~
 #include "myESP32sleep.h"
-#define SLEEP_TIME 20
+#define SLEEP_TIME 60
 #define FORCE_AWAKE_TIME 20
-#define DEV_NAME "ESP32light" //"ESP32-S" //
+#define DEV_NAME "ESP32-S" // "ESP32light" //
 
 esp32Sleep go2sleep(SLEEP_TIME, FORCE_AWAKE_TIME, DEV_NAME);
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~
 
 // ~~~~~~ Sketch Services ~~~~
-#define USE_BAT_SOLAR false
+#define USE_BAT_SOLAR true
 #define USE_IFTTT true
 #define USE_VMEASURE true
 
@@ -108,7 +108,7 @@ void makeIFTTTRequest(char *val1, char *val2, char *val3)
 void b4sleep()
 {
   char tt[50];
-  sprintf(tt, "BAT: [%.1fv], Solar: [%.1fv]", battery.calc_value, solarPanel.calc_value);
+  sprintf(tt, "BAT: [%.2fv], Solar: [%.2fv]", battery.calc_value, solarPanel.calc_value);
 #if USE_IFTTT
   makeIFTTTRequest(go2sleep.wake_sleep_str, go2sleep.sys_presets_str, tt);
 #endif
