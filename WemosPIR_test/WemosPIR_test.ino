@@ -42,7 +42,7 @@ void startSensors()
   sensor0.use_timer = true;
   sensor0.trigger_once = false;
   sensor0.timer_duration = TIMER;
-  sensor0.ignore_det_interval = 5;
+  sensor0.ignore_det_interval = 5; // sec untill next detection
   sensor0.run_func(detect_callback);
   sensor0.run_enddet_func(end_detection_callback);
   sensor0.start();

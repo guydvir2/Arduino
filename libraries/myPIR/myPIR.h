@@ -19,8 +19,8 @@ private:
     long _lastDetection_clock = 0;
     long _endTimer = 0;
 
-    cb_func _run_func;
-    cb_func _run_enddet_func;
+    cb_func _detect_cb;
+    cb_func _end_detect_cb;
 
 public:
     int detCounts = 0;
@@ -51,9 +51,9 @@ private:
 public:
     PIRsensor(int Pin, char *nick = "PIRsensor", int logic_length = 5, bool detect = def_detect);
     void start();
-    void run_func(cb_func cb);
-    void run_enddet_func(cb_func cb);
-    bool looper();
+    void detect_cb(cb_func cb);
+    void end_detect_cb(cb_func cb);
+    void looper();
 };
 
 #endif

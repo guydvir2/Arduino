@@ -4,27 +4,34 @@
 
 // ********** Names + Strings  ***********
 // ~~~~~~~ MQTT Topics ~~~~~~              // belong to myIOT
-#define DEVICE_TOPIC "parentsBedLEDs"
+#define DEVICE_TOPIC "kidsBedLEDs"
 #define MQTT_PREFIX "myHome"
 #define MQTT_GROUP "intLights"
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 // ********** Sketch Services  ***********
-#define VER "WEMOS_6.4"
+#define VER "WEMOS_6.6"
+#define IS_SONOFF false
 #define USE_INPUTS true
 #define IS_MOMENTARY true // is switch latch or momentary
-#define ON_AT_BOOT false  // On or OFF at boot (Usually when using inputs, at boot/PowerOn - state should be off
+#define USE_PWM true
+
+#define ON_AT_BOOT false // On or OFF at boot (Usually when using inputs, at boot/PowerOn - state should be off
 #define USE_DAILY_TO false
-#define IS_SONOFF false
 #define HARD_REBOOT false
+
+#define USE_SCREEN true
+#define USE_LCD true
 #define USE_OLED false
+
+#define USE_DHT30 true
 #define USE_TEMP_HUMID false
-#define USE_PWM false
 
 #define USE_NOTIFY_TELE false
 #define USE_SENSOR false
 #define USE_IR_REMOTE false
 #define USE_IFTTT false
+#define USE_PIR_SESNOR false
 
 // ********** myIOT Class ***********
 //~~~~~ Services ~~~~~~~~~~~
@@ -41,19 +48,22 @@ myIOT iot(DEVICE_TOPIC);
 // ***************************
 
 // ********** TimeOut Time vars  ***********
-#define NUM_SWITCHES 1
+#define NUM_SWITCHES 2
 #define TIMEOUT_SW0 4 * 60 // mins for SW0
 #define TIMEOUT_SW1 2 * 60 // mins
+#define TIMEOUT_PIR_DET 10 // mins
 
 const int START_dailyTO[] = {18, 0, 0};
 const int END_dailyTO[] = {23, 30, 0};
 
 int TIMEOUTS[2] = {TIMEOUT_SW0, TIMEOUT_SW1};
 timeOUT timeOut_SW0("SW0", TIMEOUTS[0]);
+
 #if NUM_SWITCHES == 2
 timeOUT timeOut_SW1("SW1", TIMEOUTS[1]);
 timeOUT *TO[] = {&timeOut_SW0, &timeOut_SW1};
 #endif
+
 #if NUM_SWITCHES == 1
 timeOUT *TO[] = {&timeOut_SW0};
 #endif
@@ -72,14 +82,14 @@ char *clockAlias = "Daily TimeOut";
 
 #if !IS_SONOFF
 #define RELAY1 D3 // <--- D3 most devices, but KitchenLEDs D2
-#define RELAY2 D2
-#define INPUT1 D7
-#define INPUT2 D6
-#define SENSOR_PIN D1 // WHHAT???
-#define indic_LEDpin D4
+#define RELAY2 D6 // was D2
+#define INPUT1 D4
+#define INPUT2 D7       // was D6
+#define SENSOR_PIN D1   // WHHAT???
+#define indic_LEDpin D5 // was 4
 #endif
-
-#define IR_SENSOR_PIN D5
+#define PIR_PIN D5
+#define IR_SENSOR_PIN D0 // need t e fixed
 
 byte relays[] = {RELAY1, RELAY2};
 byte inputs[] = {INPUT1, INPUT2};
@@ -272,23 +282,29 @@ decode_results results;
 #endif
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-//~~~~~~~~~~~~~~ OLED ~~~~~~~~~~~~~
-#if USE_OLED
-#include <SPI.h>
-#include <Wire.h>
-#include <Adafruit_GFX.h>
-#include <Adafruit_SSD1306.h>
+// ~~~~~~~~~~ USE DHT30 ~~~~~~~~~~~
+#if USE_DHT30
+#include <WEMOS_SHT3X.h>
 
-#define SCREEN_WIDTH 128
-#define SCREEN_HEIGHT 64 // 32 2rows or 64 4 rows
-#define OLED_RESET LED_BUILTIN
+SHT3X sht30(0x45);
 
-long swapLines_counter = 0;
-char timeStamp[50];
-char dateStamp[50];
-char bmsg[2][50];
-long bmsg_t = 0;
-Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
+float h = 0;
+float t = 0;
+
+void DHT30_loop()
+{
+        static unsigned long last_DHT = 0;
+        if (millis() - last_DHT >= 30000 || last_DHT == 0)
+        {
+                if (sht30.get() == 0)
+                {
+                        t = sht30.cTemp;
+                        h = sht30.humidity;
+                        last_DHT = millis();
+                }
+        }
+}
+#endif
 
 // ~~~~~~~~ Temp & Humid Sensor ~~~~~~~
 #if USE_TEMP_HUMID
@@ -364,7 +380,36 @@ void getTH_reading()
 #endif
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-// ~~~~ OLED ~~~~~~~
+// ~~~~~~~~~~~~~~~~~~USE_SCREEN ~~~~~~~~~~~~~
+#if USE_SCREEN
+const int displayRows = 4;
+char timeStamp[50];
+char dateStamp[50];
+char bmsg[2][50];
+long bmsg_t = 0;
+
+//~~~~~~~~~~~~~~ OLED ~~~~~~~~~~~~~
+#if USE_OLED
+#include <SPI.h>
+#include <Wire.h>
+#include <Adafruit_GFX.h>
+#include <Adafruit_SSD1306.h>
+
+#define SCREEN_WIDTH 128
+#if displayRows == 4
+#define SCREEN_HEIGHT 64 // 32 2rows or 64 4 rows
+#else if displayRows == 2
+#define SCREEN_HEIGHT 632 // 32 2rows or 64 4 rows
+#endif
+
+#define OLED_RESET LED_BUILTIN
+
+long swapLines_counter = 0;
+
+// char bmsg[2][50];
+// long bmsg_t = 0;
+Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
+
 void startOLED()
 {
         display.begin(SSD1306_SWITCHCAPVCC, 0x3C);
@@ -446,24 +491,7 @@ void OLED_SideTXT(int char_size, char *line1, char *line2 = "", char *line3 = ""
         }
         display.display();
 }
-void edit_burstMSG(char *line1, char *line2, int duration_sec)
-{
-        sprintf(bmsg[0], "%s", line1);
-        sprintf(bmsg[1], "%s", line2);
-        bmsg_t = millis() + 1000 * duration_sec;
-}
-bool burstMSG()
-{
-        if (bmsg_t - (long)millis() >= 0)
-        {
-                OLED_CenterTXT(2, bmsg[0], bmsg[1]);
-                return 1;
-        }
-        else
-        {
-                return 0;
-        }
-}
+
 void swapLines(char *line1, char *line2, char *line3, char *line4, byte num_lines = 2)
 {
         char *txtLines[] = {line1, line2, line3, line4};
@@ -516,6 +544,80 @@ void OLEDlooper(int swapTime = 5000)
 }
 #endif
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+// ~~~~~~~~~~~~~~~~~ USE USE_LCD ~~~~~~~~~~~~
+#if USE_LCD
+#include <LiquidCrystal_I2C.h>
+int lcdColumns = 20;
+int lcdRows = displayRows;
+LiquidCrystal_I2C lcd(0x27, lcdColumns, lcdRows);
+
+void startLCD()
+{
+        lcd.init();
+        lcd.backlight();
+}
+#endif
+
+void edit_burstMSG(char *line1, char *line2, int duration_sec)
+{
+        sprintf(bmsg[0], "%s", line1);
+        sprintf(bmsg[1], "%s", line2);
+        bmsg_t = millis() + 1000 * duration_sec;
+}
+bool burstMSG()
+{
+        if (bmsg_t - (long)millis() >= 0)
+        {
+                // OLED_CenterTXT(2, bmsg[0], bmsg[1]);
+                return 1;
+        }
+        else
+        {
+                return 0;
+        }
+}
+
+void screen_looper()
+{
+        iot.return_clock(timeStamp);
+        iot.return_date(dateStamp);
+
+        lcd.setCursor(0, 0);
+        lcd.print(timeStamp);
+        lcd.setCursor(lcdColumns / 2, 0);
+        lcd.print(dateStamp);
+
+#if USE_DHT30 || USE_TEMP_HUMID
+        char DHTreading[20];
+        sprintf(DHTreading, "Temp:%.1f%cC Hum:%.0f%%", t, 223, h);
+        lcd.setCursor((int)(lcdColumns - strlen(DHTreading)) / 2, 1);
+        lcd.print(DHTreading);
+#endif
+
+lcd.setCursor(0, 2);
+char line3 [25];
+char t1[30];
+char t2[2][30];
+lcd.print(" Shachar       Oz   ");
+for (int i=0; i<NUM_SWITCHES; i++){
+        if (TO[i]->remain()>0){
+                TO[i]->convert_epoch2clock(now() + TO[i]->remain(), now(), t2[i], t1);
+        }
+        else{
+                sprintf(t2[i],"Off");
+        }
+}
+sprintf(line3,"%s %s",t2[0], t2[1]);
+lcd.setCursor((int)(20/2-strlen(t2[0]))/2, 3);
+lcd.print(t2[0]);
+lcd.setCursor(10+(int)(20/2-strlen(t2[0]))/2, 3);
+lcd.print(t2[1]);
+
+// delay(50);
+// lcd.clear();
+}
+#endif
 
 // ~~~~~~~~~~~~~~ IFTTT ~~~~~~~~~~~
 #if USE_IFTTT
@@ -584,6 +686,39 @@ void IFTT_lopper()
 #endif
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+// ~~~~~~~~~~~~~~~~~ PIR Sensor ~~~~~~~~~~~~~~
+#if USE_PIR_SESNOR
+
+#include <myPIR.h>
+#define PIRpin PIR_PIN
+#define TIMER 5            // sec in detection when using Timer
+#define LOGIC_DETECTION 10 // duration to logic detection
+#define SEC_BETWEEN_DET 60
+
+PIRsensor PIRsensor0(PIRpin, "PIR_Sensor", LOGIC_DETECTION);
+
+void PIRdetect_cb()
+{
+        // iot.pub_msg("PIR Detection");
+        for (int i = 0; i < NUM_SWITCHES; i++)
+        {
+                TO[i]->setNewTimeout(TIMEOUT_PIR_DET);
+        }
+}
+
+void startPIR()
+{
+        PIRsensor0.use_serial = true;
+        PIRsensor0.use_timer = false;
+        PIRsensor0.timer_duration = TIMER;
+        PIRsensor0.ignore_det_interval = SEC_BETWEEN_DET;
+        PIRsensor0.detect_cb(PIRdetect_cb);
+        // PIRsensor0.end_detect_cb(FGHDFGHD);
+        PIRsensor0.start();
+}
+#endif
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // #############################################################################
 
 //  ############################## STRART CORE #################################
@@ -604,7 +739,7 @@ void switchIt(char *txt1, int sw_num, bool state, char *txt2 = "", bool show_tim
                                         sprintf(msg, "%s: Switch[#%d] %s[%s]", txt1, sw_num, word, state ? "ON" : "OFF");
                                         TO[sw_num]->endNow();
                                         pwmState = false;
-#if USE_OLED
+#if USE_SCREEN
                                         edit_burstMSG("Switched", "OFF", 4);
 #endif
                                 }
@@ -614,7 +749,7 @@ void switchIt(char *txt1, int sw_num, bool state, char *txt2 = "", bool show_tim
 
                                         char atemp[10];
                                         sprintf(atemp, "%d%% Power", PWMval);
-#if USE_OLED
+#if USE_SCREEN
                                         edit_burstMSG("Switched", atemp, 3);
 #endif
                                 }
@@ -626,11 +761,12 @@ void switchIt(char *txt1, int sw_num, bool state, char *txt2 = "", bool show_tim
 
                                 char atemp[10];
                                 sprintf(atemp, "%d%% Power", PWMval);
-#if USE_OLED
+#if USE_SCREEN
                                 edit_burstMSG("Switched", atemp, 3);
 #endif
                         }
                         analogWrite(relays[sw_num], PWMval * PWM_RES / 100);
+                        PWMvalue = PWMval;
                 }
                 else
                 {
@@ -777,7 +913,6 @@ void checkSwitch_Pressed(byte sw, bool momentary = true)
                         }
                 }
         }
-        delay(100);
 }
 void startIOTservices()
 {
@@ -1546,13 +1681,20 @@ void setup()
 #if USE_IR_REMOTE
         start_IR();
 #endif
-
+#if USE_SCREEN
 #if USE_OLED
         startOLED();
 #endif
-
+#if USE_LCD
+        startLCD();
+#endif
+#endif
 #if USE_TEMP_HUMID
         startDHT();
+#endif
+
+#if USE_PIR_SESNOR
+        startPIR();
 #endif
 }
 
@@ -1575,7 +1717,7 @@ void loop()
                 }
                 TO_looper(i);
         }
-        digitalWrite(indic_LEDpin, !relState[0]);
+        // digitalWrite(indic_LEDpin, !relState[0]);
 
 #if USE_NOTIFY_TELE
         teleNotify.looper();
@@ -1588,18 +1730,26 @@ void loop()
 #if USE_IR_REMOTE
         recvIRinputs(); // IR signals
 #endif
-
+#if USE_SCREEN
 #if USE_OLED
         OLEDlooper();
+#endif
+#if USE_LCD
+        screen_looper();
+#endif
 #endif
 
 #if USE_TEMP_HUMID
         getTH_reading();
 #endif
+        DHT30_loop();
 
 #if USE_IFTTT
         IFTT_lopper();
 #endif
 
+#if USE_PIR_SESNOR
+        PIRsensor0.looper();
+#endif
         delay(50);
 }

@@ -13,14 +13,14 @@ void PIRsensor::start()
   pinMode(_pin, INPUT);
   digitalWrite(_pin, !_isDetect);
 }
-void PIRsensor::run_func(cb_func cb)
+void PIRsensor::detect_cb(cb_func cb)
 {
-  _run_func = cb;
+  _detect_cb = cb;
   _use_detfunc = true;
 }
-void PIRsensor::run_enddet_func(cb_func cb)
+void PIRsensor::end_detect_cb(cb_func cb)
 {
-  _run_enddet_func = cb;
+  _end_detect_cb = cb;
   _use_enddetfunc = true;
 }
 
@@ -41,7 +41,7 @@ bool PIRsensor::check_timer()
       timeLeft = 0;
       if (_use_enddetfunc)
       {
-        _run_enddet_func();
+        _end_detect_cb();
         return 0;
       }
     }
@@ -84,7 +84,7 @@ void PIRsensor::detection_callback()
   }
   if (_use_detfunc)
   {
-    _run_func();
+    _detect_cb();
   }
 }
 void PIRsensor::end_detection_callback()
@@ -132,23 +132,14 @@ bool PIRsensor::checkSensor()
   }
 }
 
-bool PIRsensor::looper()
+void PIRsensor::looper()
 {
   if (stop_sensor == false)
   {
-    // bool a = 
     check_timer();
     checkSensor();
-    // if (a == 0)
-    // {
-    //   checkSensor();
-    // }
-    // else if (a == 1 && checkSensor() == 1 && trigger_once == false)
-    // {
-    //   update_timer_end();
-    // }
   }
-  else{
-    yield();
-  }
+  // else{
+  //   yield();
+  // }
 }

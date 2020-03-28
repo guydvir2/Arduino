@@ -1,6 +1,8 @@
 #include <myIOT.h>
 #include <LiquidCrystal_I2C.h>
 #include <Arduino.h>
+#include <WEMOS_SHT3X.h>
+ 
 
 // ********** Sketch Services  ***********
 #define VER "WEMOS_1.0"
@@ -54,6 +56,28 @@ void readDHT()
   }
 }
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+// ~~~~~~~~~~~~~ DHT30 ~~~~~~~~~~~~~~~~~~
+SHT3X sht30(0x45);
+ 
+void DHT30_loop() {
+ 
+  if(sht30.get()==0){
+    Serial.print("Temperature in Celsius : ");
+    Serial.println(sht30.cTemp);
+    Serial.print("Temperature in Fahrenheit : ");
+    Serial.println(sht30.fTemp);
+    Serial.print("Relative Humidity : ");
+    Serial.println(sht30.humidity);
+    Serial.println();
+  }
+  else
+  {
+    Serial.println("DHT30_Error!");
+  }
+  // delay(1000);
+ 
+}
 
 // ~~~~~~~~~~~~~~~~~~~~ LCD ~~~~~~~~~~~~~~~~~~~~
 int lcdColumns = 16;
@@ -157,5 +181,6 @@ void loop()
 {
   iot.looper();
   LCD_loop();
-  delay(250);
+  DHT30_loop();
+  delay(750);
 }
