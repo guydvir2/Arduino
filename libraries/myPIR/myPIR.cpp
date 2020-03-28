@@ -90,7 +90,7 @@ void PIRsensor::detection_callback()
 void PIRsensor::end_detection_callback()
 {
   _lastState = false;
-  _lastDetection_clock = 0;
+  // _lastDetection_clock = 0;
   if (use_serial)
   {
     Serial.print("~~end_detect ");
@@ -101,7 +101,7 @@ void PIRsensor::end_detection_callback()
 bool PIRsensor::checkSensor()
 {
   bool ignore_det = millis() > _lastDetection_clock + (long)((ignore_det_interval + _length_logic_state) * 1000); // timeout - minimal time between detections
-  bool first_det = millis() > (long)delay_first_detection * 1000;                                                 // timeout - detection after boot
+  // bool first_det = millis() > (long)delay_first_detection * 1000;                                                 // timeout - detection after boot
 
   logic_state = millis() <= _lastDetection_clock + (long)(_length_logic_state * 1000); // logic flag for sensor to be indetection mode
   sens_state = digitalRead(_pin);                                                      // physical sensor read
@@ -110,7 +110,8 @@ bool PIRsensor::checkSensor()
   {
     if (sens_state == _isDetect && _lastState == false)
     {
-      if (ignore_det || first_det)
+      if (ignore_det || _lastDetection_clock == 0)
+
       {
         detection_callback();
         return 1;

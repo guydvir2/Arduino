@@ -16,6 +16,7 @@ private:
     bool _lastState = false;
     bool _isDetect = true;
     bool _timer_is_on = false;
+    bool _first_det = false;
     long _lastDetection_clock = 0;
     long _endTimer = 0;
 
@@ -38,7 +39,7 @@ public:
     bool logic_state = false; // a flag that will be on for some time, altghot physucal state has changed
     bool stop_sensor = false; // during code run, select to disable sensor activity
     bool trigger_once = true; // when using timer, how to react to re-detect ? add time ?
-    float ver = 2.0;
+    float ver = 2.1;
 
 private:
     void update_timer_end();
