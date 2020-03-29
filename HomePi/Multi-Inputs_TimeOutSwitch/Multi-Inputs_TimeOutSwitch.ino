@@ -4,9 +4,9 @@
 
 // ********** Names + Strings  ***********
 // ~~~~~~~ MQTT Topics ~~~~~~              // belong to myIOT
-#define DEVICE_TOPIC "kidsBedLEDs"
+#define DEVICE_TOPIC "frontDoorLEDs"
 #define MQTT_PREFIX "myHome"
-#define MQTT_GROUP "intLights"
+#define MQTT_GROUP "extLights"
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 // ********** Sketch Services  ***********
@@ -14,28 +14,28 @@
 #define IS_SONOFF false
 #define USE_INPUTS true
 #define IS_MOMENTARY true // is switch latch or momentary
-#define USE_PWM true
+#define USE_PWM false
 
 #define ON_AT_BOOT false // On or OFF at boot (Usually when using inputs, at boot/PowerOn - state should be off
 #define USE_DAILY_TO false
 #define HARD_REBOOT false
 
-#define USE_SCREEN true
-#define USE_LCD true
+#define USE_SCREEN false
+#define USE_LCD false
 #define USE_OLED false
 
-#define USE_DHT30 true
+#define USE_DHT30 false
 #define USE_TEMP_HUMID false
 
-#define USE_NOTIFY_TELE false
+#define USE_NOTIFY_TELE true
 #define USE_SENSOR false
 #define USE_IR_REMOTE false
 #define USE_IFTTT false
-#define USE_PIR_SESNOR false
+#define USE_PIR_SESNOR true
 
 // ********** myIOT Class ***********
 //~~~~~ Services ~~~~~~~~~~~
-#define USE_SERIAL false     // Serial Monitor
+#define USE_SERIAL true     // Serial Monitor
 #define USE_WDT true         // watchDog resets
 #define USE_OTA true         // OTA updates
 #define USE_RESETKEEPER true // detect quick reboot and real reboots
@@ -48,7 +48,7 @@ myIOT iot(DEVICE_TOPIC);
 // ***************************
 
 // ********** TimeOut Time vars  ***********
-#define NUM_SWITCHES 2
+#define NUM_SWITCHES 1
 #define TIMEOUT_SW0 4 * 60 // mins for SW0
 #define TIMEOUT_SW1 2 * 60 // mins
 #define TIMEOUT_PIR_DET 10 // mins
@@ -83,7 +83,7 @@ char *clockAlias = "Daily TimeOut";
 #if !IS_SONOFF
 #define RELAY1 D3 // <--- D3 most devices, but KitchenLEDs D2
 #define RELAY2 D6 // was D2
-#define INPUT1 D4
+#define INPUT1 D7 //was D4
 #define INPUT2 D7       // was D6
 #define SENSOR_PIN D1   // WHHAT???
 #define indic_LEDpin D5 // was 4
@@ -699,11 +699,15 @@ PIRsensor PIRsensor0(PIRpin, "PIR_Sensor", LOGIC_DETECTION);
 
 void PIRdetect_cb()
 {
-        // iot.pub_msg("PIR Detection");
+        iot.pub_msg("PIR Detection");
         for (int i = 0; i < NUM_SWITCHES; i++)
         {
                 TO[i]->setNewTimeout(TIMEOUT_PIR_DET);
         }
+        #if USE_NOTIFY_TELE
+        teleNotify.send_msg("comb");
+        #endif
+
 }
 
 void startPIR()
@@ -1742,7 +1746,9 @@ void loop()
 #if USE_TEMP_HUMID
         getTH_reading();
 #endif
+#if USE_DHT30
         DHT30_loop();
+        #endif
 
 #if USE_IFTTT
         IFTT_lopper();
