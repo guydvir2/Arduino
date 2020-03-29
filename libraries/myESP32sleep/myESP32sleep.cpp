@@ -211,9 +211,9 @@ void esp32Sleep::check_awake_ontime(int min_t_avoidSleep)
         }
       }
     }
-    else if (getEEPROMvalue(0) > 0)
+    else if (getEEPROMvalue() > 0)
     {
-      driftRTC = (int)getEEPROMvalue(0);
+      driftRTC = (int)getEEPROMvalue();
     }
     else
     {
