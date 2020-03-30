@@ -4,9 +4,9 @@
 
 // ********** Names + Strings  ***********
 // ~~~~~~~ MQTT Topics ~~~~~~              // belong to myIOT
-#define DEVICE_TOPIC "frontDoorLEDs"
+#define DEVICE_TOPIC "kidBedsLEDs"
 #define MQTT_PREFIX "myHome"
-#define MQTT_GROUP "extLights"
+#define MQTT_GROUP "intLights"
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 // ********** Sketch Services  ***********
@@ -20,12 +20,12 @@
 #define USE_DAILY_TO false
 #define HARD_REBOOT false
 
-#define USE_SCREEN false
-#define USE_LCD false
+#define USE_SCREEN true
+#define USE_LCD true
 #define USE_OLED false
 
 #define USE_DHT30 false
-#define USE_TEMP_HUMID false
+#define USE_DHT11 false
 
 #define USE_NOTIFY_TELE true
 #define USE_SENSOR false
@@ -35,7 +35,7 @@
 
 // ********** myIOT Class ***********
 //~~~~~ Services ~~~~~~~~~~~
-#define USE_SERIAL true     // Serial Monitor
+#define USE_SERIAL true      // Serial Monitor
 #define USE_WDT true         // watchDog resets
 #define USE_OTA true         // OTA updates
 #define USE_RESETKEEPER true // detect quick reboot and real reboots
@@ -81,9 +81,9 @@ char *clockAlias = "Daily TimeOut";
 #endif
 
 #if !IS_SONOFF
-#define RELAY1 D3 // <--- D3 most devices, but KitchenLEDs D2
-#define RELAY2 D6 // was D2
-#define INPUT1 D7 //was D4
+#define RELAY1 D3       // <--- D3 most devices, but KitchenLEDs D2
+#define RELAY2 D6       // was D2
+#define INPUT1 D7       //was D4
 #define INPUT2 D7       // was D6
 #define SENSOR_PIN D1   // WHHAT???
 #define indic_LEDpin D5 // was 4
@@ -104,19 +104,20 @@ bool relState[NUM_SWITCHES];
 bool last_relState[NUM_SWITCHES];
 bool inputState[NUM_SWITCHES];
 bool sensState[NUM_SWITCHES];
-int rebootState = 0;
 bool checkrebootState = true;
 bool boot_overide[] = {false, false};
+int rebootState = 0;
 
 // ~~~~~~ PWM for lights/ LED ~~~~~~~~
 #define PWM_RES 1024
 #define PWM_STEPS 3
+
 const int maxPWM = 100;
 const int PWMinc = maxPWM / PWM_STEPS; // increment precentage
 const int defaultPWM = 60;             // for boot & TO
-int PWMvalue = defaultPWM;             // percentage
+const int timeoout_offRess = 5000;     // secs after timeout - next switch will be off ( and not PWM inc )
 bool pwmState = false;
-int timeoout_offRess = 5000; // secs after timeout - next switch will be off ( and not PWM inc )
+int PWMvalue = defaultPWM; // percentage
 
 // #################################  END CORE #################################
 
@@ -282,53 +283,16 @@ decode_results results;
 #endif
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-// ~~~~~~~~~~ USE DHT30 ~~~~~~~~~~~
-#if USE_DHT30
-#include <WEMOS_SHT3X.h>
-
-SHT3X sht30(0x45);
-
-float h = 0;
-float t = 0;
-
-void DHT30_loop()
-{
-        static unsigned long last_DHT = 0;
-        if (millis() - last_DHT >= 30000 || last_DHT == 0)
-        {
-                if (sht30.get() == 0)
-                {
-                        t = sht30.cTemp;
-                        h = sht30.humidity;
-                        last_DHT = millis();
-                }
-        }
-}
-#endif
-
-// ~~~~~~~~ Temp & Humid Sensor ~~~~~~~
-#if USE_TEMP_HUMID
-#include "DHT.h"
-#define DHTPIN D4              // Digital pin connected to the DHT sens
-#define DHTTYPE DHT11          // DHT 11
+// ~~~~~~~~ TEMP& HUMID Sensors~~~~
 #define SAMPLE_INTERVAL 60 * 5 // Seconds - how often to read sensor
 #define AVG_SAMPLES 3          // Seconds to AVG reading
 
-DHT dht(DHTPIN, DHTTYPE);
-
-bool firstUpload = true;
-bool wait_avg = false;
 float h = 0;
 float t = 0;
-long lastDHTRead = 0;
-long sample_count = 0;
-long t_correction = -2.0;
+unsigned long sample_count = 0;
+unsigned long last_DHT = 0;
 int t_samples[AVG_SAMPLES];
 
-void startDHT()
-{
-        dht.begin();
-}
 void moving_avg(float &sample, float &retval, int win_size = 3)
 {
         float sum = 0;
@@ -349,14 +313,49 @@ void moving_avg(float &sample, float &retval, int win_size = 3)
                 retval = sample;
         }
 }
+
+// ~~~~~~~~~~ USE DHT30 ~~~~~~~~~~~
+#if USE_DHT30
+#include <WEMOS_SHT3X.h>
+
+SHT3X sht30(0x45);
+
+void DHT30_loop()
+{
+        if (millis() - last_DHT >= SAMPLE_INTERVAL || last_DHT == 0)
+        {
+                if (sht30.get() == 0)
+                {
+                        t = sht30.cTemp;
+                        h = sht30.humidity;
+                        last_DHT = millis();
+                }
+        }
+}
+#endif
+
+// ~~~~~~~~ DHT 11~~~~~~~
+#if USE_DHT11
+#include "DHT.h"
+#define DHTPIN D4     // Digital pin connected to the DHT sens
+#define DHTTYPE DHT11 // DHT 11
+
+DHT dht(DHTPIN, DHTTYPE);
+
+long t_correction = -2.0;
+
+void startDHT()
+{
+        dht.begin();
+}
+
 void getTH_reading()
 {
-        if (millis() - lastDHTRead >= SAMPLE_INTERVAL * 1000 || firstUpload)
+        if (millis() - last_DHT >= SAMPLE_INTERVAL * 1000 || last_DHT == 0)
         {
                 float h_temp = dht.readHumidity();
                 float t_temp = dht.readTemperature() + t_correction;
-                lastDHTRead = millis();
-                firstUpload = false;
+                last_DHT = millis();
 
                 if (isnan(h_temp) || isnan(t_temp))
                 {
@@ -376,16 +375,15 @@ void getTH_reading()
                 }
         }
 }
-
 #endif
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 // ~~~~~~~~~~~~~~~~~~USE_SCREEN ~~~~~~~~~~~~~
 #if USE_SCREEN
 const int displayRows = 4;
-char timeStamp[50];
-char dateStamp[50];
-char bmsg[2][50];
+char timeStamp[15];
+char dateStamp[15];
+char bmsg[4][50];
 long bmsg_t = 0;
 
 //~~~~~~~~~~~~~~ OLED ~~~~~~~~~~~~~
@@ -395,19 +393,17 @@ long bmsg_t = 0;
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
 
+#define OLED_RESET LED_BUILTIN
 #define SCREEN_WIDTH 128
+
 #if displayRows == 4
 #define SCREEN_HEIGHT 64 // 32 2rows or 64 4 rows
 #else if displayRows == 2
-#define SCREEN_HEIGHT 632 // 32 2rows or 64 4 rows
+#define SCREEN_HEIGHT 32 // 32 2rows or 64 4 rows
 #endif
-
-#define OLED_RESET LED_BUILTIN
 
 long swapLines_counter = 0;
 
-// char bmsg[2][50];
-// long bmsg_t = 0;
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 
 void startOLED()
@@ -588,34 +584,50 @@ void screen_looper()
         lcd.setCursor(lcdColumns / 2, 0);
         lcd.print(dateStamp);
 
-#if USE_DHT30 || USE_TEMP_HUMID
+#if USE_DHT30 || USE_DHT11
         char DHTreading[20];
         sprintf(DHTreading, "Temp:%.1f%cC Hum:%.0f%%", t, 223, h);
         lcd.setCursor((int)(lcdColumns - strlen(DHTreading)) / 2, 1);
         lcd.print(DHTreading);
 #endif
+        lcd.clear();
+        lcd.setCursor(0, 2);
+        char line3[25];
+        char t1[30];
+        char t2[2][30];
+        lcd.print(" Shachar       Oz   ");
+        for (int i = 0; i < NUM_SWITCHES; i++)
+        {
+                if (TO[i]->remain() > 0)
+                {
+                        TO[i]->convert_epoch2clock(now() + TO[i]->remain(), now(), t2[i], t1);
+                }
+                else
+                {
+                        sprintf(t2[i], "Off");
+                }
+        }
+        sprintf(line3, "%s %s", t2[0], t2[1]);
+        lcd.setCursor((int)(20 / 2 - strlen(t2[0])) / 2, 3);
+        lcd.print(t2[0]);
+        lcd.setCursor(10 + (int)(20 / 2 - strlen(t2[0])) / 2, 3);
+        lcd.print(t2[1]);
 
-lcd.setCursor(0, 2);
-char line3 [25];
-char t1[30];
-char t2[2][30];
-lcd.print(" Shachar       Oz   ");
-for (int i=0; i<NUM_SWITCHES; i++){
-        if (TO[i]->remain()>0){
-                TO[i]->convert_epoch2clock(now() + TO[i]->remain(), now(), t2[i], t1);
-        }
-        else{
-                sprintf(t2[i],"Off");
-        }
+        // delay(50);
 }
-sprintf(line3,"%s %s",t2[0], t2[1]);
-lcd.setCursor((int)(20/2-strlen(t2[0]))/2, 3);
-lcd.print(t2[0]);
-lcd.setCursor(10+(int)(20/2-strlen(t2[0]))/2, 3);
-lcd.print(t2[1]);
 
-// delay(50);
-// lcd.clear();
+void disp_screen(char *line1, char *line2, char *line3, char *line4)
+{
+#if USE_LCD
+        lcd.setCursor(0, 0);
+        lcd.print(line1);
+        lcd.setCursor(0, 1);
+        lcd.print(line2);
+        lcd.setCursor(0, 2);
+        lcd.print(line3);
+        lcd.setCursor(0, 3);
+        lcd.print(line4);
+#endif
 }
 #endif
 
@@ -704,10 +716,9 @@ void PIRdetect_cb()
         {
                 TO[i]->setNewTimeout(TIMEOUT_PIR_DET);
         }
-        #if USE_NOTIFY_TELE
+#if USE_NOTIFY_TELE
         teleNotify.send_msg("comb");
-        #endif
-
+#endif
 }
 
 void startPIR()
@@ -1693,7 +1704,7 @@ void setup()
         startLCD();
 #endif
 #endif
-#if USE_TEMP_HUMID
+#if USE_DHT11
         startDHT();
 #endif
 
@@ -1743,12 +1754,12 @@ void loop()
 #endif
 #endif
 
-#if USE_TEMP_HUMID
+#if USE_DHT11
         getTH_reading();
 #endif
 #if USE_DHT30
         DHT30_loop();
-        #endif
+#endif
 
 #if USE_IFTTT
         IFTT_lopper();
@@ -1757,5 +1768,5 @@ void loop()
 #if USE_PIR_SESNOR
         PIRsensor0.looper();
 #endif
-        delay(50);
+        delay(100);
 }
