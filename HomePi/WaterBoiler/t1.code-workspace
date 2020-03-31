@@ -2,6 +2,10 @@
 	"folders": [
 		{
 			"path": "/home/guy/Documents/git/Arduino"
+		},
+		{
+			"name": "190430-171557-d1_mini",
+			"path": "/home/guy/Documents/PlatformIO/Projects/190430-171557-d1_mini"
 		}
 	],
 	"settings": {
