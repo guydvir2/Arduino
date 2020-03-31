@@ -81,17 +81,17 @@ void startIOTservices()
 AlarmId id;
 FVars endTimeOUT_flash;
 
-
 void Alarm_clockupdate()
 {
-  time_t t = now();                                                  // Store the current time in time
-  setTime(hour(t), minute(t), second(t), day(t), month(t), year(t)); //8,29,0,1,1,11); // set time to Saturday 8:29:00am Jan 1 2011
-  endTimeOUT_flash.setValue(t);
-  long getval;
-  endTimeOUT_flash.getValue(getval);
-  Serial.println(getval);
+  if (iot.NTP_OK)
+  { // Store the current time in time
+    time_t t = now();
+    setTime(hour(t), minute(t), second(t), day(t), month(t), year(t)); //8,29,0,1,1,11); // set time to Saturday 8:29:00am Jan 1 2011
+    endTimeOUT_flash.setValue(t);
+    long getval;
+    endTimeOUT_flash.getValue(getval);
+  }
 }
-
 
 // ~~~~~~~~~~~~~~~~~ PIR Sensor ~~~~~~~~~~~~~~
 #define PIN_TO_SENSOR_1 D7
@@ -151,8 +151,6 @@ void end_detection_callback()
   Serial.println("END_DETECT");
 }
 
-
-
 // void endTimeOut()
 // {
 //   Alarm.timerOnce(10, temp_not);
@@ -164,7 +162,7 @@ void setup()
   startIOTservices();
   Alarm_clockupdate();
   startSensors();
-  // Alarm.alarmRepeat(21,42,30, temp_not); 
+  // Alarm.alarmRepeat(21,42,30, temp_not);
 }
 
 void loop()
