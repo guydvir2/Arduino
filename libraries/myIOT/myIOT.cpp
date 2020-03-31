@@ -228,6 +228,7 @@ bool myIOT::startNTP()
         if (x < retries && year(t) != 1970)
         {
                 NTP.setInterval(5, clockUpdateInt);
+                NTP_OK = true;
                 return 1;
         }
         if (year(t) == 1970)
