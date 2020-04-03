@@ -27,7 +27,6 @@ void PIRsensor::end_detect_cb(cb_func cb)
 void PIRsensor::update_timer_end()
 {
   _endTimer = millis() + (long)timer_duration * 1000;
-  Serial.println("update");
 }
 
 bool PIRsensor::check_timer()

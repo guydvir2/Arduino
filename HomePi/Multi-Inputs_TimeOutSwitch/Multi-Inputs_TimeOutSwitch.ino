@@ -4,17 +4,17 @@
 
 // ********** Names + Strings  ***********
 // ~~~~~~~ MQTT Topics ~~~~~~              // belong to myIOT
-#define DEVICE_TOPIC "kidBedsLEDs"
+#define DEVICE_TOPIC "kidsBedLEDs"
 #define MQTT_PREFIX "myHome"
 #define MQTT_GROUP "intLights"
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 // ********** Sketch Services  ***********
-#define VER "WEMOS_6.6"
+#define VER "WEMOS_6.7"
 #define IS_SONOFF false
 #define USE_INPUTS true
 #define IS_MOMENTARY true // is switch latch or momentary
-#define USE_PWM false
+#define USE_PWM true
 
 #define ON_AT_BOOT false // On or OFF at boot (Usually when using inputs, at boot/PowerOn - state should be off
 #define USE_DAILY_TO false
@@ -24,10 +24,10 @@
 #define USE_LCD true
 #define USE_OLED false
 
-#define USE_DHT30 false
+#define USE_DHT30 true
 #define USE_DHT11 false
 
-#define USE_NOTIFY_TELE true
+#define USE_NOTIFY_TELE false
 #define USE_SENSOR false
 #define USE_IR_REMOTE false
 #define USE_IFTTT false
@@ -48,8 +48,8 @@ myIOT iot(DEVICE_TOPIC);
 // ***************************
 
 // ********** TimeOut Time vars  ***********
-#define NUM_SWITCHES 1
-#define TIMEOUT_SW0 4 * 60 // mins for SW0
+#define NUM_SWITCHES 2
+#define TIMEOUT_SW0 2 * 60 // mins for SW0
 #define TIMEOUT_SW1 2 * 60 // mins
 #define TIMEOUT_PIR_DET 10 // mins
 
@@ -83,7 +83,7 @@ char *clockAlias = "Daily TimeOut";
 #if !IS_SONOFF
 #define RELAY1 D3       // <--- D3 most devices, but KitchenLEDs D2
 #define RELAY2 D6       // was D2
-#define INPUT1 D7       //was D4
+#define INPUT1 D4       //was D4
 #define INPUT2 D7       // was D6
 #define SENSOR_PIN D1   // WHHAT???
 #define indic_LEDpin D5 // was 4
@@ -322,7 +322,7 @@ SHT3X sht30(0x45);
 
 void DHT30_loop()
 {
-        if (millis() - last_DHT >= SAMPLE_INTERVAL || last_DHT == 0)
+        if (millis() - last_DHT >= SAMPLE_INTERVAL*1000 || last_DHT == 0)
         {
                 if (sht30.get() == 0)
                 {
@@ -579,41 +579,62 @@ void screen_looper()
         iot.return_clock(timeStamp);
         iot.return_date(dateStamp);
 
-        lcd.setCursor(0, 0);
-        lcd.print(timeStamp);
-        lcd.setCursor(lcdColumns / 2, 0);
-        lcd.print(dateStamp);
+        int i = 0;
+
+        // lcd.clear();
+        if (lcdColumns > 16)
+        {
+                lcd.setCursor(0, i);
+                lcd.print(timeStamp);
+                lcd.setCursor(lcdColumns / 2, i);
+                lcd.print(dateStamp);
+        }
+        else
+        {
+                lcd.setCursor(lcdColumns / 2, i);
+                lcd.print(timeStamp);
+                lcd.setCursor(lcdColumns / 2, ++i);
+                lcd.print(dateStamp);
+        }
 
 #if USE_DHT30 || USE_DHT11
-        char DHTreading[20];
-        sprintf(DHTreading, "Temp:%.1f%cC Hum:%.0f%%", t, 223, h);
-        lcd.setCursor((int)(lcdColumns - strlen(DHTreading)) / 2, 1);
-        lcd.print(DHTreading);
+
+        char DHTreading[2][10];
+        sprintf(DHTreading[0], "%.1f%cC", t, 223);
+        sprintf(DHTreading[1], "%.0f%%", h);
+        i++;
+        lcd.setCursor(lcdColumns / 4 - (int)(strlen(DHTreading[0]) / 2), i);
+        lcd.print(DHTreading[0]);
+        lcd.setCursor(lcdColumns*3 / 4 - (int)(strlen(DHTreading[1]) / 2), i);
+        lcd.print(DHTreading[1]);
 #endif
-        lcd.clear();
         lcd.setCursor(0, 2);
         char line3[25];
         char t1[30];
         char t2[2][30];
-        lcd.print(" Shachar       Oz   ");
-        for (int i = 0; i < NUM_SWITCHES; i++)
+        char *names[2] = {"Oz","Shachar" };
+
+        i++;
+
+        for (int x = 0; x < 2; x++)
         {
-                if (TO[i]->remain() > 0)
+                lcd.setCursor((2*x+1)*lcdColumns/(2*NUM_SWITCHES) -(int)((strlen(names[x])/2)),i);
+                lcd.print(names[x]);
+
+                if (TO[x]->remain() > 0)
                 {
-                        TO[i]->convert_epoch2clock(now() + TO[i]->remain(), now(), t2[i], t1);
+                        TO[x]->convert_epoch2clock(now() + TO[x]->remain(), now(), t2[x], t1);
                 }
                 else
                 {
-                        sprintf(t2[i], "Off");
+                        sprintf(t2[x], " >>Off<<");
                 }
-        }
-        sprintf(line3, "%s %s", t2[0], t2[1]);
-        lcd.setCursor((int)(20 / 2 - strlen(t2[0])) / 2, 3);
-        lcd.print(t2[0]);
-        lcd.setCursor(10 + (int)(20 / 2 - strlen(t2[0])) / 2, 3);
-        lcd.print(t2[1]);
+                i++;
+                lcd.setCursor((2*x+1)*lcdColumns/(2*NUM_SWITCHES) -(int)((strlen(t2[x])/2)),i);
+                lcd.print(t2[x]);
+                i--;
 
-        // delay(50);
+        }
 }
 
 void disp_screen(char *line1, char *line2, char *line3, char *line4)
@@ -928,6 +949,7 @@ void checkSwitch_Pressed(byte sw, bool momentary = true)
                         }
                 }
         }
+        delay(100);
 }
 void startIOTservices()
 {
