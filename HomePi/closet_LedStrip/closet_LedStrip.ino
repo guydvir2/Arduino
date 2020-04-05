@@ -1,128 +1,200 @@
-#define SENSORPIN        2
-#define SWITCHPIN        3
-#define BUTTONPIN        4
-#define PWRDOWN_TIMEOUT  100  // mins <----- NEED TO CHANGE BY USER
+#define SENSORPIN_1 2
+#define SWITCHPIN_1 5
+#define BUTTONPIN_1 0
 
-class SensorSwitch {
-  #define RelayON               true
-  #define ButtonPressed         LOW
-  #define SENSOR_DETECT_DOOR    false
-  #define SWITCH_DELAY          30
+#define SENSORPIN_2 2
+#define SWITCHPIN_2 4
+#define BUTTONPIN_2 0
+
+#define PWRDOWN_TIMEOUT 30 // mins <----- NEED TO CHANGE BY USER
+
+class SensorSwitch
+{
+#define RelayON true
+#define ButtonPressed LOW
+#define SENSOR_DETECT_DOOR LOW
+#define SWITCH_DELAY 30
 
 private:
-int _switchPin, _extPin, _timeout_mins;
-byte step          = 20;
-byte maxLuminVal   = 240;
-byte currentLumVal = maxLuminVal;
-byte LumStep       = 60;
+        int _switchPin, _extPin, _timeout_mins;
+        byte step = 20;
+        byte maxLuminVal = 240;
+        byte currentLumVal = maxLuminVal;
+        byte LumStep = 60;
 
-bool _sensorsState, _last_sensorsState;
-long unsigned _onCounter = 0;
-long unsigned _lastInput = 0;
+        bool _sensorsState, _last_sensorsState;
+        long unsigned _onCounter = 0;
+        long unsigned _lastInput = 0;
 
 public:
-int SensorPin;
+        int SensorPin;
+        bool useButton = false;
+        bool usePWM = false;
 
+        SensorSwitch(int sensorPin, int switchPin, int extPin, int timeout_mins = 10)
+        {
+                SensorPin = sensorPin;
+                _switchPin = switchPin;
+                _extPin = extPin;
+                _timeout_mins = timeout_mins;
+        }
+        void start()
+        {
+                pinMode(SensorPin, INPUT_PULLUP);
 
-SensorSwitch(int sensorPin, int switchPin, int extPin, int timeout_mins=10){
-        SensorPin=sensorPin;
-        _switchPin=switchPin;
-        _extPin=extPin;
-        _timeout_mins=timeout_mins;
-}
-void start(){
-        pinMode(SensorPin, INPUT_PULLUP);
-        pinMode(_extPin, INPUT_PULLUP);
-        pinMode(_switchPin, OUTPUT);
+                if (useButton)
+                {
+                        pinMode(_extPin, INPUT_PULLUP);
+                }
+                pinMode(_switchPin, OUTPUT);
 
-        _sensorsState = digitalRead(SensorPin);
-        _last_sensorsState = digitalRead(SensorPin);
-        turnOff();
-}
-void sensor_ISR(){
-        detachInterrupt(digitalPinToInterrupt(SensorPin));
-        _sensorsState = digitalRead(SensorPin);
-}
-void checkLuminButton(){
-        if (digitalRead(_extPin) == ButtonPressed) {
-                delay(50);
-                if (digitalRead(_extPin) == ButtonPressed) {
-                        if (currentLumVal - LumStep >= 0) {
-                                currentLumVal = currentLumVal - LumStep;
+                _sensorsState = digitalRead(SensorPin);
+                _last_sensorsState = digitalRead(SensorPin);
+                turnOff();
+        }
+        void sensor_ISR()
+        {
+                detachInterrupt(digitalPinToInterrupt(SensorPin));
+                _sensorsState = digitalRead(SensorPin);
+        }
+        void checkLuminButton()
+        {
+                if (useButton)
+                {
+                        if (digitalRead(_extPin) == ButtonPressed)
+                        {
+                                delay(50);
+                                if (digitalRead(_extPin) == ButtonPressed)
+                                {
+                                        if (currentLumVal - LumStep >= 0)
+                                        {
+                                                currentLumVal = currentLumVal - LumStep;
+                                        }
+                                        else
+                                        {
+                                                currentLumVal = maxLuminVal;
+                                        }
+                                        analogWrite(_switchPin, currentLumVal);
+                                        delay(200);
+                                }
                         }
-                        else {
-                                currentLumVal = maxLuminVal;
-                        }
-                        analogWrite(_switchPin,currentLumVal);
-                        delay(200);
                 }
         }
-}
-void looper(){
-        checkSensor();
-        checkLuminButton();
-        offBy_timeout();
-}
+        void looper()
+        {
+                checkSensor();
+                checkLuminButton();
+                offBy_timeout();
+        }
 
 private:
-void turnOff(){
-        for (int i=currentLumVal; i>=0; i=i-step) {
-                analogWrite(_switchPin,i);
-                delay(SWITCH_DELAY);
-        }
-        _onCounter = 0;
-        //Serial.println("Off");
-}
-void turnOn(){
-        for (int i=0; i<=currentLumVal; i=i+step) {
-                analogWrite(_switchPin,i);
-                delay(SWITCH_DELAY);
-        }
-        _onCounter = millis();
-        //Serial.println("On");
-}
-void offBy_timeout(){
-        if (_timeout_mins*1000ul*60ul> 0 && _onCounter!=0) { // user setup TO ?
-                if (millis() - _onCounter >= _timeout_mins*1000ul*60ul) { //TO ended
-                        turnOff();
-                        // ~ faking sensor value to shut down using timeout ~~
-                        _sensorsState = SENSOR_DETECT_DOOR; // mean led off
-                        _last_sensorsState = SENSOR_DETECT_DOOR;
-                        // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-                }
-        }
-}
-void checkSensor(){
-        if (_sensorsState!=_last_sensorsState) { // enter on change only
-                if (millis()-_lastInput > 100) { // ms of debounce
-                        if (_sensorsState == !SENSOR_DETECT_DOOR ) {
-                                turnOn();
+        void turnOff()
+        {
+                if (usePWM)
+                {
+                        for (int i = currentLumVal; i >= 0; i = i - step)
+                        {
+                                analogWrite(_switchPin, i);
+                                delay(SWITCH_DELAY);
                         }
-                        else {
+                }
+                else
+                {
+                        digitalWrite(_switchPin, !RelayON);
+                }
+                _onCounter = 0;
+        }
+        void turnOn()
+        {
+                if (usePWM)
+                {
+                        for (int i = 0; i <= currentLumVal; i = i + step)
+                        {
+                                analogWrite(_switchPin, i);
+                                delay(SWITCH_DELAY);
+                        }
+                }
+                else
+                {
+                        digitalWrite(_switchPin, RelayON);
+                }
+                _onCounter = millis();
+        }
+        void offBy_timeout()
+        {
+                if (_timeout_mins * 1000ul * 60ul > 0 && _onCounter != 0)
+                { // user setup TO ?
+                        if (millis() - _onCounter >= _timeout_mins * 1000ul * 60ul)
+                        { //TO ended
                                 turnOff();
+                                // ~ faking sensor value to shut down using timeout ~~
+                                _sensorsState = SENSOR_DETECT_DOOR; // mean led off
+                                _last_sensorsState = SENSOR_DETECT_DOOR;
+                                // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
                         }
-                        _lastInput = millis();
-                        _last_sensorsState=_sensorsState;
                 }
         }
-}
-
+        void checkSensor()
+        {
+                if (_sensorsState != _last_sensorsState)
+                { // enter on change only
+                        if (millis() - _lastInput > 100)
+                        { // ms of debounce
+                                if (_sensorsState == !SENSOR_DETECT_DOOR)
+                                {
+                                        turnOn();
+                                }
+                                else
+                                {
+                                        turnOff();
+                                }
+                                _lastInput = millis();
+                                _last_sensorsState = _sensorsState;
+                        }
+                }
+        }
 };
 
-SensorSwitch s1(SENSORPIN,SWITCHPIN,BUTTONPIN,PWRDOWN_TIMEOUT);
-void reAttach(){
-        attachInterrupt(digitalPinToInterrupt(s1.SensorPin), isr, CHANGE);
+SensorSwitch s1(SENSORPIN_1, SWITCHPIN_1, BUTTONPIN_1, PWRDOWN_TIMEOUT);
+// SensorSwitch s2(SENSORPIN_2, SWITCHPIN_2, BUTTONPIN_2, PWRDOWN_TIMEOUT);
+
+void reAttach_s1()
+{
+        attachInterrupt(digitalPinToInterrupt(s1.SensorPin), isr_s1, CHANGE);
 }
-void isr(){
+void isr_s1()
+{
         s1.sensor_ISR();
-        reAttach();
+        reAttach_s1();
 }
 
-void setup() {
+// void reAttach_s2()
+// {
+//         attachInterrupt(digitalPinToInterrupt(s2.SensorPin), isr_s2, CHANGE);
+// }
+// void isr_s2()
+// {
+//         s2.sensor_ISR();
+//         reAttach_s2();
+// }
+
+void setup()
+{
         s1.start();
-        reAttach();
+        s1.useButton = false;
+        s1.usePWM = false;
+        reAttach_s1();
+
+        pinMode(SWITCHPIN_2, OUTPUT);
+        // s2.start();
+        // s2.useButton = false;
+        // s2.usePWM = false;
+        // reAttach_s2();
 }
-void loop() {
+void loop()
+{
         s1.looper();
+        digitalWrite(SWITCHPIN_2, digitalRead(SWITCHPIN_1));
+        // s2.looper();
         delay(100);
 }

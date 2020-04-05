@@ -48,6 +48,8 @@ private:
     void Avg_Array_zeroing();
     // ~~~~~~~ Sleep & Drift calcs ~~~
     void driftUpdate(float drift_value, byte cell = 0);
+    void new_driftUpdate(float drift_value, byte cell = 0);
+
     int calc_nominal_sleepTime();
 
 public:

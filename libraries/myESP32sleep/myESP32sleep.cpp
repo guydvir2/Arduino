@@ -109,11 +109,40 @@ void esp32Sleep::driftUpdate(float lastboot_drift, byte cell)
     sum_avg += lastboot_drift;
     driftRTC += sum_avg / (float)drift_ArraySize;
 
-    if (bootCounter%10 == 0){
-      saveEEPROMvalue((int)driftRTC,0);
+    if (bootCounter % 10 == 0)
+    {
+      saveEEPROMvalue((int)driftRTC, 0);
       Serial.println("DRIFT SAVED TO EEPROM");
     }
   }
+}
+
+void esp32Sleep::new_driftUpdate(float lastboot_drift, byte cell)
+{
+  const float driftFactor = -22 / 3600;
+  const float drift_tolerance = (15 / 100) * driftFactor;
+  const float nomin_drift = driftFactor * (_deepsleep_time * 60);
+
+  bool negnum = lastboot_drift < 0 ? true : false;
+
+  if (lastboot_drift <= nomin_drift + drift_tolerance && lastboot_drift >= nomin_drift - drift_tolerance)
+  {
+    driftRTC = lastboot_drift;
+    Serial.println("Calc1");
+  }
+  else if (lastboot_drift > nomin_drift + drift_tolerance)
+  {
+    driftRTC = nomin_drift + drift_tolerance;
+    Serial.println("Calc2");
+  }
+  else if (lastboot_drift < nomin_drift - drift_tolerance)
+  {
+    driftRTC = nomin_drift - drift_tolerance;
+    Serial.println("Calc1");
+  }
+  
+  Serial.print("rtc calc:");
+  Serial.println(driftRTC);
 }
 
 int esp32Sleep::calc_nominal_sleepTime()
@@ -192,8 +221,8 @@ void esp32Sleep::check_awake_ontime(int min_t_avoidSleep)
       char tt[100];
       sprintf(tt, "Woke_after: [%d sec]; wake_Drift: [%d sec]; ", _epoch_time - clock_beforeSleep, t_delta);
       strcat(wake_sleep_str, tt);
-
-      driftUpdate(t_delta, 0);
+      new_driftUpdate(t_delta, 0);
+      // driftUpdate(t_delta, 0);
 
       if (t_delta < 0 && wake_diff < 0)
       {
@@ -220,7 +249,6 @@ void esp32Sleep::check_awake_ontime(int min_t_avoidSleep)
       saveEEPROMvalue(0, 0);
     }
   }
-
 }
 void esp32Sleep::wait_forSleep()
 {
