@@ -1,18 +1,27 @@
-int sensPin=3;
-
+/*
+ * ESP8266 Deep sleep mode example
+ * Rui Santos 
+ * Complete Project Details https://randomnerdtutorials.com
+ */
+ 
 void setup() {
-  // put your setup code here, to run once:
-  Serial.begin(9600);
-  pinMode(sensPin, OUTPUT);
+  Serial.begin(115200);
+  Serial.setTimeout(2000);
 
+  // Wait for serial to initialize.
+  while(!Serial) { }
+  
+  // Deep sleep mode for 30 seconds, the ESP8266 wakes up by itself when GPIO 16 (D0 in NodeMCU board) is connected to the RESET pin
+  Serial.println("");
+  Serial.println("I'm awake, but I'm going into deep sleep mode for 30 seconds");
+  Serial.flush();
+  delay(200);
+  ESP.deepSleep(10e6); 
+  
+  // Deep sleep mode until RESET pin is connected to a LOW signal (for example pushbutton or magnetic reed switch)
+  // Serial.println("I'm awake, but I'm going into deep sleep mode until RESET pin is connected to a LOW signal");
+  // ESP.deepSleep(0); 
 }
 
 void loop() {
-  // put your main code here, to run repeatedly:
-//  Serial.println(digitalRead(sensPin));
-// digitalWrite(sensPin,1);
-//   delay(1000);
-  digitalWrite(sensPin,0);
-  delay(1000);
-
 }

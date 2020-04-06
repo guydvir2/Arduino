@@ -5,8 +5,6 @@
 
 // ********** Sketch Services  ***********
 #define VER "WEMOS_1.0"
-#define USE_NOTIFY_TELE false
-
 // ********** myIOT Class ***********
 //~~~~~ Services ~~~~~~~~~~~
 #define USE_SERIAL true
@@ -37,8 +35,8 @@ String col1 = "val1";
 String col2 = "val2";
 
 // ~~~~~~~~~~ Time intervals ~~~~~~~~~~
-const int sleepSeconds = 60 * 45;
-const int stayawakeSeconds = 60;
+const int sleepSeconds = 60 * 5;
+const int stayawakeSeconds = 20;
 const int uploadintervalSeconds = 20;
 unsigned long lastupload = 0;
 

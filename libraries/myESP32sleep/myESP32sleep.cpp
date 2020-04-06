@@ -119,28 +119,46 @@ void esp32Sleep::driftUpdate(float lastboot_drift, byte cell)
 
 void esp32Sleep::new_driftUpdate(float lastboot_drift, byte cell)
 {
-  const float driftFactor = -22 / 3600;
-  const float drift_tolerance = (15 / 100) * driftFactor;
-  const float nomin_drift = driftFactor * (_deepsleep_time * 60);
+  const float driftFactor = -0.006111;
+  const float drift_tolerance = 0.25;
+  const float nomin_drift = driftFactor * (_deepsleep_time * 60.0);
+  const float max_drift = nomin_drift * (1 - drift_tolerance); // bigger neg number
+  const float min_drift = nomin_drift * (1 + drift_tolerance); // lesser neg number
 
-  bool negnum = lastboot_drift < 0 ? true : false;
+  Serial.println(driftFactor, 6);
+  Serial.print("max TRC allowed: ");
+  Serial.println(max_drift, 4);
+  Serial.print("min TRC allowed: ");
+  Serial.println(min_drift, 4);
 
-  if (lastboot_drift <= nomin_drift + drift_tolerance && lastboot_drift >= nomin_drift - drift_tolerance)
+  // bool negnum = lastboot_drift < 0 ? true : false;
+  // driftRTC += lastboot_drift;
+
+  // if (driftRTC < max_drift){
+  //   driftRTC = max_drift;
+  // }
+  // else if { driftRTC >
+  //   driftRTC += lastboot_drift;
+  // }
+
+
+  if (driftRTC + lastboot_drift < max_drift && driftRTC + lastboot_drift > min_drift)
   {
-    driftRTC = lastboot_drift;
+    driftRTC += lastboot_drift;
+    // driftRTC = lastboot_drift;
     Serial.println("Calc1");
   }
-  else if (lastboot_drift > nomin_drift + drift_tolerance)
+  else if (driftRTC + lastboot_drift > min_drift)
   {
-    driftRTC = nomin_drift + drift_tolerance;
-    Serial.println("Calc2");
+    driftRTC = min_drift;
+    Serial.println("Calc2 ");
   }
-  else if (lastboot_drift < nomin_drift - drift_tolerance)
+  else if (driftRTC + lastboot_drift < max_drift)
   {
-    driftRTC = nomin_drift - drift_tolerance;
-    Serial.println("Calc1");
+    driftRTC = max_drift;
+    Serial.println("Calc3");
   }
-  
+
   Serial.print("rtc calc:");
   Serial.println(driftRTC);
 }
