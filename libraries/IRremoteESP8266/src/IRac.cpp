@@ -123,6 +123,9 @@ bool IRac::isProtocolSupported(const decode_type_t protocol) {
 #if SEND_DAIKIN216
     case decode_type_t::DAIKIN216:
 #endif
+#if SEND_DAIKIN64
+    case decode_type_t::DAIKIN64:
+#endif
 #if SEND_ELECTRA_AC
     case decode_type_t::ELECTRA_AC:
 #endif
@@ -143,6 +146,9 @@ bool IRac::isProtocolSupported(const decode_type_t protocol) {
 #endif
 #if SEND_HITACHI_AC
     case decode_type_t::HITACHI_AC:
+#endif
+#if SEND_HITACHI_AC1
+    case decode_type_t::HITACHI_AC1:
 #endif
 #if SEND_HITACHI_AC424
     case decode_type_t::HITACHI_AC424:
@@ -461,6 +467,27 @@ void IRac::daikin216(IRDaikin216 *ac,
 }
 #endif  // SEND_DAIKIN216
 
+#if SEND_DAIKIN64
+void IRac::daikin64(IRDaikin64 *ac,
+                  const bool on, const stdAc::opmode_t mode,
+                  const float degrees, const stdAc::fanspeed_t fan,
+                  const stdAc::swingv_t swingv,
+                  const bool quiet, const bool turbo,
+                  const int16_t sleep, const int16_t clock) {
+  ac->begin();
+  ac->setPowerToggle(on);
+  ac->setMode(ac->convertMode(mode));
+  ac->setTemp(degrees);
+  ac->setFan(ac->convertFan(fan));
+  ac->setSwingVertical((int8_t)swingv >= 0);
+  ac->setTurbo(turbo);
+  ac->setQuiet(quiet);
+  ac->setSleep(sleep >= 0);
+  ac->setClock(clock);
+  ac->send();
+}
+#endif  // SEND_DAIKIN64
+
 #if SEND_ELECTRA_AC
 void IRac::electra(IRElectraAc *ac,
                    const bool on, const stdAc::opmode_t mode,
@@ -673,6 +700,37 @@ void IRac::hitachi(IRHitachiAc *ac,
   ac->send();
 }
 #endif  // SEND_HITACHI_AC
+
+#if SEND_HITACHI_AC1
+void IRac::hitachi1(IRHitachiAc1 *ac, const hitachi_ac1_remote_model_t model,
+                    const bool on, const bool power_toggle,
+                    const stdAc::opmode_t mode,
+                    const float degrees, const stdAc::fanspeed_t fan,
+                    const stdAc::swingv_t swingv, const stdAc::swingh_t swingh,
+                    const bool swing_toggle, const int16_t sleep) {
+  ac->begin();
+  ac->setModel(model);
+  ac->setPower(on);
+  ac->setPowerToggle(power_toggle);
+  ac->setMode(ac->convertMode(mode));
+  ac->setTemp(degrees);
+  ac->setFan(ac->convertFan(fan));
+  ac->setSwingV(swingv != stdAc::swingv_t::kOff);
+  ac->setSwingH(swingh != stdAc::swingh_t::kOff);
+  ac->setSwingToggle(swing_toggle);
+  ac->setSleep((sleep >= 0) ? kHitachiAc1Sleep2 : kHitachiAc1SleepOff);
+  // No Sleep setting available.
+  // No Swing(H) setting available.
+  // No Quiet setting available.
+  // No Turbo setting available.
+  // No Light setting available.
+  // No Filter setting available.
+  // No Clean setting available.
+  // No Beep setting available.
+  // No Clock setting available.
+  ac->send();
+}
+#endif  // SEND_HITACHI_AC1
 
 #if SEND_HITACHI_AC424
 void IRac::hitachi424(IRHitachiAc424 *ac,
@@ -999,10 +1057,11 @@ void IRac::samsung(IRSamsungAc *ac,
 
 #if SEND_SHARP_AC
 void IRac::sharp(IRSharpAc *ac,
-                 const bool on, const stdAc::opmode_t mode,
+                 const bool on, const bool prev_power,
+                 const stdAc::opmode_t mode,
                  const float degrees, const stdAc::fanspeed_t fan) {
   ac->begin();
-  ac->setPower(on);
+  ac->setPower(on, prev_power);
   ac->setMode(ac->convertMode(mode));
   ac->setTemp(degrees);
   ac->setFan(ac->convertFan(fan));
@@ -1233,6 +1292,7 @@ stdAc::state_t IRac::handleToggles(const stdAc::state_t desired,
         else
           result.swingv = stdAc::swingv_t::kOff;  // No change, so no toggle.
         break;
+      case decode_type_t::DAIKIN64:
       case decode_type_t::WHIRLPOOL_AC:
         result.power = desired.power ^ prev->power;
         break;
@@ -1390,6 +1450,15 @@ bool IRac::sendAc(const stdAc::state_t desired, const stdAc::state_t *prev) {
       break;
     }
 #endif  // SEND_DAIKIN216
+#if SEND_DAIKIN64
+    case DAIKIN64:
+    {
+      IRDaikin64 ac(_pin, _inverted, _modulation);
+      daikin64(&ac, send.power, send.mode, degC, send.fanspeed, send.swingv,
+               send.quiet, send.turbo, send.sleep, send.clock);
+      break;
+    }
+#endif  // SEND_DAIKIN64
 #if SEND_ELECTRA_AC
     case ELECTRA_AC:
     {
@@ -1457,6 +1526,23 @@ bool IRac::sendAc(const stdAc::state_t desired, const stdAc::state_t *prev) {
       break;
     }
 #endif  // SEND_HITACHI_AC
+#if SEND_HITACHI_AC1
+    case HITACHI_AC1:
+    {
+      IRHitachiAc1 ac(_pin, _inverted, _modulation);
+      bool power_toggle = false;
+      bool swing_toggle = false;
+      if (prev != NULL) {
+        power_toggle = (send.power != prev->power);
+        swing_toggle = (send.swingv != prev->swingv) ||
+                       (send.swingh != prev->swingh);
+      }
+      hitachi1(&ac, (hitachi_ac1_remote_model_t)send.model, send.power,
+               power_toggle, send.mode, degC, send.fanspeed, send.swingv,
+               send.swingh, swing_toggle, send.sleep);
+      break;
+    }
+#endif  // SEND_HITACHI_AC1
 #if SEND_HITACHI_AC424
     case HITACHI_AC424:
     {
@@ -1572,7 +1658,9 @@ bool IRac::sendAc(const stdAc::state_t desired, const stdAc::state_t *prev) {
     case SHARP_AC:
     {
       IRSharpAc ac(_pin, _inverted, _modulation);
-      sharp(&ac, send.power, send.mode, degC, send.fanspeed);
+      bool prev_power = !send.power;
+      if (prev != NULL) prev_power = prev->power;
+      sharp(&ac, send.power, prev_power, send.mode, degC, send.fanspeed);
       break;
     }
 #endif  // SEND_SHARP_AC
@@ -1796,6 +1884,11 @@ int16_t IRac::strToModel(const char *str, const int16_t def) {
     return gree_ac_remote_model_t::YAW1F;
   } else if (!strcasecmp(str, "YBOFB")) {
     return gree_ac_remote_model_t::YBOFB;
+  // HitachiAc1 models
+  } else if (!strcasecmp(str, "R-LT0541-HTA-A")) {
+    return hitachi_ac1_remote_model_t::R_LT0541_HTA_A;
+  } else if (!strcasecmp(str, "R-LT0541-HTA-B")) {
+    return hitachi_ac1_remote_model_t::R_LT0541_HTA_B;
   // Fujitsu A/C models
   } else if (!strcasecmp(str, "ARRAH2E")) {
     return fujitsu_ac_remote_model_t::ARRAH2E;
@@ -2008,6 +2101,13 @@ namespace IRAcUtils {
         return ac.toString();
       }
 #endif  // DECODE_DAIKIN216
+#if DECODE_DAIKIN64
+      case decode_type_t::DAIKIN64: {
+        IRDaikin64 ac(kGpioUnused);
+        ac.setRaw(result->value);  // Daikin64 uses value instead of state.
+        return ac.toString();
+      }
+#endif  // DECODE_DAIKIN216
 #if DECODE_ELECTRA_AC
       case decode_type_t::ELECTRA_AC: {
         IRElectraAc ac(0);
@@ -2157,6 +2257,13 @@ namespace IRAcUtils {
         return ac.toString();
       }
 #endif  // DECODE_HITACHI_AC
+#if DECODE_HITACHI_AC1
+      case decode_type_t::HITACHI_AC1: {
+        IRHitachiAc1 ac(kGpioUnused);
+        ac.setRaw(result->state);
+        return ac.toString();
+      }
+#endif  // DECODE_HITACHI_AC1
 #if DECODE_HITACHI_AC424
       case decode_type_t::HITACHI_AC424: {
         IRHitachiAc424 ac(0);
@@ -2305,6 +2412,14 @@ namespace IRAcUtils {
         break;
       }
 #endif  // DECODE_DAIKIN216
+#if DECODE_DAIKIN64
+      case decode_type_t::DAIKIN64: {
+        IRDaikin64 ac(kGpioUnused);
+        ac.setRaw(decode->value);  // Uses value instead of state.
+        *result = ac.toCommon(prev);
+        break;
+      }
+#endif  // DECODE_DAIKIN64
 #if DECODE_ELECTRA_AC
       case decode_type_t::ELECTRA_AC: {
         IRElectraAc ac(kGpioUnused);
@@ -2361,6 +2476,14 @@ namespace IRAcUtils {
         break;
       }
 #endif  // (DECODE_HITACHI_AC || DECODE_HITACHI_AC2)
+#if DECODE_HITACHI_AC1
+      case decode_type_t::HITACHI_AC1: {
+        IRHitachiAc1 ac(kGpioUnused);
+        ac.setRaw(decode->state);
+        *result = ac.toCommon();
+        break;
+      }
+#endif  // DECODE_HITACHI_AC1
 #if DECODE_HITACHI_AC424
       case decode_type_t::HITACHI_AC424: {
         IRHitachiAc424 ac(kGpioUnused);

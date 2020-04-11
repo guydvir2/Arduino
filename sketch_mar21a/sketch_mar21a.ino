@@ -4,7 +4,7 @@
 #define SLEEP_TIME 60
 #define FORCE_AWAKE_TIME 20
 #define DEV_NAME "ESP32light" //"ESP32-S"                     //
-    esp32Sleep go2sleep(SLEEP_TIME, FORCE_AWAKE_TIME, DEV_NAME);
+esp32Sleep go2sleep(SLEEP_TIME, FORCE_AWAKE_TIME, DEV_NAME);
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~
 
