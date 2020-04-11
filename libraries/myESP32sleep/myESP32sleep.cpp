@@ -125,27 +125,15 @@ void esp32Sleep::new_driftUpdate(float lastboot_drift, byte cell)
   const float max_drift = nomin_drift * (1 - drift_tolerance); // bigger neg number
   const float min_drift = nomin_drift * (1 + drift_tolerance); // lesser neg number
 
-  Serial.println(driftFactor, 6);
-  Serial.print("max TRC allowed: ");
-  Serial.println(max_drift, 4);
-  Serial.print("min TRC allowed: ");
-  Serial.println(min_drift, 4);
-
-  // bool negnum = lastboot_drift < 0 ? true : false;
-  // driftRTC += lastboot_drift;
-
-  // if (driftRTC < max_drift){
-  //   driftRTC = max_drift;
-  // }
-  // else if { driftRTC >
-  //   driftRTC += lastboot_drift;
-  // }
+  // Serial.print("max TRC allowed: ");
+  // Serial.println(max_drift, 4);
+  // Serial.print("min TRC allowed: ");
+  // Serial.println(min_drift, 4);
 
 
   if (driftRTC + lastboot_drift < max_drift && driftRTC + lastboot_drift > min_drift)
   {
     driftRTC += lastboot_drift;
-    // driftRTC = lastboot_drift;
     Serial.println("Calc1");
   }
   else if (driftRTC + lastboot_drift > min_drift)

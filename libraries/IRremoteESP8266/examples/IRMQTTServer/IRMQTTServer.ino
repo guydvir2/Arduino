@@ -449,6 +449,7 @@ String MqttClimate;  // Sub-topic for the climate topics.
 String MqttClimateCmnd;  // Sub-topic for the climate command topics.
 #if MQTT_DISCOVERY_ENABLE
 String MqttDiscovery;
+String MqttUniqueId;
 #endif  // MQTT_DISCOVERY_ENABLE
 String MqttHAName;
 String MqttClientId;
@@ -1228,6 +1229,7 @@ void handleInfo(void) {
     "<h3>General</h3>"
     "<p>Hostname: " + String(Hostname) + "<br>"
     "IP address: " + WiFi.localIP().toString() + "<br>"
+    "MAC address: " + WiFi.macAddress() + "<br>"
     "Booted: " + timeSince(1) + "<br>" +
     "Version: " _MY_VERSION_ "<br>"
     "Built: " __DATE__
@@ -1515,6 +1517,23 @@ bool parseStringAndSendAirCon(IRsend *irsend, const decode_type_t irType,
         stateSize = std::max(stateSize, (uint16_t) (kFujitsuAcStateLength - 1));
       // Lastly, it should never exceed the maximum "normal" size.
       stateSize = std::min(stateSize, kFujitsuAcStateLength);
+      break;
+    case HITACHI_AC3:
+      // HitachiAc3 has two distinct & different size states, so make a best
+      // guess which one we are being presented with based on the number of
+      // hexadecimal digits provided. i.e. Zero-pad if you need to to get
+      // the correct length/byte size.
+      stateSize = inputLength / 2;  // Every two hex chars is a byte.
+      // Use at least the minimum size.
+      stateSize = std::max(stateSize,
+                           (uint16_t) (kHitachiAc3MinStateLength));
+      // If we think it isn't a "short" message.
+      if (stateSize > kHitachiAc3MinStateLength)
+        // Then it probably the "normal" size.
+        stateSize = std::max(stateSize,
+                             (uint16_t) (kHitachiAc3StateLength));
+      // Lastly, it should never exceed the maximum "normal" size.
+      stateSize = std::min(stateSize, kHitachiAc3StateLength);
       break;
     case MWM:
       // MWM has variable size states, so make a best guess
@@ -2033,6 +2052,8 @@ void init_vars(void) {
   // Sub-topic for the climate stat topics.
 #if MQTT_DISCOVERY_ENABLE
   MqttDiscovery = "homeassistant/climate/" + String(Hostname) + "/config";
+  MqttUniqueId = WiFi.macAddress();
+  MqttUniqueId.replace(":", "");
 #endif  // MQTT_DISCOVERY_ENABLE
   MqttHAName = String(Hostname) + "_aircon";
   // Create a unique MQTT client id.
@@ -2531,7 +2552,16 @@ void sendMQTTDiscovery(const char *topic) {
       "\"swing_mode_stat_t\":\"~/" MQTT_CLIMATE_STAT "/" KEY_SWINGV "\","
       "\"swing_modes\":[\"" D_STR_OFF "\",\"" D_STR_AUTO "\",\"" D_STR_HIGHEST
                         "\",\"" D_STR_HIGH "\",\"" D_STR_MIDDLE "\",\""
-                        D_STR_LOW "\",\"" D_STR_LOWEST "\"]"
+                        D_STR_LOW "\",\"" D_STR_LOWEST "\"],"
+      "\"uniq_id\":\"" + MqttUniqueId + "\","
+      "\"device\":{"
+        "\"identifiers\":[\"" + MqttUniqueId + "\"],"
+        "\"connections\":[[\"mac\",\"" + WiFi.macAddress() + "\"]],"
+        "\"manufacturer\":\"IRremoteESP8266\","
+        "\"model\":\"IRMQTTServer\","
+        "\"name\":\"" + Hostname + "\","
+        "\"sw_version\":\"" _MY_VERSION_ "\""
+        "}"
       "}").c_str(), true)) {
     mqttLog("MQTT climate discovery successful sent.");
     hasDiscoveryBeenSent = true;

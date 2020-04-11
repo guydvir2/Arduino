@@ -52,7 +52,7 @@
 #endif  // UNIT_TEST
 
 // Library Version
-#define _IRREMOTEESP8266_VERSION_ "2.7.4"
+#define _IRREMOTEESP8266_VERSION_ "2.7.5"
 
 // Set the language & locale for the library. See the `locale` dir for options.
 #ifndef _IR_LOCALE_
@@ -411,6 +411,20 @@
 #define SEND_HITACHI_AC2       _IR_ENABLE_DEFAULT_
 #endif  // SEND_HITACHI_AC2
 
+#ifndef DECODE_HITACHI_AC3
+#define DECODE_HITACHI_AC3   _IR_ENABLE_DEFAULT_
+#endif  // DECODE_HITACHI_AC3
+#ifndef SEND_HITACHI_AC3
+#define SEND_HITACHI_AC3     _IR_ENABLE_DEFAULT_
+#endif  // SEND_HITACHI_AC3
+
+#ifndef DECODE_HITACHI_AC424
+#define DECODE_HITACHI_AC424   _IR_ENABLE_DEFAULT_
+#endif  // DECODE_HITACHI_AC424
+#ifndef SEND_HITACHI_AC424
+#define SEND_HITACHI_AC424     _IR_ENABLE_DEFAULT_
+#endif  // SEND_HITACHI_AC424
+
 #ifndef DECODE_GICABLE
 #define DECODE_GICABLE         _IR_ENABLE_DEFAULT_
 #endif  // DECODE_GICABLE
@@ -558,19 +572,33 @@
 #define SEND_DAIKIN152         _IR_ENABLE_DEFAULT_
 #endif  // SEND_DAIKIN152
 
-#ifndef DECODE_HITACHI_AC424
-#define DECODE_HITACHI_AC424   _IR_ENABLE_DEFAULT_
-#endif  // DECODE_HITACHI_AC424
-#ifndef SEND_HITACHI_AC424
-#define SEND_HITACHI_AC424     _IR_ENABLE_DEFAULT_
-#endif  // SEND_HITACHI_AC424
-
 #ifndef DECODE_EPSON
 #define DECODE_EPSON   _IR_ENABLE_DEFAULT_
 #endif  // DECODE_EPSON
 #ifndef SEND_EPSON
 #define SEND_EPSON     _IR_ENABLE_DEFAULT_
 #endif  // SEND_EPSON
+
+#ifndef DECODE_SYMPHONY
+#define DECODE_SYMPHONY   _IR_ENABLE_DEFAULT_
+#endif  // DECODE_SYMPHONY
+#ifndef SEND_SYMPHONY
+#define SEND_SYMPHONY     _IR_ENABLE_DEFAULT_
+#endif  // SEND_SYMPHONY
+
+#ifndef DECODE_DAIKIN64
+#define DECODE_DAIKIN64       _IR_ENABLE_DEFAULT_
+#endif  // DECODE_DAIKIN64
+#ifndef SEND_DAIKIN64
+#define SEND_DAIKIN64         _IR_ENABLE_DEFAULT_
+#endif  // SEND_DAIKIN64
+
+#ifndef DECODE_AIRWELL
+#define DECODE_AIRWELL       _IR_ENABLE_DEFAULT_
+#endif  // DECODE_AIRWELL
+#ifndef SEND_AIRWELL
+#define SEND_AIRWELL         _IR_ENABLE_DEFAULT_
+#endif  // SEND_AIRWELL
 
 #if (DECODE_ARGO || DECODE_DAIKIN || DECODE_FUJITSU_AC || DECODE_GREE || \
      DECODE_KELVINATOR || DECODE_MITSUBISHI_AC || DECODE_TOSHIBA_AC || \
@@ -582,7 +610,7 @@
      DECODE_DAIKIN216 || DECODE_SHARP_AC || DECODE_DAIKIN160 || \
      DECODE_NEOCLIMA || DECODE_DAIKIN176 || DECODE_DAIKIN128 || \
      DECODE_AMCOR || DECODE_DAIKIN152 || DECODE_MITSUBISHI136 || \
-     DECODE_MITSUBISHI112 || DECODE_HITACHI_AC424)
+     DECODE_MITSUBISHI112 || DECODE_HITACHI_AC424 || DECODE_HITACHI_AC3)
 #define DECODE_AC true  // We need some common infrastructure for decoding A/Cs.
 #else
 #define DECODE_AC false   // We don't need that infrastructure.
@@ -695,14 +723,20 @@ enum decode_type_t {
   HITACHI_AC424,
   SONY_38K,
   EPSON,  // 75
+  SYMPHONY,
+  HITACHI_AC3,
+  DAIKIN64,
+  AIRWELL,
   // Add new entries before this one, and update it to point to the last entry.
-  kLastDecodeType = EPSON,
+  kLastDecodeType = AIRWELL,
 };
 
 // Message lengths & required repeat values
 const uint16_t kNoRepeat = 0;
 const uint16_t kSingleRepeat = 1;
 
+const uint16_t kAirwellBits = 32;
+const uint16_t kAirwellMinRepeats = 2;
 const uint16_t kAiwaRcT501Bits = 15;
 const uint16_t kAiwaRcT501MinRepeats = kSingleRepeat;
 const uint16_t kAlokaBits = 32;
@@ -724,6 +758,8 @@ const uint16_t kDaikinDefaultRepeat = kNoRepeat;
 const uint16_t kDaikin2StateLength = 39;
 const uint16_t kDaikin2Bits = kDaikin2StateLength * 8;
 const uint16_t kDaikin2DefaultRepeat = kNoRepeat;
+const uint16_t kDaikin64Bits = 64;
+const uint16_t kDaikin64DefaultRepeat = kNoRepeat;
 const uint16_t kDaikin160StateLength = 20;
 const uint16_t kDaikin160Bits = kDaikin160StateLength * 8;
 const uint16_t kDaikin160DefaultRepeat = kNoRepeat;
@@ -774,6 +810,10 @@ const uint16_t kHitachiAc1StateLength = 13;
 const uint16_t kHitachiAc1Bits = kHitachiAc1StateLength * 8;
 const uint16_t kHitachiAc2StateLength = 53;
 const uint16_t kHitachiAc2Bits = kHitachiAc2StateLength * 8;
+const uint16_t kHitachiAc3StateLength = 27;
+const uint16_t kHitachiAc3Bits = kHitachiAc3StateLength * 8;
+const uint16_t kHitachiAc3MinStateLength = 15;
+const uint16_t kHitachiAc3MinBits = kHitachiAc3MinStateLength * 8;
 const uint16_t kHitachiAc424StateLength = 53;
 const uint16_t kHitachiAc424Bits = kHitachiAc424StateLength * 8;
 const uint16_t kInaxBits = 24;
@@ -857,6 +897,8 @@ const uint16_t kSony15Bits = 15;
 const uint16_t kSony20Bits = 20;
 const uint16_t kSonyMinBits = 12;
 const uint16_t kSonyMinRepeat = 2;
+const uint16_t kSymphonyBits = 11;
+const uint16_t kSymphonyDefaultRepeat = kSingleRepeat;
 const uint16_t kTcl112AcStateLength = 14;
 const uint16_t kTcl112AcBits = kTcl112AcStateLength * 8;
 const uint16_t kTcl112AcDefaultRepeat = kNoRepeat;

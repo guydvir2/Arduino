@@ -78,6 +78,7 @@ void switchRelay(bool state, char *activator = TO_NICK)
     iot.pub_state(stat);
   }
 }
+
 void startIOTservices()
 {
   iot.useSerial = USE_SERIAL;

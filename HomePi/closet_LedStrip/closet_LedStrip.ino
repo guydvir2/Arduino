@@ -1,9 +1,9 @@
-#define SENSORPIN_1 2
-#define SWITCHPIN_1 5
-#define BUTTONPIN_1 0
+#define SENSORPIN_1 1//0//0 //3//2
+#define SWITCHPIN_1 3//3//2 //2//0
+#define BUTTONPIN_1 3
 
-#define SENSORPIN_2 2
-#define SWITCHPIN_2 4
+#define SENSORPIN_2 8
+#define SWITCHPIN_2 3
 #define BUTTONPIN_2 0
 
 #define PWRDOWN_TIMEOUT 30 // mins <----- NEED TO CHANGE BY USER
@@ -52,11 +52,11 @@ public:
                 _last_sensorsState = digitalRead(SensorPin);
                 turnOff();
         }
-        void sensor_ISR()
-        {
-                detachInterrupt(digitalPinToInterrupt(SensorPin));
-                _sensorsState = digitalRead(SensorPin);
-        }
+        // void sensor_ISR()
+        // {
+        //         detachInterrupt(digitalPinToInterrupt(SensorPin));
+        //         _sensorsState = digitalRead(SensorPin);
+        // }
         void checkLuminButton()
         {
                 if (useButton)
@@ -158,15 +158,15 @@ private:
 SensorSwitch s1(SENSORPIN_1, SWITCHPIN_1, BUTTONPIN_1, PWRDOWN_TIMEOUT);
 // SensorSwitch s2(SENSORPIN_2, SWITCHPIN_2, BUTTONPIN_2, PWRDOWN_TIMEOUT);
 
-void reAttach_s1()
-{
-        attachInterrupt(digitalPinToInterrupt(s1.SensorPin), isr_s1, CHANGE);
-}
-void isr_s1()
-{
-        s1.sensor_ISR();
-        reAttach_s1();
-}
+// void reAttach_s1()
+// {
+//         attachInterrupt(digitalPinToInterrupt(s1.SensorPin), isr_s1, CHANGE);
+// }
+// void isr_s1()
+// {
+//         s1.sensor_ISR();
+//         reAttach_s1();
+// }
 
 // void reAttach_s2()
 // {
@@ -180,21 +180,16 @@ void isr_s1()
 
 void setup()
 {
-        s1.start();
+        Serial.begin(9600);
+        Serial.println("BOOT");
         s1.useButton = false;
         s1.usePWM = false;
-        reAttach_s1();
-
-        pinMode(SWITCHPIN_2, OUTPUT);
-        // s2.start();
-        // s2.useButton = false;
-        // s2.usePWM = false;
-        // reAttach_s2();
+        s1.start();
+        // reAttach_s1();
 }
 void loop()
 {
         s1.looper();
-        digitalWrite(SWITCHPIN_2, digitalRead(SWITCHPIN_1));
-        // s2.looper();
         delay(100);
+        Serial.println("LOO");
 }

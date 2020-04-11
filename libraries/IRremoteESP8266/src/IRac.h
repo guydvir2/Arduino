@@ -166,6 +166,14 @@ void daikin216(IRDaikin216 *ac,
                const stdAc::swingv_t swingv, const stdAc::swingh_t swingh,
                const bool quiet, const bool turbo);
 #endif  // SEND_DAIKIN216
+#if SEND_DAIKIN64
+  void daikin64(IRDaikin64 *ac,
+                 const bool on, const stdAc::opmode_t mode,
+                 const float degrees, const stdAc::fanspeed_t fan,
+                 const stdAc::swingv_t swingv,
+                 const bool quiet, const bool turbo,
+                 const int16_t sleep = -1, const int16_t clock = -1);
+#endif  // SEND_DAIKIN64
 #if SEND_ELECTRA_AC
 void electra(IRElectraAc *ac,
              const bool on, const stdAc::opmode_t mode,
@@ -219,6 +227,14 @@ void electra(IRElectraAc *ac,
                const float degrees, const stdAc::fanspeed_t fan,
                const stdAc::swingv_t swingv, const stdAc::swingh_t swingh);
 #endif  // SEND_HITACHI_AC
+#if SEND_HITACHI_AC1
+  void hitachi1(IRHitachiAc1 *ac, const hitachi_ac1_remote_model_t model,
+                const bool on, const bool power_toggle,
+                const stdAc::opmode_t mode,
+                const float degrees, const stdAc::fanspeed_t fan,
+                const stdAc::swingv_t swingv, const stdAc::swingh_t swingh,
+                const bool swing_toggle, const int16_t sleep = -1);
+#endif  // SEND_HITACHI_AC1
 #if SEND_HITACHI_AC424
   void hitachi424(IRHitachiAc424 *ac,
                   const bool on, const stdAc::opmode_t mode,
@@ -308,7 +324,7 @@ void electra(IRElectraAc *ac,
 #endif  // SEND_SAMSUNG_AC
 #if SEND_SHARP_AC
   void sharp(IRSharpAc *ac,
-             const bool on, const stdAc::opmode_t mode,
+             const bool on, const bool prev_power, const stdAc::opmode_t mode,
              const float degrees, const stdAc::fanspeed_t fan);
 #endif  // SEND_SHARP_AC
 #if SEND_TCL112AC
