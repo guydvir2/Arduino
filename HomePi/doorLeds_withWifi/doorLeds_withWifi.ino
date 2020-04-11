@@ -2,23 +2,24 @@
 #include <Arduino.h>
 
 /*
+on ESP-01
 TX - GPIO1 --> OUTPUT ONLY
 RX - GPIO3 --> INPUT  ONLY
 */
 
 // ********** Sketch Services  ***********
-#define VER "ESP-01_1.0"
+#define VER "ESP-01_1.1"
 #define Pin_Sensor_0 0
-#define Pin_Sensor_1 0 //3
-
+#define Pin_Sensor_1 13 // fake io - not using sensor
 #define Pin_Switch_0 2
 #define Pin_Switch_1 1
+#define Pin_extbut_1 3 // using button to switch on/ off
 
 #define SwitchTimeOUT 30
 
 // ********** myIOT Class ***********
 //~~~~~ Services ~~~~~~~~~~~
-#define USE_SERIAL true       // Serial Monitor
+#define USE_SERIAL false      // Serial Monitor
 #define USE_WDT true          // watchDog resets
 #define USE_OTA true          // OTA updates
 #define USE_RESETKEEPER false // detect quick reboot and real reboots
@@ -39,19 +40,20 @@ class SensorSwitch
 {
 private:
         byte _switchPin, _extPin, _timeout_mins, _sensorPin;
+
         // PWM settings
-        byte _PWMstep = 20;
         byte _maxLuminVal = 240;
         byte _LumStep = 60;
+        byte _PWMstep = 20;
         byte _PWMdelay = 30;
         byte _currentLumVal = _maxLuminVal;
-        
+
         bool _sensorsState, _last_sensorsState;
         long unsigned _onCounter = 0;
         long unsigned _lastInput = 0;
 
 public:
-        int swState = 0;
+        float swState = 0.0;
         bool useButton = false;
         bool usePWM = false;
         bool RelayON_def = true;
@@ -59,6 +61,44 @@ public:
         bool SensorDetection_def = LOW;
 
 public:
+        void turnOff()
+        {
+                if (usePWM)
+                {
+                        for (int i = _currentLumVal; i >= 0; i = i - _PWMstep)
+                        {
+                                analogWrite(_switchPin, i);
+                                delay(_PWMdelay);
+                        }
+                }
+                else
+                {
+                        digitalWrite(_switchPin, !RelayON_def);
+                }
+                _onCounter = 0;
+                swState = 0.0;
+        }
+        void turnOn()
+        {
+                if (usePWM)
+                {
+                        if (_currentLumVal == 0)
+                        {
+                                _currentLumVal = 0.6 * _maxLuminVal;
+                        }
+                        for (int i = 0; i <= _currentLumVal; i = i + _PWMstep)
+                        {
+                                analogWrite(_switchPin, i);
+                                delay(_PWMdelay);
+                        }
+                }
+                else
+                {
+                        digitalWrite(_switchPin, RelayON_def);
+                }
+                _onCounter = millis();
+                swState = 1.0;
+        }
         SensorSwitch(byte sensorPin, byte switchPin, byte timeout_mins = 10, byte extPin = 0)
         {
                 _sensorPin = sensorPin;
@@ -102,12 +142,12 @@ public:
                                                         _currentLumVal = _maxLuminVal;
                                                 }
                                                 analogWrite(_switchPin, _currentLumVal);
-                                                swState = (int)(_currentLumVal / _maxLuminVal);
+                                                swState = (float)(_currentLumVal / _maxLuminVal);
                                                 delay(200);
                                         }
                                         else
                                         {
-                                                if (swState)
+                                                if ((int)swState == 0)
                                                 {
                                                         turnOff();
                                                 }
@@ -126,53 +166,8 @@ public:
                 checkLuminButton();
                 offBy_timeout();
         }
-        void ext_command(bool com)
-        {
-                if (com)
-                {
-                        turnOn();
-                }
-                else
-                {
-                        turnOff();
-                }
-        }
 
 private:
-        void turnOff()
-        {
-                if (usePWM)
-                {
-                        for (int i = _currentLumVal; i >= 0; i = i - _PWMstep)
-                        {
-                                analogWrite(_switchPin, i);
-                                delay(_PWMdelay);
-                        }
-                }
-                else
-                {
-                        digitalWrite(_switchPin, !RelayON_def);
-                }
-                _onCounter = 0;
-                swState = 0;
-        }
-        void turnOn()
-        {
-                if (usePWM)
-                {
-                        for (int i = 0; i <= _currentLumVal; i = i + _PWMstep)
-                        {
-                                analogWrite(_switchPin, i);
-                                delay(_PWMdelay);
-                        }
-                }
-                else
-                {
-                        digitalWrite(_switchPin, RelayON_def);
-                }
-                _onCounter = millis();
-                swState = 1;
-        }
         void offBy_timeout()
         {
                 if (_timeout_mins * 1000ul * 60ul > 0 && _onCounter != 0)
@@ -205,20 +200,10 @@ private:
                 }
         }
 };
-
+#define NUM_SW 2
 SensorSwitch s0(Pin_Sensor_0, Pin_Switch_0, SwitchTimeOUT);
-SensorSwitch s1(Pin_Sensor_1, Pin_Switch_1, SwitchTimeOUT);
-
-void start_sensSW(SensorSwitch &s)
-{
-        s.useButton = false;
-        s.usePWM = false;
-        s.RelayON_def = true;
-        s.ButtonPressed_def = LOW;
-        s.SensorDetection_def = LOW;
-
-        s.start();
-}
+SensorSwitch s1(Pin_Sensor_1, Pin_Switch_1, SwitchTimeOUT, Pin_extbut_1);
+SensorSwitch *s[NUM_SW] = {&s0, &s1};
 
 void startIOTservices()
 {
@@ -236,15 +221,19 @@ void addiotnalMQTT(char *incoming_msg)
 {
         char msg[150];
         char msg2[20];
+
         if (strcmp(incoming_msg, "status") == 0)
         {
-                if (s1.swState < 1 && s1.swState > 0)
+                for (int i = 0; i < NUM_SW; i++)
                 {
-                        sprintf(msg, "Status: LedStrip [%.0f%%] [On]", s1.swState);
-                }
-                else
-                {
-                        sprintf(msg, "Status: LedStrip [%s]", s1.swState ? "On" : "Off");
+                        if (s[i]->swState < 1.0 && s[i]->swState > 0.0)
+                        {
+                                sprintf(msg, "Status: LedStrip [%.0f%%] [On]", s[i]->swState);
+                        }
+                        else
+                        {
+                                sprintf(msg, "Status: LedStrip [#%d] [%s]", i, s[i]->swState ? "On" : "Off");
+                        }
                 }
 
                 iot.pub_msg(msg);
@@ -258,26 +247,69 @@ void addiotnalMQTT(char *incoming_msg)
         {
                 sprintf(msg, "Help: Commands #1 - [status, boot, reset, ip, ota, ver, help]");
                 iot.pub_msg(msg);
-        }
-        else if (strcmp(incoming_msg, "on") == 0)
-        {
-                s1.ext_command(1);
-                sprintf(msg, "MQTT: Turned [On]");
+                sprintf(msg, "Help: Commands #2 - [all_off; i,on; i,off]");
                 iot.pub_msg(msg);
         }
-        else if (strcmp(incoming_msg, "off") == 0)
+        else if (strcmp(incoming_msg, "all_off") == 0)
         {
-                s1.ext_command(0);
-                sprintf(msg, "MQTT: Turned [Off]");
-                iot.pub_msg(msg);
+                for (int i = 0; i < NUM_SW; i++)
+                {
+                        if (s[i]->swState != 0.0)
+                        {
+                                s[i]->turnOff();
+                                sprintf(msg, "MQTT: LedStrip [#%d] Turned [Off]", i);
+                                iot.pub_msg(msg);
+                        }
+                }
+        }
+
+        else
+        {
+                int num_parameters = iot.inline_read(incoming_msg);
+                int x = atoi(iot.inline_param[0]);
+
+                if (strcmp(iot.inline_param[1], "on") == 0)
+                {
+                        s[x]->turnOn();
+                }
+                else if (strcmp(iot.inline_param[1], "off") == 0)
+                {
+                        s[x]->turnOff();
+                }
+        }
+}
+void detectChange()
+{
+        static float lastval[NUM_SW] = {0.0, 0.0};
+        char msg[20];
+
+        for (int i = 0; i < NUM_SW; i++)
+        {
+                if (s[i]->swState != lastval[i])
+                {
+                        sprintf(msg, "Switch [#%d] changed to [%.1f]", i, s[i]->swState);
+                        iot.pub_msg(msg);
+                }
         }
 }
 
 void setup()
 {
+        s0.useButton = false;
+        s0.usePWM = false;
+        s0.RelayON_def = true;
+        s0.ButtonPressed_def = LOW;
+        s0.SensorDetection_def = LOW;
+        s0.start();
+
+        s1.useButton = true;
+        s1.usePWM = false;
+        s1.RelayON_def = true;
+        s1.ButtonPressed_def = LOW;
+        s1.SensorDetection_def = LOW;
+        s1.start();
+
         startIOTservices();
-        start_sensSW(s0);
-        start_sensSW(s1);
 }
 
 void loop()
@@ -285,5 +317,6 @@ void loop()
         iot.looper();
         s0.looper();
         s1.looper();
+        detectChange();
         delay(100);
 }
