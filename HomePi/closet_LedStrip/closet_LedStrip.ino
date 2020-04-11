@@ -140,7 +140,7 @@ private:
                 { // enter on change only
                         if (millis() - _lastInput > 100)
                         { // ms of debounce
-                                if (_sensorsState == !SENSOR_DETECT_DOOR)
+                                if (_sensorsState == SENSOR_DETECT_DOOR)
                                 {
                                         turnOn();
                                 }
