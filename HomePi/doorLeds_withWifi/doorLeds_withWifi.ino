@@ -9,18 +9,27 @@ RX - GPIO3 --> INPUT  ONLY
 */
 
 // ********** Sketch Services  ***********
-#define VER "ESP-01_1.3"
+#define VER "Wemos_1.4"
+/*
 #define Pin_Sensor_0 0
 #define Pin_Sensor_1 13 // fake io - not using sensor
 #define Pin_Switch_0 2
 #define Pin_Switch_1 1
 #define Pin_extbut_1 3 // using button to switch on/ off
+*/
+
+#define Pin_Sensor_0 16 //
+#define Pin_Sensor_1 16 // not using sensor
+#define Pin_Switch_0 D1
+#define Pin_Switch_1 D3
+#define Pin_extbut_0 D5 // using button to switch on/ off
+#define Pin_extbut_1 D7 // using button to switch on/ off
 
 #define SwitchTimeOUT 30
 
 // ********** myIOT Class ***********
 //~~~~~ Services ~~~~~~~~~~~
-#define USE_SERIAL false      // Serial Monitor
+#define USE_SERIAL true      // Serial Monitor
 #define USE_WDT true          // watchDog resets
 #define USE_OTA true          // OTA updates
 #define USE_RESETKEEPER false // detect quick reboot and real reboots
@@ -28,7 +37,7 @@ RX - GPIO3 --> INPUT  ONLY
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 // ~~~~~~~ MQTT Topics ~~~~~~
-#define DEVICE_TOPIC "parentsClosetLEDs"
+#define DEVICE_TOPIC "parentsBedLEDs"
 #define MQTT_PREFIX "myHome"
 #define MQTT_GROUP "intLights"
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -38,7 +47,8 @@ myIOT iot(DEVICE_TOPIC);
 // ***************************
 
 #define NUM_SW 2
-SensorSwitch s0(Pin_Sensor_0, Pin_Switch_0, SwitchTimeOUT);
+const char* ledNames[]={"Bed", "Mirror"};
+SensorSwitch s0(Pin_Sensor_0, Pin_Switch_0, SwitchTimeOUT, Pin_extbut_0);
 SensorSwitch s1(Pin_Sensor_1, Pin_Switch_1, SwitchTimeOUT, Pin_extbut_1);
 SensorSwitch *s[NUM_SW] = {&s0, &s1};
 
@@ -70,7 +80,7 @@ void addiotnalMQTT(char *incoming_msg)
                         }
                         else
                         {
-                                sprintf(msg2, "LedStrip [#%d] [%s] ", i, s[i]->swState ? "On" : "Off");
+                                sprintf(msg2, "LedStrip [%s] [%s] ", ledNames[i],s[i]->swState ? "On" : "Off");
                         }
                         strcat(msg, msg2);
                 }
@@ -107,12 +117,12 @@ void addiotnalMQTT(char *incoming_msg)
                 {
                         if (s[i]->timeoutRem > 0)
                         {
-                                sprintf(msg, "MQTT: Remain Time LedStrip [#%d] ,[%d] sec", i, s[i]->timeoutRem);
+                                sprintf(msg, "MQTT: Remain Time LedStrip [%s] ,[%d] sec", ledNames[i], s[i]->timeoutRem);
                                 iot.pub_msg(msg);
                         }
                         else
                         {
-                                sprintf(msg, "MQTT: LedStrip [#%d] is [Off]", i);
+                                sprintf(msg, "MQTT: LedStrip [%s] is [Off]", ledNames[i]);
                                 iot.pub_msg(msg);
                         }
                 }
@@ -144,10 +154,10 @@ void notifyMQTT()
                 {
                         lastval[i] = s[i]->swState;
                         if (s[i]->usePWM){
-                        sprintf(msg, "Change: LedStrip [#%d] changed to [%.1f]", i, s[i]->swState);
+                        sprintf(msg, "Change: [%s] changed to [%.1f]", ledNames[i], s[i]->swState);
                         }
                         else{
-                                sprintf(msg, "Change: LedStrip [#%d] is now [%s]", i, s[i]->swState? "On":"Off");
+                                sprintf(msg, "Change: [%s] is now [%s]", ledNames[i], s[i]->swState? "On":"Off");
 
                         }
                         iot.pub_msg(msg);
@@ -157,7 +167,7 @@ void notifyMQTT()
 
 void setup()
 {
-        s0.useButton = false;
+        s0.useButton = true;
         s0.usePWM = false;
         s0.RelayON_def = true;
         s0.ButtonPressed_def = LOW;

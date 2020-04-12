@@ -59,7 +59,8 @@ public:
 class SensorSwitch
 {
 private:
-    byte _switchPin, _extPin, _timeout_mins, _sensorPin;
+    byte _switchPin, _extPin, _sensorPin;
+    int _timeout_mins;
 
     // PWM settings
     byte _maxPWM = 240; // Arduino 256, ESP 1024
@@ -83,9 +84,9 @@ public:
     bool SensorDetection_def = LOW;
 
 public:
-    SensorSwitch(byte sensorPin, byte switchPin, byte timeout_mins = 10, byte extPin = 0);
+    SensorSwitch(byte sensorPin, byte switchPin, int timeout_mins = 10, byte extPin = 0);
     void turnOff();
-    void turnOn();
+    void turnOn(int TO = 0);
     void start();
     void checkButton();
     void looper();

@@ -125,7 +125,7 @@ void PIRsensor::looper()
   }
 }
 
-SensorSwitch::SensorSwitch(byte sensorPin, byte switchPin, byte timeout_mins, byte extPin)
+SensorSwitch::SensorSwitch(byte sensorPin, byte switchPin, int timeout_mins, byte extPin)
 {
   _sensorPin = sensorPin;
   _switchPin = switchPin;
@@ -149,7 +149,7 @@ void SensorSwitch::turnOff()
   _ONclock = 0;
   swState = 0.0;
 }
-void SensorSwitch::turnOn()
+void SensorSwitch::turnOn(int TO)
 {
   if (usePWM)
   {
