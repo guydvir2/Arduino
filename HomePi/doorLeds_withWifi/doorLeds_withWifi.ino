@@ -224,16 +224,18 @@ void addiotnalMQTT(char *incoming_msg)
 
         if (strcmp(incoming_msg, "status") == 0)
         {
+                sprintf(msg, "Status:");
                 for (int i = 0; i < NUM_SW; i++)
                 {
                         if (s[i]->swState < 1.0 && s[i]->swState > 0.0)
                         {
-                                sprintf(msg, "Status: LedStrip [%.0f%%] [On]", s[i]->swState);
+                                sprintf(msg2, "LedStrip [%.0f%%] [On] ", s[i]->swState);
                         }
                         else
                         {
-                                sprintf(msg, "Status: LedStrip [#%d] [%s]", i, s[i]->swState ? "On" : "Off");
+                                sprintf(msg2, "LedStrip [#%d] [%s] ", i, s[i]->swState ? "On" : "Off");
                         }
+                        strcat(msg, msg2);
                 }
 
                 iot.pub_msg(msg);
@@ -278,7 +280,7 @@ void addiotnalMQTT(char *incoming_msg)
                 }
         }
 }
-void detectChange()
+void notifyChanges()
 {
         static float lastval[NUM_SW] = {0.0, 0.0};
         char msg[20];
@@ -287,7 +289,8 @@ void detectChange()
         {
                 if (s[i]->swState != lastval[i])
                 {
-                        sprintf(msg, "Switch [#%d] changed to [%.1f]", i, s[i]->swState);
+                        lastval[i] = s[i]->swState;
+                        sprintf(msg, "MQTT: LedStrip [#%d] changed to [%.1f]", i, s[i]->swState);
                         iot.pub_msg(msg);
                 }
         }
@@ -317,6 +320,6 @@ void loop()
         iot.looper();
         s0.looper();
         s1.looper();
-        detectChange();
+        notifyChanges();
         delay(100);
 }
