@@ -1,4 +1,5 @@
 #include <myIOT.h>
+#include <myPIR.h>
 #include <Arduino.h>
 
 /*
@@ -8,7 +9,7 @@ RX - GPIO3 --> INPUT  ONLY
 */
 
 // ********** Sketch Services  ***********
-#define VER "ESP-01_1.1"
+#define VER "ESP-01_1.3"
 #define Pin_Sensor_0 0
 #define Pin_Sensor_1 13 // fake io - not using sensor
 #define Pin_Switch_0 2
@@ -27,7 +28,7 @@ RX - GPIO3 --> INPUT  ONLY
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 // ~~~~~~~ MQTT Topics ~~~~~~
-#define DEVICE_TOPIC "closetLEDs"
+#define DEVICE_TOPIC "parentsClosetLEDs"
 #define MQTT_PREFIX "myHome"
 #define MQTT_GROUP "intLights"
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -36,170 +37,6 @@ RX - GPIO3 --> INPUT  ONLY
 myIOT iot(DEVICE_TOPIC);
 // ***************************
 
-class SensorSwitch
-{
-private:
-        byte _switchPin, _extPin, _timeout_mins, _sensorPin;
-
-        // PWM settings
-        byte _maxLuminVal = 240;
-        byte _LumStep = 60;
-        byte _PWMstep = 20;
-        byte _PWMdelay = 30;
-        byte _currentLumVal = _maxLuminVal;
-
-        bool _sensorsState, _last_sensorsState;
-        long unsigned _onCounter = 0;
-        long unsigned _lastInput = 0;
-
-public:
-        float swState = 0.0;
-        bool useButton = false;
-        bool usePWM = false;
-        bool RelayON_def = true;
-        bool ButtonPressed_def = LOW;
-        bool SensorDetection_def = LOW;
-
-public:
-        void turnOff()
-        {
-                if (usePWM)
-                {
-                        for (int i = _currentLumVal; i >= 0; i = i - _PWMstep)
-                        {
-                                analogWrite(_switchPin, i);
-                                delay(_PWMdelay);
-                        }
-                }
-                else
-                {
-                        digitalWrite(_switchPin, !RelayON_def);
-                }
-                _onCounter = 0;
-                swState = 0.0;
-        }
-        void turnOn()
-        {
-                if (usePWM)
-                {
-                        if (_currentLumVal == 0)
-                        {
-                                _currentLumVal = 0.6 * _maxLuminVal;
-                        }
-                        for (int i = 0; i <= _currentLumVal; i = i + _PWMstep)
-                        {
-                                analogWrite(_switchPin, i);
-                                delay(_PWMdelay);
-                        }
-                }
-                else
-                {
-                        digitalWrite(_switchPin, RelayON_def);
-                }
-                _onCounter = millis();
-                swState = 1.0;
-        }
-        SensorSwitch(byte sensorPin, byte switchPin, byte timeout_mins = 10, byte extPin = 0)
-        {
-                _sensorPin = sensorPin;
-                _switchPin = switchPin;
-                _extPin = extPin;
-                _timeout_mins = timeout_mins;
-        }
-        void start()
-        {
-                pinMode(_sensorPin, INPUT_PULLUP);
-                pinMode(_switchPin, OUTPUT);
-
-                if (useButton)
-                {
-                        pinMode(_extPin, INPUT_PULLUP);
-                }
-
-                _sensorsState = digitalRead(_sensorPin);
-                _last_sensorsState = digitalRead(_sensorPin);
-
-                turnOff();
-        }
-
-        void checkLuminButton()
-        {
-                if (useButton)
-                {
-                        if (digitalRead(_extPin) == ButtonPressed_def)
-                        {
-                                delay(50);
-                                if (digitalRead(_extPin) == ButtonPressed_def)
-                                {
-                                        if (usePWM)
-                                        {
-                                                if (_currentLumVal - _LumStep >= 0)
-                                                {
-                                                        _currentLumVal = _currentLumVal - _LumStep;
-                                                }
-                                                else
-                                                {
-                                                        _currentLumVal = _maxLuminVal;
-                                                }
-                                                analogWrite(_switchPin, _currentLumVal);
-                                                swState = (float)(_currentLumVal / _maxLuminVal);
-                                                delay(200);
-                                        }
-                                        else
-                                        {
-                                                if ((int)swState == 0)
-                                                {
-                                                        turnOff();
-                                                }
-                                                else
-                                                {
-                                                        turnOn();
-                                                }
-                                        }
-                                }
-                        }
-                }
-        }
-        void looper()
-        {
-                checkSensor();
-                checkLuminButton();
-                offBy_timeout();
-        }
-
-private:
-        void offBy_timeout()
-        {
-                if (_timeout_mins * 1000ul * 60ul > 0 && _onCounter != 0)
-                { // user setup TO ?
-                        if (millis() - _onCounter >= _timeout_mins * 1000ul * 60ul)
-                        { //TO ended
-                                turnOff();
-                        }
-                }
-        }
-        void checkSensor()
-        {
-                _sensorsState = digitalRead(_sensorPin);
-
-                if (_sensorsState != _last_sensorsState)
-                { // enter on change only
-                        if (millis() - _lastInput > 100)
-                        { // ms of debounce
-                                if (_sensorsState == !SensorDetection_def)
-                                {
-                                        turnOn();
-                                }
-                                else
-                                {
-                                        turnOff();
-                                }
-                                _lastInput = millis();
-                                _last_sensorsState = _sensorsState;
-                        }
-                }
-        }
-};
 #define NUM_SW 2
 SensorSwitch s0(Pin_Sensor_0, Pin_Switch_0, SwitchTimeOUT);
 SensorSwitch s1(Pin_Sensor_1, Pin_Switch_1, SwitchTimeOUT, Pin_extbut_1);
@@ -229,7 +66,7 @@ void addiotnalMQTT(char *incoming_msg)
                 {
                         if (s[i]->swState < 1.0 && s[i]->swState > 0.0)
                         {
-                                sprintf(msg2, "LedStrip [%.0f%%] [On] ", s[i]->swState);
+                                sprintf(msg2, "LedStrip [%.1f%%] [On] ", s[i]->swState * 100);
                         }
                         else
                         {
@@ -249,7 +86,7 @@ void addiotnalMQTT(char *incoming_msg)
         {
                 sprintf(msg, "Help: Commands #1 - [status, boot, reset, ip, ota, ver, help]");
                 iot.pub_msg(msg);
-                sprintf(msg, "Help: Commands #2 - [all_off; i,on; i,off]");
+                sprintf(msg, "Help: Commands #2 - [all_off; i,on; i,off; remain]");
                 iot.pub_msg(msg);
         }
         else if (strcmp(incoming_msg, "all_off") == 0)
@@ -264,33 +101,55 @@ void addiotnalMQTT(char *incoming_msg)
                         }
                 }
         }
+        else if (strcmp(incoming_msg, "remain") == 0)
+        {
+                for (int i = 0; i < NUM_SW; i++)
+                {
+                        if (s[i]->timeoutRem > 0)
+                        {
+                                sprintf(msg, "MQTT: Remain Time LedStrip [#%d] ,[%d] sec", i, s[i]->timeoutRem);
+                                iot.pub_msg(msg);
+                        }
+                        else
+                        {
+                                sprintf(msg, "MQTT: LedStrip [#%d] is [Off]", i);
+                                iot.pub_msg(msg);
+                        }
+                }
+        }
 
         else
         {
                 int num_parameters = iot.inline_read(incoming_msg);
                 int x = atoi(iot.inline_param[0]);
 
-                if (strcmp(iot.inline_param[1], "on") == 0)
+                if (strcmp(iot.inline_param[1], "on") == 0 && x < NUM_SW)
                 {
                         s[x]->turnOn();
                 }
-                else if (strcmp(iot.inline_param[1], "off") == 0)
+                else if (strcmp(iot.inline_param[1], "off") == 0 && x < NUM_SW)
                 {
                         s[x]->turnOff();
                 }
         }
 }
-void notifyChanges()
+void notifyMQTT()
 {
-        static float lastval[NUM_SW] = {0.0, 0.0};
-        char msg[20];
+        static float lastval[] = {0.0, 0.0, 0.0};
+        char msg[50];
 
         for (int i = 0; i < NUM_SW; i++)
         {
                 if (s[i]->swState != lastval[i])
                 {
                         lastval[i] = s[i]->swState;
-                        sprintf(msg, "MQTT: LedStrip [#%d] changed to [%.1f]", i, s[i]->swState);
+                        if (s[i]->usePWM){
+                        sprintf(msg, "Change: LedStrip [#%d] changed to [%.1f]", i, s[i]->swState);
+                        }
+                        else{
+                                sprintf(msg, "Change: LedStrip [#%d] is now [%s]", i, s[i]->swState? "On":"Off");
+
+                        }
                         iot.pub_msg(msg);
                 }
         }
@@ -320,6 +179,6 @@ void loop()
         iot.looper();
         s0.looper();
         s1.looper();
-        notifyChanges();
+        notifyMQTT();
         delay(100);
 }

@@ -39,15 +39,14 @@ public:
     bool logic_state = false; // a flag that will be on for some time, altghot physucal state has changed
     bool stop_sensor = false; // during code run, select to disable sensor activity
     bool trigger_once = true; // when using timer, how to react to re-detect ? add time ?
-    float ver = 2.1;
+    float ver = 2.2;
 
 private:
     void update_timer_end();
     void detection_callback();
     void end_detection_callback();
-    
-    bool check_timer();
-    bool checkSensor();
+    void check_timer();
+    void checkSensor();
 
 public:
     PIRsensor(int Pin, char *nick = "PIRsensor", int logic_length = 5, bool detect = def_detect);
@@ -55,6 +54,45 @@ public:
     void detect_cb(cb_func cb);
     void end_detect_cb(cb_func cb);
     void looper();
+};
+
+class SensorSwitch
+{
+private:
+    byte _switchPin, _extPin, _timeout_mins, _sensorPin;
+
+    // PWM settings
+    byte _maxPWM = 240; // Arduino 256, ESP 1024
+    byte _PWMbutton_step = 60;
+    byte _PWMdimm_step = 20;
+    byte _PWMdimm_delay = 30;
+    byte _currentPWMval = _maxPWM;
+    long _PWMdiff = 0.1;
+
+    bool _sensorsState, _last_sensorsState;
+    long unsigned _ONclock = 0;
+    long unsigned _lastDetect_clock = 0;
+
+public:
+    float swState = 0.0;
+    int timeoutRem = 0;
+    bool useButton = false;
+    bool usePWM = false;
+    bool RelayON_def = true;
+    bool ButtonPressed_def = LOW;
+    bool SensorDetection_def = LOW;
+
+public:
+    SensorSwitch(byte sensorPin, byte switchPin, byte timeout_mins = 10, byte extPin = 0);
+    void turnOff();
+    void turnOn();
+    void start();
+    void checkButton();
+    void looper();
+
+private:
+    void offBy_timeout();
+    void checkSensor();
 };
 
 #endif
