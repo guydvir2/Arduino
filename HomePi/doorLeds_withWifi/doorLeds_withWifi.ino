@@ -15,6 +15,7 @@ RX - GPIO3 --> INPUT  ONLY
 #define Pin_Sensor_1 13 // fake io - not using sensor
 #define Pin_Switch_0 2
 #define Pin_Switch_1 1
+#define Pin_extbut_0 13 // fake
 #define Pin_extbut_1 3 // using button to switch on/ off
 
 /*
@@ -25,8 +26,8 @@ RX - GPIO3 --> INPUT  ONLY
 #define Pin_extbut_0 D5 // using button to switch on/ off
 #define Pin_extbut_1 D7 // using button to switch on/ off
 */
-#define SwitchTimeOUT_0 180 //minutes
-#define SwitchTimeOUT_1 45 //minutes
+#define SwitchTimeOUT_0 30 //minutes
+#define SwitchTimeOUT_1 30 //minutes
 
 // ********** myIOT Class ***********
 //~~~~~ Services ~~~~~~~~~~~
