@@ -60,7 +60,8 @@ class SensorSwitch
 {
 private:
     byte _switchPin, _extPin, _sensorPin;
-    int _timeout_mins;
+    int _timeout_mins,_stored_timeout;
+
 
     // PWM settings
     byte _maxPWM = 240; // Arduino 256, ESP 1024
