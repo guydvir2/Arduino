@@ -25,11 +25,12 @@ RX - GPIO3 --> INPUT  ONLY
 #define Pin_extbut_0 D5 // using button to switch on/ off
 #define Pin_extbut_1 D7 // using button to switch on/ off
 */
-#define SwitchTimeOUT 30
+#define SwitchTimeOUT_0 180 //minutes
+#define SwitchTimeOUT_1 45 //minutes
 
 // ********** myIOT Class ***********
 //~~~~~ Services ~~~~~~~~~~~
-#define USE_SERIAL true      // Serial Monitor
+#define USE_SERIAL false      // Serial Monitor
 #define USE_WDT true          // watchDog resets
 #define USE_OTA true          // OTA updates
 #define USE_RESETKEEPER false // detect quick reboot and real reboots
@@ -48,8 +49,8 @@ myIOT iot(DEVICE_TOPIC);
 
 #define NUM_SW 2
 const char* ledNames[]={"Guy", "Anna"};
-SensorSwitch s0(Pin_Sensor_0, Pin_Switch_0, SwitchTimeOUT, Pin_extbut_0);
-SensorSwitch s1(Pin_Sensor_1, Pin_Switch_1, SwitchTimeOUT, Pin_extbut_1);
+SensorSwitch s0(Pin_Sensor_0, Pin_Switch_0, SwitchTimeOUT_0, Pin_extbut_0);
+SensorSwitch s1(Pin_Sensor_1, Pin_Switch_1, SwitchTimeOUT_1, Pin_extbut_1);
 SensorSwitch *s[NUM_SW] = {&s0, &s1};
 
 void startIOTservices()
@@ -96,7 +97,7 @@ void addiotnalMQTT(char *incoming_msg)
         {
                 sprintf(msg, "Help: Commands #1 - [status, boot, reset, ip, ota, ver, help]");
                 iot.pub_msg(msg);
-                sprintf(msg, "Help: Commands #2 - [all_off; i,on; i,off; remain]");
+                sprintf(msg, "Help: Commands #2 - [all_off; i,on; i,off; i,startTO,mins; remain]");
                 iot.pub_msg(msg);
         }
         else if (strcmp(incoming_msg, "all_off") == 0)
@@ -140,6 +141,10 @@ void addiotnalMQTT(char *incoming_msg)
                 else if (strcmp(iot.inline_param[1], "off") == 0 && x < NUM_SW)
                 {
                         s[x]->turnOff();
+                }
+                if (strcmp(iot.inline_param[1], "startTO") == 0 && x < NUM_SW)
+                {
+                        s[x]->turnOn(atoi(iot.inline_param[2]));
                 }
         }
 }

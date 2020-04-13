@@ -131,6 +131,7 @@ SensorSwitch::SensorSwitch(byte sensorPin, byte switchPin, int timeout_mins, byt
   _switchPin = switchPin;
   _extPin = extPin;
   _timeout_mins = timeout_mins;
+  _stored_timeout = _timeout_mins;
 }
 void SensorSwitch::turnOff()
 {
@@ -166,6 +167,13 @@ void SensorSwitch::turnOn(int TO)
   else
   {
     digitalWrite(_switchPin, RelayON_def);
+  }
+  if (TO != 0)
+  {
+    _timeout_mins = TO;
+  }
+  else {
+    _timeout_mins = _stored_timeout;
   }
   _ONclock = millis();
   swState = 1.0;
@@ -210,7 +218,7 @@ void SensorSwitch::checkButton()
         }
         else
         {
-          if ((int)round(swState)==1)
+          if ((int)round(swState) == 1)
           {
             turnOff();
           }
@@ -240,7 +248,7 @@ void SensorSwitch::offBy_timeout()
       turnOff();
       timeoutRem = 0;
     }
-    timeoutRem = (int)((_ONclock+_timeout_mins * 1000ul * 60ul - millis())/1000);
+    timeoutRem = (int)((_ONclock + _timeout_mins * 1000ul * 60ul - millis()) / 1000);
   }
 }
 void SensorSwitch::checkSensor()
