@@ -9,22 +9,22 @@ RX - GPIO3 --> INPUT  ONLY
 */
 
 // ********** Sketch Services  ***********
-#define VER "Wemos_1.4"
-/*
+#define VER "ESP-01_1.4"
+
 #define Pin_Sensor_0 0
 #define Pin_Sensor_1 13 // fake io - not using sensor
 #define Pin_Switch_0 2
 #define Pin_Switch_1 1
 #define Pin_extbut_1 3 // using button to switch on/ off
-*/
 
+/*
 #define Pin_Sensor_0 16 //
 #define Pin_Sensor_1 16 // not using sensor
 #define Pin_Switch_0 D1
 #define Pin_Switch_1 D3
 #define Pin_extbut_0 D5 // using button to switch on/ off
 #define Pin_extbut_1 D7 // using button to switch on/ off
-
+*/
 #define SwitchTimeOUT 30
 
 // ********** myIOT Class ***********
@@ -37,7 +37,7 @@ RX - GPIO3 --> INPUT  ONLY
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 // ~~~~~~~ MQTT Topics ~~~~~~
-#define DEVICE_TOPIC "parentsBedLEDs"
+#define DEVICE_TOPIC "parentsClosetLEDs"
 #define MQTT_PREFIX "myHome"
 #define MQTT_GROUP "intLights"
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -47,7 +47,7 @@ myIOT iot(DEVICE_TOPIC);
 // ***************************
 
 #define NUM_SW 2
-const char* ledNames[]={"Bed", "Mirror"};
+const char* ledNames[]={"Guy", "Anna"};
 SensorSwitch s0(Pin_Sensor_0, Pin_Switch_0, SwitchTimeOUT, Pin_extbut_0);
 SensorSwitch s1(Pin_Sensor_1, Pin_Switch_1, SwitchTimeOUT, Pin_extbut_1);
 SensorSwitch *s[NUM_SW] = {&s0, &s1};
