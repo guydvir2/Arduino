@@ -422,7 +422,7 @@ void setup()
   startGPIOs();
   startIOTservices();
   startPIR();
-  delay(30000);
+  delay(15000);
 
   // Alarm_clockupdate();
   // startDailyTimer();
