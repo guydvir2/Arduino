@@ -14,7 +14,7 @@ private:
     bool _use_detfunc = false;
     bool _use_enddetfunc = false;
     bool _lastState = false;
-    bool _isDetect = true;
+    bool _isDetect = HIGH;
     bool _timer_is_on = false;
     bool _first_det = false;
     long _lastDetection_clock = 0;

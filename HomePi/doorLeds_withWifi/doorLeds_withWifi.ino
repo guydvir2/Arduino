@@ -16,7 +16,7 @@ RX - GPIO3 --> INPUT  ONLY
 #define Pin_Switch_0 2
 #define Pin_Switch_1 1
 #define Pin_extbut_0 13 // fake
-#define Pin_extbut_1 3 // using button to switch on/ off
+#define Pin_extbut_1 3  // using button to switch on/ off
 
 /*
 #define Pin_Sensor_0 16 //
@@ -49,7 +49,7 @@ myIOT iot(DEVICE_TOPIC);
 // ***************************
 
 #define NUM_SW 2
-const char* ledNames[]={"Guy", "Anna"};
+const char *ledNames[] = {"Guy", "Anna"};
 SensorSwitch s0(Pin_Sensor_0, Pin_Switch_0, SwitchTimeOUT_0, Pin_extbut_0);
 SensorSwitch s1(Pin_Sensor_1, Pin_Switch_1, SwitchTimeOUT_1, Pin_extbut_1);
 SensorSwitch *s[NUM_SW] = {&s0, &s1};
@@ -78,11 +78,11 @@ void addiotnalMQTT(char *incoming_msg)
                 {
                         if (s[i]->swState < 1.0 && s[i]->swState > 0.0)
                         {
-                                sprintf(msg2, "LedStrip [%.1f%%] [On] ", s[i]->swState * 100);
+                                sprintf(msg2, "LedStrip [%s] [%.1f%%] [On] ", ledNames[i], s[i]->swState * 100);
                         }
                         else
                         {
-                                sprintf(msg2, "LedStrip [%s] [%s] ", ledNames[i],s[i]->swState ? "On" : "Off");
+                                sprintf(msg2, "LedStrip [%s] [%s] ", ledNames[i], s[i]->swState ? "On" : "Off");
                         }
                         strcat(msg, msg2);
                 }
@@ -108,7 +108,7 @@ void addiotnalMQTT(char *incoming_msg)
                         if (s[i]->swState != 0.0)
                         {
                                 s[i]->turnOff();
-                                sprintf(msg, "MQTT: LedStrip [#%d] Turned [Off]", i);
+                                sprintf(msg, "MQTT: LedStrip [%s] Turned [Off]", ledNames[i]);
                                 iot.pub_msg(msg);
                         }
                 }
@@ -159,12 +159,13 @@ void notifyMQTT()
                 if (s[i]->swState != lastval[i])
                 {
                         lastval[i] = s[i]->swState;
-                        if (s[i]->usePWM){
-                        sprintf(msg, "Change: [%s] changed to [%.1f]", ledNames[i], s[i]->swState);
+                        if (s[i]->usePWM)
+                        {
+                                sprintf(msg, "Change: [%s] changed to [%.1f]", ledNames[i], s[i]->swState);
                         }
-                        else{
-                                sprintf(msg, "Change: [%s] is now [%s]", ledNames[i], s[i]->swState? "On":"Off");
-
+                        else
+                        {
+                                sprintf(msg, "Change: [%s] is now [%s]", ledNames[i], s[i]->swState ? "On" : "Off");
                         }
                         iot.pub_msg(msg);
                 }

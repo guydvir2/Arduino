@@ -239,7 +239,7 @@ void end_timer()
 }
 
 void start_timer(int dur = 30, char *activ = TO_NICK)
-{ 
+{
   switchRelay(1, activ);
   Alarm.timerOnce(dur, end_timer);
   updateflash_endTime(dur);
@@ -273,11 +273,9 @@ int remain_timer()
   }
 }
 
-void disable_dailyTimer(){
-
+void disable_dailyTimer()
+{
 }
-
-
 
 // ~~~~~~~~~~~~~~~~~ PIR Sensor ~~~~~~~~~~~~~~
 #define PIN_TO_SENSOR_1 PIR_PIN
@@ -344,7 +342,7 @@ void end_detection_callback()
 
 void startPIR()
 {
-  sensor0.use_serial = true;
+  sensor0.use_serial = false;
   sensor0.use_timer = true;
   sensor0.trigger_once = false;
   sensor0.timer_duration = TIMER;
@@ -396,9 +394,7 @@ void giveStatus(char *outputmsg)
 
 void startGPIOs()
 {
-  pinMode(PIN_TO_SENSOR_1, INPUT);
   pinMode(relayPin, OUTPUT);
-
   digitalWrite(relayPin, relayState);
 }
 
@@ -425,8 +421,11 @@ void setup()
 {
   startGPIOs();
   startIOTservices();
-  Alarm_clockupdate();
-  startDailyTimer();
+  startPIR();
+  delay(30000);
+
+  // Alarm_clockupdate();
+  // startDailyTimer();
 
 #if USE_NOTIFY_TELE
   teleNotify.begin(telecmds);
@@ -436,14 +435,15 @@ void setup()
 void loop()
 {
   iot.looper();
-  // sensor0.looper();
+  sensor0.looper();
+  delay(100);
 #if USE_NOTIFY_TELE
   teleNotify.looper();
 #endif
 
-#if USE_RESETKEEPER
-  checkRebootState();
-#endif
+// #if USE_RESETKEEPER
+//   checkRebootState();
+// #endif
 
-  Alarm.delay(100);
+  // Alarm.delay(100);
 }
