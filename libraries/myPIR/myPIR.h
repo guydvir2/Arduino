@@ -60,8 +60,7 @@ class SensorSwitch
 {
 private:
     byte _switchPin, _extPin, _sensorPin;
-    int _timeout_mins,_stored_timeout;
-
+    int _timeout_mins, _stored_timeout;
 
     // PWM settings
     byte _maxPWM = 240; // Arduino 256, ESP 1024
@@ -97,4 +96,36 @@ private:
     void checkSensor();
 };
 
+class UltraSonicSensor
+{
+    typedef void (*cb_func)();
+
+private:
+    byte _trigPin;
+    byte _echoPin;
+    byte _dist_sensitivity;
+    int _re_trigger_delay;
+    const int _max_distance = 350;
+    const int _min_distance = 1;
+
+    cb_func _detect_cb;
+    cb_func _end_detect_cb;
+    bool _use_detect_cb = false;
+    bool _use_end_detect_cb = false;
+
+private:
+    float arrayofmeasurements(const int arr_size = 10, char *name = "AAAAAAAAAAAAAA");
+    int readSensor();
+    void detection_cb();
+
+public:
+    int max_det_distance = 350;
+
+public:
+    UltraSonicSensor(byte trigPin, byte echoPin, int re_trigger_delay = 30, byte dist_sensitivity = 5);
+    void startGPIO();
+    bool check_detect();
+    void detect_cb(cb_func cb);
+    void end_detect_cb(cb_func cb);
+};
 #endif

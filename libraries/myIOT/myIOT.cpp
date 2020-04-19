@@ -4,6 +4,10 @@
 #include <ESP8266Ping.h>
 #include <myJSON.h>
 
+
+#include <TimeLib.h>
+#include <TimeAlarms.h>
+
 myJSON json(jfile, true);
 
 // ~~~~~~ myIOT CLASS ~~~~~~~~~~~ //
@@ -1166,4 +1170,115 @@ void myTelegram::looper()
                 }
                 _Bot_lasttime = millis();
         }
+}
+
+// ~~~~~~~~~~~~~~~ CronJobs ~~~~~~~~~~~~~~~~
+CronJobs::CronJobs(time_t clock_sync)
+{
+        _clock_sync = clock_sync;
+}
+void CronJobs::end_timer()
+{
+        endTimeOUT_flash.setValue(0);
+}
+
+void CronJobs::start_timer(int dur, char *activ)
+{
+        // Alarm.timerOnce(dur, end_timer);
+        updateflash_endTime(dur);
+}
+void CronJobs::restore_timer()
+{
+        long savedVal;
+        int restoreVal;
+
+        endTimeOUT_flash.getValue(savedVal);
+        Serial.println(savedVal);
+        if (savedVal != 0 && now() < savedVal)
+        {
+                restoreVal = (int)(savedVal - now());
+                start_timer(restoreVal);
+                Serial.println("RESTORING");
+        }
+}
+int CronJobs::remain_timer()
+{
+        long t;
+        endTimeOUT_flash.getValue(t);
+
+        // if (t > 0 && t > now() && relayState == 1)
+        // {
+        //         return t - now();
+        // }
+        // else
+        // {
+        //         return 0;
+        // }
+}
+
+void CronJobs::disable_dailyTimer()
+{
+}
+
+void CronJobs::looper()
+{
+        Alarm.delay(100);
+}
+void CronJobs::clockupdate(time_t t)
+{
+        setTime(hour(t), minute(t), second(t), day(t), month(t), year(t));
+}
+void CronJobs::updateflash_endTime(int dur, long start)
+{
+        if (start == 0)
+        {
+                start = now();
+        }
+        unsigned long endto = (long)(start + dur);
+
+        long t;
+        endTimeOUT_flash.getValue(t);
+        if (t != endto)
+        {
+                endTimeOUT_flash.setValue((long)endto);
+        }
+}
+void CronJobs::calc_end_Alarm()
+{
+        unsigned long timedelta = 0;
+        int h = dailtTO_stop[0] - dailtTO_start[0];
+        int m = dailtTO_stop[1] - dailtTO_start[1];
+        int s = dailtTO_stop[2] - dailtTO_start[2];
+
+        if (h < 0)
+        {
+                h = h + 24;
+        }
+        if (m < 0)
+        {
+                m = m + 60;
+                h--;
+        }
+        if (s < 0)
+        {
+                s = s + 60;
+                m--;
+        }
+
+        timedelta = h * 3600 + m * 60 + s;
+        updateflash_endTime(timedelta);
+}
+
+void CronJobs::startAlarm_services()
+{
+        Alarm.alarmRepeat(dailtTO_start[0], dailtTO_start[1], dailtTO_start[2]);//, beginAlarm);
+        Alarm.alarmRepeat(dailtTO_stop[0], dailtTO_stop[1], dailtTO_stop[2], endAlarm);
+}
+void CronJobs::beginAlarm()
+{
+        calc_end_Alarm();
+}
+void CronJobs::endAlarm()
+{
+        // switchRelay(0, "Daily-Timer");
 }

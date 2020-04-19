@@ -172,7 +172,8 @@ void SensorSwitch::turnOn(int TO)
   {
     _timeout_mins = TO;
   }
-  else {
+  else
+  {
     _timeout_mins = _stored_timeout;
   }
   _ONclock = millis();
@@ -271,4 +272,96 @@ void SensorSwitch::checkSensor()
       _last_sensorsState = _sensorsState;
     }
   }
+}
+
+UltraSonicSensor::UltraSonicSensor(byte trigPin, byte echoPin, int re_trigger_delay, byte dist_sensitivity)
+{
+  _trigPin = trigPin;
+  _echoPin = echoPin;
+  _re_trigger_delay = re_trigger_delay;
+  _dist_sensitivity = dist_sensitivity;
+}
+
+void UltraSonicSensor::startGPIO()
+{
+  pinMode(_trigPin, OUTPUT); // Sets the trigPin as an Output
+  pinMode(_echoPin, INPUT);  // Sets the echoPin as an Input
+}
+void UltraSonicSensor::detection_cb()
+{
+  Serial.println("Detect");
+}
+
+float UltraSonicSensor::arrayofmeasurements(int arr_size, char *name)
+{
+  int sum = 0;
+
+  for (int a = 0; a < arr_size; a++)
+  {
+    int x = readSensor();
+    if (x > _max_distance)
+    {
+      x = _max_distance;
+    }
+    else if (x < _min_distance)
+    {
+      x = _min_distance;
+    }
+    // Serial.println(x);
+    sum += x;
+    delay(20);
+  }
+  return (float)sum / (float)arr_size;
+}
+
+int UltraSonicSensor::readSensor()
+{
+  long duration;
+  int distance;
+
+  digitalWrite(_trigPin, LOW);
+  delayMicroseconds(2);
+  digitalWrite(_trigPin, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(_trigPin, LOW);
+
+  duration = pulseIn(_echoPin, HIGH);
+  distance = duration * 0.034 / 2;
+
+  return distance;
+}
+
+bool UltraSonicSensor::check_detect()
+{
+  static long last_detect = 0;
+  const byte arr_size = 30;
+
+  float mean_a = arrayofmeasurements(arr_size);
+  delay(100);
+  float mean_b = arrayofmeasurements(arr_size);
+
+  if (abs(mean_b - mean_a) > _dist_sensitivity && millis() - last_detect >= _re_trigger_delay * 1000) // && max(mean_a,mean_b)<max_det_distance
+  {
+    detection_cb();
+    last_detect = millis();
+    char t[50];
+    sprintf(t, "Detection at A=%.1f B=%.1f, delta=%.1f", mean_a, mean_b, abs((mean_a - mean_b) / 2.0));
+    Serial.println(t);
+    _detect_cb();
+    return 1;
+  }
+  else
+  {
+    return 0;
+  }
+}
+void UltraSonicSensor::detect_cb(cb_func cb)
+{
+  _use_detect_cb = true;
+  _detect_cb = cb;
+}
+void UltraSonicSensor::end_detect_cb(cb_func cb)
+{
+  _use_end_detect_cb = true;
+  _end_detect_cb = cb;
 }

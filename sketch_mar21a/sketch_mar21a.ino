@@ -9,9 +9,9 @@ esp32Sleep go2sleep(SLEEP_TIME, FORCE_AWAKE_TIME, DEV_NAME);
 // ~~~~~~~~~~~~~~~~~~~~~~~~~
 
 // ~~~~~~ Sketch Services ~~~~
-#define USE_BAT_SOLAR true
+#define USE_BAT_SOLAR false
 #define USE_IFTTT true
-#define USE_VMEASURE true
+#define USE_VMEASURE false
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -120,9 +120,9 @@ void setup()
   {
     Vmeasure();
   }
-  go2sleep.use_wifi = true;
-  go2sleep.wifi_ssid = "Xiaomi_D6C8";
-  go2sleep.wifi_pass = "guyd5161";
+  // go2sleep.use_wifi = true;
+  // go2sleep.wifi_ssid = "Xiaomi_D6C8";
+  // go2sleep.wifi_pass = "guyd5161";
   go2sleep.run_func(b4sleep);
   go2sleep.startServices();
 }

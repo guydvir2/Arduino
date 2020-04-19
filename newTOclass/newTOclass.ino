@@ -37,142 +37,137 @@ byte dailtTO_stop[] = {22, 40, 0};
 myIOT iot(DEVICE_TOPIC);
 // ***************************
 
-#include <TimeLib.h>
-#include <TimeAlarms.h>
 #include <myIOT.h>
 
 // ~~~~~~~~~~~ Switch Commands ~~~~~~~
-class CronJobs
-{
+// class CronJobs
+// {
+  
 
-private:
-  FVars endTimeOUT_flash("endTO");
-  FVars bootClock_flash("boot");
-  time_t _clock_sync;
+// private:
+  
+// private:
+  
 
-private:
-  AlarmId timer_id;
-  AlarmId daily_id;
+//   void Alarm_clockupdate(time_t t)
+//   {
+//     // time_t t = now();
+//     setTime(hour(t), minute(t), second(t), day(t), month(t), year(t));
+//     // bootClock_flash.setValue(t);
+//   }
 
-  void Alarm_clockupdate(time_t t)
-  {
-    // time_t t = now();
-    setTime(hour(t), minute(t), second(t), day(t), month(t), year(t));
-    // bootClock_flash.setValue(t);
-  }
+//   void updateflash_endTime(int dur, long start = 0)
+//   {
+//     if (start == 0)
+//     {
+//       start = now();
+//     }
+//     unsigned long endto = (long)(start + dur);
 
-  void updateflash_endTime(int dur, long start = 0)
-  {
-    if (start == 0)
-    {
-      start = now();
-    }
-    unsigned long endto = (long)(start + dur);
+//     long t;
+//     endTimeOUT_flash.getValue(t);
+//     if (t != endto)
+//     {
+//       endTimeOUT_flash.setValue((long)endto);
+//     }
+//   }
+//   void calc_end_Alarm()
+//   {
+//     unsigned long timedelta = 0;
+//     int h = dailtTO_stop[0] - dailtTO_start[0];
+//     int m = dailtTO_stop[1] - dailtTO_start[1];
+//     int s = dailtTO_stop[2] - dailtTO_start[2];
 
-    long t;
-    endTimeOUT_flash.getValue(t);
-    if (t != endto)
-    {
-      endTimeOUT_flash.setValue((long)endto);
-    }
-  }
-  void calc_end_Alarm()
-  {
-    unsigned long timedelta = 0;
-    int h = dailtTO_stop[0] - dailtTO_start[0];
-    int m = dailtTO_stop[1] - dailtTO_start[1];
-    int s = dailtTO_stop[2] - dailtTO_start[2];
+//     if (h < 0)
+//     {
+//       h = h + 24;
+//     }
+//     if (m < 0)
+//     {
+//       m = m + 60;
+//       h--;
+//     }
+//     if (s < 0)
+//     {
+//       s = s + 60;
+//       m--;
+//     }
 
-    if (h < 0)
-    {
-      h = h + 24;
-    }
-    if (m < 0)
-    {
-      m = m + 60;
-      h--;
-    }
-    if (s < 0)
-    {
-      s = s + 60;
-      m--;
-    }
+//     timedelta = h * 3600 + m * 60 + s;
+//     updateflash_endTime(timedelta);
+//   }
+//   void beginAlarm()
+//   {
+//     // switchRelay(1, "Daily-Timer");
+//     calc_end_Alarm();
+//   }
+//   void endAlarm()
+//   {
+//     // switchRelay(0, "Daily-Timer");
+//   }
+//   void startAlarm_services()
+//   {
+//     Alarm.alarmRepeat(dailtTO_start[0], dailtTO_start[1], dailtTO_start[2], beginAlarm);
+//     Alarm.alarmRepeat(dailtTO_stop[0], dailtTO_stop[1], dailtTO_stop[2], endAlarm);
+//   }
 
-    timedelta = h * 3600 + m * 60 + s;
-    updateflash_endTime(timedelta);
-  }
-  void beginAlarm()
-  {
-    // switchRelay(1, "Daily-Timer");
-    calc_end_Alarm();
-  }
-  void endAlarm()
-  {
-    // switchRelay(0, "Daily-Timer");
-  }
-  void startAlarm_services()
-  {
-    Alarm.alarmRepeat(dailtTO_start[0], dailtTO_start[1], dailtTO_start[2], beginAlarm);
-    Alarm.alarmRepeat(dailtTO_stop[0], dailtTO_stop[1], dailtTO_stop[2], endAlarm);
-  }
+// public:
+//   CronJobs(time_t clock_sync)
+//   {
+//     _clock_sync = clock_sync;
+//   }
 
-public:
-  CronJobs(time_t clock_sync)
-  {
-    _clock_sync = clock_sync;
-  }
+//   // ~~~~~~ Timer Tasks -- Happen once -- ~~~~~~
+//   void end_timer()
+//   {
+//     // switchRelay(0);
+//     endTimeOUT_flash.setValue(0);
+//   }
 
-  // ~~~~~~ Timer Tasks -- Happen once -- ~~~~~~
-  void end_timer()
-  {
-    // switchRelay(0);
-    endTimeOUT_flash.setValue(0);
-  }
+//   void start_timer(int dur = 30, char *activ = TO_NICK)
+//   {
+//     // switchRelay(1, activ);
+//     Alarm.timerOnce(dur, end_timer);
+//     updateflash_endTime(dur);
+//   }
+//   void restore_timer()
+//   {
+//     long savedVal;
+//     int restoreVal;
 
-  void start_timer(int dur = 30, char *activ = TO_NICK)
-  {
-    // switchRelay(1, activ);
-    Alarm.timerOnce(dur, end_timer);
-    updateflash_endTime(dur);
-  }
-  void restore_timer()
-  {
-    long savedVal;
-    int restoreVal;
+//     endTimeOUT_flash.getValue(savedVal);
+//     Serial.println(savedVal);
+//     if (savedVal != 0 && now() < savedVal)
+//     {
+//       restoreVal = (int)(savedVal - now());
+//       start_timer(restoreVal);
+//       Serial.println("RESTORING");
+//     }
+//   }
+//   int remain_timer()
+//   {
+//     long t;
+//     endTimeOUT_flash.getValue(t);
 
-    endTimeOUT_flash.getValue(savedVal);
-    Serial.println(savedVal);
-    if (savedVal != 0 && now() < savedVal)
-    {
-      restoreVal = (int)(savedVal - now());
-      start_timer(restoreVal);
-      Serial.println("RESTORING");
-    }
-  }
-  int remain_timer()
-  {
-    long t;
-    endTimeOUT_flash.getValue(t);
+//     if (t > 0 && t > now() && relayState == 1)
+//     {
+//       return t - now();
+//     }
+//     else
+//     {
+//       return 0;
+//     }
+//   }
 
-    if (t > 0 && t > now() && relayState == 1)
-    {
-      return t - now();
-    }
-    else
-    {
-      return 0;
-    }
-  }
+//   void disable_dailyTimer()
+//   {
+//   }
 
-  void disable_dailyTimer()
-  {
-  }
-
-  void looper()
-  {
-    Alarm.delay(100);
-  }
-};
+//   void looper()
+//   {
+//     Alarm.delay(100);
+//   }
+// };
 
 void startIOTservices()
 {
