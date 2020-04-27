@@ -245,92 +245,92 @@ bool esp32Sleep::startServices(char *ssid, char *password, char *mqtt_user, char
     return 0;
   }
 }
-void esp32Sleep::startMQTT()
-{
-  bool stat = false;
-  mqttClient.setServer(mqtt_server, 1883);
-  stat = true;
-  Serial.println("MQTT SERVER: ");
-  Serial.println(mqtt_server);
+// void esp32Sleep::startMQTT()
+// {
+//   bool stat = false;
+//   mqttClient.setServer(mqtt_server, 1883);
+//   stat = true;
+//   Serial.println("MQTT SERVER: ");
+//   Serial.println(mqtt_server);
 
-  // Set callback function
-  if (stat)
-  {
-    mqttClient.setCallback(std::bind(&esp32Sleep::callback, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
-    subscribeMQTT();
-  }
-  else
-  {
-    Serial.println("Not connected to MQTT server");
-  }
-}
-bool esp32Sleep::subscribeMQTT()
-{
-  static long lastReconnectAttempt = 0;
+//   // Set callback function
+//   if (stat)
+//   {
+//     mqttClient.setCallback(std::bind(&esp32Sleep::callback, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
+//     subscribeMQTT();
+//   }
+//   else
+//   {
+//     Serial.println("Not connected to MQTT server");
+//   }
+// }
+// bool esp32Sleep::subscribeMQTT()
+// {
+//   static long lastReconnectAttempt = 0;
   
-  if (!mqttClient.connected())
-  {
-    long now = millis();
-    if (now - lastReconnectAttempt > 5000)
-    {
-      lastReconnectAttempt = now;
+//   if (!mqttClient.connected())
+//   {
+//     long now = millis();
+//     if (now - lastReconnectAttempt > 5000)
+//     {
+//       lastReconnectAttempt = now;
 
-        Serial.println("have wifi, entering MQTT connection");
-        Serial.print("Attempting MQTT connection...");
-      // Attempt to connect
-      char tempname[15];
-      sprintf(tempname, "ESP_%s", String(ESP.getChipId()).c_str());
+//         Serial.println("have wifi, entering MQTT connection");
+//         Serial.print("Attempting MQTT connection...");
+//       // Attempt to connect
+//       char tempname[15];
+//       sprintf(tempname, "ESP_%s", String(ESP.getChipId()).c_str());
 
-      if (mqttClient.connect(tempname, user, passw, _availTopic, 0, true, "offline"))
-      {
-        for (int i = 0; i < sizeof(topicArry) / sizeof(char *); i++)
-        {
-          if (strcmp(topicArry[i], "") != 0)
-          {
-            mqttClient.subscribe(topicArry[i]);
-          }
-        }
+//       if (mqttClient.connect(tempname, user, passw, _availTopic, 0, true, "offline"))
+//       {
+//         for (int i = 0; i < sizeof(topicArry) / sizeof(char *); i++)
+//         {
+//           if (strcmp(topicArry[i], "") != 0)
+//           {
+//             mqttClient.subscribe(topicArry[i]);
+//           }
+//         }
 
-        if (useSerial)
-        {
-          Serial.println("connected");
-        }
-        if (firstRun)
-        {
-          pub_log("<< PowerON Boot >>");
-          if (!useResetKeeper)
-          {
-            firstRun = false;
-            mqtt_detect_reset = 0;
-            notifyOnline();
-          }
-          else
-          { // using reset keeper
-            mqttClient.publish(_availTopic, "resetKeeper", true);
-          }
-        }
-        else
-        { // not first run
-          notifyOnline();
-        }
-        return 1;
-      }
-      else
-      { // fail to connect MQTT
-        if (useSerial)
-        {
-          Serial.print("failed, rc=");
-          Serial.println(mqttClient.state());
-        }
-        return 0;
-      }
-    }
-  }
-  else
-  {
-    return 1;
-  }
-}
+//         if (useSerial)
+//         {
+//           Serial.println("connected");
+//         }
+//         if (firstRun)
+//         {
+//           pub_log("<< PowerON Boot >>");
+//           if (!useResetKeeper)
+//           {
+//             firstRun = false;
+//             mqtt_detect_reset = 0;
+//             notifyOnline();
+//           }
+//           else
+//           { // using reset keeper
+//             mqttClient.publish(_availTopic, "resetKeeper", true);
+//           }
+//         }
+//         else
+//         { // not first run
+//           notifyOnline();
+//         }
+//         return 1;
+//       }
+//       else
+//       { // fail to connect MQTT
+//         if (useSerial)
+//         {
+//           Serial.print("failed, rc=");
+//           Serial.println(mqttClient.state());
+//         }
+//         return 0;
+//       }
+//     }
+//   }
+//   else
+//   {
+//     return 1;
+//   }
+// }
 void esp32Sleep::sleepNOW(float sec2sleep)
 {
   if (_use_extfunc)

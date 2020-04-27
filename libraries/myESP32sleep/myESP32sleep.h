@@ -66,7 +66,7 @@ private:
     // void onConnectionEstablished();
 
 public:
-    esp32Sleep(int deepsleep = 30, int forcedwake = 15, char *devname = "ESP32device"); //, char *ssid="AAAAAAAAAAAAAAAAAAA", char *paswd="AAAAAAAAAAAAAAAAAAA", char *broker="AAAAAAAAAAAAAAAAAAA", char *mqttU="AAAAAAAAAAAAAAAAAAA", char *mqttP="AAAAAAAAAAAAAAAAAAA", char *mqttNick="AAAAAAAAAAAAAAAAAAA", int mqtt_port=1883);
+    esp32Sleep(int deepsleep = 30, int forcedwake = 15, char *devname = "ESP32device"); 
     bool startServices(char *ssid = SSID_ID, char *password = PASS_WIFI, char *mqtt_user = MQTT_USER, char *mqtt_passw = MQTT_PASS, char *mqtt_broker = MQTT_SERVER1);
     void sleepNOW(float sec2sleep = 2700);
     void check_awake_ontime(int min_t_avoidSleep = 10);

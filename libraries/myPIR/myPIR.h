@@ -103,7 +103,6 @@ class UltraSonicSensor
 private:
     byte _trigPin;
     byte _echoPin;
-    byte _dist_sensitivity;
     int _re_trigger_delay;
     const int _max_distance = 350;
     const int _min_distance = 1;
@@ -119,10 +118,12 @@ private:
     void detection_cb();
 
 public:
-    int max_det_distance = 350;
+    int dist_sensitivity;
+    int min_dist_trig = 5;
+    int max_dist_trig= 350;
 
 public:
-    UltraSonicSensor(byte trigPin, byte echoPin, int re_trigger_delay = 30, byte dist_sensitivity = 5);
+    UltraSonicSensor(byte trigPin, byte echoPin, int re_trigger_delay = 30, int d_sensitivity = 5);
     void startGPIO();
     bool check_detect();
     void detect_cb(cb_func cb);

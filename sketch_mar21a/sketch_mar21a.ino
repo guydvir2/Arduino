@@ -1,21 +1,16 @@
 
 // ~~~~~~~ Sleep ~~~~~~~~~~~
 #include "myESP32sleep.h"
-#define SLEEP_TIME 60
+#define SLEEP_TIME 30
 #define FORCE_AWAKE_TIME 20
-#define DEV_NAME "ESP32light" //"ESP32-S"                     //
+#define DEV_NAME "ESP32-S" //"ESP32light" // 
 esp32Sleep go2sleep(SLEEP_TIME, FORCE_AWAKE_TIME, DEV_NAME);
-
 // ~~~~~~~~~~~~~~~~~~~~~~~~~
 
-// ~~~~~~ Sketch Services ~~~~
-#define USE_BAT_SOLAR false
-#define USE_IFTTT true
-#define USE_VMEASURE false
-
-// ~~~~~~~~~~~~~~~~~~~~~~~~~~
-
 // ~~~~~~~~~ DAC & Solar Panel ~~~~~~~~~~~
+#define USE_BAT_SOLAR true
+#define USE_IFTTT true
+#define USE_VMEASURE true
 #define VBAT_ADC_PIN 35
 #define VSOLAR_ADC_PIN 34
 
@@ -120,9 +115,6 @@ void setup()
   {
     Vmeasure();
   }
-  // go2sleep.use_wifi = true;
-  // go2sleep.wifi_ssid = "Xiaomi_D6C8";
-  // go2sleep.wifi_pass = "guyd5161";
   go2sleep.run_func(b4sleep);
   go2sleep.startServices();
 }

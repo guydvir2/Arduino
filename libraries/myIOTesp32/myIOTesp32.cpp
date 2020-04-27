@@ -1,12 +1,12 @@
 #include "myIOTesp32.h"
-
-myIOT32::myIOT32(char *ssid, char *wifi_p, char *mqtt_broker, char *mqttU, char *mqttP, char *devTopic, int port)
+myIOT32::myIOT32(char *devTopic, char *ssid, char *wifi_p, char *mqtt_broker, char *mqttU, char *mqttP, int port)
     : client(ssid, wifi_p, mqtt_broker, mqttU, mqttP, devTopic, port)
 {
 }
-// void myIOT32::start(){
-
-// }
+void myIOT32::start()
+{
+  onConnectionEstablished();
+}
 
 void myIOT32::onConnectionEstablished()
 {
@@ -31,5 +31,5 @@ void myIOT32::onConnectionEstablished()
 
 void myIOT32::looper()
 {
-  // client.loop();
+  client.loop();
 }

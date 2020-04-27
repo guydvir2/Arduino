@@ -20,8 +20,9 @@ private:
 public:
     EspMQTTClient client;
     
-    myIOT32(char *ssid, char *wifi_p, char *mqtt_broker, char *mqttU, char *mqttP, char *devTopic, int port = 1883);
+    myIOT32(char *devTopic="no-name", char *ssid=SSID_ID, char *wifi_p=PASS_WIFI, char *mqtt_broker=MQTT_SERVER1, char *mqttU=MQTT_USER, char *mqttP=MQTT_PASS, int port = 1883);
     void looper();
+    void start();
 
 };
 

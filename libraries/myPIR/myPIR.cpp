@@ -73,8 +73,8 @@ void PIRsensor::detection_callback()
   }
   if (use_serial)
   {
-    Serial.print("~~detect ");
-    Serial.println(sensNick);
+    // Serial.print("~~detect ");
+    // Serial.println(sensNick);
   }
   if (_use_detfunc)
   {
@@ -87,8 +87,8 @@ void PIRsensor::end_detection_callback()
 
   if (use_serial)
   {
-    Serial.print("~~end_detect ");
-    Serial.println(sensNick);
+    // Serial.print("~~end_detect ");
+    // Serial.println(sensNick);
   }
 }
 
@@ -124,6 +124,9 @@ void PIRsensor::looper()
     checkSensor();
   }
 }
+
+
+//±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
 
 SensorSwitch::SensorSwitch(byte sensorPin, byte switchPin, int timeout_mins, byte extPin)
 {
@@ -255,12 +258,11 @@ void SensorSwitch::offBy_timeout()
 void SensorSwitch::checkSensor()
 {
   _sensorsState = digitalRead(_sensorPin);
-
   if (_sensorsState != _last_sensorsState)
   { // enter on change only
     if (millis() - _lastDetect_clock > 100)
     { // ms of debounce
-      if (_sensorsState == !SensorDetection_def)
+      if (_sensorsState == SensorDetection_def)
       {
         turnOn();
       }
@@ -274,12 +276,12 @@ void SensorSwitch::checkSensor()
   }
 }
 
-UltraSonicSensor::UltraSonicSensor(byte trigPin, byte echoPin, int re_trigger_delay, byte dist_sensitivity)
+UltraSonicSensor::UltraSonicSensor(byte trigPin, byte echoPin, int re_trigger_delay, int d_sensitivity)
 {
   _trigPin = trigPin;
   _echoPin = echoPin;
   _re_trigger_delay = re_trigger_delay;
-  _dist_sensitivity = dist_sensitivity;
+  dist_sensitivity = d_sensitivity;
 }
 
 void UltraSonicSensor::startGPIO()
@@ -289,7 +291,10 @@ void UltraSonicSensor::startGPIO()
 }
 void UltraSonicSensor::detection_cb()
 {
-  Serial.println("Detect");
+  if (_use_detect_cb)
+  {
+    _detect_cb();
+  }
 }
 
 float UltraSonicSensor::arrayofmeasurements(int arr_size, char *name)
@@ -307,7 +312,6 @@ float UltraSonicSensor::arrayofmeasurements(int arr_size, char *name)
     {
       x = _min_distance;
     }
-    // Serial.println(x);
     sum += x;
     delay(20);
   }
@@ -339,16 +343,27 @@ bool UltraSonicSensor::check_detect()
   float mean_a = arrayofmeasurements(arr_size);
   delay(100);
   float mean_b = arrayofmeasurements(arr_size);
+  float max_d = mean_a > mean_b ? mean_a : mean_b;
+  float min_d = mean_a < mean_b ? mean_a : mean_b;
+  // Serial.println("~~~~~~~~~~~~~");
+  // Serial.print("MAX_D: =");
+  // Serial.println(max_d);
+  // Serial.print("MIN_D: =");
+  // Serial.println(min_d);
 
-  if (abs(mean_b - mean_a) > _dist_sensitivity && millis() - last_detect >= _re_trigger_delay * 1000) // && max(mean_a,mean_b)<max_det_distance
+  if (abs(mean_b - mean_a) > dist_sensitivity && millis() - last_detect >= _re_trigger_delay * 1000)
   {
-    detection_cb();
+    if (min_d<=max_dist_trig ){
     last_detect = millis();
-    char t[50];
-    sprintf(t, "Detection at A=%.1f B=%.1f, delta=%.1f", mean_a, mean_b, abs((mean_a - mean_b) / 2.0));
-    Serial.println(t);
-    _detect_cb();
+    char t[100];
+    sprintf(t, "Detection at A=%.1f B=%.1f, delta=%.1f", mean_a, mean_b, mean_a - mean_b);
+    // Serial.println(t);
+    detection_cb();
     return 1;
+    }
+    else {
+      return 0;
+    }
   }
   else
   {
