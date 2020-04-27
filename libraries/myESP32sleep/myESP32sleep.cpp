@@ -1,7 +1,8 @@
 #include "Arduino.h"
 #include "myESP32sleep.h"
 
-#define drift_ArraySize 10
+#define drift_ArraySize 3
+#define zeroval 999.0
 
 RTC_DATA_ATTR long clock_expectedWake = 0;
 RTC_DATA_ATTR int bootCounter = 0;
@@ -80,41 +81,88 @@ void esp32Sleep::getTime()
 }
 void esp32Sleep::Avg_Array_zeroing()
 {
-  for (int a = 0; a < drift_ArraySize; a++)
+  if (bootCounter == 0)
   {
-    driftsArray_RTC[a] = 0.0;
+    for (int a = 0; a < drift_ArraySize; a++)
+    {
+      driftsArray_RTC[a] = zeroval;
+    }
   }
 }
 
+// void esp32Sleep::onConnectionEstablished()
+// {
+//   // Subscribe to "mytopic/test" and display received message to Serial
+//   espmqtt_client.subscribe("mytopic/test", [](const String & payload) {
+//     Serial.println(payload);
+//   });
+
+//   // Subscribe to "mytopic/wildcardtest/#" and display received message to Serial
+//   espmqtt_client.subscribe("mytopic/wildcardtest/#", [](const String & topic, const String & payload) {
+//     Serial.println(topic + ": " + payload);
+//   });
+
+//   // Publish a message to "mytopic/test"
+//   espmqtt_client.publish("mytopic/test", "This is a message"); // You can activate the retain flag by setting the third parameter to true
+
+//   // Execute delayed instructions
+//   espmqtt_client.executeDelayed(5 * 1000, []() {
+//     espmqtt_client.publish("mytopic/test", "This is a message sent 5 seconds later");
+//   });
+// }
+
 // ~~~~~~~ Sleep & Drift calcs ~~~
-void esp32Sleep::driftUpdate(float lastboot_drift, byte cell)
+
+void esp32Sleep::update_driftArray(float lastboot_drift)
 {
-  if (bootCounter <= drift_ArraySize + 2)
+  float sum_avg = 0.0;
+
+  for (int a = drift_ArraySize - 1; a > 0; a--)
   {
-    driftRTC += lastboot_drift;
-    if (bootCounter > 2) // first 2 boots will not enter to avg_array
-    {
-      driftsArray_RTC[bootCounter - 3] = lastboot_drift;
-    }
+    driftsArray_RTC[a] = driftsArray_RTC[a - 1];
   }
-  else
+
+  driftsArray_RTC[0] = lastboot_drift;
+
+  if (bootCounter > drift_ArraySize)
   {
-    float sum_avg = 0.0;
-    for (int a = drift_ArraySize - 1; a > 0; a--)
+    for (int a = 0; a < drift_ArraySize; a++)
     {
-      driftsArray_RTC[a] = driftsArray_RTC[a - 1];
       sum_avg += driftsArray_RTC[a];
     }
-    driftsArray_RTC[0] = lastboot_drift;
-    sum_avg += lastboot_drift;
-    driftRTC += sum_avg / (float)drift_ArraySize;
-
-    if (bootCounter % 10 == 0)
-    {
-      saveEEPROMvalue((int)driftRTC, 0);
-      Serial.println("DRIFT SAVED TO EEPROM");
-    }
+    driftRTC = sum_avg / (float)drift_ArraySize;
   }
+  // Serial.print("Mean driftRTC: ");
+  // Serial.println(driftRTC);
+}
+void esp32Sleep::driftUpdate(float lastboot_drift, byte cell)
+{
+  // if (bootCounter <= drift_ArraySize + 2)
+  // {
+  //   driftRTC += lastboot_drift;
+  //   if (bootCounter > 2) // first 2 boots will not enter to avg_array
+  //   {
+  //     driftsArray_RTC[bootCounter - 3] = lastboot_drift;
+  //   }
+  // }
+  // else
+  // {
+  //   float sum_avg = 0.0;
+  //   for (int a = drift_ArraySize - 1; a > 0; a--)
+  //   {
+  //     driftsArray_RTC[a] = driftsArray_RTC[a - 1];
+  //     sum_avg += driftsArray_RTC[a];
+  //   }
+  //   driftsArray_RTC[0] = lastboot_drift;
+  //   sum_avg += lastboot_drift;
+  //   driftRTC += sum_avg / (float)drift_ArraySize;
+
+  //   if (bootCounter % 10 == 0)
+  //   {
+  //     saveEEPROMvalue((int)driftRTC, 0);
+  //     Serial.println("DRIFT SAVED TO EEPROM");
+  //   }
+  // }
 }
 
 void esp32Sleep::new_driftUpdate(float lastboot_drift, byte cell)
@@ -125,30 +173,22 @@ void esp32Sleep::new_driftUpdate(float lastboot_drift, byte cell)
   const float max_drift = nomin_drift * (1 - drift_tolerance); // bigger neg number
   const float min_drift = nomin_drift * (1 + drift_tolerance); // lesser neg number
 
-  // Serial.print("max TRC allowed: ");
-  // Serial.println(max_drift, 4);
-  // Serial.print("min TRC allowed: ");
-  // Serial.println(min_drift, 4);
-
-
   if (driftRTC + lastboot_drift < max_drift && driftRTC + lastboot_drift > min_drift)
   {
     driftRTC += lastboot_drift;
-    Serial.println("Calc1");
+    // Serial.println("drift value added");
   }
   else if (driftRTC + lastboot_drift > min_drift)
   {
     driftRTC = min_drift;
-    Serial.println("Calc2 ");
+    // Serial.println("drift value corrected to min ");
   }
   else if (driftRTC + lastboot_drift < max_drift)
   {
     driftRTC = max_drift;
-    Serial.println("Calc3");
+    // Serial.println("drift value corrected to max");
   }
-
-  Serial.print("rtc calc:");
-  Serial.println(driftRTC);
+  update_driftArray(driftRTC);
 }
 
 int esp32Sleep::calc_nominal_sleepTime()
@@ -174,15 +214,21 @@ int esp32Sleep::calc_nominal_sleepTime()
   return nominal_nextSleep;
 }
 esp32Sleep::esp32Sleep(int deepsleep, int forcedwake, char *devname)
+    : mqttClient(espClient)
 {
   _deepsleep_time = deepsleep;
   _forcedwake_time = forcedwake;
   dev_name = devname;
 }
-bool esp32Sleep::startServices()
+bool esp32Sleep::startServices(char *ssid, char *password, char *mqtt_user, char *mqtt_passw, char *mqtt_broker)
 {
-  Avg_Array_zeroing();
   start_eeprom();
+  // Avg_Array_zeroing();
+  mqtt_server = mqtt_broker;
+  user = mqtt_user;
+  passw = mqtt_passw;
+  wifi_ssid = ssid;
+  wifi_pass = password;
 
   if (use_wifi)
   {
@@ -199,6 +245,92 @@ bool esp32Sleep::startServices()
     return 0;
   }
 }
+// void esp32Sleep::startMQTT()
+// {
+//   bool stat = false;
+//   mqttClient.setServer(mqtt_server, 1883);
+//   stat = true;
+//   Serial.println("MQTT SERVER: ");
+//   Serial.println(mqtt_server);
+
+//   // Set callback function
+//   if (stat)
+//   {
+//     mqttClient.setCallback(std::bind(&esp32Sleep::callback, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
+//     subscribeMQTT();
+//   }
+//   else
+//   {
+//     Serial.println("Not connected to MQTT server");
+//   }
+// }
+// bool esp32Sleep::subscribeMQTT()
+// {
+//   static long lastReconnectAttempt = 0;
+  
+//   if (!mqttClient.connected())
+//   {
+//     long now = millis();
+//     if (now - lastReconnectAttempt > 5000)
+//     {
+//       lastReconnectAttempt = now;
+
+//         Serial.println("have wifi, entering MQTT connection");
+//         Serial.print("Attempting MQTT connection...");
+//       // Attempt to connect
+//       char tempname[15];
+//       sprintf(tempname, "ESP_%s", String(ESP.getChipId()).c_str());
+
+//       if (mqttClient.connect(tempname, user, passw, _availTopic, 0, true, "offline"))
+//       {
+//         for (int i = 0; i < sizeof(topicArry) / sizeof(char *); i++)
+//         {
+//           if (strcmp(topicArry[i], "") != 0)
+//           {
+//             mqttClient.subscribe(topicArry[i]);
+//           }
+//         }
+
+//         if (useSerial)
+//         {
+//           Serial.println("connected");
+//         }
+//         if (firstRun)
+//         {
+//           pub_log("<< PowerON Boot >>");
+//           if (!useResetKeeper)
+//           {
+//             firstRun = false;
+//             mqtt_detect_reset = 0;
+//             notifyOnline();
+//           }
+//           else
+//           { // using reset keeper
+//             mqttClient.publish(_availTopic, "resetKeeper", true);
+//           }
+//         }
+//         else
+//         { // not first run
+//           notifyOnline();
+//         }
+//         return 1;
+//       }
+//       else
+//       { // fail to connect MQTT
+//         if (useSerial)
+//         {
+//           Serial.print("failed, rc=");
+//           Serial.println(mqttClient.state());
+//         }
+//         return 0;
+//       }
+//     }
+//   }
+//   else
+//   {
+//     return 1;
+//   }
+// }
 void esp32Sleep::sleepNOW(float sec2sleep)
 {
   if (_use_extfunc)
@@ -228,7 +360,6 @@ void esp32Sleep::check_awake_ontime(int min_t_avoidSleep)
       sprintf(tt, "Woke_after: [%d sec]; wake_Drift: [%d sec]; ", _epoch_time - clock_beforeSleep, t_delta);
       strcat(wake_sleep_str, tt);
       new_driftUpdate(t_delta, 0);
-      // driftUpdate(t_delta, 0);
 
       if (t_delta < 0 && wake_diff < 0)
       {

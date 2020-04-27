@@ -23,6 +23,10 @@
 #include <UniversalTelegramBot.h>
 #include <WiFiClientSecure.h>
 
+#include <TimeLib.h>
+#include <TimeAlarms.h>
+
+
 // define generic functiobs
 typedef void (*cb_func)(char msg1[50]);
 typedef void (*cb_func2)(String msg1, String msg2, String msg3, char *msg4);
@@ -264,5 +268,37 @@ public:
 private:
   void switchON();
 };
+
+// class CronJobs
+// {
+// private:
+//   time_t _clock_sync;
+//   byte dailtTO_start[3] = {22, 39, 30};
+//   byte dailtTO_stop[3] = {22, 40, 0};
+
+//   AlarmId timer_id;
+//   AlarmId daily_id;
+
+//   FVars endTimeOUT_flash; //("endTO");
+//   FVars bootClock_flash;  //("boot");
+// private:
+//   void updateflash_endTime(int dur, long start = 0);
+  
+//   void calc_end_Alarm();
+//   void start_timer(int dur = 30, char *activ = "TO_NICK");
+//   void restore_timer();
+//   void end_timer();
+
+// public:
+//   CronJobs(time_t clock_sync);
+//   void beginAlarm();
+//   void endAlarm();
+//   void startAlarm_services();
+  
+//   void looper();
+//   void clockupdate(time_t t);
+//   int remain_timer();
+//   void disable_dailyTimer();
+// };
 
 #endif
