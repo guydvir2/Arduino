@@ -113,14 +113,13 @@ private:
     bool _use_end_detect_cb = false;
 
 private:
-    float arrayofmeasurements(const int arr_size = 10, char *name = "AAAAAAAAAAAAAA");
     int readSensor();
     void detection_cb();
 
 public:
     int dist_sensitivity;
-    int min_dist_trig = 5;
-    int max_dist_trig= 350;
+    int min_dist_trig = 20;
+    int max_dist_trig= 150;
 
 public:
     UltraSonicSensor(byte trigPin, byte echoPin, int re_trigger_delay = 30, int d_sensitivity = 5);

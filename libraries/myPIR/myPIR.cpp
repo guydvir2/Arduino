@@ -23,12 +23,10 @@ void PIRsensor::end_detect_cb(cb_func cb)
   _end_detect_cb = cb;
   _use_enddetfunc = true;
 }
-
 void PIRsensor::update_timer_end()
 {
   _endTimer = millis() + (long)timer_duration * 1000;
 }
-
 void PIRsensor::check_timer()
 {
   if (use_timer && _timer_is_on) // check if timer is on and time remains
@@ -91,7 +89,6 @@ void PIRsensor::end_detection_callback()
     // Serial.println(sensNick);
   }
 }
-
 void PIRsensor::checkSensor()
 {
   bool detect_clock_ok = millis() > _lastDetection_clock + (long)((ignore_det_interval + _length_logic_state) * 1000); // timeout - minimal time between detections
@@ -115,7 +112,6 @@ void PIRsensor::checkSensor()
     }
   }
 }
-
 void PIRsensor::looper()
 {
   if (stop_sensor == false)
@@ -124,7 +120,6 @@ void PIRsensor::looper()
     checkSensor();
   }
 }
-
 
 //±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
 
@@ -276,6 +271,7 @@ void SensorSwitch::checkSensor()
   }
 }
 
+// ±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
 UltraSonicSensor::UltraSonicSensor(byte trigPin, byte echoPin, int re_trigger_delay, int d_sensitivity)
 {
   _trigPin = trigPin;
@@ -283,41 +279,11 @@ UltraSonicSensor::UltraSonicSensor(byte trigPin, byte echoPin, int re_trigger_de
   _re_trigger_delay = re_trigger_delay;
   dist_sensitivity = d_sensitivity;
 }
-
 void UltraSonicSensor::startGPIO()
 {
   pinMode(_trigPin, OUTPUT); // Sets the trigPin as an Output
   pinMode(_echoPin, INPUT);  // Sets the echoPin as an Input
 }
-void UltraSonicSensor::detection_cb()
-{
-  if (_use_detect_cb)
-  {
-    _detect_cb();
-  }
-}
-
-float UltraSonicSensor::arrayofmeasurements(int arr_size, char *name)
-{
-  int sum = 0;
-
-  for (int a = 0; a < arr_size; a++)
-  {
-    int x = readSensor();
-    if (x > _max_distance)
-    {
-      x = _max_distance;
-    }
-    else if (x < _min_distance)
-    {
-      x = _min_distance;
-    }
-    sum += x;
-    delay(20);
-  }
-  return (float)sum / (float)arr_size;
-}
-
 int UltraSonicSensor::readSensor()
 {
   long duration;
@@ -334,44 +300,75 @@ int UltraSonicSensor::readSensor()
 
   return distance;
 }
-
 bool UltraSonicSensor::check_detect()
 {
-  static long last_detect = 0;
-  const byte arr_size = 30;
+  static int last_read = readSensor();
+  static long detect_clock = 0;
+  static bool in_detection = false;
 
-  float mean_a = arrayofmeasurements(arr_size);
-  delay(100);
-  float mean_b = arrayofmeasurements(arr_size);
-  float max_d = mean_a > mean_b ? mean_a : mean_b;
-  float min_d = mean_a < mean_b ? mean_a : mean_b;
-  // Serial.println("~~~~~~~~~~~~~");
-  // Serial.print("MAX_D: =");
-  // Serial.println(max_d);
-  // Serial.print("MIN_D: =");
-  // Serial.println(min_d);
-
-  if (abs(mean_b - mean_a) > dist_sensitivity && millis() - last_detect >= _re_trigger_delay * 1000)
+  int curr_read = readSensor();
+  if (curr_read > _max_distance)
   {
-    if (min_d<=max_dist_trig ){
-    last_detect = millis();
-    char t[100];
-    sprintf(t, "Detection at A=%.1f B=%.1f, delta=%.1f", mean_a, mean_b, mean_a - mean_b);
-    // Serial.println(t);
-    detection_cb();
-    return 1;
-    }
-    else {
+    curr_read = _max_distance;
+  }
+  if (curr_read < _min_distance)
+  {
+    curr_read = _min_distance;
+  }
+
+  if (in_detection && millis() - detect_clock > (_re_trigger_delay)*1000)
+  {
+    in_detection = false;
+    last_read = curr_read;
+  }
+
+  if (in_detection == false)
+  {
+    if (abs(last_read - curr_read) < dist_sensitivity)
+    {
+      // last and current read are close... means everything OK.
+      last_read = curr_read;
       return 0;
     }
+    else
+    {
+      // if readings are not close:
+      delay(100);
+      int sec_read = readSensor();
+      if (abs(last_read - sec_read) < dist_sensitivity)
+      {
+        // case a: this is a measuring error
+        last_read = sec_read;
+        return 0;
+      }
+      else if (abs(curr_read - sec_read) < dist_sensitivity &&
+               millis() - detect_clock > _re_trigger_delay * 1000 &&
+               curr_read > min_dist_trig && curr_read < max_dist_trig)
+      {
+        // when 2 consqutive reading are close, and not as last - this is a detection
+        detect_clock = millis();
+        last_read = sec_read;
+        in_detection = true;
+        detection_cb();
+        return 1;
+      }
+      else
+      {
+        return 0;
+      }
+    }
   }
-  else
+}
+void UltraSonicSensor::detection_cb()
+{
+  if (_use_detect_cb)
   {
-    return 0;
+    _detect_cb();
   }
 }
 void UltraSonicSensor::detect_cb(cb_func cb)
 {
+  // define by user to run external function.
   _use_detect_cb = true;
   _detect_cb = cb;
 }

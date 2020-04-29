@@ -22,6 +22,10 @@
         "system_error": "cpp",
         "*.tcc": "cpp",
         "algorithm": "cpp",
-        "random": "cpp"
+        "random": "cpp",
+        "chrono": "cpp",
+        "complex": "cpp",
+        "cmath": "cpp",
+        "cstdlib": "cpp"
     }
 }

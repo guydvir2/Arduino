@@ -7,16 +7,17 @@
 #define DEVICE_TOPIC "frontDoorLEDs"
 #define MQTT_PREFIX "myHome"
 #define MQTT_GROUP "extLights"
+#define TELEGRAM_OUT_TOPIC "myHome/Telegram_out"
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 // ********** Sketch Services  ***********
-#define VER "WEMOS_1.0"
-#define USE_NOTIFY_TELE true
+#define VER "WEMOS_2.0"
+#define USE_NOTIFY_TELE false
 #define MAX_ON_TIME 60 * 6 // minutes -- this timeout overides all
 
 // ********** myIOT Class ***********
 //~~~~~ Services ~~~~~~~~~~~
-#define USE_SERIAL false      // Serial Monitor
+#define USE_SERIAL true      // Serial Monitor
 #define USE_WDT true         // watchDog resets
 #define USE_OTA true         // OTA updates
 #define USE_RESETKEEPER true // detect quick reboot and real reboots
@@ -33,7 +34,7 @@ myIOT iot(DEVICE_TOPIC);
 #define trigPin D7
 #define echoPin D1
 #define re_trigger_delay 60 // seconds to next detect
-#define sensitivity 10       // dist change between 2 readings, considered as detection. cm of change 1..350
+#define sensitivity 20       // dist change between 2 readings, considered as detection. cm of change 1..350
 
 UltraSonicSensor usensor(trigPin, echoPin, re_trigger_delay, sensitivity);
 
@@ -41,7 +42,6 @@ void start_usSensor()
 {
   usensor.startGPIO();
   usensor.detect_cb(detection);
-  usensor.max_dist_trig = 300; //cm
 }
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -254,81 +254,6 @@ void max_on_breaker(int max_timeout)
     last_state = current_state;
   }
 }
-
-// ~~~~~~~~~~~ Using SMS Notification ~~~~~~~
-#if USE_NOTIFY_TELE
-
-char *Telegram_Nick = DEVICE_TOPIC; //"iotTest";
-int time_check_messages = 1;        //sec
-
-myTelegram teleNotify(BOT_TOKEN, CHAT_ID, time_check_messages);
-
-void telecmds(String in_msg, String from, String chat_id, char *snd_msg)
-{
-  String command_set[] = {"whois_online", "status", "reset", "help", "off", "on", "timeout", "whoami"};
-  byte num_commands = sizeof(command_set) / sizeof(command_set[0]);
-  String comp_command[num_commands];
-  char prefix[100], prefix2[100];
-  char t1[50], t2[50];
-
-  sprintf(snd_msg, ""); // when not meeting any conditions, has to be empty
-
-  from.toCharArray(t1, from.length() + 1);
-  in_msg.toCharArray(t2, in_msg.length() + 1);
-
-  sprintf(prefix, "/%s_", Telegram_Nick);
-  sprintf(prefix2, "from user: %s\ndevice replies: %s\ncommand: %s\n~~~~~~~~~~~~~~~~~~~~\n ", t1, Telegram_Nick, t2);
-
-  for (int i = 0; i < num_commands; i++)
-  {
-    comp_command[i] = prefix;
-    comp_command[i] += command_set[i];
-  }
-
-  if (in_msg == "/whois_online")
-  {
-    sprintf(snd_msg, "%s%s", prefix2, Telegram_Nick);
-  }
-  else if (in_msg == comp_command[1])
-  {
-    giveStatus(t1);
-    sprintf(snd_msg, "%s%s", prefix2, t1);
-  } // status
-  else if (in_msg == comp_command[2])
-  {
-    sprintf(snd_msg, "%s", prefix2);
-    iot.sendReset("Telegram");
-  } // reset
-  else if (in_msg == comp_command[3])
-  {
-    char t[50];
-    sprintf(snd_msg, "%sCommands Available:\n", prefix2, Telegram_Nick);
-    for (int i = 0; i < num_commands; i++)
-    {
-      command_set[i].toCharArray(t, 30);
-      sprintf(t1, "%s\n", t);
-      strcat(snd_msg, t1);
-    }
-
-  } // all_commands
-
-  else if (in_msg == comp_command[4])
-  {
-    // all_off("Telegram");
-    sprintf(snd_msg, "%sAll-Off signal was sent", prefix2);
-  } // off
-  else if (in_msg == comp_command[5])
-  {
-  }
-  else if (in_msg == comp_command[6])
-  {
-  } // timeout
-  else if (in_msg == comp_command[7])
-  {
-    sprintf(snd_msg, "%s~%s~ is %s", prefix2, Telegram_Nick, DEVICE_TOPIC);
-  } // whoami
-}
-#endif
 
 // ~~~~ MQTT Commands ~~~~~
 
@@ -604,22 +529,23 @@ void startIOTservices()
   strcpy(iot.addGroupTopic, MQTT_GROUP);
   iot.start_services(ADD_MQTT_FUNC);
 }
-
+void sendTelegramServer(char *msg, char *tele_server = TELEGRAM_OUT_TOPIC)
+{
+  char t[200];
+  iot.get_timeStamp(now());
+  sprintf(t, "[%s][%s]: %s", iot.timeStamp, iot.deviceTopic, msg);
+  iot.mqttClient.publish(tele_server, t);
+}
 void detection()
 {
   int time_on_detection = 2; // minutes
-
   flicker();
   iot.pub_msg("Detection");
-  if (TO[0]->remain() == 0)
+  sendTelegramServer("Detection");
+   if (TO[0]->remain() == 0)
   {
-    TO[0] -> setNewTimeout(time_on_detection);
+    TO[0]->setNewTimeout(time_on_detection);
   }
-  #if USE_NOTIFY_TELE
-  char t[50];
-  sprintf(t,"frontDoor Detection");
-  teleNotify.send_msg("US_DETECT");
-#endif
 }
 
 void startGPIOs()
@@ -633,13 +559,10 @@ void startGPIOs()
 void setup()
 {
   startGPIOs();
-  startIOTservices();
-  startTO();
   start_usSensor();
-
-#if USE_NOTIFY_TELE
-  teleNotify.begin(telecmds);
-#endif
+  startIOTservices();
+  sendTelegramServer("Boot");
+  startTO();
 }
 
 void loop()
@@ -647,10 +570,6 @@ void loop()
   iot.looper();
   TO_looper();
   usensor.check_detect();
-
-#if USE_NOTIFY_TELE
-  teleNotify.looper();
-#endif
 
   max_on_breaker(MAX_ON_TIME);
   delay(100);

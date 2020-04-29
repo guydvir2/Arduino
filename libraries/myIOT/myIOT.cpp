@@ -4,7 +4,6 @@
 #include <ESP8266Ping.h>
 #include <myJSON.h>
 
-
 #include <TimeLib.h>
 #include <TimeAlarms.h>
 
@@ -434,6 +433,9 @@ void myIOT::callback(char *topic, byte *payload, unsigned int length)
         {
                 Serial.println("");
         }
+        sprintf(mqqt_ext_buffer[0], "%s", topic);
+        sprintf(mqqt_ext_buffer[1], "%s", incoming_msg);
+        sprintf(mqqt_ext_buffer[2], "%s", deviceTopic);
         if (strcmp(topic, _availTopic) == 0 && useResetKeeper && firstRun)
         {
                 firstRun_ResetKeeper(incoming_msg);
