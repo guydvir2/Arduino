@@ -32,7 +32,7 @@ struct MQTT_msg
 MQTT_msg incoming_mqtt;
 #define TELEGRAM_OUT_TOPIC "myHome/Telegram_out"
 const int log_size = 150;
-char LOG[log_size][50];
+char LOG[log_size][150];
 
 // ~~~~~~~~~~~ Using SMS Notification ~~~~~~~
 char *Telegram_Nick = DEVICE_TOPIC; //"iotTest";

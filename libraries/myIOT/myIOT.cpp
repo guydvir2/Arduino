@@ -258,9 +258,9 @@ void myIOT::return_date(char ret_tuple[20])
         time_t t = now();
         sprintf(ret_tuple, "%02d-%02d-%02d", year(t), month(t), day(t));
 }
-bool myIOT::checkInternet(char externalSite[40])
+bool myIOT::checkInternet(char *externalSite, byte pings)
 {
-        return Ping.ping(externalSite);
+        return Ping.ping(externalSite, pings);
 }
 
 // ~~~~~~~ MQTT functions ~~~~~~~

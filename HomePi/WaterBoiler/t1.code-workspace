@@ -20,6 +20,10 @@
 			"initializer_list": "cpp",
 			"string_view": "cpp",
 			"chrono": "cpp"
-		}
+		},
+		"C_Cpp.intelliSenseEngineFallback": "Enabled",
+		"arduino.commandPath": "/home/guy/Documents/git/Arduino",
+		"arduino.defaultBaudRate": 921600,
+		"arduino.path": "/home/guy/Documents/git/Arduino"
 	}
 }
