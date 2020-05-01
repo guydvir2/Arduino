@@ -42,7 +42,7 @@ myTelegram teleNotify(BOT_TOKEN, CHAT_ID, time_check_messages);
 
 void telecmds(String in_msg, String from, String chat_id, char *snd_msg)
 {
-        String command_set[] = {"whois_online", "status", "reset", "help", "off", "on", "timeout", "whoami"};
+        String command_set[] = {"whois_online", "status", "reset", "help", "whoami"};
         byte num_commands = sizeof(command_set) / sizeof(command_set[0]);
         String comp_command[num_commands];
         char prefix[100], prefix2[100];
@@ -88,19 +88,7 @@ void telecmds(String in_msg, String from, String chat_id, char *snd_msg)
                 }
 
         } // all_commands
-
         else if (in_msg == comp_command[4])
-        {
-                // all_off("Telegram");
-                sprintf(snd_msg, "%sAll-Off signal was sent", prefix2);
-        } // off
-        else if (in_msg == comp_command[5])
-        {
-        }
-        else if (in_msg == comp_command[6])
-        {
-        } // timeout
-        else if (in_msg == comp_command[7])
         {
                 sprintf(snd_msg, "%s~%s~ is %s", prefix2, Telegram_Nick, DEVICE_TOPIC);
         } // whoami
@@ -144,6 +132,8 @@ void addiotnalMQTT(char *incoming_msg)
         else if (strcmp(incoming_msg, "help") == 0)
         {
                 sprintf(msg, "Help: Commands #1 - [status, boot, reset, ip, ota, ver, help]");
+                iot.pub_msg(msg);
+                sprintf(msg, "Help: Commands #2 - [log]");
                 iot.pub_msg(msg);
         }
         else if (strcmp(incoming_msg, "log") == 0)
