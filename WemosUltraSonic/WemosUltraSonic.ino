@@ -34,7 +34,7 @@ myIOT iot(DEVICE_TOPIC);
 #define trigPin D7
 #define echoPin D1
 #define re_trigger_delay 60 // seconds to next detect
-#define sensitivity 5       // dist change between 2 readings, considered as detection. cm of change 1..350
+#define sensitivity 20      // dist change between 2 readings, considered as detection. cm of change 1..350
 
 UltraSonicSensor usensor(trigPin, echoPin, re_trigger_delay, sensitivity);
 
@@ -42,8 +42,6 @@ void start_usSensor()
 {
   usensor.startGPIO();
   usensor.detect_cb(detection);
-  usensor.min_dist_trig = 20;
-  usensor.max_dist_trig = 200;
 }
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -544,7 +542,7 @@ void detection()
   flicker();
   iot.pub_msg("Detection");
   sendTelegramServer("Detection");
-   if (TO[0]->remain() == 0)
+  if (TO[0]->remain() == 0)
   {
     TO[0]->setNewTimeout(time_on_detection);
   }
