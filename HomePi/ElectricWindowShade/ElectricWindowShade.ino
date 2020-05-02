@@ -2,24 +2,24 @@
 #include <Arduino.h>
 
 // ********** Sketch Services  ***********
-#define VER "NodeMCU_5.5"
+#define VER "NodeMCU_5.6"
 #define USE_BOUNCE_DEBUG false
-#define USE_2_EXT_INPUT  false // Only for dual input window
-#define USE_NOTIFY_TELE  false
-
+#define USE_2_EXT_INPUT false // Only for dual input window
+#define USE_NOTIFY_TELE false
+#define AUTO_RELAY_OFF 45
 // ********** myIOT Class ***********
 //~~~~~ Services ~~~~~~~~~~~
-#define USE_SERIAL      false
-#define USE_WDT         true
-#define USE_OTA         true
+#define USE_SERIAL false
+#define USE_WDT true
+#define USE_OTA true
 #define USE_RESETKEEPER false
-#define USE_FAILNTP     true
+#define USE_FAILNTP true
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 // ~~~~~~~ MQTT Topics ~~~~~~
-#define DEVICE_TOPIC "kidsRoom"
-#define MQTT_PREFIX  "myHome"
-#define MQTT_GROUP   "Windows"
+#define DEVICE_TOPIC "familyRoom"
+#define MQTT_PREFIX "myHome"
+#define MQTT_GROUP "Windows"
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 #define ADD_MQTT_FUNC addiotnalMQTT
@@ -27,17 +27,17 @@ myIOT iot(DEVICE_TOPIC);
 // ***************************
 
 // state definitions
-#define RelayOn  LOW
+#define RelayOn LOW
 #define SwitchOn LOW
 
 // GPIO Pins for ESP8266
 //~~~~Internal Switch ~~~~~~
-const int inputUpPin      = 4;
-const int inputDownPin    = 5;
-const int outputUpPin     = 14;
-const int outputDownPin   = 12;
+const int inputUpPin = 4;
+const int inputDownPin = 5;
+const int outputUpPin = 14;
+const int outputDownPin = 12;
 //~~~~External Input ~~~~~~~~~
-const int inputUpExtPin   = 0;
+const int inputUpExtPin = 0;
 const int inputDownExtPin = 2;
 //############################
 
@@ -150,7 +150,7 @@ void allOff()
 {
         digitalWrite(outputUpPin, !RelayOn);
         digitalWrite(outputDownPin, !RelayOn);
-        inputUp_lastState   = digitalRead(inputUpPin);
+        inputUp_lastState = digitalRead(inputUpPin);
         inputDown_lastState = digitalRead(inputDownPin);
         if (USE_2_EXT_INPUT)
         {
@@ -158,7 +158,24 @@ void allOff()
                 inputDownExt_lastState = digitalRead(inputDownExtPin);
         }
 }
+void AutoRelay_off()
+{
+        static unsigned long change_clock = 0;
+        const int timeout_off = AUTO_RELAY_OFF; // seconds to auto RelayOff.
 
+        if (digitalRead(outputDownPin) == RelayOn || digitalRead(outputUpPin) == RelayOn && change_clock == 0)
+        {
+                change_clock = millis();
+                iot.pub_msg("A");
+        }
+        if (change_clock != 0 && millis() - change_clock > timeout_off * 1000)
+        {
+                switchIt("timeout", "off");
+                change_clock = 0;
+                                iot.pub_msg("B");
+
+        }
+}
 // ~~~~~~~~~ GPIO switching ~~~~~~~~~~~~~
 void switchIt(char *type, char *dir)
 {
@@ -247,5 +264,6 @@ void loop()
                 checkSwitch_looper(inputDownExtPin, "down", inputDownExt_lastState, "extButton");
         }
 
+        AutoRelay_off();
         delay(100);
 }
