@@ -5,8 +5,8 @@
 #define VER "NodeMCU_5.6"
 #define USE_BOUNCE_DEBUG false
 #define USE_2_EXT_INPUT false // Only for dual input window
-#define USE_NOTIFY_TELE false
-#define AUTO_RELAY_OFF 45
+#define USE_AUTO_RELAY_OFF true
+#define AUTO_RELAY_TIMEOUT 45
 // ********** myIOT Class ***********
 //~~~~~ Services ~~~~~~~~~~~
 #define USE_SERIAL false
@@ -158,22 +158,14 @@ void allOff()
                 inputDownExt_lastState = digitalRead(inputDownExtPin);
         }
 }
-void AutoRelay_off()
-{
-        static unsigned long change_clock = 0;
-        const int timeout_off = AUTO_RELAY_OFF; // seconds to auto RelayOff.
 
-        if (digitalRead(outputDownPin) == RelayOn || digitalRead(outputUpPin) == RelayOn && change_clock == 0)
-        {
-                change_clock = millis();
-                iot.pub_msg("A");
-        }
-        if (change_clock != 0 && millis() - change_clock > timeout_off * 1000)
+unsigned long autoOff_clock = 0;
+void checkTimeout_AutoRelay_Off(int timeout_off)
+{
+        if (autoOff_clock != 0 && millis() - autoOff_clock > timeout_off * 1000)
         {
                 switchIt("timeout", "off");
-                change_clock = 0;
-                                iot.pub_msg("B");
-
+                autoOff_clock = 0;
         }
 }
 // ~~~~~~~~~ GPIO switching ~~~~~~~~~~~~~
@@ -215,6 +207,14 @@ void switchIt(char *type, char *dir)
         iot.pub_state(dir);
         sprintf(mqttmsg, "%s: Switched [%s]", type, dir);
         iot.pub_msg(mqttmsg);
+
+        if (USE_AUTO_RELAY_OFF)
+        {
+                if (digitalRead(outputDownPin) == RelayOn || digitalRead(outputUpPin) == RelayOn)
+                {
+                        autoOff_clock = millis();
+                }
+        }
 }
 void checkSwitch_looper(const int &pin, char *dir, bool &lastState, char *type = "Button")
 {
@@ -264,6 +264,6 @@ void loop()
                 checkSwitch_looper(inputDownExtPin, "down", inputDownExt_lastState, "extButton");
         }
 
-        AutoRelay_off();
+        checkTimeout_AutoRelay_Off(AUTO_RELAY_TIMEOUT);
         delay(100);
 }
