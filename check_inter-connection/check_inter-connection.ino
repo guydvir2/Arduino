@@ -2,7 +2,7 @@
 #include <Arduino.h>
 
 // ********** Sketch Services  ***********
-#define VER "WEMOS_1.0"
+#define VER "WEMOS_1.1"
 
 // ********** myIOT Class ***********
 //~~~~~ Services ~~~~~~~~~~~
@@ -34,6 +34,9 @@ int disc_1h[disconnects_1hr_alarm];
 int disc_24hr[disconnects_24hr_alarm];
 int disconnect_counter = 0;
 int longest_discon = 0;
+const int min_ping_val = 10; //seconds
+const int max_ping_val = 60; // seconds
+int adaptive_ping_val = min_ping_val;
 long accum_connect = 0;
 long accum_disconnect = 0;
 time_t begin_monitor_clock;
@@ -181,18 +184,19 @@ void prcoess_status(bool get_ping)
 {
         static int hrly_counter = 0;
         static int daily_counter = 0;
+        static int same_state_counter = 0;
 
-        if (get_ping != internetConnected)
+        if (get_ping != internetConnected) // change status
         {
-                if (get_ping == true)
+                if (get_ping == true) // internet is back on
                 {
-                        if (inter_ok_start != 0)
+                        if (inter_ok_start != 0) // not first boot
                         {
                                 // Exceed offline time - Alarm !
-                                if (now() - inter_ok_start > seconds_offline_alarm)
+                                if (now() - inter_fail_start > seconds_offline_alarm)
                                 {
                                         char tempmsg[50];
-                                        sprintf(tempmsg, "Internet back ON after [%d sec]", now() - inter_ok_start);
+                                        sprintf(tempmsg, "Internet back ON after [%d sec]", now() - inter_fail_start);
                                         sendTelegramServer(tempmsg);
                                 }
 
@@ -215,6 +219,14 @@ void prcoess_status(bool get_ping)
                                                 }
                                                 hrly_counter = 0;
                                         }
+                                        else
+                                        {
+                                                for (int i = 0; i < disconnects_1hr_alarm - 1; i++)
+                                                {
+                                                        disc_1h[i] = disc_1h[i + 1];
+                                                }
+                                                disc_1h[hrly_counter] = now();
+                                        }
                                 }
 
                                 // Exceed amount of disconnects in 24 hr - Alarm
@@ -225,7 +237,7 @@ void prcoess_status(bool get_ping)
                                 }
                                 else
                                 {
-                                        if (now() - disc_1h[0] < 60 * 60 * 24)
+                                        if (now() - disc_24hr[0] < 60 * 60 * 24)
                                         {
                                                 char tempmsg[50];
                                                 sprintf(tempmsg, "Exceed [%d] disconnections in 24hr, [%d secs]", disconnects_24hr_alarm, now() - disc_24hr[0]);
@@ -236,29 +248,69 @@ void prcoess_status(bool get_ping)
                                                 }
                                                 daily_counter = 0;
                                         }
+                                        else
+                                        {
+                                                for (int i = 0; i < disconnects_24hr_alarm - 1; i++)
+                                                {
+                                                        disc_24hr[i] = disc_24hr[i + 1];
+                                                }
+                                                disc_24hr[daily_counter] = now();
+                                        }
+                                }
+
+                                inter_ok_start = now();
+                                int disco_time = inter_ok_start - inter_fail_start;
+                                if (disco_time > longest_discon && inter_fail_start != 0)
+                                {
+                                        longest_discon = disco_time;
+                                }
+                                accum_disconnect += disco_time;
+                                Serial.print("connect_time: ");
+                                Serial.println(inter_ok_start);
+                                
+                                char notif[50];
+                                sprintf(notif,"Connect: %d; Disconnect: %d, diff: %d",inter_ok_start, inter_fail_start, inter_ok_start-inter_fail_start);
+                                iot.pub_msg(notif);
+                                sendTelegramServer(notif);
+                        }
+                        else
+                        {
+                                inter_ok_start = now();
+                                if (inter_fail_start != 0)
+                                {
+                                        inter_ok_start - (int)inter_fail_start / 1000;
                                 }
                         }
-                        inter_ok_start = now();
-                        int disco_time = inter_ok_start - inter_fail_start;
-                        if (disco_time > longest_discon && inter_fail_start != 0)
-                        {
-                                longest_discon = disco_time;
-                        }
-                        accum_disconnect += disco_time;
                 }
-                else
+                else // is now disconnect
                 {
                         inter_fail_start = now();
-                        accum_connect = inter_ok_start - inter_fail_start;
+                        accum_connect += inter_fail_start - inter_ok_start;
                         disconnect_counter++;
                         Serial.print("Disconnect_time: ");
                         Serial.println(inter_fail_start);
                 }
-
                 internetConnected = get_ping;
+                same_state_counter = 0;
+                adaptive_ping_val = min_ping_val;
+                Serial.println("ping val update to min");
+        }
+        // No channges is connect status //
+        else
+        {
+                same_state_counter++;
+                if (same_state_counter >= 10 && adaptive_ping_val != max_ping_val)
+                {
+                        adaptive_ping_val = internetConnected ? max_ping_val : min_ping_val;
+                        Serial.println("ping val update to max");
+                }
+                if (get_ping == false && inter_fail_start == 0)
+                {
+                        inter_fail_start = millis(); // wake up without clock and no onternet and NTP
+                }
         }
 }
-void ping_it(int interval_check = 10)
+void ping_it(int interval_check = 30)
 {
         static long last_check = 0;
 
@@ -281,11 +333,12 @@ void setup()
 {
         startIOTservices();
         begin_monitor_clock = now();
+        sendTelegramServer("BootUp");
 }
 void loop()
 {
         iot.looper();
-        ping_it();
+        ping_it(adaptive_ping_val);
 
         delay(100);
 }

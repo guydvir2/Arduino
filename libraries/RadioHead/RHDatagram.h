@@ -1,11 +1,7 @@
 // RHDatagram.h
 // Author: Mike McCauley (mikem@airspayce.com)
 // Copyright (C) 2011 Mike McCauley
-<<<<<<< HEAD
 // $Id: RHDatagram.h,v 1.13 2015/03/09 06:04:26 mikem Exp $
-=======
-// $Id: RHDatagram.h,v 1.14 2015/08/12 23:18:51 mikem Exp $
->>>>>>> d27e11fba5c87a25cf468b826ee28f6e60831787
 
 #ifndef RHDatagram_h
 #define RHDatagram_h
@@ -39,22 +35,12 @@
 ///
 /// \par Headers
 ///
-<<<<<<< HEAD
 /// Each message sent and received by a RadioHead driver includes 4 headers:
 /// -TO The node address that the message is being sent to (broadcast RH_BROADCAST_ADDRESS (255) is permitted)
 /// -FROM The node address of the sending node
 /// -ID A message ID, distinct (over short time scales) for each message sent by a particilar node
 /// -FLAGS A bitmask of flags. The most significant 4 bits are reserved for use by RadioHead. The least
 /// significant 4 bits are reserved for applications.
-=======
-/// Each message sent and received by a RadioHead driver includes 4 headers:<br>
-/// \b TO The node address that the message is being sent to (broadcast RH_BROADCAST_ADDRESS (255) is permitted)<br>
-/// \b FROM The node address of the sending node<br>
-/// \b ID A message ID, distinct (over short time scales) for each message sent by a particilar node<br>
-/// \b FLAGS A bitmask of flags. The most significant 4 bits are reserved for use by RadioHead. The least
-/// significant 4 bits are reserved for applications.<br>
-///
->>>>>>> d27e11fba5c87a25cf468b826ee28f6e60831787
 class RHDatagram
 {
 public:

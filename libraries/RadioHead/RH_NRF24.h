@@ -1,11 +1,7 @@
 // RH_NRF24.h
 // Author: Mike McCauley
 // Copyright (C) 2012 Mike McCauley
-<<<<<<< HEAD
 // $Id: RH_NRF24.h,v 1.14 2015/03/09 06:04:26 mikem Exp $
-=======
-// $Id: RH_NRF24.h,v 1.20 2017/07/25 05:26:50 mikem Exp $
->>>>>>> d27e11fba5c87a25cf468b826ee28f6e60831787
 //
 
 #ifndef RH_NRF24_h
@@ -158,21 +154,11 @@
 
 /////////////////////////////////////////////////////////////////////
 /// \class RH_NRF24 RH_NRF24.h <RH_NRF24.h>
-<<<<<<< HEAD
 /// \brief Send and receive addressed, reliable, acknowledged datagrams by nRF24L01 and compatible transceivers.
 ///
 /// Supported transceivers include:
 /// - Nordic nRF24 based 2.4GHz radio modules, such as nRF24L01 http://www.nordicsemi.com/eng/Products/2.4GHz-RF/nRF24L01
 /// and other compatible transceivers.
-=======
-/// \brief Send and receive unaddressed, unreliable datagrams by nRF24L01 and compatible transceivers.
-///
-/// Supported transceivers include:
-/// - Nordic nRF24 based 2.4GHz radio modules, such as nRF24L01 http://www.nordicsemi.com/eng/Products/2.4GHz-RF/nRF24L01
-/// and other compatible transceivers. 
-/// - nRF24L01p with PA and LNA modules that produce a higher power output similar to this one: 
-/// http://www.elecfreaks.com/wiki/index.php?title=2.4G_Wireless_nRF24L01p_with_PA_and_LNA
->>>>>>> d27e11fba5c87a25cf468b826ee28f6e60831787
 /// - Sparkfun WRL-00691 module with nRF24L01 https://www.sparkfun.com/products/691 
 /// or WRL-00705 https://www.sparkfun.com/products/705 etc.
 /// - Hope-RF RFM73 http://www.hoperf.com/rf/2.4g_module/RFM73.htm and 
@@ -210,11 +196,7 @@
 /// the nRF24L01 product specification:
 ///
 /// - 1 octets PREAMBLE
-<<<<<<< HEAD
 /// - 4 octets NETWORK ADDRESS
-=======
-/// - 3 to 5 octets NETWORK ADDRESS
->>>>>>> d27e11fba5c87a25cf468b826ee28f6e60831787
 /// - 9 bits packet control field
 /// - 0 to 32 octets PAYLOAD, consisting of:
 ///   - 1 octet TO header
@@ -262,25 +244,6 @@
 /// and initialise the NRF24 object like this to explicitly set the SS pin
 /// NRF24 nrf24(8, 10);
 ///
-<<<<<<< HEAD
-=======
-/// For an Arduino Due (the SPI pins do not come out on the Digital pins as for normal Arduino, but only
-/// appear on the SPI header). Use the same connections for Yun with 5V or 3.3V.
-/// \code
-///                Due      Sparkfun WRL-00691
-///               3.3V-----------VCC   (3.3V to 7V in)
-///             pin D8-----------CE    (chip enable in)
-///          SS pin D10----------CSN   (chip select in)
-///       SCK SPI pin 3----------SCK   (SPI clock in)
-///      MOSI SPI pin 4----------SDI   (SPI Data in)
-///      MISO SPI pin 1----------SDO   (SPI data out)
-///                              IRQ   (Interrupt output, not connected)
-///                 GND----------GND   (ground in)
-/// \endcode
-/// and initialise the NRF24 object with the default constructor
-/// NRF24 nrf24;
-///
->>>>>>> d27e11fba5c87a25cf468b826ee28f6e60831787
 /// For an Arduino Mega:
 /// \code
 ///                 Mega         Sparkfun WRL-00691
@@ -318,11 +281,7 @@
 /// compatible with other modules running hardware SPI.
 /// \code
 ///  IBoard Signal=Module pin          Sparkfun WRL-00691
-<<<<<<< HEAD
 ///        3.3V      2-----------VCC  (3.3V to 7V in)
-=======
-///        3.3V      2----------VCC   (3.3V to 7V in)
->>>>>>> d27e11fba5c87a25cf468b826ee28f6e60831787
 ///         D12      3-----------CE   (chip enable in)
 ///         D29      4----------CSN   (chip select in)
 ///         D9       5----------SCK   (SPI clock in)
@@ -344,34 +303,6 @@
 ///     ....
 /// \endcode
 ///
-<<<<<<< HEAD
-=======
-///
-/// For Raspberry Pi with Sparkfun WRL-00691 
-/// \code
-///     Raspberry Pi P1 pin          Sparkfun WRL-00691
-///             5V      2-----------VCC   (3.3V to 7V in)
-///         GPIO25      22-----------CE   (chip enable in)
-///         GPIO8       24----------CSN   (chip select in)
-///         GPIO11      23----------SCK   (SPI clock in)
-///         GPIO10      19----------SDI   (SPI Data in)
-///         GPIO9       21----------SDO   (SPI data out)
-///                                 IRQ   (Interrupt output, not connected)
-///            GND       6----------GND   (ground in)
-/// \endcode
-/// and initialise like this:
-/// \code
-///  RH_NRF24 nrf24(RPI_V2_GPIO_P1_22, RPI_V2_GPIO_P1_24);
-/// \endcode
-/// See the example program and Makefile in examples/raspi. Requires bcm2835 library to be previously installed.
-/// \code
-/// cd examples/raspi
-/// make
-/// sudo ./RasPiRH
-/// \endcode
-/// \code
-///
->>>>>>> d27e11fba5c87a25cf468b826ee28f6e60831787
 /// You can override the default settings for the CSN and CE pins 
 /// in the NRF24() constructor if you wish to connect the slave select CSN to other than the normal one for your 
 /// Arduino (D10 for Diecimila, Uno etc and D53 for Mega)
@@ -420,11 +351,6 @@
 /// my Yaesu VR-5000 receiver indicated the center frequency for my test radios
 /// was 2401.121 MHz. Its not clear to me if the Yaesu
 /// is the source of the error, but I tend to believe it, which would make the nRF24l01 frequency out by 121kHz.
-<<<<<<< HEAD
-=======
-///
-/// The measured power output for a nRF24L01p with PA and LNA set to 0dBm output is about 18dBm.
->>>>>>> d27e11fba5c87a25cf468b826ee28f6e60831787
 /// 
 /// \par Radio operating strategy and defaults
 ///
@@ -460,10 +386,6 @@ public:
     /// To be passed to setRF();
     typedef enum
     {
-<<<<<<< HEAD
-=======
-	// Add 20dBm for nRF24L01p with PA and LNA modules
->>>>>>> d27e11fba5c87a25cf468b826ee28f6e60831787
 	TransmitPowerm18dBm = 0,        ///< On nRF24, -18 dBm
 	TransmitPowerm12dBm,            ///< On nRF24, -12 dBm
 	TransmitPowerm6dBm,             ///< On nRF24, -6 dBm
@@ -503,42 +425,25 @@ public:
     bool        init();
 
     /// Reads a single register from the NRF24
-<<<<<<< HEAD
     /// \param[in] reg Register number, one of NRF24_REG_*
     /// \return The value of the register
     uint8_t        spiReadRegister(uint8_t reg);
 
     /// Writes a single byte to the NRF24, and at the ame time reads the current STATUS register
     /// \param[in] reg Register number, one of NRF24_REG_*
-=======
-    /// \param[in] reg Register number, one of RH_NRF24_REG_*
-    /// \return The value of the register
-    uint8_t        spiReadRegister(uint8_t reg);
-
-    /// Writes a single byte to the NRF24, and at the same time reads the current STATUS register
-    /// \param[in] reg Register number, one of RH_NRF24_REG_*
->>>>>>> d27e11fba5c87a25cf468b826ee28f6e60831787
     /// \param[in] val The value to write
     /// \return the current STATUS (read while the command is sent)
     uint8_t        spiWriteRegister(uint8_t reg, uint8_t val);
 
     /// Reads a number of consecutive registers from the NRF24 using burst read mode
-<<<<<<< HEAD
     /// \param[in] reg Register number of the first register, one of NRF24_REG_*
-=======
-    /// \param[in] reg Register number of the first register, one of RH_NRF24_REG_*
->>>>>>> d27e11fba5c87a25cf468b826ee28f6e60831787
     /// \param[in] dest Array to write the register values to. Must be at least len bytes
     /// \param[in] len Number of bytes to read
     /// \return the current STATUS (read while the command is sent)
     uint8_t           spiBurstReadRegister(uint8_t reg, uint8_t* dest, uint8_t len);
 
     /// Write a number of consecutive registers using burst write mode
-<<<<<<< HEAD
     /// \param[in] reg Register number of the first register, one of NRF24_REG_*
-=======
-    /// \param[in] reg Register number of the first register, one of RH_NRF24_REG_*
->>>>>>> d27e11fba5c87a25cf468b826ee28f6e60831787
     /// \param[in] src Array of new register values to write. Must be at least len bytes
     /// \param[in] len Number of bytes to write
     /// \return the current STATUS (read while the command is sent)
@@ -585,26 +490,17 @@ public:
     /// Sets the radio in power down mode, with the configuration set to the
     /// last value from setOpMode().
     /// Sets chip enable to LOW.
-<<<<<<< HEAD
     /// \return true on success
-=======
->>>>>>> d27e11fba5c87a25cf468b826ee28f6e60831787
     void setModeIdle();
 
     /// Sets the radio in RX mode.
     /// Sets chip enable to HIGH to enable the chip in RX mode.
-<<<<<<< HEAD
     /// \return true on success
-=======
->>>>>>> d27e11fba5c87a25cf468b826ee28f6e60831787
     void setModeRx();
 
     /// Sets the radio in TX mode.
     /// Pulses the chip enable LOW then HIGH to enable the chip in TX mode.
-<<<<<<< HEAD
     /// \return true on success
-=======
->>>>>>> d27e11fba5c87a25cf468b826ee28f6e60831787
     void setModeTx();
 
     /// Sends data to the address set by setTransmitAddress()
@@ -668,11 +564,7 @@ protected:
     /// \return the value of the device status register
     uint8_t flushRx();
 
-<<<<<<< HEAD
     /// Examine the revceive buffer to determine whether the message is for this node
-=======
-    /// Examine the receive buffer to determine whether the message is for this node
->>>>>>> d27e11fba5c87a25cf468b826ee28f6e60831787
     void validateRxBuf();
 
     /// Clear our local receive buffer
@@ -697,16 +589,8 @@ private:
 
 /// @example nrf24_client.pde
 /// @example nrf24_server.pde
-<<<<<<< HEAD
 /// @example nrf24_reliable_datagram_client.pde
 /// @example nrf24_reliable_datagram_server.pde
 
-=======
-/// @example nrf24_encrypted_client.pde
-/// @example nrf24_encrypted_server.pde
-/// @example nrf24_reliable_datagram_client.pde
-/// @example nrf24_reliable_datagram_server.pde
-/// @example RasPiRH.cpp
->>>>>>> d27e11fba5c87a25cf468b826ee28f6e60831787
 
 #endif 

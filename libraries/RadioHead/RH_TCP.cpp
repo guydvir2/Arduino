@@ -1,20 +1,12 @@
 // RH_TCP.cpp
 //
 // Copyright (C) 2014 Mike McCauley
-<<<<<<< HEAD
 // $Id: RH_TCP.cpp,v 1.3 2014/05/30 19:30:54 mikem Exp $
-=======
-// $Id: RH_TCP.cpp,v 1.6 2017/01/12 23:58:00 mikem Exp $
->>>>>>> d27e11fba5c87a25cf468b826ee28f6e60831787
 
 #include <RadioHead.h>
 
 // This can only build on Linux and compatible systems
-<<<<<<< HEAD
 #if (RH_PLATFORM == RH_PLATFORM_SIMULATOR) 
-=======
-#if (RH_PLATFORM == RH_PLATFORM_UNIX) 
->>>>>>> d27e11fba5c87a25cf468b826ee28f6e60831787
 
 #include <RH_TCP.h>
 #include <sys/types.h>
@@ -211,43 +203,6 @@ bool RH_TCP::available()
     return _rxBufValid;
 }
 
-<<<<<<< HEAD
-=======
-// Block until something is available
-void RH_TCP::waitAvailable()
-{
-    waitAvailableTimeout(0); // 0 = Wait forever
-}
-
-// Block until something is available or timeout expires
-bool RH_TCP::waitAvailableTimeout(uint16_t timeout)
-{
-    int            max_fd;
-    fd_set         input;
-    int            result;
-
-    FD_ZERO(&input);
-    FD_SET(_socket, &input);
-    max_fd = _socket + 1;
-
-    if (timeout)
-    {
-	struct timeval timer;
-	// Timeout is in milliseconds
-	timer.tv_sec  = timeout / 1000;
-	timer.tv_usec = (timeout % 1000) * 1000;
-	result = select(max_fd, &input, NULL, NULL, &timer);
-    }
-    else
-    {
-	result = select(max_fd, &input, NULL, NULL, NULL);
-    }
-    if (result < 0)
-	fprintf(stderr, "RH_TCP::waitAvailableTimeout: select failed %s\n", strerror(errno));
-    return result > 0;
-}
-
->>>>>>> d27e11fba5c87a25cf468b826ee28f6e60831787
 bool RH_TCP::recv(uint8_t* buf, uint8_t* len)
 {
     if (!available())
@@ -265,12 +220,6 @@ bool RH_TCP::recv(uint8_t* buf, uint8_t* len)
 
 bool RH_TCP::send(const uint8_t* data, uint8_t len)
 {
-<<<<<<< HEAD
-=======
-    if (!waitCAD()) 
-	return false;  // Check channel activity (prob not possible for this driver?)
-
->>>>>>> d27e11fba5c87a25cf468b826ee28f6e60831787
     bool ret = sendPacket(data, len);
     delay(10); // Wait for transmit to succeed. REVISIT: depends on length and speed
     return ret;

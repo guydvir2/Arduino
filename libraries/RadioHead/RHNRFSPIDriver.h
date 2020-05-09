@@ -1,11 +1,7 @@
 // RHNRFSPIDriver.h
 // Author: Mike McCauley (mikem@airspayce.com)
 // Copyright (C) 2014 Mike McCauley
-<<<<<<< HEAD
 // $Id: RHNRFSPIDriver.h,v 1.2 2014/08/12 00:54:52 mikem Exp $
-=======
-// $Id: RHNRFSPIDriver.h,v 1.5 2017/11/06 00:04:08 mikem Exp $
->>>>>>> d27e11fba5c87a25cf468b826ee28f6e60831787
 
 #ifndef RHNRFSPIDriver_h
 #define RHNRFSPIDriver_h
@@ -17,13 +13,8 @@ class RHGenericSPI;
 
 /////////////////////////////////////////////////////////////////////
 /// \class RHNRFSPIDriver RHNRFSPIDriver.h <RHNRFSPIDriver.h>
-<<<<<<< HEAD
 /// \brief Base class for a RadioHead driver that use the SPI bus
 /// to communicate with its transport hardware.
-=======
-/// \brief Base class for RadioHead drivers that use the SPI bus
-/// to communicate with its NRF family transport hardware.
->>>>>>> d27e11fba5c87a25cf468b826ee28f6e60831787
 ///
 /// This class can be subclassed by Drivers that require to use the SPI bus.
 /// It can be configured to use either the RHHardwareSPI class (if there is one available on the platform)
@@ -87,30 +78,11 @@ public:
     ///  it may or may not be meaningfule depending on the the type of device being accessed.
     uint8_t           spiBurstWrite(uint8_t reg, const uint8_t* src, uint8_t len);
 
-<<<<<<< HEAD
-=======
-    /// Set or change the pin to be used for SPI slave select.
-    /// This can be called at any time to change the
-    /// pin that will be used for slave select in subsquent SPI operations.
-    /// \param[in] slaveSelectPin The pin to use
-    void setSlaveSelectPin(uint8_t slaveSelectPin);
-
-    /// Set the SPI interrupt number
-    /// If SPI transactions can occur within an interrupt, tell the low level SPI
-    /// interface which interrupt is used
-    /// \param[in] interruptNumber the interrupt number
-    void spiUsingInterrupt(uint8_t interruptNumber);
-
->>>>>>> d27e11fba5c87a25cf468b826ee28f6e60831787
 protected:
     /// Reference to the RHGenericSPI instance to use to trasnfer data with teh SPI device
     RHGenericSPI&       _spi;
 
-<<<<<<< HEAD
     /// The pin number of the Slave Selct pin that is used to select the desired device.
-=======
-    /// The pin number of the Slave Select pin that is used to select the desired device.
->>>>>>> d27e11fba5c87a25cf468b826ee28f6e60831787
     uint8_t             _slaveSelectPin;
 };
 

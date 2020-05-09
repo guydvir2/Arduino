@@ -1,11 +1,7 @@
 // RHSPIDriver.cpp
 //
 // Copyright (C) 2014 Mike McCauley
-<<<<<<< HEAD
 // $Id: RHSPIDriver.cpp,v 1.9 2014/05/03 00:20:36 mikem Exp $
-=======
-// $Id: RHSPIDriver.cpp,v 1.11 2017/11/06 00:04:08 mikem Exp $
->>>>>>> d27e11fba5c87a25cf468b826ee28f6e60831787
 
 #include <RHSPIDriver.h>
 
@@ -47,18 +43,10 @@ uint8_t RHSPIDriver::spiWrite(uint8_t reg, uint8_t val)
 {
     uint8_t status = 0;
     ATOMIC_BLOCK_START;
-<<<<<<< HEAD
-=======
-    _spi.beginTransaction();
->>>>>>> d27e11fba5c87a25cf468b826ee28f6e60831787
     digitalWrite(_slaveSelectPin, LOW);
     status = _spi.transfer(reg | RH_SPI_WRITE_MASK); // Send the address with the write mask on
     _spi.transfer(val); // New value follows
     digitalWrite(_slaveSelectPin, HIGH);
-<<<<<<< HEAD
-=======
-    _spi.endTransaction();
->>>>>>> d27e11fba5c87a25cf468b826ee28f6e60831787
     ATOMIC_BLOCK_END;
     return status;
 }
@@ -67,19 +55,11 @@ uint8_t RHSPIDriver::spiBurstRead(uint8_t reg, uint8_t* dest, uint8_t len)
 {
     uint8_t status = 0;
     ATOMIC_BLOCK_START;
-<<<<<<< HEAD
-=======
-    _spi.beginTransaction();
->>>>>>> d27e11fba5c87a25cf468b826ee28f6e60831787
     digitalWrite(_slaveSelectPin, LOW);
     status = _spi.transfer(reg & ~RH_SPI_WRITE_MASK); // Send the start address with the write mask off
     while (len--)
 	*dest++ = _spi.transfer(0);
     digitalWrite(_slaveSelectPin, HIGH);
-<<<<<<< HEAD
-=======
-    _spi.endTransaction();
->>>>>>> d27e11fba5c87a25cf468b826ee28f6e60831787
     ATOMIC_BLOCK_END;
     return status;
 }
@@ -88,34 +68,14 @@ uint8_t RHSPIDriver::spiBurstWrite(uint8_t reg, const uint8_t* src, uint8_t len)
 {
     uint8_t status = 0;
     ATOMIC_BLOCK_START;
-<<<<<<< HEAD
-=======
-    _spi.beginTransaction();
->>>>>>> d27e11fba5c87a25cf468b826ee28f6e60831787
     digitalWrite(_slaveSelectPin, LOW);
     status = _spi.transfer(reg | RH_SPI_WRITE_MASK); // Send the start address with the write mask on
     while (len--)
 	_spi.transfer(*src++);
     digitalWrite(_slaveSelectPin, HIGH);
-<<<<<<< HEAD
-=======
-    _spi.endTransaction();
->>>>>>> d27e11fba5c87a25cf468b826ee28f6e60831787
     ATOMIC_BLOCK_END;
     return status;
 }
 
-<<<<<<< HEAD
 
-=======
-void RHSPIDriver::setSlaveSelectPin(uint8_t slaveSelectPin)
-{
-    _slaveSelectPin = slaveSelectPin;
-}
-
-void RHSPIDriver::spiUsingInterrupt(uint8_t interruptNumber)
-{
-    _spi.usingInterrupt(interruptNumber);
-}
->>>>>>> d27e11fba5c87a25cf468b826ee28f6e60831787
 

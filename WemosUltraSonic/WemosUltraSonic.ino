@@ -1,6 +1,7 @@
 #include <Arduino.h>
 #include <myIOT.h>
-#include <myPIR.h>
+// #include <myPIR.h>
+#include <HCSR04.h>
 
 // ********** Names + Strings  ***********
 // ~~~~~~~ MQTT Topics ~~~~~~              // belong to myIOT
@@ -11,13 +12,13 @@
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 // ********** Sketch Services  ***********
-#define VER "WEMOS_2.0"
-#define USE_NOTIFY_TELE false
+#define VER "WEMOS_3.0"
+#define USE_NOTIFY_TELE true
 #define MAX_ON_TIME 60 * 6 // minutes -- this timeout overides all
 
 // ********** myIOT Class ***********
 //~~~~~ Services ~~~~~~~~~~~
-#define USE_SERIAL true      // Serial Monitor
+#define USE_SERIAL false     // Serial Monitor
 #define USE_WDT true         // watchDog resets
 #define USE_OTA true         // OTA updates
 #define USE_RESETKEEPER true // detect quick reboot and real reboots
@@ -33,18 +34,73 @@ myIOT iot(DEVICE_TOPIC);
 // ~~~~~~~ ultra-sonic sensor ~~~~~~~~~~~
 #define trigPin D7
 #define echoPin D1
-#define re_trigger_delay 60 // seconds to next detect
-#define sensitivity 5       // dist change between 2 readings, considered as detection. cm of change 1..350
+#define re_trigger_delay 30 // seconds to next detect
+#define sensitivity 15      // dist change between 2 readings, considered as detection. cm of change 1..350
+#define AMB_TEMP 25
+#define MAX_DISTANCE 250
+// UltraSonicSensor usensor(trigPin, echoPin, re_trigger_delay, sensitivity);
 
-UltraSonicSensor usensor(trigPin, echoPin, re_trigger_delay, sensitivity);
+HCSR04 ULsensor(trigPin, echoPin, AMB_TEMP, MAX_DISTANCE);
+char det_msg[50];
 
-void start_usSensor()
+void start_ULsensor()
 {
-  usensor.min_dist_trig = 20;
-  usensor.max_dist_trig = 200;
-  usensor.startGPIO();
-  usensor.detect_cb(detection);
+  ULsensor.begin();
 }
+float measureDistance()
+{
+  float distance = ULsensor.getMedianFilterDistance();
+  ULsensor.setTemperature(18.5); //set air temperature to compensate change in speed of sound
+
+  if (distance != HCSR04_OUT_OF_RANGE)
+  {
+    Serial.print(distance, 1);
+    Serial.println(F(" cm, filtered"));
+    delay(250);
+    return distance;
+  }
+  else
+  {
+    Serial.println(F("out of range, filtered"));
+    delay(250);
+    return MAX_DISTANCE;
+  }
+}
+bool detectMovement()
+{
+  static float last_read = measureDistance();
+  static unsigned long last_det_clock = 0;
+  float current_read = measureDistance();
+
+  if (current_read != MAX_DISTANCE && abs(last_read - current_read) >= sensitivity && (millis() - last_det_clock) >= re_trigger_delay * 1000)
+  {
+    float extra_read = measureDistance();
+    if (abs(last_read - extra_read) >= sensitivity)
+    {
+      last_det_clock = millis();
+      sprintf(det_msg, "last: %.1f; Current: %.1f", last_read, current_read);
+      detect_cb();
+      // debug ~~~~~~~~~~~~~~~~~
+      Serial.print("DETECTIOn:  last: ");
+      Serial.print(last_read);
+      Serial.print("; Current: ");
+      Serial.println(current_read);
+      Serial.println("~~~~~~~~~~");
+      // end debug ~~~~~~~~~~~~~~~~~~~~
+    }
+  }
+  if (current_read != MAX_DISTANCE)
+  {
+    last_read = current_read;
+  }
+}
+// void start_usSensor()
+// {
+//   usensor.min_dist_trig = 10;
+//   usensor.max_dist_trig = 300;
+//   usensor.startGPIO();
+//   usensor.detect_cb(detection);
+// }
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 // ********** TimeOut Time vars  ***********
@@ -533,21 +589,33 @@ void startIOTservices()
 }
 void sendTelegramServer(char *msg, char *tele_server = TELEGRAM_OUT_TOPIC)
 {
-  char t[200];
-  iot.get_timeStamp(now());
-  sprintf(t, "[%s][%s]: %s", iot.timeStamp, iot.deviceTopic, msg);
-  iot.mqttClient.publish(tele_server, t);
+  if (USE_NOTIFY_TELE)
+  {
+    char t[200];
+    iot.get_timeStamp(now());
+    sprintf(t, "[%s][%s]: %s", iot.timeStamp, iot.deviceTopic, msg);
+    iot.mqttClient.publish(tele_server, t);
+  }
 }
-void detection()
+
+void not_det_cb()
+{
+  iot.pub_msg(det_msg);
+  sendTelegramServer(det_msg);
+}
+void turn_on_light_det()
 {
   int time_on_detection = 2; // minutes
   flicker();
-  iot.pub_msg("Detection");
-  sendTelegramServer("Detection");
   if (TO[0]->remain() == 0)
   {
     TO[0]->setNewTimeout(time_on_detection);
   }
+}
+void detect_cb()
+{
+  not_det_cb();
+  turn_on_light_det();
 }
 
 void startGPIOs()
@@ -561,7 +629,8 @@ void startGPIOs()
 void setup()
 {
   startGPIOs();
-  start_usSensor();
+  // start_usSensor();
+  start_ULsensor();
   startIOTservices();
   sendTelegramServer("Boot");
   startTO();
@@ -571,7 +640,8 @@ void loop()
 {
   iot.looper();
   TO_looper();
-  usensor.check_detect();
+  // usensor.check_detect();
+  detectMovement();
 
   max_on_breaker(MAX_ON_TIME);
   delay(100);

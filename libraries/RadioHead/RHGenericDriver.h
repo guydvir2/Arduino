@@ -1,11 +1,7 @@
 // RHGenericDriver.h
 // Author: Mike McCauley (mikem@airspayce.com)
 // Copyright (C) 2014 Mike McCauley
-<<<<<<< HEAD
 // $Id: RHGenericDriver.h,v 1.16 2015/01/02 21:38:24 mikem Exp $
-=======
-// $Id: RHGenericDriver.h,v 1.23 2018/09/23 23:54:01 mikem Exp $
->>>>>>> d27e11fba5c87a25cf468b826ee28f6e60831787
 
 #ifndef RHGenericDriver_h
 #define RHGenericDriver_h
@@ -18,12 +14,6 @@
 #define RH_FLAGS_APPLICATION_SPECIFIC     0x0f
 #define RH_FLAGS_NONE                     0
 
-<<<<<<< HEAD
-=======
-// Default timeout for waitCAD() in ms
-#define RH_CAD_DEFAULT_TIMEOUT            10000
-
->>>>>>> d27e11fba5c87a25cf468b826ee28f6e60831787
 /////////////////////////////////////////////////////////////////////
 /// \class RHGenericDriver RHGenericDriver.h <RHGenericDriver.h>
 /// \brief Abstract base class for a RadioHead driver.
@@ -58,12 +48,7 @@ public:
 	RHModeSleep,            ///< Transport hardware is in low power sleep mode (if supported)
 	RHModeIdle,             ///< Transport is idle.
 	RHModeTx,               ///< Transport is in the process of transmitting a message.
-<<<<<<< HEAD
 	RHModeRx                ///< Transport is in the process of receiving a message.
-=======
-	RHModeRx,               ///< Transport is in the process of receiving a message.
-	RHModeCad               ///< Transport is in the process of detecting channel activity (if supported)
->>>>>>> d27e11fba5c87a25cf468b826ee28f6e60831787
     } RHMode;
 
     /// Constructor
@@ -95,23 +80,12 @@ public:
     virtual bool recv(uint8_t* buf, uint8_t* len) = 0;
 
     /// Waits until any previous transmit packet is finished being transmitted with waitPacketSent().
-<<<<<<< HEAD
-=======
-    /// Then optionally waits for Channel Activity Detection (CAD) 
-    /// to show the channnel is clear (if the radio supports CAD) by calling waitCAD().
->>>>>>> d27e11fba5c87a25cf468b826ee28f6e60831787
     /// Then loads a message into the transmitter and starts the transmitter. Note that a message length
     /// of 0 is NOT permitted. If the message is too long for the underlying radio technology, send() will
     /// return false and will not send the message.
     /// \param[in] data Array of data to be sent
     /// \param[in] len Number of bytes of data to send (> 0)
-<<<<<<< HEAD
     /// \return true if the message length was valid and it was correctly queued for transmit
-=======
-    /// specify the maximum time in ms to wait. If 0 (the default) do not wait for CAD before transmitting.
-    /// \return true if the message length was valid and it was correctly queued for transmit. Return false
-    /// if CAD was requested and the CAD timeout timed out before clear channel was detected.
->>>>>>> d27e11fba5c87a25cf468b826ee28f6e60831787
     virtual bool send(const uint8_t* data, uint8_t len) = 0;
 
     /// Returns the maximum message length 
@@ -130,11 +104,7 @@ public:
     /// Blocks until the transmitter is no longer transmitting.
     /// or until the timeout occuers, whichever happens first
     /// \param[in] timeout Maximum time to wait in milliseconds.
-<<<<<<< HEAD
     /// \return true if the RF22 completed transmission within the timeout period. False if it timed out.
-=======
-    /// \return true if the radio completed transmission within the timeout period. False if it timed out.
->>>>>>> d27e11fba5c87a25cf468b826ee28f6e60831787
     virtual bool            waitPacketSent(uint16_t timeout);
 
     /// Starts the receiver and blocks until a received message is available or a timeout
@@ -142,38 +112,6 @@ public:
     /// \return true if a message is available
     virtual bool            waitAvailableTimeout(uint16_t timeout);
 
-<<<<<<< HEAD
-=======
-    // Bent G Christensen (bentor@gmail.com), 08/15/2016
-    /// Channel Activity Detection (CAD).
-    /// Blocks until channel activity is finished or CAD timeout occurs.
-    /// Uses the radio's CAD function (if supported) to detect channel activity.
-    /// Implements random delays of 100 to 1000ms while activity is detected and until timeout.
-    /// Caution: the random() function is not seeded. If you want non-deterministic behaviour, consider
-    /// using something like randomSeed(analogRead(A0)); in your sketch.
-    /// Permits the implementation of listen-before-talk mechanism (Collision Avoidance).
-    /// Calls the isChannelActive() member function for the radio (if supported) 
-    /// to determine if the channel is active. If the radio does not support isChannelActive(),
-    /// always returns true immediately
-    /// \return true if the radio-specific CAD (as returned by isChannelActive())
-    /// shows the channel is clear within the timeout period (or the timeout period is 0), else returns false.
-    virtual bool            waitCAD();
-
-    /// Sets the Channel Activity Detection timeout in milliseconds to be used by waitCAD().
-    /// The default is 0, which means do not wait for CAD detection.
-    /// CAD detection depends on support for isChannelActive() by your particular radio.
-    void setCADTimeout(unsigned long cad_timeout);
-
-    /// Determine if the currently selected radio channel is active.
-    /// This is expected to be subclassed by specific radios to implement their Channel Activity Detection
-    /// if supported. If the radio does not support CAD, returns true immediately. If a RadioHead radio 
-    /// supports isChannelActive() it will be documented in the radio specific documentation.
-    /// This is called automatically by waitCAD().
-    /// \return true if the radio-specific CAD (as returned by override of isChannelActive()) shows the
-    /// current radio channel as active, else false. If there is no radio-specific CAD, returns false.
-    virtual bool            isChannelActive();
-
->>>>>>> d27e11fba5c87a25cf468b826ee28f6e60831787
     /// Sets the address of this node. Defaults to 0xFF. Subclasses or the user may want to change this.
     /// This will be used to test the adddress in incoming messages. In non-promiscuous mode,
     /// only messages with a TO header the same as thisAddress or the broadcast addess (0xFF) will be accepted.
@@ -202,11 +140,7 @@ public:
     /// set argument. The default for clear always clears the application specific flags.
     /// \param[in] set bitmask of bits to be set. Flags are cleared with the clear mask before being set.
     /// \param[in] clear bitmask of flags to clear. Defaults to RH_FLAGS_APPLICATION_SPECIFIC
-<<<<<<< HEAD
     ///            which clears the application specific flags, resultiung in new application specific flags
-=======
-    ///            which clears the application specific flags, resulting in new application specific flags
->>>>>>> d27e11fba5c87a25cf468b826ee28f6e60831787
     ///            identical to the set.
     virtual void           setHeaderFlags(uint8_t set, uint8_t clear = RH_FLAGS_APPLICATION_SPECIFIC);
 
@@ -235,7 +169,6 @@ public:
     /// Usually it is the RSSI of the last received message, which is measured when the preamble is received.
     /// If you called readRssi() more recently, it will return that more recent value.
     /// \return The most recent RSSI measurement in dBm.
-<<<<<<< HEAD
     int8_t        lastRssi();
 
     /// Returns the operating mode of the library.
@@ -244,16 +177,6 @@ public:
 
     /// Sets the operating mode of the transport.
     void            setMode(RHMode mode);
-=======
-    virtual int16_t        lastRssi();
-
-    /// Returns the operating mode of the library.
-    /// \return the current mode, one of RF69_MODE_*
-    virtual RHMode          mode();
-
-    /// Sets the operating mode of the transport.
-    virtual void            setMode(RHMode mode);
->>>>>>> d27e11fba5c87a25cf468b826ee28f6e60831787
 
     /// Sets the transport hardware into low-power sleep mode
     /// (if supported). May be overridden by specific drivers to initialte sleep mode.
@@ -275,29 +198,17 @@ public:
     /// Caution: not all drivers can correctly report this count. Some underlying hardware only report
     /// good packets.
     /// \return The number of bad packets received.
-<<<<<<< HEAD
     uint16_t       rxBad();
-=======
-    virtual uint16_t       rxBad();
->>>>>>> d27e11fba5c87a25cf468b826ee28f6e60831787
 
     /// Returns the count of the number of 
     /// good received packets
     /// \return The number of good packets received.
-<<<<<<< HEAD
     uint16_t       rxGood();
-=======
-    virtual uint16_t       rxGood();
->>>>>>> d27e11fba5c87a25cf468b826ee28f6e60831787
 
     /// Returns the count of the number of 
     /// packets successfully transmitted (though not necessarily received by the destination)
     /// \return The number of packets successfully transmitted
-<<<<<<< HEAD
     uint16_t       txGood();
-=======
-    virtual uint16_t       txGood();
->>>>>>> d27e11fba5c87a25cf468b826ee28f6e60831787
 
 protected:
 
@@ -335,11 +246,7 @@ protected:
     uint8_t             _txHeaderFlags;
 
     /// The value of the last received RSSI value, in some transport specific units
-<<<<<<< HEAD
     volatile int8_t     _lastRssi;
-=======
-    volatile int16_t     _lastRssi;
->>>>>>> d27e11fba5c87a25cf468b826ee28f6e60831787
 
     /// Count of the number of bad messages (eg bad checksum etc) received
     volatile uint16_t   _rxBad;
@@ -350,21 +257,9 @@ protected:
     /// Count of the number of bad messages (correct checksum etc) received
     volatile uint16_t   _txGood;
     
-<<<<<<< HEAD
-=======
-    /// Channel activity detected
-    volatile bool       _cad;
-
-    /// Channel activity timeout in ms
-    unsigned int        _cad_timeout;
-
->>>>>>> d27e11fba5c87a25cf468b826ee28f6e60831787
 private:
 
 };
 
-<<<<<<< HEAD
 
-=======
->>>>>>> d27e11fba5c87a25cf468b826ee28f6e60831787
 #endif 

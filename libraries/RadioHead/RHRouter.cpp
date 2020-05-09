@@ -9,11 +9,7 @@
 //
 // Author: Mike McCauley (mikem@airspayce.com)
 // Copyright (C) 2011 Mike McCauley
-<<<<<<< HEAD
 // $Id: RHRouter.cpp,v 1.6 2014/08/10 20:55:17 mikem Exp $
-=======
-// $Id: RHRouter.cpp,v 1.9 2019/09/06 04:40:40 mikem Exp $
->>>>>>> d27e11fba5c87a25cf468b826ee28f6e60831787
 
 #include <RHRouter.h>
 
@@ -25,10 +21,6 @@ RHRouter::RHRouter(RHGenericDriver& driver, uint8_t thisAddress)
     : RHReliableDatagram(driver, thisAddress)
 {
     _max_hops = RH_DEFAULT_MAX_HOPS;
-<<<<<<< HEAD
-=======
-    _isa_router = true;
->>>>>>> d27e11fba5c87a25cf468b826ee28f6e60831787
     clearRoutingTable();
 }
 
@@ -49,14 +41,6 @@ void RHRouter::setMaxHops(uint8_t max_hops)
 }
 
 ////////////////////////////////////////////////////////////////////
-<<<<<<< HEAD
-=======
-void RHRouter::setIsaRouter(bool isa_router)
-{
-    _isa_router = isa_router;
-}
-////////////////////////////////////////////////////////////////////
->>>>>>> d27e11fba5c87a25cf468b826ee28f6e60831787
 void RHRouter::addRouteTo(uint8_t dest, uint8_t next_hop, uint8_t state)
 {
     uint8_t i;
@@ -213,13 +197,7 @@ uint8_t RHRouter::route(RoutedMessage* message, uint8_t messageLen)
 // Subclasses may want to override this to peek at messages going past
 void RHRouter::peekAtMessage(RoutedMessage* message, uint8_t messageLen)
 {
-<<<<<<< HEAD
     // Default does nothing
-=======
-  // Default does nothing
-  (void)message; // Not used
-  (void)messageLen; // Not used
->>>>>>> d27e11fba5c87a25cf468b826ee28f6e60831787
 }
 
 ////////////////////////////////////////////////////////////////////
@@ -302,14 +280,7 @@ bool RHRouter::recvfromAck(uint8_t* buf, uint8_t* len, uint8_t* source, uint8_t*
 	    // Maybe it has to be routed to the next hop
 	    // REVISIT: if it fails due to no route or unable to deliver to the next hop, 
 	    // tell the originator. BUT HOW?
-<<<<<<< HEAD
 	    route(&_tmpMessage, tmpMessageLen);
-=======
-	    
-	    // If we are forwarding packets, do so. Otherwise, drop.
-	    if (_isa_router)
-	        route(&_tmpMessage, tmpMessageLen);
->>>>>>> d27e11fba5c87a25cf468b826ee28f6e60831787
 	}
 	// Discard it and maybe wait for another
     }
@@ -320,21 +291,10 @@ bool RHRouter::recvfromAck(uint8_t* buf, uint8_t* len, uint8_t* source, uint8_t*
 bool RHRouter::recvfromAckTimeout(uint8_t* buf, uint8_t* len, uint16_t timeout, uint8_t* source, uint8_t* dest, uint8_t* id, uint8_t* flags)
 {  
     unsigned long starttime = millis();
-<<<<<<< HEAD
     while ((millis() - starttime) < timeout)
     {
 	if (recvfromAck(buf, len, source, dest, id, flags))
 	    return true;
-=======
-    int32_t timeLeft;
-    while ((timeLeft = timeout - (millis() - starttime)) > 0)
-    {
-	if (waitAvailableTimeout(timeLeft))
-	{
-	    if (recvfromAck(buf, len, source, dest, id, flags))
-		return true;
-	}
->>>>>>> d27e11fba5c87a25cf468b826ee28f6e60831787
 	YIELD;
     }
     return false;

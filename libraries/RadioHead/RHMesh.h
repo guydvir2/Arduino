@@ -2,11 +2,7 @@
 //
 // Author: Mike McCauley (mikem@airspayce.com)
 // Copyright (C) 2011 Mike McCauley
-<<<<<<< HEAD
 // $Id: RHMesh.h,v 1.13 2015/03/09 06:04:26 mikem Exp $
-=======
-// $Id: RHMesh.h,v 1.16 2018/09/23 23:54:01 mikem Exp $
->>>>>>> d27e11fba5c87a25cf468b826ee28f6e60831787
 
 #ifndef RHMesh_h
 #define RHMesh_h
@@ -19,12 +15,6 @@
 #define RH_MESH_MESSAGE_TYPE_ROUTE_DISCOVERY_RESPONSE       2
 #define RH_MESH_MESSAGE_TYPE_ROUTE_FAILURE                  3
 
-<<<<<<< HEAD
-=======
-// Timeout for address resolution in milliecs
-#define RH_MESH_ARP_TIMEOUT 4000
-
->>>>>>> d27e11fba5c87a25cf468b826ee28f6e60831787
 /////////////////////////////////////////////////////////////////////
 /// \class RHMesh RHMesh.h <RHMesh.h>
 /// \brief RHRouter subclass for sending addressed, optionally acknowledged datagrams
@@ -35,11 +25,7 @@
 ///
 /// Unlike RHRouter, RHMesh can be used in networks where the network topology is fluid, or unknown, 
 /// or if nodes can mode around or go in or out of service. When a node wants to send a 
-<<<<<<< HEAD
 /// message to another node, it will automcatically discover a route to the destaintion node and use it. 
-=======
-/// message to another node, it will automatically discover a route to the destination node and use it. 
->>>>>>> d27e11fba5c87a25cf468b826ee28f6e60831787
 /// If the route becomes unavailable, a new route will be discovered.
 ///
 /// \par Route Discovery
@@ -117,15 +103,6 @@
 /// SRAM for your program, it may result in failure to run, or wierd crashes and other hard to trace behaviour.
 /// In this event you should consider a processor with more SRAM, such as the MotienoMEGA with 16k
 /// (https://lowpowerlab.com/shop/moteinomega) or others.
-<<<<<<< HEAD
-=======
-///
-/// \par Performance
-/// This class (in the interests of simple implemtenation and low memory use) does not have
-/// message queueing. This means that only one message at a time can be handled. Message transmission 
-/// failures can have a severe impact on network performance.
-/// If you need high performance mesh networking under all conditions consider XBee or similar.
->>>>>>> d27e11fba5c87a25cf468b826ee28f6e60831787
 class RHMesh : public RHRouter
 {
 public:
@@ -150,15 +127,9 @@ public:
     typedef struct
     {
 	MeshMessageHeader   header;  ///< msgType = RH_MESH_MESSAGE_TYPE_ROUTE_DISCOVERY_*
-<<<<<<< HEAD
 	uint8_t             destlen; ///< Reserved. Must be 1.g
 	uint8_t             dest;    ///< The address of the destination node whose route is being sought
 	uint8_t             route[RH_MESH_MAX_MESSAGE_LEN - 1]; ///< List of node addresses visited so far. Length is implcit
-=======
-	uint8_t             destlen; ///< Reserved. Must be 1
-	uint8_t             dest;    ///< The address of the destination node whose route is being sought
-	uint8_t             route[RH_MESH_MAX_MESSAGE_LEN - 2]; ///< List of node addresses visited so far. Length is implcit
->>>>>>> d27e11fba5c87a25cf468b826ee28f6e60831787
     } MeshRouteDiscoveryMessage;
 
     /// Signals a route failure
@@ -257,11 +228,7 @@ protected:
 
     /// Tests if the given address of length addresslen is indentical to the
     /// physical address of this node.
-<<<<<<< HEAD
     /// RHMesh always ikmplements p[hysical addresses as the 1 octet address of the node
-=======
-    /// RHMesh always implements physical addresses as the 1 octet address of the node
->>>>>>> d27e11fba5c87a25cf468b826ee28f6e60831787
     /// given by _thisAddress
     /// Called by recvfromAck() to test whether a RH_MESH_MESSAGE_TYPE_ROUTE_DISCOVERY_REQUEST
     /// is for this node.

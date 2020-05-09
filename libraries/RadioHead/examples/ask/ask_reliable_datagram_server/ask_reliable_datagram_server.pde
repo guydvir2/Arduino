@@ -3,11 +3,7 @@
 // Example sketch showing how to create a simple addressed, reliable messaging server
 // with the RHReliableDatagram class, using the RH_ASK driver to control a ASK radio.
 // It is designed to work with the other example ask_reliable_datagram_client
-<<<<<<< HEAD
 // Tested on Arduino Mega, Duemilanova, Uno, Due, Teensy
-=======
-// Tested on Arduino Mega, Duemilanova, Uno, Due, Teensy, ESP-12
->>>>>>> d27e11fba5c87a25cf468b826ee28f6e60831787
 
 #include <RHReliableDatagram.h>
 #include <RH_ASK.h>
@@ -18,10 +14,6 @@
 
 // Singleton instance of the radio driver
 RH_ASK driver;
-<<<<<<< HEAD
-=======
-// RH_ASK driver(2000, 4, 5, 0); // ESP8266 or ESP32: do not use pin 11 or 2
->>>>>>> d27e11fba5c87a25cf468b826ee28f6e60831787
 
 // Class to manage message delivery and receipt, using the driver declared above
 RHReliableDatagram manager(driver, SERVER_ADDRESS);

@@ -31,7 +31,7 @@ struct MQTT_msg
 };
 MQTT_msg incoming_mqtt;
 #define TELEGRAM_OUT_TOPIC "myHome/Telegram_out"
-const int log_size = 150;
+const int log_size = 5;
 char LOG[log_size][150];
 
 // ~~~~~~~~~~~ Using SMS Notification ~~~~~~~
@@ -160,7 +160,7 @@ bool get_add_MQTT_msg(char *topic, MQTT_msg &msg)
                 sprintf(msg.from_topic, "%s", topic);
                 sprintf(msg.msg, "%s", iot.mqqt_ext_buffer[1]);
                 sprintf(msg.device_topic, "%s", iot.mqqt_ext_buffer[2]);
-                enterLOG_record(msg.msg);
+                // enterLOG_record(msg.msg);
                 sprintf(iot.mqqt_ext_buffer[0], "%s", "");
                 sprintf(iot.mqqt_ext_buffer[1], "%s", "");
                 sprintf(iot.mqqt_ext_buffer[2], "%s", "");
@@ -181,9 +181,9 @@ void enterLOG_record(char *log_entry)
         }
         else
         {
-                for (int i = 0; i < log_size; i++)
+                for (int i = 0; i < log_size-1; i++)
                 {
-                        sprintf(LOG[i], "%s", LOG[i+1]);
+                        sprintf(LOG[i], "%s", LOG[i + 1]);
                 }
                 sprintf(LOG[log_size - 1], "%s", log_entry);
         }
@@ -194,6 +194,7 @@ void setup()
         startIOTservices();
         add_MQTT_topic(TELEGRAM_OUT_TOPIC);
         teleNotify.begin(telecmds);
+        teleNotify.send_msg("TelegramServer BootUP");
 }
 void loop()
 {

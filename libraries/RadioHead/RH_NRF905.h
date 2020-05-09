@@ -1,11 +1,7 @@
 // RH_NRF905.h
 // Author: Mike McCauley (mikem@airspayce.com)
 // Copyright (C) 2014 Mike McCauley
-<<<<<<< HEAD
 // $Id: RH_NRF905.h,v 1.7 2015/03/09 06:04:26 mikem Exp $
-=======
-// $Id: RH_NRF905.h,v 1.11 2017/07/25 05:26:50 mikem Exp $
->>>>>>> d27e11fba5c87a25cf468b826ee28f6e60831787
 //
 
 #ifndef RH_NRF905_h
@@ -99,11 +95,7 @@
 
 /////////////////////////////////////////////////////////////////////
 /// \class RH_NRF905 RH_NRF905.h <RH_NRF905.h>
-<<<<<<< HEAD
 /// \brief Send and receive addressed, reliable, acknowledged datagrams by nRF905 and compatible transceivers.
-=======
-/// \brief Send and receive unaddressed, unreliable datagrams by nRF905 and compatible transceivers.
->>>>>>> d27e11fba5c87a25cf468b826ee28f6e60831787
 ///
 /// This base class provides basic functions for sending and receiving unaddressed, unreliable datagrams
 /// of arbitrary length to 28 octets per packet. Use one of the Manager classes to get addressing and 
@@ -149,11 +141,7 @@
 /// \par Connecting nRF905
 ///
 /// The nRF905 is a 3.3V part is is *NOT* 5V tolerant. So you MUST use a 3.3V CPU such as Teensy, Arduino Due etc
-<<<<<<< HEAD
 /// or else provide for level shifters between the CPU and the nRF905. Failure to consider this will probbaly
-=======
-/// or else provide for level shifters between the CPU and the nRF905. Failure to consider this will probably
->>>>>>> d27e11fba5c87a25cf468b826ee28f6e60831787
 /// break your nRF905.
 ///
 /// The electrical connection between the nRF905 and the CPU require 3.3V, the 3 x SPI pins (SCK, SDI, SDO), 
@@ -162,11 +150,7 @@
 /// The examples below assume the commonly found cheap Chinese nRF905 modules. The RH_RF905 driver assumes the 
 /// the nRF905 has a 16MHz crystal.
 ///
-<<<<<<< HEAD
 /// Connect the nRF905 to Teensy like this
-=======
-/// Connect the nRF905 to Teensy (or Arduino with suitable level shifters) like this
->>>>>>> d27e11fba5c87a25cf468b826ee28f6e60831787
 /// \code
 ///                 CPU          nRF905 module
 ///                 3V3----------VCC   (3.3V)
@@ -184,11 +168,7 @@
 /// connections on a dedicated 6 pin SPI header in the center of the board, which is 
 /// physically compatible with Uno, Leonardo and Mega2560. A little dot marks pin 1 on the header.
 /// You must connect to these
-<<<<<<< HEAD
 /// and *not* to the usual Arduino SPI pins 11, 12 and 13.
-=======
-/// and *not* to the usual Arduino SPI pins Digital 11, 12 and 13.
->>>>>>> d27e11fba5c87a25cf468b826ee28f6e60831787
 /// See http://21stdigitalhome.blogspot.com.au/2013/02/arduino-due-hardware-spi.html
 ///
 /// Connect the nRF905 to Arduino Due like this
@@ -212,35 +192,6 @@
 /// It is possible to have 2 radios conected to one CPU, provided each radio has its own 
 /// CSN, TX_EN and CE line (SCK, MOSI and MISO are common to both radios)
 ///
-<<<<<<< HEAD
-=======
-/// \par Transmitter Power
-///
-/// You can control the transmitter power to be one of 4 power levels: -10, -2, 6 or 10dBm,
-/// using the setRF() function, eg:
-/// \code
-/// nrf905.setRF(RH_NRF905::TransmitPower10dBm);
-/// \endcode
-///
-/// We have made some actual power measurements against
-/// programmed power for an nRF905 module from www.rfinchina.com under the following conditions:
-/// - Teensy 3.1
-/// - nRF905 module (with SMA antenna connector) wired to Teensy as described above, channel 108.
-/// - 20cm SMA-SMA cable
-/// - MiniKits AD8307 HF/VHF Power Head (calibrated against Rohde&Schwartz 806.2020 test set)
-/// - Tektronix TDS220 scope to measure the Vout from power head
-/// \code
-/// Program power           Measured Power
-///    dBm                         dBm
-///    -10                        -16
-///    -2                         -8
-///    6                           0
-///    10                          8
-/// \endcode
-/// (Caution: we dont claim laboratory accuracy for these measurements)
-/// You would not expect to get anywhere near these powers to air with a simple 1/4 wavelength wire antenna.
-///
->>>>>>> d27e11fba5c87a25cf468b826ee28f6e60831787
 /// \par Example programs
 ///
 /// Several example programs are provided. They work out of the box with Teensy 3.1 and Arduino Due 
@@ -258,12 +209,7 @@ class RH_NRF905 : public RHNRFSPIDriver
 {
 public:
     /// \brief Convenient values for setting transmitter power in setRF()
-<<<<<<< HEAD
     /// These are designed to agree with the values for PA_PWR
-=======
-    /// These are designed to agree with the values for RH_NRF905_CONFIG_1_PA_PWR after
-    /// left shifting by 2
->>>>>>> d27e11fba5c87a25cf468b826ee28f6e60831787
     /// To be passed to setRF();
     typedef enum
     {
@@ -366,18 +312,10 @@ public:
     /// Sends data to the address set by setTransmitAddress()
     /// Sets the radio to TX mode
     /// \param [in] data Data bytes to send.
-<<<<<<< HEAD
     /// \param [in] len Number of data bytes to set in teh TX buffer. The actual size of the 
     /// transmitted data payload is set by setPayloadSize
     /// \return true on success (which does not necessarily mean the receiver got the message, only that the message was
     /// successfully transmitted).
-=======
-    /// \param [in] len Number of data bytes to set in the TX buffer. The actual size of the 
-    /// transmitted data payload is set by setPayloadSize. Maximum message length actually 
-    /// transmitted is RH_NRF905_MAX_MESSAGE_LEN = 27.
-    /// \return true on success (which does not necessarily mean the receiver got the message, only that the message was
-    /// successfully transmitted). Returns false if the requested message length exceeds RH_NRF905_MAX_MESSAGE_LEN.
->>>>>>> d27e11fba5c87a25cf468b826ee28f6e60831787
     bool send(const uint8_t* data, uint8_t len);
 
     /// Blocks until the current message (if any) 

@@ -2,6 +2,8 @@
 #define myPIR_h
 
 #include "Arduino.h"
+#include <HCSR04.h>
+
 
 class PIRsensor
 {
@@ -113,13 +115,14 @@ private:
     bool _use_end_detect_cb = false;
 
 private:
-    int readSensor();
+    int readSensor(int x=1, int del=0);
+    void marginReadings(int get_val, int &ret_read);
     void detection_cb();
 
 public:
     int dist_sensitivity;
     int min_dist_trig = 20;
-    int max_dist_trig= 150;
+    int max_dist_trig = 150;
 
 public:
     UltraSonicSensor(byte trigPin, byte echoPin, int re_trigger_delay = 30, int d_sensitivity = 5);

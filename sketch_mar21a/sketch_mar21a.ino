@@ -25,14 +25,14 @@ struct voltReader
   int ADC_res;
 };
 
-voltReader battery = {VBAT_ADC_PIN, 0.0, 0.5, 1, 0.0, 3.3, 4096};
-voltReader solarPanel = {VSOLAR_ADC_PIN, 0.0, 0.5, 1, 0.0, 3.3, 4096};
+voltReader battery = {VBAT_ADC_PIN, 0, 0.5, 1, 0.0, 3.3, 4096};
+voltReader solarPanel = {VSOLAR_ADC_PIN, 0, 0.5, 1, 0.0, 3.3, 4096};
 
 void Vmeasure()
 {
   const int Vsamples = 4;
-  battery.ADC_value = 0.0;
-  solarPanel.ADC_value = 0.0;
+  battery.ADC_value = 0;
+  solarPanel.ADC_value = 0;
 
   for (int a = 0; a < Vsamples; a++)
   {

@@ -1,11 +1,7 @@
 // RH_NRF905.cpp
 //
 // Copyright (C) 2012 Mike McCauley
-<<<<<<< HEAD
 // $Id: RH_NRF905.cpp,v 1.4 2015/01/02 21:38:24 mikem Exp $
-=======
-// $Id: RH_NRF905.cpp,v 1.7 2017/01/12 23:58:00 mikem Exp $
->>>>>>> d27e11fba5c87a25cf468b826ee28f6e60831787
 
 #include <RH_NRF905.h>
 
@@ -104,14 +100,7 @@ bool RH_NRF905::setNetworkAddress(uint8_t* address, uint8_t len)
 bool RH_NRF905::setRF(TransmitPower power)
 {
     // Enum definitions of power are the same numerical values as the register
-<<<<<<< HEAD
     spiWriteRegister(RH_NRF905_CONFIG_1_PA_PWR, power);
-=======
-    uint8_t reg1 = spiReadRegister(RH_NRF905_CONFIG_1);
-    reg1 &= ~RH_NRF905_CONFIG_1_PA_PWR;
-    reg1 |= ((power & 0x3) << 2) & RH_NRF905_CONFIG_1_PA_PWR;
-    spiWriteRegister(RH_NRF905_CONFIG_1, reg1);
->>>>>>> d27e11fba5c87a25cf468b826ee28f6e60831787
     return true;
 }
 
@@ -150,13 +139,6 @@ bool RH_NRF905::send(const uint8_t* data, uint8_t len)
 {
     if (len > RH_NRF905_MAX_MESSAGE_LEN)
 	return false;
-<<<<<<< HEAD
-=======
-
-    if (!waitCAD()) 
-	return false;  // Check channel activity
-
->>>>>>> d27e11fba5c87a25cf468b826ee28f6e60831787
     // Set up the headers
     _buf[0] = _txHeaderTo;
     _buf[1] = _txHeaderFrom;
@@ -197,11 +179,6 @@ bool RH_NRF905::printRegister(uint8_t reg)
     Serial.print(": ");
     Serial.println(spiReadRegister(reg), HEX);
 #endif
-<<<<<<< HEAD
-=======
-
-    return true;
->>>>>>> d27e11fba5c87a25cf468b826ee28f6e60831787
 }
 
 bool RH_NRF905::printRegisters()
@@ -252,10 +229,6 @@ bool RH_NRF905::available()
 	validateRxBuf(); 
 	if (_rxBufValid)
 	    setModeIdle(); // Got one
-<<<<<<< HEAD
-=======
-
->>>>>>> d27e11fba5c87a25cf468b826ee28f6e60831787
     }
     return _rxBufValid;
 }

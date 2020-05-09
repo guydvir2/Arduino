@@ -16,11 +16,6 @@
 /// Caution: this software SPI interface will be much slower than hardware SPI on most
 /// platforms.
 ///
-<<<<<<< HEAD
-=======
-/// SPI transactions are not supported, and associated functions do nothing.
-///
->>>>>>> d27e11fba5c87a25cf468b826ee28f6e60831787
 /// \par Usage
 ///
 /// Usage varies slightly depending on what driver you are using.
@@ -85,10 +80,7 @@ private:
     uint8_t _miso;
     uint8_t _mosi;
     uint8_t _sck;
-<<<<<<< HEAD
     uint8_t _bitOrder;
-=======
->>>>>>> d27e11fba5c87a25cf468b826ee28f6e60831787
     uint8_t _delayCounts;
     uint8_t _clockPolarity;
     uint8_t _clockPhase;

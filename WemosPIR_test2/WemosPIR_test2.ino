@@ -429,6 +429,7 @@ void setup()
 
 #if USE_NOTIFY_TELE
   teleNotify.begin(telecmds);
+  teleNotify.send_msg("BOOT");
 #endif
 }
 

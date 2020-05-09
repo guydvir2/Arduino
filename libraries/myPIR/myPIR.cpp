@@ -284,21 +284,49 @@ void UltraSonicSensor::startGPIO()
   pinMode(_trigPin, OUTPUT); // Sets the trigPin as an Output
   pinMode(_echoPin, INPUT);  // Sets the echoPin as an Input
 }
-int UltraSonicSensor::readSensor()
+int UltraSonicSensor::readSensor(int x, int del)
 {
   long duration;
   int distance;
+  int temp_distance = 0;
+  int cum_distance = 0;
+  int i = 0;
 
-  digitalWrite(_trigPin, LOW);
-  delayMicroseconds(2);
-  digitalWrite(_trigPin, HIGH);
-  delayMicroseconds(10);
-  digitalWrite(_trigPin, LOW);
+  while (i < x)
+  {
 
-  duration = pulseIn(_echoPin, HIGH);
-  distance = duration * 0.034 / 2;
+    digitalWrite(_trigPin, LOW);
+    delayMicroseconds(2);
+    digitalWrite(_trigPin, HIGH);
+    delayMicroseconds(10);
+    digitalWrite(_trigPin, LOW);
 
-  return distance;
+    duration = pulseIn(_echoPin, HIGH);
+    distance = duration * 0.034 / 2;
+    marginReadings(distance, temp_distance);
+
+    i++;
+    delay(del);
+    cum_distance += temp_distance;
+  }
+  return (int)(cum_distance / x);
+
+  // return distance;
+}
+void UltraSonicSensor::marginReadings(int get_val, int &ret_read)
+{
+  if (get_val > _max_distance)
+  {
+    ret_read = _max_distance;
+  }
+  else if (get_val < _min_distance)
+  {
+    ret_read = _min_distance;
+  }
+  else
+  {
+    ret_read = get_val;
+  }
 }
 bool UltraSonicSensor::check_detect()
 {
@@ -306,23 +334,20 @@ bool UltraSonicSensor::check_detect()
   static long detect_clock = 0;
   static bool in_detection = false;
 
-  int curr_read = readSensor();
-  if (curr_read > _max_distance)
-  {
-    curr_read = _max_distance;
-  }
-  if (curr_read < _min_distance)
-  {
-    curr_read = _min_distance;
-  }
-
+  int S = 15;
+  int del = 25;
+  // int curr_read;
+  int curr_read = readSensor(S, del);
+  // marginReadings(curr_read_t,curr_read);
+  // Serial.print("Current: ");
+  // Serial.println(curr_read);
   if (in_detection && millis() - detect_clock > (_re_trigger_delay)*1000)
   {
     in_detection = false;
-    last_read = curr_read;
+    return 0;
   }
 
-  if (in_detection == false)
+  else if (in_detection == false)
   {
     if (abs(last_read - curr_read) < dist_sensitivity)
     {
@@ -332,13 +357,20 @@ bool UltraSonicSensor::check_detect()
     }
     else
     {
-      // if readings are not close:
-      delay(100);
-      int sec_read = readSensor();
+      int sec_read = readSensor(S, del);
+      Serial.print("Last: ");
+      Serial.println(last_read);
+
+      Serial.print("Current: ");
+      Serial.println(curr_read);
+      Serial.print("Secondary: ");
+      Serial.println(sec_read);
+
       if (abs(last_read - sec_read) < dist_sensitivity)
       {
         // case a: this is a measuring error
         last_read = sec_read;
+        Serial.println("Measuring error - no fuss");
         return 0;
       }
       else if (abs(curr_read - sec_read) < dist_sensitivity &&
@@ -347,9 +379,11 @@ bool UltraSonicSensor::check_detect()
       {
         // when 2 consqutive reading are close, and not as last - this is a detection
         detect_clock = millis();
-        last_read = sec_read;
+        last_read = curr_read;
         in_detection = true;
         detection_cb();
+        Serial.println("Detection!!");
+
         return 1;
       }
       else

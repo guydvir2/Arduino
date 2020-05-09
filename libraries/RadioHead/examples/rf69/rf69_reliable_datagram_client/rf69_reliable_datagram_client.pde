@@ -17,12 +17,7 @@
 // Singleton instance of the radio driver
 RH_RF69 driver;
 //RH_RF69 driver(15, 16); // For RF69 on PJRC breakout board with Teensy 3.1
-<<<<<<< HEAD
 //RH_RF69 rf69(4, 2); // For MoteinoMEGA https://lowpowerlab.com/shop/moteinomega
-=======
-//RH_RF69 driver(4, 2); // For MoteinoMEGA https://lowpowerlab.com/shop/moteinomega
-//RH_RF69 driver(8, 7); // Adafruit Feather 32u4
->>>>>>> d27e11fba5c87a25cf468b826ee28f6e60831787
 
 // Class to manage message delivery and receipt, using the driver declared above
 RHReliableDatagram manager(driver, CLIENT_ADDRESS);
@@ -30,7 +25,6 @@ RHReliableDatagram manager(driver, CLIENT_ADDRESS);
 void setup() 
 {
   Serial.begin(9600);
-<<<<<<< HEAD
   if (!manager.init())
     Serial.println("init failed");
   // Defaults after init are 434.0MHz, modulation GFSK_Rb250Fd250, +13dbM
@@ -38,17 +32,6 @@ void setup()
   // If you are using a high power RF69, you *must* set a Tx power in the
   // range 14 to 20 like this:
   // driver.setTxPower(14);
-=======
-  while (!Serial) 
-    ;
-  if (!manager.init())
-    Serial.println("init failed");
-  // Defaults after init are 434.0MHz, modulation GFSK_Rb250Fd250, +13dbM (for low power module)
-
-  // If you are using a high power RF69 eg RFM69HW, you *must* set a Tx power with the
-  // ishighpowermodule flag set like this:
-  //driver.setTxPower(14, true);
->>>>>>> d27e11fba5c87a25cf468b826ee28f6e60831787
 }
 
 uint8_t data[] = "Hello World!";

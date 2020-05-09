@@ -17,6 +17,7 @@
 #define DEVICE_TOPIC "testPIR"
 #define MQTT_PREFIX "myHome"
 #define MQTT_GROUP "intLights"
+#define TELEGRAM_OUT_TOPIC "myHome/Telegram_out"
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 #define ADD_MQTT_FUNC addiotnalMQTT
@@ -30,71 +31,27 @@ myIOT iot(DEVICE_TOPIC);
 #define SwitchTimeOUT_0 1
 
 SensorSwitch NewPIRsensor(Pin_Sensor_0, Pin_Switch_0, SwitchTimeOUT_0, Pin_extbut_0);
+void startPIR(){
+  NewPIRsensor.useButton = false;
+  NewPIRsensor.usePWM = false;
+  NewPIRsensor.RelayON_def = true;
+  NewPIRsensor.ButtonPressed_def = LOW;
+  NewPIRsensor.SensorDetection_def = LOW;
+  // NewPIRsensor.detection_callback()
+  NewPIRsensor.start();
+}
 // ±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
 
-// ~~~~~~~~~~~  Telegram Notification ~~~~~~~
-#if USE_NOTIFY_TELE
-
-char *Telegram_Nick = DEVICE_TOPIC; //"iotTest";
-int time_check_messages = 1;        //sec
-
-myTelegram teleNotify(BOT_TOKEN, CHAT_ID, time_check_messages);
-
-void telecmds(String in_msg, String from, String chat_id, char *snd_msg)
+void sendTelegramServer(char *msg, char *tele_server = TELEGRAM_OUT_TOPIC)
 {
-  String command_set[] = {"whois_online", "status", "reset", "help", "whoami"};
-  byte num_commands = sizeof(command_set) / sizeof(command_set[0]);
-  String comp_command[num_commands];
-  char prefix[100], prefix2[100];
-  char t1[50], t2[50];
-
-  sprintf(snd_msg, ""); // when not meeting any conditions, has to be empty
-
-  from.toCharArray(t1, from.length() + 1);
-  in_msg.toCharArray(t2, in_msg.length() + 1);
-
-  sprintf(prefix, "/%s_", Telegram_Nick);
-  sprintf(prefix2, "from user: %s\ndevice replies: %s\ncommand: %s\n~~~~~~~~~~~~~~~~~~~~\n ", t1, Telegram_Nick, t2);
-
-  for (int i = 0; i < num_commands; i++)
+  if (USE_NOTIFY_TELE)
   {
-    comp_command[i] = prefix;
-    comp_command[i] += command_set[i];
+    char t[200];
+    iot.get_timeStamp(now());
+    sprintf(t, "[%s][%s]: %s", iot.timeStamp, iot.deviceTopic, msg);
+    iot.mqttClient.publish(tele_server, t);
   }
-
-  if (in_msg == "/whois_online")
-  {
-    sprintf(snd_msg, "%s%s", prefix2, Telegram_Nick);
-  }
-  else if (in_msg == comp_command[1])
-  {
-    // giveStatus(t1);
-    sprintf(snd_msg, "%s%s", prefix2, t1);
-  } // status
-  else if (in_msg == comp_command[2])
-  {
-    sprintf(snd_msg, "%s", prefix2);
-    // iot.sendReset("Telegram");
-  } // reset
-  else if (in_msg == comp_command[3])
-  {
-    char t[50];
-    sprintf(snd_msg, "%sCommands Available:\n", prefix2, Telegram_Nick);
-    for (int i = 0; i < num_commands; i++)
-    {
-      command_set[i].toCharArray(t, 30);
-      sprintf(t1, "%s\n", t);
-      strcat(snd_msg, t1);
-    }
-
-  } // all_commands
-
-  else if (in_msg == comp_command[4])
-  {
-    sprintf(snd_msg, "%s~%s~ is %s", prefix2, Telegram_Nick, DEVICE_TOPIC);
-  } // whoami
 }
-#endif
 void startIOTservices()
 {
   iot.useSerial = USE_SERIAL;
@@ -187,31 +144,20 @@ void notifyMQTT()
     lastval = NewPIRsensor.swState;
     sprintf(msg, "Change:now [%s]", NewPIRsensor.swState ? "On" : "Off");
     iot.pub_msg(msg);
-#if USE_NOTIFY_TELE
-    if (NewPIRsensor.swState > 1.0)
-    {
-      teleNotify.send_msg("FrontDoor Detection");
-    }
-#endif
+    #if USE_NOTIFY_TELE
+        if (NewPIRsensor.swState >= 1.0)
+        {
+          sendTelegramServer("TEST_PIR_DETECT");
+        }
+    #endif
   }
 }
 
 void setup()
 {
-  NewPIRsensor.useButton = false;
-  NewPIRsensor.usePWM = false;
-  NewPIRsensor.RelayON_def = true;
-  NewPIRsensor.ButtonPressed_def = LOW;
-  NewPIRsensor.SensorDetection_def = LOW;
-  NewPIRsensor.start();
-
+  startPIR();
   startIOTservices();
-#if USE_NOTIFY_TELE
-  teleNotify.begin(telecmds);
-  teleNotify.send_msg("FrontDoor Start");
-#endif
-
-  // Serial.begin(9600);
+  sendTelegramServer("Boot");
 }
 
 void loop()
@@ -219,10 +165,6 @@ void loop()
   iot.looper();
   NewPIRsensor.looper();
   notifyMQTT();
-
-#if USE_NOTIFY_TELE
-  teleNotify.looper();
-#endif
 
   delay(100);
 }

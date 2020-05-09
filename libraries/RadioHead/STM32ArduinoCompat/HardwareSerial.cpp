@@ -2,11 +2,6 @@
 //
 // Author: mikem@airspayce.com
 
-<<<<<<< HEAD
-=======
-#include <RadioHead.h>
-#if (RH_PLATFORM == RH_PLATFORM_STM32STD)
->>>>>>> d27e11fba5c87a25cf468b826ee28f6e60831787
 #include <HardwareSerial.h>
 #include <stm32f4xx_usart.h>
 
@@ -349,7 +344,3 @@ extern "C"
     }
 }
 
-<<<<<<< HEAD
-=======
-#endif
->>>>>>> d27e11fba5c87a25cf468b826ee28f6e60831787
