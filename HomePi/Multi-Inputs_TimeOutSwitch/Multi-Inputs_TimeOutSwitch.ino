@@ -20,18 +20,18 @@
 #define USE_DAILY_TO false
 #define HARD_REBOOT false
 
-#define USE_SCREEN true
-#define USE_LCD true
+#define USE_SCREEN false
+#define USE_LCD false
 #define USE_OLED false
 
-#define USE_DHT30 true
-#define USE_DHT11 false
+#define USE_DHT30 false
+#define USE_DHT11 true
 
 #define USE_NOTIFY_TELE false
 #define USE_SENSOR false
 #define USE_IR_REMOTE false
 #define USE_IFTTT false
-#define USE_PIR_SESNOR true
+#define USE_PIR_SESNOR false
 
 // ********** myIOT Class ***********
 //~~~~~ Services ~~~~~~~~~~~
@@ -48,13 +48,13 @@ myIOT iot(DEVICE_TOPIC);
 // ***************************
 
 // ********** TimeOut Time vars  ***********
-#define NUM_SWITCHES 2
+#define NUM_SWITCHES 1
 #define TIMEOUT_SW0 2 * 60 // mins for SW0
 #define TIMEOUT_SW1 2 * 60 // mins
 #define TIMEOUT_PIR_DET 10 // mins
 
-const int START_dailyTO[] = {18, 0, 0};
-const int END_dailyTO[] = {23, 30, 0};
+const int START_dailyTO[] = {16, 0, 0};
+const int END_dailyTO[] = {0, 30, 0};
 
 int TIMEOUTS[2] = {TIMEOUT_SW0, TIMEOUT_SW1};
 timeOUT timeOut_SW0("SW0", TIMEOUTS[0]);
@@ -248,7 +248,6 @@ public:
                 _timeout_counter = 0;
         }
 };
-
 struct sensorNotify
 {
         unsigned long firstTime;

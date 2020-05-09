@@ -141,16 +141,23 @@ void notify_dailyTO(byte i)
     sprintf(TO[i]->dTO_pubMsg, "");
   }
 }
-
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // Switch/ Relay Hardware
+
+// ~~~~~~~~~~~~ Switching ~~~~~~~~
 #define relayPin D3
 #define RelayOn HIGH
 #define USE_PWM false
 
 int relays[] = {relayPin};
 bool boot_overide[] = {true, true};
-
+void startGPIOs()
+{
+  for (int i = 0; i < NUM_SWITCHES; i++)
+  {
+    pinMode(relays[i], OUTPUT);
+  }
+}
 void switchIt(char *txt1, int sw_num, bool state, char *txt2 = "", bool show_timeout = true, int PWMval = -1)
 {
   char msg[50], msg1[50], msg2[50], states[50], tempstr[50];
@@ -222,7 +229,7 @@ void switchIt(char *txt1, int sw_num, bool state, char *txt2 = "", bool show_tim
     }
   }
 }
-void checkRebootState(byte i = 0)
+void switch_aferReboot(byte i = 0)
 {
   static bool checkreboot = true;
   int rebstate = iot.mqtt_detect_reset;
@@ -273,9 +280,8 @@ void TO_looper(byte i = 0)
   }
   last_relState[i] = relState[i];
 
-  checkRebootState();
+  switch_aferReboot();
 }
-
 void flicker(byte i = 20)
 {
   bool lightstatus = digitalRead(relays[0]);
@@ -314,7 +320,6 @@ void max_on_breaker(int max_timeout)
 }
 
 // ~~~~ MQTT Commands ~~~~~
-
 void addiotnalMQTT(char *income_msg)
 {
   char msg_MQTT[150];
@@ -597,7 +602,9 @@ void sendTelegramServer(char *msg, char *tele_server = TELEGRAM_OUT_TOPIC)
     iot.mqttClient.publish(tele_server, t);
   }
 }
+// ~~~~~~~~~~~~~~~~~~~~~~~~
 
+// ~~~~~~~~~~~ Detection Callbacks~~~~~~~
 void not_det_cb()
 {
   iot.pub_msg(det_msg);
@@ -617,14 +624,7 @@ void detect_cb()
   not_det_cb();
   turn_on_light_det();
 }
-
-void startGPIOs()
-{
-  for (int i = 0; i < NUM_SWITCHES; i++)
-  {
-    pinMode(relays[i], OUTPUT);
-  }
-}
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 void setup()
 {
@@ -635,7 +635,6 @@ void setup()
   sendTelegramServer("Boot");
   startTO();
 }
-
 void loop()
 {
   iot.looper();
