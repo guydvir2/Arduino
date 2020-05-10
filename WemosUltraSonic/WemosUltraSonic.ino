@@ -1,6 +1,7 @@
 #include <Arduino.h>
 #include <myIOT.h>
 // #include <myPIR.h>
+// #include <hcsr04.h>
 #include <HCSR04.h>
 
 // ********** Names + Strings  ***********
@@ -12,7 +13,7 @@
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 // ********** Sketch Services  ***********
-#define VER "WEMOS_3.0"
+#define VER "WEMOS_3.1"
 #define USE_NOTIFY_TELE true
 #define MAX_ON_TIME 60 * 6 // minutes -- this timeout overides all
 
@@ -34,14 +35,15 @@ myIOT iot(DEVICE_TOPIC);
 // ~~~~~~~ ultra-sonic sensor ~~~~~~~~~~~
 #define trigPin D7
 #define echoPin D1
-#define re_trigger_delay 30 // seconds to next detect
-#define sensitivity 15      // dist change between 2 readings, considered as detection. cm of change 1..350
+#define re_trigger_delay 15 // seconds to next detect
+#define sensitivity 10      // dist change between 2 readings, considered as detection. cm of change 1..3501
 #define AMB_TEMP 25
-#define MAX_DISTANCE 250
+#define MAX_DISTANCE 300
 // UltraSonicSensor usensor(trigPin, echoPin, re_trigger_delay, sensitivity);
 
 HCSR04 ULsensor(trigPin, echoPin, AMB_TEMP, MAX_DISTANCE);
-char det_msg[50];
+char det_msg[150];
+float last_EXT = 0;
 
 void start_ULsensor()
 {
@@ -50,18 +52,18 @@ void start_ULsensor()
 float measureDistance()
 {
   float distance = ULsensor.getMedianFilterDistance();
-  ULsensor.setTemperature(18.5); //set air temperature to compensate change in speed of sound
+  ULsensor.setTemperature(28.5); //set air temperature to compensate change in speed of sound
 
   if (distance != HCSR04_OUT_OF_RANGE)
   {
-    Serial.print(distance, 1);
-    Serial.println(F(" cm, filtered"));
+    // Serial.print(distance, 1);
+    // Serial.println(F(" cm, filtered"));
     delay(250);
     return distance;
   }
   else
   {
-    Serial.println(F("out of range, filtered"));
+    // Serial.println(F("out of range, filtered"));
     delay(250);
     return MAX_DISTANCE;
   }
@@ -72,26 +74,57 @@ bool detectMovement()
   static unsigned long last_det_clock = 0;
   float current_read = measureDistance();
 
-  if (current_read != MAX_DISTANCE && abs(last_read - current_read) >= sensitivity && (millis() - last_det_clock) >= re_trigger_delay * 1000)
+  // static unsigned long clock2 = 0;
+  // if (current_read != MAX_DISTANCE)
+  // {
+
+  // if (millis() - clock2 >= 2000)
+  // {
+  //   clock2 = millis();
+  //   char t[50];
+  //   // last_read = measureDistance();
+  //   sprintf(t, "current: %.1f, last: %.1f", current_read, last_read);
+  //   iot.pub_msg(t);
+  // }
+
+  if (abs(last_read - current_read) >= sensitivity && (millis() - last_det_clock) >= re_trigger_delay * 1000)
   {
-    float extra_read = measureDistance();
-    if (abs(last_read - extra_read) >= sensitivity)
+    float extra_read = measureDistance();                                                           // verify change
+    if (abs(last_read - extra_read) >= sensitivity)// && abs(current_read - extra_read) < 2*sensitivity) // both reading are correct
     {
       last_det_clock = millis();
-      sprintf(det_msg, "last: %.1f; Current: %.1f", last_read, current_read);
+      sprintf(det_msg, "detection: last: %.1f; Current: %.1f, extra: %.1f", last_read, current_read, extra_read);
       detect_cb();
-      // debug ~~~~~~~~~~~~~~~~~
-      Serial.print("DETECTIOn:  last: ");
-      Serial.print(last_read);
-      Serial.print("; Current: ");
-      Serial.println(current_read);
-      Serial.println("~~~~~~~~~~");
-      // end debug ~~~~~~~~~~~~~~~~~~~~
+      last_read = current_read; //+ extra_read) / 2;
+      return 1;
     }
+    // // else // extra read is like last_read , meaning current read if faulty
+    // // {
+    // //   last_read = current_read;
+    // //   sprintf(det_msg, "no- detection: last: %.1f; Current: %.1f, extra: %.1f", last_read, current_read, extra_read);
+    // //   iot.pub_msg(det_msg);
+    // //   return 0;
+    // // }
+    // // }
+    // // else if (abs(last_read - current_read) < sensitivity) // no distnce change
+    // // {
+    // //   last_read = current_read;
+    // //   return 0;
+    // // }
+
+    // }
+    // else
+    // {
+    //   return 0;
+    // }
   }
-  if (current_read != MAX_DISTANCE)
+  else
   {
+    if (current_read != MAX_DISTANCE)
+    {
     last_read = current_read;
+    }
+    return 0;
   }
 }
 // void start_usSensor()
@@ -151,6 +184,7 @@ void notify_dailyTO(byte i)
 
 int relays[] = {relayPin};
 bool boot_overide[] = {true, true};
+
 void startGPIOs()
 {
   for (int i = 0; i < NUM_SWITCHES; i++)
@@ -361,6 +395,11 @@ void addiotnalMQTT(char *income_msg)
   else if (strcmp(income_msg, "all_off") == 0)
   {
     all_off("MQTT");
+  }
+  else if (strcmp(income_msg, "read") == 0)
+  {
+    sprintf(msg_MQTT, "last read: %d", last_EXT);
+    iot.pub_msg(msg_MQTT);
   }
   else
   {

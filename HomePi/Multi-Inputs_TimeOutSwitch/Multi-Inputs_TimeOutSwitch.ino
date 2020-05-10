@@ -4,13 +4,13 @@
 
 // ********** Names + Strings  ***********
 // ~~~~~~~ MQTT Topics ~~~~~~              // belong to myIOT
-#define DEVICE_TOPIC "kidsBedLEDs"
+#define DEVICE_TOPIC "familyRoomLEDs"
 #define MQTT_PREFIX "myHome"
 #define MQTT_GROUP "intLights"
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 // ********** Sketch Services  ***********
-#define VER "WEMOS_6.7"
+#define VER "WEMOS_6.8"
 #define IS_SONOFF false
 #define USE_INPUTS true
 #define IS_MOMENTARY true // is switch latch or momentary
@@ -83,8 +83,8 @@ char *clockAlias = "Daily TimeOut";
 #if !IS_SONOFF
 #define RELAY1 D3       // <--- D3 most devices, but KitchenLEDs D2
 #define RELAY2 D6       // was D2
-#define INPUT1 D4       //was D4
-#define INPUT2 D7       // was D6
+#define INPUT1 D7       //was D4
+#define INPUT2 D6       // was D6
 #define SENSOR_PIN D1   // WHHAT???
 #define indic_LEDpin D5 // was 4
 #endif
