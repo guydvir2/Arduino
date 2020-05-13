@@ -1,7 +1,6 @@
 #include <Arduino.h>
 #include <myIOT.h>
 // #include <myPIR.h>
-// #include <hcsr04.h>
 #include <HCSR04.h>
 
 // ********** Names + Strings  ***********
@@ -9,7 +8,7 @@
 #define DEVICE_TOPIC "frontDoorLEDs"
 #define MQTT_PREFIX "myHome"
 #define MQTT_GROUP "extLights"
-#define TELEGRAM_OUT_TOPIC "myHome/Telegram_out"
+#define TELEGRAM_OUT_TOPIC "Telegram_out"
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 // ********** Sketch Services  ***********
@@ -35,98 +34,12 @@ myIOT iot(DEVICE_TOPIC);
 // ~~~~~~~ ultra-sonic sensor ~~~~~~~~~~~
 #define trigPin D7
 #define echoPin D1
-#define re_trigger_delay 15 // seconds to next detect
+#define re_trigger_delay 30 // seconds to next detect
 #define sensitivity 10      // dist change between 2 readings, considered as detection. cm of change 1..3501
 #define AMB_TEMP 25
 #define MAX_DISTANCE 300
+
 // UltraSonicSensor usensor(trigPin, echoPin, re_trigger_delay, sensitivity);
-
-HCSR04 ULsensor(trigPin, echoPin, AMB_TEMP, MAX_DISTANCE);
-char det_msg[150];
-float last_EXT = 0;
-
-void start_ULsensor()
-{
-  ULsensor.begin();
-}
-float measureDistance()
-{
-  float distance = ULsensor.getMedianFilterDistance();
-  ULsensor.setTemperature(28.5); //set air temperature to compensate change in speed of sound
-
-  if (distance != HCSR04_OUT_OF_RANGE)
-  {
-    // Serial.print(distance, 1);
-    // Serial.println(F(" cm, filtered"));
-    delay(250);
-    return distance;
-  }
-  else
-  {
-    // Serial.println(F("out of range, filtered"));
-    delay(250);
-    return MAX_DISTANCE;
-  }
-}
-bool detectMovement()
-{
-  static float last_read = measureDistance();
-  static unsigned long last_det_clock = 0;
-  float current_read = measureDistance();
-
-  // static unsigned long clock2 = 0;
-  // if (current_read != MAX_DISTANCE)
-  // {
-
-  // if (millis() - clock2 >= 2000)
-  // {
-  //   clock2 = millis();
-  //   char t[50];
-  //   // last_read = measureDistance();
-  //   sprintf(t, "current: %.1f, last: %.1f", current_read, last_read);
-  //   iot.pub_msg(t);
-  // }
-
-  if (abs(last_read - current_read) >= sensitivity && (millis() - last_det_clock) >= re_trigger_delay * 1000)
-  {
-    float extra_read = measureDistance();                                                           // verify change
-    if (abs(last_read - extra_read) >= sensitivity)// && abs(current_read - extra_read) < 2*sensitivity) // both reading are correct
-    {
-      last_det_clock = millis();
-      sprintf(det_msg, "detection: last: %.1f; Current: %.1f, extra: %.1f", last_read, current_read, extra_read);
-      detect_cb();
-      last_read = current_read; //+ extra_read) / 2;
-      return 1;
-    }
-    // // else // extra read is like last_read , meaning current read if faulty
-    // // {
-    // //   last_read = current_read;
-    // //   sprintf(det_msg, "no- detection: last: %.1f; Current: %.1f, extra: %.1f", last_read, current_read, extra_read);
-    // //   iot.pub_msg(det_msg);
-    // //   return 0;
-    // // }
-    // // }
-    // // else if (abs(last_read - current_read) < sensitivity) // no distnce change
-    // // {
-    // //   last_read = current_read;
-    // //   return 0;
-    // // }
-
-    // }
-    // else
-    // {
-    //   return 0;
-    // }
-  }
-  else
-  {
-    if (current_read != MAX_DISTANCE)
-    {
-    last_read = current_read;
-    }
-    return 0;
-  }
-}
 // void start_usSensor()
 // {
 //   usensor.min_dist_trig = 10;
@@ -135,6 +48,73 @@ bool detectMovement()
 //   usensor.detect_cb(detection);
 // }
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+HCSR04 ULsensor(trigPin, echoPin, AMB_TEMP, MAX_DISTANCE);
+char det_msg[150];
+
+void start_ULsensor()
+{
+  ULsensor.begin();
+}
+float measureDistance(int delay_value = 250)
+{
+  float distance = ULsensor.getMedianFilterDistance();
+  ULsensor.setTemperature(28.5); //set air temperature to compensate change in speed of sound
+
+  if (distance != HCSR04_OUT_OF_RANGE)
+  {
+    // Serial.print(distance, 1);
+    // Serial.println(F(" cm, filtered"));
+    delay(delay_value);
+    return distance;
+  }
+  else
+  {
+    // Serial.println(F("out of range, filtered"));
+    delay(delay_value);
+    return MAX_DISTANCE;
+  }
+}
+bool checkMovment()
+{
+  static float last_read = measureDistance();
+  static unsigned long last_det_clock = 0;
+  float current_read = measureDistance(100);
+
+  // ~~~~~~~~~~DEBUG~~~~~~~~~~~~~~~
+    // static unsigned long clock2 = 0;
+  // if (millis() - clock2 >= 2000)
+  // {
+  //   clock2 = millis();
+  //   char t[50];
+  //   last_read = measureDistance();
+  //   sprintf(t, "current: %.1f, last: %.1f", current_read, last_read);
+  //   iot.pub_msg(t);
+  // }
+  // ~~~~~~~ END DEBUG ~~~~~~~~~~~
+
+  if (abs(last_read - current_read) >= sensitivity && (millis() - last_det_clock) >= re_trigger_delay * 1000)
+  {
+    float extra_read = measureDistance(100);        // verify change
+    if (abs(last_read - extra_read) >= sensitivity) // && abs(current_read - extra_read) < 2*sensitivity) // both reading are correct
+    {
+      last_det_clock = millis();
+      sprintf(det_msg, "detection: last: %.1f; Current: %.1f, extra: %.1f", last_read, current_read, extra_read);
+      detect_cb();
+      last_read = current_read;
+      return 1;
+    }
+  }
+  else
+  {
+    if (current_read != MAX_DISTANCE)
+    {
+      last_read = current_read;
+    }
+    return 0;
+  }
+}
+
 
 // ********** TimeOut Time vars  ***********
 #define NUM_SWITCHES 1
@@ -176,7 +156,6 @@ void notify_dailyTO(byte i)
 }
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // Switch/ Relay Hardware
-
 // ~~~~~~~~~~~~ Switching ~~~~~~~~
 #define relayPin D3
 #define RelayOn HIGH
@@ -395,11 +374,6 @@ void addiotnalMQTT(char *income_msg)
   else if (strcmp(income_msg, "all_off") == 0)
   {
     all_off("MQTT");
-  }
-  else if (strcmp(income_msg, "read") == 0)
-  {
-    sprintf(msg_MQTT, "last read: %d", last_EXT);
-    iot.pub_msg(msg_MQTT);
   }
   else
   {
@@ -625,29 +599,20 @@ void startIOTservices()
   iot.useSerial = USE_SERIAL;
   iot.useWDT = USE_WDT;
   iot.useOTA = USE_OTA;
+  iot.useTelegram = USE_NOTIFY_TELE;
   iot.useResetKeeper = USE_RESETKEEPER;
   iot.resetFailNTP = USE_FAILNTP;
   strcpy(iot.prefixTopic, MQTT_PREFIX);
   strcpy(iot.addGroupTopic, MQTT_GROUP);
+  strcpy(iot.telegramServer, TELEGRAM_OUT_TOPIC);
   iot.start_services(ADD_MQTT_FUNC);
 }
-void sendTelegramServer(char *msg, char *tele_server = TELEGRAM_OUT_TOPIC)
-{
-  if (USE_NOTIFY_TELE)
-  {
-    char t[200];
-    iot.get_timeStamp(now());
-    sprintf(t, "[%s][%s]: %s", iot.timeStamp, iot.deviceTopic, msg);
-    iot.mqttClient.publish(tele_server, t);
-  }
-}
-// ~~~~~~~~~~~~~~~~~~~~~~~~
 
 // ~~~~~~~~~~~ Detection Callbacks~~~~~~~
 void not_det_cb()
 {
   iot.pub_msg(det_msg);
-  sendTelegramServer(det_msg);
+  iot.send_tele_msg(det_msg);
 }
 void turn_on_light_det()
 {
@@ -671,7 +636,7 @@ void setup()
   // start_usSensor();
   start_ULsensor();
   startIOTservices();
-  sendTelegramServer("Boot");
+  iot.send_tele_msg("Boot");
   startTO();
 }
 void loop()
@@ -679,7 +644,7 @@ void loop()
   iot.looper();
   TO_looper();
   // usensor.check_detect();
-  detectMovement();
+  checkMovment();
 
   max_on_breaker(MAX_ON_TIME);
   delay(100);

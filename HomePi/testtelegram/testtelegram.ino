@@ -99,6 +99,7 @@ void send_telegram_mqtt_msg()
         if (get_add_MQTT_msg(TELEGRAM_OUT_TOPIC, incoming_mqtt))
         {
                 teleNotify.send_msg(incoming_mqtt.msg);
+                iot.pub_msg(incoming_mqtt.msg);
         }
 }
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -157,13 +158,14 @@ bool get_add_MQTT_msg(char *topic, MQTT_msg &msg)
 {
         if (strcmp(iot.mqqt_ext_buffer[0], topic) == 0)
         {
-                sprintf(msg.from_topic, "%s", topic);
+                sprintf(msg.from_topic, "%s", iot.mqqt_ext_buffer[0]);
                 sprintf(msg.msg, "%s", iot.mqqt_ext_buffer[1]);
                 sprintf(msg.device_topic, "%s", iot.mqqt_ext_buffer[2]);
                 // enterLOG_record(msg.msg);
-                sprintf(iot.mqqt_ext_buffer[0], "%s", "");
-                sprintf(iot.mqqt_ext_buffer[1], "%s", "");
-                sprintf(iot.mqqt_ext_buffer[2], "%s", "");
+                for (int i = 0; i < 3; i++)
+                {
+                        sprintf(iot.mqqt_ext_buffer[i], "%s", "");
+                }
                 return 1;
         }
         else
@@ -181,7 +183,7 @@ void enterLOG_record(char *log_entry)
         }
         else
         {
-                for (int i = 0; i < log_size-1; i++)
+                for (int i = 0; i < log_size - 1; i++)
                 {
                         sprintf(LOG[i], "%s", LOG[i + 1]);
                 }

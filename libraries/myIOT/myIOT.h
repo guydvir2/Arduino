@@ -26,7 +26,6 @@
 #include <TimeLib.h>
 #include <TimeAlarms.h>
 
-
 // define generic functiobs
 typedef void (*cb_func)(char msg1[50]);
 typedef void (*cb_func2)(String msg1, String msg2, String msg3, char *msg4);
@@ -95,7 +94,7 @@ public:
   void get_timeStamp(time_t t = 0);
   void return_clock(char ret_tuple[20]);
   void return_date(char ret_tuple[20]);
-  bool checkInternet(char *externalSite, byte pings=1);
+  bool checkInternet(char *externalSite, byte pings = 1);
 
   void sendReset(char *header);
   void notifyOnline();
@@ -104,6 +103,7 @@ public:
   void pub_msg(char *inmsg);
   bool pub_log(char *inmsg);
   int inline_read(char *inputstr);
+  void send_tele_msg(char *msg);
 
   // ~~~~~~ Services ~~~~~~~~~
   bool useSerial = false;
@@ -123,9 +123,10 @@ public:
   char prefixTopic[MaxTopicLength];
   char deviceTopic[MaxTopicLength];
   char addGroupTopic[MaxTopicLength];
+  char telegramServer[MaxTopicLength];
   char mqqt_ext_buffer[3][150];
 
-  const char *ver = "iot_6.7";
+  const char *ver = "iot_6.8";
   char timeStamp[20];
 
 private:
@@ -164,6 +165,7 @@ private:
   char _stateTopic[MaxTopicLength];
   char _stateTopic2[MaxTopicLength];
   char _signalTopic[MaxTopicLength];
+  char _telegramServer[MaxTopicLength];
 
   char *topicArry[4] = {deviceTopic, _groupTopic, _availTopic, addGroupTopic};
   // ##############################################
@@ -270,6 +272,47 @@ private:
   void switchON();
 };
 
+class mySwitch
+{
+#define PWM_RES 1024
+#define SwitchOn LOW
+#define RelayOn HIGH
+
+private:
+  int _io_pin;
+  char _switchName[20];
+  char _switchMSG[100];
+  float _current_state = 0.0;
+
+private:
+  void _checkSwitch_Pressed(int swPin, bool momentary = true);
+  void _TOlooper(int det_reset);
+  void _start_dailyTO();
+  void _notify_dailyTO();
+
+public:
+  bool usePWM = false;
+  bool useSerial = false;
+  bool useInput = false;
+  bool badBoot = false;
+  bool useDailyTO = false;
+  int inputPin = -1;
+  float step_power = 0.2;
+  float max_power = 1.0;
+  float min_power = 0.0;
+  float def_power = 0.7;
+  int START_dailyTO[3] = {23, 27, 30};
+  int END_dailyTO[3] = {23, 28, 0};
+
+  timeOUT TOswitch;
+
+public:
+  mySwitch(int io_pin, char *name = "mySwitch", int timeout_val = 60);
+  void changePower(float val);
+  void switchIt(char *txt1, float state);
+  void begin();
+  void looper(int det_reset = 2);
+};
 // class CronJobs
 // {
 // private:
@@ -284,7 +327,7 @@ private:
 //   FVars bootClock_flash;  //("boot");
 // private:
 //   void updateflash_endTime(int dur, long start = 0);
-  
+
 //   void calc_end_Alarm();
 //   void start_timer(int dur = 30, char *activ = "TO_NICK");
 //   void restore_timer();
@@ -295,7 +338,7 @@ private:
 //   void beginAlarm();
 //   void endAlarm();
 //   void startAlarm_services();
-  
+
 //   void looper();
 //   void clockupdate(time_t t);
 //   int remain_timer();

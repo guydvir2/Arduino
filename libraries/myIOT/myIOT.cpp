@@ -343,7 +343,6 @@ bool myIOT::subscribeMQTT()
                                                 mqttClient.subscribe(topicArry[i]);
                                         }
                                 }
-
                                 if (useSerial)
                                 {
                                         Serial.println("connected");
@@ -390,6 +389,10 @@ void myIOT::createTopics()
         snprintf(_groupTopic, MaxTopicLength, "%s/All", prefixTopic);
         snprintf(_errorTopic, MaxTopicLength, "%s/log", prefixTopic);
         snprintf(_signalTopic, MaxTopicLength, "%s/Signal", prefixTopic);
+        if (useTelegram)
+        {
+                snprintf(_telegramServer, MaxTopicLength, "%s/%s", prefixTopic, telegramServer);
+        }
 
         if (strcmp(addGroupTopic, "") != 0)
         {
@@ -597,6 +600,12 @@ void myIOT::register_err(char *inmsg)
 
         sprintf(temp, "--> %s", inmsg);
         strcat(bootErrors, temp);
+}
+void myIOT::send_tele_msg(char *msg)
+{
+        char t[150];
+        sprintf(t, "[%s][%s]: %s", timeStamp, _deviceName, msg);
+        mqttClient.publish(_telegramServer, t);
 }
 // ~~~~~~ Reset and maintability ~~~~~~
 void myIOT::sendReset(char *header)
@@ -1172,6 +1181,229 @@ void myTelegram::looper()
                 }
                 _Bot_lasttime = millis();
         }
+}
+
+// ~~~~~~~~~~~~~~~~ mySwitch ~~~~~~~~~~~~~~
+mySwitch::mySwitch(int io_pin, char *name, int timeout_val)
+    : TOswitch(name, timeout_val)
+{
+        _io_pin = io_pin;
+        sprintf(_switchName, "%s", name);
+}
+void mySwitch::begin()
+{
+        if (useSerial)
+        {
+                Serial.begin(9600);
+        }
+
+        if (useInput && inputPin != -1)
+        {
+                pinMode(inputPin, INPUT_PULLUP);
+        }
+
+        pinMode(_io_pin, INPUT);
+
+        _current_state = 0;
+        if (usePWM)
+        {
+                analogWrite(_io_pin, _current_state);
+        }
+        else
+        {
+                digitalWrite(_io_pin, _current_state);
+        }
+
+        TOswitch.begin(false);
+        if (TOswitch.remain() > 0)
+        {
+                badBoot = true;
+        }
+        if (useDailyTO)
+        {
+                _start_dailyTO();
+        }
+}
+void mySwitch::changePower(float val)
+{
+        if (val != _current_state)
+        {
+                if (val <= max_power && val >= min_power)
+                {
+                        _current_state = val;
+                        analogWrite(_io_pin, val * PWM_RES);
+                }
+                else if (val >= max_power)
+                {
+                        _current_state = max_power;
+                        analogWrite(_io_pin, val * PWM_RES);
+                }
+                else if (val <= min_power)
+                {
+                        _current_state = min_power;
+                        analogWrite(_io_pin, val * PWM_RES);
+                }
+        }
+}
+void mySwitch::switchIt(char *txt1, float state)
+{
+        char msg1[20];
+        char msg2[20];
+
+        if (usePWM)
+        {
+                changePower(state);
+                sprintf(_switchMSG, "%s: Switched [%.1f%%] power", txt1, _current_state * 100);
+        }
+        else
+        {
+                if (state != _current_state)
+                {
+                        digitalWrite(_io_pin, (int)state);
+                        _current_state = state;
+                        sprintf(_switchMSG, "%s: Switched [%s]", txt1, (int)_current_state ? "On" : "Off");
+                }
+        }
+        TOswitch.convert_epoch2clock(now() + TOswitch.remain(), now(), msg1, msg2);
+
+        if (TOswitch.remain() > 0)
+        {
+                if (_current_state == 0.0)
+                {
+                        TOswitch.endNow();
+                }
+                else
+                {
+                        sprintf(msg2, " timeLeft[%s]", msg1);
+                        strcat(_switchMSG, msg2);
+                }
+        }
+
+        Serial.println(_switchMSG);
+}
+void mySwitch::_checkSwitch_Pressed(int swPin, bool momentary)
+{
+        if (momentary)
+        {
+                if (digitalRead(swPin) == SwitchOn)
+                {
+                        delay(50);
+                        if (digitalRead(swPin) == SwitchOn)
+                        {
+                                if (usePWM) // for mosfet switching
+                                {
+                                        if (_current_state == 0) // + step_power > max_power)
+                                        {
+                                                TOswitch.restart_to();
+                                        }
+                                        else if (_current_state + step_power <= max_power)
+                                        {
+                                                switchIt("Button", _current_state + step_power);
+                                        }
+                                        else
+                                        {
+                                                switchIt("Button", min_power);
+                                        }
+                                }
+                                else // for relay switching
+                                {
+                                        if (_current_state == 1)
+                                        {
+                                                switchIt("Button1", 0); //(int)(bool)!_current_state);
+                                        }
+                                        else
+                                        {
+                                                switchIt("Button1", 1);
+                                        }
+                                }
+                        }
+                }
+        }
+        else
+        {
+                bool inputState;
+                if (digitalRead(swPin) != inputState)
+                {
+                        delay(50);
+                        if (digitalRead(swPin) != inputState)
+                        {
+                                inputState = digitalRead(swPin);
+                                if (inputState == SwitchOn && digitalRead(_io_pin) != RelayOn)
+                                { // turn in TO
+                                        TOswitch.restart_to();
+                                }
+                                else if (inputState != SwitchOn)
+                                { // turn off
+                                        if (TOswitch.remain() > 0)
+                                        { // turn off when in TO
+                                                TOswitch.endNow();
+                                        }
+                                        else if (digitalRead(_io_pin) == RelayOn && TOswitch.remain() == 0)
+                                        { // turn off when only ON
+                                                switchIt("Button:", 0);
+                                        }
+                                }
+                        }
+                }
+        }
+        delay(100);
+}
+void mySwitch::_TOlooper(int det_reset)
+{
+        if (det_reset != 2)
+        {
+                static bool last_relayState = false;
+                bool relayState = TOswitch.looper();
+
+                relayState = TOswitch.looper();
+                // notify_dailyTO(i);
+                if (relayState != last_relayState)
+                { // change state (ON <-->OFF)
+                        if (usePWM)
+                        {
+                                if (relayState == 0)
+                                {
+                                        switchIt("TimeOut", 0);
+                                }
+                                else
+                                {
+                                        // if (_current_state == 0)
+                                        // {
+                                        //         Serial.println("def power");
+                                        // }
+                                        switchIt("TimeOut", def_power);
+                                }
+                        }
+                        else
+                        {
+                                switchIt("TimeOut", relayState);
+                        }
+                }
+                last_relayState = relayState;
+        }
+}
+void mySwitch::_start_dailyTO()
+{
+        memcpy(TOswitch.dailyTO.on, START_dailyTO, sizeof(START_dailyTO));
+        memcpy(TOswitch.dailyTO.off, END_dailyTO, sizeof(END_dailyTO));
+        TOswitch.dailyTO.flag = useDailyTO;
+        TOswitch.check_dailyTO_inFlash(TOswitch.dailyTO, 0);
+}
+void mySwitch::_notify_dailyTO()
+{
+        if (strcmp(TOswitch.dTO_pubMsg, "") != 0)
+        {
+                // iot.pub_msg(TOswitch.dTO_pubMsg);
+                Serial.println(TOswitch.dTO_pubMsg);
+                sprintf(TOswitch.dTO_pubMsg, "");
+        }
+}
+void mySwitch::looper(int det_reset)
+{
+        TOswitch.looper();
+        _TOlooper(det_reset);
+        _checkSwitch_Pressed(inputPin);
+        _notify_dailyTO();
 }
 
 // // ~~~~~~~~~~~~~~~ CronJobs ~~~~~~~~~~~~~~~~
