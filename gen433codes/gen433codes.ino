@@ -8,6 +8,7 @@
 #include <RCSwitch.h>
 
 RCSwitch mySwitch = RCSwitch();
+#define REMOTE_ID 1
 
 void setup() {
 
@@ -30,10 +31,12 @@ void setup() {
 
 void transCode(int i) {
   int codes[] = {3, 7, 11, 13};
+  Serial.print("REMOTE_ID: #");
+  Serial.println(REMOTE_ID);
   Serial.print("Sending code #");
   Serial.print(i);
   Serial.print(": ");
-  Serial.println(codes[i]);
+  Serial.println(codes[i]*REMOTE_ID);
   Serial.println("Start in: ");
   delay(1000);
   Serial.println("2");
@@ -42,13 +45,10 @@ void transCode(int i) {
   delay(1000);
   Serial.println("NOW !!");
   long t = millis();
-  while (millis() - t < 5000){
-    mySwitch.send(codes[i], 24);
+  while (millis() - t < 10000){
+    mySwitch.send(codes[i]*REMOTE_ID, 24);
   delay(50);
-  //  mySwitch.send(codes[i], 24);
-  //  delay(500);
-  //  mySwitch.send(codes[i], 24);
-  //  delay(500);
+
 }
 Serial.println("END");
 
@@ -79,10 +79,10 @@ void loop() {
   //  delay(1000);
   //  mySwitch.sendTriState("00000FFF0FF0");
   //  delay(1000);
-  int x = 0;
-  while (x < 4) {
+  int x = 3;
+  while (x >=0) {
     transCode(x);
-    x++;
+    x--;
     delay(1000);
   }
 

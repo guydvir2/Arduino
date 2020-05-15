@@ -16,7 +16,7 @@
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 // ~~~~~~~ MQTT Topics ~~~~~~
-#define DEVICE_TOPIC "Pergola"
+#define DEVICE_TOPIC "Pergola_Rx"
 #define MQTT_PREFIX "myHome"
 #define MQTT_GROUP "RF433"
 #define TELEGRAM_OUT_TOPIC "Telegram_out"
@@ -34,30 +34,29 @@ const int msg_retries = 3;
 const char *RF_REMOTES[] = {"Shachar", "Anna", "Guy"};
 const int rf_base[4] = {3, 7, 11, 13};
 const int timeout_between_commands = 5; //seconds
-const char *comm_desc[] = {"All Windows Down", "Saloon Exit Up", "Alarm- armed away", " Alarm - disarmed"};
-const char *comm_mqtt[] = {"myHome/Windows", "down", "myHome/Windows/saloonExit", "up",
-                           "myHome/alarmMonitor", "armed_away", "myHome/alarmMonitor", "disarmed"};
+const char *comm_desc[] = {" Alarm - disarmed", "Saloon Exit Up", "Alarm- armed away", "All Windows Down"};
+const char *comm_mqtt[] = {"myHome/alarmMonitor", "disarmed", "myHome/Windows/saloonExit", "up", "myHome/alarmMonitor", "armed_away", "myHome/Windows", "down"};
 
 RCSwitch RF_Rx = RCSwitch();
 
-void makeBeep(int t = 50)
+void makeBeep(int t = 10)
 {
   digitalWrite(buzzerPin, HIGH);
   delay(t);
   digitalWrite(buzzerPin, LOW);
 }
-void confirmBeep()
+void confirmBeep(int t = 100)
 {
   makeBeep();
-  delay(100);
+  delay(t);
   makeBeep();
-  delay(100);
-  makeBeep(500);
+  delay(t);
+  makeBeep(250);
 }
 void send_commands_cb(char *msg, int i)
 {
   iot.mqttClient.publish(comm_mqtt[2 * i], comm_mqtt[2 * i + 1]);
-  // iot.send_tele_msg(msg);
+  iot.send_tele_msg(msg);
   confirmBeep();
 }
 void Rx_looper()
@@ -78,34 +77,38 @@ void Rx_looper()
     //    Serial.print("Protocol: ");
     //    Serial.println(RF_Rx.getReceivedProtocol());
     //    RF_Rx.resetAvailable();
-
-    for (int i = 0; i < 4; i++)
+    if (millis() - last_command_clock >= timeout_between_commands * 1000)
     {
-      if (read_rf % rf_base[i] == 0)
+      for (int i = 0; i < 4; i++)
       {
-        int x = read_rf / rf_base[i]; //which remote
-        // int c = rf_base[i];          // which command
-
-        if (rf_base[i] == last_command)
+        if (read_rf % rf_base[i] == 0)
         {
-          command_counter++;
-          makeBeep();
-        }
-        else
-        {
-          command_counter = 1;
-          last_command = rf_base[i];
-        }
-        if (command_counter => msg_retries && millis() - last_command_clock >= timeout_between_commands * 1000)
-        {
-          char t[50];
-          sprintf(t, "[%s]'s Remote pressed [%s]", RF_REMOTES[x - 1], comm_desc[i]);
-          send_commands_cb(t, i);
-          last_command_clock = millis();
-          command_counter  = 0;
+          int x = read_rf / rf_base[i]; //which remote
+          if (rf_base[i] == last_command)
+          {
+            command_counter++;
+            makeBeep();
+          }
+          else
+          {
+            command_counter = 1;
+            last_command = rf_base[i];
+          }
+          if (command_counter >= msg_retries)
+          {
+            char t[50];
+            sprintf(t, "[%s]'s Remote pressed [%s]", RF_REMOTES[x - 1], comm_desc[i]);
+            send_commands_cb(t, i);
+            last_command_clock = millis();
+            command_counter = 0;
+          }
         }
       }
+      RF_Rx.resetAvailable();
     }
+  }
+  else
+  {
     RF_Rx.resetAvailable();
   }
 }
