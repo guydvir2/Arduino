@@ -10,7 +10,8 @@
                 "/home/guy/.arduino15/packages/esp8266/tools/**",
                 "/home/guy/.arduino15/packages/esp8266/hardware/esp8266/2.6.3/**",
                 "/Users/guydvir/Library/Arduino15/packages/esp8266/hardware/esp8266/2.6.3/**",
-                "/home/guy/.arduino15/packages/esp8266/hardware/esp8266/2.7.1/**"
+                "/home/guy/.arduino15/packages/esp8266/hardware/esp8266/2.7.1/**",
+                "/Users/guydvir/Library/Arduino15/packages/esp8266/hardware/esp8266/2.7.1/**"
             ],
             "defines": [],
             "compilerPath": "/usr/bin/clang",

@@ -16,9 +16,9 @@
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 // ~~~~~~~ MQTT Topics ~~~~~~
-#define DEVICE_TOPIC "RF_Rx"
+#define DEVICE_TOPIC "Pergola"
 #define MQTT_PREFIX "myHome"
-#define MQTT_GROUP ""
+#define MQTT_GROUP "RF433"
 #define TELEGRAM_OUT_TOPIC "Telegram_out"
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -46,7 +46,7 @@ void makeBeep(int t = 50)
   delay(t);
   digitalWrite(buzzerPin, LOW);
 }
-void confrimBeep()
+void confirmBeep()
 {
   makeBeep();
   delay(100);
@@ -56,16 +56,16 @@ void confrimBeep()
 }
 void send_commands_cb(char *msg, int i)
 {
-  // iot.mqttClient.publish(comm_mqtt[2 * i], comm_mqtt[2 * i + 1]);
-  iot.send_tele_msg(msg);
-  confrimBeep();
+  iot.mqttClient.publish(comm_mqtt[2 * i], comm_mqtt[2 * i + 1]);
+  // iot.send_tele_msg(msg);
+  confirmBeep();
 }
 void Rx_looper()
 {
   if (RF_Rx.available())
   {
     static unsigned long last_command_clock = 0;
-    static int last_command;
+    static int last_command = 0;
     static int command_counter = 0;
 
     unsigned long read_rf = RF_Rx.getReceivedValue();
@@ -84,9 +84,9 @@ void Rx_looper()
       if (read_rf % rf_base[i] == 0)
       {
         int x = read_rf / rf_base[i]; //which remote
-        int c = read_rf / x;          // which command
+        // int c = rf_base[i];          // which command
 
-        if (c == last_command)
+        if (rf_base[i] == last_command)
         {
           command_counter++;
           makeBeep();
@@ -94,14 +94,15 @@ void Rx_looper()
         else
         {
           command_counter = 1;
-          last_command = c;
+          last_command = rf_base[i];
         }
-        if (command_counter == msg_retries && millis() - last_command_clock >= timeout_between_commands * 1000)
+        if (command_counter => msg_retries && millis() - last_command_clock >= timeout_between_commands * 1000)
         {
           char t[50];
           sprintf(t, "[%s]'s Remote pressed [%s]", RF_REMOTES[x - 1], comm_desc[i]);
           send_commands_cb(t, i);
           last_command_clock = millis();
+          command_counter  = 0;
         }
       }
     }
