@@ -288,7 +288,6 @@ private:
   void _checkSwitch_Pressed(int swPin, bool momentary = true);
   void _TOlooper(int det_reset);
   void _start_dailyTO();
-  void _notify_dailyTO();
 
 public:
   bool usePWM = false;
@@ -312,6 +311,7 @@ public:
   void switchIt(char *txt1, float state);
   void begin();
   void looper(int det_reset = 2);
+  bool postMessages(char outmsg[150]);
 };
 // class CronJobs
 // {

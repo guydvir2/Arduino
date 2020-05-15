@@ -14,7 +14,7 @@ void setup() {
   Serial.begin(9600);
 
   // Transmitter is connected to Arduino Pin #10
-  mySwitch.enableTransmit(5);
+  mySwitch.enableTransmit(4);
 
   // Optional set protocol (default is 1, will work for most outlets)
   // mySwitch.setProtocol(2);
@@ -29,20 +29,20 @@ void setup() {
 }
 
 void transCode(int i) {
-  int codes[] = {1000, 2000, 3000, 4000};
+  int codes[] = {3, 7, 11, 13};
   Serial.print("Sending code #");
   Serial.print(i);
   Serial.print(": ");
   Serial.println(codes[i]);
   Serial.println("Start in: ");
-  delay(2000);
+  delay(1000);
   Serial.println("2");
   delay(1000);
   Serial.println("1");
   delay(1000);
   Serial.println("NOW !!");
   long t = millis();
-  while (millis() - t < 10000){
+  while (millis() - t < 5000){
     mySwitch.send(codes[i], 24);
   delay(50);
   //  mySwitch.send(codes[i], 24);
@@ -83,7 +83,7 @@ void loop() {
   while (x < 4) {
     transCode(x);
     x++;
-    delay(2000);
+    delay(1000);
   }
 
 

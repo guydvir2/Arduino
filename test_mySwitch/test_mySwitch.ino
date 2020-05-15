@@ -23,8 +23,9 @@
 myIOT iot(DEVICE_TOPIC);
 // ***************************
 
-const int START_dTO[] = {16, 0, 0};
-const int END_dTO[] = {0, 30, 0};
+const int START_dTO[] = {11, 39, 30};
+const int END_dTO[] = {11, 40, 0};
+char msgtoMQTT[150];
 
 mySwitch myTOsw(D3, "MyLove-one", 2);
 
@@ -44,7 +45,14 @@ void startTOSwitch()
 
         myTOsw.begin();
 }
-
+void TOswitch_looper()
+{
+        myTOsw.looper(iot.mqtt_detect_reset);
+        if (myTOsw.postMessages(msgtoMQTT))
+        {
+                iot.pub_msg(msgtoMQTT);
+        }
+}
 void startIOTservices()
 {
         iot.useSerial = USE_SERIAL;
@@ -63,7 +71,7 @@ void addiotnalMQTT(char *incoming_msg)
         char msg2[20];
         if (strcmp(incoming_msg, "status") == 0)
         {
-                // sprintf(msg, "Status: Time [%s], Date [%s]", timeStamp, dateStamp);
+                sprintf(msg, "Status: Im OK");
                 iot.pub_msg(msg);
         }
         else if (strcmp(incoming_msg, "ver") == 0)
@@ -82,12 +90,11 @@ void setup()
 {
         startIOTservices();
         startTOSwitch();
-        myTOsw.TOswitch.remain();
 }
 void loop()
 {
-
         iot.looper();
-        myTOsw.looper(iot.mqtt_detect_reset);
+        TOswitch_looper();
+
         delay(100);
 }

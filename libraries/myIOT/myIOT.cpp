@@ -1253,7 +1253,7 @@ void mySwitch::switchIt(char *txt1, float state)
         if (usePWM)
         {
                 changePower(state);
-                sprintf(_switchMSG, "%s: Switched [%.1f%%] power", txt1, _current_state * 100);
+                sprintf(_switchMSG, "%s: Switched to [%.1f%%] power", txt1, _current_state * 100);
         }
         else
         {
@@ -1278,8 +1278,6 @@ void mySwitch::switchIt(char *txt1, float state)
                         strcat(_switchMSG, msg2);
                 }
         }
-
-        Serial.println(_switchMSG);
 }
 void mySwitch::_checkSwitch_Pressed(int swPin, bool momentary)
 {
@@ -1389,21 +1387,31 @@ void mySwitch::_start_dailyTO()
         TOswitch.dailyTO.flag = useDailyTO;
         TOswitch.check_dailyTO_inFlash(TOswitch.dailyTO, 0);
 }
-void mySwitch::_notify_dailyTO()
+bool mySwitch::postMessages(char outmsg[150])
 {
-        if (strcmp(TOswitch.dTO_pubMsg, "") != 0)
+        if (strcmp(TOswitch.dTO_pubMsg, "") != 0 && useDailyTO)
         {
-                // iot.pub_msg(TOswitch.dTO_pubMsg);
-                Serial.println(TOswitch.dTO_pubMsg);
-                sprintf(TOswitch.dTO_pubMsg, "");
+                sprintf(outmsg, "%s", TOswitch.dTO_pubMsg);
+                sprintf(TOswitch.dTO_pubMsg, "%s", "");
+                return 1;
         }
+        if (strcmp(_switchMSG, "") != 0)
+        {
+                sprintf(outmsg, "%s", _switchMSG);
+                sprintf(_switchMSG, "%s", "");
+                return 1;
+        }
+
+        return 0;
 }
 void mySwitch::looper(int det_reset)
 {
         TOswitch.looper();
         _TOlooper(det_reset);
-        _checkSwitch_Pressed(inputPin);
-        _notify_dailyTO();
+        if (useInput)
+        {
+                _checkSwitch_Pressed(inputPin);
+        }
 }
 
 // // ~~~~~~~~~~~~~~~ CronJobs ~~~~~~~~~~~~~~~~
