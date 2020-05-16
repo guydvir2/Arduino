@@ -242,7 +242,7 @@ public:
   char dTO_pubMsg[40];
 
 public:
-  timeOUT(char *key, int def_val);
+  timeOUT(char *key="timeOUTsw", int def_val=60);
   bool looper();
   int remain();
   bool begin(bool newReboot = true);
@@ -279,7 +279,7 @@ class mySwitch
 #define RelayOn HIGH
 
 private:
-  int _io_pin;
+  int _switchPin;
   char _switchName[20];
   char _switchMSG[100];
   float _current_state = 0.0;
@@ -306,43 +306,12 @@ public:
   timeOUT TOswitch;
 
 public:
-  mySwitch(int io_pin, char *name = "mySwitch", int timeout_val = 60);
+  mySwitch(int switchPin, char *name = "mySwitch", int timeout_val = 60);
   void changePower(float val);
   void switchIt(char *txt1, float state);
   void begin();
   void looper(int det_reset = 2);
   bool postMessages(char outmsg[150]);
 };
-// class CronJobs
-// {
-// private:
-//   time_t _clock_sync;
-//   byte dailtTO_start[3] = {22, 39, 30};
-//   byte dailtTO_stop[3] = {22, 40, 0};
-
-//   AlarmId timer_id;
-//   AlarmId daily_id;
-
-//   FVars endTimeOUT_flash; //("endTO");
-//   FVars bootClock_flash;  //("boot");
-// private:
-//   void updateflash_endTime(int dur, long start = 0);
-
-//   void calc_end_Alarm();
-//   void start_timer(int dur = 30, char *activ = "TO_NICK");
-//   void restore_timer();
-//   void end_timer();
-
-// public:
-//   CronJobs(time_t clock_sync);
-//   void beginAlarm();
-//   void endAlarm();
-//   void startAlarm_services();
-
-//   void looper();
-//   void clockupdate(time_t t);
-//   int remain_timer();
-//   void disable_dailyTimer();
-// };
 
 #endif
