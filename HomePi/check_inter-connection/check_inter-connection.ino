@@ -102,7 +102,10 @@ void addiotnalMQTT(char *incoming_msg)
                 }
         }
 }
-
+void epoch2datestr(time_t t, char clockstr[50])
+{
+        sprintf(clockstr, "%04d-%02d-%02d %02d:%02d:%02d", year(t), month(t), day(t), hour(t), minute(t), second(t));
+}
 void sendTelegramServer(char *msg, char *tele_server = TELEGRAM_OUT_TOPIC)
 {
         char t[200];
@@ -267,9 +270,14 @@ void prcoess_status(bool get_ping)
                                 accum_disconnect += disco_time;
                                 Serial.print("connect_time: ");
                                 Serial.println(inter_ok_start);
-                                
-                                char notif[50];
-                                sprintf(notif,"Connect: %d; Disconnect: %d, diff: %d",inter_ok_start, inter_fail_start, inter_ok_start-inter_fail_start);
+
+                                char notif[150];
+                                char clock0[50];
+                                char clock1[50];
+                                epoch2datestr(inter_ok_start, clock0);
+                                epoch2datestr(inter_fail_start, clock1);
+
+                                sprintf(notif, "Reconnect: %d; Disconnect: %d, offline-duration: %d", clock0, clock1, inter_ok_start - inter_fail_start);
                                 iot.pub_msg(notif);
                                 sendTelegramServer(notif);
                         }
@@ -293,7 +301,6 @@ void prcoess_status(bool get_ping)
                 internetConnected = get_ping;
                 same_state_counter = 0;
                 adaptive_ping_val = min_ping_val;
-                Serial.println("ping val update to min");
         }
         // No channges is connect status //
         else
@@ -302,7 +309,6 @@ void prcoess_status(bool get_ping)
                 if (same_state_counter >= 10 && adaptive_ping_val != max_ping_val)
                 {
                         adaptive_ping_val = internetConnected ? max_ping_val : min_ping_val;
-                        Serial.println("ping val update to max");
                 }
                 if (get_ping == false && inter_fail_start == 0)
                 {

@@ -7,7 +7,7 @@
 
 // ********** myIOT Class ***********
 //~~~~~ Services ~~~~~~~~~~~
-#define USE_SERIAL true       // Serial Monitor
+#define USE_SERIAL false       // Serial Monitor
 #define USE_WDT true          // watchDog resets
 #define USE_OTA true          // OTA updates
 #define USE_RESETKEEPER false // detect quick reboot and real reboots
@@ -39,7 +39,7 @@ const char *comm_mqtt[] = {"myHome/alarmMonitor", "disarmed", "myHome/Windows/sa
 
 RCSwitch RF_Rx = RCSwitch();
 
-void makeBeep(int t = 10)
+void makeBeep(int t = 20)
 {
   digitalWrite(buzzerPin, HIGH);
   delay(t);
@@ -51,7 +51,7 @@ void confirmBeep(int t = 100)
   delay(t);
   makeBeep();
   delay(t);
-  makeBeep(250);
+  makeBeep(450);
 }
 void send_commands_cb(char *msg, int i)
 {
@@ -112,6 +112,7 @@ void Rx_looper()
     RF_Rx.resetAvailable();
   }
 }
+
 // ***************** End 433MHz ****************
 void startIOTservices()
 {
@@ -133,12 +134,13 @@ void addiotnalMQTT(char *incoming_msg)
   char msg2[20];
   if (strcmp(incoming_msg, "status") == 0)
   {
-    // sprintf(msg, "Status: Time [%s], Date [%s]", timeStamp, dateStamp);
+    sprintf(msg, "Status: Im OK, thank you for asking");
     iot.pub_msg(msg);
   }
   else if (strcmp(incoming_msg, "ver") == 0)
   {
-    sprintf(msg, "ver #1: [%s], lib: [%s], WDT: [%d], OTA: [%d], SERIAL: [%d], ResetKeeper[%d], FailNTP[%d]", VER, iot.ver, USE_WDT, USE_OTA, USE_SERIAL, USE_RESETKEEPER, USE_FAILNTP);
+    sprintf(msg, "ver #1: [%s], lib: [%s], WDT: [%d], OTA: [%d], SERIAL: [%d], ResetKeeper[%d], FailNTP[%d], Telegram[%d]", 
+    VER, iot.ver, USE_WDT, USE_OTA, USE_SERIAL, USE_RESETKEEPER, USE_FAILNTP,USE_TELEGRAM);
     iot.pub_msg(msg);
   }
   else if (strcmp(incoming_msg, "help") == 0)
