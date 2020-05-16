@@ -126,7 +126,7 @@ public:
   char telegramServer[MaxTopicLength];
   char mqqt_ext_buffer[3][150];
 
-  const char *ver = "iot_6.8";
+  const char *ver = "iot_7.0";
   char timeStamp[20];
 
 private:
@@ -242,7 +242,7 @@ public:
   char dTO_pubMsg[40];
 
 public:
-  timeOUT(char *key="timeOUTsw", int def_val=60);
+  timeOUT(char *key = "timeOUTsw", int def_val = 60);
   bool looper();
   int remain();
   bool begin(bool newReboot = true);
@@ -277,28 +277,37 @@ class mySwitch
 #define PWM_RES 1024
 #define SwitchOn LOW
 #define RelayOn HIGH
+// #define ver "0.1"
 
 private:
   int _switchPin;
   char _switchName[20];
   char _switchMSG[100];
   float _current_state = 0.0;
+  bool _ext_det = HIGH;
+  bool _retrig = false;
+  char *_trig_name = "ext_trigger";
 
 private:
   void _checkSwitch_Pressed(int swPin, bool momentary = true);
   void _TOlooper(int det_reset);
   void _start_dailyTO();
+  void _extTrig_looper();
 
 public:
   bool usePWM = false;
   bool useSerial = false;
   bool useInput = false;
   bool badBoot = false;
+  bool usetimeOUT = true;
   bool useDailyTO = false;
+  bool useEXTtrigger = false;
+  bool ext_trig_signal = false;
+  bool is_momentery = true;
   int inputPin = -1;
   float step_power = 0.2;
   float max_power = 1.0;
-  float min_power = 0.0;
+  float min_power = step_power;
   float def_power = 0.7;
   int START_dailyTO[3] = {23, 27, 30};
   int END_dailyTO[3] = {23, 28, 0};
@@ -306,11 +315,12 @@ public:
   timeOUT TOswitch;
 
 public:
-  mySwitch(int switchPin, char *name = "mySwitch", int timeout_val = 60);
+  mySwitch(int switchPin, int timeout_val = 60, char *name = "mySwitch");
   void changePower(float val);
   void switchIt(char *txt1, float state);
   void begin();
   void looper(int det_reset = 2);
+  void extTrig_cb(bool det = HIGH, bool retrig = false, char *trig_name = "ext_trigger");
   bool postMessages(char outmsg[150]);
 };
 

@@ -11,7 +11,7 @@
 #define USE_OTA true          // OTA updates
 #define USE_RESETKEEPER false // detect quick reboot and real reboots
 #define USE_FAILNTP true      // saves amoount of fail clock updates
-#define USE_TELEGRAM true
+#define USE_TELEGRAM false
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 // ~~~~~~~ MQTT Topics ~~~~~~
@@ -25,26 +25,40 @@
 myIOT iot(DEVICE_TOPIC);
 // ***************************
 
-const int START_dTO[] = {11, 39, 30};
-const int END_dTO[] = {11, 40, 0};
+// *********** myTOswitch ***********
+
+// ~~~~ Daily TO ~~~~~~
+const int START_dTO[] = {13, 5, 30};
+const int END_dTO[] = {13, 6, 0};
+// ~~~~~~~~~~~~~~~~~~~~
+
+const int TimeOUT = 2; // minutes after pressing ON
+const int PWMPin = D3;
+const int ledPin = D4;
 char msgtoMQTT[150];
 
-mySwitch myTOsw(D3, "MyLove-one", 2);
+mySwitch myTOsw(PWMPin, TimeOUT);
 
 void startTOSwitch()
 {
         myTOsw.usePWM = true;
-        myTOsw.useSerial = true;
+        myTOsw.useSerial = USE_SERIAL;
         myTOsw.useInput = true;
         myTOsw.badBoot = true;
         myTOsw.useDailyTO = true;
+        myTOsw.useEXTtrigger = true;
+        myTOsw.is_momentery = true;
         myTOsw.inputPin = D7;
 
-        for (int i = 0; i < 3; i++)
+        if (myTOsw.useDailyTO)
         {
-                myTOsw.START_dailyTO[i] = START_dTO[i];
-                myTOsw.END_dailyTO[i] = END_dTO[i];
+                for (int i = 0; i < 3; i++)
+                {
+                        myTOsw.START_dailyTO[i] = START_dTO[i];
+                        myTOsw.END_dailyTO[i] = END_dTO[i];
+                }
         }
+        myTOsw.extTrig_cb(HIGH,false,"GUYZ_fake");
 
         myTOsw.begin();
 }
@@ -69,7 +83,7 @@ void startIOTservices()
         strcpy(iot.telegramServer, TELEGRAM_OUT_TOPIC);
         iot.start_services(ADD_MQTT_FUNC);
 }
-
+// ***********************************
 void addiotnalMQTT(char *incoming_msg)
 {
         char msg[150];
@@ -95,11 +109,13 @@ void setup()
 {
         startIOTservices();
         startTOSwitch();
+        // myTOsw.TOswitch.setNewTimeout(5);
 }
 void loop()
 {
         iot.looper();
         TOswitch_looper();
+        myTOsw.ext_trig_signal = digitalRead(D2);
 
         delay(100);
 }
