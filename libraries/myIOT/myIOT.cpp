@@ -1248,54 +1248,58 @@ void mySwitch::switchIt(char *txt1, float state)
 {
         char msg1[20];
         char msg2[20];
-
-        if (usePWM)
+        if (state != _current_state)
         {
-                changePower(state);
-                if (_current_state == 0.0)
+                if (usePWM)
                 {
-                        // turning off
-                        sprintf(_switchMSG, "%s: Switched [Off]", txt1);
-                }
-                else if (_current_state == min_power)
-                {
-                        // turning on
-                        sprintf(_switchMSG, "%s: Switched [On] [%.1f%%] power", txt1, _current_state * 100);
-                        if (usetimeOUT)
+                        if (state == 0.0)
                         {
-                                TOswitch.restart_to();
+                                // turning off
+                                changePower(state);
+                                sprintf(_switchMSG, "%s: Switched [Off]", txt1);
+                        }
+                        else if (_current_state == 0.0 && state > 0)
+                        {
+                                // turning on
+                                changePower(state);
+                                sprintf(_switchMSG, "%s: Switched [On] [%.1f%%] power", txt1, _current_state * 100);
+                                if (usetimeOUT)
+                                {
+                                        TOswitch.restart_to();
+                                }
+                        }
+                        else
+                        {
+                                changePower(state);
+                                sprintf(_switchMSG, "%s: Switched to [%.1f%%] power", txt1, _current_state * 100);
                         }
                 }
                 else
                 {
-                        sprintf(_switchMSG, "%s: Switched to [%.1f%%] power", txt1, _current_state * 100);
-                }
-        }
-        else
-        {
-                if (state != _current_state)
-                {
-                        digitalWrite(_switchPin, state);
-                        _current_state = state;
-                        sprintf(_switchMSG, "%s: Switched [%s]", txt1, (int)_current_state ? "On" : "Off");
-                        if (usetimeOUT && _current_state == 1)
+                        if (state != _current_state)
                         {
-                                TOswitch.restart_to();
+                                digitalWrite(_switchPin, state);
+                                _current_state = state;
+                                sprintf(_switchMSG, "%s: Switched [%s]", txt1, (int)_current_state ? "On" : "Off");
+                                if (usetimeOUT && _current_state == 1)
+                                {
+                                        TOswitch.restart_to();
+                                }
                         }
                 }
-        }
-        TOswitch.convert_epoch2clock(now() + TOswitch.remain(), now(), msg1, msg2);
+                TOswitch.convert_epoch2clock(now() + TOswitch.remain(), now(), msg1, msg2);
 
-        if (usetimeOUT && TOswitch.remain() > 0)
-        {
-                if (_current_state == 0.0)
+                if (usetimeOUT && TOswitch.remain() > 0)
                 {
-                        TOswitch.endNow();
-                }
-                else
-                {
-                        sprintf(msg2, " timeLeft[%s]", msg1);
-                        strcat(_switchMSG, msg2);
+                        if (_current_state == 0.0)
+                        {
+                                TOswitch.endNow();
+                        }
+                        else
+                        {
+                                sprintf(msg2, " timeLeft[%s]", msg1);
+                                strcat(_switchMSG, msg2);
+                        }
                 }
         }
 }
@@ -1336,7 +1340,7 @@ void mySwitch::_checkSwitch_Pressed(int swPin, bool momentary)
         }
         else
         {
-                bool inputState;
+                static bool inputState;
                 if (digitalRead(swPin) != inputState)
                 {
                         delay(50);
@@ -1435,6 +1439,10 @@ bool mySwitch::postMessages(char outmsg[150])
 
         return 0;
 }
+void mySwitch::adHOC_timeout(int mins, bool inMinutes)
+{
+        TOswitch.setNewTimeout(mins, inMinutes);
+}
 void mySwitch::looper(int det_reset)
 {
         TOswitch.looper();
@@ -1460,14 +1468,29 @@ void mySwitch::_extTrig_looper()
 
         if (ext_trig_signal != trig_lastState)
         {
+                Serial.println(ext_trig_signal);
                 if (ext_trig_signal == _ext_det) //trig is ON according defined by det
                 {
-                        trig_lastState = ext_trig_signal;
-                        switchIt(_trig_name, 1); // set ON
-                        if (_retrig)
+                        if (TOswitch.remain() > 0)
                         {
-                                TOswitch.restart_to(); // restart timeout
+                                if (_retrig)
+                                {
+                                        TOswitch.restart_to(); // restart timeout
+                                }
+                        }
+                        else
+                        {
+                                switchIt(_trig_name, def_power); // set ON
                         }
                 }
+        }
+        trig_lastState = ext_trig_signal;
+}
+void mySwitch::setdailyTO(const int start_clk[], const int end_clk[])
+{
+        for (int i = 0; i < 3; i++)
+        {
+                START_dailyTO[i] = start_clk[i];
+                END_dailyTO[i] = end_clk[i];
         }
 }

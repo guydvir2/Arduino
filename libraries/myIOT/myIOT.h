@@ -277,7 +277,7 @@ class mySwitch
 #define PWM_RES 1024
 #define SwitchOn LOW
 #define RelayOn HIGH
-// #define ver "0.1"
+  // #define ver "0.1"
 
 private:
   int _switchPin;
@@ -322,6 +322,8 @@ public:
   void looper(int det_reset = 2);
   void extTrig_cb(bool det = HIGH, bool retrig = false, char *trig_name = "ext_trigger");
   bool postMessages(char outmsg[150]);
+  void adHOC_timeout(int mins, bool inMinutes = true);
+  void setdailyTO(const int start_clk[], const int end_clk[]);
 };
 
 #endif
