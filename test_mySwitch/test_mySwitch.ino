@@ -11,12 +11,14 @@
 #define USE_OTA true          // OTA updates
 #define USE_RESETKEEPER false // detect quick reboot and real reboots
 #define USE_FAILNTP true      // saves amoount of fail clock updates
+#define USE_TELEGRAM true
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 // ~~~~~~~ MQTT Topics ~~~~~~
 #define DEVICE_TOPIC "testNEWlib"
 #define MQTT_PREFIX "myHome"
 #define MQTT_GROUP ""
+#define TELEGRAM_OUT_TOPIC "Telegram_out"
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 #define ADD_MQTT_FUNC addiotnalMQTT
@@ -37,6 +39,7 @@ void startTOSwitch()
         myTOsw.badBoot = true;
         myTOsw.useDailyTO = true;
         myTOsw.inputPin = D7;
+
         for (int i = 0; i < 3; i++)
         {
                 myTOsw.START_dailyTO[i] = START_dTO[i];
@@ -60,8 +63,10 @@ void startIOTservices()
         iot.useOTA = USE_OTA;
         iot.useResetKeeper = USE_RESETKEEPER;
         iot.resetFailNTP = USE_FAILNTP;
+        iot.useTelegram = USE_TELEGRAM;
         strcpy(iot.prefixTopic, MQTT_PREFIX);
         strcpy(iot.addGroupTopic, MQTT_GROUP);
+        strcpy(iot.telegramServer, TELEGRAM_OUT_TOPIC);
         iot.start_services(ADD_MQTT_FUNC);
 }
 

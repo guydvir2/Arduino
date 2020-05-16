@@ -1184,10 +1184,10 @@ void myTelegram::looper()
 }
 
 // ~~~~~~~~~~~~~~~~ mySwitch ~~~~~~~~~~~~~~
-mySwitch::mySwitch(int io_pin, char *name, int timeout_val)
+mySwitch::mySwitch(int switchPin, char *name, int timeout_val)
     : TOswitch(name, timeout_val)
 {
-        _io_pin = io_pin;
+        _switchPin = switchPin;
         sprintf(_switchName, "%s", name);
 }
 void mySwitch::begin()
@@ -1202,16 +1202,16 @@ void mySwitch::begin()
                 pinMode(inputPin, INPUT_PULLUP);
         }
 
-        pinMode(_io_pin, INPUT);
+        pinMode(_switchPin, INPUT);
 
         _current_state = 0;
         if (usePWM)
         {
-                analogWrite(_io_pin, _current_state);
+                analogWrite(_switchPin, _current_state);
         }
         else
         {
-                digitalWrite(_io_pin, _current_state);
+                digitalWrite(_switchPin, _current_state);
         }
 
         TOswitch.begin(false);
@@ -1231,17 +1231,17 @@ void mySwitch::changePower(float val)
                 if (val <= max_power && val >= min_power)
                 {
                         _current_state = val;
-                        analogWrite(_io_pin, val * PWM_RES);
+                        analogWrite(_switchPin, val * PWM_RES);
                 }
                 else if (val >= max_power)
                 {
                         _current_state = max_power;
-                        analogWrite(_io_pin, val * PWM_RES);
+                        analogWrite(_switchPin, val * PWM_RES);
                 }
                 else if (val <= min_power)
                 {
                         _current_state = min_power;
-                        analogWrite(_io_pin, val * PWM_RES);
+                        analogWrite(_switchPin, val * PWM_RES);
                 }
         }
 }
@@ -1259,7 +1259,7 @@ void mySwitch::switchIt(char *txt1, float state)
         {
                 if (state != _current_state)
                 {
-                        digitalWrite(_io_pin, (int)state);
+                        digitalWrite(_switchPin, (int)state);
                         _current_state = state;
                         sprintf(_switchMSG, "%s: Switched [%s]", txt1, (int)_current_state ? "On" : "Off");
                 }
@@ -1326,7 +1326,7 @@ void mySwitch::_checkSwitch_Pressed(int swPin, bool momentary)
                         if (digitalRead(swPin) != inputState)
                         {
                                 inputState = digitalRead(swPin);
-                                if (inputState == SwitchOn && digitalRead(_io_pin) != RelayOn)
+                                if (inputState == SwitchOn && digitalRead(_switchPin) != RelayOn)
                                 { // turn in TO
                                         TOswitch.restart_to();
                                 }
@@ -1336,7 +1336,7 @@ void mySwitch::_checkSwitch_Pressed(int swPin, bool momentary)
                                         { // turn off when in TO
                                                 TOswitch.endNow();
                                         }
-                                        else if (digitalRead(_io_pin) == RelayOn && TOswitch.remain() == 0)
+                                        else if (digitalRead(_switchPin) == RelayOn && TOswitch.remain() == 0)
                                         { // turn off when only ON
                                                 switchIt("Button:", 0);
                                         }
@@ -1413,114 +1413,3 @@ void mySwitch::looper(int det_reset)
                 _checkSwitch_Pressed(inputPin);
         }
 }
-
-// // ~~~~~~~~~~~~~~~ CronJobs ~~~~~~~~~~~~~~~~
-// CronJobs::CronJobs(time_t clock_sync)
-// {
-//         _clock_sync = clock_sync;
-// }
-// void CronJobs::end_timer()
-// {
-//         endTimeOUT_flash.setValue(0);
-// }
-
-// void CronJobs::start_timer(int dur, char *activ)
-// {
-//         // Alarm.timerOnce(dur, end_timer);
-//         updateflash_endTime(dur);
-// }
-// void CronJobs::restore_timer()
-// {
-//         long savedVal;
-//         int restoreVal;
-
-//         endTimeOUT_flash.getValue(savedVal);
-//         Serial.println(savedVal);
-//         if (savedVal != 0 && now() < savedVal)
-//         {
-//                 restoreVal = (int)(savedVal - now());
-//                 start_timer(restoreVal);
-//                 Serial.println("RESTORING");
-//         }
-// }
-// int CronJobs::remain_timer()
-// {
-//         long t;
-//         endTimeOUT_flash.getValue(t);
-
-//         // if (t > 0 && t > now() && relayState == 1)
-//         // {
-//         //         return t - now();
-//         // }
-//         // else
-//         // {
-//         //         return 0;
-//         // }
-// }
-
-// void CronJobs::disable_dailyTimer()
-// {
-// }
-
-// void CronJobs::looper()
-// {
-//         Alarm.delay(100);
-// }
-// void CronJobs::clockupdate(time_t t)
-// {
-//         setTime(hour(t), minute(t), second(t), day(t), month(t), year(t));
-// }
-// void CronJobs::updateflash_endTime(int dur, long start)
-// {
-//         if (start == 0)
-//         {
-//                 start = now();
-//         }
-//         unsigned long endto = (long)(start + dur);
-
-//         long t;
-//         endTimeOUT_flash.getValue(t);
-//         if (t != endto)
-//         {
-//                 endTimeOUT_flash.setValue((long)endto);
-//         }
-// }
-// void CronJobs::calc_end_Alarm()
-// {
-//         unsigned long timedelta = 0;
-//         int h = dailtTO_stop[0] - dailtTO_start[0];
-//         int m = dailtTO_stop[1] - dailtTO_start[1];
-//         int s = dailtTO_stop[2] - dailtTO_start[2];
-
-//         if (h < 0)
-//         {
-//                 h = h + 24;
-//         }
-//         if (m < 0)
-//         {
-//                 m = m + 60;
-//                 h--;
-//         }
-//         if (s < 0)
-//         {
-//                 s = s + 60;
-//                 m--;
-//         }
-
-//         timedelta = h * 3600 + m * 60 + s;
-//         updateflash_endTime(timedelta);
-// }
-
-// void CronJobs::startAlarm_services()
-// {
-//         Alarm.alarmRepeat(dailtTO_start[0], dailtTO_start[1], dailtTO_start[2]);//, beginAlarm);
-//         Alarm.alarmRepeat(dailtTO_stop[0], dailtTO_stop[1], dailtTO_stop[2], endAlarm);
-// }
-// void CronJobs::beginAlarm()
-// {
-//         calc_end_Alarm();
-// }
-// void CronJobs::endAlarm()
-// {
-//         // switchRelay(0, "Daily-Timer");
-// }
