@@ -32,7 +32,7 @@ myIOT iot(DEVICE_TOPIC);
 #define USE_dailyTO true
 const int START_dTO[2][3] = {{16, 0, 0}, {16, 0, 0}};
 const int END_dTO[2][3] = {{0, 30, 0}, {0, 30, 0}};
-const int TimeOUT[] = {60, 120}; // minutes
+const int TimeOUT[] = {120, 120}; // minutes
 // ~~~~~~~~~~~~~~~~~~~~
 
 // ~~~~~~ Hardware ~~~~~~~

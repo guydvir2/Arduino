@@ -1263,9 +1263,8 @@ void mySwitch::switchIt(char *txt1, float state)
                                 // turning on
                                 changePower(state);
                                 sprintf(_switchMSG, "%s: Switched [On] [%.1f%%] power", txt1, _current_state * 100);
-                                if (usetimeOUT)
+                                if (usetimeOUT && TOswitch.remain() == 0)
                                 {
-                                        TOswitch.restart_to();
                                 }
                         }
                         else
@@ -1287,22 +1286,30 @@ void mySwitch::switchIt(char *txt1, float state)
                                 }
                         }
                 }
-                TOswitch.convert_epoch2clock(now() + TOswitch.remain(), now(), msg1, msg2);
 
-                if (usetimeOUT && TOswitch.remain() > 0)
+                if (usetimeOUT)
                 {
-                        if (_current_state == 0.0)
+                        if (TOswitch.remain() > 0 && _current_state == 0.0)
                         {
                                 TOswitch.endNow();
                         }
-                        else
+                        else if (TOswitch.remain() == 0 && _current_state > 0.0)
                         {
-                                sprintf(msg2, " timeLeft[%s]", msg1);
+                                TOswitch.restart_to();
+                                TOswitch.convert_epoch2clock(now() + TOswitch.remain(), now(), msg1, msg2);
+                                sprintf(msg2, " Start Timeout[%s]", msg1);
+                                strcat(_switchMSG, msg2);
+                        }
+                        else if (TOswitch.remain() > 0 && _current_state > 0.0)
+                        {
+                                TOswitch.convert_epoch2clock(now() + TOswitch.remain(), now(), msg1, msg2);
+                                sprintf(msg2, " Resume Timeout[%s]", msg1);
                                 strcat(_switchMSG, msg2);
                         }
                 }
         }
 }
+
 void mySwitch::_checkSwitch_Pressed(int swPin, bool momentary)
 {
         momentary = is_momentery;
