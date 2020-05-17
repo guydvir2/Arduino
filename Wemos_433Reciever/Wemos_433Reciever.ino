@@ -7,7 +7,7 @@
 
 // ********** myIOT Class ***********
 //~~~~~ Services ~~~~~~~~~~~
-#define USE_SERIAL true       // Serial Monitor
+#define USE_SERIAL false      // Serial Monitor
 #define USE_WDT true          // watchDog resets
 #define USE_OTA true          // OTA updates
 #define USE_RESETKEEPER false // detect quick reboot and real reboots
@@ -39,7 +39,7 @@ const char *comm_mqtt[] = {"myHome/alarmMonitor", "disarmed", "myHome/Windows/sa
 
 RCSwitch RF_Rx = RCSwitch();
 
-void makeBeep(int t = 10)
+void makeBeep(int t = 20)
 {
   digitalWrite(buzzerPin, HIGH);
   delay(t);
@@ -51,7 +51,7 @@ void confirmBeep(int t = 100)
   delay(t);
   makeBeep();
   delay(t);
-  makeBeep(250);
+  makeBeep(450);
 }
 void send_commands_cb(char *msg, int i)
 {
@@ -64,6 +64,7 @@ void Rx_looper()
   if (RF_Rx.available())
   {
     static unsigned long last_command_clock = 0;
+    static unsigned long last_recieved_command = 0;
     static int last_command = 0;
     static int command_counter = 0;
 
@@ -77,13 +78,20 @@ void Rx_looper()
     //    Serial.print("Protocol: ");
     //    Serial.println(RF_Rx.getReceivedProtocol());
     //    RF_Rx.resetAvailable();
-    if (millis() - last_command_clock >= timeout_between_commands * 1000)
+    if (last_recieved_command != 0 && millis() - last_recieved_command >= timeout_between_commands * 1000)// timeout to filter false sporadic commands
+    {
+      command_counter = 0;
+      last_recieved_command = 0;
+    }
+
+    if (millis() - last_command_clock >= timeout_between_commands * 1000) // timeout to avoid burst of commands
     {
       for (int i = 0; i < 4; i++)
       {
         if (read_rf % rf_base[i] == 0)
         {
           int x = read_rf / rf_base[i]; //which remote
+          last_recieved_command = millis();
           if (rf_base[i] == last_command)
           {
             command_counter++;
@@ -112,6 +120,7 @@ void Rx_looper()
     RF_Rx.resetAvailable();
   }
 }
+
 // ***************** End 433MHz ****************
 void startIOTservices()
 {
@@ -133,12 +142,13 @@ void addiotnalMQTT(char *incoming_msg)
   char msg2[20];
   if (strcmp(incoming_msg, "status") == 0)
   {
-    // sprintf(msg, "Status: Time [%s], Date [%s]", timeStamp, dateStamp);
+    sprintf(msg, "Status: Im OK, thank you for asking");
     iot.pub_msg(msg);
   }
   else if (strcmp(incoming_msg, "ver") == 0)
   {
-    sprintf(msg, "ver #1: [%s], lib: [%s], WDT: [%d], OTA: [%d], SERIAL: [%d], ResetKeeper[%d], FailNTP[%d]", VER, iot.ver, USE_WDT, USE_OTA, USE_SERIAL, USE_RESETKEEPER, USE_FAILNTP);
+    sprintf(msg, "ver #1: [%s], lib: [%s], WDT: [%d], OTA: [%d], SERIAL: [%d], ResetKeeper[%d], FailNTP[%d], Telegram[%d]",
+            VER, iot.ver, USE_WDT, USE_OTA, USE_SERIAL, USE_RESETKEEPER, USE_FAILNTP, USE_TELEGRAM);
     iot.pub_msg(msg);
   }
   else if (strcmp(incoming_msg, "help") == 0)

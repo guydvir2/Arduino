@@ -37,7 +37,7 @@ myIOT iot(DEVICE_TOPIC);
 #define re_trigger_delay 30 // seconds to next detect
 #define sensitivity 10      // dist change between 2 readings, considered as detection. cm of change 1..3501
 #define AMB_TEMP 25
-#define MAX_DISTANCE 300
+#define MAX_DISTANCE 200
 
 // UltraSonicSensor usensor(trigPin, echoPin, re_trigger_delay, sensitivity);
 // void start_usSensor()
@@ -79,10 +79,20 @@ bool checkMovment()
 {
   static float last_read = measureDistance();
   static unsigned long last_det_clock = 0;
+
   float current_read = measureDistance(100);
+  if (current_read == MAX_DISTANCE)
+  {
+    int x = 0;
+    while (x < 3 && current_read != MAX_DISTANCE)
+    {
+      current_read = measureDistance(100);
+      x++;
+    }
+  }
 
   // ~~~~~~~~~~DEBUG~~~~~~~~~~~~~~~
-    // static unsigned long clock2 = 0;
+  // static unsigned long clock2 = 0;
   // if (millis() - clock2 >= 2000)
   // {
   //   clock2 = millis();
@@ -114,7 +124,6 @@ bool checkMovment()
     return 0;
   }
 }
-
 
 // ********** TimeOut Time vars  ***********
 #define NUM_SWITCHES 1
@@ -644,7 +653,7 @@ void loop()
   iot.looper();
   TO_looper();
   // usensor.check_detect();
-  checkMovment();
+  // checkMovment();
 
   max_on_breaker(MAX_ON_TIME);
   delay(100);
