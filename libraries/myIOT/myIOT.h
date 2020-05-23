@@ -258,8 +258,8 @@ public:
 
   int calc_dailyTO(dTO &dailyTO);
   void dailyTO_looper(dTO &dailyTO);
-  void check_dailyTO_inFlash(dTO &dailyTO, int x);
-  void store_dailyTO_inFlash(dTO &dailyTO, int x);
+  void check_dailyTO_inFlash(dTO &dailyTO, int x=0);
+  void store_dailyTO_inFlash(dTO &dailyTO, int x=0);
   void restart_dailyTO(dTO &dailyTO);
 
   FVars inCodeTimeOUT_inFlash;
@@ -287,6 +287,7 @@ private:
   bool _ext_det = HIGH;
   bool _retrig = false;
   char *_trig_name = "ext_trigger";
+  char *_clockAlias = "Daily TimeOut";
 
 private:
   void _checkSwitch_Pressed(int swPin, bool momentary = true);
@@ -324,6 +325,7 @@ public:
   bool postMessages(char outmsg[150]);
   void adHOC_timeout(int mins, bool inMinutes = true);
   void setdailyTO(const int start_clk[], const int end_clk[]);
+  void getMQTT(char *parm1, int p2, int p3, int p4);
 };
 
 #endif

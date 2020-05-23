@@ -34,7 +34,7 @@ const int msg_retries = 3;
 const char *RF_REMOTES[] = {"Shachar", "Anna", "Guy"};
 const int rf_base[4] = {3, 7, 11, 13};
 const int timeout_between_commands = 5; //seconds
-const char *comm_desc[] = {" Alarm - disarmed", "Saloon Exit Up", "Alarm- armed away", "All Windows Down"};
+const char *comm_desc[] = {"Alarm - disarmed", "Saloon Exit Up", "Alarm - armed away", "All Windows Down"};
 const char *comm_mqtt[] = {"myHome/alarmMonitor", "disarmed", "myHome/Windows/saloonExit", "up", "myHome/alarmMonitor", "armed_away", "myHome/Windows", "down"};
 
 RCSwitch RF_Rx = RCSwitch();
