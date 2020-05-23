@@ -36,18 +36,19 @@ const int TimeOUT[] = {120, 120}; // minutes
 // ~~~~~~~~~~~~~~~~~~~~
 
 // ~~~~~~ Hardware ~~~~~~~
-#define NUM_SW 1
+#define NUM_SW 2
 #define USE_PWM true
 #define USE_INPUT true
 #define USE_EXT_TRIG false
 #define BUTTOM_MOMENT true
 const int PWMPin[] = {D3, D3};
 const int inputPin[] = {D7, D7};
+char *SW_Names[] = {"Switch_A", "Switch_B"};
 // const int PIRPin = D4;
 // ~~~~~~~~~~~~~~~~~~~~~~~
 
-mySwitch myTOsw0(PWMPin[0], TimeOUT[0]);
-mySwitch myTOsw1(PWMPin[1], TimeOUT[1]);
+mySwitch myTOsw0(PWMPin[0], TimeOUT[0],SW_Names[0]);
+mySwitch myTOsw1(PWMPin[1], TimeOUT[1],SW_Names[1]);
 #if NUM_SW == 2
 mySwitch *TOswitches[NUM_SW] = {&myTOsw0, &myTOsw1};
 #elif NUM_SW == 1
@@ -138,6 +139,24 @@ void addiotnalMQTT(char *incoming_msg)
         else if (strcmp(incoming_msg, "all_off") == 0)
         {
                 // all_off("MQTT");
+        }
+
+        // ±±±±±±±±±± MQTT MSGS from mySwitch Library ±±±±±±±±±±±±
+        else
+        {
+                int num_parameters = iot.inline_read(incoming_msg);
+                TOswitches[atoi(iot.inline_param[0])]->getMQTT(iot.inline_param[1], atoi(iot.inline_param[2]), atoi(iot.inline_param[3]), atoi(iot.inline_param[4]));
+                for (int n = 0; n <= num_parameters - 1; n++)
+                {
+                        sprintf(iot.inline_param[n], "");
+                }
+        }
+        // ±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+
+        if (strcmp(incoming_msg, "offline") != 0 && strcmp(incoming_msg, "online") != 0 && strcmp(incoming_msg, "resetKeeper") != 0)
+        {
+                sprintf(msg, "Unrecognized Command: [%s]", incoming_msg);
+                iot.pub_log(msg);
         }
 }
 
