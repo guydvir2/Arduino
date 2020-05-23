@@ -2,11 +2,11 @@
 #include <Arduino.h>
 
 // ********** Sketch Services  ***********
-#define VER "WEMOS_1.0"
+#define VER "WEMOS_2.0"
 
 // ********** myIOT Class ***********
 //~~~~~ Services ~~~~~~~~~~~
-#define USE_SERIAL false      // Serial Monitor
+#define USE_SERIAL true       // Serial Monitor
 #define USE_WDT true          // watchDog resets
 #define USE_OTA true          // OTA updates
 #define USE_RESETKEEPER false // detect quick reboot and real reboots
@@ -30,7 +30,8 @@ struct MQTT_msg
         char device_topic[50];
 };
 MQTT_msg incoming_mqtt;
-#define TELEGRAM_OUT_TOPIC "myHome/Telegram_out"
+#define TELEGRAM_OUT_TOPIC "Telegram_out"
+#define TELEGRAM_LISTEN_TOPIC "myHome/Telegram_out"
 const int log_size = 5;
 char LOG[log_size][150];
 
@@ -96,7 +97,7 @@ void telecmds(String in_msg, String from, String chat_id, char *snd_msg)
 
 void send_telegram_mqtt_msg()
 {
-        if (get_add_MQTT_msg(TELEGRAM_OUT_TOPIC, incoming_mqtt))
+        if (chekcTelegram_topic(TELEGRAM_LISTEN_TOPIC, incoming_mqtt))
         {
                 teleNotify.send_msg(incoming_mqtt.msg);
                 iot.pub_msg(incoming_mqtt.msg);
@@ -110,8 +111,10 @@ void startIOTservices()
         iot.useOTA = USE_OTA;
         iot.useResetKeeper = USE_RESETKEEPER;
         iot.resetFailNTP = USE_FAILNTP;
+        iot.useTelegram = true;
         strcpy(iot.prefixTopic, MQTT_PREFIX);
         strcpy(iot.addGroupTopic, MQTT_GROUP);
+        strcpy(iot.telegramServer, TELEGRAM_OUT_TOPIC);
         iot.start_services(ADD_MQTT_FUNC);
 }
 
@@ -149,19 +152,25 @@ void addiotnalMQTT(char *incoming_msg)
                 }
         }
 }
-void add_MQTT_topic(char *topic)
+void subsribe_telegram_topic(char *topic)
 {
         iot.mqttClient.subscribe(topic);
 }
-
-bool get_add_MQTT_msg(char *topic, MQTT_msg &msg)
+bool chekcTelegram_topic(char *topic, MQTT_msg &msg)
 {
         if (strcmp(iot.mqqt_ext_buffer[0], topic) == 0)
         {
                 sprintf(msg.from_topic, "%s", iot.mqqt_ext_buffer[0]);
                 sprintf(msg.msg, "%s", iot.mqqt_ext_buffer[1]);
                 sprintf(msg.device_topic, "%s", iot.mqqt_ext_buffer[2]);
-                // enterLOG_record(msg.msg);
+                enterLOG_record(msg.msg);
+                // Serial.print("topic: ");
+                // Serial.println(msg.from_topic);
+                // Serial.print("msg: ");
+                // Serial.println(msg.msg);
+                // Serial.print("dev_name: ");
+                // Serial.println(msg.device_topic);
+
                 for (int i = 0; i < 3; i++)
                 {
                         sprintf(iot.mqqt_ext_buffer[i], "%s", "");
@@ -194,7 +203,7 @@ void enterLOG_record(char *log_entry)
 void setup()
 {
         startIOTservices();
-        add_MQTT_topic(TELEGRAM_OUT_TOPIC);
+        subsribe_telegram_topic(TELEGRAM_LISTEN_TOPIC);
         teleNotify.begin(telecmds);
         teleNotify.send_msg("TelegramServer BootUP");
 }
