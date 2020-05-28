@@ -3,22 +3,22 @@
 #include <Arduino.h>
 
 // ********** Sketch Services  ***********
-#define VER "WEMOS_1.1"
+#define VER "SONOFF_1.0"
 
 // ********** myIOT Class ***********
 //~~~~~ Services ~~~~~~~~~~~
-#define USE_SERIAL false       // Serial Monitor
-#define USE_WDT true          // watchDog resets
-#define USE_OTA true          // OTA updates
-#define USE_RESETKEEPER false // detect quick reboot and real reboots
-#define USE_FAILNTP true      // saves amoount of fail clock updates
+#define USE_SERIAL false     // Serial Monitor
+#define USE_WDT true         // watchDog resets
+#define USE_OTA true         // OTA updates
+#define USE_RESETKEEPER true // detect quick reboot and real reboots
+#define USE_FAILNTP true     // saves amoount of fail clock updates
 #define USE_TELEGRAM false
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 // ~~~~~~~ MQTT Topics ~~~~~~
-#define DEVICE_TOPIC "testNEWlib"
+#define DEVICE_TOPIC "Stove"
 #define MQTT_PREFIX "myHome"
-#define MQTT_GROUP ""
+#define MQTT_GROUP "intLights"
 #define TELEGRAM_OUT_TOPIC "Telegram_out"
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -26,57 +26,35 @@
 myIOT iot(DEVICE_TOPIC);
 // ***************************
 
-// ****************** PIR Detector **************
-const int PIRPin = D2;
-PIRsensor PIR_0(PIRPin, "PIR_detector", 15, HIGH);
-bool inDetection = false;
-void startPIRservices()
-{
-        PIR_0.use_serial = USE_SERIAL;
-        PIR_0.ignore_det_interval = 10;
-        PIR_0.delay_first_detection = 5;
-        PIR_0.use_timer = false;
-        PIR_0.timer_duration = 10;
-
-        // bool stop_sensor = false; // during code run, select to disable sensor activity
-        PIR_0.trigger_once = true;
-        PIR_0.start();
-}
-void PIRlooper()
-{
-        PIR_0.looper();
-        // inDetection = PIR_0.logic_state;
-        if (PIR_0.logic_state && inDetection == false)
-        {
-                inDetection = true;
-                Serial.println("DETECTION");
-        }
-        else if (PIR_0.logic_state == false && inDetection)
-        {
-                inDetection = false;
-                Serial.println("END_DETECTION");
-        }
-}
-
 // *********** myTOswitch ***********
 
 // ~~~~ TO & dailyTO ~~~~~~
 #define USE_TO true
 #define USE_dailyTO true
-const int START_dTO[2][3] = {{12, 55, 0}, {20, 10, 0}};
-const int END_dTO[2][3] = {{12, 55, 30}, {20, 30, 0}};
-const int TimeOUT[] = {1, 1}; // minutes
+const int START_dTO[2][3] = {{18, 0, 0}, {20, 10, 0}};
+const int END_dTO[2][3] = {{7, 30, 0}, {20, 30, 0}};
+const int TimeOUT[] = {120, 1}; // minutes
 // ~~~~~~~~~~~~~~~~~~~~
 
 // ~~~~~~ Hardware ~~~~~~~
-#define NUM_SW 2
-#define USE_PWM true
+
+/*
+~~~~~ SONOFF HARDWARE ~~~~~
+#define RELAY1 12
+#define RELAY2 5
+#define INPUT1 0  // 0 for onBoard Button
+#define INPUT2 14 // 14 for extButton
+#define indic_LEDpin 13
+*/
+
+#define NUM_SW 1
+#define USE_PWM false
 #define USE_INPUT true
-#define USE_EXT_TRIG true
-#define BUTTOM_MOMENT true
-const int outputPin[] = {D3, D4};
-const int inputPin[] = {D5, D6};
-char *SW_Names[] = {"Switch_A", "Switch_B"};
+#define USE_EXT_TRIG false
+#define BUTTOM_MOMENT false
+const int outputPin[] = {12, 5};
+const int inputPin[] = {14, 0};
+char *SW_Names[] = {"Stove", "Switch_B"};
 // ~~~~~~~~~~~~~~~~~~~~~~~
 
 mySwitch myTOsw0(outputPin[0], TimeOUT[0], SW_Names[0]);
@@ -119,7 +97,8 @@ void TOswitch_looper()
         char msgtoMQTT[150];
         for (int i = 0; i < NUM_SW; i++)
         {
-                TOswitches[i]->looper(iot.mqtt_detect_reset, PIR_0.logic_state);
+                // TOswitches[i]->looper(iot.mqtt_detect_reset, PIR_0.logic_state); // For use with ext_triggrer
+                TOswitches[i]->looper(iot.mqtt_detect_reset);
                 if (TOswitches[i]->postMessages(msgtoMQTT))
                 {
                         iot.pub_msg(msgtoMQTT);
@@ -160,7 +139,7 @@ void giveStatus(char *outputmsg)
                 }
                 if (USE_PWM)
                 {
-                        if (current_power == 0)
+                        if (TOswitches[i]->current_power == 0)
                         {
                                 sprintf(t2, "[%s] [OFF] %s ", SW_Names[i], t1);
                         }
@@ -241,12 +220,10 @@ void setup()
 {
         startIOTservices();
         startTOSwitch();
-        startPIRservices();
 }
 void loop()
 {
         iot.looper();
         TOswitch_looper();
-        PIRlooper();
         delay(100);
 }

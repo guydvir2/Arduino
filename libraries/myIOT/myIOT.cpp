@@ -42,10 +42,7 @@ void myIOT::start_services(cb_func funct, char *ssid, char *password, char *mqtt
 }
 void myIOT::looper()
 {
-        if (!noNetwork_flag)
-        {                         // if boot start without wifi - only a timeout reset will start with flag is false
-                network_looper(); // runs wifi/mqtt connectivity
-        }
+        network_looper();    // runs wifi/mqtt connectivity
         wdtResetCounter = 0; //reset WDT watchDog
         if (useOTA)
         { // checks for OTA
@@ -125,7 +122,6 @@ void myIOT::start_network_services()
         }
         else
         {
-                noNetwork_flag = true;
                 noNetwork_Clock = millis();
         }
 }
@@ -1458,12 +1454,19 @@ void mySwitch::looper(int det_reset, bool &a)
                 _extTrig_looper();
         }
 }
+void mySwitch::looper(int det_reset)
+{
+        _TOlooper(det_reset);
+        if (useInput)
+        {
+                _checkSwitch_Pressed(inputPin);
+        }
+}
 void mySwitch::extTrig_cb(bool det, bool retrig, char *trig_name)
 {
         _ext_det = det; // is detection HIGH or LOW
         _retrig = retrig;
         _trig_name = trig_name;
-        // ext_trig_signal = &input_trigger;
 }
 void mySwitch::_extTrig_looper()
 {
@@ -1480,7 +1483,14 @@ void mySwitch::_extTrig_looper()
                         }
                         else
                         {
-                                switchIt(_trig_name, def_power); // set ON
+                                if (usePWM)
+                                {
+                                        switchIt(_trig_name, def_power); // set ON
+                                }
+                                else
+                                {
+                                        switchIt(_trig_name, 1); // set ON
+                                }
                         }
                 }
         }

@@ -117,7 +117,6 @@ public:
   char inline_param[6][20]; //values from user
 
   bool alternativeMQTTserver = false;
-  bool noNetwork_flag = false;
   bool NTP_OK = false;
   byte mqtt_detect_reset = 2;
   char prefixTopic[MaxTopicLength];
@@ -324,6 +323,7 @@ public:
   void switchIt(char *txt1, float state, bool ignoreTO=false);
   void begin();
   void looper(int det_reset, bool &a);
+  void looper(int det_reset);
   void extTrig_cb(bool det = HIGH, bool retrig = false, char *trig_name = "ext_trigger");
   bool postMessages(char outmsg[150]);
   void adHOC_timeout(int mins, bool inMinutes = true);
