@@ -1,8 +1,9 @@
 #include <myIOT.h>
+#include <myPIR.h>
 #include <Arduino.h>
 
 // ********** Sketch Services  ***********
-#define VER "WEMOS_1.0"
+#define VER "WEMOS_1.1"
 
 // ********** myIOT Class ***********
 //~~~~~ Services ~~~~~~~~~~~
@@ -25,31 +26,63 @@
 myIOT iot(DEVICE_TOPIC);
 // ***************************
 
+// ****************** PIR Detector **************
+const int PIRPin = D2;
+PIRsensor PIR_0(PIRPin, "PIR_detector", 15, HIGH);
+bool inDetection = false;
+void startPIRservices()
+{
+        PIR_0.use_serial = USE_SERIAL;
+        PIR_0.ignore_det_interval = 10;
+        PIR_0.delay_first_detection = 5;
+        PIR_0.use_timer = false;
+        PIR_0.timer_duration = 10;
+
+        // bool stop_sensor = false; // during code run, select to disable sensor activity
+        PIR_0.trigger_once = true;
+        PIR_0.start();
+}
+void PIRlooper()
+{
+        PIR_0.looper();
+        // inDetection = PIR_0.logic_state;
+        if (PIR_0.logic_state && inDetection == false)
+        {
+                inDetection = true;
+                Serial.println("DETECTION");
+        }
+        else if (PIR_0.logic_state == false && inDetection)
+        {
+                inDetection = false;
+                Serial.println("END_DETECTION");
+        }
+}
+
+
 // *********** myTOswitch ***********
 
 // ~~~~ TO & dailyTO ~~~~~~
 #define USE_TO true
 #define USE_dailyTO true
-const int START_dTO[2][3] = {{16, 0, 0}, {16, 0, 0}};
-const int END_dTO[2][3] = {{0, 30, 0}, {0, 30, 0}};
-const int TimeOUT[] = {120, 120}; // minutes
+const int START_dTO[2][3] = {{12, 55, 0}, {20, 10, 0}};
+const int END_dTO[2][3] = {{12, 55, 30}, {20, 30, 0}};
+const int TimeOUT[] = {1, 1}; // minutes
 // ~~~~~~~~~~~~~~~~~~~~
 
 // ~~~~~~ Hardware ~~~~~~~
 #define NUM_SW 2
 #define USE_PWM true
 #define USE_INPUT true
-#define USE_EXT_TRIG false
+#define USE_EXT_TRIG true
 #define BUTTOM_MOMENT true
-const int PWMPin[] = {D3, D3};
-const int inputPin[] = {D7, D7};
+const int outputPin[] = {D3, D4};
+const int inputPin[] = {D5, D6};
 char *SW_Names[] = {"Switch_A", "Switch_B"};
-// const int PIRPin = D4;
 // ~~~~~~~~~~~~~~~~~~~~~~~
 
-mySwitch myTOsw0(PWMPin[0], TimeOUT[0],SW_Names[0]);
-mySwitch myTOsw1(PWMPin[1], TimeOUT[1],SW_Names[1]);
+mySwitch myTOsw0(outputPin[0], TimeOUT[0], SW_Names[0]);
 #if NUM_SW == 2
+mySwitch myTOsw1(outputPin[1], TimeOUT[1], SW_Names[1]);
 mySwitch *TOswitches[NUM_SW] = {&myTOsw0, &myTOsw1};
 #elif NUM_SW == 1
 mySwitch *TOswitches[NUM_SW] = {&myTOsw0};
@@ -64,10 +97,11 @@ void startTOSwitch()
                 TOswitches[i]->useInput = USE_INPUT;
                 TOswitches[i]->useEXTtrigger = USE_EXT_TRIG;
                 TOswitches[i]->is_momentery = BUTTOM_MOMENT;
-                TOswitches[i]->inputPin = inputPin[i];
                 TOswitches[i]->badBoot = true;
                 TOswitches[i]->usetimeOUT = USE_TO;
                 TOswitches[i]->useDailyTO = USE_dailyTO;
+
+                TOswitches[i]->inputPin = inputPin[i];
 
                 if (TOswitches[i]->useDailyTO)
                 {
@@ -86,7 +120,7 @@ void TOswitch_looper()
         char msgtoMQTT[150];
         for (int i = 0; i < NUM_SW; i++)
         {
-                TOswitches[i]->looper(iot.mqtt_detect_reset);
+                TOswitches[i]->looper(iot.mqtt_detect_reset,PIR_0.logic_state);
                 if (TOswitches[i]->postMessages(msgtoMQTT))
                 {
                         iot.pub_msg(msgtoMQTT);
@@ -94,7 +128,6 @@ void TOswitch_looper()
         }
 }
 // ***********************************
-
 void startIOTservices()
 {
         iot.useSerial = USE_SERIAL;
@@ -108,13 +141,51 @@ void startIOTservices()
         strcpy(iot.telegramServer, TELEGRAM_OUT_TOPIC);
         iot.start_services(ADD_MQTT_FUNC);
 }
+void giveStatus(char *outputmsg)
+{
+        char t1[50];
+        char t2[50];
+        char t3[150];
+
+        sprintf(t3, "Status: ");
+        for (int i = 0; i < NUM_SW; i++)
+        {
+                if (TOswitches[i]->TOswitch.remain() > 0)
+                {
+                        TOswitches[i]->TOswitch.convert_epoch2clock(now() + TOswitches[i]->TOswitch.remain(), now(), t2, t1);
+                        sprintf(t1, "timeLeft[%s]", t2);
+                }
+                else
+                {
+                        sprintf(t1, "");
+                }
+                if (USE_PWM)
+                {
+                        sprintf(t2, "[%s] power[%.0f%%] %s ", SW_Names[i], TOswitches[i]->current_power * 100, t1);
+                }
+                else
+                {
+                        sprintf(t2, "[%s] [%s] %s ", SW_Names[i], TOswitches[i]->current_power ? "ON" : "OFF", t1);
+                }
+                strcat(t3, t2);
+        }
+        sprintf(outputmsg, "%s", t3);
+}
+void all_off(char *from)
+{
+        for (int i = 0; i < NUM_SW; i++)
+        {
+                TOswitches[i]->all_off(from);
+        }
+}
 void addiotnalMQTT(char *incoming_msg)
 {
         char msg[150];
         char msg2[20];
+
         if (strcmp(incoming_msg, "status") == 0)
         {
-                sprintf(msg, "Status: Im OK");
+                giveStatus(msg);
                 iot.pub_msg(msg);
         }
         else if (strcmp(incoming_msg, "ver") == 0)
@@ -127,6 +198,12 @@ void addiotnalMQTT(char *incoming_msg)
         {
                 sprintf(msg, "Help: Commands #1 - [status, boot, reset, ip, ota, ver, help]");
                 iot.pub_msg(msg);
+                sprintf(msg, "Help: Commands #2 - [remain, restartTO, timeout, endTO, updateTO, restoreTO, statusTO]");
+                iot.pub_msg(msg);
+                sprintf(msg, "Help: Commands #3 - [off_dailyTO, on_dailyTO, flag_dailyTO, useflash_dailyTO, status_dailyTO]");
+                iot.pub_msg(msg);
+                sprintf(msg, "Help: Commands #4 - [on, off, change_pwm, all_off, flash, format]");
+                iot.pub_msg(msg);
         }
         else if (strcmp(incoming_msg, "flash") == 0)
         {
@@ -138,7 +215,7 @@ void addiotnalMQTT(char *incoming_msg)
         }
         else if (strcmp(incoming_msg, "all_off") == 0)
         {
-                // all_off("MQTT");
+                all_off("MQTT");
         }
 
         // ±±±±±±±±±± MQTT MSGS from mySwitch Library ±±±±±±±±±±±±
@@ -152,23 +229,19 @@ void addiotnalMQTT(char *incoming_msg)
                 }
         }
         // ±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
-
-        if (strcmp(incoming_msg, "offline") != 0 && strcmp(incoming_msg, "online") != 0 && strcmp(incoming_msg, "resetKeeper") != 0)
-        {
-                sprintf(msg, "Unrecognized Command: [%s]", incoming_msg);
-                iot.pub_log(msg);
-        }
 }
+
 
 void setup()
 {
         startIOTservices();
         startTOSwitch();
+        startPIRservices();
 }
 void loop()
 {
         iot.looper();
         TOswitch_looper();
-
+        PIRlooper();
         delay(100);
 }
