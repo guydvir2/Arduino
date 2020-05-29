@@ -119,7 +119,9 @@ void TOswitch_looper()
         char msgtoMQTT[150];
         for (int i = 0; i < NUM_SW; i++)
         {
-                TOswitches[i]->looper(iot.mqtt_detect_reset, PIR_0.logic_state);
+                TOswitches[i]->looper(iot.mqtt_detect_reset);
+                TOswitches[i]->ext_trig_signal=PIR_0.logic_state;
+                
                 if (TOswitches[i]->postMessages(msgtoMQTT))
                 {
                         iot.pub_msg(msgtoMQTT);
@@ -160,7 +162,7 @@ void giveStatus(char *outputmsg)
                 }
                 if (USE_PWM)
                 {
-                        if (current_power == 0)
+                        if (TOswitches[i]->current_power == 0)
                         {
                                 sprintf(t2, "[%s] [OFF] %s ", SW_Names[i], t1);
                         }

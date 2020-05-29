@@ -73,18 +73,29 @@ void startPIR1()
 void startPIR()
 {
   startPIR0();
-  startPIR1();
+  // startPIR1();
 }
 void PIRlooper()
 {
   PIR0.looper();
-  PIR1.looper();
-  if (PIR0.logic_state && PIR1.logic_state && inDetection==false)
+
+  // PIR1.looper();
+  // if (PIR0.logic_state && PIR1.logic_state && inDetection==false)
+  // {
+  //   notdet();
+  //   inDetection = true;
+  // }
+  // else if (PIR0.logic_state == false && PIR1.logic_state==false && inDetection)
+  // {
+  //   inDetection = false;
+  // }
+
+  if (PIR0.logic_state && inDetection==false)
   {
     notdet();
     inDetection = true;
   }
-  else if (PIR0.logic_state == false && PIR1.logic_state==false && inDetection)
+  else if (PIR0.logic_state == false && inDetection)
   {
     inDetection = false;
   }

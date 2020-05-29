@@ -1,17 +1,13 @@
 #include "Arduino.h"
 int pin0 = D2;
-bool READ;
-bool &read = READ;
-
-void printush(){
-  Serial.println(read);
-}
+int pin1 = D1;
 
 void setup() {
   // put your setup code here, to run once:
   Serial.begin(9600);
   // pinMode(pin0, OUTPUT);
   pinMode(pin0, INPUT);
+  pinMode(pin1, INPUT);
 }
 
 void loop() {
@@ -41,7 +37,8 @@ void loop() {
   //
   //  delay(5000);
   // Serial.println(digitalRead(pin0));
-  READ = digitalRead(pin0);
-  printush();
+  Serial.println(digitalRead(pin0));
+  Serial.println(digitalRead(pin1));
+
   delay(200);
 }

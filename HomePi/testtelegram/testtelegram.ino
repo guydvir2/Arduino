@@ -17,6 +17,8 @@
 #define DEVICE_TOPIC "TelegramServer"
 #define MQTT_PREFIX "myHome"
 #define MQTT_GROUP ""
+#define TELEGRAM_OUT_TOPIC "Telegram_out"
+#define TELEGRAM_LISTEN_TOPIC "myHome/Telegram_out"
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 #define ADD_MQTT_FUNC addiotnalMQTT
@@ -30,8 +32,6 @@ struct MQTT_msg
         char device_topic[50];
 };
 MQTT_msg incoming_mqtt;
-#define TELEGRAM_OUT_TOPIC "Telegram_out"
-#define TELEGRAM_LISTEN_TOPIC "myHome/Telegram_out"
 const int log_size = 5;
 char LOG[log_size][150];
 
@@ -99,7 +99,7 @@ void send_telegram_mqtt_msg()
 {
         if (chekcTelegram_topic(TELEGRAM_LISTEN_TOPIC, incoming_mqtt))
         {
-                teleNotify.send_msg(incoming_mqtt.msg);
+                teleNotify.send_msg2(String(incoming_mqtt.msg));
                 iot.pub_msg(incoming_mqtt.msg);
         }
 }
@@ -213,5 +213,6 @@ void loop()
         teleNotify.looper();
         send_telegram_mqtt_msg();
 
+  
         delay(100);
 }

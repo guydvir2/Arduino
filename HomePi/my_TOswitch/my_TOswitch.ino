@@ -16,7 +16,7 @@
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 // ~~~~~~~ MQTT Topics ~~~~~~
-#define DEVICE_TOPIC "Stove"
+#define DEVICE_TOPIC "LivingRoom"
 #define MQTT_PREFIX "myHome"
 #define MQTT_GROUP "intLights"
 #define TELEGRAM_OUT_TOPIC "Telegram_out"
@@ -31,8 +31,8 @@ myIOT iot(DEVICE_TOPIC);
 // ~~~~ TO & dailyTO ~~~~~~
 #define USE_TO true
 #define USE_dailyTO true
-const int START_dTO[2][3] = {{18, 0, 0}, {20, 10, 0}};
-const int END_dTO[2][3] = {{7, 30, 0}, {20, 30, 0}};
+const int START_dTO[2][3] = {{16, 0, 0}, {18, 30, 0}};
+const int END_dTO[2][3] = {{0, 30, 0}, {23, 0, 0}};
 const int TimeOUT[] = {120, 1}; // minutes
 // ~~~~~~~~~~~~~~~~~~~~
 
@@ -49,12 +49,12 @@ const int TimeOUT[] = {120, 1}; // minutes
 
 #define NUM_SW 1
 #define USE_PWM false
-#define USE_INPUT true
+#define USE_INPUT false
 #define USE_EXT_TRIG false
 #define BUTTOM_MOMENT false
 const int outputPin[] = {12, 5};
 const int inputPin[] = {14, 0};
-char *SW_Names[] = {"Stove", "Switch_B"};
+char *SW_Names[] = {"Lamp", "Strips"};
 // ~~~~~~~~~~~~~~~~~~~~~~~
 
 mySwitch myTOsw0(outputPin[0], TimeOUT[0], SW_Names[0]);
@@ -77,6 +77,8 @@ void startTOSwitch()
                 TOswitches[i]->badBoot = true;
                 TOswitches[i]->usetimeOUT = USE_TO;
                 TOswitches[i]->useDailyTO = USE_dailyTO;
+                TOswitches[i]->usesafetyOff = true;
+                TOswitches[i]->set_safetyoff = 600;
 
                 TOswitches[i]->inputPin = inputPin[i];
 
@@ -97,7 +99,6 @@ void TOswitch_looper()
         char msgtoMQTT[150];
         for (int i = 0; i < NUM_SW; i++)
         {
-                // TOswitches[i]->looper(iot.mqtt_detect_reset, PIR_0.logic_state); // For use with ext_triggrer
                 TOswitches[i]->looper(iot.mqtt_detect_reset);
                 if (TOswitches[i]->postMessages(msgtoMQTT))
                 {

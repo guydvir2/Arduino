@@ -75,6 +75,7 @@ public:
   myTelegram(char *Bot, char *chatID, int checkServer_interval = def_time_check_M, char *ssid = SSID_ID, char *password = PASS_WIFI);
   void begin(cb_func2 funct);
   void send_msg(char *msg);
+  void send_msg2(String msg);
   void looper();
 };
 
@@ -286,12 +287,14 @@ private:
   bool _retrig = false;
   char *_trig_name = "ext_trigger";
   char *_clockAlias = "Daily TimeOut";
+  unsigned long _safetyOff_clock = 0;
 
 private:
   void _checkSwitch_Pressed(int swPin, bool momentary = true);
   void _TOlooper(int det_reset);
   void _start_dailyTO();
   void _extTrig_looper();
+  void _safetyOff();
 
 public:
   bool usePWM = false;
@@ -301,6 +304,7 @@ public:
   bool usetimeOUT = true;
   bool useDailyTO = false;
   bool useEXTtrigger = false;
+  bool usesafetyOff = false;
   bool ext_trig_signal;
   bool is_momentery = true;
   bool last_relayState = false;
@@ -314,6 +318,7 @@ public:
   float current_power = 0.0;
   int START_dailyTO[3] = {23, 27, 30};
   int END_dailyTO[3] = {23, 28, 0};
+  int set_safetyoff=360; //minutes
 
   timeOUT TOswitch;
 
@@ -322,7 +327,6 @@ public:
   void changePower(float val);
   void switchIt(char *txt1, float state, bool ignoreTO=false);
   void begin();
-  void looper(int det_reset, bool &a);
   void looper(int det_reset);
   void extTrig_cb(bool det = HIGH, bool retrig = false, char *trig_name = "ext_trigger");
   bool postMessages(char outmsg[150]);

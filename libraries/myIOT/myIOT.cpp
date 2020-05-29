@@ -1122,10 +1122,10 @@ void timeOUT::restart_dailyTO(dTO &dailyTO)
 // ~~~~~~~~~~~ myTelegram Class ~~~~~~~~~~~~
 myTelegram::myTelegram(char *Bot, char *chatID, int checkServer_interval, char *ssid, char *password) : bot(Bot, client)
 {
-        sprintf(_bot, Bot);
-        sprintf(_chatID, chatID);
-        sprintf(_ssid, ssid);
-        sprintf(_password, password);
+        sprintf(_bot, "%s", Bot);
+        sprintf(_chatID, "%s", chatID);
+        sprintf(_ssid, "%s", ssid);
+        sprintf(_password, "%s", password);
 }
 void myTelegram::handleNewMessages(int numNewMessages)
 {
@@ -1168,15 +1168,13 @@ void myTelegram::begin(cb_func2 funct)
                 }
                 WiFi.setAutoReconnect(true);
         }
-
-        // Serial.println("");
-        // Serial.println("WiFi connected");
-        // Serial.print("IP address: ");
-        // Serial.println(WiFi.localIP());
-
         client.setInsecure();
 }
 void myTelegram::send_msg(char *msg)
+{
+        bot.sendMessage(_chatID, msg, "");
+}
+void myTelegram::send_msg2(String msg)
 {
         bot.sendMessage(_chatID, msg, "");
 }
@@ -1321,6 +1319,10 @@ void mySwitch::switchIt(char *txt1, float state, bool ignoreTO)
                         }
                 }
         }
+        if (usesafetyOff)
+        {
+                _safetyOff_clock = millis();
+        }
 }
 
 void mySwitch::_checkSwitch_Pressed(int swPin, bool momentary)
@@ -1441,7 +1443,7 @@ void mySwitch::adHOC_timeout(int mins, bool inMinutes)
 {
         TOswitch.setNewTimeout(mins, inMinutes);
 }
-void mySwitch::looper(int det_reset, bool &a)
+void mySwitch::looper(int det_reset)
 {
         _TOlooper(det_reset);
         if (useInput)
@@ -1450,16 +1452,11 @@ void mySwitch::looper(int det_reset, bool &a)
         }
         if (useEXTtrigger)
         {
-                ext_trig_signal = a;
                 _extTrig_looper();
         }
-}
-void mySwitch::looper(int det_reset)
-{
-        _TOlooper(det_reset);
-        if (useInput)
+        if (usesafetyOff)
         {
-                _checkSwitch_Pressed(inputPin);
+                _safetyOff();
         }
 }
 void mySwitch::extTrig_cb(bool det, bool retrig, char *trig_name)
@@ -1660,4 +1657,12 @@ void mySwitch::all_off(char *from)
                 TOswitch.endNow();
         }
         sprintf(_outMQTTmsg, "All OFF: [%s] Received from %s", _switchName, from);
+}
+void mySwitch::_safetyOff()
+{
+        if (_safetyOff_clock != 0 && millis() - _safetyOff_clock > set_safetyoff * 60 * 1000L)
+        {
+                switchIt("safetyTimeout", 0);
+                _safetyOff_clock = 0;
+        }
 }
