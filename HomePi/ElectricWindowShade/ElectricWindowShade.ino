@@ -2,11 +2,12 @@
 #include <Arduino.h>
 
 // ********** Sketch Services  ***********
-#define VER "NodeMCU_5.6"
+#define VER "NodeMCU_5.7"
 #define USE_BOUNCE_DEBUG false
 #define USE_2_EXT_INPUT false // Only for dual input window
 #define USE_AUTO_RELAY_OFF true
-#define AUTO_RELAY_TIMEOUT 45
+#define USE_AUTO_OFF true
+#define AUTO_RELAY_TIMEOUT 60
 // ********** myIOT Class ***********
 //~~~~~ Services ~~~~~~~~~~~
 #define USE_SERIAL false
@@ -17,7 +18,7 @@
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 // ~~~~~~~ MQTT Topics ~~~~~~
-#define DEVICE_TOPIC "familyRoom"
+#define DEVICE_TOPIC "parentsRoom"
 #define MQTT_PREFIX "myHome"
 #define MQTT_GROUP "Windows"
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -61,7 +62,7 @@ void startIOTservices()
         iot.resetFailNTP = USE_FAILNTP;
         strcpy(iot.prefixTopic, MQTT_PREFIX);
         strcpy(iot.addGroupTopic, MQTT_GROUP);
-        iot.start_services(ADD_MQTT_FUNC);
+        iot.start_services(ADD_MQTT_FUNC);//, SSID_ID, PASS_WIFI, MQTT_USER, MQTT_PASS, "192.168.3.201");
 }
 void setup()
 {
@@ -134,7 +135,8 @@ void addiotnalMQTT(char incoming_msg[50])
         }
         else if (strcmp(incoming_msg, "ver") == 0)
         {
-                sprintf(msg, "ver:[%s], lib:[%s], WDT:[%d], OTA:[%d], SERIAL:[%d],ResetKeeper[%d], FailNTP[%d]", VER, iot.ver, USE_WDT, USE_OTA, USE_SERIAL, USE_RESETKEEPER, USE_FAILNTP);
+                sprintf(msg, "ver:[%s], lib:[%s], WDT:[%d], OTA:[%d], SERIAL:[%d],ResetKeeper[%d], FailNTP[%d], AutoOFF[%d]",
+                        VER, iot.ver, USE_WDT, USE_OTA, USE_SERIAL, USE_RESETKEEPER, USE_FAILNTP, USE_AUTO_OFF);
                 iot.pub_msg(msg);
         }
         else if (strcmp(incoming_msg, "help") == 0)
@@ -207,6 +209,7 @@ void switchIt(char *type, char *dir)
         iot.pub_state(dir);
         sprintf(mqttmsg, "%s: Switched [%s]", type, dir);
         iot.pub_msg(mqttmsg);
+        Serial.println(mqttmsg);
 
         if (USE_AUTO_RELAY_OFF)
         {
@@ -263,7 +266,9 @@ void loop()
                 checkSwitch_looper(inputUpExtPin, "up", inputUpExt_lastState, "extButton");
                 checkSwitch_looper(inputDownExtPin, "down", inputDownExt_lastState, "extButton");
         }
-
-        checkTimeout_AutoRelay_Off(AUTO_RELAY_TIMEOUT);
+        if (USE_AUTO_OFF)
+        {
+                checkTimeout_AutoRelay_Off(AUTO_RELAY_TIMEOUT);
+        }
         delay(100);
 }

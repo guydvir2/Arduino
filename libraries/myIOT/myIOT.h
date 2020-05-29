@@ -75,6 +75,7 @@ public:
   myTelegram(char *Bot, char *chatID, int checkServer_interval = def_time_check_M, char *ssid = SSID_ID, char *password = PASS_WIFI);
   void begin(cb_func2 funct);
   void send_msg(char *msg);
+  void send_msg2(String msg);
   void looper();
 };
 
@@ -117,7 +118,6 @@ public:
   char inline_param[6][20]; //values from user
 
   bool alternativeMQTTserver = false;
-  bool noNetwork_flag = false;
   bool NTP_OK = false;
   byte mqtt_detect_reset = 2;
   char prefixTopic[MaxTopicLength];
@@ -140,7 +140,7 @@ private:
   const int clockUpdateInt = 60 * 60 * 5;              // seconds to update NTP
   const int WIFItimeOut = (1000 * 60) * 1 / 2;         // 30 sec try to connect WiFi
   const int OTA_upload_interval = (1000 * 60) * 10;    // 10 minute to try OTA
-  const long time2Reset_noNetwork = (1000 * 60) * 30L; // minutues pass without any network
+  const long time2Reset_noNetwork = (1000 * 60) * 10L; // minutues pass without any network
   volatile int wdtResetCounter = 0;
   const int wdtMaxRetries = 30; //seconds to bITE
   long noNetwork_Clock = 0;     // clock
@@ -282,18 +282,19 @@ class mySwitch
 private:
   int _switchPin;
   char _switchName[20];
-  char _switchMSG[100];
-  float _current_state = 0.0;
+  char _outMQTTmsg[150];
   bool _ext_det = HIGH;
   bool _retrig = false;
   char *_trig_name = "ext_trigger";
   char *_clockAlias = "Daily TimeOut";
+  unsigned long _safetyOff_clock = 0;
 
 private:
   void _checkSwitch_Pressed(int swPin, bool momentary = true);
   void _TOlooper(int det_reset);
   void _start_dailyTO();
   void _extTrig_looper();
+  void _safetyOff();
 
 public:
   bool usePWM = false;
@@ -303,29 +304,36 @@ public:
   bool usetimeOUT = true;
   bool useDailyTO = false;
   bool useEXTtrigger = false;
-  bool ext_trig_signal = false;
+  bool usesafetyOff = false;
+  bool ext_trig_signal;
   bool is_momentery = true;
+  bool last_relayState = false;
+  bool trig_lastState = false;
+  bool inputState;
   int inputPin = -1;
   float step_power = 0.2;
   float max_power = 1.0;
   float min_power = step_power;
   float def_power = 0.7;
+  float current_power = 0.0;
   int START_dailyTO[3] = {23, 27, 30};
   int END_dailyTO[3] = {23, 28, 0};
+  int set_safetyoff=360; //minutes
 
   timeOUT TOswitch;
 
 public:
   mySwitch(int switchPin, int timeout_val = 60, char *name = "mySwitch");
   void changePower(float val);
-  void switchIt(char *txt1, float state);
+  void switchIt(char *txt1, float state, bool ignoreTO=false);
   void begin();
-  void looper(int det_reset = 2);
+  void looper(int det_reset);
   void extTrig_cb(bool det = HIGH, bool retrig = false, char *trig_name = "ext_trigger");
   bool postMessages(char outmsg[150]);
   void adHOC_timeout(int mins, bool inMinutes = true);
   void setdailyTO(const int start_clk[], const int end_clk[]);
   void getMQTT(char *parm1, int p2, int p3, int p4);
+  void all_off(char *from);
 };
 
 #endif

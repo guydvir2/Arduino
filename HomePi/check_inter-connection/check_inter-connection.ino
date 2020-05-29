@@ -2,7 +2,7 @@
 #include <Arduino.h>
 
 // ********** Sketch Services  ***********
-#define VER "WEMOS_1.1"
+#define VER "WEMOS_1.2"
 
 // ********** myIOT Class ***********
 //~~~~~ Services ~~~~~~~~~~~
@@ -34,9 +34,9 @@ int disc_1h[disconnects_1hr_alarm];
 int disc_24hr[disconnects_24hr_alarm];
 int disconnect_counter = 0;
 int longest_discon = 0;
-const int min_ping_val = 10; //seconds
-const int max_ping_val = 60; // seconds
-int adaptive_ping_val = min_ping_val;
+const int min_ping_interval = 10; //seconds
+const int max_ping_interval = 60; // seconds
+int adaptive_ping_val = min_ping_interval;
 long accum_connect = 0;
 long accum_disconnect = 0;
 time_t begin_monitor_clock;
@@ -277,7 +277,7 @@ void prcoess_status(bool get_ping)
                                 epoch2datestr(inter_ok_start, clock0);
                                 epoch2datestr(inter_fail_start, clock1);
 
-                                sprintf(notif, "Reconnect: %d; Disconnect: %d, offline-duration: %d", clock0, clock1, inter_ok_start - inter_fail_start);
+                                sprintf(notif, "Reconnect: [%s]; Disconnect: [%s], offline-duration: [%d sec]", clock0, clock1, inter_ok_start - inter_fail_start);
                                 iot.pub_msg(notif);
                                 sendTelegramServer(notif);
                         }
@@ -295,20 +295,18 @@ void prcoess_status(bool get_ping)
                         inter_fail_start = now();
                         accum_connect += inter_fail_start - inter_ok_start;
                         disconnect_counter++;
-                        Serial.print("Disconnect_time: ");
-                        Serial.println(inter_fail_start);
                 }
                 internetConnected = get_ping;
                 same_state_counter = 0;
-                adaptive_ping_val = min_ping_val;
+                adaptive_ping_val = min_ping_interval;
         }
         // No channges is connect status //
         else
         {
                 same_state_counter++;
-                if (same_state_counter >= 10 && adaptive_ping_val != max_ping_val)
+                if (same_state_counter >= 10 && adaptive_ping_val != max_ping_interval)
                 {
-                        adaptive_ping_val = internetConnected ? max_ping_val : min_ping_val;
+                        adaptive_ping_val = internetConnected ? max_ping_interval : min_ping_interval;
                 }
                 if (get_ping == false && inter_fail_start == 0)
                 {
@@ -325,7 +323,7 @@ void ping_it(int interval_check = 30)
                 bool reachout = false;
                 byte retries = 0;
 
-                while (reachout == false && retries < 2)
+                while (reachout == false && retries < 3)
                 {
                         reachout = iot.checkInternet("www.google.com", 2);
                         retries++;

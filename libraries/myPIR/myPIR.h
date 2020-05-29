@@ -37,7 +37,7 @@ public:
 
     bool use_serial = false;  // select to use serial port
     bool use_timer = false;   // select if detection will rise a flag for predefined time
-    bool sens_state = false;  // select detection is HIGH or LOW
+    bool sens_state = false;  // store current read of sensor
     bool logic_state = false; // a flag that will be on for some time, altghot physucal state has changed
     bool stop_sensor = false; // during code run, select to disable sensor activity
     bool trigger_once = true; // when using timer, how to react to re-detect ? add time ?

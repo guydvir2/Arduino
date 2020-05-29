@@ -42,10 +42,7 @@ void myIOT::start_services(cb_func funct, char *ssid, char *password, char *mqtt
 }
 void myIOT::looper()
 {
-        if (!noNetwork_flag)
-        {                         // if boot start without wifi - only a timeout reset will start with flag is false
-                network_looper(); // runs wifi/mqtt connectivity
-        }
+        network_looper();    // runs wifi/mqtt connectivity
         wdtResetCounter = 0; //reset WDT watchDog
         if (useOTA)
         { // checks for OTA
@@ -125,7 +122,7 @@ void myIOT::start_network_services()
         }
         else
         {
-                noNetwork_flag = true;
+                noNetwork_Clock = millis();
         }
 }
 void myIOT::network_looper()
@@ -139,15 +136,17 @@ void myIOT::network_looper()
                 else
                 { // not connected mqtt
                         if (subscribeMQTT())
-                        { // succeed too reconnect
+                        { // succeed to reconnect
                                 mqttClient.loop();
                                 noNetwork_Clock = 0;
+                                Serial.println("REconnect MQTT- OK");
                         }
                         else
                         { // failed to reconnect
                                 if (noNetwork_Clock == 0)
                                 { // first time fail MQTT
                                         noNetwork_Clock = millis();
+                                        Serial.println("1st time -fail to REconnect MQTT");
                                 }
                         }
                 }
@@ -159,11 +158,13 @@ void myIOT::network_looper()
                         if (noNetwork_Clock == 0)
                         { // first time when NO NETWORK ?
                                 noNetwork_Clock = millis();
+                                // Serial.println("1st time -fail to Wifi");
                         }
                 }
                 else
                 { // reconnect succeeded
                         noNetwork_Clock = 0;
+                        // Serial.println("wifi reconnected!");
                 }
         }
 }
@@ -276,7 +277,7 @@ void myIOT::startMQTT()
                 alternativeMQTTserver = false;
                 if (useSerial)
                 {
-                        Serial.println("MQTT SERVER: ");
+                        Serial.print("MQTT SERVER: ");
                         Serial.println(mqtt_server);
                 }
         }
@@ -321,10 +322,13 @@ bool myIOT::subscribeMQTT()
         if (!mqttClient.connected())
         {
                 long now = millis();
-                if (now - lastReconnectAttempt > 5000)
+                if (noNetwork_Clock > 0 && now - noNetwork_Clock > 60000L)
+                {
+                        return 0;
+                }
+                else if (now - lastReconnectAttempt > 5000)
                 {
                         lastReconnectAttempt = now;
-
                         if (useSerial)
                         {
                                 Serial.println("have wifi, entering MQTT connection");
@@ -336,6 +340,7 @@ bool myIOT::subscribeMQTT()
 
                         if (mqttClient.connect(tempname, user, passw, _availTopic, 0, true, "offline"))
                         {
+                                // Connecting sequence
                                 for (int i = 0; i < sizeof(topicArry) / sizeof(char *); i++)
                                 {
                                         if (strcmp(topicArry[i], "") != 0)
@@ -376,6 +381,10 @@ bool myIOT::subscribeMQTT()
                                 }
                                 return 0;
                         }
+                }
+                else
+                {
+                        return 0;
                 }
         }
         else
@@ -436,9 +445,12 @@ void myIOT::callback(char *topic, byte *payload, unsigned int length)
         {
                 Serial.println("");
         }
-        sprintf(mqqt_ext_buffer[0], "%s", topic);
-        sprintf(mqqt_ext_buffer[1], "%s", incoming_msg);
-        sprintf(mqqt_ext_buffer[2], "%s", deviceTopic);
+        if (useTelegram && strcmp(topic, _telegramServer) == 0)
+        {
+                sprintf(mqqt_ext_buffer[0], "%s", topic);
+                sprintf(mqqt_ext_buffer[1], "%s", incoming_msg);
+                sprintf(mqqt_ext_buffer[2], "%s", _deviceName); // not full path
+        }
         if (strcmp(topic, _availTopic) == 0 && useResetKeeper && firstRun)
         {
                 firstRun_ResetKeeper(incoming_msg);
@@ -824,6 +836,7 @@ timeOUT::timeOUT(char *sw_num, int def_val)
 bool timeOUT::looper()
 {
         dailyTO_looper(dailyTO);
+
         if (_calc_endTO > now())
         {
                 return 1;
@@ -1109,10 +1122,10 @@ void timeOUT::restart_dailyTO(dTO &dailyTO)
 // ~~~~~~~~~~~ myTelegram Class ~~~~~~~~~~~~
 myTelegram::myTelegram(char *Bot, char *chatID, int checkServer_interval, char *ssid, char *password) : bot(Bot, client)
 {
-        sprintf(_bot, Bot);
-        sprintf(_chatID, chatID);
-        sprintf(_ssid, ssid);
-        sprintf(_password, password);
+        sprintf(_bot, "%s", Bot);
+        sprintf(_chatID, "%s", chatID);
+        sprintf(_ssid, "%s", ssid);
+        sprintf(_password, "%s", password);
 }
 void myTelegram::handleNewMessages(int numNewMessages)
 {
@@ -1155,15 +1168,13 @@ void myTelegram::begin(cb_func2 funct)
                 }
                 WiFi.setAutoReconnect(true);
         }
-
-        // Serial.println("");
-        // Serial.println("WiFi connected");
-        // Serial.print("IP address: ");
-        // Serial.println(WiFi.localIP());
-
         client.setInsecure();
 }
 void myTelegram::send_msg(char *msg)
+{
+        bot.sendMessage(_chatID, msg, "");
+}
+void myTelegram::send_msg2(String msg)
 {
         bot.sendMessage(_chatID, msg, "");
 }
@@ -1202,31 +1213,34 @@ void mySwitch::begin()
                 pinMode(inputPin, INPUT_PULLUP);
         }
 
-        pinMode(_switchPin, INPUT);
+        pinMode(_switchPin, OUTPUT);
 
-        _current_state = 0;
+        current_power = 0;
         if (usePWM)
         {
-                analogWrite(_switchPin, _current_state);
+                analogWrite(_switchPin, current_power);
         }
         else
         {
-                digitalWrite(_switchPin, _current_state);
+                digitalWrite(_switchPin, current_power);
         }
 
-        TOswitch.begin(false);
-        if (TOswitch.remain() > 0)
+        if (usetimeOUT)
         {
-                badBoot = true;
-        }
-        if (useDailyTO)
-        {
-                _start_dailyTO();
+                TOswitch.begin(false);
+                if (TOswitch.remain() > 0)
+                {
+                        badBoot = true;
+                }
+                if (useDailyTO)
+                {
+                        _start_dailyTO();
+                }
         }
 }
 void mySwitch::changePower(float val)
 {
-        if (val != _current_state)
+        if (val != current_power)
         {
                 if (val >= max_power)
                 {
@@ -1240,15 +1254,15 @@ void mySwitch::changePower(float val)
                 {
                         val = min_power;
                 }
-                _current_state = val;
+                current_power = val;
                 analogWrite(_switchPin, val * PWM_RES);
         }
 }
-void mySwitch::switchIt(char *txt1, float state)
+void mySwitch::switchIt(char *txt1, float state, bool ignoreTO)
 {
         char msg1[20];
         char msg2[20];
-        if (state != _current_state)
+        if (state != current_power)
         {
                 if (usePWM)
                 {
@@ -1256,57 +1270,58 @@ void mySwitch::switchIt(char *txt1, float state)
                         {
                                 // turning off
                                 changePower(state);
-                                sprintf(_switchMSG, "%s: Switched [Off]", txt1);
+                                sprintf(_outMQTTmsg, "%s: [%s] Switched [Off]", txt1, _switchName);
                         }
-                        else if (_current_state == 0.0 && state > 0)
+                        else if (current_power == 0.0 && state > 0)
                         {
                                 // turning on
                                 changePower(state);
-                                sprintf(_switchMSG, "%s: Switched [On] [%.1f%%] power", txt1, _current_state * 100);
-                                if (usetimeOUT && TOswitch.remain() == 0)
-                                {
-                                }
+                                sprintf(_outMQTTmsg, "%s: [%s] Switched [On] [%.1f%%] power", txt1, _switchName, current_power * 100);
                         }
                         else
                         {
                                 changePower(state);
-                                sprintf(_switchMSG, "%s: Switched to [%.1f%%] power", txt1, _current_state * 100);
+                                sprintf(_outMQTTmsg, "%s: [%s] Switched to [%.1f%%] power", txt1, _switchName, current_power * 100);
                         }
                 }
                 else
                 {
-                        if (state != _current_state)
+                        if (state != current_power)
                         {
                                 digitalWrite(_switchPin, state);
-                                _current_state = state;
-                                sprintf(_switchMSG, "%s: Switched [%s]", txt1, (int)_current_state ? "On" : "Off");
-                                if (usetimeOUT && _current_state == 1)
-                                {
-                                        TOswitch.restart_to();
-                                }
+                                current_power = state;
+                                sprintf(_outMQTTmsg, "%s: [%s] Switched [%s]", txt1, _switchName, (int)current_power ? "On" : "Off");
+                                // if (usetimeOUT && current_power == 1)
+                                // {
+                                //         TOswitch.restart_to();
+                                // }
                         }
                 }
 
-                if (usetimeOUT)
+                if (usetimeOUT && ignoreTO == false)
                 {
-                        if (TOswitch.remain() > 0 && _current_state == 0.0)
+                        if (TOswitch.remain() > 0 && current_power == 0.0)
                         {
                                 TOswitch.endNow();
                         }
-                        else if (TOswitch.remain() == 0 && _current_state > 0.0)
+                        else if (TOswitch.remain() == 0 && current_power > 0.0)
                         {
                                 TOswitch.restart_to();
                                 TOswitch.convert_epoch2clock(now() + TOswitch.remain(), now(), msg1, msg2);
                                 sprintf(msg2, " Start Timeout[%s]", msg1);
-                                strcat(_switchMSG, msg2);
+                                strcat(_outMQTTmsg, msg2);
                         }
-                        else if (TOswitch.remain() > 0 && _current_state > 0.0)
+                        else if (TOswitch.remain() > 0 && current_power > 0.0)
                         {
                                 TOswitch.convert_epoch2clock(now() + TOswitch.remain(), now(), msg1, msg2);
                                 sprintf(msg2, " Resume Timeout[%s]", msg1);
-                                strcat(_switchMSG, msg2);
+                                strcat(_outMQTTmsg, msg2);
                         }
                 }
+        }
+        if (usesafetyOff)
+        {
+                _safetyOff_clock = millis();
         }
 }
 
@@ -1322,20 +1337,20 @@ void mySwitch::_checkSwitch_Pressed(int swPin, bool momentary)
                         {
                                 if (usePWM) // for mosfet switching
                                 {
-                                        if (_current_state + step_power > max_power)
+                                        if (current_power + step_power > max_power)
                                         {
                                                 switchIt("Button", 0);
                                         }
                                         else
                                         {
-                                                switchIt("Button", _current_state + step_power);
+                                                switchIt("Button", current_power + step_power);
                                         }
                                 }
                                 else // for relay switching
                                 {
-                                        if (_current_state == 1)
+                                        if (current_power == 1)
                                         {
-                                                switchIt("Button1", 0);
+                                                switchIt("Button", 0);
                                         }
                                         else
                                         {
@@ -1347,7 +1362,6 @@ void mySwitch::_checkSwitch_Pressed(int swPin, bool momentary)
         }
         else
         {
-                static bool inputState;
                 if (digitalRead(swPin) != inputState)
                 {
                         delay(50);
@@ -1378,16 +1392,15 @@ void mySwitch::_TOlooper(int det_reset)
 {
         if (det_reset != 2)
         {
-                static bool last_relayState = false;
-                bool relayState = TOswitch.looper();
+                bool relayState = TOswitch.looper(); // TO in on/off state ?
 
                 if (relayState != last_relayState)
                 { // change state (ON <-->OFF)
-                        if (relayState == 0 && _current_state > 0)
+                        if (relayState == 0 && current_power > 0)
                         {
                                 switchIt("TimeOut", relayState);
                         }
-                        else if (_current_state == 0 && relayState == 1)
+                        else if (relayState == 1 && current_power == 0)
                         {
                                 if (usePWM)
                                 {
@@ -1398,28 +1411,8 @@ void mySwitch::_TOlooper(int det_reset)
                                         switchIt("TimeOut", relayState);
                                 }
                         }
+                        last_relayState = relayState;
                 }
-                // if (usePWM)
-                // {
-                //         if (relayState == 0 && _current_state > 0)
-                //         {
-                //                 switchIt("TimeOut", 0);
-                //         }
-                //         else if (_current_state == 0 && relayState == 1)
-                //         {
-
-                //                 switchIt("TimeOut", def_power);
-                //         }
-                // }
-                // else
-                // {
-                //         if (relayState == 0 && _current_state == 1)
-                //         {
-                //                 switchIt("TimeOut", relayState);
-                //         }
-                //         else if (_current_state == 0 && relayState == 1)
-                // }
-                last_relayState = relayState;
         }
 }
 void mySwitch::_start_dailyTO()
@@ -1437,10 +1430,10 @@ bool mySwitch::postMessages(char outmsg[150])
                 sprintf(TOswitch.dTO_pubMsg, "%s", "");
                 return 1;
         }
-        if (strcmp(_switchMSG, "") != 0)
+        if (strcmp(_outMQTTmsg, "") != 0)
         {
-                sprintf(outmsg, "%s", _switchMSG);
-                sprintf(_switchMSG, "%s", "");
+                sprintf(outmsg, "%s", _outMQTTmsg);
+                sprintf(_outMQTTmsg, "%s", "");
                 return 1;
         }
 
@@ -1452,7 +1445,6 @@ void mySwitch::adHOC_timeout(int mins, bool inMinutes)
 }
 void mySwitch::looper(int det_reset)
 {
-        TOswitch.looper();
         _TOlooper(det_reset);
         if (useInput)
         {
@@ -1462,20 +1454,21 @@ void mySwitch::looper(int det_reset)
         {
                 _extTrig_looper();
         }
+        if (usesafetyOff)
+        {
+                _safetyOff();
+        }
 }
 void mySwitch::extTrig_cb(bool det, bool retrig, char *trig_name)
 {
-        _ext_det = det;
+        _ext_det = det; // is detection HIGH or LOW
         _retrig = retrig;
         _trig_name = trig_name;
 }
 void mySwitch::_extTrig_looper()
 {
-        static bool trig_lastState = false;
-
         if (ext_trig_signal != trig_lastState)
         {
-                Serial.println(ext_trig_signal);
                 if (ext_trig_signal == _ext_det) //trig is ON according defined by det
                 {
                         if (TOswitch.remain() > 0)
@@ -1487,7 +1480,14 @@ void mySwitch::_extTrig_looper()
                         }
                         else
                         {
-                                switchIt(_trig_name, def_power); // set ON
+                                if (usePWM)
+                                {
+                                        switchIt(_trig_name, def_power); // set ON
+                                }
+                                else
+                                {
+                                        switchIt(_trig_name, 1); // set ON
+                                }
                         }
                 }
         }
@@ -1503,36 +1503,38 @@ void mySwitch::setdailyTO(const int start_clk[], const int end_clk[])
 }
 void mySwitch::getMQTT(char *parm1, int p2, int p3, int p4)
 {
-        char msg_MQTT[150];
         char msg2[20];
 
         if (strcmp(parm1, "on") == 0)
         {
                 if (usePWM)
                 {
-                        switchIt("MQTT", def_power);
+                        switchIt("MQTT", def_power, true);
                 }
                 else
                 {
-                        switchIt("MQTT", 1);
+                        switchIt("MQTT", 1, true);
                 }
         }
         else if (strcmp(parm1, "off") == 0)
         {
                 switchIt("MQTT", 0);
         }
+        else if (strcmp(parm1, "all_off") == 0)
+        {
+                all_off("MQTT");
+        }
+
         else if (strcmp(parm1, "timeout") == 0)
         {
                 TOswitch.setNewTimeout(p2);
-                TOswitch.convert_epoch2clock(now() + p2 * 60, now(), msg2, msg_MQTT);
-                sprintf(msg_MQTT, "TimeOut: Switch[%s] one-time TimeOut %s", _switchName, msg2);
-                postMessages(msg_MQTT);
+                TOswitch.convert_epoch2clock(now() + p2 * 60, now(), msg2, _outMQTTmsg);
+                sprintf(_outMQTTmsg, "TimeOut: [%s] one-time TimeOut %s", _switchName, msg2);
         }
         else if (strcmp(parm1, "updateTO") == 0)
         {
                 TOswitch.updateTOinflash(p2);
-                sprintf(msg_MQTT, "TimeOut: Switch [%s] Updated in flash to [%d min.]", _switchName, p2);
-                postMessages(msg_MQTT);
+                sprintf(_outMQTTmsg, "TimeOut: Switch [%s] Updated in flash to [%d min.]", _switchName, p2);
                 delay(1000);
                 ESP.reset();
                 /*
@@ -1544,35 +1546,33 @@ void mySwitch::getMQTT(char *parm1, int p2, int p3, int p4)
         {
                 if (TOswitch.remain() > 0)
                 {
-                        TOswitch.convert_epoch2clock(now() + TOswitch.remain(), now(), msg2, msg_MQTT);
-                        sprintf(msg_MQTT, "TimeOut: Switch[%s] Remain [%s]", _switchName, msg2);
-                        postMessages(msg_MQTT);
+                        TOswitch.convert_epoch2clock(now() + TOswitch.remain(), now(), msg2, _outMQTTmsg);
+                        sprintf(_outMQTTmsg, "TimeOut: [%s] Remain [%s]", _switchName, msg2);
                 }
         }
         else if (strcmp(parm1, "restartTO") == 0)
         {
                 TOswitch.restart_to();
-                sprintf(msg_MQTT, "TimeOut: Switch [%s] [Restart]", _switchName);
-                postMessages(msg_MQTT);
+                sprintf(_outMQTTmsg, "TimeOut: Switch [%s] [Restart]", _switchName);
+                //postMessages(_outMQTTmsg);
         }
         else if (strcmp(parm1, "statusTO") == 0)
         {
-                sprintf(msg_MQTT, "%s: Switch [%s] {inCode: [%d] mins} {Flash: [%d] mins}, {Active: [%s]}",
+                sprintf(_outMQTTmsg, "%s: Switch [%s] {inCode: [%d] mins} {Flash: [%d] mins}, {Active: [%s]}",
                         "TimeOut", _switchName, TOswitch.inCodeTO, TOswitch.updatedTO_inFlash, TOswitch.updatedTO_inFlash ? "Flash" : "inCode");
-                postMessages(msg_MQTT);
+                //postMessages(_outMQTTmsg);
         }
         else if (strcmp(parm1, "endTO") == 0)
         {
                 TOswitch.endNow();
-                sprintf(msg_MQTT, "TimeOut: Switch[%s] [Abort]", _switchName);
-                postMessages(msg_MQTT);
+                sprintf(_outMQTTmsg, "TimeOut: [%s] [Abort]", _switchName);
         }
         else if (strcmp(parm1, "restoreTO") == 0)
         {
                 TOswitch.restore_to();
                 TOswitch.restart_to();
-                sprintf(msg_MQTT, "TimeOut: Switch [%s], Restore hardCoded Value [%d mins.]", _switchName, TOswitch.inCodeTO);
-                postMessages(msg_MQTT);
+                sprintf(_outMQTTmsg, "TimeOut: Switch [%s], Restore hardCoded Value [%d mins.]", _switchName, TOswitch.inCodeTO);
+                //postMessages(_outMQTTmsg);
                 ESP.reset();
                 // iot.notifyOffline();
                 // iot.sendReset("Restore");
@@ -1585,11 +1585,11 @@ void mySwitch::getMQTT(char *parm1, int p2, int p3, int p4)
 
                 TOswitch.store_dailyTO_inFlash(TOswitch.dailyTO);
 
-                sprintf(msg_MQTT, "%s: Switch [%s] [ON] updated [%02d:%02d:%02d]", _clockAlias, _switchName,
+                sprintf(_outMQTTmsg, "%s: Switch [%s] [ON] updated [%02d:%02d:%02d]", _clockAlias, _switchName,
                         TOswitch.dailyTO.on[0], TOswitch.dailyTO.on[1],
                         TOswitch.dailyTO.on[2]);
 
-                postMessages(msg_MQTT);
+                //postMessages(_outMQTTmsg);
         }
         else if (strcmp(parm1, "off_dailyTO") == 0)
         {
@@ -1599,47 +1599,70 @@ void mySwitch::getMQTT(char *parm1, int p2, int p3, int p4)
 
                 TOswitch.store_dailyTO_inFlash(TOswitch.dailyTO);
 
-                sprintf(msg_MQTT, "%s: Switch [%s] [OFF] updated [%02d:%02d:%02d]", _clockAlias, _switchName,
-                        TOswitch.dailyTO.off[0], TOswitch.dailyTO.off[1],TOswitch.dailyTO.off[2]);
+                sprintf(_outMQTTmsg, "%s: Switch [%s] [OFF] updated [%02d:%02d:%02d]", _clockAlias, _switchName,
+                        TOswitch.dailyTO.off[0], TOswitch.dailyTO.off[1], TOswitch.dailyTO.off[2]);
 
-                postMessages(msg_MQTT);
+                //postMessages(_outMQTTmsg);
         }
         else if (strcmp(parm1, "flag_dailyTO") == 0)
         {
                 TOswitch.dailyTO.flag = p2;
-                // TOswitch.store_dailyTO_inFlash(TOswitch.dailyTO, atoi(iot.inline_param[0]));
+                TOswitch.store_dailyTO_inFlash(TOswitch.dailyTO);
 
-                sprintf(msg_MQTT, "%s: Switch[%s] using [%s] values", _clockAlias,
+                sprintf(_outMQTTmsg, "%s: [%s] using [%s] values", _clockAlias,
                         _switchName, p2 ? "ON" : "OFF");
-
-                postMessages(msg_MQTT);
         }
         else if (strcmp(parm1, "useflash_dailyTO") == 0)
         {
                 TOswitch.dailyTO.useFlash = p2;
                 TOswitch.store_dailyTO_inFlash(TOswitch.dailyTO);
 
-                sprintf(msg_MQTT, "%s: Switch[%s] using [%s] values", _clockAlias,_switchName, p2 ? "Flash" : "Code");
-                postMessages(msg_MQTT);
+                sprintf(_outMQTTmsg, "%s: [%s] using [%s] values", _clockAlias, _switchName, p2 ? "Flash" : "Code");
         }
         else if (strcmp(parm1, "status_dailyTO") == 0)
         {
-                sprintf(msg_MQTT, "%s: Switch [%s] {ON:%02d:%02d:%02d} {OFF:%02d:%02d:%02d} {Flag:%s} {Values:%s}",
-                        _clockAlias, _switchName, TOswitch.dailyTO.on[0], TOswitch.dailyTO.on[1],TOswitch.dailyTO.on[2], 
+                sprintf(_outMQTTmsg, "%s: Switch [%s] {ON:%02d:%02d:%02d} {OFF:%02d:%02d:%02d} {Flag:%s} {Values:%s}",
+                        _clockAlias, _switchName, TOswitch.dailyTO.on[0], TOswitch.dailyTO.on[1], TOswitch.dailyTO.on[2],
                         TOswitch.dailyTO.off[0], TOswitch.dailyTO.off[1], TOswitch.dailyTO.off[2],
                         TOswitch.dailyTO.flag ? "ON" : "OFF", TOswitch.dailyTO.useFlash ? "Flash" : "inCode");
-                postMessages(msg_MQTT);
+                //postMessages(_outMQTTmsg);
         }
         else if (strcmp(parm1, "restart_dailyTO") == 0)
         {
                 TOswitch.restart_dailyTO(TOswitch.dailyTO);
-                sprintf(msg_MQTT, "%s: Switch[%s] Resume daily Timeout", _clockAlias, _switchName);
-                postMessages(msg_MQTT);
+                sprintf(_outMQTTmsg, "%s: [%s] Resume daily Timeout", _clockAlias, _switchName);
         }
         else if (strcmp(parm1, "change_pwm") == 0)
         {
                 switchIt("MQTT", p2);
         }
-
-        // else
+        if (strcmp(parm1, "offline") != 0 && strcmp(parm1, "online") != 0 && strcmp(parm1, "resetKeeper") != 0)
+        {
+                // sprintf(msg, "Unrecognized Command: [%s]", parm1);
+                // iot.pub_log(msg);
+        }
+}
+void mySwitch::all_off(char *from)
+{
+        if (TOswitch.remain() > 0 && current_power > 0)
+        {
+                TOswitch.endNow();
+        }
+        else if (TOswitch.remain() == 0 && current_power > 0)
+        {
+                switchIt(from, 0);
+        }
+        else if (TOswitch.remain() > 0 && current_power == 0)
+        {
+                TOswitch.endNow();
+        }
+        sprintf(_outMQTTmsg, "All OFF: [%s] Received from %s", _switchName, from);
+}
+void mySwitch::_safetyOff()
+{
+        if (_safetyOff_clock != 0 && millis() - _safetyOff_clock > set_safetyoff * 60 * 1000L)
+        {
+                switchIt("safetyTimeout", 0);
+                _safetyOff_clock = 0;
+        }
 }
