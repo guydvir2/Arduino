@@ -5,7 +5,7 @@
 #include <ArduinoJson.h>
 #include "FS.h"
 
-#define DOC_SIZE 512
+#define DOC_SIZE 1000
 
 class myJSON
 {
@@ -14,7 +14,7 @@ bool _useSerial=false;
 char _filename[30];
 
 public:
-char *ver="myJSON_v1.4";
+char *ver="myJSON_v1.5";
 myJSON(char *filename, bool useserial=false);
 
 bool file_exists();
@@ -22,7 +22,7 @@ bool file_remove();
 bool format ();
 bool FS_ok();
 
-bool getValue (const char *key, char value[20]="0");
+bool getValue (const char *key, char value[150]="0");
 bool getValue (const char *key, int &retval);
 bool getValue (const char *key, long &retval);
 

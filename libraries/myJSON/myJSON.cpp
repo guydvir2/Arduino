@@ -81,8 +81,8 @@ void myJSON::PrettyprintJSON(JsonDocument& _doc) {
 
 // ~~~ User Functions : JSON + file saving ~~~~~~~~~~~
 bool myJSON::getValue (const char *key, char value[20]){
-        StaticJsonDocument<DOC_SIZE> tempJDOC;
-        myJSON::readJSON_file(tempJDOC);
+        DynamicJsonDocument tempJDOC(DOC_SIZE);
+        readJSON_file(tempJDOC);
         bool hasKey = tempJDOC.containsKey(key);
         if (hasKey) {
                 const char *val = tempJDOC[key];
@@ -94,8 +94,8 @@ bool myJSON::getValue (const char *key, char value[20]){
         }
 }
 bool myJSON::getValue (const char *key, int &retval){
-        StaticJsonDocument<DOC_SIZE> tempJDOC;
-        myJSON::readJSON_file(tempJDOC);
+        DynamicJsonDocument tempJDOC(DOC_SIZE);
+        readJSON_file(tempJDOC);
         bool hasKey = tempJDOC.containsKey(key);
         if (hasKey) {
                 retval = tempJDOC[key];
@@ -106,8 +106,8 @@ bool myJSON::getValue (const char *key, int &retval){
         }
 }
 bool myJSON::getValue (const char *key, long &retval){
-        StaticJsonDocument<DOC_SIZE> tempJDOC;
-        myJSON::readJSON_file(tempJDOC);
+        DynamicJsonDocument tempJDOC(DOC_SIZE);
+        readJSON_file(tempJDOC);
         bool hasKey = tempJDOC.containsKey(key);
         if (hasKey) {
                 retval = tempJDOC[key];
@@ -119,27 +119,27 @@ bool myJSON::getValue (const char *key, long &retval){
 }
 
 void myJSON::setValue(const char *key, char *value){
-        StaticJsonDocument<DOC_SIZE> tempJDOC;
-        myJSON::readJSON_file(tempJDOC);
+        DynamicJsonDocument tempJDOC(DOC_SIZE);
+        readJSON_file(tempJDOC);
         tempJDOC[key]=value;
-        myJSON::saveJSON2file(tempJDOC);
+        saveJSON2file(tempJDOC);
 }
 void myJSON::setValue(const char *key, int value){
-        StaticJsonDocument<DOC_SIZE> tempJDOC;
-        myJSON::readJSON_file(tempJDOC);
+        DynamicJsonDocument tempJDOC(DOC_SIZE);
+        readJSON_file(tempJDOC);
         tempJDOC[key]=value;
-        myJSON::saveJSON2file(tempJDOC);
+        saveJSON2file(tempJDOC);
 }
 void myJSON::setValue(const char *key, long value){
-        StaticJsonDocument<DOC_SIZE> tempJDOC;
-        myJSON::readJSON_file(tempJDOC);
+        DynamicJsonDocument tempJDOC(DOC_SIZE);
+        readJSON_file(tempJDOC);
         tempJDOC[key]=value;
-        myJSON::saveJSON2file(tempJDOC);
+        saveJSON2file(tempJDOC);
 }
 
 void myJSON::add2Array(char* array_key, char *val) {
-        StaticJsonDocument<DOC_SIZE> tempJDOC;
-        myJSON::readJSON_file(tempJDOC);
+        DynamicJsonDocument tempJDOC(DOC_SIZE);
+        readJSON_file(tempJDOC);
 
         JsonVariant data_key = tempJDOC[array_key];
         if (data_key.isNull()) { // create for the first time
@@ -155,11 +155,11 @@ void myJSON::add2Array(char* array_key, char *val) {
                 }
                 tempJDOC[array_key][LOG_LENGTH - 1] = val;
         }
-        myJSON::saveJSON2file(tempJDOC);
+        saveJSON2file(tempJDOC);
 }
 void myJSON::add2Array(char* array_key, int val) {
-        StaticJsonDocument<DOC_SIZE> tempJDOC;
-        myJSON::readJSON_file(tempJDOC);
+        DynamicJsonDocument tempJDOC(DOC_SIZE);
+        readJSON_file(tempJDOC);
 
         JsonVariant data_key = tempJDOC[array_key];
         if (data_key.isNull()) { // create for the first time
@@ -175,11 +175,11 @@ void myJSON::add2Array(char* array_key, int val) {
                 }
                 tempJDOC[array_key][LOG_LENGTH - 1] = val;
         }
-        myJSON::saveJSON2file(tempJDOC);
+        saveJSON2file(tempJDOC);
 }
 void myJSON::add2Array(char* array_key, long val) {
-        StaticJsonDocument<DOC_SIZE> tempJDOC;
-        myJSON::readJSON_file(tempJDOC);
+        DynamicJsonDocument tempJDOC(DOC_SIZE);
+        readJSON_file(tempJDOC);
 
         JsonVariant data_key = tempJDOC[array_key];
         if (data_key.isNull()) { // create for the first time
@@ -196,12 +196,12 @@ void myJSON::add2Array(char* array_key, long val) {
                 }
                 tempJDOC[array_key][LOG_LENGTH - 1] = val;
         }
-        myJSON::saveJSON2file(tempJDOC);
+        saveJSON2file(tempJDOC);
 }
 
 bool myJSON::getArrayVal(char* array_key, int i, int &retval){
-        StaticJsonDocument<DOC_SIZE> tempJDOC;
-        myJSON::readJSON_file(tempJDOC);
+        DynamicJsonDocument tempJDOC(DOC_SIZE);
+        readJSON_file(tempJDOC);
 
         bool hasKey = tempJDOC.containsKey(array_key);
         if (hasKey) {
@@ -213,8 +213,8 @@ bool myJSON::getArrayVal(char* array_key, int i, int &retval){
         }
 }
 bool myJSON::getArrayVal(char* array_key, int i, long &retval){
-        StaticJsonDocument<DOC_SIZE> tempJDOC;
-        myJSON::readJSON_file(tempJDOC);
+        DynamicJsonDocument tempJDOC(DOC_SIZE);
+        readJSON_file(tempJDOC);
 
         bool hasKey = tempJDOC.containsKey(array_key);
         if (hasKey) {
@@ -226,8 +226,8 @@ bool myJSON::getArrayVal(char* array_key, int i, long &retval){
         }
 }
 bool myJSON::getArrayVal(char* array_key, int i, char value[20]){
-        StaticJsonDocument<DOC_SIZE> tempJDOC;
-        myJSON::readJSON_file(tempJDOC);
+        DynamicJsonDocument tempJDOC(DOC_SIZE);
+        readJSON_file(tempJDOC);
 
         bool hasKey = tempJDOC.containsKey(array_key);
         if (hasKey) {
@@ -242,8 +242,8 @@ bool myJSON::getArrayVal(char* array_key, int i, char value[20]){
 }
 
 void myJSON::setArrayVal(char* array_key, int i, int val){
-        StaticJsonDocument<DOC_SIZE> tempJDOC;
-        myJSON::readJSON_file(tempJDOC);
+        DynamicJsonDocument tempJDOC(DOC_SIZE);
+        readJSON_file(tempJDOC);
 
         if (tempJDOC.containsKey(array_key)) {     // Key is alreay set
                 JsonVariant data_key = tempJDOC[array_key];
@@ -265,11 +265,11 @@ void myJSON::setArrayVal(char* array_key, int i, int val){
                 }
                 array_data[i]=val;
         }
-        myJSON::saveJSON2file(tempJDOC);
+        saveJSON2file(tempJDOC);
 }
 void myJSON::setArrayVal(char* array_key, int i, long val){
-  StaticJsonDocument<DOC_SIZE> tempJDOC;
-  myJSON::readJSON_file(tempJDOC);
+  DynamicJsonDocument tempJDOC(DOC_SIZE);
+  readJSON_file(tempJDOC);
 
   if (tempJDOC.containsKey(array_key)) {     // Key is alreay set
           JsonVariant data_key = tempJDOC[array_key];
@@ -291,10 +291,10 @@ void myJSON::setArrayVal(char* array_key, int i, long val){
           }
           array_data[i]=val;
   }
-  myJSON::saveJSON2file(tempJDOC);
+  saveJSON2file(tempJDOC);
 }
 void myJSON::setArrayVal(char* array_key, int i, char *val){
-        // StaticJsonDocument<DOC_SIZE> tempJDOC;
+        // DynamicJsonDocument tempJDOC(DOC_SIZE);
         // myJSON::readJSON_file(tempJDOC);
         //
         // tempJDOC[array_key][i] = val;
@@ -304,33 +304,33 @@ void myJSON::setArrayVal(char* array_key, int i, char *val){
 
 
 void myJSON::nestedArray(char* array_key, long val) {
-        StaticJsonDocument<DOC_SIZE> tempJDOC;
-        myJSON::readJSON_file(tempJDOC);
+        DynamicJsonDocument tempJDOC(DOC_SIZE);
+        readJSON_file(tempJDOC);
         JsonArray array = tempJDOC.to<JsonArray>();
         JsonObject nested = array.createNestedObject();
         nested[array_key] = val;
-        myJSON::saveJSON2file(tempJDOC);
+        saveJSON2file(tempJDOC);
 }
 
 void myJSON::eraseArray(char* array_key) {
-        StaticJsonDocument<DOC_SIZE> tempJDOC;
-        myJSON::readJSON_file(tempJDOC);
+        DynamicJsonDocument tempJDOC(DOC_SIZE);
+        readJSON_file(tempJDOC);
 
         JsonVariant data_key = tempJDOC[array_key];
         JsonArray data = tempJDOC.createNestedArray(array_key);
-        myJSON::saveJSON2file(tempJDOC);
+        saveJSON2file(tempJDOC);
 }
 void myJSON::removeValue(const char *key){
-        StaticJsonDocument<DOC_SIZE> tempJDOC;
-        myJSON::readJSON_file(tempJDOC);
+        DynamicJsonDocument tempJDOC(DOC_SIZE);
+        readJSON_file(tempJDOC);
         tempJDOC.remove(key);
-        myJSON::saveJSON2file(tempJDOC);
+        saveJSON2file(tempJDOC);
 }
 
 void myJSON::printFile(){
-        StaticJsonDocument<DOC_SIZE> tempJDOC;
-        if(myJSON::file_exists()){
-        myJSON::readJSON_file(tempJDOC);
+        DynamicJsonDocument tempJDOC(DOC_SIZE);
+        if(file_exists()){
+        readJSON_file(tempJDOC);
         serializeJsonPretty(tempJDOC, Serial);
       }
 
