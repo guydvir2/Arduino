@@ -7,7 +7,7 @@
 
 // ********** myIOT Class ***********
 //~~~~~ Services ~~~~~~~~~~~
-#define USE_SERIAL true      // Serial Monitor
+#define USE_SERIAL true     // Serial Monitor
 #define USE_WDT true         // watchDog resets
 #define USE_OTA true         // OTA updates
 #define USE_RESETKEEPER true // detect quick reboot and real reboots
@@ -68,6 +68,7 @@ mySwitch *TOswitches[NUM_SW] = {&myTOsw0, &myTOsw1};
 #elif NUM_SW == 1
 mySwitch *TOswitches[NUM_SW] = {&myTOsw0};
 #endif
+
 void configTOswitches()
 {
         for (int i = 0; i < NUM_SW; i++)
@@ -86,10 +87,7 @@ void configTOswitches()
                 TOswitches[i]->onAt_boot = ON_AT_BOOT;
                 TOswitches[i]->inputPin = inputPin[i];
 
-                if (USE_QUICK_BOOT)
-                {
-                        TOswitches[i]->quickPwrON(outputPin[i], ON_AT_BOOT);
-                }
+                TOswitches[i]->quickPwrON();
         }
 }
 void startTOSwitch()
@@ -97,6 +95,8 @@ void startTOSwitch()
         // After Wifi is On
         for (int i = 0; i < NUM_SW; i++)
         {
+                TOswitches[i]->begin();
+
                 if (TOswitches[i]->useDailyTO)
                 {
                         TOswitches[i]->setdailyTO(START_dTO[i], END_dTO[i]);
@@ -105,24 +105,23 @@ void startTOSwitch()
                 {
                         TOswitches[i]->extTrig_cb(HIGH, true, "PIR_DETECTOR");
                 }
-
-                TOswitches[i]->begin();
         }
 }
 void TOswitch_looper()
 {
         char msgtoMQTT[150];
+        byte mtyp;
+
         for (int i = 0; i < NUM_SW; i++)
         {
-                byte msg_type;
                 TOswitches[i]->looper(iot.mqtt_detect_reset);
-                if (TOswitches[i]->postMessages(msgtoMQTT, msg_type))
+                if (TOswitches[i]->postMessages(msgtoMQTT, mtyp))
                 {
-                        if (msg_type == 0)
+                        if (mtyp == 0)
                         {
                                 iot.pub_msg(msgtoMQTT);
                         }
-                        else if (msg_type == 1)
+                        else if (mtyp == 1)
                         {
                                 iot.pub_log(msgtoMQTT);
                         }
@@ -242,8 +241,9 @@ void addiotnalMQTT(char *incoming_msg)
 
 void setup()
 {
-        configTOswitches();
+        Serial.begin(9600);
         startIOTservices();
+        configTOswitches();
         startTOSwitch();
 }
 void loop()

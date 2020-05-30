@@ -903,7 +903,6 @@ void timeOUT::setNewTimeout(int to, bool mins)
                 _calc_endTO = now() + to;
         }
         endTimeOUT_inFlash.setValue(_calc_endTO); // store end_to to flash
-
         switchON();
 }
 void timeOUT::restart_to()
@@ -1219,10 +1218,6 @@ void mySwitch::begin()
         if (usetimeOUT)
         {
                 TOswitch.begin();
-                // if (TOswitch.remain() > 0)
-                // {
-                //         badBoot = true;
-                // }
                 if (useDailyTO)
                 {
                         _start_dailyTO();
@@ -1387,11 +1382,10 @@ void mySwitch::_TOlooper(int det_reset)
 {
         if (det_reset != 2)
         {
-                static bool firs_time = true;
-                if (firs_time)
+                if (first_time)
                 {
                         _recoverReset(det_reset);
-                        firs_time = false;
+                        first_time = false;
                 }
 
                 bool relayState = TOswitch.looper(); // TO in on/off state ?
@@ -1424,7 +1418,7 @@ void mySwitch::_start_dailyTO()
         TOswitch.dailyTO.flag = useDailyTO;
         TOswitch.check_dailyTO_inFlash(TOswitch.dailyTO, 0);
 }
-bool mySwitch::postMessages(char outmsg[150], byte msg_type)
+bool mySwitch::postMessages(char outmsg[150], byte &msg_type)
 {
         if (strcmp(TOswitch.dTO_pubMsg, "") != 0 && useDailyTO)
         {
@@ -1433,22 +1427,24 @@ bool mySwitch::postMessages(char outmsg[150], byte msg_type)
                 msg_type = 0;
                 return 1;
         }
-        if (strcmp(_outMQTTmsg, "") != 0)
+        else if (strcmp(_outMQTTmsg, "") != 0)
         {
                 sprintf(outmsg, "%s", _outMQTTmsg);
                 sprintf(_outMQTTmsg, "%s", "");
                 msg_type = 0;
                 return 1;
         }
-        if (strcmp(_outMQTTlog, "") != 0)
+        else if (strcmp(_outMQTTlog, "") != 0)
         {
-                sprintf(outmsg, "%s", _outMQTTmsg);
+                sprintf(outmsg, "%s", _outMQTTlog);
                 sprintf(_outMQTTlog, "%s", "");
                 msg_type = 1;
                 return 1;
         }
-
-        return 0;
+        else
+        {
+                return 0;
+        }
 }
 void mySwitch::adHOC_timeout(int mins, bool inMinutes)
 {
@@ -1456,7 +1452,6 @@ void mySwitch::adHOC_timeout(int mins, bool inMinutes)
 }
 void mySwitch::looper(int det_reset)
 {
-
         _TOlooper(det_reset);
         if (useInput)
         {
@@ -1650,7 +1645,7 @@ void mySwitch::getMQTT(char *parm1, int p2, int p3, int p4)
         }
         if (strcmp(parm1, "offline") != 0 && strcmp(parm1, "online") != 0 && strcmp(parm1, "resetKeeper") != 0)
         {
-                sprintf(_outMQTTlog, "Unrecognized Command: [%s]", parm1);
+                // sprintf(_outMQTTlog, "Unrecognized Command: [%s]", parm1);
         }
 }
 void mySwitch::all_off(char *from)
@@ -1677,7 +1672,7 @@ void mySwitch::_safetyOff()
                 _safetyOff_clock = 0;
         }
 }
-void mySwitch::quickPwrON(int _switchPin, bool onBoot)
+void mySwitch::quickPwrON()
 {
         /*
            power on before iot starts,
@@ -1692,7 +1687,7 @@ void mySwitch::quickPwrON(int _switchPin, bool onBoot)
            3) eeprom Reset counter forces to be ON_AT_BOOT
          */
 
-        if (TOswitch.endTO_inFlash != 0 || onBoot == true) // || hReset_eeprom.hBoot)
+        if (TOswitch.endTO_inFlash != 0 || onAt_boot == true) // || hReset_eeprom.hBoot)
         {
                 if (usePWM)
                 {
@@ -1734,7 +1729,6 @@ void mySwitch::_recoverReset(int rebootState)
         else
         {
                 sprintf(_outMQTTlog, "%s", "--> Continue unfinished TimeOuts");
-                // boot_overide[i] = true;
         }
         // }
 
@@ -1744,5 +1738,4 @@ void mySwitch::_recoverReset(int rebootState)
         //                 EEPROM.commit();
         // #endif
         //         }
-        Serial.println(_outMQTTlog);
 }

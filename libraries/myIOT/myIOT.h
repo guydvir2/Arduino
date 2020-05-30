@@ -314,6 +314,8 @@ public:
   bool last_relayState = false;
   bool trig_lastState = false;
   bool inputState;
+  bool first_time = true; //<--- fix it later
+
   int inputPin = -1;
   float step_power = 0.2;
   float max_power = 1.0;
@@ -333,12 +335,12 @@ public:
   void begin();
   void looper(int det_reset);
   void extTrig_cb(bool det = HIGH, bool retrig = false, char *trig_name = "ext_trigger");
-  bool postMessages(char outmsg[150],byte msg_type =0);
+  bool postMessages(char outmsg[150], byte &msg_type);
   void adHOC_timeout(int mins, bool inMinutes = true);
   void setdailyTO(const int start_clk[], const int end_clk[]);
   void getMQTT(char *parm1, int p2, int p3, int p4);
   void all_off(char *from);
-  void quickPwrON(int _switchPin, bool obBoot=false);
+  void quickPwrON();
 };
 
 #endif
