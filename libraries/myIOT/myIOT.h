@@ -245,7 +245,7 @@ public:
   timeOUT(char *key = "timeOUTsw", int def_val = 60);
   bool looper();
   int remain();
-  bool begin(bool newReboot = true);
+  bool begin();
   void restart_to();
   void setNewTimeout(int to, bool mins = true);
   void convert_epoch2clock(long t1, long t2, char *time_str, char *days_str);
@@ -258,8 +258,8 @@ public:
 
   int calc_dailyTO(dTO &dailyTO);
   void dailyTO_looper(dTO &dailyTO);
-  void check_dailyTO_inFlash(dTO &dailyTO, int x=0);
-  void store_dailyTO_inFlash(dTO &dailyTO, int x=0);
+  void check_dailyTO_inFlash(dTO &dailyTO, int x = 0);
+  void store_dailyTO_inFlash(dTO &dailyTO, int x = 0);
   void restart_dailyTO(dTO &dailyTO);
 
   FVars inCodeTimeOUT_inFlash;
@@ -283,6 +283,7 @@ private:
   int _switchPin;
   char _switchName[20];
   char _outMQTTmsg[150];
+  char _outMQTTlog[150];
   bool _ext_det = HIGH;
   bool _retrig = false;
   char *_trig_name = "ext_trigger";
@@ -295,6 +296,7 @@ private:
   void _start_dailyTO();
   void _extTrig_looper();
   void _safetyOff();
+  void _recoverReset(int rebootState = -1);
 
 public:
   bool usePWM = false;
@@ -305,6 +307,8 @@ public:
   bool useDailyTO = false;
   bool useEXTtrigger = false;
   bool usesafetyOff = false;
+  bool usequickON = false;
+  bool onAt_boot = true;
   bool ext_trig_signal;
   bool is_momentery = true;
   bool last_relayState = false;
@@ -318,22 +322,23 @@ public:
   float current_power = 0.0;
   int START_dailyTO[3] = {23, 27, 30};
   int END_dailyTO[3] = {23, 28, 0};
-  int set_safetyoff=360; //minutes
+  int set_safetyoff = 360; //minutes
 
   timeOUT TOswitch;
 
 public:
   mySwitch(int switchPin, int timeout_val = 60, char *name = "mySwitch");
   void changePower(float val);
-  void switchIt(char *txt1, float state, bool ignoreTO=false);
+  void switchIt(char *txt1, float state, bool ignoreTO = false);
   void begin();
   void looper(int det_reset);
   void extTrig_cb(bool det = HIGH, bool retrig = false, char *trig_name = "ext_trigger");
-  bool postMessages(char outmsg[150]);
+  bool postMessages(char outmsg[150],byte msg_type =0);
   void adHOC_timeout(int mins, bool inMinutes = true);
   void setdailyTO(const int start_clk[], const int end_clk[]);
   void getMQTT(char *parm1, int p2, int p3, int p4);
   void all_off(char *from);
+  void quickPwrON(int _switchPin, bool obBoot=false);
 };
 
 #endif

@@ -3,11 +3,11 @@
 #include <Arduino.h>
 
 // ********** Sketch Services  ***********
-#define VER "SONOFF_1.0"
+#define VER "WEMOS_1.1"
 
 // ********** myIOT Class ***********
 //~~~~~ Services ~~~~~~~~~~~
-#define USE_SERIAL false     // Serial Monitor
+#define USE_SERIAL true      // Serial Monitor
 #define USE_WDT true         // watchDog resets
 #define USE_OTA true         // OTA updates
 #define USE_RESETKEEPER true // detect quick reboot and real reboots
@@ -16,7 +16,7 @@
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 // ~~~~~~~ MQTT Topics ~~~~~~
-#define DEVICE_TOPIC "LivingRoom"
+#define DEVICE_TOPIC "familyRoomLEDs"
 #define MQTT_PREFIX "myHome"
 #define MQTT_GROUP "intLights"
 #define TELEGRAM_OUT_TOPIC "Telegram_out"
@@ -48,13 +48,17 @@ const int TimeOUT[] = {120, 1}; // minutes
 */
 
 #define NUM_SW 1
-#define USE_PWM false
-#define USE_INPUT false
+#define SAFEY_OFF_DURATION 600 //minutes
+#define USE_PWM true
+#define USE_INPUT true
 #define USE_EXT_TRIG false
-#define BUTTOM_MOMENT false
-const int outputPin[] = {12, 5};
-const int inputPin[] = {14, 0};
-char *SW_Names[] = {"Lamp", "Strips"};
+#define BUTTOM_MOMENT true
+#define ON_AT_BOOT true
+#define USE_QUICK_BOOT true
+#define SAFETY_OFF true
+const int outputPin[] = {D3, 5}; // D3 for most PWM boards
+const int inputPin[] = {D7, 0};
+char *SW_Names[] = {"Strip", "Strips"};
 // ~~~~~~~~~~~~~~~~~~~~~~~
 
 mySwitch myTOsw0(outputPin[0], TimeOUT[0], SW_Names[0]);
@@ -64,8 +68,7 @@ mySwitch *TOswitches[NUM_SW] = {&myTOsw0, &myTOsw1};
 #elif NUM_SW == 1
 mySwitch *TOswitches[NUM_SW] = {&myTOsw0};
 #endif
-
-void startTOSwitch()
+void configTOswitches()
 {
         for (int i = 0; i < NUM_SW; i++)
         {
@@ -74,14 +77,26 @@ void startTOSwitch()
                 TOswitches[i]->useInput = USE_INPUT;
                 TOswitches[i]->useEXTtrigger = USE_EXT_TRIG;
                 TOswitches[i]->is_momentery = BUTTOM_MOMENT;
-                TOswitches[i]->badBoot = true;
+                TOswitches[i]->badBoot = true; // <--- CURRENTLY NOT IN USE
                 TOswitches[i]->usetimeOUT = USE_TO;
                 TOswitches[i]->useDailyTO = USE_dailyTO;
-                TOswitches[i]->usesafetyOff = true;
-                TOswitches[i]->set_safetyoff = 600;
-
+                TOswitches[i]->usesafetyOff = SAFETY_OFF;
+                TOswitches[i]->set_safetyoff = SAFEY_OFF_DURATION;
+                TOswitches[i]->usequickON = USE_QUICK_BOOT;
+                TOswitches[i]->onAt_boot = ON_AT_BOOT;
                 TOswitches[i]->inputPin = inputPin[i];
 
+                if (USE_QUICK_BOOT)
+                {
+                        TOswitches[i]->quickPwrON(outputPin[i], ON_AT_BOOT);
+                }
+        }
+}
+void startTOSwitch()
+{
+        // After Wifi is On
+        for (int i = 0; i < NUM_SW; i++)
+        {
                 if (TOswitches[i]->useDailyTO)
                 {
                         TOswitches[i]->setdailyTO(START_dTO[i], END_dTO[i]);
@@ -99,10 +114,18 @@ void TOswitch_looper()
         char msgtoMQTT[150];
         for (int i = 0; i < NUM_SW; i++)
         {
+                byte msg_type;
                 TOswitches[i]->looper(iot.mqtt_detect_reset);
-                if (TOswitches[i]->postMessages(msgtoMQTT))
+                if (TOswitches[i]->postMessages(msgtoMQTT, msg_type))
                 {
-                        iot.pub_msg(msgtoMQTT);
+                        if (msg_type == 0)
+                        {
+                                iot.pub_msg(msgtoMQTT);
+                        }
+                        else if (msg_type == 1)
+                        {
+                                iot.pub_log(msgtoMQTT);
+                        }
                 }
         }
 }
@@ -219,6 +242,7 @@ void addiotnalMQTT(char *incoming_msg)
 
 void setup()
 {
+        configTOswitches();
         startIOTservices();
         startTOSwitch();
 }
