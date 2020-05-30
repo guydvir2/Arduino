@@ -850,9 +850,8 @@ bool timeOUT::looper()
                 return 0;
         }
 }
-bool timeOUT::begin(bool newReboot)
-{ // NewReboot come to not case of sporadic reboot
-
+bool timeOUT::begin()
+{
         // ~~~~~~~~ Check if stored end value stil valid ~~~~~~~~~~~~~~
         if (endTO_inFlash > now())
         {                                    // get saved value- still have to go
@@ -865,14 +864,6 @@ bool timeOUT::begin(bool newReboot)
                 switchOFF();
                 return 0;
         }
-        // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        /*
-           case below is the main issue: if upon new reboot, after a successfull
-           ending of last timeOut ( endTO_inFlash==0 ), how to consider a new
-           Reboot ? if newReboot == true, means that it will start over
-           as a new Timeout Task.
-         */
-
         // ~~~~~~~~~ Case of fresh Start - not a quick boot ~~~~~~~~~~~~~~~~
         // else if (endTO_inFlash == 0 && newReboot == true) {                   // fresh start
         //         if (_calc_TO != 0) {
@@ -885,7 +876,7 @@ bool timeOUT::begin(bool newReboot)
         //         }
         // }
         else if (endTO_inFlash == 0)
-        { // saved but time passed
+        { // timeour ended correctly
                 return 0;
         }
         sprintf(dTO_pubMsg, "");
@@ -912,7 +903,6 @@ void timeOUT::setNewTimeout(int to, bool mins)
                 _calc_endTO = now() + to;
         }
         endTimeOUT_inFlash.setValue(_calc_endTO); // store end_to to flash
-
         switchON();
 }
 void timeOUT::restart_to()
@@ -1227,11 +1217,7 @@ void mySwitch::begin()
 
         if (usetimeOUT)
         {
-                TOswitch.begin(false);
-                if (TOswitch.remain() > 0)
-                {
-                        badBoot = true;
-                }
+                TOswitch.begin();
                 if (useDailyTO)
                 {
                         _start_dailyTO();
@@ -1392,6 +1378,12 @@ void mySwitch::_TOlooper(int det_reset)
 {
         if (det_reset != 2)
         {
+                if (_check_recoverReset&& badBoot)
+                {
+                        _recoverReset(det_reset);
+                        _check_recoverReset = false;
+                }
+
                 bool relayState = TOswitch.looper(); // TO in on/off state ?
 
                 if (relayState != last_relayState)
@@ -1422,22 +1414,33 @@ void mySwitch::_start_dailyTO()
         TOswitch.dailyTO.flag = useDailyTO;
         TOswitch.check_dailyTO_inFlash(TOswitch.dailyTO, 0);
 }
-bool mySwitch::postMessages(char outmsg[150])
+bool mySwitch::postMessages(char outmsg[150], byte &msg_type)
 {
         if (strcmp(TOswitch.dTO_pubMsg, "") != 0 && useDailyTO)
         {
                 sprintf(outmsg, "%s", TOswitch.dTO_pubMsg);
                 sprintf(TOswitch.dTO_pubMsg, "%s", "");
+                msg_type = 0;
                 return 1;
         }
-        if (strcmp(_outMQTTmsg, "") != 0)
+        else if (strcmp(_outMQTTmsg, "") != 0)
         {
                 sprintf(outmsg, "%s", _outMQTTmsg);
                 sprintf(_outMQTTmsg, "%s", "");
+                msg_type = 0;
                 return 1;
         }
-
-        return 0;
+        else if (strcmp(_outMQTTlog, "") != 0)
+        {
+                sprintf(outmsg, "%s", _outMQTTlog);
+                sprintf(_outMQTTlog, "%s", "");
+                msg_type = 1;
+                return 1;
+        }
+        else
+        {
+                return 0;
+        }
 }
 void mySwitch::adHOC_timeout(int mins, bool inMinutes)
 {
@@ -1638,8 +1641,7 @@ void mySwitch::getMQTT(char *parm1, int p2, int p3, int p4)
         }
         if (strcmp(parm1, "offline") != 0 && strcmp(parm1, "online") != 0 && strcmp(parm1, "resetKeeper") != 0)
         {
-                // sprintf(msg, "Unrecognized Command: [%s]", parm1);
-                // iot.pub_log(msg);
+                // sprintf(_outMQTTlog, "Unrecognized Command: [%s]", parm1);
         }
 }
 void mySwitch::all_off(char *from)
@@ -1665,4 +1667,71 @@ void mySwitch::_safetyOff()
                 switchIt("safetyTimeout", 0);
                 _safetyOff_clock = 0;
         }
+}
+void mySwitch::quickPwrON()
+{
+        /*
+           power on before iot starts,
+           using the fact that endTimeOUT_inFlash contains value
+           other than 0
+         */
+
+        /*
+         # conditions in for loop:
+           1) Has more time to go in TO
+           2) ON_AT_BOOT defines to be ON at bootTime
+           3) eeprom Reset counter forces to be ON_AT_BOOT
+         */
+
+        if (TOswitch.endTO_inFlash != 0 || onAt_boot == true) // || hReset_eeprom.hBoot)
+        {
+                if (usePWM)
+                {
+                        analogWrite(_switchPin, def_power*PWM_RES);
+                }
+                else
+                {
+                        digitalWrite(_switchPin, 1);
+                }
+        }
+        else
+        {
+                analogWrite(_switchPin, 0);
+                digitalWrite(_switchPin, !RelayOn);
+        }
+}
+void mySwitch::_recoverReset(int rebootState)
+{
+        if (rebootState == 0 && onAt_boot)
+        { // PowerOn - not a quickReboot
+                TOswitch.restart_to();
+                sprintf(_outMQTTlog, "%s", "--> NormalBoot & On-at-Boot. Restarting TimeOUT");
+        }
+        else if (TOswitch.looper() == 0)
+        { // was not during TO
+                if (rebootState == 1)
+                {
+                        sprintf(_outMQTTlog, "%s", "--> PowerLoss Boot");
+                }
+                changePower(0);
+                sprintf(_outMQTTlog, "%s", "--> Stopping Quick-PowerON");
+        }
+        // else if (hReset_eeprom.hBoot)
+        // { // using HardReboot
+        //         TO[i]->restart_to();
+        //         sprintf(_outMQTTlog,"--> ForcedBoot. Restarting TimeOUT");
+        //         boot_overide[i] = true;
+        // }
+        else
+        {
+                sprintf(_outMQTTlog, "%s", "--> Continue unfinished TimeOuts");
+        }
+        // }
+
+        // // Erases EEPROM value for HARD_REBOOT
+        // #if HARD_REBOOT
+        //                 EEPROM.write(hReset_eeprom.val_cell, 0);
+        //                 EEPROM.commit();
+        // #endif
+        //         }
 }

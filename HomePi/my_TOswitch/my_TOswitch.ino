@@ -3,7 +3,7 @@
 #include <Arduino.h>
 
 // ********** Sketch Services  ***********
-#define VER "SONOFF_1.0"
+#define VER "WEMOS_1.1"
 
 // ********** myIOT Class ***********
 //~~~~~ Services ~~~~~~~~~~~
@@ -16,7 +16,7 @@
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 // ~~~~~~~ MQTT Topics ~~~~~~
-#define DEVICE_TOPIC "LivingRoom"
+#define DEVICE_TOPIC "familyRoomLEDs"
 #define MQTT_PREFIX "myHome"
 #define MQTT_GROUP "intLights"
 #define TELEGRAM_OUT_TOPIC "Telegram_out"
@@ -27,16 +27,32 @@ myIOT iot(DEVICE_TOPIC);
 // ***************************
 
 // *********** myTOswitch ***********
-
-// ~~~~ TO & dailyTO ~~~~~~
+// ~~~~~~ Services ~~~~~~~~
+#define ON_AT_BOOT true
+#define USE_QUICK_BOOT true
 #define USE_TO true
 #define USE_dailyTO true
+#define SAFETY_OFF true
+#define SAFEY_OFF_DURATION 600 //minutes
+// ~~~~~~~~~~~~~~~~~~~~
+
+// ~~~~ TO & dailyTO ~~~~~~
 const int START_dTO[2][3] = {{16, 0, 0}, {18, 30, 0}};
 const int END_dTO[2][3] = {{0, 30, 0}, {23, 0, 0}};
-const int TimeOUT[] = {120, 1}; // minutes
+const int TimeOUT[] = {240, 1}; // minutes
 // ~~~~~~~~~~~~~~~~~~~~
 
 // ~~~~~~ Hardware ~~~~~~~
+#define NUM_SW 1
+#define USE_PWM true
+#define USE_INPUT true
+#define USE_EXT_TRIG false
+#define BUTTOM_MOMENT true
+#define USE_BADBOOT USE_RESETKEEPER
+const int outputPin[] = {D3, 5}; // D3 for most PWM boards
+const int inputPin[] = {D7, 0};
+// ~~~~~~~~~~~~~~~~~~~~
+char *SW_Names[] = {"Strip", "Strips"};
 
 /*
 ~~~~~ SONOFF HARDWARE ~~~~~
@@ -46,15 +62,6 @@ const int TimeOUT[] = {120, 1}; // minutes
 #define INPUT2 14 // 14 for extButton
 #define indic_LEDpin 13
 */
-
-#define NUM_SW 1
-#define USE_PWM false
-#define USE_INPUT false
-#define USE_EXT_TRIG false
-#define BUTTOM_MOMENT false
-const int outputPin[] = {12, 5};
-const int inputPin[] = {14, 0};
-char *SW_Names[] = {"Lamp", "Strips"};
 // ~~~~~~~~~~~~~~~~~~~~~~~
 
 mySwitch myTOsw0(outputPin[0], TimeOUT[0], SW_Names[0]);
@@ -65,7 +72,7 @@ mySwitch *TOswitches[NUM_SW] = {&myTOsw0, &myTOsw1};
 mySwitch *TOswitches[NUM_SW] = {&myTOsw0};
 #endif
 
-void startTOSwitch()
+void configTOswitches()
 {
         for (int i = 0; i < NUM_SW; i++)
         {
@@ -74,14 +81,25 @@ void startTOSwitch()
                 TOswitches[i]->useInput = USE_INPUT;
                 TOswitches[i]->useEXTtrigger = USE_EXT_TRIG;
                 TOswitches[i]->is_momentery = BUTTOM_MOMENT;
-                TOswitches[i]->badBoot = true;
-                TOswitches[i]->usetimeOUT = USE_TO;
+                TOswitches[i]->badBoot = USE_BADBOOT;
                 TOswitches[i]->useDailyTO = USE_dailyTO;
-                TOswitches[i]->usesafetyOff = true;
-                TOswitches[i]->set_safetyoff = 600;
-
+                TOswitches[i]->usesafetyOff = SAFETY_OFF;
+                TOswitches[i]->set_safetyoff = SAFEY_OFF_DURATION;
+                TOswitches[i]->usequickON = USE_QUICK_BOOT;
+                TOswitches[i]->onAt_boot = ON_AT_BOOT;
                 TOswitches[i]->inputPin = inputPin[i];
 
+                if (USE_QUICK_BOOT)
+                {
+                        TOswitches[i]->quickPwrON();
+                }
+        }
+}
+void startTOSwitch()
+{
+        // After Wifi is On
+        for (int i = 0; i < NUM_SW; i++)
+        {
                 if (TOswitches[i]->useDailyTO)
                 {
                         TOswitches[i]->setdailyTO(START_dTO[i], END_dTO[i]);
@@ -90,19 +108,27 @@ void startTOSwitch()
                 {
                         TOswitches[i]->extTrig_cb(HIGH, true, "PIR_DETECTOR");
                 }
-
                 TOswitches[i]->begin();
         }
 }
 void TOswitch_looper()
 {
         char msgtoMQTT[150];
+        byte mtyp;
+
         for (int i = 0; i < NUM_SW; i++)
         {
                 TOswitches[i]->looper(iot.mqtt_detect_reset);
-                if (TOswitches[i]->postMessages(msgtoMQTT))
+                if (TOswitches[i]->postMessages(msgtoMQTT, mtyp))
                 {
-                        iot.pub_msg(msgtoMQTT);
+                        if (mtyp == 0)
+                        {
+                                iot.pub_msg(msgtoMQTT);
+                        }
+                        else if (mtyp == 1)
+                        {
+                                iot.pub_log(msgtoMQTT);
+                        }
                 }
         }
 }
@@ -219,6 +245,7 @@ void addiotnalMQTT(char *incoming_msg)
 
 void setup()
 {
+        configTOswitches();
         startIOTservices();
         startTOSwitch();
 }
