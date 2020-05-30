@@ -1223,10 +1223,6 @@ void mySwitch::begin()
                         _start_dailyTO();
                 }
         }
-        // if (usequickON)
-        // {
-        //         // _quickPwrON(onAt_boot);
-        // }
 }
 void mySwitch::changePower(float val)
 {
@@ -1382,10 +1378,10 @@ void mySwitch::_TOlooper(int det_reset)
 {
         if (det_reset != 2)
         {
-                if (first_time)
+                if (_check_recoverReset&& badBoot)
                 {
                         _recoverReset(det_reset);
-                        first_time = false;
+                        _check_recoverReset = false;
                 }
 
                 bool relayState = TOswitch.looper(); // TO in on/off state ?
@@ -1691,7 +1687,7 @@ void mySwitch::quickPwrON()
         {
                 if (usePWM)
                 {
-                        analogWrite(_switchPin, def_power);
+                        analogWrite(_switchPin, def_power*PWM_RES);
                 }
                 else
                 {

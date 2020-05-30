@@ -7,7 +7,7 @@
 
 // ********** myIOT Class ***********
 //~~~~~ Services ~~~~~~~~~~~
-#define USE_SERIAL true     // Serial Monitor
+#define USE_SERIAL false     // Serial Monitor
 #define USE_WDT true         // watchDog resets
 #define USE_OTA true         // OTA updates
 #define USE_RESETKEEPER true // detect quick reboot and real reboots
@@ -27,16 +27,32 @@ myIOT iot(DEVICE_TOPIC);
 // ***************************
 
 // *********** myTOswitch ***********
-
-// ~~~~ TO & dailyTO ~~~~~~
+// ~~~~~~ Services ~~~~~~~~
+#define ON_AT_BOOT true
+#define USE_QUICK_BOOT true
 #define USE_TO true
 #define USE_dailyTO true
+#define SAFETY_OFF true
+#define SAFEY_OFF_DURATION 600 //minutes
+// ~~~~~~~~~~~~~~~~~~~~
+
+// ~~~~ TO & dailyTO ~~~~~~
 const int START_dTO[2][3] = {{16, 0, 0}, {18, 30, 0}};
 const int END_dTO[2][3] = {{0, 30, 0}, {23, 0, 0}};
-const int TimeOUT[] = {120, 1}; // minutes
+const int TimeOUT[] = {240, 1}; // minutes
 // ~~~~~~~~~~~~~~~~~~~~
 
 // ~~~~~~ Hardware ~~~~~~~
+#define NUM_SW 1
+#define USE_PWM true
+#define USE_INPUT true
+#define USE_EXT_TRIG false
+#define BUTTOM_MOMENT true
+#define USE_BADBOOT USE_RESETKEEPER
+const int outputPin[] = {D3, 5}; // D3 for most PWM boards
+const int inputPin[] = {D7, 0};
+// ~~~~~~~~~~~~~~~~~~~~
+char *SW_Names[] = {"Strip", "Strips"};
 
 /*
 ~~~~~ SONOFF HARDWARE ~~~~~
@@ -46,19 +62,6 @@ const int TimeOUT[] = {120, 1}; // minutes
 #define INPUT2 14 // 14 for extButton
 #define indic_LEDpin 13
 */
-
-#define NUM_SW 1
-#define SAFEY_OFF_DURATION 600 //minutes
-#define USE_PWM true
-#define USE_INPUT true
-#define USE_EXT_TRIG false
-#define BUTTOM_MOMENT true
-#define ON_AT_BOOT true
-#define USE_QUICK_BOOT true
-#define SAFETY_OFF true
-const int outputPin[] = {D3, 5}; // D3 for most PWM boards
-const int inputPin[] = {D7, 0};
-char *SW_Names[] = {"Strip", "Strips"};
 // ~~~~~~~~~~~~~~~~~~~~~~~
 
 mySwitch myTOsw0(outputPin[0], TimeOUT[0], SW_Names[0]);
@@ -78,8 +81,7 @@ void configTOswitches()
                 TOswitches[i]->useInput = USE_INPUT;
                 TOswitches[i]->useEXTtrigger = USE_EXT_TRIG;
                 TOswitches[i]->is_momentery = BUTTOM_MOMENT;
-                TOswitches[i]->badBoot = true; // <--- CURRENTLY NOT IN USE
-                TOswitches[i]->usetimeOUT = USE_TO;
+                TOswitches[i]->badBoot = USE_BADBOOT;
                 TOswitches[i]->useDailyTO = USE_dailyTO;
                 TOswitches[i]->usesafetyOff = SAFETY_OFF;
                 TOswitches[i]->set_safetyoff = SAFEY_OFF_DURATION;
@@ -87,7 +89,10 @@ void configTOswitches()
                 TOswitches[i]->onAt_boot = ON_AT_BOOT;
                 TOswitches[i]->inputPin = inputPin[i];
 
-                TOswitches[i]->quickPwrON();
+                if (USE_QUICK_BOOT)
+                {
+                        TOswitches[i]->quickPwrON();
+                }
         }
 }
 void startTOSwitch()
@@ -95,8 +100,6 @@ void startTOSwitch()
         // After Wifi is On
         for (int i = 0; i < NUM_SW; i++)
         {
-                TOswitches[i]->begin();
-
                 if (TOswitches[i]->useDailyTO)
                 {
                         TOswitches[i]->setdailyTO(START_dTO[i], END_dTO[i]);
@@ -105,6 +108,7 @@ void startTOSwitch()
                 {
                         TOswitches[i]->extTrig_cb(HIGH, true, "PIR_DETECTOR");
                 }
+                TOswitches[i]->begin();
         }
 }
 void TOswitch_looper()
@@ -241,9 +245,8 @@ void addiotnalMQTT(char *incoming_msg)
 
 void setup()
 {
-        Serial.begin(9600);
-        startIOTservices();
         configTOswitches();
+        startIOTservices();
         startTOSwitch();
 }
 void loop()

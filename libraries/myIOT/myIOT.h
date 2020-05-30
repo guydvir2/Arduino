@@ -314,7 +314,7 @@ public:
   bool last_relayState = false;
   bool trig_lastState = false;
   bool inputState;
-  bool first_time = true; //<--- fix it later
+  bool _check_recoverReset = true; 
 
   int inputPin = -1;
   float step_power = 0.2;
