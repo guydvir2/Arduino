@@ -21,7 +21,8 @@
 			"string_view": "cpp",
 			"chrono": "cpp",
 			"cmath": "cpp",
-			"cstdlib": "cpp"
+			"cstdlib": "cpp",
+			"cstddef": "cpp"
 		},
 		"C_Cpp.intelliSenseEngineFallback": "Enabled",
 		"arduino.commandPath": "/home/guy/Documents/git/Arduino",
