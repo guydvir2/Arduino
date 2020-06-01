@@ -3,7 +3,7 @@
 #include <Arduino.h>
 
 // ********** Sketch Services  ***********
-#define VER "WEMOS_1.1"
+#define VER "SONOFF_1.1"
 
 // ********** myIOT Class ***********
 //~~~~~ Services ~~~~~~~~~~~
@@ -16,9 +16,9 @@
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 // ~~~~~~~ MQTT Topics ~~~~~~
-#define DEVICE_TOPIC "familyRoomLEDs"
+#define DEVICE_TOPIC "PergolaBulbs"
 #define MQTT_PREFIX "myHome"
-#define MQTT_GROUP "intLights"
+#define MQTT_GROUP "extLights"
 #define TELEGRAM_OUT_TOPIC "Telegram_out"
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -37,8 +37,8 @@ myIOT iot(DEVICE_TOPIC);
 // ~~~~~~~~~~~~~~~~~~~~
 
 // ~~~~ TO & dailyTO ~~~~~~
-const int START_dTO[2][3] = {{16, 0, 0}, {18, 30, 0}};
-const int END_dTO[2][3] = {{0, 30, 0}, {23, 0, 0}};
+const int START_dTO[2][3] = {{23, 0, 0}, {18, 30, 0}};
+const int END_dTO[2][3] = {{6, 30, 0}, {23, 0, 0}};
 const int TimeOUT[] = {240, 1}; // minutes
 // ~~~~~~~~~~~~~~~~~~~~
 
@@ -49,8 +49,8 @@ const int TimeOUT[] = {240, 1}; // minutes
 #define USE_EXT_TRIG false
 #define BUTTOM_MOMENT true
 #define USE_BADBOOT USE_RESETKEEPER
-const int outputPin[] = {D3, 5}; // D3 for most PWM boards
-const int inputPin[] = {D7, 0};
+const int outputPin[] = {12, 5}; // D3 for most PWM boards
+const int inputPin[] = {0, 0};
 // ~~~~~~~~~~~~~~~~~~~~
 char *SW_Names[] = {"Strip", "Strips"};
 
@@ -243,11 +243,20 @@ void addiotnalMQTT(char *incoming_msg)
         // ±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
 }
 
+hardReboot hReboot;
 void setup()
 {
+        bool a = hReboot.check_boot(2);
         configTOswitches();
         startIOTservices();
         startTOSwitch();
+        if(a){
+                iot.pub_msg("YES!");
+        }
+        else{
+                iot.pub_msg("no");
+        }
+        hReboot.zero_cell(0);
 }
 void loop()
 {

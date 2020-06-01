@@ -1378,7 +1378,7 @@ void mySwitch::_TOlooper(int det_reset)
 {
         if (det_reset != 2)
         {
-                if (_check_recoverReset&& badBoot)
+                if (_check_recoverReset && badBoot)
                 {
                         _recoverReset(det_reset);
                         _check_recoverReset = false;
@@ -1687,7 +1687,7 @@ void mySwitch::quickPwrON()
         {
                 if (usePWM)
                 {
-                        analogWrite(_switchPin, def_power*PWM_RES);
+                        analogWrite(_switchPin, def_power * PWM_RES);
                 }
                 else
                 {
@@ -1734,4 +1734,44 @@ void mySwitch::_recoverReset(int rebootState)
         //                 EEPROM.commit();
         // #endif
         //         }
+}
+
+hardReboot::hardReboot(int romsize)
+{
+        EEPROM.begin(romsize);
+}
+void hardReboot::zero_cell(int i)
+{
+        EEPROM.write(i, 0);
+        EEPROM.commit();
+}
+byte hardReboot::return_val(int i)
+{
+        return EEPROM.read(i);
+}
+void hardReboot::print_val(int i)
+{
+        Serial.print("Value of cell #");
+        Serial.print(i);
+        Serial.print(": ");
+        Serial.println(EEPROM.read(i));
+}
+bool hardReboot::check_boot(byte threshold)
+{
+        boot_Counter.value = EEPROM.read(boot_Counter.cell_index);
+        totWrites_Counter.value = EEPROM.read(totWrites_Counter.cell_index);
+
+        if (boot_Counter.value < threshold)
+        {
+                boot_Counter.value++;
+                totWrites_Counter.value++;
+                EEPROM.write(boot_Counter.cell_index, boot_Counter.value);
+                EEPROM.write(totWrites_Counter.cell_index, totWrites_Counter.value);
+                EEPROM.commit();
+                return 0;
+        }
+        else
+        {
+                return 1;
+        }
 }

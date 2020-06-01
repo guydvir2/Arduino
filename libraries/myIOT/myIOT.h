@@ -30,6 +30,8 @@
 typedef void (*cb_func)(char msg1[50]);
 typedef void (*cb_func2)(String msg1, String msg2, String msg3, char *msg4);
 
+#include <EEPROM.h>
+
 class FVars
 {
 public:
@@ -271,6 +273,24 @@ public:
 private:
   void switchON();
 };
+class hardReboot
+{
+private:
+  struct eeproms_storage
+  {
+    byte cell_index;
+    byte value;
+  };
+  eeproms_storage boot_Counter = {0, 0};
+  eeproms_storage totWrites_Counter = {1, 0};
+
+public:
+  hardReboot(int romsize = 64);
+  void zero_cell(int i);
+  byte return_val(int i);
+  void print_val(int i);
+  bool check_boot(byte threshold = 3);
+};
 
 class mySwitch
 {
@@ -314,7 +334,7 @@ public:
   bool last_relayState = false;
   bool trig_lastState = false;
   bool inputState;
-  bool _check_recoverReset = true; 
+  bool _check_recoverReset = true;
 
   int inputPin = -1;
   float step_power = 0.2;

@@ -15,9 +15,6 @@ void setup() {
   // mylog.format();
   Serial.print("File mount - ");
   Serial.println(mylog.FS_ok());
-  
- 
-
 }
 
 void loop() {
