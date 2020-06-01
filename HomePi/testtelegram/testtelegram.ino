@@ -164,13 +164,6 @@ bool chekcTelegram_topic(char *topic, MQTT_msg &msg)
                 sprintf(msg.msg, "%s", iot.mqqt_ext_buffer[1]);
                 sprintf(msg.device_topic, "%s", iot.mqqt_ext_buffer[2]);
                 enterLOG_record(msg.msg);
-                // Serial.print("topic: ");
-                // Serial.println(msg.from_topic);
-                // Serial.print("msg: ");
-                // Serial.println(msg.msg);
-                // Serial.print("dev_name: ");
-                // Serial.println(msg.device_topic);
-
                 for (int i = 0; i < 3; i++)
                 {
                         sprintf(iot.mqqt_ext_buffer[i], "%s", "");
