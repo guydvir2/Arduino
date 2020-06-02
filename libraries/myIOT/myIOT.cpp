@@ -1707,6 +1707,12 @@ void mySwitch::_recoverReset(int rebootState)
                 TOswitch.restart_to();
                 sprintf(_outMQTTlog, "%s", "--> NormalBoot & On-at-Boot. Restarting TimeOUT");
         }
+        else if (hReboot.resetFlag)
+        { // using HardReboot
+                TOswitch.restart_to();
+                sprintf(_outMQTTlog, "--> ForcedBoot. Restarting TimeOUT");
+                //         boot_overide[i] = true;
+        }
         else if (TOswitch.looper() == 0)
         { // was not during TO
                 if (rebootState == 1)
@@ -1716,24 +1722,17 @@ void mySwitch::_recoverReset(int rebootState)
                 changePower(0);
                 sprintf(_outMQTTlog, "%s", "--> Stopping Quick-PowerON");
         }
-        // else if (hReset_eeprom.hBoot)
-        // { // using HardReboot
-        //         TO[i]->restart_to();
-        //         sprintf(_outMQTTlog,"--> ForcedBoot. Restarting TimeOUT");
-        //         boot_overide[i] = true;
-        // }
         else
         {
                 sprintf(_outMQTTlog, "%s", "--> Continue unfinished TimeOuts");
         }
-        // }
 
-        // // Erases EEPROM value for HARD_REBOOT
-        // #if HARD_REBOOT
-        //                 EEPROM.write(hReset_eeprom.val_cell, 0);
-        //                 EEPROM.commit();
-        // #endif
-        //         }
+        if (useHardReboot)
+        {
+                // hReboot.print_val(0);
+                // hReboot.print_val(1);
+                hReboot.zero_cell(0);
+        }
 }
 
 hardReboot::hardReboot(int romsize)
@@ -1768,10 +1767,12 @@ bool hardReboot::check_boot(byte threshold)
                 EEPROM.write(boot_Counter.cell_index, boot_Counter.value);
                 EEPROM.write(totWrites_Counter.cell_index, totWrites_Counter.value);
                 EEPROM.commit();
+                resetFlag = 0;
                 return 0;
         }
         else
         {
+                resetFlag = 1;
                 return 1;
         }
 }

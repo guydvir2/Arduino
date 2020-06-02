@@ -290,6 +290,7 @@ public:
   byte return_val(int i);
   void print_val(int i);
   bool check_boot(byte threshold = 3);
+  bool resetFlag=false;
 };
 
 class mySwitch
@@ -328,6 +329,7 @@ public:
   bool useEXTtrigger = false;
   bool usesafetyOff = false;
   bool usequickON = false;
+  bool useHardReboot = false;
   bool onAt_boot = true;
   bool ext_trig_signal;
   bool is_momentery = true;
@@ -347,6 +349,7 @@ public:
   int set_safetyoff = 360; //minutes
 
   timeOUT TOswitch;
+  hardReboot hReboot;
 
 public:
   mySwitch(int switchPin, int timeout_val = 60, char *name = "mySwitch");

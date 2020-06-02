@@ -3,11 +3,11 @@
 #include <Arduino.h>
 
 // ********** Sketch Services  ***********
-#define VER "SONOFF_1.1"
+#define VER "Wemos_1.2"
 
 // ********** myIOT Class ***********
 //~~~~~ Services ~~~~~~~~~~~
-#define USE_SERIAL false     // Serial Monitor
+#define USE_SERIAL true      // Serial Monitor
 #define USE_WDT true         // watchDog resets
 #define USE_OTA true         // OTA updates
 #define USE_RESETKEEPER true // detect quick reboot and real reboots
@@ -16,7 +16,7 @@
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 // ~~~~~~~ MQTT Topics ~~~~~~
-#define DEVICE_TOPIC "PergolaBulbs"
+#define DEVICE_TOPIC "a"
 #define MQTT_PREFIX "myHome"
 #define MQTT_GROUP "extLights"
 #define TELEGRAM_OUT_TOPIC "Telegram_out"
@@ -28,17 +28,19 @@ myIOT iot(DEVICE_TOPIC);
 
 // *********** myTOswitch ***********
 // ~~~~~~ Services ~~~~~~~~
-#define ON_AT_BOOT true
+#define ON_AT_BOOT false
 #define USE_QUICK_BOOT true
 #define USE_TO true
 #define USE_dailyTO true
 #define SAFETY_OFF true
 #define SAFEY_OFF_DURATION 600 //minutes
+#define USE_BADBOOT USE_RESETKEEPER
+#define USE_EEPROM_RESET_COUNTER true
 // ~~~~~~~~~~~~~~~~~~~~
 
 // ~~~~ TO & dailyTO ~~~~~~
-const int START_dTO[2][3] = {{23, 0, 0}, {18, 30, 0}};
-const int END_dTO[2][3] = {{6, 30, 0}, {23, 0, 0}};
+const int START_dTO[2][3] = {{16, 25, 0}, {18, 30, 0}};
+const int END_dTO[2][3] = {{16, 26, 0}, {23, 0, 0}};
 const int TimeOUT[] = {240, 1}; // minutes
 // ~~~~~~~~~~~~~~~~~~~~
 
@@ -48,11 +50,11 @@ const int TimeOUT[] = {240, 1}; // minutes
 #define USE_INPUT true
 #define USE_EXT_TRIG false
 #define BUTTOM_MOMENT true
-#define USE_BADBOOT USE_RESETKEEPER
+
 const int outputPin[] = {12, 5}; // D3 for most PWM boards
 const int inputPin[] = {0, 0};
 // ~~~~~~~~~~~~~~~~~~~~
-char *SW_Names[] = {"Strip", "Strips"};
+char *SW_Names[] = {"Bulbs", "Strips"};
 
 /*
 ~~~~~ SONOFF HARDWARE ~~~~~
@@ -80,6 +82,7 @@ void configTOswitches()
                 TOswitches[i]->useSerial = USE_SERIAL;
                 TOswitches[i]->useInput = USE_INPUT;
                 TOswitches[i]->useEXTtrigger = USE_EXT_TRIG;
+                TOswitches[i]->useHardReboot = USE_EEPROM_RESET_COUNTER;
                 TOswitches[i]->is_momentery = BUTTOM_MOMENT;
                 TOswitches[i]->badBoot = USE_BADBOOT;
                 TOswitches[i]->useDailyTO = USE_dailyTO;
@@ -88,7 +91,11 @@ void configTOswitches()
                 TOswitches[i]->usequickON = USE_QUICK_BOOT;
                 TOswitches[i]->onAt_boot = ON_AT_BOOT;
                 TOswitches[i]->inputPin = inputPin[i];
-
+                
+                if (USE_EEPROM_RESET_COUNTER)
+                {
+                        TOswitches[i]->hReboot.check_boot(2);
+                }
                 if (USE_QUICK_BOOT)
                 {
                         TOswitches[i]->quickPwrON();
@@ -243,20 +250,11 @@ void addiotnalMQTT(char *incoming_msg)
         // ±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
 }
 
-hardReboot hReboot;
 void setup()
 {
-        bool a = hReboot.check_boot(2);
         configTOswitches();
         startIOTservices();
         startTOSwitch();
-        if(a){
-                iot.pub_msg("YES!");
-        }
-        else{
-                iot.pub_msg("no");
-        }
-        hReboot.zero_cell(0);
 }
 void loop()
 {
