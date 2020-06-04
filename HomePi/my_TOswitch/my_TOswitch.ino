@@ -3,7 +3,7 @@
 #include <Arduino.h>
 
 // ********** Sketch Services  ***********
-#define VER "Wemos_1.2"
+#define VER "SonOff_1.2"
 
 // ********** myIOT Class ***********
 //~~~~~ Services ~~~~~~~~~~~
@@ -16,7 +16,7 @@
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 // ~~~~~~~ MQTT Topics ~~~~~~
-#define DEVICE_TOPIC "a"
+#define DEVICE_TOPIC "PergolaBulbs"
 #define MQTT_PREFIX "myHome"
 #define MQTT_GROUP "extLights"
 #define TELEGRAM_OUT_TOPIC "Telegram_out"
@@ -39,8 +39,8 @@ myIOT iot(DEVICE_TOPIC);
 // ~~~~~~~~~~~~~~~~~~~~
 
 // ~~~~ TO & dailyTO ~~~~~~
-const int START_dTO[2][3] = {{16, 25, 0}, {18, 30, 0}};
-const int END_dTO[2][3] = {{16, 26, 0}, {23, 0, 0}};
+const int START_dTO[2][3] = {{23, 30, 0}, {20, 30, 0}};
+const int END_dTO[2][3] = {{6, 30, 0}, {22, 0, 0}};
 const int TimeOUT[] = {240, 1}; // minutes
 // ~~~~~~~~~~~~~~~~~~~~
 
@@ -53,8 +53,9 @@ const int TimeOUT[] = {240, 1}; // minutes
 
 const int outputPin[] = {12, 5}; // D3 for most PWM boards
 const int inputPin[] = {0, 0};
+const int hRebbots[]={2,3};
 // ~~~~~~~~~~~~~~~~~~~~
-char *SW_Names[] = {"Bulbs", "Strips"};
+char *SW_Names[] = {"Lamps", "Strips"};
 
 /*
 ~~~~~ SONOFF HARDWARE ~~~~~

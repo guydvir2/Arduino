@@ -1683,7 +1683,7 @@ void mySwitch::quickPwrON()
            3) eeprom Reset counter forces to be ON_AT_BOOT
          */
 
-        if (TOswitch.endTO_inFlash != 0 || onAt_boot == true) // || hReset_eeprom.hBoot)
+        if (TOswitch.endTO_inFlash != 0 || onAt_boot == true || hReboot.resetFlag)
         {
                 if (usePWM)
                 {
@@ -1735,9 +1735,10 @@ void mySwitch::_recoverReset(int rebootState)
         }
 }
 
-hardReboot::hardReboot(int romsize)
+hardReboot::hardReboot(int romsize, int cell)
 {
         EEPROM.begin(romsize);
+        _cell=cell;
 }
 void hardReboot::zero_cell(int i)
 {

@@ -283,14 +283,15 @@ private:
   };
   eeproms_storage boot_Counter = {0, 0};
   eeproms_storage totWrites_Counter = {1, 0};
+  int _cell;
 
 public:
-  hardReboot(int romsize = 64);
+  hardReboot(int romsize = 64, int cell = 0);
   void zero_cell(int i);
   byte return_val(int i);
   void print_val(int i);
   bool check_boot(byte threshold = 3);
-  bool resetFlag=false;
+  bool resetFlag = false;
 };
 
 class mySwitch

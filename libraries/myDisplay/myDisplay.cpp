@@ -1,5 +1,8 @@
 #include "Arduino.h"
 #include "myDisplay.h"
+#include <Wire.h> 
+#include <LiquidCrystal_I2C.h>
+
 
 myOLED::myOLED(int height, int width)
     : display(width, height, &Wire, OLED_RESET)
@@ -125,5 +128,43 @@ void myOLED::swaper(int swapTime)
     else if (millis() - swapLines_counter > 2 * swapTime)
     {
         swapLines_counter = 0;
+    }
+}
+
+myLCD::myLCD(int lcdColumns, int lcdRows, int lcd_adress)
+    : lcd(lcd_adress, lcdColumns, lcdRows)
+{
+    _lcdcols=lcdColumns;
+
+}
+
+void myLCD::start()
+{
+    lcd.init();
+    lcd.backlight();
+}
+void myLCD::CenterTXT(char *line1, char *line2, char *line3, char *line4)
+{
+    char *Lines[] = {line1, line2, line3, line4};
+    for (int n = 0; n < 3; n++)
+    {
+        if (strcmp(Lines[n], "") != 0)
+        {
+            int strLength = strlen(Lines[n]);
+            lcd.setCursor((int)((_lcdcols-strLength) / 2), n);
+            lcd.print(Lines[n]);
+        }
+    }
+}
+void myLCD::freeTXT(char *line1, char *line2, char *line3, char *line4)
+{
+    char *Lines[] = {line1, line2, line3, line4};
+    for (int n = 0; n < 3; n++)
+    {
+        if (strcmp(Lines[n], "") != 0)
+        {
+            lcd.setCursor(0, n);
+            lcd.print(Lines[n]);
+        }
     }
 }
