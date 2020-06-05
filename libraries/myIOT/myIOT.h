@@ -128,7 +128,7 @@ public:
   char telegramServer[MaxTopicLength];
   char mqqt_ext_buffer[3][150];
 
-  const char *ver = "iot_7.0";
+  const char *ver = "iot_7.1";
   char timeStamp[20];
 
 private:
@@ -280,10 +280,12 @@ private:
   {
     byte cell_index;
     byte value;
+    byte cell2_index;
+    byte value2;
   };
-  eeproms_storage boot_Counter = {0, 0};
-  eeproms_storage totWrites_Counter = {1, 0};
-  int _cell;
+  eeproms_storage boot_Counter = {0, 0, 0, 0};
+  // eeproms_storage totWrites_Counter = {1, 0, 0, 0};
+  // int _cell;
 
 public:
   hardReboot(int romsize = 64, int cell = 0);
@@ -299,12 +301,12 @@ class mySwitch
 #define PWM_RES 1024
 #define SwitchOn LOW
 #define RelayOn HIGH
-  // #define ver "0.1"
 
 private:
   int _switchPin;
   char _switchName[20];
   char _outMQTTmsg[150];
+  char _out2MQTTmsg[150];
   char _outMQTTlog[150];
   bool _ext_det = HIGH;
   bool _retrig = false;
@@ -321,6 +323,7 @@ private:
   void _recoverReset(int rebootState = -1);
 
 public:
+  const char *ver = "mySwitch_1.1";
   bool usePWM = false;
   bool useSerial = false;
   bool useInput = false;

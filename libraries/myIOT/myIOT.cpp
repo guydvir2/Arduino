@@ -1262,12 +1262,12 @@ void mySwitch::switchIt(char *txt1, float state, bool ignoreTO)
                         {
                                 // turning on
                                 changePower(state);
-                                sprintf(_outMQTTmsg, "%s: [%s] Switched [On] [%.1f%%] power", txt1, _switchName, current_power * 100);
+                                sprintf(_out2MQTTmsg, "%s: [%s] Switched [On] [%.1f%%] power", txt1, _switchName, current_power * 100);
                         }
                         else
                         {
                                 changePower(state);
-                                sprintf(_outMQTTmsg, "%s: [%s] Switched to [%.1f%%] power", txt1, _switchName, current_power * 100);
+                                sprintf(_out2MQTTmsg, "%s: [%s] Switched to [%.1f%%] power", txt1, _switchName, current_power * 100);
                         }
                 }
                 else
@@ -1276,7 +1276,7 @@ void mySwitch::switchIt(char *txt1, float state, bool ignoreTO)
                         {
                                 digitalWrite(_switchPin, state);
                                 current_power = state;
-                                sprintf(_outMQTTmsg, "%s: [%s] Switched [%s]", txt1, _switchName, (int)current_power ? "On" : "Off");
+                                sprintf(_out2MQTTmsg, "%s: [%s] Switched [%s]", txt1, _switchName, (int)current_power ? "On" : "Off");
                                 // if (usetimeOUT && current_power == 1)
                                 // {
                                 //         TOswitch.restart_to();
@@ -1295,13 +1295,13 @@ void mySwitch::switchIt(char *txt1, float state, bool ignoreTO)
                                 TOswitch.restart_to();
                                 TOswitch.convert_epoch2clock(now() + TOswitch.remain(), now(), msg1, msg2);
                                 sprintf(msg2, " Start Timeout[%s]", msg1);
-                                strcat(_outMQTTmsg, msg2);
+                                strcat(_out2MQTTmsg, msg2);
                         }
                         else if (TOswitch.remain() > 0 && current_power > 0.0)
                         {
                                 TOswitch.convert_epoch2clock(now() + TOswitch.remain(), now(), msg1, msg2);
                                 sprintf(msg2, " Resume Timeout[%s]", msg1);
-                                strcat(_outMQTTmsg, msg2);
+                                strcat(_out2MQTTmsg, msg2);
                         }
                 }
         }
@@ -1427,6 +1427,13 @@ bool mySwitch::postMessages(char outmsg[150], byte &msg_type)
         {
                 sprintf(outmsg, "%s", _outMQTTmsg);
                 sprintf(_outMQTTmsg, "%s", "");
+                msg_type = 0;
+                return 1;
+        }
+        else if (strcmp(_out2MQTTmsg, "") != 0)
+        {
+                sprintf(outmsg, "%s", _out2MQTTmsg);
+                sprintf(_out2MQTTmsg, "%s", "");
                 msg_type = 0;
                 return 1;
         }
@@ -1738,7 +1745,8 @@ void mySwitch::_recoverReset(int rebootState)
 hardReboot::hardReboot(int romsize, int cell)
 {
         EEPROM.begin(romsize);
-        _cell=cell;
+        boot_Counter.cell_index = cell;
+        boot_Counter.cell2_index = cell+1;
 }
 void hardReboot::zero_cell(int i)
 {
@@ -1759,14 +1767,14 @@ void hardReboot::print_val(int i)
 bool hardReboot::check_boot(byte threshold)
 {
         boot_Counter.value = EEPROM.read(boot_Counter.cell_index);
-        totWrites_Counter.value = EEPROM.read(totWrites_Counter.cell_index);
+        boot_Counter.value2 = EEPROM.read(boot_Counter.cell2_index);
 
         if (boot_Counter.value < threshold)
         {
                 boot_Counter.value++;
-                totWrites_Counter.value++;
+                boot_Counter.value2++;
                 EEPROM.write(boot_Counter.cell_index, boot_Counter.value);
-                EEPROM.write(totWrites_Counter.cell_index, totWrites_Counter.value);
+                EEPROM.write(boot_Counter.cell2_index, boot_Counter.value2);
                 EEPROM.commit();
                 resetFlag = 0;
                 return 0;
