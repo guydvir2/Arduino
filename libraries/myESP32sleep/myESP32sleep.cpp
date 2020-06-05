@@ -10,6 +10,14 @@ RTC_DATA_ATTR float driftRTC = 0;
 RTC_DATA_ATTR long clock_beforeSleep = 0;
 RTC_DATA_ATTR float driftsArray_RTC[drift_ArraySize];
 
+esp32Sleep::esp32Sleep(int deepsleep, int forcedwake, char *devname)
+    : mqttClient(espClient)
+{
+  _deepsleep_time = deepsleep;
+  _forcedwake_time = forcedwake;
+  dev_name = devname;
+}
+
 // ~~~~~~~ EEPROM ~~~~~~~~~
 int esp32Sleep::getEEPROMvalue(byte i)
 {
@@ -39,46 +47,42 @@ void esp32Sleep::start_eeprom(byte i)
 }
 
 // ~~~~~~~~ Wifi & NTP ~~~~~~
-void esp32Sleep::startNTP(const int gmtOffset_sec, const int daylightOffset_sec, const char *ntpServer)
-{
-  configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);
-}
-bool esp32Sleep::startWifi()
-{
-  long beginwifi = millis();
-  WiFi.begin(wifi_ssid, wifi_pass);
-  while (WiFi.status() != WL_CONNECTED && millis() - beginwifi < 30000)
-  {
-    delay(200);
-    // Serial.print(".");
-  }
-  // Serial.println();
+// void esp32Sleep::startNTP(const int gmtOffset_sec, const int daylightOffset_sec, const char *ntpServer)
+// {
+//   configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);
+// }
+// bool esp32Sleep::startWifi()
+// {
+//   long beginwifi = millis();
+//   WiFi.begin(wifi_ssid, wifi_pass);
+//   while (WiFi.status() != WL_CONNECTED && millis() - beginwifi < 30000)
+//   {
+//     delay(200);
+//   }
 
-  if (WiFi.status() == WL_CONNECTED)
-  {
-    // Serial.println(WiFi.localIP());
-    startNTP();
-    return 1;
-  }
-  else
-  {
-    // Serial.println("Failed connect to wifi");
-    return 0;
-  }
-}
-void esp32Sleep::getTime()
-{
-  int a = 0;
-  while (a < 3)
-  {
-    if (getLocalTime(&_timeinfo))
-    {
-      delay(100);
-      time(&_epoch_time);
-    }
-    a++;
-  }
-}
+//   if (WiFi.status() == WL_CONNECTED)
+//   {
+//     startNTP();
+//     return 1;
+//   }
+//   else
+//   {
+//     return 0;
+//   }
+// }
+// void esp32Sleep::getTime()
+// {
+//   int a = 0;
+//   while (a < 3)
+//   {
+//     if (getLocalTime(&_timeinfo))
+//     {
+//       delay(100);
+//       time(&_epoch_time);
+//     }
+//     a++;
+//   }
+// }
 void esp32Sleep::Avg_Array_zeroing()
 {
   if (bootCounter == 0)
@@ -90,26 +94,6 @@ void esp32Sleep::Avg_Array_zeroing()
   }
 }
 
-// void esp32Sleep::onConnectionEstablished()
-// {
-//   // Subscribe to "mytopic/test" and display received message to Serial
-//   espmqtt_client.subscribe("mytopic/test", [](const String & payload) {
-//     Serial.println(payload);
-//   });
-
-//   // Subscribe to "mytopic/wildcardtest/#" and display received message to Serial
-//   espmqtt_client.subscribe("mytopic/wildcardtest/#", [](const String & topic, const String & payload) {
-//     Serial.println(topic + ": " + payload);
-//   });
-
-//   // Publish a message to "mytopic/test"
-//   espmqtt_client.publish("mytopic/test", "This is a message"); // You can activate the retain flag by setting the third parameter to true
-
-//   // Execute delayed instructions
-//   espmqtt_client.executeDelayed(5 * 1000, []() {
-//     espmqtt_client.publish("mytopic/test", "This is a message sent 5 seconds later");
-//   });
-// }
 
 // ~~~~~~~ Sleep & Drift calcs ~~~
 
@@ -164,7 +148,6 @@ void esp32Sleep::driftUpdate(float lastboot_drift, byte cell)
   //   }
   // }
 }
-
 void esp32Sleep::new_driftUpdate(float lastboot_drift, byte cell)
 {
   const float driftFactor = -0.006111;
@@ -213,124 +196,12 @@ int esp32Sleep::calc_nominal_sleepTime()
   strcat(wake_sleep_str, tt);
   return nominal_nextSleep;
 }
-esp32Sleep::esp32Sleep(int deepsleep, int forcedwake, char *devname)
-    : mqttClient(espClient)
-{
-  _deepsleep_time = deepsleep;
-  _forcedwake_time = forcedwake;
-  dev_name = devname;
-}
 bool esp32Sleep::startServices(char *ssid, char *password, char *mqtt_user, char *mqtt_passw, char *mqtt_broker)
 {
   start_eeprom();
-  // Avg_Array_zeroing();
-  mqtt_server = mqtt_broker;
-  user = mqtt_user;
-  passw = mqtt_passw;
-  wifi_ssid = ssid;
-  wifi_pass = password;
-
-  if (use_wifi)
-  {
-    _wifi_status = startWifi();
-    if (_wifi_status)
-    {
-      check_awake_ontime();
-    }
-    return 1;
-  }
-  else
-  {
-    sprintf(wake_sleep_str, "Fail to obtain WiFi");
-    return 0;
-  }
+  return 1;
 }
-// void esp32Sleep::startMQTT()
-// {
-//   bool stat = false;
-//   mqttClient.setServer(mqtt_server, 1883);
-//   stat = true;
-//   Serial.println("MQTT SERVER: ");
-//   Serial.println(mqtt_server);
 
-//   // Set callback function
-//   if (stat)
-//   {
-//     mqttClient.setCallback(std::bind(&esp32Sleep::callback, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
-//     subscribeMQTT();
-//   }
-//   else
-//   {
-//     Serial.println("Not connected to MQTT server");
-//   }
-// }
-// bool esp32Sleep::subscribeMQTT()
-// {
-//   static long lastReconnectAttempt = 0;
-  
-//   if (!mqttClient.connected())
-//   {
-//     long now = millis();
-//     if (now - lastReconnectAttempt > 5000)
-//     {
-//       lastReconnectAttempt = now;
-
-//         Serial.println("have wifi, entering MQTT connection");
-//         Serial.print("Attempting MQTT connection...");
-//       // Attempt to connect
-//       char tempname[15];
-//       sprintf(tempname, "ESP_%s", String(ESP.getChipId()).c_str());
-
-//       if (mqttClient.connect(tempname, user, passw, _availTopic, 0, true, "offline"))
-//       {
-//         for (int i = 0; i < sizeof(topicArry) / sizeof(char *); i++)
-//         {
-//           if (strcmp(topicArry[i], "") != 0)
-//           {
-//             mqttClient.subscribe(topicArry[i]);
-//           }
-//         }
-
-//         if (useSerial)
-//         {
-//           Serial.println("connected");
-//         }
-//         if (firstRun)
-//         {
-//           pub_log("<< PowerON Boot >>");
-//           if (!useResetKeeper)
-//           {
-//             firstRun = false;
-//             mqtt_detect_reset = 0;
-//             notifyOnline();
-//           }
-//           else
-//           { // using reset keeper
-//             mqttClient.publish(_availTopic, "resetKeeper", true);
-//           }
-//         }
-//         else
-//         { // not first run
-//           notifyOnline();
-//         }
-//         return 1;
-//       }
-//       else
-//       { // fail to connect MQTT
-//         if (useSerial)
-//         {
-//           Serial.print("failed, rc=");
-//           Serial.println(mqttClient.state());
-//         }
-//         return 0;
-//       }
-//     }
-//   }
-//   else
-//   {
-//     return 1;
-//   }
-// }
 void esp32Sleep::sleepNOW(float sec2sleep)
 {
   if (_use_extfunc)
@@ -392,15 +263,15 @@ void esp32Sleep::wait_forSleep()
   // when forced awake time will be over, ESP will go to slepp
   if (millis() >= _forcedwake_time * 1000)
   {
-    if (_wifi_status)
-    {
+    // if (_wifi_status)
+    // {
       sleepNOW(calc_nominal_sleepTime() - driftRTC);
-    }
-    else
-    {
-      sleepNOW(_deepsleep_time * 60);
-    }
-  }
+    // }
+    // else
+    // {
+      // sleepNOW(_deepsleep_time * 60);
+    // }
+  // }
 }
 void esp32Sleep::run_func(cb_func cb)
 {

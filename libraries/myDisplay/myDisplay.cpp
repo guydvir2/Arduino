@@ -1,7 +1,5 @@
 #include "Arduino.h"
 #include "myDisplay.h"
-#include <Wire.h> 
-#include <LiquidCrystal_I2C.h>
 
 
 myOLED::myOLED(int height, int width)
@@ -137,7 +135,6 @@ myLCD::myLCD(int lcdColumns, int lcdRows, int lcd_adress)
     _lcdcols=lcdColumns;
 
 }
-
 void myLCD::start()
 {
     lcd.init();

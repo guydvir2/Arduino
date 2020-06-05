@@ -14,6 +14,10 @@ class esp32Sleep
 #define uS_TO_S_FACTOR 1000000ULL /* Conversion micro seconds to seconds */
 #define EEPROM_SIZE 16
 
+#define DEVICE_TOPIC "ESP32_SLEEP"
+#define MQTT_PREFIX "myHome"
+#define MQTT_GROUP ""
+
 private:
     struct tm _timeinfo;
     time_t _epoch_time;
@@ -21,7 +25,12 @@ private:
     int _forcedwake_time = 0; // forced time to stay awake before sleep
     bool _wifi_status = false;
     bool _use_extfunc = false;
-
+    char MQTTmsgtopic[50];
+    char MQTTlogtopic[50];
+    char MQTTavltopic[50];
+    char MQTTdevtopic[50];
+    
+    char MQTTlastctopic[50];
 
     //MQTT broker parameters
     char *mqtt_server;
@@ -31,19 +40,19 @@ private:
 
     cb_func _runFunc;
 
-    WiFiClient espClient;
-    PubSubClient mqttClient;
 
 public:
     bool use_wifi = true;
     char *dev_name = "myESP32_devname";
-    char *wifi_ssid;// = "WIFI_NETWORK_BY_USER";
-    char *wifi_pass;// = "WIFI_PASSWORD_BY_USER";
+    char *wifi_ssid; // = "WIFI_NETWORK_BY_USER";
+    char *wifi_pass; // = "WIFI_PASSWORD_BY_USER";
 
     char sys_presets_str[100];
     char wake_sleep_str[150];
 
-    const char *ver = "1.2";
+    const char *ver = "2.0";
+    WiFiClient espClient;
+    PubSubClient mqttClient;
 
 private:
     // ~~~~~~~~ EEPROM ~~~~~~~~~~~~~
@@ -57,6 +66,15 @@ private:
     void getTime();
     void Avg_Array_zeroing();
 
+    // ~~~~~~~ MQTT ~~~~~~~~~~~~~~
+    void MQTTcallback(char *topic, byte *payload, unsigned int length);
+    void createTopics();
+    void connectMQTT();
+    void subscribeMQTT();
+    void mqtt_pubmsg(char *msg);
+    void startMQTT();
+    void MQTTloop();
+
     // ~~~~~~~ Sleep & Drift calcs ~~~
     void update_driftArray(float lastboot_drift);
     void driftUpdate(float drift_value, byte cell = 0);
@@ -66,7 +84,7 @@ private:
     // void onConnectionEstablished();
 
 public:
-    esp32Sleep(int deepsleep = 30, int forcedwake = 15, char *devname = "ESP32device"); 
+    esp32Sleep(int deepsleep = 30, int forcedwake = 15, char *devname = "ESP32device");
     bool startServices(char *ssid = SSID_ID, char *password = PASS_WIFI, char *mqtt_user = MQTT_USER, char *mqtt_passw = MQTT_PASS, char *mqtt_broker = MQTT_SERVER1);
     void sleepNOW(float sec2sleep = 2700);
     void check_awake_ontime(int min_t_avoidSleep = 10);

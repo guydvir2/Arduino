@@ -3,14 +3,14 @@
 #include "myESP32sleep.h"
 #define SLEEP_TIME 30
 #define FORCE_AWAKE_TIME 20
-#define DEV_NAME "ESP32-S" //"ESP32light" // 
+#define DEV_NAME "ESP32-S" //"ESP32light" //
 esp32Sleep go2sleep(SLEEP_TIME, FORCE_AWAKE_TIME, DEV_NAME);
 // ~~~~~~~~~~~~~~~~~~~~~~~~~
 
 // ~~~~~~~~~ DAC & Solar Panel ~~~~~~~~~~~
-#define USE_BAT_SOLAR true
-#define USE_IFTTT true
-#define USE_VMEASURE true
+#define USE_BAT_SOLAR false
+#define USE_IFTTT false
+#define USE_VMEASURE false
 #define VBAT_ADC_PIN 35
 #define VSOLAR_ADC_PIN 34
 
@@ -111,6 +111,7 @@ void setup()
 {
   Serial.begin(9600);
   Serial.println("\n~~~~~~ Boot ~~~~~~");
+
   if (USE_BAT_SOLAR)
   {
     Vmeasure();

@@ -14,9 +14,9 @@
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 // ~~~~~~~ MQTT Topics ~~~~~~
-#define DEVICE_TOPIC "emptyCode"
+#define DEVICE_TOPIC "constantON"
 #define MQTT_PREFIX "myHome"
-#define MQTT_GROUP ""
+#define MQTT_GROUP "12V_Solar"
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 #define ADD_MQTT_FUNC addiotnalMQTT
