@@ -3,11 +3,11 @@
 #include <Arduino.h>
 
 // ********** Sketch Services  ***********
-#define VER "SonOff_1.2"
+#define VER "SonOff_1.3"
 
 // ********** myIOT Class ***********
 //~~~~~ Services ~~~~~~~~~~~
-#define USE_SERIAL true      // Serial Monitor
+#define USE_SERIAL false      // Serial Monitor
 #define USE_WDT true         // watchDog resets
 #define USE_OTA true         // OTA updates
 #define USE_RESETKEEPER true // detect quick reboot and real reboots
@@ -40,20 +40,20 @@ myIOT iot(DEVICE_TOPIC);
 
 // ~~~~ TO & dailyTO ~~~~~~
 const int START_dTO[2][3] = {{23, 30, 0}, {20, 30, 0}};
-const int END_dTO[2][3] = {{6, 30, 0}, {22, 0, 0}};
+const int END_dTO[2][3] = {{6, 15, 0}, {22, 0, 0}};
 const int TimeOUT[] = {240, 1}; // minutes
 // ~~~~~~~~~~~~~~~~~~~~
 
 // ~~~~~~ Hardware ~~~~~~~
 #define NUM_SW 1
-#define USE_PWM true
-#define USE_INPUT true
+#define USE_PWM false
+#define USE_INPUT false
 #define USE_EXT_TRIG false
 #define BUTTOM_MOMENT true
 
 const int outputPin[] = {12, 5}; // D3 for most PWM boards
 const int inputPin[] = {0, 0};
-const int hRebbots[]={2,3};
+const int hRebbots[]={1,2};
 // ~~~~~~~~~~~~~~~~~~~~
 char *SW_Names[] = {"Lamps", "Strips"};
 
@@ -95,7 +95,7 @@ void configTOswitches()
                 
                 if (USE_EEPROM_RESET_COUNTER)
                 {
-                        TOswitches[i]->hReboot.check_boot(2);
+                        TOswitches[i]->hReboot.check_boot(hRebbots[i]);
                 }
                 if (USE_QUICK_BOOT)
                 {
