@@ -13,19 +13,21 @@
 class myIOT32
 {
 
-
     static const int MaxTopicLength = 64; //topics
 
 private:
-    char prefixTopic[MaxTopicLength];
-    char deviceTopic[MaxTopicLength];
-    char addGroupTopic[MaxTopicLength];
-    char telegramServer[MaxTopicLength];
-    char MQTTmsgtopic[50];
-    char MQTTlogtopic[50];
-    char MQTTavltopic[50];
-    char MQTTdevtopic[50];
-    char MQTTlastctopic[50];
+    // MQTT topics
+    char _msgTopic[MaxTopicLength];
+    char _groupTopic[MaxTopicLength];
+    char _errorTopic[MaxTopicLength];
+    char _deviceName[MaxTopicLength];
+    char _availTopic[MaxTopicLength];
+    char _stateTopic[MaxTopicLength];
+    char _stateTopic2[MaxTopicLength];
+    char _signalTopic[MaxTopicLength];
+    char _telegramServer[MaxTopicLength];
+    char *topicArry[4] = {deviceTopic, _groupTopic, _availTopic, addGroupTopic};
+
     struct tm _timeinfo;
     time_t _epoch_time;
     int _mqtt_port;
@@ -38,13 +40,17 @@ private:
     long _networkerr_clock = 0;
 
 public:
+    char prefixTopic[MaxTopicLength];
+    char deviceTopic[MaxTopicLength];
+    char addGroupTopic[MaxTopicLength];
+    char telegramServer[MaxTopicLength];
+
     WiFiClient espClient;
     PubSubClient mqttClient;
-    // WiFiClient espClient;
-    // PubSubClient mqttClient;
 
 public:
-    myIOT32(char *devTopic = "no-name", char *ssid = SSID_ID, char *wifi_p = PASS_WIFI, char *mqtt_broker = MQTT_SERVER1, char *mqttU = MQTT_USER, char *mqttP = MQTT_PASS, int port = 1883);
+    myIOT32(char *devTopic = "no-name", char *ssid = SSID_ID, char *wifi_p = PASS_WIFI,
+            char *mqtt_broker = MQTT_SERVER1, char *mqttU = MQTT_USER, char *mqttP = MQTT_PASS, int port = 1883);
     void looper();
     void start();
     void mqtt_pubmsg(char *msg);
@@ -60,6 +66,7 @@ private:
     void createTopics();
     bool connectMQTT();
     void subscribeMQTT();
+    void _notifyOnline();
 };
 
 #endif

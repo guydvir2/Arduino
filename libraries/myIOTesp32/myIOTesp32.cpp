@@ -64,10 +64,6 @@ void myIOT32::createTopics()
   snprintf(_msgTopic, MaxTopicLength, "%s/Messages", prefixTopic);
   snprintf(_groupTopic, MaxTopicLength, "%s/All", prefixTopic);
   snprintf(_errorTopic, MaxTopicLength, "%s/log", prefixTopic);
-  // if (useTelegram)
-  // {
-  //         snprintf(_telegramServer, MaxTopicLength, "%s/%s", prefixTopic, telegramServer);
-  // }
 
   if (strcmp(addGroupTopic, "") != 0)
   {
@@ -82,35 +78,47 @@ void myIOT32::createTopics()
   }
   snprintf(_stateTopic, MaxTopicLength, "%s/State", deviceTopic);
   snprintf(_availTopic, MaxTopicLength, "%s/Avail", deviceTopic);
-}
+
+  // if (useTelegram)
+  // {
+  //         snprintf(_telegramServer, MaxTopicLength, "%s/%s", prefixTopic, telegramServer);
+  // }
 }
 bool myIOT32::connectMQTT()
 {
   if (!mqttClient.connected())
   {
-    bool a = mqttClient.connect(_devTopic, _user, _passw, MQTTavltopic, 0, true, "offline");
+    bool a = mqttClient.connect(_devTopic, _user, _passw, _availTopic, 0, true, "offline");
     return a;
   }
 }
 void myIOT32::subscribeMQTT()
 {
-  // mqttClient.subscribe(MQTTdevtopic);
-  // mqttClient.subscribe(MQTTlastctopic);
+  for (int i = 0; i < sizeof(topicArry) / sizeof(char *); i++)
+  {
+    if (strcmp(topicArry[i], "") != 0)
+    {
+      mqttClient.subscribe(topicArry[i]);
+      Serial.print("Subsribe to : ");
+      Serial.println(topicArry[i]);
+    }
+  }
 }
 void myIOT32::mqtt_pubmsg(char *msg)
 {
-  mqttClient.publish(MQTTmsgtopic, msg);
-  Serial.print(MQTTmsgtopic);
-  Serial.print("/");
-  Serial.println(msg);
+  mqttClient.publish(_msgTopic, msg);
 }
 bool myIOT32::startMQTT()
 {
   mqttClient.setServer(_mqtt_server, _mqtt_port);
   mqttClient.setCallback(std::bind(&myIOT32::MQTTcallback, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
   createTopics();
-  connectMQTT();
-  subscribeMQTT();
+  if(connectMQTT())
+  {
+     subscribeMQTT();
+     _notifyOnline();
+
+  }
 }
 bool myIOT32::MQTTloop()
 {
@@ -134,7 +142,9 @@ bool myIOT32::MQTTloop()
     }
   }
 }
-
+void myIOT32::_notifyOnline(){
+  mqttClient.publish(_availTopic,"online");
+}
 void myIOT32::startNTP(const int gmtOffset_sec = 2 * 3600, const int daylightOffset_sec = 0, const char *ntpServer = "pool.ntp.org")
 {
   configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);
