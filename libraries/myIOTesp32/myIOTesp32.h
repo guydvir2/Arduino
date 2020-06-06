@@ -12,11 +12,10 @@
 
 class myIOT32
 {
-
-    static const int MaxTopicLength = 64; //topics
-
+#define VER "iot32_ver_0.1"
 private:
     // MQTT topics
+    static const int MaxTopicLength = 64; //topics
     char _msgTopic[MaxTopicLength];
     char _groupTopic[MaxTopicLength];
     char _errorTopic[MaxTopicLength];
@@ -28,8 +27,9 @@ private:
     char _telegramServer[MaxTopicLength];
     char *topicArry[6] = {deviceTopic, _groupTopic, _availTopic, addGroupTopic, _wakeTopic, _statusTopic};
 
-    struct tm _timeinfo;
-    time_t _epoch_time;
+    char _incmoing_wakeMSG[100];
+    // char incmoing_MSG[100];
+    // Wifi & MQTT config
     int _mqtt_port;
     char *_wifi_ssid; // = "WIFI_NETWORK_BY_USER";
     char *_wifi_pass; // = "WIFI__passwORD_BY_USER";
@@ -39,7 +39,13 @@ private:
     char *_devTopic = "DEVICE_TOPIC OF MQTT";
     long _networkerr_clock = 0;
 
+    // Clock
+    struct tm _timeinfo;
+    time_t _epoch_time;
+
 public:
+    bool useSerial = false;
+    int bootType = 2;  // 2 - init; 1 - resetboot; 0- regular boot
     char prefixTopic[MaxTopicLength];
     char deviceTopic[MaxTopicLength];
     char addGroupTopic[MaxTopicLength];
@@ -50,12 +56,16 @@ public:
 
 public:
     myIOT32(char *devTopic = "no-name", char *ssid = SSID_ID, char *wifi_p = PASS_WIFI,
-            char *mqtt_broker = MQTT_SERVER1, char *mqttU = MQTT_USER, char *mqttP = MQTT_PASS, int port = 1883);
+            char *mqtt_broker = MQTT_SERVER1, char *mqttU = MQTT_USER, char *mqttP = MQTT_PASS,
+            int port = 1883);
     void looper();
     void start();
-    void mqtt_pubmsg(char *msg);
-    bool use_wifi = true;
     bool startMQTT();
+    void pub_msg(char *msg);
+    void pub_Status(char *statusmsg);
+    void pub_nextWake(char *inmsg);
+    void pub_log(char *inmsg);
+    void getTimeStamp(char ret_timeStamp[25]);
 
 private:
     bool MQTTloop();

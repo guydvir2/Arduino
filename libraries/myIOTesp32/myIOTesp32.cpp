@@ -15,8 +15,11 @@ void myIOT32::start()
 {
   if (startWifi())
   {
-    // getTime();
     startMQTT();
+  }
+  if (useSerial)
+  {
+    Serial.begin(9600);
   }
 }
 void myIOT32::looper()
@@ -36,10 +39,10 @@ void myIOT32::looper()
   {
     startWifi();
   }
-  // if (millis() - _networkerr_clock > 60000)
-  // {
-  //   ESP.restart();
-  // }
+  if (millis() - _networkerr_clock > 60000 && _networkerr_clock != 0)
+  {
+    ESP.restart();
+  }
 }
 
 void myIOT32::MQTTcallback(char *topic, byte *payload, unsigned int length)
@@ -47,9 +50,12 @@ void myIOT32::MQTTcallback(char *topic, byte *payload, unsigned int length)
   char incoming_msg[150];
   char msg[100];
 
-  Serial.print("Message arrived [");
-  Serial.print(topic);
-  Serial.print("] ");
+  if (useSerial)
+  {
+    Serial.print("Message arrived [");
+    Serial.print(topic);
+    Serial.print("] ");
+  }
 
   for (int i = 0; i < length; i++)
   {
@@ -58,6 +64,25 @@ void myIOT32::MQTTcallback(char *topic, byte *payload, unsigned int length)
   }
   incoming_msg[length] = 0;
   Serial.println();
+
+  if (strcmp(topic, _wakeTopic) == 0)
+  {
+    strcpy(_incmoing_wakeMSG, incoming_msg);
+  }
+  else if (strcmp(topic, _availTopic) == 0 && bootType == 2)
+  {
+    // bootType: (2) - value at init , (1) quick boot (0) - regulatBoot
+    if (strcmp(incoming_msg, "online") == 0)
+    {
+      bootType = 1;
+    }
+    else if (strcmp(incoming_msg, "offline") == 0)
+    {
+      bootType = 0;
+    }
+    Serial.print("BootType: ");
+    Serial.println(bootType);
+  }
 }
 void myIOT32::createTopics()
 {
@@ -106,10 +131,6 @@ void myIOT32::subscribeMQTT()
     }
   }
 }
-void myIOT32::mqtt_pubmsg(char *msg)
-{
-  mqttClient.publish(_msgTopic, msg);
-}
 bool myIOT32::startMQTT()
 {
   mqttClient.setServer(_mqtt_server, _mqtt_port);
@@ -119,6 +140,7 @@ bool myIOT32::startMQTT()
   {
     subscribeMQTT();
     _notifyOnline();
+    pub_log("<< Boot >>");
   }
 }
 bool myIOT32::MQTTloop()
@@ -145,9 +167,33 @@ bool myIOT32::MQTTloop()
 }
 void myIOT32::_notifyOnline()
 {
-  mqttClient.publish(_availTopic, "online");
+  mqttClient.publish(_availTopic, "online", true);
 }
-void myIOT32::startNTP(const int gmtOffset_sec = 2 * 3600, const int daylightOffset_sec = 0, const char *ntpServer = "pool.ntp.org")
+void myIOT32::pub_msg(char *msg)
+{
+  char tstamp[25];
+  char tem[150];
+  getTimeStamp(tstamp);
+  sprintf(tem, "[%s] [%s] %s", tstamp, deviceTopic, msg);
+  mqttClient.publish(_msgTopic, tem);
+}
+void myIOT32::pub_Status(char *statusmsg)
+{
+  mqttClient.publish(_statusTopic, statusmsg, true);
+}
+void myIOT32::pub_nextWake(char *inmsg)
+{
+  mqttClient.publish(_wakeTopic, inmsg, true);
+}
+void myIOT32::pub_log(char *inmsg)
+{
+  char tstamp[25];
+  char tem[150];
+  getTimeStamp(tstamp);
+  sprintf(tem, "[%s] [%s] %s", tstamp, deviceTopic, inmsg);
+  mqttClient.publish(_errorTopic, tem);
+}
+void myIOT32::startNTP(const int gmtOffset_sec = 2 * 3600, const int daylightOffset_sec = 3600, const char *ntpServer = "pool.ntp.org")
 {
   configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);
 }
@@ -185,9 +231,15 @@ void myIOT32::getTime()
   {
     if (getLocalTime(&_timeinfo))
     {
-      //     delay(100);
-      //     time(&_epoch_time);
+      delay(100);
+      time(&_epoch_time);
     }
     a++;
   }
+}
+void myIOT32::getTimeStamp(char ret_timeStamp[25])
+{
+  getTime();
+  sprintf(ret_timeStamp, "%04d-%02d-%02d %02d:%02d:%02d", _timeinfo.tm_year + 1900, _timeinfo.tm_mon, _timeinfo.tm_mday,
+          _timeinfo.tm_hour, _timeinfo.tm_min, _timeinfo.tm_sec);
 }
