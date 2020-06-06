@@ -53,6 +53,7 @@ public:
     const char *ver = "2.0";
     WiFiClient espClient;
     PubSubClient mqttClient;
+    Ticker wdt;
 
 private:
     // ~~~~~~~~ EEPROM ~~~~~~~~~~~~~

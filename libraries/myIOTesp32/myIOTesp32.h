@@ -2,13 +2,17 @@
 #define myIOT32_h
 #include "Arduino.h"
 
-// #include <ESPmDNS.h>
-// #include <WiFiUdp.h>
-// #include <ArduinoOTA.h>
+#include <WiFi.h>
+#include <ESPmDNS.h>
+#include <WiFiUdp.h>
+#include <ArduinoOTA.h>
+
 #include "time.h"
 #include "WiFi.h"
 #include "secrets.h"
 #include <PubSubClient.h>
+
+#include <Ticker.h>
 
 class myIOT32
 {
@@ -43,9 +47,15 @@ private:
     struct tm _timeinfo;
     time_t _epoch_time;
 
+    volatile int _wdtResetCounter = 0;
+    const int _wdtMaxRetries = 30; //seconds to bITE
+
 public:
     bool useSerial = false;
-    int bootType = 2;  // 2 - init; 1 - resetboot; 0- regular boot
+    bool useOTA = true;
+    bool useWDT = true;
+    long unsigned allowOTA_clock = 0;
+    int bootType = 2; // 2 - init; 1 - resetboot; 0- regular boot
     char prefixTopic[MaxTopicLength];
     char deviceTopic[MaxTopicLength];
     char addGroupTopic[MaxTopicLength];
@@ -53,6 +63,7 @@ public:
 
     WiFiClient espClient;
     PubSubClient mqttClient;
+    Ticker wdt;
 
 public:
     myIOT32(char *devTopic = "no-name", char *ssid = SSID_ID, char *wifi_p = PASS_WIFI,
@@ -66,6 +77,7 @@ public:
     void pub_nextWake(char *inmsg);
     void pub_log(char *inmsg);
     void getTimeStamp(char ret_timeStamp[25]);
+    void sendReset(char *header);
 
 private:
     bool MQTTloop();
@@ -77,6 +89,10 @@ private:
     bool connectMQTT();
     void subscribeMQTT();
     void _notifyOnline();
+    void _startOTA();
+    void _OTAlooper();
+    void _feedTheDog();
+    void _startWDT();
 };
 
 #endif

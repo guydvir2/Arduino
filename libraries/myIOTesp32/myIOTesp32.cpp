@@ -21,6 +21,14 @@ void myIOT32::start()
   {
     Serial.begin(9600);
   }
+  if (useOTA)
+  {
+    _startOTA();
+  }
+  if (useWDT)
+  {
+    _startWDT();
+  }
 }
 void myIOT32::looper()
 {
@@ -42,6 +50,14 @@ void myIOT32::looper()
   if (millis() - _networkerr_clock > 60000 && _networkerr_clock != 0)
   {
     ESP.restart();
+  }
+  if (useOTA && millis() - allowOTA_clock < 1000 * 600UL)
+  {
+    _OTAlooper();
+  }
+  if (useWDT)
+  {
+    _feedTheDog();
   }
 }
 
@@ -242,4 +258,95 @@ void myIOT32::getTimeStamp(char ret_timeStamp[25])
   getTime();
   sprintf(ret_timeStamp, "%04d-%02d-%02d %02d:%02d:%02d", _timeinfo.tm_year + 1900, _timeinfo.tm_mon, _timeinfo.tm_mday,
           _timeinfo.tm_hour, _timeinfo.tm_min, _timeinfo.tm_sec);
+}
+void myIOT32::_startOTA()
+{
+  char OTAname[100];
+  int m = 0;
+  // create OTAname from deviceTopic
+  for (int i = ((String)deviceTopic).lastIndexOf("/") + 1; i < strlen(deviceTopic); i++)
+  {
+    OTAname[m] = deviceTopic[i];
+    OTAname[m + 1] = '\0';
+    m++;
+  }
+
+  allowOTA_clock = millis();
+
+  // Port defaults to 8266
+  // ArduinoOTA.setPort(8266);
+
+  // Hostname defaults to esp8266-[ChipID]
+  ArduinoOTA.setHostname(OTAname);
+
+  ArduinoOTA
+      .onStart([]() {
+        String type;
+        if (ArduinoOTA.getCommand() == U_FLASH)
+          type = "sketch";
+        else // U_SPIFFS
+          type = "filesystem";
+
+        // NOTE: if updating SPIFFS this would be the place to unmount SPIFFS using SPIFFS.end()
+        Serial.println("Start updating " + type);
+      })
+      .onEnd([]() {
+        Serial.println("\nEnd");
+      })
+      .onProgress([](unsigned int progress, unsigned int total) {
+        Serial.printf("Progress: %u%%\r", (progress / (total / 100)));
+      })
+      .onError([](ota_error_t error) {
+        Serial.printf("Error[%u]: ", error);
+        if (error == OTA_AUTH_ERROR)
+          Serial.println("Auth Failed");
+        else if (error == OTA_BEGIN_ERROR)
+          Serial.println("Begin Failed");
+        else if (error == OTA_CONNECT_ERROR)
+          Serial.println("Connect Failed");
+        else if (error == OTA_RECEIVE_ERROR)
+          Serial.println("Receive Failed");
+        else if (error == OTA_END_ERROR)
+          Serial.println("End Failed");
+      });
+
+  ArduinoOTA.begin();
+
+  Serial.println("Ready");
+  Serial.print("IP address: ");
+  Serial.println(WiFi.localIP());
+}
+void myIOT32::_OTAlooper()
+{
+  ArduinoOTA.handle();
+}
+void myIOT32::_feedTheDog()
+{
+  _wdtResetCounter++;
+  if (_wdtResetCounter >= _wdtMaxRetries)
+  {
+    sendReset("Dog goes woof");
+  }
+}
+void myIOT32::_startWDT()
+{
+  // wdt.attach(1, std::bind(&myIOT32::_feedTheDog, this)); // Start WatchDog
+}
+
+void myIOT32::sendReset(char *header)
+{
+  char temp[150];
+
+  sprintf(temp, "[%s] - Reset sent", header);
+
+  if (useSerial)
+  {
+    Serial.println(temp);
+  }
+  if (strcmp(header, "null") != 0)
+  {
+    pub_msg(temp);
+  }
+  delay(1000);
+  ESP.restart();
 }

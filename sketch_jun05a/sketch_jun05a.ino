@@ -4,13 +4,14 @@
 #define MQTT_PREFIX "myHome"
 #define MQTT_GROUP "testBed"
 #define USE_SERIAL true
+#define USE_OTA false
 
 myIOT32 iot(DEVICE_TOPIC);
 void startIOT_services()
 {
   iot.useSerial = USE_SERIAL;
   // iot.useWDT = USE_WDT;
-  // iot.useOTA = USE_OTA;
+  iot.useOTA = USE_OTA;
   strcpy(iot.prefixTopic, MQTT_PREFIX);
   strcpy(iot.addGroupTopic, MQTT_GROUP);
   iot.start();
