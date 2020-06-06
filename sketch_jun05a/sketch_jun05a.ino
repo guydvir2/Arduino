@@ -4,7 +4,7 @@
 #define MQTT_PREFIX "myHome"
 #define MQTT_GROUP "testBed"
 
-myIOT32 iot;
+myIOT32 iot(DEVICE_TOPIC);
 void startIOT_services()
 {
   strcpy(iot.prefixTopic, MQTT_PREFIX);
@@ -14,6 +14,7 @@ void setup()
 {
   // put your setup code here, to run once:
   Serial.begin(9600);
+  startIOT_services();
   iot.start();
 }
 

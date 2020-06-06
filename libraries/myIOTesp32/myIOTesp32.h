@@ -23,10 +23,10 @@ private:
     char _deviceName[MaxTopicLength];
     char _availTopic[MaxTopicLength];
     char _stateTopic[MaxTopicLength];
-    char _stateTopic2[MaxTopicLength];
-    char _signalTopic[MaxTopicLength];
+    char _statusTopic[MaxTopicLength];
+    char _wakeTopic[MaxTopicLength];
     char _telegramServer[MaxTopicLength];
-    char *topicArry[4] = {deviceTopic, _groupTopic, _availTopic, addGroupTopic};
+    char *topicArry[6] = {deviceTopic, _groupTopic, _availTopic, addGroupTopic, _wakeTopic, _statusTopic};
 
     struct tm _timeinfo;
     time_t _epoch_time;

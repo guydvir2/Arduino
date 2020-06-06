@@ -9,13 +9,13 @@ myIOT32::myIOT32(char *devTopic, char *ssid, char *wifi_p, char *mqtt_broker, ch
   _wifi_ssid = ssid;
   _wifi_pass = wifi_p;
   _mqtt_port = port;
-  _devTopic = devTopic;
+  strcpy(_deviceName, devTopic);
 }
 void myIOT32::start()
 {
   if (startWifi())
   {
-    getTime();
+    // getTime();
     startMQTT();
   }
 }
@@ -36,10 +36,10 @@ void myIOT32::looper()
   {
     startWifi();
   }
-  if (millis() - _networkerr_clock > 60000)
-  {
-    ESP.restart();
-  }
+  // if (millis() - _networkerr_clock > 60000)
+  // {
+  //   ESP.restart();
+  // }
 }
 
 void myIOT32::MQTTcallback(char *topic, byte *payload, unsigned int length)
@@ -78,6 +78,8 @@ void myIOT32::createTopics()
   }
   snprintf(_stateTopic, MaxTopicLength, "%s/State", deviceTopic);
   snprintf(_availTopic, MaxTopicLength, "%s/Avail", deviceTopic);
+  snprintf(_statusTopic, MaxTopicLength, "%s/Status", deviceTopic);
+  snprintf(_wakeTopic, MaxTopicLength, "%s/onWake", deviceTopic);
 
   // if (useTelegram)
   // {
@@ -99,7 +101,7 @@ void myIOT32::subscribeMQTT()
     if (strcmp(topicArry[i], "") != 0)
     {
       mqttClient.subscribe(topicArry[i]);
-      Serial.print("Subsribe to : ");
+      Serial.print("Topic subsribed: ");
       Serial.println(topicArry[i]);
     }
   }
@@ -113,11 +115,10 @@ bool myIOT32::startMQTT()
   mqttClient.setServer(_mqtt_server, _mqtt_port);
   mqttClient.setCallback(std::bind(&myIOT32::MQTTcallback, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
   createTopics();
-  if(connectMQTT())
+  if (connectMQTT())
   {
-     subscribeMQTT();
-     _notifyOnline();
-
+    subscribeMQTT();
+    _notifyOnline();
   }
 }
 bool myIOT32::MQTTloop()
@@ -142,8 +143,9 @@ bool myIOT32::MQTTloop()
     }
   }
 }
-void myIOT32::_notifyOnline(){
-  mqttClient.publish(_availTopic,"online");
+void myIOT32::_notifyOnline()
+{
+  mqttClient.publish(_availTopic, "online");
 }
 void myIOT32::startNTP(const int gmtOffset_sec = 2 * 3600, const int daylightOffset_sec = 0, const char *ntpServer = "pool.ntp.org")
 {
@@ -183,8 +185,8 @@ void myIOT32::getTime()
   {
     if (getLocalTime(&_timeinfo))
     {
-      delay(100);
-      time(&_epoch_time);
+      //     delay(100);
+      //     time(&_epoch_time);
     }
     a++;
   }
