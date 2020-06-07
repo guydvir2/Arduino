@@ -32,7 +32,7 @@ myIOT iot(DEVICE_TOPIC);
 #define USE_QUICK_BOOT true
 #define USE_TO true
 #define USE_dailyTO true
-#define SAFETY_OFF true
+#define SAFETY_OFF false
 #define SAFEY_OFF_DURATION 600 //minutes
 #define USE_BADBOOT USE_RESETKEEPER
 #define USE_EEPROM_RESET_COUNTER true

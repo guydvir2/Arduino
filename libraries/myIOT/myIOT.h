@@ -128,7 +128,7 @@ public:
   char telegramServer[MaxTopicLength];
   char mqqt_ext_buffer[3][150];
 
-  const char *ver = "iot_7.1";
+  const char *ver = "iot_7.11";
   char timeStamp[20];
 
 private:

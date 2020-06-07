@@ -1190,6 +1190,7 @@ mySwitch::mySwitch(int switchPin, int timeout_val, char *name)
 {
         _switchPin = switchPin;
         sprintf(_switchName, "%s", name);
+        pinMode(_switchPin, OUTPUT); // defined here for hReboot purposes
 }
 void mySwitch::begin()
 {
@@ -1202,8 +1203,6 @@ void mySwitch::begin()
         {
                 pinMode(inputPin, INPUT_PULLUP);
         }
-
-        pinMode(_switchPin, OUTPUT);
 
         current_power = 0;
         if (usePWM)
@@ -1277,10 +1276,6 @@ void mySwitch::switchIt(char *txt1, float state, bool ignoreTO)
                                 digitalWrite(_switchPin, state);
                                 current_power = state;
                                 sprintf(_out2MQTTmsg, "%s: [%s] Switched [%s]", txt1, _switchName, (int)current_power ? "On" : "Off");
-                                // if (usetimeOUT && current_power == 1)
-                                // {
-                                //         TOswitch.restart_to();
-                                // }
                         }
                 }
 
@@ -1711,12 +1706,26 @@ void mySwitch::_recoverReset(int rebootState)
 {
         if (rebootState == 0 && onAt_boot)
         { // PowerOn - not a quickReboot
-                TOswitch.restart_to();
+                if (usePWM)
+                {
+                        switchIt("onAtBoot", def_power);
+                }
+                else
+                {
+                        switchIt("onAtBoot", RelayOn);
+                }
                 sprintf(_outMQTTlog, "%s", "--> NormalBoot & On-at-Boot. Restarting TimeOUT");
         }
         else if (hReboot.resetFlag)
         { // using HardReboot
-                TOswitch.restart_to();
+                if (usePWM)
+                {
+                        switchIt("onAtBoot", def_power);
+                }
+                else
+                {
+                        switchIt("onAtBoot", RelayOn);
+                }
                 sprintf(_outMQTTlog, "--> ForcedBoot. Restarting TimeOUT");
                 //         boot_overide[i] = true;
         }
@@ -1735,9 +1744,7 @@ void mySwitch::_recoverReset(int rebootState)
         }
 
         if (useHardReboot)
-        {
-                // hReboot.print_val(0);
-                // hReboot.print_val(1);
+        { // hReboot.print_val(1);
                 hReboot.zero_cell(0);
         }
 }
@@ -1746,7 +1753,7 @@ hardReboot::hardReboot(int romsize, int cell)
 {
         EEPROM.begin(romsize);
         boot_Counter.cell_index = cell;
-        boot_Counter.cell2_index = cell+1;
+        boot_Counter.cell2_index = cell + 1;
 }
 void hardReboot::zero_cell(int i)
 {
