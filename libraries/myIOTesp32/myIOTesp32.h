@@ -13,6 +13,7 @@
 #include <PubSubClient.h>
 
 #include <Ticker.h>
+#include <ArduinoJson.h>
 
 class myIOT32
 {
@@ -93,6 +94,7 @@ private:
     void _OTAlooper();
     void _feedTheDog();
     void _startWDT();
+    void _createJSON();
 };
 
 #endif
