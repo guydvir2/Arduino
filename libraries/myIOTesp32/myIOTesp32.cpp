@@ -29,6 +29,7 @@ void myIOT32::start()
   {
     _startWDT();
   }
+  _createJSON();
 }
 void myIOT32::looper()
 {
@@ -325,14 +326,13 @@ void myIOT32::_feedTheDog()
   _wdtResetCounter++;
   if (_wdtResetCounter >= _wdtMaxRetries)
   {
-    sendReset("Dog goes woof");
+    // sendReset("Dog goes woof");
   }
 }
 void myIOT32::_startWDT()
 {
   // wdt.attach(1, std::bind(&myIOT32::_feedTheDog, this)); // Start WatchDog
 }
-
 void myIOT32::sendReset(char *header)
 {
   char temp[150];
@@ -349,4 +349,18 @@ void myIOT32::sendReset(char *header)
   }
   delay(1000);
   ESP.restart();
+}
+void myIOT32::_createJSON()
+{
+  StaticJsonDocument<200> doc;
+  doc["lastOn"] = 123456;
+  doc["nextOn"] = 1111111;
+  doc["nextCommand"] = "THIS_ONE";
+
+  String output;
+  serializeJson(doc, output);
+  char a[50];
+  sprintf(a,"%s",output);
+  pub_msg(a);
+  Serial.println(output);
 }
