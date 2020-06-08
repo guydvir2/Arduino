@@ -355,12 +355,15 @@ void myIOT32::_createJSON()
   StaticJsonDocument<200> doc;
   doc["lastOn"] = 123456;
   doc["nextOn"] = 1111111;
-  doc["nextCommand"] = "THIS_ONE";
+  doc["sleepTime"]=3600; // minutes
+  doc["wakeCommand"] = "THIS_ONE";
+  doc[""]
 
   String output;
   serializeJson(doc, output);
-  char a[50];
-  sprintf(a,"%s",output);
+  char a[150];
+  // sprintf(a,"%s",output);
+  output.toCharArray(a, 150);
   pub_msg(a);
   Serial.println(output);
 }
