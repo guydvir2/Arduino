@@ -29,7 +29,7 @@ void myIOT32::start()
   {
     _startWDT();
   }
-  _createJSON();
+  _createStatusJSON(0, millis(), 0, "cmd", "0", "0");
 }
 void myIOT32::looper()
 {
@@ -99,6 +99,10 @@ void myIOT32::MQTTcallback(char *topic, byte *payload, unsigned int length)
     }
     Serial.print("BootType: ");
     Serial.println(bootType);
+  }
+  else if (strcmp(topic, _statusTopic) == 0)
+  {
+    _getMQTT2JSON(incoming_msg);
   }
 }
 void myIOT32::createTopics()
@@ -350,20 +354,38 @@ void myIOT32::sendReset(char *header)
   delay(1000);
   ESP.restart();
 }
-void myIOT32::_createJSON()
+void myIOT32::_createStatusJSON(long kalive, long nextw, int sleept, char *wakecmd, char *ext1, char *ext2)
 {
   StaticJsonDocument<200> doc;
-  doc["lastOn"] = 123456;
-  doc["nextOn"] = 1111111;
-  doc["sleepTime"]=3600; // minutes
-  doc["wakeCommand"] = "THIS_ONE";
-  doc[""]
+  doc["lastKeepAlive"] = kalive;
+  doc["nextWake"] = nextw;
+  doc["sleepTime"] = sleept; // minutes
+  doc["wakeCommand"] = wakecmd;
+  doc["ext1"] = ext1;
+  doc["ext2"] = ext2;
 
   String output;
   serializeJson(doc, output);
   char a[150];
-  // sprintf(a,"%s",output);
   output.toCharArray(a, 150);
-  pub_msg(a);
+  pub_Status(a);
   Serial.println(output);
+}
+void myIOT32::_getMQTT2JSON(char *input_str)
+{
+  StaticJsonDocument<200> doc;
+  DeserializationError error = deserializeJson(doc, input_str);
+
+  if (error)
+  {
+    Serial.print(F("deserializeJson() failed: "));
+    Serial.println(error.c_str());
+    return;
+  }
+  const char *sensor = doc["sensor"];
+  long time = doc["nextWake"];
+  Serial.print("SENSOR: ");
+  Serial.println(sensor);
+  Serial.print("nextWake: ");
+  Serial.println(time);
 }

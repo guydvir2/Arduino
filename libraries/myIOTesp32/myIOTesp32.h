@@ -94,7 +94,8 @@ private:
     void _OTAlooper();
     void _feedTheDog();
     void _startWDT();
-    void _createJSON();
+    void _createStatusJSON(long kalive, long nextw, int sleept, char *wakecmd, char *ext1, char *ext2);
+    void _getMQTT2JSON(char *input_str);
 };
 
 #endif

@@ -16,9 +16,9 @@
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 // ~~~~~~~ MQTT Topics ~~~~~~
-#define DEVICE_TOPIC "PergolaBulbs"
+#define DEVICE_TOPIC "LivingRoom"
 #define MQTT_PREFIX "myHome"
-#define MQTT_GROUP "extLights"
+#define MQTT_GROUP "intLights"
 #define TELEGRAM_OUT_TOPIC "Telegram_out"
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -28,19 +28,19 @@ myIOT iot(DEVICE_TOPIC);
 
 // *********** myTOswitch ***********
 // ~~~~~~ Services ~~~~~~~~
-#define ON_AT_BOOT false
+#define ON_AT_BOOT true
 #define USE_QUICK_BOOT true
 #define USE_TO true
 #define USE_dailyTO true
-#define SAFETY_OFF false
-#define SAFEY_OFF_DURATION 600 //minutes
+#define SAFETY_OFF true
+#define SAFEY_OFF_DURATION 3 //minutes
 #define USE_BADBOOT USE_RESETKEEPER
 #define USE_EEPROM_RESET_COUNTER true
 // ~~~~~~~~~~~~~~~~~~~~
 
 // ~~~~ TO & dailyTO ~~~~~~
-const int START_dTO[2][3] = {{23, 30, 0}, {20, 30, 0}};
-const int END_dTO[2][3] = {{6, 15, 0}, {22, 0, 0}};
+const int START_dTO[2][3] = {{18, 39, 30}, {20, 30, 0}};
+const int END_dTO[2][3] = {{19, 15, 0}, {22, 0, 0}};
 const int TimeOUT[] = {240, 1}; // minutes
 // ~~~~~~~~~~~~~~~~~~~~
 
