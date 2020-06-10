@@ -10,6 +10,7 @@
 #include "time.h"
 #include "WiFi.h"
 #include "secrets.h"
+#include <ESP32Ping.h>
 #include <PubSubClient.h>
 
 #include <Ticker.h>
@@ -33,12 +34,12 @@ private:
     char *topicArry[6] = {deviceTopic, _groupTopic, _availTopic, addGroupTopic, _wakeTopic, _statusTopic};
 
     char _incmoing_wakeMSG[100];
-    // char incmoing_MSG[100];
     // Wifi & MQTT config
     int _mqtt_port;
     char *_wifi_ssid; // = "WIFI_NETWORK_BY_USER";
     char *_wifi_pass; // = "WIFI__passwORD_BY_USER";
     char *_mqtt_server;
+    bool _alternativeMQTTserver = true;
     char *_user = "";
     char *_passw = "";
     char *_devTopic = "DEVICE_TOPIC OF MQTT";
@@ -55,6 +56,7 @@ public:
     bool useSerial = false;
     bool useOTA = true;
     bool useWDT = true;
+    bool networkOK = false;
     long unsigned allowOTA_clock = 0;
     int bootType = 2; // 2 - init; 1 - resetboot; 0- regular boot
     char prefixTopic[MaxTopicLength];
@@ -89,6 +91,7 @@ private:
     void createTopics();
     bool connectMQTT();
     void subscribeMQTT();
+    bool _selectMQTTserver();
     void _notifyOnline();
     void _startOTA();
     void _OTAlooper();

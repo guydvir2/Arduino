@@ -40,17 +40,22 @@ void myIOT32::looper()
     {
       // first time no MQTT
       _networkerr_clock = millis();
+      networkOK = false;
     }
     else
     {
       // MQTT is OK
       _networkerr_clock = 0;
+      networkOK = true;
     }
   }
   else
   {
     // NoWifi
-    startWifi();
+    if (!startWifi())
+    {
+      networkOK = false;
+    }
   }
 
   // Restart after 60 sec of network err
@@ -58,6 +63,12 @@ void myIOT32::looper()
   {
     ESP.restart();
   }
+  // Restart due to alternative MQTT, 30 min
+  if (_alternativeMQTTserver && millis() > 1000 * 60 * 30UL)
+  {
+    sendReset("Alternative MQTT Server");
+  }
+
   if (useOTA && millis() - allowOTA_clock < 1000 * 600UL)
   {
     // wait for OTA
@@ -69,7 +80,27 @@ void myIOT32::looper()
     _feedTheDog();
   }
 }
-
+bool myIOT32::_selectMQTTserver()
+{
+  char *mqttServers[] = {_mqtt_server, MQTT_SERVER1, MQTT_SERVER2, MQTT_SERVER3};
+  char *tempserver = "EMPLY SERVER_AAAAA";
+  int i = 0;
+  
+  while (!Ping.ping(mqttServer[i]) && i < 4)
+  {
+    i++;
+  }
+  if (i < 4)
+  {
+    _mqtt_server = mqttServer[i];
+    Serial.print("MQTT SERVER: ");
+    Serial.println(mqtt_server);
+    if (i != 0)
+    {
+      _alternativeMQTTserver = true;
+    }
+  }
+}
 void myIOT32::MQTTcallback(char *topic, byte *payload, unsigned int length)
 {
   char incoming_msg[150];
@@ -162,14 +193,22 @@ void myIOT32::subscribeMQTT()
 }
 bool myIOT32::startMQTT()
 {
-  mqttClient.setServer(_mqtt_server, _mqtt_port);
-  mqttClient.setCallback(std::bind(&myIOT32::MQTTcallback, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
-  createTopics();
-  if (connectMQTT())
+  if
+    _selectMQTTserver()
+    {
+      mqttClient.setServer(_mqtt_server, _mqtt_port);
+      mqttClient.setCallback(std::bind(&myIOT32::MQTTcallback, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
+      createTopics();
+      if (connectMQTT())
+      {
+        subscribeMQTT();
+        _notifyOnline();
+        pub_log("<< Boot >>");
+      }
+    }
+  else
   {
-    subscribeMQTT();
-    _notifyOnline();
-    pub_log("<< Boot >>");
+    networkOK = false;
   }
 }
 bool myIOT32::MQTTloop()
@@ -244,6 +283,7 @@ bool myIOT32::startWifi()
     Serial.println("WiFi connected");
     Serial.print("IP address: ");
     Serial.println(WiFi.localIP());
+    networkOK = true;
     startNTP();
     return 1;
   }
@@ -251,6 +291,7 @@ bool myIOT32::startWifi()
   {
     Serial.println("NO-WiFi");
     _networkerr_clock = millis();
+    networkOK = false;
     return 0;
   }
 }
@@ -385,7 +426,7 @@ void myIOT32::_getMQTT2JSON(char *input_str)
   StaticJsonDocument<200> doc;
   DeserializationError error = deserializeJson(doc, input_str);
 
-  if (error)
+  if (error && useSerial)
   {
     Serial.print(F("deserializeJson() failed: "));
     Serial.println(error.c_str());
@@ -393,12 +434,7 @@ void myIOT32::_getMQTT2JSON(char *input_str)
   }
   const char *sensor = doc["sensor"];
   long time = doc["nextWake"];
-  Serial.print("SENSOR: ");
-  Serial.println(sensor);
-  Serial.print("nextWake: ");
-  Serial.println(time);
 }
-void myIOT32::_lastkeepalive(){
-  if
-
+void myIOT32::_lastkeepalive()
+{
 }
