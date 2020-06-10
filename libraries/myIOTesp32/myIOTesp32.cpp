@@ -35,29 +35,37 @@ void myIOT32::looper()
 {
   if (WiFi.status() == WL_CONNECTED)
   {
+    // Wifi is OK
     if (!MQTTloop() && _networkerr_clock == 0)
     {
+      // first time no MQTT
       _networkerr_clock = millis();
     }
     else
     {
+      // MQTT is OK
       _networkerr_clock = 0;
     }
   }
   else
   {
+    // NoWifi
     startWifi();
   }
+
+  // Restart after 60 sec of network err
   if (millis() - _networkerr_clock > 60000 && _networkerr_clock != 0)
   {
     ESP.restart();
   }
   if (useOTA && millis() - allowOTA_clock < 1000 * 600UL)
   {
+    // wait for OTA
     _OTAlooper();
   }
   if (useWDT)
   {
+    // start WatchDog
     _feedTheDog();
   }
 }
@@ -226,6 +234,7 @@ bool myIOT32::startWifi()
   while (WiFi.status() != WL_CONNECTED && millis() - beginwifi < 30000)
   {
     delay(200);
+
     Serial.print(".");
   }
 
@@ -388,4 +397,8 @@ void myIOT32::_getMQTT2JSON(char *input_str)
   Serial.println(sensor);
   Serial.print("nextWake: ");
   Serial.println(time);
+}
+void myIOT32::_lastkeepalive(){
+  if
+
 }
