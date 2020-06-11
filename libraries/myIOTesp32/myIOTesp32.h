@@ -19,6 +19,7 @@
 class myIOT32
 {
 #define VER "iot32_ver_0.1"
+#define JDOC_SIZE 500
 private:
     // MQTT topics
     static const int MaxTopicLength = 64; //topics
@@ -64,6 +65,25 @@ public:
     char addGroupTopic[MaxTopicLength];
     char telegramServer[MaxTopicLength];
 
+    struct status
+    {
+        long last_keepalive;
+        long boot_clock;
+        long nextWake;
+        int sleeptime;
+
+        char ip[20];
+        char *wake_cmd;
+        char *devicetopic;
+
+        bool input1;
+        bool input2;
+        bool output1;
+        bool output2;
+        bool wake_status;
+    };
+    status DeviceStatus = {0, 0, 0, 0, "", "NO_WAKE_CMD", "devicetopic",false, false, false, false, false};
+
     WiFiClient espClient;
     PubSubClient mqttClient;
     Ticker wdt;
@@ -97,8 +117,10 @@ private:
     void _OTAlooper();
     void _feedTheDog();
     void _startWDT();
-    void _createStatusJSON(long kalive, long nextw, int sleept, char *wakecmd, char *ext1, char *ext2);
+    void _createStatusJSON();
     void _getMQTT2JSON(char *input_str);
+    void _updateKeepAlive(int update_mins=30);
+    void _networkflags(bool s);
 };
 
 #endif

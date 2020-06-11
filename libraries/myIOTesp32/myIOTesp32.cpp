@@ -13,13 +13,14 @@ myIOT32::myIOT32(char *devTopic, char *ssid, char *wifi_p, char *mqtt_broker, ch
 }
 void myIOT32::start()
 {
-  if (startWifi())
-  {
-    startMQTT();
-  }
   if (useSerial)
   {
     Serial.begin(9600);
+  }
+  if (startWifi())
+  {
+    startMQTT();
+    _createStatusJSON();
   }
   if (useOTA)
   {
@@ -29,46 +30,51 @@ void myIOT32::start()
   {
     _startWDT();
   }
-  _createStatusJSON(0, millis(), 0, "cmd", "0", "0");
 }
 void myIOT32::looper()
 {
   if (WiFi.status() == WL_CONNECTED)
   {
     // Wifi is OK
-    if (!MQTTloop() && _networkerr_clock == 0)
+    if (_networkerr_clock == 0)
     {
-      // first time no MQTT
-      _networkerr_clock = millis();
-      networkOK = false;
-    }
-    else
-    {
-      // MQTT is OK
-      _networkerr_clock = 0;
-      networkOK = true;
+      MQTTloop();
     }
   }
   else
   {
     // NoWifi
-    if (!startWifi())
+    Serial.println("NO-WIFI");
+    static long lastWifi_try = 0;
+    const int sec_retryWifi = 20;
+    long now = millis();
+
+    if (millis() - lastWifi_try > 1000 * sec_retryWifi)
     {
-      networkOK = false;
+      lastWifi_try = now;
+      if (!startWifi())
+      {
+        // fail to regain wifi
+        Serial.println("retry_wifi failed");
+      }
+      else
+      {
+        // Wifi is OK now
+        Serial.println("retry_wifi OK");
+      }
     }
   }
 
-  // Restart after 60 sec of network err
-  if (millis() - _networkerr_clock > 60000 && _networkerr_clock != 0)
+  if (millis() - _networkerr_clock > 60 * 1000UL && _networkerr_clock > 0)
   {
-    ESP.restart();
+    sendReset("NetWork fail reset");
   }
   // Restart due to alternative MQTT, 30 min
   if (_alternativeMQTTserver && millis() > 1000 * 60 * 30UL)
   {
     sendReset("Alternative MQTT Server");
   }
-
+  // OTA
   if (useOTA && millis() - allowOTA_clock < 1000 * 600UL)
   {
     // wait for OTA
@@ -85,21 +91,30 @@ bool myIOT32::_selectMQTTserver()
   char *mqttServers[] = {_mqtt_server, MQTT_SERVER1, MQTT_SERVER2, MQTT_SERVER3};
   char *tempserver = "EMPLY SERVER_AAAAA";
   int i = 0;
-  
-  while (!Ping.ping(mqttServer[i]) && i < 4)
+
+  while (i < 4)
   {
     i++;
+    Serial.println(i);
+    Serial.print(mqttServers[i]);
+    Serial.print(" :");
+    Serial.println(Ping.ping(mqttServers[i]));
   }
-  if (i < 4)
-  {
-    _mqtt_server = mqttServer[i];
-    Serial.print("MQTT SERVER: ");
-    Serial.println(mqtt_server);
-    if (i != 0)
-    {
-      _alternativeMQTTserver = true;
-    }
-  }
+  // if (i < 4)
+  // {
+  //   _mqtt_server = mqttServers[i];
+  //   Serial.print("MQTT SERVER: ");
+  //   Serial.println(_mqtt_server);
+  //   if (i != 0)
+  //   {
+  //     _alternativeMQTTserver = true;
+  //   }
+  return 1;
+  // }
+  // else
+  // {
+  //   return 0;
+  // }
 }
 void myIOT32::MQTTcallback(char *topic, byte *payload, unsigned int length)
 {
@@ -136,8 +151,6 @@ void myIOT32::MQTTcallback(char *topic, byte *payload, unsigned int length)
     {
       bootType = 0;
     }
-    Serial.print("BootType: ");
-    Serial.println(bootType);
   }
   else if (strcmp(topic, _statusTopic) == 0)
   {
@@ -176,7 +189,14 @@ bool myIOT32::connectMQTT()
   if (!mqttClient.connected())
   {
     bool a = mqttClient.connect(_devTopic, _user, _passw, _availTopic, 0, true, "offline");
+    _notifyOnline();
+    networkOK = true;
+    _networkerr_clock = 0;
     return a;
+  }
+  else
+  {
+    return 1;
   }
 }
 void myIOT32::subscribeMQTT()
@@ -193,19 +213,14 @@ void myIOT32::subscribeMQTT()
 }
 bool myIOT32::startMQTT()
 {
-  if
-    _selectMQTTserver()
-    {
-      mqttClient.setServer(_mqtt_server, _mqtt_port);
-      mqttClient.setCallback(std::bind(&myIOT32::MQTTcallback, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
-      createTopics();
-      if (connectMQTT())
-      {
-        subscribeMQTT();
-        _notifyOnline();
-        pub_log("<< Boot >>");
-      }
-    }
+  mqttClient.setServer(_mqtt_server, _mqtt_port);
+  mqttClient.setCallback(std::bind(&myIOT32::MQTTcallback, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
+  createTopics();
+  if (connectMQTT())
+  {
+    subscribeMQTT();
+    pub_log("<< Boot >>");
+  }
   else
   {
     networkOK = false;
@@ -224,12 +239,22 @@ bool myIOT32::MQTTloop()
   {
     long now = millis();
     Serial.println("MQTT Server- NOT connected");
+
     if (now - lastReconnectAttempt > 5000)
     {
       lastReconnectAttempt = now;
-      bool a = connectMQTT();
-      subscribeMQTT();
-      return a;
+      if (connectMQTT())
+      {
+        subscribeMQTT();
+        _updateKeepAlive();
+        _networkflags(1);
+        return 1;
+      }
+      else
+      {
+        _networkflags(0);
+        return 0;
+      }
     }
   }
 }
@@ -268,12 +293,12 @@ void myIOT32::startNTP(const int gmtOffset_sec = 2 * 3600, const int daylightOff
 bool myIOT32::startWifi()
 {
   long beginwifi = millis();
+  int sec_to_connect = 15;
   WiFi.begin(_wifi_ssid, _wifi_pass);
 
-  while (WiFi.status() != WL_CONNECTED && millis() - beginwifi < 30000)
+  while (WiFi.status() != WL_CONNECTED && millis() - beginwifi < sec_to_connect * 1000)
   {
     delay(200);
-
     Serial.print(".");
   }
 
@@ -283,15 +308,18 @@ bool myIOT32::startWifi()
     Serial.println("WiFi connected");
     Serial.print("IP address: ");
     Serial.println(WiFi.localIP());
-    networkOK = true;
+
+    sprintf(DeviceStatus.ip, "%d.%d.%d.%d", WiFi.localIP()[0], WiFi.localIP()[1], WiFi.localIP()[2], WiFi.localIP()[3]);
     startNTP();
+    getTime();
+    DeviceStatus.boot_clock = _epoch_time;
+    _networkflags(1);
     return 1;
   }
   else
   {
     Serial.println("NO-WiFi");
-    _networkerr_clock = millis();
-    networkOK = false;
+    _networkflags(0);
     return 0;
   }
 }
@@ -404,26 +432,31 @@ void myIOT32::sendReset(char *header)
   delay(1000);
   ESP.restart();
 }
-void myIOT32::_createStatusJSON(long kalive, long nextw, int sleept, char *wakecmd, char *ext1, char *ext2)
+void myIOT32::_createStatusJSON()
 {
-  StaticJsonDocument<200> doc;
-  doc["lastKeepAlive"] = kalive;
-  doc["nextWake"] = nextw;
-  doc["sleepTime"] = sleept; // minutes
-  doc["wakeCommand"] = wakecmd;
-  doc["ext1"] = ext1;
-  doc["ext2"] = ext2;
+  StaticJsonDocument<JDOC_SIZE> doc;
+  doc["boot"] = DeviceStatus.boot_clock; // minutes
+  doc["ip"] = DeviceStatus.ip;
+  doc["wakeCmd"] = DeviceStatus.wake_cmd;
+  doc["in1"] = DeviceStatus.input1;
+  doc["in2"] = DeviceStatus.input2;
+  doc["out1"] = DeviceStatus.output1;
+  doc["out2"] = DeviceStatus.output2;
+  // doc["lastKAlive"] = DeviceStatus.last_keepalive;
+  // doc["nextWake"] = DeviceStatus.nextWake;
+  // doc["sleepTime"] = DeviceStatus.sleeptime; // minutes
+  // doc["wake"] = DeviceStatus.wake_status;
 
   String output;
   serializeJson(doc, output);
-  char a[150];
-  output.toCharArray(a, 150);
+  char a[250];
+  output.toCharArray(a, 250);
   pub_Status(a);
   Serial.println(output);
 }
 void myIOT32::_getMQTT2JSON(char *input_str)
 {
-  StaticJsonDocument<200> doc;
+  StaticJsonDocument<JDOC_SIZE> doc;
   DeserializationError error = deserializeJson(doc, input_str);
 
   if (error && useSerial)
@@ -435,6 +468,36 @@ void myIOT32::_getMQTT2JSON(char *input_str)
   const char *sensor = doc["sensor"];
   long time = doc["nextWake"];
 }
-void myIOT32::_lastkeepalive()
+void myIOT32::_updateKeepAlive(int update_mins)
 {
+  static long unsigned lastUpdate = 0;
+
+  if (millis() - lastUpdate > update_mins * 1000 * 60)
+  {
+    update_mins = millis();
+    getTime();
+    DeviceStatus.last_keepalive = _epoch_time;
+    _createStatusJSON();
+  }
+}
+void myIOT32::_networkflags(bool s)
+{
+  if (s == false)
+  {
+    if (_networkerr_clock == 0 || networkOK == true)
+    {
+      _networkerr_clock = millis();
+      networkOK = false;
+      Serial.println("Oh... shit");
+    }
+  }
+  else
+  {
+    if (_networkerr_clock > 0 || networkOK == false)
+    {
+      _networkerr_clock = 0;
+      networkOK = true;
+      Serial.println("Looking good");
+    }
+  }
 }

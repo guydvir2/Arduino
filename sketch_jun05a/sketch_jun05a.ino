@@ -6,7 +6,7 @@
 #define USE_SERIAL true
 #define USE_OTA false
 
-myIOT32 iot(DEVICE_TOPIC);
+myIOT32 iot(DEVICE_TOPIC, "iPhone", "guyd5161", MQTT_SERVER3);
 void startIOT_services()
 {
   iot.useSerial = USE_SERIAL;
@@ -18,6 +18,7 @@ void startIOT_services()
 }
 void setup()
 {
+  // Serial.begin(9600);
   startIOT_services();
   Serial.println("\nStart!");
   iot.pub_msg("Gmorning");
