@@ -6,10 +6,11 @@
 #define USE_SERIAL true
 #define USE_OTA false
 
-myIOT32 iot(DEVICE_TOPIC, "iPhone", "guyd5161", MQTT_SERVER3);
+myIOT32 iot(DEVICE_TOPIC);
 void startIOT_services()
 {
   iot.useSerial = USE_SERIAL;
+  iot.useResetKeeper = true;
   // iot.useWDT = USE_WDT;
   iot.useOTA = USE_OTA;
   strcpy(iot.prefixTopic, MQTT_PREFIX);
@@ -18,15 +19,11 @@ void startIOT_services()
 }
 void setup()
 {
-  // Serial.begin(9600);
   startIOT_services();
-  Serial.println("\nStart!");
-  iot.pub_msg("Gmorning");
 }
 
 void loop()
 {
-  // put your main code here, to run repeatedly:
   iot.looper();
   delay(200);
 }

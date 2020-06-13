@@ -18,8 +18,13 @@
 
 class myIOT32
 {
-#define VER "iot32_ver_0.1"
-#define JDOC_SIZE 500
+#define VER "iot32_ver_0.4"
+#define JDOC_SIZE 300
+#define RECON_WIFI 60       // sec to reconnect
+#define RECON_MQTT 30       // sec to reconnect
+#define NO_NETWORK_RESET 10 // minutes
+#define UPDATE_STATUS_MINS 1 // minutes
+
 private:
     // MQTT topics
     static const int MaxTopicLength = 64; //topics
@@ -37,8 +42,8 @@ private:
     char _incmoing_wakeMSG[100];
     // Wifi & MQTT config
     int _mqtt_port;
-    char *_wifi_ssid; // = "WIFI_NETWORK_BY_USER";
-    char *_wifi_pass; // = "WIFI__passwORD_BY_USER";
+    char *_wifi_ssid;
+    char *_wifi_pass;
     char *_mqtt_server;
     bool _alternativeMQTTserver = true;
     char *_user = "";
@@ -57,6 +62,7 @@ public:
     bool useSerial = false;
     bool useOTA = true;
     bool useWDT = true;
+    bool useResetKeeper = true;
     bool networkOK = false;
     long unsigned allowOTA_clock = 0;
     int bootType = 2; // 2 - init; 1 - resetboot; 0- regular boot
@@ -64,6 +70,7 @@ public:
     char deviceTopic[MaxTopicLength];
     char addGroupTopic[MaxTopicLength];
     char telegramServer[MaxTopicLength];
+    char inline_param[6][20]; //values from user
 
     struct status
     {
@@ -82,7 +89,7 @@ public:
         bool output2;
         bool wake_status;
     };
-    status DeviceStatus = {0, 0, 0, 0, "", "NO_WAKE_CMD", "devicetopic",false, false, false, false, false};
+    status DeviceStatus = {0, 0, 0, 0, "", "NO_WAKE_CMD", deviceTopic, false, false, false, false, false};
 
     WiFiClient espClient;
     PubSubClient mqttClient;
@@ -101,6 +108,8 @@ public:
     void pub_log(char *inmsg);
     void getTimeStamp(char ret_timeStamp[25]);
     void sendReset(char *header);
+    void createWakeJSON();
+    bool checkInternet(char *externalSite, byte pings = 1);
 
 private:
     bool MQTTloop();
@@ -119,8 +128,9 @@ private:
     void _startWDT();
     void _createStatusJSON();
     void _getMQTT2JSON(char *input_str);
-    void _updateKeepAlive(int update_mins=30);
+    void _updateKeepAlive();
     void _networkflags(bool s);
+    int _inline_read(char *inputstr);
 };
 
 #endif

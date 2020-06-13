@@ -1,5 +1,6 @@
 #include "myIOTesp32.h"
 
+// ±±±±±±±± Main ±±±±±±±±±±±±
 myIOT32::myIOT32(char *devTopic, char *ssid, char *wifi_p, char *mqtt_broker, char *mqttU, char *mqttP, int port)
     : mqttClient(espClient)
 {
@@ -20,7 +21,6 @@ void myIOT32::start()
   if (startWifi())
   {
     startMQTT();
-    _createStatusJSON();
   }
   if (useOTA)
   {
@@ -35,37 +35,23 @@ void myIOT32::looper()
 {
   if (WiFi.status() == WL_CONNECTED)
   {
-    // Wifi is OK
-    if (_networkerr_clock == 0)
-    {
-      MQTTloop();
-    }
+    // Wifi OK
+    MQTTloop() ? _networkflags(1) : _networkflags(0);
   }
   else
   {
     // NoWifi
-    Serial.println("NO-WIFI");
     static long lastWifi_try = 0;
-    const int sec_retryWifi = 20;
     long now = millis();
 
-    if (millis() - lastWifi_try > 1000 * sec_retryWifi)
+    if (millis() - lastWifi_try > RECON_WIFI * 1000 * 60UL)
     {
       lastWifi_try = now;
-      if (!startWifi())
-      {
-        // fail to regain wifi
-        Serial.println("retry_wifi failed");
-      }
-      else
-      {
-        // Wifi is OK now
-        Serial.println("retry_wifi OK");
-      }
+      startWifi();
     }
   }
 
-  if (millis() - _networkerr_clock > 60 * 1000UL && _networkerr_clock > 0)
+  if (millis() - _networkerr_clock > NO_NETWORK_RESET * 60 * 1000UL && _networkerr_clock > 0)
   {
     sendReset("NetWork fail reset");
   }
@@ -85,7 +71,16 @@ void myIOT32::looper()
     // start WatchDog
     _feedTheDog();
   }
+
+  static long unsigned lastUpdate = 0;
+  if (millis() - lastUpdate > UPDATE_STATUS_MINS * 1000 * 60 || lastUpdate == 0)
+  {
+    lastUpdate = millis();
+    _createStatusJSON();
+  }
 }
+
+// ±±±±±±±±±MQTT ±±±±±±±±±±±±±
 bool myIOT32::_selectMQTTserver()
 {
   char *mqttServers[] = {_mqtt_server, MQTT_SERVER1, MQTT_SERVER2, MQTT_SERVER3};
@@ -140,7 +135,7 @@ void myIOT32::MQTTcallback(char *topic, byte *payload, unsigned int length)
   {
     strcpy(_incmoing_wakeMSG, incoming_msg);
   }
-  else if (strcmp(topic, _availTopic) == 0 && bootType == 2)
+  else if (strcmp(topic, _availTopic) == 0 && bootType == 2 && useResetKeeper)
   {
     // bootType: (2) - value at init , (1) quick boot (0) - regulatBoot
     if (strcmp(incoming_msg, "online") == 0)
@@ -151,6 +146,7 @@ void myIOT32::MQTTcallback(char *topic, byte *payload, unsigned int length)
     {
       bootType = 0;
     }
+    _notifyOnline();
   }
   else if (strcmp(topic, _statusTopic) == 0)
   {
@@ -189,9 +185,12 @@ bool myIOT32::connectMQTT()
   if (!mqttClient.connected())
   {
     bool a = mqttClient.connect(_devTopic, _user, _passw, _availTopic, 0, true, "offline");
-    _notifyOnline();
     networkOK = true;
     _networkerr_clock = 0;
+    if (!useResetKeeper)
+    {
+      _notifyOnline();
+    }
     return a;
   }
   else
@@ -286,6 +285,8 @@ void myIOT32::pub_log(char *inmsg)
   sprintf(tem, "[%s] [%s] %s", tstamp, deviceTopic, inmsg);
   mqttClient.publish(_errorTopic, tem);
 }
+
+// ±±±±±±±±±±± WIFI & Clock ±±±±±±±±±
 void myIOT32::startNTP(const int gmtOffset_sec = 2 * 3600, const int daylightOffset_sec = 3600, const char *ntpServer = "pool.ntp.org")
 {
   configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);
@@ -342,6 +343,8 @@ void myIOT32::getTimeStamp(char ret_timeStamp[25])
   sprintf(ret_timeStamp, "%04d-%02d-%02d %02d:%02d:%02d", _timeinfo.tm_year + 1900, _timeinfo.tm_mon, _timeinfo.tm_mday,
           _timeinfo.tm_hour, _timeinfo.tm_min, _timeinfo.tm_sec);
 }
+
+// ±±±±±±±±±±±±± OTA & WDT ±±±±±±±±±±±
 void myIOT32::_startOTA()
 {
   char OTAname[100];
@@ -432,26 +435,41 @@ void myIOT32::sendReset(char *header)
   delay(1000);
   ESP.restart();
 }
+
+// ±±±±±±±± Update JSON status ±±±±±±±±±
 void myIOT32::_createStatusJSON()
 {
+  _updateKeepAlive();
+
   StaticJsonDocument<JDOC_SIZE> doc;
-  doc["boot"] = DeviceStatus.boot_clock; // minutes
+  doc["topic"] = DeviceStatus.devicetopic; // minutes
   doc["ip"] = DeviceStatus.ip;
-  doc["wakeCmd"] = DeviceStatus.wake_cmd;
+  doc["boot"] = DeviceStatus.boot_clock; // minutes
+  doc["imAlive"] = DeviceStatus.last_keepalive;
   doc["in1"] = DeviceStatus.input1;
   doc["in2"] = DeviceStatus.input2;
   doc["out1"] = DeviceStatus.output1;
   doc["out2"] = DeviceStatus.output2;
-  // doc["lastKAlive"] = DeviceStatus.last_keepalive;
-  // doc["nextWake"] = DeviceStatus.nextWake;
-  // doc["sleepTime"] = DeviceStatus.sleeptime; // minutes
-  // doc["wake"] = DeviceStatus.wake_status;
 
   String output;
   serializeJson(doc, output);
   char a[250];
   output.toCharArray(a, 250);
   pub_Status(a);
+}
+void myIOT32::createWakeJSON()
+{
+  StaticJsonDocument<JDOC_SIZE> doc;
+  doc["wakeCmd"] = DeviceStatus.wake_cmd;
+  doc["nextWake"] = DeviceStatus.nextWake;
+  doc["sleepTime"] = DeviceStatus.sleeptime; // minutes
+  doc["isWake"] = DeviceStatus.wake_status;
+
+  String output;
+  serializeJson(doc, output);
+  char a[250];
+  output.toCharArray(a, 250);
+  pub_nextWake(a);
   Serial.println(output);
 }
 void myIOT32::_getMQTT2JSON(char *input_str)
@@ -468,17 +486,10 @@ void myIOT32::_getMQTT2JSON(char *input_str)
   const char *sensor = doc["sensor"];
   long time = doc["nextWake"];
 }
-void myIOT32::_updateKeepAlive(int update_mins)
+void myIOT32::_updateKeepAlive()
 {
-  static long unsigned lastUpdate = 0;
-
-  if (millis() - lastUpdate > update_mins * 1000 * 60)
-  {
-    update_mins = millis();
-    getTime();
-    DeviceStatus.last_keepalive = _epoch_time;
-    _createStatusJSON();
-  }
+  getTime();
+  DeviceStatus.last_keepalive = _epoch_time;
 }
 void myIOT32::_networkflags(bool s)
 {
@@ -488,7 +499,6 @@ void myIOT32::_networkflags(bool s)
     {
       _networkerr_clock = millis();
       networkOK = false;
-      Serial.println("Oh... shit");
     }
   }
   else
@@ -497,7 +507,26 @@ void myIOT32::_networkflags(bool s)
     {
       _networkerr_clock = 0;
       networkOK = true;
-      Serial.println("Looking good");
     }
   }
+}
+
+// ±±±±±±±±±±±±± Others ±±±±±±±±±±±±
+bool myIOT32::checkInternet(char *externalSite, byte pings)
+{
+  return Ping.ping(externalSite, pings);
+}
+int myIOT32::_inline_read(char *inputstr)
+{
+  char *pch;
+  int i = 0;
+
+  pch = strtok(inputstr, " ,.-");
+  while (pch != NULL)
+  {
+    sprintf(inline_param[i], "%s", pch);
+    pch = strtok(NULL, " ,.-");
+    i++;
+  }
+  return i;
 }
