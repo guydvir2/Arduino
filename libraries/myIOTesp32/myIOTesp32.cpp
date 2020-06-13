@@ -100,21 +100,21 @@ bool myIOT32::_selectMQTTserver()
     Serial.print(" :");
     Serial.println(Ping.ping(mqttServers[i]));
   }
-  // if (i < 4)
-  // {
-  //   _mqtt_server = mqttServers[i];
-  //   Serial.print("MQTT SERVER: ");
-  //   Serial.println(_mqtt_server);
-  //   if (i != 0)
-  //   {
-  //     _alternativeMQTTserver = true;
-  //   }
+  if (i < 4)
+  {
+    _mqtt_server = mqttServers[i];
+    Serial.print("MQTT SERVER: ");
+    Serial.println(_mqtt_server);
+    if (i != 0)
+    {
+      _alternativeMQTTserver = true;
+    }
   return 1;
-  // }
-  // else
-  // {
-  //   return 0;
-  // }
+  }
+  else
+  {
+    return 0;
+  }
 }
 void myIOT32::MQTTcallback(char *topic, byte *payload, unsigned int length)
 {
@@ -219,7 +219,14 @@ bool myIOT32::startMQTT()
   if (connectMQTT())
   {
     subscribeMQTT();
-    pub_log("<< Boot >>");
+    if (_alternativeMQTTserver){
+      char a[50];
+      sprintf(a,"<< Boot - alternative MQTT broker: %s",_mqtt_server);
+      pub_log(a);
+    }
+    else{
+      pub_log("<< Boot >>");
+    }
   }
   else
   {
