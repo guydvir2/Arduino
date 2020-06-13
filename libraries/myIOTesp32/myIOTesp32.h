@@ -45,7 +45,7 @@ private:
     char *_wifi_ssid;
     char *_wifi_pass;
     char *_mqtt_server;
-    bool _alternativeMQTTserver = true;
+    bool _alternativeMQTTserver = false;
     char *_user = "";
     char *_passw = "";
     char *_devTopic = "DEVICE_TOPIC OF MQTT";
