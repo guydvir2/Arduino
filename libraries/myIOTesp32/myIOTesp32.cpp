@@ -61,7 +61,7 @@ void myIOT32::looper()
     sendReset("Alternative MQTT Server");
   }
   // OTA
-  if (useOTA && millis() - allowOTA_clock < 1000 * 600UL)
+  if (useOTA && millis() - allowOTA_clock < 1000 * 60UL * _OTA_upload_interval)
   {
     // wait for OTA
     _OTAlooper();
@@ -104,7 +104,7 @@ bool myIOT32::_selectMQTTserver()
     {
       _alternativeMQTTserver = true;
     }
-  return 1;
+    return 1;
   }
   else
   {
@@ -131,27 +131,54 @@ void myIOT32::MQTTcallback(char *topic, byte *payload, unsigned int length)
   incoming_msg[length] = 0;
   Serial.println();
 
-  if (strcmp(topic, _wakeTopic) == 0)
+  if (strcmp(incoming_msg, "boot") == 0)
   {
-    strcpy(_incmoing_wakeMSG, incoming_msg);
+    sprintf(msg, "Boot:[%d]", DeviceStatus.boot_clock);
+    pub_msg(msg);
   }
-  else if (strcmp(topic, _availTopic) == 0 && bootType == 2 && useResetKeeper)
+  else if (strcmp(incoming_msg, "ip") == 0)
   {
-    // bootType: (2) - value at init , (1) quick boot (0) - regulatBoot
-    if (strcmp(incoming_msg, "online") == 0)
-    {
-      bootType = 1;
-    }
-    else if (strcmp(incoming_msg, "offline") == 0)
-    {
-      bootType = 0;
-    }
-    _notifyOnline();
+    char buf[16];
+    sprintf(buf, "%d.%d.%d.%d", WiFi.localIP()[0], WiFi.localIP()[1], WiFi.localIP()[2], WiFi.localIP()[3]);
+    sprintf(msg, "IP address:[%s]", buf);
+    pub_msg(msg);
   }
-  else if (strcmp(topic, _statusTopic) == 0)
+  else if (strcmp(incoming_msg, "ota") == 0)
   {
-    _getMQTT2JSON(incoming_msg);
+    sprintf(msg, "OTA allowed for %d minutes", _OTA_upload_interval);
+    pub_msg(msg);
+    allowOTA_clock = millis();
   }
+  else if (strcmp(incoming_msg, "reset") == 0)
+  {
+    sendReset("MQTT");
+  }
+  else
+  {
+    // ext_mqtt_cb(incoming_msg);
+  }
+
+  // if (strcmp(topic, _wakeTopic) == 0)
+  // {
+  //   strcpy(_incmoing_wakeMSG, incoming_msg);
+  // }
+  // else if (strcmp(topic, _availTopic) == 0 && bootType == 2 && useResetKeeper)
+  // {
+  //   // bootType: (2) - value at init , (1) quick boot (0) - regulatBoot
+  //   if (strcmp(incoming_msg, "online") == 0)
+  //   {
+  //     bootType = 1;
+  //   }
+  //   else if (strcmp(incoming_msg, "offline") == 0)
+  //   {
+  //     bootType = 0;
+  //   }
+  //   _notifyOnline();
+  // }
+  // else if (strcmp(topic, _statusTopic) == 0)
+  // {
+  //   _getMQTT2JSON(incoming_msg);
+  // }
 }
 void myIOT32::createTopics()
 {
@@ -184,6 +211,7 @@ bool myIOT32::connectMQTT()
 {
   if (!mqttClient.connected())
   {
+    Serial.println("RECONNECT");
     bool a = mqttClient.connect(_devTopic, _user, _passw, _availTopic, 0, true, "offline");
     networkOK = true;
     _networkerr_clock = 0;
@@ -214,16 +242,23 @@ bool myIOT32::startMQTT()
 {
   mqttClient.setServer(_mqtt_server, _mqtt_port);
   mqttClient.setCallback(std::bind(&myIOT32::MQTTcallback, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
+  if (useSerial)
+  {
+    Serial.print("connect to MQTT Broker: ");
+    Serial.println(_mqtt_server);
+  }
   createTopics();
   if (connectMQTT())
   {
     subscribeMQTT();
-    if (_alternativeMQTTserver){
+    if (_alternativeMQTTserver)
+    {
       char a[50];
-      sprintf(a,"<< Boot - alternative MQTT broker: %s",_mqtt_server);
+      sprintf(a, "<< Boot - alternative MQTT broker: %s", _mqtt_server);
       pub_log(a);
     }
-    else{
+    else
+    {
       pub_log("<< Boot >>");
     }
   }
@@ -254,13 +289,19 @@ bool myIOT32::MQTTloop()
         subscribeMQTT();
         _updateKeepAlive();
         _networkflags(1);
+        Serial.println("RECONNECT_TRY OK");
         return 1;
       }
       else
       {
         _networkflags(0);
+        Serial.println("RECONNECT_TRY FAILED");
         return 0;
       }
+    }
+    else
+    {
+      Serial.println("WAIT FOR YOU LOOP");
     }
   }
 }
@@ -404,10 +445,12 @@ void myIOT32::_startOTA()
       });
 
   ArduinoOTA.begin();
-
-  Serial.println("Ready");
-  Serial.print("IP address: ");
-  Serial.println(WiFi.localIP());
+  if (useSerial)
+  {
+    Serial.println("OTA - Ready");
+    Serial.print("IP address: ");
+    Serial.println(WiFi.localIP());
+  }
 }
 void myIOT32::_OTAlooper()
 {
@@ -506,6 +549,7 @@ void myIOT32::_networkflags(bool s)
     {
       _networkerr_clock = millis();
       networkOK = false;
+      Serial.println("BAD NETW");
     }
   }
   else
@@ -514,6 +558,7 @@ void myIOT32::_networkflags(bool s)
     {
       _networkerr_clock = 0;
       networkOK = true;
+      Serial.println("GOOD NETW");
     }
   }
 }

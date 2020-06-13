@@ -6,17 +6,22 @@
 #define USE_SERIAL true
 #define USE_OTA false
 
-myIOT32 iot(DEVICE_TOPIC);
+myIOT32 iot(DEVICE_TOPIC, SSID_ID, PASS_WIFI, MQTT_SERVER1);
+void ext_MQTT()
+{
+}
 void startIOT_services()
 {
   iot.useSerial = USE_SERIAL;
   iot.useResetKeeper = true;
-  // iot.useWDT = USE_WDT;
+  iot.useWDT = false;
   iot.useOTA = USE_OTA;
+  // iot.ext_mqtt_cb = &ext_MQTT;
   strcpy(iot.prefixTopic, MQTT_PREFIX);
   strcpy(iot.addGroupTopic, MQTT_GROUP);
   iot.start();
 }
+
 void setup()
 {
   startIOT_services();
@@ -25,5 +30,5 @@ void setup()
 void loop()
 {
   iot.looper();
-  delay(200);
+  delay(500);
 }

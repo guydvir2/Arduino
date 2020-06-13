@@ -16,6 +16,9 @@
 #include <Ticker.h>
 #include <ArduinoJson.h>
 
+// define generic functiobs
+typedef void (*cb_func)(char msg1[50]);
+
 class myIOT32
 {
 #define VER "iot32_ver_0.4"
@@ -23,7 +26,7 @@ class myIOT32
 #define RECON_WIFI 60       // sec to reconnect
 #define RECON_MQTT 30       // sec to reconnect
 #define NO_NETWORK_RESET 10 // minutes
-#define UPDATE_STATUS_MINS 1 // minutes
+#define UPDATE_STATUS_MINS 30 // minutes
 
 private:
     // MQTT topics
@@ -54,6 +57,7 @@ private:
     // Clock
     struct tm _timeinfo;
     time_t _epoch_time;
+    const int _OTA_upload_interval = 10; // 10 minute to try OTA
 
     volatile int _wdtResetCounter = 0;
     const int _wdtMaxRetries = 30; //seconds to bITE
@@ -71,7 +75,7 @@ public:
     char addGroupTopic[MaxTopicLength];
     char telegramServer[MaxTopicLength];
     char inline_param[6][20]; //values from user
-
+    // cb_func ext_mqtt_cb;
     struct status
     {
         long last_keepalive;
