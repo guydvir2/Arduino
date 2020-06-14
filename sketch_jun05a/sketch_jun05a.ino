@@ -4,11 +4,12 @@
 #define MQTT_PREFIX "myHome"
 #define MQTT_GROUP "testBed"
 #define USE_SERIAL true
-#define USE_OTA false
+#define USE_OTA true
 
-myIOT32 iot(DEVICE_TOPIC, SSID_ID, PASS_WIFI, MQTT_SERVER1);
-void ext_MQTT()
+myIOT32 iot(DEVICE_TOPIC);
+void ext_MQTT(char *incoming)
 {
+  return;
 }
 void startIOT_services()
 {
@@ -16,10 +17,29 @@ void startIOT_services()
   iot.useResetKeeper = true;
   iot.useWDT = false;
   iot.useOTA = USE_OTA;
-  // iot.ext_mqtt_cb = &ext_MQTT;
+  iot.useTelegram = false;
+  iot.ext_mqtt_cb = ext_MQTT;
   strcpy(iot.prefixTopic, MQTT_PREFIX);
   strcpy(iot.addGroupTopic, MQTT_GROUP);
   iot.start();
+}
+void sendnewNotif()
+{
+  static bool notified = false;
+  iot.getTime();
+  int divider = 2;
+  if (iot.timeinfo.tm_min % divider == 0 && notified == false)
+  {
+    char timeStamp[25];
+    iot.getTimeStamp(timeStamp);
+    iot.mqttClient.publish("myHome/Telegram_out", timeStamp);
+    notified = true;
+    Serial.println(timeStamp);
+  }
+  else if (iot.timeinfo.tm_min % divider != 0 && notified == true)
+  {
+    notified = false;
+  }
 }
 
 void setup()
@@ -30,5 +50,6 @@ void setup()
 void loop()
 {
   iot.looper();
-  delay(500);
+  sendnewNotif();
+  delay(100);
 }

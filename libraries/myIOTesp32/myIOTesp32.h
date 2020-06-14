@@ -23,9 +23,9 @@ class myIOT32
 {
 #define VER "iot32_ver_0.4"
 #define JDOC_SIZE 300
-#define RECON_WIFI 60       // sec to reconnect
-#define RECON_MQTT 30       // sec to reconnect
-#define NO_NETWORK_RESET 10 // minutes
+#define RECON_WIFI 60         // sec to reconnect
+#define RECON_MQTT 30         // sec to reconnect
+#define NO_NETWORK_RESET 10   // minutes
 #define UPDATE_STATUS_MINS 30 // minutes
 
 private:
@@ -54,11 +54,7 @@ private:
     char *_devTopic = "DEVICE_TOPIC OF MQTT";
     long _networkerr_clock = 0;
 
-    // Clock
-    struct tm _timeinfo;
-    time_t _epoch_time;
     const int _OTA_upload_interval = 10; // 10 minute to try OTA
-
     volatile int _wdtResetCounter = 0;
     const int _wdtMaxRetries = 30; //seconds to bITE
 
@@ -67,6 +63,7 @@ public:
     bool useOTA = true;
     bool useWDT = true;
     bool useResetKeeper = true;
+    bool useTelegram = false;
     bool networkOK = false;
     long unsigned allowOTA_clock = 0;
     int bootType = 2; // 2 - init; 1 - resetboot; 0- regular boot
@@ -75,7 +72,11 @@ public:
     char addGroupTopic[MaxTopicLength];
     char telegramServer[MaxTopicLength];
     char inline_param[6][20]; //values from user
-    // cb_func ext_mqtt_cb;
+
+    // Clock
+    struct tm timeinfo;
+    time_t epoch_time;
+    cb_func ext_mqtt_cb;
     struct status
     {
         long last_keepalive;
@@ -105,12 +106,18 @@ public:
             int port = 1883);
     void looper();
     void start();
+
     bool startMQTT();
     void pub_msg(char *msg);
     void pub_Status(char *statusmsg);
     void pub_nextWake(char *inmsg);
     void pub_log(char *inmsg);
+
+    void getTime();
     void getTimeStamp(char ret_timeStamp[25]);
+    struct tm *convEpoch(time_t in_time);
+    void createDateStamp(struct tm *t, char retChar[30]);
+
     void sendReset(char *header);
     void createWakeJSON();
     bool checkInternet(char *externalSite, byte pings = 1);
@@ -119,7 +126,6 @@ private:
     bool MQTTloop();
     void startNTP(const int gmtOffset_sec, const int daylightOffset_sec, const char *ntpServer);
     bool startWifi();
-    void getTime();
     void MQTTcallback(char *topic, byte *payload, unsigned int length);
     void createTopics();
     bool connectMQTT();

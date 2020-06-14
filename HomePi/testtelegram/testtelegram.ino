@@ -36,7 +36,7 @@ const int log_size = 5;
 char LOG[log_size][150];
 
 // ~~~~~~~~~~~ Using SMS Notification ~~~~~~~
-char *Telegram_Nick = DEVICE_TOPIC; //"iotTest";
+char *Telegram_Nick = DEVICE_TOPIC;
 int time_check_messages = 1;        //sec
 
 myTelegram teleNotify(BOT_TOKEN, CHAT_ID, time_check_messages);
@@ -163,9 +163,11 @@ bool chekcTelegram_topic(char *topic, MQTT_msg &msg)
                 sprintf(msg.from_topic, "%s", iot.mqqt_ext_buffer[0]);
                 sprintf(msg.msg, "%s", iot.mqqt_ext_buffer[1]);
                 sprintf(msg.device_topic, "%s", iot.mqqt_ext_buffer[2]);
-                enterLOG_record(msg.msg);
+                // enterLOG_record(msg.msg);
+                Serial.println("got this message: ");
                 for (int i = 0; i < 3; i++)
                 {
+                        Serial.println(iot.mqqt_ext_buffer[i]);
                         sprintf(iot.mqqt_ext_buffer[i], "%s", "");
                 }
                 return 1;

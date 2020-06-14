@@ -133,7 +133,9 @@ void myIOT32::MQTTcallback(char *topic, byte *payload, unsigned int length)
 
   if (strcmp(incoming_msg, "boot") == 0)
   {
-    sprintf(msg, "Boot:[%d]", DeviceStatus.boot_clock);
+    char clockChar[30];
+    createDateStamp(convEpoch(DeviceStatus.boot_clock),clockChar);
+    sprintf(msg, "Boot:[%d]",clockChar );
     pub_msg(msg);
   }
   else if (strcmp(incoming_msg, "ip") == 0)
@@ -153,32 +155,32 @@ void myIOT32::MQTTcallback(char *topic, byte *payload, unsigned int length)
   {
     sendReset("MQTT");
   }
-  else
+  else //if (strcmp(incoming_msg, "online") != 0 && strcmp(incoming_msg, "offline") != 0)
   {
-    // ext_mqtt_cb(incoming_msg);
+    ext_mqtt_cb(incoming_msg);
   }
 
-  // if (strcmp(topic, _wakeTopic) == 0)
-  // {
-  //   strcpy(_incmoing_wakeMSG, incoming_msg);
-  // }
-  // else if (strcmp(topic, _availTopic) == 0 && bootType == 2 && useResetKeeper)
-  // {
-  //   // bootType: (2) - value at init , (1) quick boot (0) - regulatBoot
-  //   if (strcmp(incoming_msg, "online") == 0)
-  //   {
-  //     bootType = 1;
-  //   }
-  //   else if (strcmp(incoming_msg, "offline") == 0)
-  //   {
-  //     bootType = 0;
-  //   }
-  //   _notifyOnline();
-  // }
-  // else if (strcmp(topic, _statusTopic) == 0)
-  // {
-  //   _getMQTT2JSON(incoming_msg);
-  // }
+  if (strcmp(topic, _wakeTopic) == 0)
+  {
+    strcpy(_incmoing_wakeMSG, incoming_msg);
+  }
+  else if (strcmp(topic, _availTopic) == 0 && bootType == 2 && useResetKeeper)
+  {
+    // bootType: (2) - value at init , (1) quick boot (0) - regulatBoot
+    if (strcmp(incoming_msg, "online") == 0)
+    {
+      bootType = 1;
+    }
+    else if (strcmp(incoming_msg, "offline") == 0)
+    {
+      bootType = 0;
+    }
+    _notifyOnline();
+  }
+  else if (strcmp(topic, _statusTopic) == 0)
+  {
+    _getMQTT2JSON(incoming_msg);
+  }
 }
 void myIOT32::createTopics()
 {
@@ -202,16 +204,15 @@ void myIOT32::createTopics()
   snprintf(_statusTopic, MaxTopicLength, "%s/Status", deviceTopic);
   snprintf(_wakeTopic, MaxTopicLength, "%s/onWake", deviceTopic);
 
-  // if (useTelegram)
-  // {
-  //         snprintf(_telegramServer, MaxTopicLength, "%s/%s", prefixTopic, telegramServer);
-  // }
+  if (useTelegram)
+  {
+          snprintf(_telegramServer, MaxTopicLength, "%s/%s", prefixTopic, telegramServer);
+  }
 }
 bool myIOT32::connectMQTT()
 {
   if (!mqttClient.connected())
   {
-    Serial.println("RECONNECT");
     bool a = mqttClient.connect(_devTopic, _user, _passw, _availTopic, 0, true, "offline");
     networkOK = true;
     _networkerr_clock = 0;
@@ -244,7 +245,7 @@ bool myIOT32::startMQTT()
   mqttClient.setCallback(std::bind(&myIOT32::MQTTcallback, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
   if (useSerial)
   {
-    Serial.print("connect to MQTT Broker: ");
+    Serial.print("MQTT Broker: ");
     Serial.println(_mqtt_server);
   }
   createTopics();
@@ -289,13 +290,11 @@ bool myIOT32::MQTTloop()
         subscribeMQTT();
         _updateKeepAlive();
         _networkflags(1);
-        Serial.println("RECONNECT_TRY OK");
         return 1;
       }
       else
       {
         _networkflags(0);
-        Serial.println("RECONNECT_TRY FAILED");
         return 0;
       }
     }
@@ -361,7 +360,7 @@ bool myIOT32::startWifi()
     sprintf(DeviceStatus.ip, "%d.%d.%d.%d", WiFi.localIP()[0], WiFi.localIP()[1], WiFi.localIP()[2], WiFi.localIP()[3]);
     startNTP();
     getTime();
-    DeviceStatus.boot_clock = _epoch_time;
+    DeviceStatus.boot_clock = epoch_time;
     _networkflags(1);
     return 1;
   }
@@ -377,10 +376,10 @@ void myIOT32::getTime()
   int a = 0;
   while (a < 3)
   {
-    if (getLocalTime(&_timeinfo))
+    if (getLocalTime(&timeinfo))
     {
       delay(100);
-      time(&_epoch_time);
+      time(&epoch_time);
     }
     a++;
   }
@@ -388,10 +387,20 @@ void myIOT32::getTime()
 void myIOT32::getTimeStamp(char ret_timeStamp[25])
 {
   getTime();
-  sprintf(ret_timeStamp, "%04d-%02d-%02d %02d:%02d:%02d", _timeinfo.tm_year + 1900, _timeinfo.tm_mon, _timeinfo.tm_mday,
-          _timeinfo.tm_hour, _timeinfo.tm_min, _timeinfo.tm_sec);
+  createDateStamp(&timeinfo, ret_timeStamp);
 }
-
+struct tm *myIOT32::convEpoch(time_t in_time)
+{
+  struct tm *convTime = gmtime(&in_time);
+  char time_char[40];
+  sprintf(time_char, "%04d-%02d-%02d %02d:%02d:%02d", convTime->tm_year + 1900, convTime->tm_mon + 1, convTime->tm_mday,
+          convTime->tm_hour, convTime->tm_min, convTime->tm_sec);
+  return convTime;
+}
+void myIOT32::createDateStamp(struct tm *t, char retChar[30])
+{
+  sprintf(retChar, "%04d-%02d-%02d %02d:%02d:%02d", t->tm_year + 1900, t->tm_mon + 1, t->tm_mday, t->tm_hour, t->tm_min, t->tm_sec);
+}
 // ±±±±±±±±±±±±± OTA & WDT ±±±±±±±±±±±
 void myIOT32::_startOTA()
 {
@@ -539,7 +548,7 @@ void myIOT32::_getMQTT2JSON(char *input_str)
 void myIOT32::_updateKeepAlive()
 {
   getTime();
-  DeviceStatus.last_keepalive = _epoch_time;
+  DeviceStatus.last_keepalive = epoch_time;
 }
 void myIOT32::_networkflags(bool s)
 {
