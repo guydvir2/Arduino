@@ -11,7 +11,6 @@ RTC_DATA_ATTR long clock_beforeSleep = 0;
 RTC_DATA_ATTR float driftsArray_RTC[drift_ArraySize];
 
 esp32Sleep::esp32Sleep(int deepsleep, int forcedwake, char *devname)
-    : mqttClient(espClient)
 {
   _deepsleep_time = deepsleep;
   _forcedwake_time = forcedwake;
@@ -42,47 +41,9 @@ void esp32Sleep::start_eeprom(byte i)
 {
   if (!EEPROM.begin(EEPROM_SIZE))
   {
-    // Serial.println("Fail to load EEPROM");
+    Serial.println("Fail to load EEPROM");
   }
 }
-
-// ~~~~~~~~ Wifi & NTP ~~~~~~
-// void esp32Sleep::startNTP(const int gmtOffset_sec, const int daylightOffset_sec, const char *ntpServer)
-// {
-//   configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);
-// }
-// bool esp32Sleep::startWifi()
-// {
-//   long beginwifi = millis();
-//   WiFi.begin(wifi_ssid, wifi_pass);
-//   while (WiFi.status() != WL_CONNECTED && millis() - beginwifi < 30000)
-//   {
-//     delay(200);
-//   }
-
-//   if (WiFi.status() == WL_CONNECTED)
-//   {
-//     startNTP();
-//     return 1;
-//   }
-//   else
-//   {
-//     return 0;
-//   }
-// }
-// void esp32Sleep::getTime()
-// {
-//   int a = 0;
-//   while (a < 3)
-//   {
-//     if (getLocalTime(&_timeinfo))
-//     {
-//       delay(100);
-//       time(&_epoch_time);
-//     }
-//     a++;
-//   }
-// }
 void esp32Sleep::Avg_Array_zeroing()
 {
   if (bootCounter == 0)
@@ -93,7 +54,6 @@ void esp32Sleep::Avg_Array_zeroing()
     }
   }
 }
-
 
 // ~~~~~~~ Sleep & Drift calcs ~~~
 
@@ -174,15 +134,14 @@ void esp32Sleep::new_driftUpdate(float lastboot_drift, byte cell)
   update_driftArray(driftRTC);
 }
 
-int esp32Sleep::calc_nominal_sleepTime()
+int esp32Sleep::calc_nominal_sleepTime(struct tm *timeinfo, time_t *epoch_time)
 {
   int nominal_nextSleep = 0;
   char tt[100];
-  getTime();
 
-  if (_timeinfo.tm_year >= 120)
+  if (timeinfo->tm_year >= 120)
   {
-    nominal_nextSleep = _deepsleep_time * 60 - (_timeinfo.tm_min * 60 + _timeinfo.tm_sec) % (_deepsleep_time * 60);
+    nominal_nextSleep = _deepsleep_time * 60 - (timeinfo->tm_min * 60 + timeinfo->tm_sec) % (_deepsleep_time * 60);
     clock_beforeSleep = _epoch_time;                      // RTC var
     clock_expectedWake = _epoch_time + nominal_nextSleep; // RTC var
   }
@@ -192,11 +151,12 @@ int esp32Sleep::calc_nominal_sleepTime()
   }
 
   sprintf(tt, "wake_Duration: [%.2fs]; back2Sleep: [%02d:%02d:%02d]; sleepFor: [%d sec]; drift_correct: [%.1f sec]",
-          millis() / 1000.0, _timeinfo.tm_hour, _timeinfo.tm_min, _timeinfo.tm_sec, nominal_nextSleep, driftRTC);
+          millis() / 1000.0, timeinfo->tm_hour, timeinfo->tm_min, timeinfo->tm_sec, nominal_nextSleep, driftRTC);
   strcat(wake_sleep_str, tt);
+  Serial.println(tt);
   return nominal_nextSleep;
 }
-bool esp32Sleep::startServices(char *ssid, char *password, char *mqtt_user, char *mqtt_passw, char *mqtt_broker)
+bool esp32Sleep::startServices()
 {
   start_eeprom();
   return 1;
@@ -211,16 +171,15 @@ void esp32Sleep::sleepNOW(float sec2sleep)
   esp_sleep_enable_timer_wakeup(sec2sleep * uS_TO_S_FACTOR);
   esp_deep_sleep_start();
 }
-void esp32Sleep::check_awake_ontime(int min_t_avoidSleep)
+void esp32Sleep::check_awake_ontime(int min_t_avoidSleep, struct tm *timeinfo, time_t *epoch_time)
 {
-  delay(3000);
-  getTime();
   bootCounter++;
 
   sprintf(sys_presets_str, "deviceName:[%s]; SleepTime: [%d min]; Forced-aWakeTime: [%d sec]", dev_name, _deepsleep_time, _forcedwake_time);
-  sprintf(wake_sleep_str, "Boot#: [%d]; Wake_Clock: [%02d:%02d:%02d]; ", bootCounter, _timeinfo.tm_hour, _timeinfo.tm_min, _timeinfo.tm_sec);
+  sprintf(wake_sleep_str, "Boot#: [%d]; Wake_Clock: [%02d:%02d:%02d]; ", bootCounter, timeinfo->tm_hour, timeinfo->tm_min, timeinfo->tm_sec);
+  Serial.println(wake_sleep_str);
 
-  if (_timeinfo.tm_year >= 120)
+  if (timeinfo->tm_year >= 120)
   {
     if (clock_beforeSleep > 0)
     {
@@ -258,20 +217,19 @@ void esp32Sleep::check_awake_ontime(int min_t_avoidSleep)
     }
   }
 }
-void esp32Sleep::wait_forSleep()
+void esp32Sleep::wait_forSleep(struct tm *timeinfo, time_t *epoch_time, bool wifiOK)
 {
-  // when forced awake time will be over, ESP will go to slepp
   if (millis() >= _forcedwake_time * 1000)
   {
-    // if (_wifi_status)
-    // {
-      sleepNOW(calc_nominal_sleepTime() - driftRTC);
-    // }
-    // else
-    // {
-      // sleepNOW(_deepsleep_time * 60);
-    // }
-  // }
+    if (wifiOK)
+    {
+      sleepNOW(calc_nominal_sleepTime(timeinfo, epoch_time) - driftRTC);
+    }
+    else
+    {
+      sleepNOW(_deepsleep_time * 60);
+    }
+  }
 }
 void esp32Sleep::run_func(cb_func cb)
 {
