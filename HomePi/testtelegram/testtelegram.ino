@@ -17,8 +17,8 @@
 #define DEVICE_TOPIC "TelegramServer"
 #define MQTT_PREFIX "myHome"
 #define MQTT_GROUP ""
-#define TELEGRAM_OUT_TOPIC "Telegram_out"
-#define TELEGRAM_LISTEN_TOPIC "myHome/Telegram_out"
+#define TELEGRAM_OUT_TOPIC "Telegram"
+#define TELEGRAM_LISTEN_TOPIC "myHome/Telegram"
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 #define ADD_MQTT_FUNC addiotnalMQTT

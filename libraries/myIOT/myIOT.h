@@ -126,7 +126,7 @@ public:
   char deviceTopic[MaxTopicLength];
   char addGroupTopic[MaxTopicLength];
   char telegramServer[MaxTopicLength];
-  char mqqt_ext_buffer[3][150];
+  // char mqqt_ext_buffer[3][150];
 
   const char *ver = "iot_7.11";
   char timeStamp[20];

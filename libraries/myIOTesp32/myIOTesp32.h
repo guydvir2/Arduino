@@ -22,7 +22,7 @@ typedef void (*cb_func)(char msg1[50]);
 class myIOT32
 {
 #define VER "iot32_ver_0.4"
-#define JDOC_SIZE 300
+#define JDOC_SIZE 250
 #define RECON_WIFI 60         // sec to reconnect
 #define RECON_MQTT 30         // sec to reconnect
 #define NO_NETWORK_RESET 10   // minutes

@@ -134,8 +134,8 @@ void myIOT32::MQTTcallback(char *topic, byte *payload, unsigned int length)
   if (strcmp(incoming_msg, "boot") == 0)
   {
     char clockChar[30];
-    createDateStamp(convEpoch(DeviceStatus.boot_clock),clockChar);
-    sprintf(msg, "Boot:[%d]",clockChar );
+    createDateStamp(convEpoch(DeviceStatus.boot_clock), clockChar);
+    sprintf(msg, "Boot:[%d]", clockChar);
     pub_msg(msg);
   }
   else if (strcmp(incoming_msg, "ip") == 0)
@@ -204,10 +204,10 @@ void myIOT32::createTopics()
   snprintf(_statusTopic, MaxTopicLength, "%s/Status", deviceTopic);
   snprintf(_wakeTopic, MaxTopicLength, "%s/onWake", deviceTopic);
 
-  if (useTelegram)
-  {
-          snprintf(_telegramServer, MaxTopicLength, "%s/%s", prefixTopic, telegramServer);
-  }
+  // if (useTelegram)
+  // {
+  //   snprintf(_telegramServer, MaxTopicLength, "%s/%s", prefixTopic, telegramServer);
+  // }
 }
 bool myIOT32::connectMQTT()
 {
@@ -234,8 +234,11 @@ void myIOT32::subscribeMQTT()
     if (strcmp(topicArry[i], "") != 0)
     {
       mqttClient.subscribe(topicArry[i]);
-      Serial.print("Topic subsribed: ");
-      Serial.println(topicArry[i]);
+      if (useSerial)
+      {
+        Serial.print("Topic subsribed: ");
+        Serial.println(topicArry[i]);
+      }
     }
   }
 }
@@ -300,7 +303,7 @@ bool myIOT32::MQTTloop()
     }
     else
     {
-      Serial.println("WAIT FOR YOU LOOP");
+      return 0;
     }
   }
 }
@@ -366,7 +369,6 @@ bool myIOT32::startWifi()
   }
   else
   {
-    Serial.println("NO-WiFi");
     _networkflags(0);
     return 0;
   }
@@ -454,12 +456,6 @@ void myIOT32::_startOTA()
       });
 
   ArduinoOTA.begin();
-  if (useSerial)
-  {
-    Serial.println("OTA - Ready");
-    Serial.print("IP address: ");
-    Serial.println(WiFi.localIP());
-  }
 }
 void myIOT32::_OTAlooper()
 {
@@ -499,21 +495,23 @@ void myIOT32::sendReset(char *header)
 void myIOT32::_createStatusJSON()
 {
   _updateKeepAlive();
+  char clockChar[30];
+  createDateStamp(convEpoch(DeviceStatus.boot_clock), clockChar);
 
   StaticJsonDocument<JDOC_SIZE> doc;
   doc["topic"] = DeviceStatus.devicetopic; // minutes
   doc["ip"] = DeviceStatus.ip;
-  doc["boot"] = DeviceStatus.boot_clock; // minutes
+  doc["boot"] = String(clockChar); // minutes
   doc["imAlive"] = DeviceStatus.last_keepalive;
-  doc["in1"] = DeviceStatus.input1;
-  doc["in2"] = DeviceStatus.input2;
-  doc["out1"] = DeviceStatus.output1;
-  doc["out2"] = DeviceStatus.output2;
+  // doc["in1"] = DeviceStatus.input1;
+  // doc["in2"] = DeviceStatus.input2;
+  // doc["out1"] = DeviceStatus.output1;
+  // doc["out2"] = DeviceStatus.output2;
 
   String output;
   serializeJson(doc, output);
-  char a[250];
-  output.toCharArray(a, 250);
+  char a[150];
+  output.toCharArray(a, 150);
   pub_Status(a);
 }
 void myIOT32::createWakeJSON()
@@ -529,7 +527,6 @@ void myIOT32::createWakeJSON()
   char a[250];
   output.toCharArray(a, 250);
   pub_nextWake(a);
-  Serial.println(output);
 }
 void myIOT32::_getMQTT2JSON(char *input_str)
 {
@@ -558,7 +555,6 @@ void myIOT32::_networkflags(bool s)
     {
       _networkerr_clock = millis();
       networkOK = false;
-      Serial.println("BAD NETW");
     }
   }
   else
@@ -567,7 +563,6 @@ void myIOT32::_networkflags(bool s)
     {
       _networkerr_clock = 0;
       networkOK = true;
-      Serial.println("GOOD NETW");
     }
   }
 }

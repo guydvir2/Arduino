@@ -29,19 +29,21 @@ void startIOT_services()
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 // ~~~~~~~ Sleep ~~~~~~~~~~~
-#define SLEEP_TIME 30
-#define FORCE_AWAKE_TIME 20
+#define SLEEP_TIME 3
+#define FORCE_AWAKE_TIME 15
 #define DEV_NAME "ESP32light"
+
 esp32Sleep go2sleep(SLEEP_TIME, FORCE_AWAKE_TIME, DEV_NAME);
 void b4sleep()
 {
+  Serial.println("Going to Sleep");
+  Serial.flush();
 }
 void startSleep_services()
 {
   go2sleep.run_func(b4sleep); // define a function to be run prior to sleep.
-  iot.getTime(); // generate clock and passing it to next func.
-  go2sleep.check_awake_ontime(10, &iot.timeinfo, &iot.epoch_time);
-  go2sleep.startServices();
+  iot.getTime();              // generate clock and passing it to next func.
+  go2sleep.startServices(&iot.timeinfo, &iot.epoch_time);
 }
 // ~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -49,14 +51,13 @@ void sendnewNotif()
 {
   static bool notified = false;
   iot.getTime();
-  int divider = 2;
+  int divider = 5;
   if (iot.timeinfo.tm_min % divider == 0 && notified == false)
   {
     char timeStamp[25];
     iot.getTimeStamp(timeStamp);
-    iot.mqttClient.publish("myHome/Telegram_out", timeStamp);
+    iot.mqttClient.publish("myHome/Telegram", timeStamp);
     notified = true;
-    Serial.println(timeStamp);
   }
   else if (iot.timeinfo.tm_min % divider != 0 && notified == true)
   {
