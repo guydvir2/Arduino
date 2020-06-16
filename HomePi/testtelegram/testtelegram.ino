@@ -34,10 +34,11 @@ struct MQTT_msg
 MQTT_msg incoming_mqtt;
 const int log_size = 5;
 char LOG[log_size][150];
+bool flag_new_msg = false;
 
 // ~~~~~~~~~~~ Using SMS Notification ~~~~~~~
 char *Telegram_Nick = DEVICE_TOPIC;
-int time_check_messages = 1;        //sec
+int time_check_messages = 1; //sec
 
 myTelegram teleNotify(BOT_TOKEN, CHAT_ID, time_check_messages);
 
@@ -101,6 +102,10 @@ void send_telegram_mqtt_msg()
         {
                 teleNotify.send_msg2(String(incoming_mqtt.msg));
                 iot.pub_msg(incoming_mqtt.msg);
+                for (int i = 0; i < 3; i++)
+                {
+                        sprintf(iot.mqqt_ext_buffer[i], "%s", "");
+                }
         }
 }
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -168,7 +173,6 @@ bool chekcTelegram_topic(char *topic, MQTT_msg &msg)
                 for (int i = 0; i < 3; i++)
                 {
                         Serial.println(iot.mqqt_ext_buffer[i]);
-                        sprintf(iot.mqqt_ext_buffer[i], "%s", "");
                 }
                 return 1;
         }
@@ -208,6 +212,5 @@ void loop()
         teleNotify.looper();
         send_telegram_mqtt_msg();
 
-  
         delay(100);
 }

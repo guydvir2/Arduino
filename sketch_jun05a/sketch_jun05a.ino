@@ -29,7 +29,7 @@ void startIOT_services()
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 // ~~~~~~~ Sleep ~~~~~~~~~~~
-#define SLEEP_TIME 3
+#define SLEEP_TIME 2
 #define FORCE_AWAKE_TIME 15
 #define DEV_NAME "ESP32light"
 
@@ -51,7 +51,7 @@ void sendnewNotif()
 {
   static bool notified = false;
   iot.getTime();
-  int divider = 5;
+  int divider = 2;
   if (iot.timeinfo.tm_min % divider == 0 && notified == false)
   {
     char timeStamp[25];

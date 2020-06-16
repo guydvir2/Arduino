@@ -3,7 +3,6 @@
 
 #include <ESP8266Ping.h>
 #include <myJSON.h>
-
 #include <TimeLib.h>
 #include <TimeAlarms.h>
 
@@ -445,12 +444,18 @@ void myIOT::callback(char *topic, byte *payload, unsigned int length)
         {
                 Serial.println("");
         }
-        // if (useTelegram && strcmp(topic, _telegramServer) == 0)
-        // {
-        //         sprintf(mqqt_ext_buffer[0], "%s", topic);
-        //         sprintf(mqqt_ext_buffer[1], "%s", incoming_msg);
-        //         sprintf(mqqt_ext_buffer[2], "%s", _deviceName); // not full path
-        // }
+        if (useTelegram && strcmp(topic, _telegramServer) == 0)
+        {
+                // send_tele_msg(incoming_msg);
+                Serial.println("Im_Here");
+                Serial.println(topic);
+                Serial.println(incoming_msg);
+                Serial.println(_deviceName);
+
+                sprintf(mqqt_ext_buffer[0], "%s", topic);
+                sprintf(mqqt_ext_buffer[1], "%s", incoming_msg);
+                sprintf(mqqt_ext_buffer[2], "%s", _deviceName); // not full path
+        }
         if (strcmp(topic, _availTopic) == 0 && useResetKeeper && firstRun)
         {
                 firstRun_ResetKeeper(incoming_msg);

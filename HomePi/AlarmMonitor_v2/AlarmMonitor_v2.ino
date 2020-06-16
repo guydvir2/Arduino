@@ -9,7 +9,10 @@
    2) KeyPad for entering user codes and change syste states.
    3) "the brain" has relay inputs knows as external key operation:
  */
+
+// UPDATE 15/06/2020 - removeing Telegram Nitofocation from code. update iot - 7.11
 // Previous version 2.1, iot1.43
+
 
 /*
 
@@ -80,7 +83,7 @@
 
 
 // ********** Sketch Services  ***********
-#define VER              "NodeMCU_3.4"
+#define VER              "NodeMCU_3.5"
 #define USE_NOTIFY_TELE  false
 
 // ********** myIOT Class ***********
@@ -125,17 +128,17 @@ const int deBounceInt = 50;
 //  ######################### ADDITIONAL SERVICES ##############################
 
 // ~~~~~~~~~~~ Using SMS Notification ~~~~~~~
-#if USE_NOTIFY_TELE
-#define MSG_INTERVAL 2
-myTelegram teleNotify(BOT_TOKEN, CHAT_ID, MSG_INTERVAL);
+// #if USE_NOTIFY_TELE
+// #define MSG_INTERVAL 2
+// myTelegram teleNotify(BOT_TOKEN, CHAT_ID, MSG_INTERVAL);
 
-#endif
+// #endif
 
 // ~~~~~~~~~~~~~~ Using Fvars to limit code ~~~~~~~~~~~~~~
-FVars useTelegram("useT");       // Start or Stop sending Telegram Notifications
-FVars monitorOnly("Mon_Only");   // Start or Stop Monitor-Only Mode ( recieving status without having any ability to chage Hardware state  )
-int useT;
-int monOnly;
+// FVars useTelegram("useT");       // Start or Stop sending Telegram Notifications
+// FVars monitorOnly("Mon_Only");   // Start or Stop Monitor-Only Mode ( recieving status without having any ability to chage Hardware state  )
+// int useT;
+int monOnly = 0; // all flag -  later on should be removed
 // #############################################################################
 
 
@@ -173,14 +176,14 @@ void addiotnalMQTT(char *incoming_msg){
                 switchIt("MQTT", incoming_msg);
         }
         else if (strcmp(incoming_msg, "ver") == 0 ) {
-                sprintf(msg, "ver:[%s], lib:[%s], WDT:[%d], OTA:[%d], SERIAL:[%d], Telegram[%d]", VER,iot.ver, USE_WDT, USE_OTA, USE_SERIAL, USE_NOTIFY_TELE);
+                sprintf(msg, "ver:[%s], lib:[%s], WDT:[%d], OTA:[%d], SERIAL:[%d]", VER,iot.ver, USE_WDT, USE_OTA, USE_SERIAL);
                 iot.pub_msg(msg);
         }
         else if (strcmp(incoming_msg, "pins") == 0 ) {
                 sprintf(msg, "Switch: input1[%d] input2[%d], Relay: output_home[%d] output_full[%d]", INPUT1, INPUT2, OUTPUT1, OUTPUT2);
                 iot.pub_msg(msg);
         }
-        else if (strcmp(incoming_msg, "clear") == 0 ) {
+        else if (strcmp(incoming_msg, "reset") == 0 ) {
                 allReset();
                 iot.sendReset("Reset via MQTT");
         }
@@ -191,7 +194,7 @@ void addiotnalMQTT(char *incoming_msg){
         else if (strcmp(incoming_msg, "help") == 0) {
                 sprintf(msg, "Help: Commands #1 - [status, boot, reset, ip, ota, ver, help, pins]");
                 iot.pub_msg(msg);
-                sprintf(msg, "Help: Commands #2 - [armed_home, armed_away, disarmed, clear, all_off, debug]");
+                sprintf(msg, "Help: Commands #2 - [armed_home, armed_away, disarmed, reset, all_off, debug]");
                 iot.pub_msg(msg);
         }
         else if (strcmp(incoming_msg, "debug") == 0) {
@@ -347,18 +350,18 @@ void check_systemState_armed() { // System OUTPUT 1: arm_state
                         if (indication_ARMED_lastState == SwitchOn) { // system is set to armed
                                 if (digitalRead(OUTPUT1) == !RelayOn && digitalRead(OUTPUT2) == !RelayOn) {
                                         iot.pub_msg("System state: [Armed] using [KeyPad]");
-                                        send_telegramAlert("[Armed]");
+                                        // send_telegramAlert("[Armed]");
 
                                         iot.pub_state("pending");
                                 }
                                 else if (digitalRead(OUTPUT1) == RelayOn) {
                                         iot.pub_msg("System State: [Armed] [Home] using [Code]");
-                                        send_telegramAlert("[Armed] [Home]");
+                                        // send_telegramAlert("[Armed] [Home]");
 
                                 }
                                 else if (digitalRead(OUTPUT2) == RelayOn) {
                                         iot.pub_msg("System State: [Armed] [Away] using [Code]");
-                                        send_telegramAlert("[Armed] [Away]");
+                                        // send_telegramAlert("[Armed] [Away]");
 
                                 }
                                 else{
@@ -372,7 +375,7 @@ void check_systemState_armed() { // System OUTPUT 1: arm_state
                                 }
                                 if (digitalRead(OUTPUT1) != RelayOn && digitalRead(OUTPUT2) != RelayOn) {
                                         iot.pub_msg("System State: [Disarmed]");
-                                        send_telegramAlert("[Disarmed]");
+                                        // send_telegramAlert("[Disarmed]");
                                         iot.pub_state("disarmed");
                                 }
                         }
@@ -388,12 +391,12 @@ void check_systemState_alarming() { // // System OUTPUT 2: alarm_state
                         if (digitalRead(INPUT2) == SwitchOn) {
                                 iot.pub_msg("[Alarm] is triggered");
                                 iot.pub_state("triggered");
-                                send_telegramAlert("[Alarm] is triggered");
+                                // send_telegramAlert("[Alarm] is triggered");
                         }
                         // alarm ended
                         else if (digitalRead(INPUT2) == !SwitchOn) {
                                 iot.pub_msg("[Alarm] stopped");
-                                send_telegramAlert("[Alarm] stopped");
+                                // send_telegramAlert("[Alarm] stopped");
                                 if (digitalRead(INPUT1)==SwitchOn) {
                                         if (digitalRead(OUTPUT2)==RelayOn) {
                                                 iot.pub_state("armed_away");
@@ -417,96 +420,96 @@ void check_systemState_alarming() { // // System OUTPUT 2: alarm_state
 
 //  ######################### ADDITIONAL SERVICES ##############################
 // ~~~~~~~~~~~ Telegram Notify ~~~~~~~
-#if USE_NOTIFY_TELE
-void telecmds(String in_msg, String from, String chat_id, char snd_msg[250]) {
-        String command_set[] = {"whois_online", "status", "reset", "home", "away", "disarm",
-                                "whoami","help","start_notifications", "stop_notifications",
-                                "start_monOnly", "stop_monOnly"};
-        byte num_commands = sizeof(command_set)/sizeof(command_set[0]);
-        String comp_command[num_commands];
-        char prefix[100], prefix2[100];
-        char t1[50], t2[50];
+// #if USE_NOTIFY_TELE
+// void telecmds(String in_msg, String from, String chat_id, char snd_msg[250]) {
+//         String command_set[] = {"whois_online", "status", "reset", "home", "away", "disarm",
+//                                 "whoami","help","start_notifications", "stop_notifications",
+//                                 "start_monOnly", "stop_monOnly"};
+//         byte num_commands = sizeof(command_set)/sizeof(command_set[0]);
+//         String comp_command[num_commands];
+//         char prefix[100], prefix2[100];
+//         char t1[50], t2[50];
 
-        sprintf(snd_msg,"");
+//         sprintf(snd_msg,"");
 
-        from.toCharArray(t1,from.length()+1);
-        in_msg.toCharArray(t2, in_msg.length()+1);
+//         from.toCharArray(t1,from.length()+1);
+//         in_msg.toCharArray(t2, in_msg.length()+1);
 
-        sprintf(prefix,"/%s_", Telegram_Nick);
-        sprintf(prefix2,"from user: %s\ndevice replies: %s\ncommand: %s\n~~~~~~~~~~~~~~~~~~~~\n ", t1,Telegram_Nick, t2);
+//         sprintf(prefix,"/%s_", Telegram_Nick);
+//         sprintf(prefix2,"from user: %s\ndevice replies: %s\ncommand: %s\n~~~~~~~~~~~~~~~~~~~~\n ", t1,Telegram_Nick, t2);
 
-        for (int i=0; i < num_commands; i++) {
-                comp_command[i].concat(prefix);
-                comp_command[i] += command_set[i];
-        }
+//         for (int i=0; i < num_commands; i++) {
+//                 comp_command[i].concat(prefix);
+//                 comp_command[i] += command_set[i];
+//         }
 
-        if(in_msg=="/whois_online") {
-                sprintf(snd_msg,"%s%s",prefix2, Telegram_Nick);
-        }  // all devices should answer this
-        else if (in_msg==comp_command[1]) {
-                giveStatus(t1);
-                sprintf(snd_msg,"%s%s",prefix2, t1);
-        } // status
-        else if (in_msg==comp_command[2]) {
-                sprintf(snd_msg,"%s",prefix2);
-                iot.sendReset("Telegram");
-        } // reset
-        else if (in_msg==comp_command[3]) {
-                switchIt("Telegram", "armed_home");
-                sprintf(snd_msg,"%sArmed-Home command sent", prefix2);
-        } //home
-        else if (in_msg==comp_command[4]) {
-                switchIt("Telegram", "armed_away");
-                sprintf(snd_msg,"%sArmed-Away command sent",prefix2);
-        } // away
-        else if (in_msg==comp_command[5]) {
-                switchIt("Telegram", "disarmed");
-                sprintf(snd_msg,"%sDisarmed command sent",prefix2);
-        } // away
-        else if (in_msg==comp_command[6]) {
-                sprintf(snd_msg,"%sI'm %s", prefix2,Telegram_Nick);
-        } // whoami
-        else if (in_msg==comp_command[7]) {
-                char t[50];
-                sprintf(snd_msg,"%sAvailable commands:\n", prefix2);
-                for (int i=0; i<num_commands; i++) {
-                        command_set[i].toCharArray(t,30);
-                        sprintf(t1,"%s\n",t);
-                        strcat(snd_msg,t1);
-                }
+//         if(in_msg=="/whois_online") {
+//                 sprintf(snd_msg,"%s%s",prefix2, Telegram_Nick);
+//         }  // all devices should answer this
+//         else if (in_msg==comp_command[1]) {
+//                 giveStatus(t1);
+//                 sprintf(snd_msg,"%s%s",prefix2, t1);
+//         } // status
+//         else if (in_msg==comp_command[2]) {
+//                 sprintf(snd_msg,"%s",prefix2);
+//                 iot.sendReset("Telegram");
+//         } // reset
+//         else if (in_msg==comp_command[3]) {
+//                 switchIt("Telegram", "armed_home");
+//                 sprintf(snd_msg,"%sArmed-Home command sent", prefix2);
+//         } //home
+//         else if (in_msg==comp_command[4]) {
+//                 switchIt("Telegram", "armed_away");
+//                 sprintf(snd_msg,"%sArmed-Away command sent",prefix2);
+//         } // away
+//         else if (in_msg==comp_command[5]) {
+//                 switchIt("Telegram", "disarmed");
+//                 sprintf(snd_msg,"%sDisarmed command sent",prefix2);
+//         } // away
+//         else if (in_msg==comp_command[6]) {
+//                 sprintf(snd_msg,"%sI'm %s", prefix2,Telegram_Nick);
+//         } // whoami
+//         else if (in_msg==comp_command[7]) {
+//                 char t[50];
+//                 sprintf(snd_msg,"%sAvailable commands:\n", prefix2);
+//                 for (int i=0; i<num_commands; i++) {
+//                         command_set[i].toCharArray(t,30);
+//                         sprintf(t1,"%s\n",t);
+//                         strcat(snd_msg,t1);
+//                 }
 
-        } // help
-        else if (in_msg==comp_command[8]) {
-                useTelegram.setValue(1);
-                useT = 1;
-                sprintf(snd_msg,"%sTurn-On Telegram messages", prefix2);
-        } // turn on messages
-        else if (in_msg==comp_command[9]) {
-                useTelegram.setValue(0);
-                useT = 0;
-                sprintf(snd_msg,"%sTurn-Off Telegram messages", prefix2);
-        } // turn on messages
-        else if (in_msg==comp_command[10]) {
-                monitorOnly.setValue(1);
-                monOnly = 1;
-                sprintf(snd_msg,"%sset to Monitor-Only mode", prefix2);
-        } // start monitor only
-        else if (in_msg==comp_command[11]) {
-                monitorOnly.setValue(0);
-                monOnly = 0;
-                sprintf(snd_msg,"%sstopped Monitor-Only mode", prefix2);
-        } // stop monitor only
-}
-#endif
-void send_telegramAlert(char *msg){
-        char outmsg[50];
-        sprintf(outmsg,"~%s~: %s", DEVICE_TOPIC,msg);
-        #if USE_NOTIFY_TELE
-        if (useT) {                             // stop or start receive messages using a flsh variable.
-                teleNotify.send_msg(outmsg);
-        }
-        #endif
-}
+//         } // help
+//         else if (in_msg==comp_command[8]) {
+//                 useTelegram.setValue(1);
+//                 useT = 1;
+//                 sprintf(snd_msg,"%sTurn-On Telegram messages", prefix2);
+//         } // turn on messages
+//         else if (in_msg==comp_command[9]) {
+//                 useTelegram.setValue(0);
+//                 useT = 0;
+//                 sprintf(snd_msg,"%sTurn-Off Telegram messages", prefix2);
+//         } // turn on messages
+//         else if (in_msg==comp_command[10]) {
+//                 monitorOnly.setValue(1);
+//                 monOnly = 1;
+//                 sprintf(snd_msg,"%sset to Monitor-Only mode", prefix2);
+//         } // start monitor only
+//         else if (in_msg==comp_command[11]) {
+//                 monitorOnly.setValue(0);
+//                 monOnly = 0;
+//                 sprintf(snd_msg,"%sstopped Monitor-Only mode", prefix2);
+//         } // stop monitor only
+// }
+// #endif
+// void send_telegramAlert(char *msg){
+//         char outmsg[50];
+//         sprintf(outmsg,"~%s~: %s", DEVICE_TOPIC,msg);
+//         #if USE_NOTIFY_TELE
+//         if (useT) {                             // stop or start receive messages using a flsh variable.
+//                 teleNotify.send_msg(outmsg);
+//         }
+//         #endif
+// }
 // ########################### END ADDITIONAL SERVICE ##########################
 
 
@@ -514,25 +517,25 @@ void setup() {
         startGPIOs();
         startIOTservices();
 
-        #if USE_NOTIFY_TELE
-        teleNotify.begin(telecmds);
-        send_telegramAlert("Boot");
-        #endif
+        // #if USE_NOTIFY_TELE
+        // teleNotify.begin(telecmds);
+        // send_telegramAlert("Boot");
+        // #endif
 
-        if(monitorOnly.getValue(monOnly)==0) { // not able to read flash value
-                monitorOnly.setValue(0);       // store default
-        }
-        if(useTelegram.getValue(useT)==0) {    // not able to read flash value
-                useTelegram.setValue(1);       // store default
-        }
+        // if(monitorOnly.getValue(monOnly)==0) { // not able to read flash value
+        //         monitorOnly.setValue(0);       // store default
+        // }
+        // if(useTelegram.getValue(useT)==0) {    // not able to read flash value
+        //         useTelegram.setValue(1);       // store default
+        // }
 
 }
 void loop() {
         iot.looper();
 
-        #if USE_NOTIFY_TELE
-        teleNotify.looper();
-        #endif
+        // #if USE_NOTIFY_TELE
+        // teleNotify.looper();
+        // #endif
 
         check_systemState_armed();
         check_systemState_alarming();
