@@ -29,7 +29,7 @@ void startIOT_services()
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 // ~~~~~~~ Sleep ~~~~~~~~~~~
-#define SLEEP_TIME 2
+#define SLEEP_TIME 10
 #define FORCE_AWAKE_TIME 15
 #define DEV_NAME "ESP32light"
 
@@ -47,6 +47,21 @@ void startSleep_services()
 }
 // ~~~~~~~~~~~~~~~~~~~~~~~~~
 
+// ~~~~~ Power Managment ~~~~
+const int measureVoltagePin = 35;
+float bat_volt = 0.0;
+
+void bat_measure()
+{
+  byte sample = 5;
+  bat_volt = 0.0;
+  for (int i = 0; i < sample; i++)
+  {
+    bat_volt += analogRead(measureVoltagePin);
+  }
+  bat_volt = (bat_volt / ((float)sample)) * (15.0 / 4095.0);
+  Serial.println(bat_volt);
+}
 void sendnewNotif()
 {
   static bool notified = false;
@@ -69,6 +84,10 @@ void setup()
 {
   startIOT_services();
   startSleep_services();
+  bat_measure();
+  char a[30];
+  sprintf(a,"Bat measured Voltage[%.2fv]",bat_volt);
+  iot.pub_msg(a);
 }
 
 void loop()
@@ -76,6 +95,7 @@ void loop()
   iot.looper();
   iot.getTime();
   go2sleep.wait_forSleep(&iot.timeinfo, &iot.epoch_time, iot.networkOK);
+  Serial.print(clock_expectedWake);
 
   sendnewNotif();
   delay(100);
