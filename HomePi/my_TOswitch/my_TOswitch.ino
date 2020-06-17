@@ -1,13 +1,15 @@
 #include <myIOT.h>
 #include <myPIR.h>
+#include <myDisplay.h>
 #include <Arduino.h>
 
 // ********** Sketch Services  ***********
-#define VER "SonOff_1.3"
+#define VER "WEMOS_1.4"
+#define USE_DISPLAY true
 
 // ********** myIOT Class ***********
 //~~~~~ Services ~~~~~~~~~~~
-#define USE_SERIAL false      // Serial Monitor
+#define USE_SERIAL false     // Serial Monitor
 #define USE_WDT true         // watchDog resets
 #define USE_OTA true         // OTA updates
 #define USE_RESETKEEPER true // detect quick reboot and real reboots
@@ -16,7 +18,7 @@
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 // ~~~~~~~ MQTT Topics ~~~~~~
-#define DEVICE_TOPIC "LivingRoom"
+#define DEVICE_TOPIC "familyRoomLEDs"
 #define MQTT_PREFIX "myHome"
 #define MQTT_GROUP "intLights"
 #define TELEGRAM_OUT_TOPIC "Telegram_out"
@@ -35,27 +37,27 @@ myIOT iot(DEVICE_TOPIC);
 #define SAFETY_OFF true
 #define SAFEY_OFF_DURATION 600 //minutes
 #define USE_BADBOOT USE_RESETKEEPER
-#define USE_EEPROM_RESET_COUNTER true
+#define USE_EEPROM_RESET_COUNTER false
 // ~~~~~~~~~~~~~~~~~~~~
 
 // ~~~~ TO & dailyTO ~~~~~~
-const int START_dTO[2][3] = {{16,30, 0}, {20, 30, 0}};
-const int END_dTO[2][3] = {{0, 15, 0}, {22, 0, 0}};
+const int START_dTO[2][3] = {{16, 0, 0}, {20, 30, 0}};
+const int END_dTO[2][3] = {{0, 30, 0}, {22, 0, 0}};
 const int TimeOUT[] = {240, 1}; // minutes
 // ~~~~~~~~~~~~~~~~~~~~
 
 // ~~~~~~ Hardware ~~~~~~~
 #define NUM_SW 1
-#define USE_PWM false
-#define USE_INPUT false
+#define USE_PWM true
+#define USE_INPUT true
 #define USE_EXT_TRIG false
 #define BUTTOM_MOMENT true
 
-const int outputPin[] = {12, 5}; // D3 for most PWM boards
-const int inputPin[] = {0, 0};
-const int hRebbots[]={1,2};
+const int outputPin[] = {D3, 5}; // D3 for most PWM boards
+const int inputPin[] = {D7, 0};
+const int hRebbots[] = {1, 2};
 // ~~~~~~~~~~~~~~~~~~~~
-char *SW_Names[] = {"Lamps", "Strips"};
+char *SW_Names[] = {"LEDstrip", "Strips"};
 
 /*
 ~~~~~ SONOFF HARDWARE ~~~~~
@@ -92,7 +94,7 @@ void configTOswitches()
                 TOswitches[i]->usequickON = USE_QUICK_BOOT;
                 TOswitches[i]->onAt_boot = ON_AT_BOOT;
                 TOswitches[i]->inputPin = inputPin[i];
-                
+
                 if (USE_EEPROM_RESET_COUNTER)
                 {
                         TOswitches[i]->hReboot.check_boot(hRebbots[i]);
@@ -251,15 +253,50 @@ void addiotnalMQTT(char *incoming_msg)
         // ±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
 }
 
+// ~~~~~~~~~~~~~ Display ~~~~~~~~~~~~~~~
+#if USE_DISPLAY
+myOLED OLED(64);
+
+void displayClock()
+{
+        char clock[20];
+        char date[20];
+        const int swapPeriod = 5000; // milli-seconds
+        static unsigned long swapLines_counter = 0;
+
+        iot.return_clock(clock);
+        iot.return_date(date);
+
+        if (millis() - swapLines_counter < swapPeriod)
+        {
+                OLED.CenterTXT(clock, "", "", date);
+        }
+        else if (millis() - swapLines_counter < 2 * swapPeriod && millis() - swapLines_counter >= swapPeriod)
+        {
+                OLED.CenterTXT("", clock, date, "");
+        }
+        else
+        {
+                swapLines_counter = millis();
+        }
+}
+#endif
+
 void setup()
 {
         configTOswitches();
         startIOTservices();
         startTOSwitch();
+#if USE_DISPLAY
+        OLED.start();
+#endif
 }
 void loop()
 {
         iot.looper();
         TOswitch_looper();
+#if USE_DISPLAY
+        displayClock();
+#endif
         delay(100);
 }
