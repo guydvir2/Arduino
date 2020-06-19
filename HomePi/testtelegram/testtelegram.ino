@@ -101,7 +101,6 @@ void send_telegram_mqtt_msg()
         if (chekcTelegram_topic(TELEGRAM_LISTEN_TOPIC, incoming_mqtt))
         {
                 teleNotify.send_msg2(String(incoming_mqtt.msg));
-                iot.pub_msg(incoming_mqtt.msg);
                 for (int i = 0; i < 3; i++)
                 {
                         sprintf(iot.mqqt_ext_buffer[i], "%s", "");
