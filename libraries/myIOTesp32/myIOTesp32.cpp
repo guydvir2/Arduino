@@ -134,8 +134,13 @@ void myIOT32::MQTTcallback(char *topic, byte *payload, unsigned int length)
   if (strcmp(incoming_msg, "boot") == 0)
   {
     char clockChar[30];
+    char tstamp[25];
+    getTimeStamp(tstamp);
+
     createDateStamp(convEpoch(DeviceStatus.boot_clock), clockChar);
-    sprintf(msg, "Boot:[%d]", clockChar);
+    sprintf(msg, "Boot:[%s]", tstamp);
+    pub_msg(msg);
+    sprintf(msg, "Boot:[%s]", clockChar);
     pub_msg(msg);
   }
   else if (strcmp(incoming_msg, "ip") == 0)
@@ -393,14 +398,27 @@ void myIOT32::getTimeStamp(char ret_timeStamp[25])
 }
 struct tm *myIOT32::convEpoch(time_t in_time)
 {
-  struct tm *convTime = gmtime(&in_time);
+  struct tm *convTime = localtime(&in_time); //gmtime
   char time_char[40];
+
   sprintf(time_char, "%04d-%02d-%02d %02d:%02d:%02d", convTime->tm_year + 1900, convTime->tm_mon + 1, convTime->tm_mday,
           convTime->tm_hour, convTime->tm_min, convTime->tm_sec);
   return convTime;
 }
 void myIOT32::createDateStamp(struct tm *t, char retChar[30])
 {
+  if (t->tm_mon > 9 || t->tm_mon < 4)
+  {
+    // t->tm_zone =3;
+    Serial.println("WINTER");
+  }
+  else
+  {
+    // t->tm_zone =2;
+    // t->tm_zone
+    Serial.println("SUMMER");
+  }
+
   sprintf(retChar, "%04d-%02d-%02d %02d:%02d:%02d", t->tm_year + 1900, t->tm_mon + 1, t->tm_mday, t->tm_hour, t->tm_min, t->tm_sec);
 }
 // ±±±±±±±±±±±±± OTA & WDT ±±±±±±±±±±±
@@ -503,10 +521,6 @@ void myIOT32::_createStatusJSON()
   doc["ip"] = DeviceStatus.ip;
   doc["boot"] = String(clockChar); // minutes
   doc["imAlive"] = DeviceStatus.last_keepalive;
-  // doc["in1"] = DeviceStatus.input1;
-  // doc["in2"] = DeviceStatus.input2;
-  // doc["out1"] = DeviceStatus.output1;
-  // doc["out2"] = DeviceStatus.output2;
 
   String output;
   serializeJson(doc, output);

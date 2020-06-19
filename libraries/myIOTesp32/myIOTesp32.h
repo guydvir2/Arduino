@@ -14,6 +14,7 @@
 #include <PubSubClient.h>
 
 #include <Ticker.h>
+#include <TimeLib.h>
 #include <ArduinoJson.h>
 
 // define generic functiobs
@@ -79,22 +80,22 @@ public:
     cb_func ext_mqtt_cb;
     struct status
     {
+        char *devicetopic;
+        char ip[20];
+        time_t boot_clock;
         long last_keepalive;
-        long boot_clock;
+
+        char *wake_cmd;
         long nextWake;
         int sleeptime;
-
-        char ip[20];
-        char *wake_cmd;
-        char *devicetopic;
+        bool wake_status;
 
         bool input1;
         bool input2;
         bool output1;
         bool output2;
-        bool wake_status;
     };
-    status DeviceStatus = {0, 0, 0, 0, "", "NO_WAKE_CMD", deviceTopic, false, false, false, false, false};
+    status DeviceStatus = {deviceTopic, "", 0, 0, "NO_WAKE_CMD", 0, 0, false, false, false, false, false};
 
     WiFiClient espClient;
     PubSubClient mqttClient;

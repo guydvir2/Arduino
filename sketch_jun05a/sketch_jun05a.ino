@@ -2,7 +2,7 @@
 #include <myESP32sleep.h>
 
 // ~~~~~~~ myIOT32 ~~~~~~~~
-#define DEVICE_TOPIC "ESP32"
+#define DEVICE_TOPIC "ESP32_2"
 #define MQTT_PREFIX "myHome"
 #define MQTT_GROUP "testBed"
 #define USE_SERIAL true
@@ -29,9 +29,9 @@ void startIOT_services()
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 // ~~~~~~~ Sleep ~~~~~~~~~~~
-#define SLEEP_TIME 10
-#define FORCE_AWAKE_TIME 15
-#define DEV_NAME "ESP32light"
+#define SLEEP_TIME 2
+#define FORCE_AWAKE_TIME 45
+#define DEV_NAME "NODE-ESP32"
 
 esp32Sleep go2sleep(SLEEP_TIME, FORCE_AWAKE_TIME, DEV_NAME);
 void b4sleep()
@@ -79,14 +79,20 @@ void sendnewNotif()
     notified = false;
   }
 }
-
+void create_wake_status(char *cmd, long nextw, int sleept, bool wstat)
+{
+  iot.DeviceStatus.wake_cmd = cmd;
+  iot.DeviceStatus.nextWake = nextw;
+  iot.DeviceStatus.sleeptime = sleept;
+  iot.DeviceStatus.wake_status = wstat;
+}
 void setup()
 {
   startIOT_services();
   startSleep_services();
   bat_measure();
   char a[30];
-  sprintf(a,"Bat measured Voltage[%.2fv]",bat_volt);
+  sprintf(a, "Bat measured Voltage[%.2fv]", bat_volt);
   iot.pub_msg(a);
 }
 
@@ -95,7 +101,6 @@ void loop()
   iot.looper();
   iot.getTime();
   go2sleep.wait_forSleep(&iot.timeinfo, &iot.epoch_time, iot.networkOK);
-  Serial.print(clock_expectedWake);
 
   sendnewNotif();
   delay(100);
