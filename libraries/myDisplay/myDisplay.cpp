@@ -143,7 +143,7 @@ void myLCD::start()
 void myLCD::CenterTXT(char *line1, char *line2, char *line3, char *line4)
 {
     char *Lines[] = {line1, line2, line3, line4};
-    for (int n = 0; n < 3; n++)
+    for (int n = 0; n < 4; n++)
     {
         if (strcmp(Lines[n], "") != 0)
         {
@@ -156,7 +156,7 @@ void myLCD::CenterTXT(char *line1, char *line2, char *line3, char *line4)
 void myLCD::freeTXT(char *line1, char *line2, char *line3, char *line4)
 {
     char *Lines[] = {line1, line2, line3, line4};
-    for (int n = 0; n < 3; n++)
+    for (int n = 0; n < 4; n++)
     {
         if (strcmp(Lines[n], "") != 0)
         {

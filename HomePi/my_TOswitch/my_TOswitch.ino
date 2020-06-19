@@ -4,8 +4,8 @@
 #include <Arduino.h>
 
 // ********** Sketch Services  ***********
-#define VER "WEMOS_1.4"
-#define USE_DISPLAY true
+#define VER "SONOFF_1.4"
+#define USE_DISPLAY false
 
 // ********** myIOT Class ***********
 //~~~~~ Services ~~~~~~~~~~~
@@ -18,9 +18,9 @@
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 // ~~~~~~~ MQTT Topics ~~~~~~
-#define DEVICE_TOPIC "familyRoomLEDs"
+#define DEVICE_TOPIC "PergolaBulbs"
 #define MQTT_PREFIX "myHome"
-#define MQTT_GROUP "intLights"
+#define MQTT_GROUP "extLights"
 #define TELEGRAM_OUT_TOPIC "Telegram_out"
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -30,34 +30,34 @@ myIOT iot(DEVICE_TOPIC);
 
 // *********** myTOswitch ***********
 // ~~~~~~ Services ~~~~~~~~
-#define ON_AT_BOOT true
+#define ON_AT_BOOT false
 #define USE_QUICK_BOOT true
 #define USE_TO true
 #define USE_dailyTO true
 #define SAFETY_OFF true
-#define SAFEY_OFF_DURATION 600 //minutes
+#define SAFEY_OFF_DURATION 300 //minutes
 #define USE_BADBOOT USE_RESETKEEPER
-#define USE_EEPROM_RESET_COUNTER false
+#define USE_EEPROM_RESET_COUNTER true
 // ~~~~~~~~~~~~~~~~~~~~
 
 // ~~~~ TO & dailyTO ~~~~~~
-const int START_dTO[2][3] = {{16, 0, 0}, {20, 30, 0}};
-const int END_dTO[2][3] = {{0, 30, 0}, {22, 0, 0}};
-const int TimeOUT[] = {240, 1}; // minutes
+const int START_dTO[2][3] = {{0, 0, 0}, {20, 0, 0}};
+const int END_dTO[2][3] = {{6, 30, 0}, {23, 0, 0}};
+const int TimeOUT[] = {120, 240}; // minutes
 // ~~~~~~~~~~~~~~~~~~~~
 
 // ~~~~~~ Hardware ~~~~~~~
 #define NUM_SW 1
-#define USE_PWM true
-#define USE_INPUT true
+#define USE_PWM false
+#define USE_INPUT false
 #define USE_EXT_TRIG false
 #define BUTTOM_MOMENT true
 
-const int outputPin[] = {D3, 5}; // D3 for most PWM boards
-const int inputPin[] = {D7, 0};
-const int hRebbots[] = {1, 2};
+const int outputPin[] = {12, 5}; // D3 for most PWM boards
+const int inputPin[] = {0, 8};
+const int hRebbots[] = {1, 1};
 // ~~~~~~~~~~~~~~~~~~~~
-char *SW_Names[] = {"LEDstrip", "Strips"};
+char *SW_Names[] = {"Bulbs", "LED-Strips"};
 
 /*
 ~~~~~ SONOFF HARDWARE ~~~~~

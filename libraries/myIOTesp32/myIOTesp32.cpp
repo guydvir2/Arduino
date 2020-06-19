@@ -134,8 +134,13 @@ void myIOT32::MQTTcallback(char *topic, byte *payload, unsigned int length)
   if (strcmp(incoming_msg, "boot") == 0)
   {
     char clockChar[30];
+    char tstamp[25];
+    getTimeStamp(tstamp);
+
     createDateStamp(convEpoch(DeviceStatus.boot_clock), clockChar);
-    sprintf(msg, "Boot:[%d]", clockChar);
+    sprintf(msg, "Boot:[%s]", tstamp);
+    pub_msg(msg);
+    sprintf(msg, "Boot:[%s]", clockChar);
     pub_msg(msg);
   }
   else if (strcmp(incoming_msg, "ip") == 0)
@@ -393,10 +398,7 @@ void myIOT32::getTimeStamp(char ret_timeStamp[25])
 }
 struct tm *myIOT32::convEpoch(time_t in_time)
 {
-  struct tm *convTime = gmtime(&in_time);
-  char time_char[40];
-  sprintf(time_char, "%04d-%02d-%02d %02d:%02d:%02d", convTime->tm_year + 1900, convTime->tm_mon + 1, convTime->tm_mday,
-          convTime->tm_hour, convTime->tm_min, convTime->tm_sec);
+  struct tm *convTime = localtime(&in_time); //gmtime
   return convTime;
 }
 void myIOT32::createDateStamp(struct tm *t, char retChar[30])
@@ -503,10 +505,6 @@ void myIOT32::_createStatusJSON()
   doc["ip"] = DeviceStatus.ip;
   doc["boot"] = String(clockChar); // minutes
   doc["imAlive"] = DeviceStatus.last_keepalive;
-  // doc["in1"] = DeviceStatus.input1;
-  // doc["in2"] = DeviceStatus.input2;
-  // doc["out1"] = DeviceStatus.output1;
-  // doc["out2"] = DeviceStatus.output2;
 
   String output;
   serializeJson(doc, output);
@@ -518,8 +516,9 @@ void myIOT32::createWakeJSON()
 {
   StaticJsonDocument<JDOC_SIZE> doc;
   doc["wakeCmd"] = DeviceStatus.wake_cmd;
-  doc["nextWake"] = DeviceStatus.nextWake;
-  doc["sleepTime"] = DeviceStatus.sleeptime; // minutes
+  doc["nextWake"] = DeviceStatus.nextWake_clock;
+  doc["sleepDuration"] = DeviceStatus.sleepduration; // minutes
+  doc["SleetStart"] = DeviceStatus.startsleep_clock;
   doc["isWake"] = DeviceStatus.wake_status;
 
   String output;

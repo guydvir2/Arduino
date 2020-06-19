@@ -14,6 +14,7 @@
 #include <PubSubClient.h>
 
 #include <Ticker.h>
+#include <TimeLib.h>
 #include <ArduinoJson.h>
 
 // define generic functiobs
@@ -21,7 +22,7 @@ typedef void (*cb_func)(char msg1[50]);
 
 class myIOT32
 {
-#define VER "iot32_ver_0.4"
+#define VER "iot32_ver_0.5"
 #define JDOC_SIZE 250
 #define RECON_WIFI 60         // sec to reconnect
 #define RECON_MQTT 30         // sec to reconnect
@@ -79,22 +80,23 @@ public:
     cb_func ext_mqtt_cb;
     struct status
     {
-        long last_keepalive;
-        long boot_clock;
-        long nextWake;
-        int sleeptime;
-
-        char ip[20];
-        char *wake_cmd;
         char *devicetopic;
+        char ip[20];
+        time_t boot_clock;
+        long last_keepalive;
+
+        char *wake_cmd;
+        long nextWake_clock;
+        long startsleep_clock;
+        int sleepduration;
+        bool wake_status;
 
         bool input1;
         bool input2;
         bool output1;
         bool output2;
-        bool wake_status;
     };
-    status DeviceStatus = {0, 0, 0, 0, "", "NO_WAKE_CMD", deviceTopic, false, false, false, false, false};
+    status DeviceStatus = {deviceTopic, "", 0, 0, "NO_WAKE_CMD", 0, 0, false, false, false, false, false};
 
     WiFiClient espClient;
     PubSubClient mqttClient;
