@@ -27,7 +27,11 @@ public:
     char sys_presets_str[100];
     char wake_sleep_str[150];
 
-    const char *ver = "2.2";
+    const char *ver = "2.3";
+
+    long startsleep_clock = 0;
+    long nextwake_clock = 0;
+    int sleepduration = 0;
 
 private:
     // ~~~~~~~~ EEPROM ~~~~~~~~~~~~~

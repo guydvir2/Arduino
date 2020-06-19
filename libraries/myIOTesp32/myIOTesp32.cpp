@@ -399,26 +399,10 @@ void myIOT32::getTimeStamp(char ret_timeStamp[25])
 struct tm *myIOT32::convEpoch(time_t in_time)
 {
   struct tm *convTime = localtime(&in_time); //gmtime
-  char time_char[40];
-
-  sprintf(time_char, "%04d-%02d-%02d %02d:%02d:%02d", convTime->tm_year + 1900, convTime->tm_mon + 1, convTime->tm_mday,
-          convTime->tm_hour, convTime->tm_min, convTime->tm_sec);
   return convTime;
 }
 void myIOT32::createDateStamp(struct tm *t, char retChar[30])
 {
-  if (t->tm_mon > 9 || t->tm_mon < 4)
-  {
-    // t->tm_zone =3;
-    Serial.println("WINTER");
-  }
-  else
-  {
-    // t->tm_zone =2;
-    // t->tm_zone
-    Serial.println("SUMMER");
-  }
-
   sprintf(retChar, "%04d-%02d-%02d %02d:%02d:%02d", t->tm_year + 1900, t->tm_mon + 1, t->tm_mday, t->tm_hour, t->tm_min, t->tm_sec);
 }
 // ±±±±±±±±±±±±± OTA & WDT ±±±±±±±±±±±
@@ -532,8 +516,9 @@ void myIOT32::createWakeJSON()
 {
   StaticJsonDocument<JDOC_SIZE> doc;
   doc["wakeCmd"] = DeviceStatus.wake_cmd;
-  doc["nextWake"] = DeviceStatus.nextWake;
-  doc["sleepTime"] = DeviceStatus.sleeptime; // minutes
+  doc["nextWake"] = DeviceStatus.nextWake_clock;
+  doc["sleepDuration"] = DeviceStatus.sleepduration; // minutes
+  doc["SleetStart"] = DeviceStatus.startsleep_clock;
   doc["isWake"] = DeviceStatus.wake_status;
 
   String output;

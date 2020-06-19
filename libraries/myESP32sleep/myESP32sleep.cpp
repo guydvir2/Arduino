@@ -22,6 +22,7 @@ void esp32Sleep::startServices(struct tm *timeinfo, time_t *epoch_time)
   start_eeprom();
   Avg_Array_zeroing();
   check_awake_ontime(timeinfo, epoch_time);
+  sleepduration = calc_nominal_sleepTime(timeinfo, epoch_time);
 }
 void esp32Sleep::run_func(cb_func cb)
 {
@@ -73,7 +74,7 @@ void esp32Sleep::check_awake_ontime(struct tm *timeinfo, time_t *epoch_time, int
   bootCounter++;
   sprintf(sys_presets_str, "deviceName:[%s]; SleepTime: [%d min]; Forced-aWakeTime: [%d sec]", dev_name, _deepsleep_time, _forcedwake_time);
   sprintf(wake_sleep_str, "Boot#: [%d]; Wake_Clock: [%02d:%02d:%02d]; ", bootCounter, timeinfo->tm_hour, timeinfo->tm_min, timeinfo->tm_sec);
-  
+
   Serial.println(sys_presets_str);
   Serial.println(wake_sleep_str);
 
@@ -82,7 +83,7 @@ void esp32Sleep::check_awake_ontime(struct tm *timeinfo, time_t *epoch_time, int
   {
     if (clock_beforeSleep > 0)
     {
-      int wake_diff = (long)*epoch_time - clock_expectedWake;        // not first boot
+      int wake_diff = (long)*epoch_time - clock_expectedWake;  // not first boot
       int t_delta = wake_diff - (int)(round(millis() / 1000)); // diff between calc wake clock and current time
 
       char tt[100];
@@ -135,8 +136,12 @@ int esp32Sleep::calc_nominal_sleepTime(struct tm *timeinfo, time_t *epoch_time)
 
   sprintf(tt, "wake_Duration: [%.2fs]; back2Sleep: [%02d:%02d:%02d]; sleepFor: [%d sec]; drift_correct: [%.1f sec]",
           millis() / 1000.0, timeinfo->tm_hour, timeinfo->tm_min, timeinfo->tm_sec, nominal_nextSleep, driftRTC);
+
   strcat(wake_sleep_str, tt);
   Serial.println(tt);
+
+  nextwake_clock = clock_expectedWake;
+
   return nominal_nextSleep;
 }
 void esp32Sleep::update_driftArray(float lastboot_drift)
@@ -188,20 +193,26 @@ void esp32Sleep::new_driftUpdate(float lastboot_drift, byte cell)
 }
 void esp32Sleep::sleepNOW(float sec2sleep)
 {
-  if (_use_extfunc)
-  {
-    _runFunc();
-  }
   esp_sleep_enable_timer_wakeup(sec2sleep * uS_TO_S_FACTOR);
   esp_deep_sleep_start();
 }
 void esp32Sleep::wait_forSleep(struct tm *timeinfo, time_t *epoch_time, bool wifiOK)
 {
+  static bool lastMessage = false;
+  if (millis() >= (_forcedwake_time-1) * 1000 && lastMessage == false) // this way it call ext_ fuct before sleep
+  {
+    if (_use_extfunc)
+    {
+      _runFunc();
+    }
+    lastMessage = true;
+  }
   if (millis() >= _forcedwake_time * 1000)
   {
     if (wifiOK)
     {
-      sleepNOW(calc_nominal_sleepTime(timeinfo, epoch_time) - driftRTC);
+      // sleepNOW(calc_nominal_sleepTime(timeinfo, epoch_time) - driftRTC);
+      sleepNOW(sleepduration - driftRTC);
     }
     else
     {

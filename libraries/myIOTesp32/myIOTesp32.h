@@ -22,7 +22,7 @@ typedef void (*cb_func)(char msg1[50]);
 
 class myIOT32
 {
-#define VER "iot32_ver_0.4"
+#define VER "iot32_ver_0.5"
 #define JDOC_SIZE 250
 #define RECON_WIFI 60         // sec to reconnect
 #define RECON_MQTT 30         // sec to reconnect
@@ -86,8 +86,9 @@ public:
         long last_keepalive;
 
         char *wake_cmd;
-        long nextWake;
-        int sleeptime;
+        long nextWake_clock;
+        long startsleep_clock;
+        int sleepduration;
         bool wake_status;
 
         bool input1;

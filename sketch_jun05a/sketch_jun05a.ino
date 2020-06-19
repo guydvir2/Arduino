@@ -38,12 +38,15 @@ void b4sleep()
 {
   Serial.println("Going to Sleep");
   Serial.flush();
+  iot.getTime();
+  create_wake_status("GUY_GO2BED", go2sleep.nextwake_clock, go2sleep.sleepduration,iot.epoch_time,LOW);
 }
 void startSleep_services()
 {
   go2sleep.run_func(b4sleep); // define a function to be run prior to sleep.
   iot.getTime();              // generate clock and passing it to next func.
   go2sleep.startServices(&iot.timeinfo, &iot.epoch_time);
+  create_wake_status("GUY_GO2BED", go2sleep.nextwake_clock, go2sleep.sleepduration,0,HIGH);
 }
 // ~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -79,12 +82,15 @@ void sendnewNotif()
     notified = false;
   }
 }
-void create_wake_status(char *cmd, long nextw, int sleept, bool wstat)
+void create_wake_status(char *cmd, long nextw, int sleept, long startSleep, bool wstat)
 {
   iot.DeviceStatus.wake_cmd = cmd;
-  iot.DeviceStatus.nextWake = nextw;
-  iot.DeviceStatus.sleeptime = sleept;
+  iot.DeviceStatus.nextWake_clock = nextw;
+  iot.DeviceStatus.sleepduration = sleept;
   iot.DeviceStatus.wake_status = wstat;
+  iot.DeviceStatus.startsleep_clock = startSleep;
+
+  iot.createWakeJSON();
 }
 void setup()
 {
@@ -94,6 +100,8 @@ void setup()
   char a[30];
   sprintf(a, "Bat measured Voltage[%.2fv]", bat_volt);
   iot.pub_msg(a);
+
+  
 }
 
 void loop()
