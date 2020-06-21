@@ -2,12 +2,12 @@
 #include <Arduino.h>
 
 // ********** Sketch Services  ***********
-#define VER "NodeMCU_5.7"
+#define VER "NodeMCU_5.8"
 #define USE_BOUNCE_DEBUG false
 #define USE_2_EXT_INPUT false // Only for dual input window
 #define USE_AUTO_RELAY_OFF true
 #define USE_AUTO_OFF true
-#define AUTO_RELAY_TIMEOUT 60
+#define AUTO_RELAY_TIMEOUT 90
 // ********** myIOT Class ***********
 //~~~~~ Services ~~~~~~~~~~~
 #define USE_SERIAL false
@@ -18,7 +18,7 @@
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 // ~~~~~~~ MQTT Topics ~~~~~~
-#define DEVICE_TOPIC "parentsRoom"
+#define DEVICE_TOPIC "familyRoom"
 #define MQTT_PREFIX "myHome"
 #define MQTT_GROUP "Windows"
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -62,7 +62,7 @@ void startIOTservices()
         iot.resetFailNTP = USE_FAILNTP;
         strcpy(iot.prefixTopic, MQTT_PREFIX);
         strcpy(iot.addGroupTopic, MQTT_GROUP);
-        iot.start_services(ADD_MQTT_FUNC);//, SSID_ID, PASS_WIFI, MQTT_USER, MQTT_PASS, "192.168.3.201");
+        iot.start_services(ADD_MQTT_FUNC); //, SSID_ID, PASS_WIFI, MQTT_USER, MQTT_PASS, "192.168.3.201");
 }
 void setup()
 {
@@ -192,8 +192,11 @@ void switchIt(char *type, char *dir)
                 states[1] = !RelayOn;
         }
 
+        bool Up_read = digitalRead(outputUpPin);
+        bool Down_read = digitalRead(outputDownPin);
+
         // Case that both realys need to change state ( Up --> Down or Down --> Up )
-        if (digitalRead(outputUpPin) != states[0] && digitalRead(outputDownPin) != states[1])
+        if (Up_read != states[0] && Down_read != states[1])
         {
                 allOff();
                 delay(deBounceInt * 2);
@@ -201,7 +204,7 @@ void switchIt(char *type, char *dir)
                 digitalWrite(outputDownPin, states[1]);
         }
         // Case that one relay changes from/to off --> on
-        else if (digitalRead(outputUpPin) != states[0] || digitalRead(outputDownPin) != states[1])
+        else if (Up_read != states[0] || Down_read != states[1])
         {
                 digitalWrite(outputUpPin, states[0]);
                 digitalWrite(outputDownPin, states[1]);
@@ -209,13 +212,17 @@ void switchIt(char *type, char *dir)
         iot.pub_state(dir);
         sprintf(mqttmsg, "%s: Switched [%s]", type, dir);
         iot.pub_msg(mqttmsg);
-        Serial.println(mqttmsg);
 
         if (USE_AUTO_RELAY_OFF)
         {
                 if (digitalRead(outputDownPin) == RelayOn || digitalRead(outputUpPin) == RelayOn)
                 {
                         autoOff_clock = millis();
+                }
+                else
+                {
+                        // when switched off, cancel timeout
+                        autoOff_clock = 0;
                 }
         }
 }

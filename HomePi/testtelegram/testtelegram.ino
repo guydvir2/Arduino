@@ -2,7 +2,7 @@
 #include <Arduino.h>
 
 // ********** Sketch Services  ***********
-#define VER "WEMOS_2.0"
+#define VER "NODEMCU_2.1"
 
 // ********** myIOT Class ***********
 //~~~~~ Services ~~~~~~~~~~~
@@ -17,7 +17,6 @@
 #define DEVICE_TOPIC "TelegramServer"
 #define MQTT_PREFIX "myHome"
 #define MQTT_GROUP ""
-#define TELEGRAM_OUT_TOPIC "Telegram"
 #define TELEGRAM_LISTEN_TOPIC "myHome/Telegram"
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -34,7 +33,6 @@ struct MQTT_msg
 MQTT_msg incoming_mqtt;
 const int log_size = 5;
 char LOG[log_size][150];
-bool flag_new_msg = false;
 
 // ~~~~~~~~~~~ Using SMS Notification ~~~~~~~
 char *Telegram_Nick = DEVICE_TOPIC;
@@ -96,7 +94,7 @@ void telecmds(String in_msg, String from, String chat_id, char *snd_msg)
         } // whoami
 }
 
-void send_telegram_mqtt_msg()
+void listenMQTT_forTelegram()
 {
         if (chekcTelegram_topic(TELEGRAM_LISTEN_TOPIC, incoming_mqtt))
         {
@@ -115,10 +113,10 @@ void startIOTservices()
         iot.useOTA = USE_OTA;
         iot.useResetKeeper = USE_RESETKEEPER;
         iot.resetFailNTP = USE_FAILNTP;
-        iot.useTelegram = true;
+        iot.useextTopic = true;
         strcpy(iot.prefixTopic, MQTT_PREFIX);
         strcpy(iot.addGroupTopic, MQTT_GROUP);
-        strcpy(iot.telegramServer, TELEGRAM_OUT_TOPIC);
+        strcpy(iot.extTopic, TELEGRAM_LISTEN_TOPIC);
         iot.start_services(ADD_MQTT_FUNC);
 }
 
@@ -156,10 +154,6 @@ void addiotnalMQTT(char *incoming_msg)
                 }
         }
 }
-void subsribe_telegram_topic(char *topic)
-{
-        iot.mqttClient.subscribe(topic);
-}
 bool chekcTelegram_topic(char *topic, MQTT_msg &msg)
 {
         if (strcmp(iot.mqqt_ext_buffer[0], topic) == 0)
@@ -167,12 +161,7 @@ bool chekcTelegram_topic(char *topic, MQTT_msg &msg)
                 sprintf(msg.from_topic, "%s", iot.mqqt_ext_buffer[0]);
                 sprintf(msg.msg, "%s", iot.mqqt_ext_buffer[1]);
                 sprintf(msg.device_topic, "%s", iot.mqqt_ext_buffer[2]);
-                // enterLOG_record(msg.msg);
-                Serial.println("got this message: ");
-                for (int i = 0; i < 3; i++)
-                {
-                        Serial.println(iot.mqqt_ext_buffer[i]);
-                }
+                enterLOG_record(msg.msg);
                 return 1;
         }
         else
@@ -201,7 +190,6 @@ void enterLOG_record(char *log_entry)
 void setup()
 {
         startIOTservices();
-        subsribe_telegram_topic(TELEGRAM_LISTEN_TOPIC);
         teleNotify.begin(telecmds);
         teleNotify.send_msg("TelegramServer BootUP");
 }
@@ -209,7 +197,7 @@ void loop()
 {
         iot.looper();
         teleNotify.looper();
-        send_telegram_mqtt_msg();
+        listenMQTT_forTelegram();
 
         delay(100);
 }

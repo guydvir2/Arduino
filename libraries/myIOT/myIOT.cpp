@@ -346,6 +346,10 @@ bool myIOT::subscribeMQTT()
                                         {
                                                 mqttClient.subscribe(topicArry[i]);
                                         }
+                                        if (useextTopic)
+                                        {
+                                                mqttClient.subscribe(extTopic);
+                                        }
                                 }
                                 if (useSerial)
                                 {
@@ -397,10 +401,6 @@ void myIOT::createTopics()
         snprintf(_groupTopic, MaxTopicLength, "%s/All", prefixTopic);
         snprintf(_errorTopic, MaxTopicLength, "%s/log", prefixTopic);
         snprintf(_signalTopic, MaxTopicLength, "%s/Signal", prefixTopic);
-        if (useTelegram)
-        {
-                snprintf(_telegramServer, MaxTopicLength, "%s/%s", prefixTopic, telegramServer);
-        }
 
         if (strcmp(addGroupTopic, "") != 0)
         {
@@ -444,14 +444,8 @@ void myIOT::callback(char *topic, byte *payload, unsigned int length)
         {
                 Serial.println("");
         }
-        if (useTelegram && strcmp(topic, _telegramServer) == 0)
+        if (useextTopic && strcmp(topic, extTopic) == 0)
         {
-                // send_tele_msg(incoming_msg);
-                Serial.println("Im_Here");
-                Serial.println(topic);
-                Serial.println(incoming_msg);
-                Serial.println(_deviceName);
-
                 sprintf(mqqt_ext_buffer[0], "%s", topic);
                 sprintf(mqqt_ext_buffer[1], "%s", incoming_msg);
                 sprintf(mqqt_ext_buffer[2], "%s", _deviceName); // not full path

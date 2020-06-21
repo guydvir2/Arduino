@@ -1,8 +1,10 @@
 #include <myIOT.h>
 #include <Arduino.h>
+#include <myDisplay.h>
 
 // ********** Sketch Services  ***********
-#define VER "WEMOS_1.2"
+#define VER "WEMOS_1.3"
+#define USE_DISPLAY true
 
 // ********** myIOT Class ***********
 //~~~~~ Services ~~~~~~~~~~~
@@ -17,8 +19,7 @@
 #define DEVICE_TOPIC "internetMonitor"
 #define MQTT_PREFIX "myHome"
 #define MQTT_GROUP ""
-#define TELEGRAM_OUT_TOPIC "myHome/Telegram_out"
-
+#define TELEGRAM_OUT_TOPIC "myHome/Telegram"
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 #define ADD_MQTT_FUNC addiotnalMQTT
@@ -38,6 +39,7 @@ const int min_ping_interval = 10; //seconds
 const int max_ping_interval = 60; // seconds
 int adaptive_ping_val = min_ping_interval;
 long accum_connect = 0;
+float conn_ratio = 0;
 long accum_disconnect = 0;
 time_t begin_monitor_clock;
 time_t inter_ok_start = 0;
@@ -54,7 +56,6 @@ void startIOTservices()
         strcpy(iot.addGroupTopic, MQTT_GROUP);
         iot.start_services(ADD_MQTT_FUNC);
 }
-
 void addiotnalMQTT(char *incoming_msg)
 {
         char msg[150];
@@ -85,6 +86,7 @@ void addiotnalMQTT(char *incoming_msg)
                                 iot.get_timeStamp(disc_1h[i]);
                                 sprintf(tmpmsg, "Hourly disconnects: [#%d] [%s]", i, iot.timeStamp);
                                 iot.pub_msg(tmpmsg);
+                                Serial.println(tmpmsg);
                         }
                 }
         }
@@ -106,6 +108,24 @@ void epoch2datestr(time_t t, char clockstr[50])
 {
         sprintf(clockstr, "%04d-%02d-%02d %02d:%02d:%02d", year(t), month(t), day(t), hour(t), minute(t), second(t));
 }
+
+// ~~~~~~~~~~~ LCD Display ~~~~~~~~~~~
+#if USE_DISPLAY
+myLCD LCD(20, 4);
+
+void gen_report_LCD(int refresh_time = 5000)
+{
+        static long last_ref = 0;
+
+        if (millis() - last_ref > refresh_time)
+        {
+                generate_monitor_status();
+                last_ref = millis();
+        }
+}
+#endif
+
+// ~~~~~~~~~~~~~ Internet Monitoring ~~~~~~~~~~
 void sendTelegramServer(char *msg, char *tele_server = TELEGRAM_OUT_TOPIC)
 {
         char t[200];
@@ -132,7 +152,7 @@ void convert_epoch2clock(long t1, long t2, char *time_str, char *days_str)
         minutes = (int)((time_delta - days * sec2days - hours * sec2hours) / sec2minutes);
         seconds = (int)(time_delta - days * sec2days - hours * sec2hours - minutes * sec2minutes);
 
-        sprintf(days_str, "%02d days", days);
+        sprintf(days_str, "%dd", days);
         sprintf(time_str, "%02d:%02d:%02d", hours, minutes, seconds);
 }
 void generate_monitor_status()
@@ -148,6 +168,7 @@ void generate_monitor_status()
         if (internetConnected)
         {
                 temp_conn_accu = accum_connect + now() - inter_ok_start;
+                temp_disconn_accu = accum_disconnect;
         }
         else
         {
@@ -156,32 +177,52 @@ void generate_monitor_status()
         }
 
         convert_epoch2clock(now(), begin_monitor_clock, cloc, days);
-        if (strcmp(days, "00 days") != 0)
+        if (strcmp(days, "0d") != 0)
         {
                 sprintf(t1, "Duration [%s %s]", days, cloc);
         }
         else
         {
-                sprintf(t1, "Total Duration [%s]", cloc);
+                sprintf(t1, "Duration [%s]", cloc);
         }
 
         convert_epoch2clock(temp_conn_accu, 0, cloc, days);
         if (strcmp(days, "00 days") != 0)
         {
-                sprintf(t2, "Monitoring Time[%s %s]", days, cloc);
+                sprintf(t2, "Monitoring [%s %s]", days, cloc);
         }
         else
         {
-                sprintf(t2, "Connected[%s]", cloc);
+                sprintf(t2, "Monitoring [%s]", cloc);
         }
 
         unsigned long dur = now() - begin_monitor_clock;
 
-        float conn_ratio = (float)(temp_conn_accu / (float)dur);
-        Serial.println(conn_ratio);
+        conn_ratio = (float)(temp_conn_accu / (float)dur);
 
         sprintf(monitor_string, "Status: %s; %s; disconnections[#%d]; Longest_Disconnect[%d sec]; Connect_ratio[%.03f]",
                 t1, t2, disconnect_counter, longest_discon, conn_ratio);
+
+#if USE_DISPLAY
+        char line1[25];
+        char line2[25];
+        char line3[25];
+
+        iot.get_timeStamp(now());
+        bool mqtt_ping = iot.checkInternet("192.168.3.200",2);
+        bool HA_ping = iot.checkInternet("192.168.3.199",2);
+        sprintf(line2, "Time: %s", iot.timeStamp);
+
+        sprintf(line1, "internet:%s, f:%.2f%%", internetConnected ? "OK" : "Fail",(float)(temp_disconn_accu/(float)dur)*100);
+        sprintf(line2, "MQTTbrok:%s HA:%s", mqtt_ping?"OK" : "Fail",HA_ping?"OK" : "Fail");
+        convert_epoch2clock(now(), begin_monitor_clock, cloc, days);
+        sprintf(line3, "upTime:%s %s", days, cloc);
+
+        // sprintf(line3, "tot:", disconnect_counter, longest_discon);
+        LCD.lcd.clear();
+        LCD.freeTXT(">>Network  Monitor<<", line1, line2, line3);
+
+#endif
 }
 void prcoess_status(bool get_ping)
 {
@@ -332,17 +373,31 @@ void ping_it(int interval_check = 30)
                 last_check = millis();
         }
 }
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 void setup()
 {
         startIOTservices();
-        begin_monitor_clock = now();
+        begin_monitor_clock = now() - (int)(millis() / 1000);
         sendTelegramServer("BootUp");
+#if USE_DISPLAY
+        LCD.start();
+#endif
 }
 void loop()
 {
+        static long clockcount = 0;
         iot.looper();
         ping_it(adaptive_ping_val);
+        gen_report_LCD();
 
         delay(100);
+
+        if (millis() - clockcount > 30000)
+        {
+                char a[30];
+                sprintf(a, "%d", millis());
+                sendTelegramServer(a);
+                clockcount = millis();
+        }
 }

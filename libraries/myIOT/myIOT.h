@@ -115,7 +115,7 @@ public:
   bool extDefine = false; // must to set to true in order to use EXtMQTT
   bool useResetKeeper = false;
   bool resetFailNTP = false;
-  bool useTelegram = false;
+  bool useextTopic = false;
   // ~~~~~~~~~~~~~~~~~~~~~~~~~
   char inline_param[6][20]; //values from user
 
@@ -125,10 +125,10 @@ public:
   char prefixTopic[MaxTopicLength];
   char deviceTopic[MaxTopicLength];
   char addGroupTopic[MaxTopicLength];
-  char telegramServer[MaxTopicLength];
+  char extTopic[MaxTopicLength];
   char mqqt_ext_buffer[3][150];
 
-  const char *ver = "iot_7.11";
+  const char *ver = "iot_7.2";
   char timeStamp[20];
 
 private:
