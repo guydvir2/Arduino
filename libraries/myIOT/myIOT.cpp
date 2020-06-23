@@ -526,6 +526,25 @@ bool myIOT::pub_log(char *inmsg)
                 return 0;
         }
 }
+void myIOT::pub_ext(char *inmsg, char *name)
+{
+        char tmpmsg[200];
+        get_timeStamp();
+
+        if (mqttClient.connected())
+        {
+                if (strcmp(name, "") == 0)
+                {
+                        sprintf(tmpmsg, "[%s][%s]: [%s]", timeStamp, deviceTopic, inmsg);
+                }
+                else
+                {
+                        sprintf(tmpmsg, "[%s][%s]: [%s]", timeStamp, name, inmsg);
+                }
+                mqttClient.publish(extTopic, tmpmsg);
+        }
+}
+
 void myIOT::msgSplitter(const char *msg_in, int max_msgSize, char *prefix, char *split_msg)
 {
         char tmp[120];

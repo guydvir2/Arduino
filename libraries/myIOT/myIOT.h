@@ -105,6 +105,7 @@ public:
   void pub_state(char *inmsg, byte i = 0);
   void pub_msg(char *inmsg);
   bool pub_log(char *inmsg);
+  void pub_ext(char *inmsg, char *name="");
   int inline_read(char *inputstr);
   void send_tele_msg(char *msg);
 
@@ -128,7 +129,7 @@ public:
   char extTopic[MaxTopicLength];
   char mqqt_ext_buffer[3][150];
 
-  const char *ver = "iot_7.2";
+  const char *ver = "iot_7.3";
   char timeStamp[20];
 
 private:

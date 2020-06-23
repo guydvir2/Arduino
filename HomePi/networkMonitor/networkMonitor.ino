@@ -3,8 +3,9 @@
 #include <myDisplay.h>
 
 // ********** Sketch Services  ***********
-#define VER "WEMOS_1.3"
+#define VER "NodeMCU_0.1"
 #define USE_DISPLAY true
+#define USE_TELEGRAM true
 
 // ********** myIOT Class ***********
 //~~~~~ Services ~~~~~~~~~~~
@@ -16,16 +17,35 @@
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 // ~~~~~~~ MQTT Topics ~~~~~~
-#define DEVICE_TOPIC "internetMonitor"
+#define DEVICE_TOPIC "networkMonitor"
 #define MQTT_PREFIX "myHome"
 #define MQTT_GROUP ""
 #define TELEGRAM_OUT_TOPIC "myHome/Telegram"
-// ~~~~~~~~~~~~~~~~~~~~~~~~~~
-
 #define ADD_MQTT_FUNC addiotnalMQTT
-myIOT iot(DEVICE_TOPIC);
 // ***************************
 
+myIOT iot(DEVICE_TOPIC);
+struct MQTT_msg
+{
+        char from_topic[50];
+        char msg[150];
+        char device_topic[50];
+};
+
+void startIOTservices()
+{
+        iot.useSerial = USE_SERIAL;
+        iot.useWDT = USE_WDT;
+        iot.useOTA = USE_OTA;
+        iot.useResetKeeper = USE_RESETKEEPER;
+        iot.resetFailNTP = USE_FAILNTP;
+        iot.useextTopic = USE_TELEGRAM;
+        strcpy(iot.prefixTopic, MQTT_PREFIX);
+        strcpy(iot.addGroupTopic, MQTT_GROUP);
+        strcpy(iot.extTopic, TELEGRAM_OUT_TOPIC);
+
+        iot.start_services(ADD_MQTT_FUNC);
+}
 char monitor_string[200];
 bool internetConnected = false;
 const int seconds_offline_alarm = 60; // past this time , an Alert will be sent upon reconnection
@@ -45,17 +65,7 @@ time_t begin_monitor_clock;
 time_t inter_ok_start = 0;
 time_t inter_fail_start = 0;
 
-void startIOTservices()
-{
-        iot.useSerial = USE_SERIAL;
-        iot.useWDT = USE_WDT;
-        iot.useOTA = USE_OTA;
-        iot.useResetKeeper = USE_RESETKEEPER;
-        iot.resetFailNTP = USE_FAILNTP;
-        strcpy(iot.prefixTopic, MQTT_PREFIX);
-        strcpy(iot.addGroupTopic, MQTT_GROUP);
-        iot.start_services(ADD_MQTT_FUNC);
-}
+
 void addiotnalMQTT(char *incoming_msg)
 {
         char msg[150];
@@ -104,10 +114,7 @@ void addiotnalMQTT(char *incoming_msg)
                 }
         }
 }
-void epoch2datestr(time_t t, char clockstr[50])
-{
-        sprintf(clockstr, "%04d-%02d-%02d %02d:%02d:%02d", year(t), month(t), day(t), hour(t), minute(t), second(t));
-}
+// ***************************
 
 // ~~~~~~~~~~~ LCD Display ~~~~~~~~~~~
 #if USE_DISPLAY
@@ -126,12 +133,9 @@ void gen_report_LCD(int refresh_time = 5000)
 #endif
 
 // ~~~~~~~~~~~~~ Internet Monitoring ~~~~~~~~~~
-void sendTelegramServer(char *msg, char *tele_server = TELEGRAM_OUT_TOPIC)
+void epoch2datestr(time_t t, char clockstr[50])
 {
-        char t[200];
-        iot.get_timeStamp(now());
-        sprintf(t, "[%s][%s]: %s", iot.timeStamp, iot.deviceTopic, msg);
-        iot.mqttClient.publish(tele_server, t);
+        sprintf(clockstr, "%04d-%02d-%02d %02d:%02d:%02d", year(t), month(t), day(t), hour(t), minute(t), second(t));
 }
 void convert_epoch2clock(long t1, long t2, char *time_str, char *days_str)
 {
@@ -209,12 +213,12 @@ void generate_monitor_status()
         char line3[25];
 
         iot.get_timeStamp(now());
-        bool mqtt_ping = iot.checkInternet("192.168.3.200",2);
-        bool HA_ping = iot.checkInternet("192.168.3.199",2);
+        bool mqtt_ping = iot.checkInternet("192.168.3.200", 2);
+        bool HA_ping = iot.checkInternet("192.168.3.199", 2);
         sprintf(line2, "Time: %s", iot.timeStamp);
 
-        sprintf(line1, "internet:%s, f:%.2f%%", internetConnected ? "OK" : "Fail",(float)(temp_disconn_accu/(float)dur)*100);
-        sprintf(line2, "MQTTbrok:%s HA:%s", mqtt_ping?"OK" : "Fail",HA_ping?"OK" : "Fail");
+        sprintf(line1, "internet:%s, f:%.2f%%", internetConnected ? "OK" : "Fail", (float)(temp_disconn_accu / (float)dur) * 100);
+        sprintf(line2, "MQTTbrok:%s HA:%s", mqtt_ping ? "OK" : "Fail", HA_ping ? "OK" : "Fail");
         convert_epoch2clock(now(), begin_monitor_clock, cloc, days);
         sprintf(line3, "upTime:%s %s", days, cloc);
 
@@ -241,7 +245,7 @@ void prcoess_status(bool get_ping)
                                 {
                                         char tempmsg[50];
                                         sprintf(tempmsg, "Internet back ON after [%d sec]", now() - inter_fail_start);
-                                        sendTelegramServer(tempmsg);
+                                        iot.pub_ext(tempmsg);
                                 }
 
                                 // Exceed amount of disconnects in 1 hr - Alarm
@@ -256,7 +260,7 @@ void prcoess_status(bool get_ping)
                                         {
                                                 char tempmsg[50];
                                                 sprintf(tempmsg, "Exceed [%d] disconnections in 1hr, [%d secs]", disconnects_1hr_alarm, now() - disc_1h[0]);
-                                                sendTelegramServer(tempmsg);
+                                                iot.pub_ext(tempmsg);
                                                 for (int i = 0; i < disconnects_1hr_alarm; i++)
                                                 {
                                                         disc_1h[i] = 0;
@@ -285,7 +289,7 @@ void prcoess_status(bool get_ping)
                                         {
                                                 char tempmsg[50];
                                                 sprintf(tempmsg, "Exceed [%d] disconnections in 24hr, [%d secs]", disconnects_24hr_alarm, now() - disc_24hr[0]);
-                                                sendTelegramServer(tempmsg);
+                                                iot.pub_ext(tempmsg);
                                                 for (int i = 0; i < disconnects_24hr_alarm; i++)
                                                 {
                                                         disc_24hr[i] = 0;
@@ -320,7 +324,7 @@ void prcoess_status(bool get_ping)
 
                                 sprintf(notif, "Reconnect: [%s]; Disconnect: [%s], offline-duration: [%d sec]", clock0, clock1, inter_ok_start - inter_fail_start);
                                 iot.pub_msg(notif);
-                                sendTelegramServer(notif);
+                                iot.pub_ext(notif);
                         }
                         else
                         {
@@ -375,20 +379,128 @@ void ping_it(int interval_check = 30)
 }
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+// ~~~~~~~~~~~ Using SMS Notification ~~~~~~~
+
+MQTT_msg incoming_mqtt;
+const int log_size = 5;
+char LOG[log_size][150];
+char *Telegram_Nick = DEVICE_TOPIC;
+int time_check_messages = 1; //sec
+
+myTelegram teleNotify(BOT_TOKEN, CHAT_ID, time_check_messages);
+
+void telecmds(String in_msg, String from, String chat_id, char *snd_msg)
+{
+        String command_set[] = {"whois_online", "status", "reset", "help", "whoami"};
+        byte num_commands = sizeof(command_set) / sizeof(command_set[0]);
+        String comp_command[num_commands];
+        char prefix[100], prefix2[100];
+        char t1[50], t2[50];
+
+        sprintf(snd_msg, ""); // when not meeting any conditions, has to be empty
+
+        from.toCharArray(t1, from.length() + 1);
+        in_msg.toCharArray(t2, in_msg.length() + 1);
+
+        sprintf(prefix, "/%s_", Telegram_Nick);
+        sprintf(prefix2, "from user: %s\ndevice replies: %s\ncommand: %s\n~~~~~~~~~~~~~~~~~~~~\n ", t1, Telegram_Nick, t2);
+
+        for (int i = 0; i < num_commands; i++)
+        {
+                comp_command[i] = prefix;
+                comp_command[i] += command_set[i];
+        }
+
+        if (in_msg == "/whois_online")
+        {
+                sprintf(snd_msg, "%s%s", prefix2, Telegram_Nick);
+        }
+        else if (in_msg == comp_command[1])
+        {
+                // giveStatus(t1);
+                sprintf(snd_msg, "%s%s", prefix2, t1);
+        } // status
+        else if (in_msg == comp_command[2])
+        {
+                sprintf(snd_msg, "%s", prefix2);
+                iot.sendReset("Telegram");
+        } // reset
+        else if (in_msg == comp_command[3])
+        {
+                char t[50];
+                sprintf(snd_msg, "%sCommands Available:\n", prefix2, Telegram_Nick);
+                for (int i = 0; i < num_commands; i++)
+                {
+                        command_set[i].toCharArray(t, 30);
+                        sprintf(t1, "%s\n", t);
+                        strcat(snd_msg, t1);
+                }
+
+        } // all_commands
+        else if (in_msg == comp_command[4])
+        {
+                sprintf(snd_msg, "%s~%s~ is %s", prefix2, Telegram_Nick, DEVICE_TOPIC);
+        } // whoami
+}
+bool chekcTelegram_topic(char *topic, MQTT_msg &msg)
+{
+        if (strcmp(iot.mqqt_ext_buffer[0], topic) == 0)
+        {
+                sprintf(msg.from_topic, "%s", iot.mqqt_ext_buffer[0]);
+                sprintf(msg.msg, "%s", iot.mqqt_ext_buffer[1]);
+                sprintf(msg.device_topic, "%s", iot.mqqt_ext_buffer[2]);
+                // enterLOG_record(msg.msg);
+                for (int i = 0; i < 3; i++)
+                {
+                        Serial.println(iot.mqqt_ext_buffer[i]);
+                }
+                return 1;
+        }
+        else
+        {
+                return 0;
+        }
+}
+void listenMQTT_forTelegram()
+{
+        if (chekcTelegram_topic(TELEGRAM_OUT_TOPIC, incoming_mqtt))
+        {
+                teleNotify.send_msg2(String(incoming_mqtt.msg));
+                for (int i = 0; i < 3; i++)
+                {
+                        sprintf(iot.mqqt_ext_buffer[i], "%s", "");
+                }
+        }
+}
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 void setup()
 {
         startIOTservices();
         begin_monitor_clock = now() - (int)(millis() / 1000);
-        sendTelegramServer("BootUp");
+
+#if USE_TELEGRAM
+        teleNotify.begin(telecmds);
+        iot.pub_ext("networkMonitor Boot");
+#endif
+
 #if USE_DISPLAY
         LCD.start();
 #endif
+
 }
 void loop()
 {
         iot.looper();
         ping_it(adaptive_ping_val);
-        gen_report_LCD();
 
+#if USE_DISPLAY
+        gen_report_LCD();
+#endif
+
+#if USE_TELEGRAM
+        teleNotify.looper();
+        listenMQTT_forTelegram();
+#endif
         delay(100);
 }

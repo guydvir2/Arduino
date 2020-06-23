@@ -2,9 +2,9 @@
 #include <myESP32sleep.h>
 
 // ~~~~~~~ myIOT32 ~~~~~~~~
-#define DEVICE_TOPIC "ESP32_2"
+#define DEVICE_TOPIC "ESP32"
 #define MQTT_PREFIX "myHome"
-#define MQTT_GROUP "testBed"
+#define MQTT_GROUP "SolarPower"
 #define USE_SERIAL true
 #define USE_OTA true
 
@@ -29,8 +29,8 @@ void startIOT_services()
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 // ~~~~~~~ Sleep ~~~~~~~~~~~
-#define SLEEP_TIME 2
-#define FORCE_AWAKE_TIME 45
+#define SLEEP_TIME 15
+#define FORCE_AWAKE_TIME 20
 #define DEV_NAME "NODE-ESP32"
 
 esp32Sleep go2sleep(SLEEP_TIME, FORCE_AWAKE_TIME, DEV_NAME);
@@ -52,6 +52,9 @@ void startSleep_services()
 
 // ~~~~~ Power Managment ~~~~
 const int measureVoltagePin = 35;
+const int ADC_res=4095;
+const float Rvalue = 0.75;
+const float vcc = 3.3;
 float bat_volt = 0.0;
 
 void bat_measure()
@@ -62,26 +65,25 @@ void bat_measure()
   {
     bat_volt += analogRead(measureVoltagePin);
   }
-  bat_volt = (bat_volt / ((float)sample)) * (15.0 / 4095.0);
-  Serial.println(bat_volt);
+  bat_volt = ((bat_volt / ((float)sample))/ADC_res)*vcc*(1.0/Rvalue);
 }
-void sendnewNotif()
-{
-  static bool notified = false;
-  iot.getTime();
-  int divider = 2;
-  if (iot.timeinfo.tm_min % divider == 0 && notified == false)
-  {
-    char timeStamp[25];
-    iot.getTimeStamp(timeStamp);
-    iot.mqttClient.publish("myHome/Telegram", timeStamp);
-    notified = true;
-  }
-  else if (iot.timeinfo.tm_min % divider != 0 && notified == true)
-  {
-    notified = false;
-  }
-}
+// void sendnewNotif()
+// {
+//   static bool notified = false;
+//   iot.getTime();
+//   int divider = 2;
+//   if (iot.timeinfo.tm_min % divider == 0 && notified == false)
+//   {
+//     char timeStamp[25];
+//     iot.getTimeStamp(timeStamp);
+//     iot.mqttClient.publish("myHome/Telegram", timeStamp);
+//     notified = true;
+//   }
+//   else if (iot.timeinfo.tm_min % divider != 0 && notified == true)
+//   {
+//     notified = false;
+//   }
+// }
 void create_wake_status(char *cmd, long nextw, int sleept, long startSleep, bool wstat)
 {
   iot.DeviceStatus.wake_cmd = cmd;
@@ -100,8 +102,7 @@ void setup()
   char a[30];
   sprintf(a, "Bat measured Voltage[%.2fv]", bat_volt);
   iot.pub_msg(a);
-
-  
+  iot.mqttClient.publish("myHome/Telegram", a);
 }
 
 void loop()
@@ -109,7 +110,5 @@ void loop()
   iot.looper();
   iot.getTime();
   go2sleep.wait_forSleep(&iot.timeinfo, &iot.epoch_time, iot.networkOK);
-
-  sendnewNotif();
   delay(100);
 }
