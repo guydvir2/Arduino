@@ -107,7 +107,7 @@ public:
   bool pub_log(char *inmsg);
   void pub_ext(char *inmsg, char *name="");
   int inline_read(char *inputstr);
-  void send_tele_msg(char *msg);
+  // void send_tele_msg(char *msg);
 
   // ~~~~~~ Services ~~~~~~~~~
   bool useSerial = false;
@@ -136,7 +136,7 @@ private:
   char *Ssid;
   char *Password;
   cb_func ext_mqtt;
-  cb_func2 ext_telegram;
+  // cb_func2 ext_telegram;
 
   // time interval parameters
 
@@ -168,7 +168,7 @@ private:
   char _stateTopic[MaxTopicLength];
   char _stateTopic2[MaxTopicLength];
   char _signalTopic[MaxTopicLength];
-  char _telegramServer[MaxTopicLength];
+  // char _telegramServer[MaxTopicLength];
 
   char *topicArry[4] = {deviceTopic, _groupTopic, _availTopic, addGroupTopic};
   // ##############################################

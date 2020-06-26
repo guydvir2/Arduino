@@ -27,7 +27,8 @@ public:
     char sys_presets_str[100];
     char wake_sleep_str[150];
 
-    const char *ver = "2.3";
+    const char *ver = "3.0";
+    int no_sleep_minutes = 0;
 
     long startsleep_clock = 0;
     long nextwake_clock = 0;
@@ -51,7 +52,7 @@ public:
     void startServices(struct tm *timeinfo, time_t *epoch_time);
     void check_awake_ontime(struct tm *timeinfo, time_t *epoch_time, int min_t_avoidSleep = 10);
     void sleepNOW(float sec2sleep = 2700);
-    void wait_forSleep(struct tm *timeinfo, time_t *epoch_time, bool wifiOK = true);
+    void wait_forSleep(struct tm *timeinfo, time_t *epoch_time, bool wifiOK = true, bool nosleep=false);
 };
 
 #endif

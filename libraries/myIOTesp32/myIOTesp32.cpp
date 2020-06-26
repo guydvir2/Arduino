@@ -114,7 +114,6 @@ bool myIOT32::_selectMQTTserver()
 void myIOT32::MQTTcallback(char *topic, byte *payload, unsigned int length)
 {
   char incoming_msg[150];
-  char msg[100];
 
   if (useSerial)
   {
@@ -122,7 +121,6 @@ void myIOT32::MQTTcallback(char *topic, byte *payload, unsigned int length)
     Serial.print(topic);
     Serial.print("] ");
   }
-
   for (int i = 0; i < length; i++)
   {
     Serial.print((char)payload[i]);
@@ -131,6 +129,34 @@ void myIOT32::MQTTcallback(char *topic, byte *payload, unsigned int length)
   incoming_msg[length] = 0;
   Serial.println();
 
+  if (strcmp(topic, _wakeTopic) == 0 && listenWakeTopic)
+  {
+    strcpy(incmoing_wakeMSG, incoming_msg);
+  }
+  else if (strcmp(topic, _availTopic) == 0 && bootType == 2 && useResetKeeper)
+  {
+    // bootType: (2) - value at init , (1) quick boot (0) - regulatBoot
+    if (strcmp(incoming_msg, "online") == 0)
+    {
+      bootType = 1;
+    }
+    else if (strcmp(incoming_msg, "offline") == 0)
+    {
+      bootType = 0;
+    }
+    _notifyOnline();
+  }
+  else if (strcmp(topic, _statusTopic) == 0)
+  {
+    _getMQTT2JSON(incoming_msg);
+  }
+
+  _MQTTcmds(incoming_msg);
+}
+void myIOT32::_MQTTcmds(char *incoming_msg)
+{
+  char msg[100];
+
   if (strcmp(incoming_msg, "boot") == 0)
   {
     char clockChar[30];
@@ -138,8 +164,6 @@ void myIOT32::MQTTcallback(char *topic, byte *payload, unsigned int length)
     getTimeStamp(tstamp);
 
     createDateStamp(convEpoch(DeviceStatus.boot_clock), clockChar);
-    sprintf(msg, "Boot:[%s]", tstamp);
-    pub_msg(msg);
     sprintf(msg, "Boot:[%s]", clockChar);
     pub_msg(msg);
   }
@@ -158,33 +182,11 @@ void myIOT32::MQTTcallback(char *topic, byte *payload, unsigned int length)
   }
   else if (strcmp(incoming_msg, "reset") == 0)
   {
-    sendReset("MQTT");
+    sendReset("sent Reset in MQTT");
   }
-  else //if (strcmp(incoming_msg, "online") != 0 && strcmp(incoming_msg, "offline") != 0)
+  else
   {
     ext_mqtt_cb(incoming_msg);
-  }
-
-  if (strcmp(topic, _wakeTopic) == 0)
-  {
-    strcpy(_incmoing_wakeMSG, incoming_msg);
-  }
-  else if (strcmp(topic, _availTopic) == 0 && bootType == 2 && useResetKeeper)
-  {
-    // bootType: (2) - value at init , (1) quick boot (0) - regulatBoot
-    if (strcmp(incoming_msg, "online") == 0)
-    {
-      bootType = 1;
-    }
-    else if (strcmp(incoming_msg, "offline") == 0)
-    {
-      bootType = 0;
-    }
-    _notifyOnline();
-  }
-  else if (strcmp(topic, _statusTopic) == 0)
-  {
-    _getMQTT2JSON(incoming_msg);
   }
 }
 void myIOT32::createTopics()
@@ -208,11 +210,6 @@ void myIOT32::createTopics()
   snprintf(_availTopic, MaxTopicLength, "%s/Avail", deviceTopic);
   snprintf(_statusTopic, MaxTopicLength, "%s/Status", deviceTopic);
   snprintf(_wakeTopic, MaxTopicLength, "%s/onWake", deviceTopic);
-
-  // if (useTelegram)
-  // {
-  //   snprintf(_telegramServer, MaxTopicLength, "%s/%s", prefixTopic, telegramServer);
-  // }
 }
 bool myIOT32::connectMQTT()
 {
@@ -339,6 +336,21 @@ void myIOT32::pub_log(char *inmsg)
   getTimeStamp(tstamp);
   sprintf(tem, "[%s] [%s] %s", tstamp, deviceTopic, inmsg);
   mqttClient.publish(_errorTopic, tem);
+}
+void myIOT32::pub_tele(char *inmsg, char *name)
+{
+  char tstamp[25];
+  char tem[150];
+  getTimeStamp(tstamp);
+  if (strcmp(name, "") == 0)
+  {
+    sprintf(tem, "[%s] [%s] %s", tstamp, deviceTopic, inmsg);
+  }
+  else
+  {
+    sprintf(tem, "[%s] [%s] %s", tstamp, name, inmsg);
+  }
+  mqttClient.publish(telegramServer, tem);
 }
 
 // ±±±±±±±±±±± WIFI & Clock ±±±±±±±±±
@@ -518,6 +530,7 @@ void myIOT32::createWakeJSON()
   doc["wakeCmd"] = DeviceStatus.wake_cmd;
   doc["nextWake"] = DeviceStatus.nextWake_clock;
   doc["sleepDuration"] = DeviceStatus.sleepduration; // minutes
+  doc["forcedAwake"] = DeviceStatus.forceawake;
   doc["SleetStart"] = DeviceStatus.startsleep_clock;
   doc["isWake"] = DeviceStatus.wake_status;
 
@@ -565,7 +578,6 @@ void myIOT32::_networkflags(bool s)
     }
   }
 }
-
 // ±±±±±±±±±±±±± Others ±±±±±±±±±±±±
 bool myIOT32::checkInternet(char *externalSite, byte pings)
 {

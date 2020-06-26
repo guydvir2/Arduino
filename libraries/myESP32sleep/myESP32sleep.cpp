@@ -196,27 +196,39 @@ void esp32Sleep::sleepNOW(float sec2sleep)
   esp_sleep_enable_timer_wakeup(sec2sleep * uS_TO_S_FACTOR);
   esp_deep_sleep_start();
 }
-void esp32Sleep::wait_forSleep(struct tm *timeinfo, time_t *epoch_time, bool wifiOK)
+void esp32Sleep::wait_forSleep(struct tm *timeinfo, time_t *epoch_time, bool wifiOK, bool nosleep)
 {
   static bool lastMessage = false;
-  if (millis() >= (_forcedwake_time-1) * 1000 && lastMessage == false) // this way it call ext_ fuct before sleep
+
+  if (nosleep == false)
   {
-    if (_use_extfunc)
+    if (millis() >= (_forcedwake_time - 1) * 1000 && lastMessage == false) // this way it call ext_ fuct before sleep
     {
-      _runFunc();
+      if (_use_extfunc)
+      {
+        _runFunc();
+      }
+      lastMessage = true;
     }
-    lastMessage = true;
+    if (millis() >= _forcedwake_time * 1000)
+    {
+      if (wifiOK)
+      {
+        sleepNOW(sleepduration - driftRTC);
+      }
+      else
+      {
+        sleepNOW(_deepsleep_time * 60);
+      }
+    }
   }
-  if (millis() >= _forcedwake_time * 1000)
+  else
   {
-    if (wifiOK)
+    if (no_sleep_minutes * 60 * 1000UL - millis() < 0)
     {
-      // sleepNOW(calc_nominal_sleepTime(timeinfo, epoch_time) - driftRTC);
-      sleepNOW(sleepduration - driftRTC);
-    }
-    else
-    {
-      sleepNOW(_deepsleep_time * 60);
+      Serial.flush();
+      ESP.restart();
+      delay(1000);
     }
   }
 }

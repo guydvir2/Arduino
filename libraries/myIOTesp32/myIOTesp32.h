@@ -22,7 +22,6 @@ typedef void (*cb_func)(char msg1[50]);
 
 class myIOT32
 {
-#define VER "iot32_ver_0.5"
 #define JDOC_SIZE 250
 #define RECON_WIFI 60         // sec to reconnect
 #define RECON_MQTT 30         // sec to reconnect
@@ -40,10 +39,8 @@ private:
     char _stateTopic[MaxTopicLength];
     char _statusTopic[MaxTopicLength];
     char _wakeTopic[MaxTopicLength];
-    char _telegramServer[MaxTopicLength];
     char *topicArry[6] = {deviceTopic, _groupTopic, _availTopic, addGroupTopic, _wakeTopic, _statusTopic};
 
-    char _incmoing_wakeMSG[100];
     // Wifi & MQTT config
     int _mqtt_port;
     char *_wifi_ssid;
@@ -60,11 +57,12 @@ private:
     const int _wdtMaxRetries = 30; //seconds to bITE
 
 public:
+    const char *ver = "iot32_ver_0.7";
     bool useSerial = false;
     bool useOTA = true;
     bool useWDT = true;
     bool useResetKeeper = true;
-    bool useTelegram = false;
+    bool listenWakeTopic = false;
     bool networkOK = false;
     long unsigned allowOTA_clock = 0;
     int bootType = 2; // 2 - init; 1 - resetboot; 0- regular boot
@@ -73,6 +71,7 @@ public:
     char addGroupTopic[MaxTopicLength];
     char telegramServer[MaxTopicLength];
     char inline_param[6][20]; //values from user
+    char incmoing_wakeMSG[200];
 
     // Clock
     struct tm timeinfo;
@@ -89,6 +88,7 @@ public:
         long nextWake_clock;
         long startsleep_clock;
         int sleepduration;
+        int forceawake;
         bool wake_status;
 
         bool input1;
@@ -96,11 +96,11 @@ public:
         bool output1;
         bool output2;
     };
-    status DeviceStatus = {deviceTopic, "", 0, 0, "NO_WAKE_CMD", 0, 0, false, false, false, false, false};
+    status DeviceStatus = {deviceTopic, "", 0, 0, "NO_WAKE_CMD", 0, 0, 0, false, false, false, false, false};
 
     WiFiClient espClient;
     PubSubClient mqttClient;
-    Ticker wdt;
+    // Ticker wdt;
 
 public:
     myIOT32(char *devTopic = "no-name", char *ssid = SSID_ID, char *wifi_p = PASS_WIFI,
@@ -114,6 +114,7 @@ public:
     void pub_Status(char *statusmsg);
     void pub_nextWake(char *inmsg);
     void pub_log(char *inmsg);
+    void pub_tele(char *inmsg, char *name = "");
 
     void getTime();
     void getTimeStamp(char ret_timeStamp[25]);
@@ -129,6 +130,7 @@ private:
     void startNTP(const int gmtOffset_sec, const int daylightOffset_sec, const char *ntpServer);
     bool startWifi();
     void MQTTcallback(char *topic, byte *payload, unsigned int length);
+    void _MQTTcmds(char *incoming_msg);
     void createTopics();
     bool connectMQTT();
     void subscribeMQTT();
