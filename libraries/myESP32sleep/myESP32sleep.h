@@ -52,7 +52,7 @@ public:
     void startServices(struct tm *timeinfo, time_t *epoch_time);
     void check_awake_ontime(struct tm *timeinfo, time_t *epoch_time, int min_t_avoidSleep = 10);
     void sleepNOW(float sec2sleep = 2700);
-    void wait_forSleep(struct tm *timeinfo, time_t *epoch_time, bool wifiOK = true, bool nosleep=false);
+    void wait_forSleep(struct tm *timeinfo, time_t *epoch_time, bool wifiOK = true, bool nosleep = false);
 };
 
 #endif

@@ -2,12 +2,12 @@
 #include <myESP32sleep.h>
 
 #define VER "ESP32_0.1v"
-#define USE_VMEASURE false
+#define USE_VMEASURE true
 #define USE_SLEEP true
 // ~~~~~~~ myIOT32 ~~~~~~~~
-#define DEVICE_TOPIC "ESP32_2"
+#define DEVICE_TOPIC "ESP32"
 #define MQTT_PREFIX "myHome"
-#define MQTT_GROUP "testBed"
+#define MQTT_GROUP "solarPower"
 #define MQTT_TELEGRAM "myHome/Telegram"
 #define USE_SERIAL true
 #define USE_OTA true
@@ -34,10 +34,10 @@ void startIOT_services()
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 // ~~~~~~~ Sleep ~~~~~~~~~~~
-#define SLEEP_TIME 2
-#define FORCE_AWAKE_TIME 60
-#define NO_SLEEP_TIME 2
-#define DEV_NAME "NODE-ESP32"
+#define SLEEP_TIME 20
+#define FORCE_AWAKE_TIME 20
+#define NO_SLEEP_TIME 3
+#define DEV_NAME DEVICE_TOPIC
 bool no_sleep_flag = false;
 
 esp32Sleep go2sleep(SLEEP_TIME, FORCE_AWAKE_TIME, DEV_NAME);
@@ -94,6 +94,10 @@ bool checkWake_topic()
     no_sleep_flag = true;
     sprintf(iot.incmoing_wakeMSG, "");
   }
+else{
+  no_sleep_flag = false;
+
+}
 }
 
 void ext_MQTT(char *incoming_msg)
@@ -139,7 +143,7 @@ void ext_MQTT(char *incoming_msg)
   else if (strcmp(incoming_msg, "sleepNow") == 0)
   {
     b4sleep();
-    go2sleep.sleepNOW(SLEEP_TIME*60);
+    go2sleep.sleepNOW(SLEEP_TIME * 60);
   }
 }
 
@@ -155,7 +159,7 @@ void setup()
   char a[30];
   sprintf(a, "Bat measured Voltage[%.2fv]", bat_volt);
   iot.pub_msg(a);
-  iot.mqttClient.publish("myHome/Telegram", a);
+  iot.pub_tele(a);
 #endif
 }
 

@@ -199,7 +199,6 @@ void esp32Sleep::sleepNOW(float sec2sleep)
 void esp32Sleep::wait_forSleep(struct tm *timeinfo, time_t *epoch_time, bool wifiOK, bool nosleep)
 {
   static bool lastMessage = false;
-
   if (nosleep == false)
   {
     if (millis() >= (_forcedwake_time - 1) * 1000 && lastMessage == false) // this way it call ext_ fuct before sleep
@@ -226,7 +225,6 @@ void esp32Sleep::wait_forSleep(struct tm *timeinfo, time_t *epoch_time, bool wif
   {
     if (no_sleep_minutes * 60 * 1000UL - millis() < 0)
     {
-      Serial.flush();
       ESP.restart();
       delay(1000);
     }
