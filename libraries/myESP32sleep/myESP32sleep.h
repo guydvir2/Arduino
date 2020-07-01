@@ -5,34 +5,46 @@
 #include "EEPROM.h"
 #include "secrets.h"
 
+extern int bootCounter; //RTC var
+
 class esp32Sleep
 {
     typedef void (*cb_func)();
 #define uS_TO_S_FACTOR 1000000ULL /* Conversion micro seconds to seconds */
 #define EEPROM_SIZE 16
 
-#define DEVICE_TOPIC "ESP32_SLEEP"
-#define MQTT_PREFIX "myHome"
-#define MQTT_GROUP ""
+// #define DEVICE_TOPIC "ESP32_SLEEP"
+// #define MQTT_PREFIX "myHome"
+// #define MQTT_GROUP ""
 
 private:
-    int _deepsleep_time = 0;  // nominal minutes to sleep
-    int _forcedwake_time = 0; // forced time to stay awake before sleep
     bool _use_extfunc = false;
 
     cb_func _runFunc;
 
 public:
-    char *dev_name = "myESP32_devname";
     char sys_presets_str[100];
-    char wake_sleep_str[150];
+    char wake_sleep_str[250];
 
-    const char *ver = "3.0";
+    const char *ver = "3.1";
     int no_sleep_minutes = 0;
 
     long startsleep_clock = 0;
     long nextwake_clock = 0;
     int sleepduration = 0;
+
+    struct wakeStatus
+    {
+        int sleep_duration; //sec
+        int awake_duration; 
+        int bootCount;
+        long startsleep_clock;
+        long nextwake_clock;
+        long wake_clock;
+        char *name;
+    };
+
+    wakeStatus WakeStatus={0,0,0,0,0,0,"This is saved to any name"};
 
 private:
     // ~~~~~~~~ EEPROM ~~~~~~~~~~~~~

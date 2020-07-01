@@ -631,12 +631,7 @@ void myIOT::register_err(char *inmsg)
         sprintf(temp, "--> %s", inmsg);
         strcat(bootErrors, temp);
 }
-// void myIOT::send_tele_msg(char *msg)
-// {
-//         char t[150];
-//         sprintf(t, "[%s][%s]: %s", timeStamp, _deviceName, msg);
-//         mqttClient.publish(_telegramServer, t);
-// }
+
 // ~~~~~~ Reset and maintability ~~~~~~
 void myIOT::sendReset(char *header)
 {

@@ -150,6 +150,12 @@ void myIOT32::MQTTcallback(char *topic, byte *payload, unsigned int length)
   {
     _getMQTT2JSON(incoming_msg);
   }
+  else if (useExtTopic && strcmp(topic, extTopic) == 0)
+  {
+    sprintf(mqqt_ext_buffer[0], "%s", topic);
+    sprintf(mqqt_ext_buffer[1], "%s", incoming_msg);
+    sprintf(mqqt_ext_buffer[2], "%s", _deviceName); // not full path
+  }
 
   _MQTTcmds(incoming_msg);
 }
@@ -243,6 +249,15 @@ void myIOT32::subscribeMQTT()
       }
     }
   }
+  if (useExtTopic)
+  {
+    mqttClient.subscribe(extTopic);
+    if (useSerial)
+    {
+      Serial.print("Topic subsribed: ");
+      Serial.println(extTopic);
+    }
+  }
 }
 bool myIOT32::startMQTT()
 {
@@ -295,6 +310,8 @@ bool myIOT32::MQTTloop()
         subscribeMQTT();
         _updateKeepAlive();
         _networkflags(1);
+        Serial.println("MQTT Server- re-connected");
+
         return 1;
       }
       else
@@ -305,6 +322,8 @@ bool myIOT32::MQTTloop()
     }
     else
     {
+      Serial.println("MQTT Server- fail to connected");
+
       return 0;
     }
   }
@@ -352,7 +371,25 @@ void myIOT32::pub_tele(char *inmsg, char *name)
   }
   mqttClient.publish(telegramServer, tem);
 }
+void myIOT32::pub_ext(char *inmsg, char *name)
+{
+  char tmpmsg[200];
+  char tstamp[25];
+  getTimeStamp(tstamp);
 
+  if (mqttClient.connected())
+  {
+    if (strcmp(name, "") == 0)
+    {
+      sprintf(tmpmsg, "[%s][%s]: [%s]", tstamp, deviceTopic, inmsg);
+    }
+    else
+    {
+      sprintf(tmpmsg, "[%s][%s]: [%s]", tstamp, name, inmsg);
+    }
+    mqttClient.publish(extTopic, tmpmsg);
+  }
+}
 // ±±±±±±±±±±± WIFI & Clock ±±±±±±±±±
 void myIOT32::startNTP(const int gmtOffset_sec = 2 * 3600, const int daylightOffset_sec = 3600, const char *ntpServer = "pool.ntp.org")
 {
@@ -524,22 +561,22 @@ void myIOT32::_createStatusJSON()
   output.toCharArray(a, 150);
   pub_Status(a);
 }
-void myIOT32::createWakeJSON()
-{
-  StaticJsonDocument<JDOC_SIZE> doc;
-  doc["wakeCmd"] = DeviceStatus.wake_cmd;
-  doc["nextWake"] = DeviceStatus.nextWake_clock;
-  doc["sleepDuration"] = DeviceStatus.sleepduration; // minutes
-  doc["forcedAwake"] = DeviceStatus.forceawake;
-  doc["SleetStart"] = DeviceStatus.startsleep_clock;
-  doc["isWake"] = DeviceStatus.wake_status;
+// void myIOT32::createWakeJSON()
+// {
+//   StaticJsonDocument<JDOC_SIZE> doc;
+//   doc["bootCount"] = DeviceStatus.bootcount;
+//   doc["nextWake"] = DeviceStatus.nextWake_clock;
+//   doc["sleepDuration"] = DeviceStatus.sleepduration; // minutes
+//   doc["forcedAwake"] = DeviceStatus.forceawake;
+//   doc["SleetStart"] = DeviceStatus.startsleep_clock;
+//   doc["isWake"] = DeviceStatus.wake_status;
 
-  String output;
-  serializeJson(doc, output);
-  char a[250];
-  output.toCharArray(a, 250);
-  pub_nextWake(a);
-}
+//   String output;
+//   serializeJson(doc, output);
+//   char a[250];
+//   output.toCharArray(a, 250);
+//   pub_nextWake(a);
+// }
 void myIOT32::_getMQTT2JSON(char *input_str)
 {
   StaticJsonDocument<JDOC_SIZE> doc;
@@ -567,6 +604,7 @@ void myIOT32::_networkflags(bool s)
     {
       _networkerr_clock = millis();
       networkOK = false;
+      Serial.println("network problem detected");
     }
   }
   else
@@ -575,6 +613,7 @@ void myIOT32::_networkflags(bool s)
     {
       _networkerr_clock = 0;
       networkOK = true;
+      Serial.println("network problem ended");
     }
   }
 }

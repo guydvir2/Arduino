@@ -6,7 +6,7 @@
 #define USE_BOUNCE_DEBUG false
 #define USE_2_EXT_INPUT false // Only for dual input window
 #define USE_AUTO_RELAY_OFF true
-#define USE_AUTO_OFF true
+// #define USE_AUTO_OFF true
 #define AUTO_RELAY_TIMEOUT 90
 // ********** myIOT Class ***********
 //~~~~~ Services ~~~~~~~~~~~
@@ -18,7 +18,7 @@
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 // ~~~~~~~ MQTT Topics ~~~~~~
-#define DEVICE_TOPIC "familyRoom"
+#define DEVICE_TOPIC "saloonSingle"
 #define MQTT_PREFIX "myHome"
 #define MQTT_GROUP "Windows"
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -136,7 +136,7 @@ void addiotnalMQTT(char incoming_msg[50])
         else if (strcmp(incoming_msg, "ver") == 0)
         {
                 sprintf(msg, "ver:[%s], lib:[%s], WDT:[%d], OTA:[%d], SERIAL:[%d],ResetKeeper[%d], FailNTP[%d], AutoOFF[%d]",
-                        VER, iot.ver, USE_WDT, USE_OTA, USE_SERIAL, USE_RESETKEEPER, USE_FAILNTP, USE_AUTO_OFF);
+                        VER, iot.ver, USE_WDT, USE_OTA, USE_SERIAL, USE_RESETKEEPER, USE_FAILNTP, USE_AUTO_RELAY_OFF);
                 iot.pub_msg(msg);
         }
         else if (strcmp(incoming_msg, "help") == 0)
@@ -273,7 +273,7 @@ void loop()
                 checkSwitch_looper(inputUpExtPin, "up", inputUpExt_lastState, "extButton");
                 checkSwitch_looper(inputDownExtPin, "down", inputDownExt_lastState, "extButton");
         }
-        if (USE_AUTO_OFF)
+        if (USE_AUTO_RELAY_OFF)
         {
                 checkTimeout_AutoRelay_Off(AUTO_RELAY_TIMEOUT);
         }

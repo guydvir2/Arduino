@@ -13,16 +13,15 @@ RTC_DATA_ATTR float driftsArray_RTC[drift_ArraySize];
 // ~~~~~~~~ Start ~~~~~~~~~
 esp32Sleep::esp32Sleep(int deepsleep, int forcedwake, char *devname)
 {
-  _deepsleep_time = deepsleep;
-  _forcedwake_time = forcedwake;
-  dev_name = devname;
+  WakeStatus.sleep_duration = deepsleep;
+  WakeStatus.awake_duration = forcedwake;
+  WakeStatus.name = devname;
 }
 void esp32Sleep::startServices(struct tm *timeinfo, time_t *epoch_time)
 {
   start_eeprom();
   Avg_Array_zeroing();
   check_awake_ontime(timeinfo, epoch_time);
-  sleepduration = calc_nominal_sleepTime(timeinfo, epoch_time);
 }
 void esp32Sleep::run_func(cb_func cb)
 {
@@ -71,8 +70,8 @@ void esp32Sleep::Avg_Array_zeroing()
 // ~~~~~~~ Sleep & Drift calcs ~~~
 void esp32Sleep::check_awake_ontime(struct tm *timeinfo, time_t *epoch_time, int min_t_avoidSleep)
 {
-  bootCounter++;
-  sprintf(sys_presets_str, "deviceName:[%s]; SleepTime: [%d min]; Forced-aWakeTime: [%d sec]", dev_name, _deepsleep_time, _forcedwake_time);
+  WakeStatus.bootCount = bootCounter++ + 1;
+  sprintf(sys_presets_str, "deviceName:[%s]; SleepTime: [%d min]; Forced-aWakeTime: [%d sec]", WakeStatus.name, WakeStatus.sleep_duration, WakeStatus.awake_duration);
   sprintf(wake_sleep_str, "Boot#: [%d]; Wake_Clock: [%02d:%02d:%02d]; ", bootCounter, timeinfo->tm_hour, timeinfo->tm_min, timeinfo->tm_sec);
 
   Serial.println(sys_presets_str);
@@ -85,8 +84,9 @@ void esp32Sleep::check_awake_ontime(struct tm *timeinfo, time_t *epoch_time, int
     {
       int wake_diff = (long)*epoch_time - clock_expectedWake;  // not first boot
       int t_delta = wake_diff - (int)(round(millis() / 1000)); // diff between calc wake clock and current time
+      WakeStatus.wake_clock = (long)*epoch_time;
 
-      char tt[100];
+      char tt[200];
       sprintf(tt, "Woke_after: [%d sec]; wake_Drift: [%d sec]; ", (long)epoch_time - clock_beforeSleep, t_delta);
       strcat(wake_sleep_str, tt);
       new_driftUpdate(t_delta, 0);
@@ -125,13 +125,16 @@ int esp32Sleep::calc_nominal_sleepTime(struct tm *timeinfo, time_t *epoch_time)
 
   if (timeinfo->tm_year >= 120)
   {
-    nominal_nextSleep = _deepsleep_time * 60 - (timeinfo->tm_min * 60 + timeinfo->tm_sec) % (_deepsleep_time * 60);
+    nominal_nextSleep = WakeStatus.sleep_duration * 60 - (timeinfo->tm_min * 60 + timeinfo->tm_sec) % (WakeStatus.sleep_duration * 60);
     clock_beforeSleep = (long)*epoch_time;                      // RTC var
     clock_expectedWake = (long)*epoch_time + nominal_nextSleep; // RTC var
+
+    WakeStatus.startsleep_clock = clock_beforeSleep;
+    WakeStatus.nextwake_clock = clock_expectedWake;
   }
   else // fail to obtain clock
   {
-    nominal_nextSleep = _deepsleep_time * 60;
+    nominal_nextSleep = WakeStatus.sleep_duration * 60;
   }
 
   sprintf(tt, "wake_Duration: [%.2fs]; back2Sleep: [%02d:%02d:%02d]; sleepFor: [%d sec]; drift_correct: [%.1f sec]",
@@ -170,7 +173,7 @@ void esp32Sleep::new_driftUpdate(float lastboot_drift, byte cell)
 {
   const float driftFactor = -0.006111;
   const float drift_tolerance = 0.25;
-  const float nomin_drift = driftFactor * (_deepsleep_time * 60.0);
+  const float nomin_drift = driftFactor * (WakeStatus.sleep_duration * 60.0);
   const float max_drift = nomin_drift * (1 - drift_tolerance); // bigger neg number
   const float min_drift = nomin_drift * (1 + drift_tolerance); // lesser neg number
 
@@ -199,17 +202,20 @@ void esp32Sleep::sleepNOW(float sec2sleep)
 void esp32Sleep::wait_forSleep(struct tm *timeinfo, time_t *epoch_time, bool wifiOK, bool nosleep)
 {
   static bool lastMessage = false;
+  const int epsilonb4sleep = 500; //millis
+
   if (nosleep == false)
   {
-    if (millis() >= (_forcedwake_time - 1) * 1000 && lastMessage == false) // this way it call ext_ fuct before sleep
+    if (millis() >= (WakeStatus.awake_duration - 1) * epsilonb4sleep && lastMessage == false) // this way it call ext_ fuct before sleep
     {
+      sleepduration = calc_nominal_sleepTime(timeinfo, epoch_time);
       if (_use_extfunc)
       {
         _runFunc();
       }
       lastMessage = true;
     }
-    if (millis() >= _forcedwake_time * 1000)
+    if (millis() >= WakeStatus.awake_duration * 1000)
     {
       if (wifiOK)
       {
@@ -217,16 +223,16 @@ void esp32Sleep::wait_forSleep(struct tm *timeinfo, time_t *epoch_time, bool wif
       }
       else
       {
-        sleepNOW(_deepsleep_time * 60);
+        sleepNOW(WakeStatus.sleep_duration * 60);
       }
     }
   }
   else
-  {
-    if (no_sleep_minutes * 60 * 1000UL - millis() < 0)
+  { // after no-sleep
+    if (millis() > no_sleep_minutes * 60 * 1000UL)
     {
-      ESP.restart();
       delay(1000);
+      ESP.restart();
     }
   }
 }
