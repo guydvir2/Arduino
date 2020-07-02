@@ -82,17 +82,17 @@ void esp32Sleep::check_awake_ontime(struct tm *timeinfo, time_t *epoch_time, int
   {
     if (clock_beforeSleep > 0)
     {
-      int wake_diff = (long)*epoch_time - clock_expectedWake;  // not first boot
-      int t_delta = wake_diff - (int)(round(millis() / 1000)); // diff between calc wake clock and current time
+      int wake_diff = (long)*epoch_time - clock_expectedWake;          // not first boot
+      WakeStatus.wake_err = wake_diff - (int)(round(millis() / 1000)); // diff between calc wake clock and current time
       WakeStatus.wake_clock = (long)*epoch_time;
 
       char tt[200];
-      sprintf(tt, "Woke_after: [%d sec]; wake_Drift: [%d sec]; ", (long)epoch_time - clock_beforeSleep, t_delta);
+      sprintf(tt, "Woke_after: [%d sec]; wake_Drift: [%d sec]; ", (long)epoch_time - clock_beforeSleep, WakeStatus.wake_err);
       strcat(wake_sleep_str, tt);
-      new_driftUpdate(t_delta, 0);
+      new_driftUpdate(WakeStatus.wake_err, 0);
 
       // ~~~~~~~ waking up before time expected ~~~~
-      if (t_delta < 0 && wake_diff < 0)
+      if (WakeStatus.wake_err < 0 && wake_diff < 0)
       {
         if (abs(wake_diff) <= min_t_avoidSleep)
         {
@@ -111,6 +111,7 @@ void esp32Sleep::check_awake_ontime(struct tm *timeinfo, time_t *epoch_time, int
     else if (getEEPROMvalue() > 0)
     {
       driftRTC = (int)getEEPROMvalue();
+      WakeStatus.drift_err = driftRTC;
     }
     else
     {
@@ -166,8 +167,6 @@ void esp32Sleep::update_driftArray(float lastboot_drift)
     }
     driftRTC = sum_avg / (float)drift_ArraySize;
   }
-  // Serial.print("Mean driftRTC: ");
-  // Serial.println(driftRTC);
 }
 void esp32Sleep::new_driftUpdate(float lastboot_drift, byte cell)
 {
@@ -202,13 +201,15 @@ void esp32Sleep::sleepNOW(float sec2sleep)
 void esp32Sleep::wait_forSleep(struct tm *timeinfo, time_t *epoch_time, bool wifiOK, bool nosleep)
 {
   static bool lastMessage = false;
-  const int epsilonb4sleep = 500; //millis
+  const int epsilonb4sleep = 1000; //millis
 
   if (nosleep == false)
   {
-    if (millis() >= (WakeStatus.awake_duration - 1) * epsilonb4sleep && lastMessage == false) // this way it call ext_ fuct before sleep
+    if (millis() >= (WakeStatus.awake_duration * 1000 - epsilonb4sleep) && lastMessage == false) // this way it call ext_ fuct before sleep
     {
       sleepduration = calc_nominal_sleepTime(timeinfo, epoch_time);
+      WakeStatus.drift_err = driftRTC;
+
       if (_use_extfunc)
       {
         _runFunc();

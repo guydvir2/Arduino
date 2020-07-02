@@ -1,7 +1,7 @@
 #include <myIOTesp32.h>
 #include <myESP32sleep.h>
 
-#define VER "ESP32_0.3v"
+#define VER "ESP32_0.5v"
 #define USE_VMEASURE false
 #define USE_SLEEP true
 // ~~~~~~~ myIOT32 ~~~~~~~~
@@ -10,13 +10,12 @@
 #define MQTT_GROUP "test"
 #define MQTT_TELEGRAM "myHome/Telegram"
 #define MQTT_EXT_TOPIC MQTT_PREFIX "/" MQTT_GROUP "/" DEVICE_TOPIC "/" \
-                                   "SHIT"
+                                   "onWake"
 #define USE_SERIAL true
 #define USE_OTA true
 #define USE_WDT false
 #define USE_EXT_TOPIC true
 #define USE_RESETKEEPER true
-#define USE_LISTEN_TOPIC true
 
 myIOT32 iot(DEVICE_TOPIC);
 
@@ -28,7 +27,6 @@ void startIOT_services()
   iot.useOTA = USE_OTA;
   iot.useExtTopic = USE_EXT_TOPIC;
   iot.ext_mqtt_cb = ext_MQTT;
-  iot.listenWakeTopic = USE_LISTEN_TOPIC;
   strcpy(iot.prefixTopic, MQTT_PREFIX);
   strcpy(iot.addGroupTopic, MQTT_GROUP);
   strcpy(iot.telegramServer, MQTT_TELEGRAM);
@@ -39,9 +37,9 @@ void startIOT_services()
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 // ~~~~~~~ Sleep ~~~~~~~~~~~
-#define SLEEP_TIME 2
+#define SLEEP_TIME 60
 #define FORCE_AWAKE_TIME 20
-#define NO_SLEEP_TIME 2
+#define NO_SLEEP_TIME 4
 #define DEV_NAME DEVICE_TOPIC
 bool no_sleep_flag = false;
 
@@ -51,13 +49,14 @@ void b4sleep()
   Serial.println("Going to Sleep");
   Serial.flush();
   iot.getTime();
-  create_wake_status(bootCounter, go2sleep.nextwake_clock, go2sleep.sleepduration, iot.epoch_time, LOW, FORCE_AWAKE_TIME);
-    Serial.println("name: " + String(go2sleep.WakeStatus.name));
-  Serial.println("wake duration: " + String(go2sleep.WakeStatus.awake_duration));
-  Serial.println("bootCount: " + String(go2sleep.WakeStatus.bootCount));
-  Serial.println("Start Sleep:" + String(go2sleep.WakeStatus.startsleep_clock));
-  Serial.println("next wake clock: " + String(go2sleep.WakeStatus.nextwake_clock));
-  Serial.println("wake clock: " + String(go2sleep.WakeStatus.wake_clock));
+  postWake();
+  // create_wake_status(bootCounter, go2sleep.nextwake_clock, go2sleep.sleepduration, iot.epoch_time, LOW, FORCE_AWAKE_TIME);
+  // Serial.println("name: " + String(go2sleep.WakeStatus.name));
+  // Serial.println("wake duration: " + String(go2sleep.WakeStatus.awake_duration));
+  // Serial.println("bootCount: " + String(go2sleep.WakeStatus.bootCount));
+  // Serial.println("Start Sleep:" + String(go2sleep.WakeStatus.startsleep_clock));
+  // Serial.println("next wake clock: " + String(go2sleep.WakeStatus.nextwake_clock));
+  // Serial.println("wake clock: " + String(go2sleep.WakeStatus.wake_clock));
 }
 void startSleep_services()
 {
@@ -66,7 +65,6 @@ void startSleep_services()
 
   iot.getTime(); // generate clock and passing it to next func.
   go2sleep.startServices(&iot.timeinfo, &iot.epoch_time);
-  create_wake_status(bootCounter, go2sleep.nextwake_clock, go2sleep.sleepduration, 0, HIGH, FORCE_AWAKE_TIME);
 }
 // ~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -87,24 +85,40 @@ void bat_measure()
   }
   bat_volt = ((bat_volt / ((float)sample)) / ADC_res) * vcc * (1.0 / Rvalue);
 }
-void create_wake_status(int bootc, long nextw, int sleept, long startSleep, bool wstat, int forcedawake)
-{
-  // iot.DeviceStatus.bootcount = bootc;
-  // iot.DeviceStatus.nextWake_clock = nextw;
-  // iot.DeviceStatus.sleepduration = sleept;
-  // iot.DeviceStatus.wake_status = wstat;
-  // iot.DeviceStatus.startsleep_clock = startSleep;
-  // iot.DeviceStatus.forceawake = forcedawake;
 
-  // iot.createWakeJSON();
-}
 bool checkWake_topic()
 {
-  if (strcmp(iot.incmoing_wakeMSG, "maintainance") == 0)
+  if (strcmp(iot.mqqt_ext_buffer[1], "maintainance") == 0)
   {
-    no_sleep_flag = true;
-    sprintf(iot.incmoing_wakeMSG, "");
+    sprintf(iot.mqqt_ext_buffer[1], "");
   }
+}
+void postWake()
+{
+  StaticJsonDocument<300> doc;
+  // Constansts
+  doc["deviceName"] = go2sleep.WakeStatus.name;
+  doc["bootCount"] = go2sleep.WakeStatus.bootCount;
+  doc["forcedAwake"] = go2sleep.WakeStatus.awake_duration;
+
+  // Per wake cycle
+  doc["sleepDuration"] = go2sleep.sleepduration;
+  doc["Wake"] = go2sleep.WakeStatus.wake_clock;
+  doc["SleetStart"] = go2sleep.WakeStatus.startsleep_clock;
+  doc["nextWake"] = go2sleep.WakeStatus.nextwake_clock;
+  doc["RTCdrift"] = go2sleep.WakeStatus.drift_err;
+  doc["WakeErr"] = go2sleep.WakeStatus.wake_err;
+
+  String output;
+  serializeJson(doc, output);
+  char a[250];
+  output.toCharArray(a, 250);
+  iot.pub_ext(a, true);
+}
+void start_maintainance()
+{
+  no_sleep_flag = true;
+  iot.pub_ext("maintainance_started", true);
 }
 
 void ext_MQTT(char *incoming_msg)
@@ -122,14 +136,14 @@ void ext_MQTT(char *incoming_msg)
     sprintf(msg, "ver #1: Code: [%s],lib: [%s]", VER, iot.ver);
     iot.pub_msg(msg);
 
-    sprintf(msg, "ver #2: WDT: [%d], OTA: [%d], SERIAL: [%d], ResetKeeper[%d], listenTopic[%d]",
-            USE_WDT, USE_OTA, USE_SERIAL, USE_RESETKEEPER, USE_LISTEN_TOPIC);
+    sprintf(msg, "ver #2: WDT: [%d], OTA: [%d], SERIAL: [%d], ResetKeeper[%d]",
+            USE_WDT, USE_OTA, USE_SERIAL, USE_RESETKEEPER);
     iot.pub_msg(msg);
   }
   else if (strcmp(incoming_msg, "maintainance") == 0)
   {
     sprintf(msg, "Maintainance: forced No-sleep [%d minutes] started", NO_SLEEP_TIME);
-    no_sleep_flag = true;
+    start_maintainance();
     iot.pub_msg(msg);
     iot.pub_tele(msg);
   }
@@ -153,22 +167,7 @@ void ext_MQTT(char *incoming_msg)
     go2sleep.sleepNOW(SLEEP_TIME * 60);
   }
 }
-void createWakeJSON()
-{
-  StaticJsonDocument<250> doc;
-  // doc["bootCount"] = DeviceStatus.bootcount;
-  // doc["nextWake"] = DeviceStatus.nextWake_clock;
-  // doc["sleepDuration"] = DeviceStatus.sleepduration; // minutes
-  // doc["forcedAwake"] = DeviceStatus.forceawake;
-  // doc["SleetStart"] = DeviceStatus.startsleep_clock;
-  // doc["isWake"] = DeviceStatus.wake_status;
 
-  // String output;
-  // serializeJson(doc, output);
-  // char a[250];
-  // output.toCharArray(a, 250);
-  // pub_nextWake(a);
-}
 void setup()
 {
   startIOT_services();
@@ -186,16 +185,8 @@ void setup()
 
 #endif
 
-  // Serial.println("name: " + String(go2sleep.WakeStatus.name));
-  // Serial.println("wake duration: " + String(go2sleep.WakeStatus.awake_duration));
-  // Serial.println("bootCount: " + String(go2sleep.WakeStatus.bootCount));
-  // Serial.println("Start Sleep:" + String(go2sleep.WakeStatus.startsleep_clock));
-  // Serial.println("next wake clock: " + String(go2sleep.WakeStatus.nextwake_clock));
-  // Serial.println ("wake clock: " + String(go2sleep.WakeStatus.wake_clock));
-
   iot.pub_msg(a);
   iot.pub_tele(a);
-
 }
 
 void loop()
@@ -204,12 +195,6 @@ void loop()
 #if USE_SLEEP
   iot.getTime();
   go2sleep.wait_forSleep(&iot.timeinfo, &iot.epoch_time, iot.networkOK, no_sleep_flag);
-  checkWake_topic();
 #endif
-  if (strcmp(iot.mqqt_ext_buffer[0], "") != 0)
-  {
-    Serial.println(iot.mqqt_ext_buffer[0]);
-    sprintf(iot.mqqt_ext_buffer[0], "");
-  }
   delay(100);
 }

@@ -38,13 +38,15 @@ public:
         int sleep_duration; //sec
         int awake_duration; 
         int bootCount;
+        int wake_err;
+        float drift_err;
         long startsleep_clock;
         long nextwake_clock;
         long wake_clock;
         char *name;
     };
 
-    wakeStatus WakeStatus={0,0,0,0,0,0,"This is saved to any name"};
+    wakeStatus WakeStatus={0,0,0,0,0.0,0,0,0,"This is saved to any name"};
 
 private:
     // ~~~~~~~~ EEPROM ~~~~~~~~~~~~~

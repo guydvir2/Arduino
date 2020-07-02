@@ -113,7 +113,7 @@ bool myIOT32::_selectMQTTserver()
 }
 void myIOT32::MQTTcallback(char *topic, byte *payload, unsigned int length)
 {
-  char incoming_msg[150];
+  char incoming_msg[250];
 
   if (useSerial)
   {
@@ -129,11 +129,7 @@ void myIOT32::MQTTcallback(char *topic, byte *payload, unsigned int length)
   incoming_msg[length] = 0;
   Serial.println();
 
-  if (strcmp(topic, _wakeTopic) == 0 && listenWakeTopic)
-  {
-    strcpy(incmoing_wakeMSG, incoming_msg);
-  }
-  else if (strcmp(topic, _availTopic) == 0 && bootType == 2 && useResetKeeper)
+  if (strcmp(topic, _availTopic) == 0 && bootType == 2 && useResetKeeper)
   {
     // bootType: (2) - value at init , (1) quick boot (0) - regulatBoot
     if (strcmp(incoming_msg, "online") == 0)
@@ -215,7 +211,6 @@ void myIOT32::createTopics()
   snprintf(_stateTopic, MaxTopicLength, "%s/State", deviceTopic);
   snprintf(_availTopic, MaxTopicLength, "%s/Avail", deviceTopic);
   snprintf(_statusTopic, MaxTopicLength, "%s/Status", deviceTopic);
-  snprintf(_wakeTopic, MaxTopicLength, "%s/onWake", deviceTopic);
 }
 bool myIOT32::connectMQTT()
 {
@@ -335,7 +330,7 @@ void myIOT32::_notifyOnline()
 void myIOT32::pub_msg(char *msg)
 {
   char tstamp[25];
-  char tem[150];
+  char tem[250];
   getTimeStamp(tstamp);
   sprintf(tem, "[%s] [%s] %s", tstamp, deviceTopic, msg);
   mqttClient.publish(_msgTopic, tem);
@@ -343,10 +338,6 @@ void myIOT32::pub_msg(char *msg)
 void myIOT32::pub_Status(char *statusmsg)
 {
   mqttClient.publish(_statusTopic, statusmsg, true);
-}
-void myIOT32::pub_nextWake(char *inmsg)
-{
-  mqttClient.publish(_wakeTopic, inmsg, true);
 }
 void myIOT32::pub_log(char *inmsg)
 {
@@ -373,7 +364,7 @@ void myIOT32::pub_tele(char *inmsg, char *name)
 }
 void myIOT32::pub_ext(char *inmsg, char *name)
 {
-  char tmpmsg[200];
+  char tmpmsg[250];
   char tstamp[25];
   getTimeStamp(tstamp);
 
@@ -390,6 +381,14 @@ void myIOT32::pub_ext(char *inmsg, char *name)
     mqttClient.publish(extTopic, tmpmsg);
   }
 }
+void myIOT32::pub_ext(char *inmsg, bool retain)
+{
+  if (mqttClient.connected())
+  {
+    mqttClient.publish(extTopic, inmsg, retain);
+  }
+}
+
 // ±±±±±±±±±±± WIFI & Clock ±±±±±±±±±
 void myIOT32::startNTP(const int gmtOffset_sec = 2 * 3600, const int daylightOffset_sec = 3600, const char *ntpServer = "pool.ntp.org")
 {
@@ -454,6 +453,7 @@ void myIOT32::createDateStamp(struct tm *t, char retChar[30])
 {
   sprintf(retChar, "%04d-%02d-%02d %02d:%02d:%02d", t->tm_year + 1900, t->tm_mon + 1, t->tm_mday, t->tm_hour, t->tm_min, t->tm_sec);
 }
+
 // ±±±±±±±±±±±±± OTA & WDT ±±±±±±±±±±±
 void myIOT32::_startOTA()
 {
@@ -561,22 +561,6 @@ void myIOT32::_createStatusJSON()
   output.toCharArray(a, 150);
   pub_Status(a);
 }
-// void myIOT32::createWakeJSON()
-// {
-//   StaticJsonDocument<JDOC_SIZE> doc;
-//   doc["bootCount"] = DeviceStatus.bootcount;
-//   doc["nextWake"] = DeviceStatus.nextWake_clock;
-//   doc["sleepDuration"] = DeviceStatus.sleepduration; // minutes
-//   doc["forcedAwake"] = DeviceStatus.forceawake;
-//   doc["SleetStart"] = DeviceStatus.startsleep_clock;
-//   doc["isWake"] = DeviceStatus.wake_status;
-
-//   String output;
-//   serializeJson(doc, output);
-//   char a[250];
-//   output.toCharArray(a, 250);
-//   pub_nextWake(a);
-// }
 void myIOT32::_getMQTT2JSON(char *input_str)
 {
   StaticJsonDocument<JDOC_SIZE> doc;

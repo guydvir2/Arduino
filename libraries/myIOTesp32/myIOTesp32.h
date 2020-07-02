@@ -57,13 +57,12 @@ private:
     const int _wdtMaxRetries = 30; //seconds to bITE
 
 public:
-    const char *ver = "iot32_ver_0.9";
+    const char *ver = "iot32_ver_1.0";
     bool useSerial = false;
     bool useOTA = true;
     bool useWDT = true;
     bool useExtTopic = false;
     bool useResetKeeper = true;
-    bool listenWakeTopic = false;
     bool networkOK = false;
     long unsigned allowOTA_clock = 0;
     int bootType = 2; // 2 - init; 1 - resetboot; 0- regular boot
@@ -73,7 +72,6 @@ public:
     char telegramServer[MaxTopicLength];
     char extTopic[MaxTopicLength];
     char inline_param[6][20]; //values from user
-    char incmoing_wakeMSG[200];
     char mqqt_ext_buffer[3][150];
 
     // Clock
@@ -86,15 +84,8 @@ public:
         char ip[20];
         time_t boot_clock;
         long last_keepalive;
-
-        long nextWake_clock;
-        long startsleep_clock;
-        int sleepduration;
-        int forceawake;
-        int bootcount;
-        bool wake_status;
     };
-    status DeviceStatus = {deviceTopic, "", 0, 0, 0, 0, 0, 0, false};
+    status DeviceStatus = {deviceTopic, "", 0, 0};
 
     WiFiClient espClient;
     PubSubClient mqttClient;
@@ -110,10 +101,10 @@ public:
     bool startMQTT();
     void pub_msg(char *msg);
     void pub_Status(char *statusmsg);
-    void pub_nextWake(char *inmsg);
     void pub_log(char *inmsg);
     void pub_tele(char *inmsg, char *name = "");
-    void pub_ext(char *inmsg, char *name);
+    void pub_ext(char *inmsg, char *name = "");
+    void pub_ext(char *inmsg, bool retain);
 
     void getTime();
     void getTimeStamp(char ret_timeStamp[25]);
@@ -121,7 +112,6 @@ public:
     void createDateStamp(struct tm *t, char retChar[30]);
 
     void sendReset(char *header);
-    // void createWakeJSON();
     bool checkInternet(char *externalSite, byte pings = 1);
 
 private:
