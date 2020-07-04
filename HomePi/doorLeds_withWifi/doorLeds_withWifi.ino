@@ -14,9 +14,12 @@ RX - GPIO3 --> INPUT  ONLY
 #define Pin_Sensor_0 2
 #define Pin_Switch_0 0
 #define Pin_extbut_0 13 // fake
+#define SwitchTimeOUT_0 30 //minutes
+
 #define Pin_Switch_1 1
 #define Pin_Sensor_1 13 // fake io - not using sensor
 #define Pin_extbut_1 3  // using button to switch on/ off
+#define SwitchTimeOUT_1 30 //minutes
 
 /*
 #define Pin_Sensor_0 16 //
@@ -26,8 +29,6 @@ RX - GPIO3 --> INPUT  ONLY
 #define Pin_extbut_0 D5 // using button to switch on/ off
 #define Pin_extbut_1 D7 // using button to switch on/ off
 */
-#define SwitchTimeOUT_0 30 //minutes
-#define SwitchTimeOUT_1 30 //minutes
 
 // ********** myIOT Class ***********
 //~~~~~ Services ~~~~~~~~~~~
@@ -48,9 +49,11 @@ RX - GPIO3 --> INPUT  ONLY
 myIOT iot(DEVICE_TOPIC);
 // ***************************
 
+// ±±±±±±±±±±±±±± mySwitch ±±±±±±±±±±±±±±±
 #define NUM_SW 1
 const char *ledNames[] = {"LEDstrip", "empty"};
 SensorSwitch s0(Pin_Sensor_0, Pin_Switch_0, SwitchTimeOUT_0, Pin_extbut_0);
+
 #if NUM_SW == 1
 SensorSwitch *s[NUM_SW] = {&s0};
 #else if NUM_SW == 2
@@ -178,8 +181,8 @@ void notifyMQTT()
 
 void setup()
 {
-        s0.useButton = true;
-        s0.usePWM = false;
+        s0.useButton = false;
+        s0.usePWM = true;
         s0.RelayON_def = true;
         s0.ButtonPressed_def = LOW;
         s0.SensorDetection_def = LOW;
