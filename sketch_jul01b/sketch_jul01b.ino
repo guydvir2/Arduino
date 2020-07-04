@@ -9,7 +9,7 @@
 
 // ********** myIOT Class ***********
 //~~~~~ Services ~~~~~~~~~~~
-#define USE_SERIAL false     // Serial Monitor
+#define USE_SERIAL true     // Serial Monitor
 #define USE_WDT true         // watchDog resets
 #define USE_OTA true         // OTA updates
 #define USE_RESETKEEPER true // detect quick reboot and real reboots
@@ -31,13 +31,13 @@ myIOT iot(DEVICE_TOPIC);
 // *********** myTOswitch ***********
 // ~~~~~~ Services ~~~~~~~~
 #define ON_AT_BOOT false
-#define USE_QUICK_BOOT true
+#define USE_QUICK_BOOT false
 #define USE_TO true
 #define USE_dailyTO true
 #define SAFETY_OFF true
 #define SAFEY_OFF_DURATION 300 //minutes
 #define USE_BADBOOT USE_RESETKEEPER
-#define USE_EEPROM_RESET_COUNTER true
+#define USE_EEPROM_RESET_COUNTER false
 // ~~~~~~~~~~~~~~~~~~~~
 
 // ~~~~ TO & dailyTO ~~~~~~
@@ -50,7 +50,8 @@ const int TimeOUT[] = {120, 240}; // minutes
 #define NUM_SW 1
 #define USE_PWM false
 #define USE_INPUT false
-#define USE_EXT_TRIG false
+#define USE_EXT_TRIG true
+#define EXT_SIG_PIN D1
 #define BUTTOM_MOMENT true
 
 const int outputPin[] = {12, 5}; // D3 for most PWM boards
@@ -142,6 +143,10 @@ void TOswitch_looper()
                 }
         }
 }
+void startEXTsignal(){
+  pinMode(EXT_SIG_PIN,INPUT);
+  // TOswitches[0]->extTrig_cb
+}
 // ***********************************
 void startIOTservices()
 {
@@ -150,10 +155,9 @@ void startIOTservices()
         iot.useOTA = USE_OTA;
         iot.useResetKeeper = USE_RESETKEEPER;
         iot.resetFailNTP = USE_FAILNTP;
-        iot.useTelegram = USE_TELEGRAM;
         strcpy(iot.prefixTopic, MQTT_PREFIX);
         strcpy(iot.addGroupTopic, MQTT_GROUP);
-        strcpy(iot.telegramServer, TELEGRAM_OUT_TOPIC);
+        // strcpy(iot.telegramServer, TELEGRAM_OUT_TOPIC);
         iot.start_services(ADD_MQTT_FUNC);
 }
 void giveStatus(char *outputmsg)
@@ -281,12 +285,16 @@ void displayClock()
         }
 }
 #endif
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+
+// }
 void setup()
 {
         configTOswitches();
         startIOTservices();
         startTOSwitch();
+        startEXTsignal();
 #if USE_DISPLAY
         OLED.start();
 #endif
@@ -295,6 +303,7 @@ void loop()
 {
         iot.looper();
         TOswitch_looper();
+        TOswitches[0]->ext_trig_signal = digitalRead(EXT_SIG_PIN);
 #if USE_DISPLAY
         displayClock();
 #endif

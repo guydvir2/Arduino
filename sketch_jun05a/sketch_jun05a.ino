@@ -5,9 +5,9 @@
 #define USE_VMEASURE false
 #define USE_SLEEP true
 // ~~~~~~~ myIOT32 ~~~~~~~~
-#define DEVICE_TOPIC "ESP32_2"
+#define DEVICE_TOPIC "ESP32_12v"
 #define MQTT_PREFIX "myHome"
-#define MQTT_GROUP "test"
+#define MQTT_GROUP "solarPower"
 #define MQTT_TELEGRAM "myHome/Telegram"
 #define MQTT_EXT_TOPIC MQTT_PREFIX "/" MQTT_GROUP "/" DEVICE_TOPIC "/" \
                                    "onWake"
@@ -37,7 +37,7 @@ void startIOT_services()
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 // ~~~~~~~ Sleep ~~~~~~~~~~~
-#define SLEEP_TIME 60
+#define SLEEP_TIME 30
 #define FORCE_AWAKE_TIME 20
 #define NO_SLEEP_TIME 4
 #define DEV_NAME DEVICE_TOPIC
@@ -71,7 +71,7 @@ void startSleep_services()
 // ~~~~~ Power Managment ~~~~
 const int measureVoltagePin = 35;
 const int ADC_res = 4095;
-const float Rvalue = 0.75;
+const float Rvalue = 0.45;//0.75
 const float vcc = 3.3;
 float bat_volt = 0.0;
 

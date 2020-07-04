@@ -9,13 +9,13 @@ RX - GPIO3 --> INPUT  ONLY
 */
 
 // ********** Sketch Services  ***********
-#define VER "ESP-01_1.4"
+#define VER "ESP-01_1.5"
 
-#define Pin_Sensor_0 0
-#define Pin_Sensor_1 13 // fake io - not using sensor
-#define Pin_Switch_0 2
-#define Pin_Switch_1 1
+#define Pin_Sensor_0 2
+#define Pin_Switch_0 0
 #define Pin_extbut_0 13 // fake
+#define Pin_Switch_1 1
+#define Pin_Sensor_1 13 // fake io - not using sensor
 #define Pin_extbut_1 3  // using button to switch on/ off
 
 /*
@@ -39,7 +39,7 @@ RX - GPIO3 --> INPUT  ONLY
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 // ~~~~~~~ MQTT Topics ~~~~~~
-#define DEVICE_TOPIC "parentsClosetLEDs"
+#define DEVICE_TOPIC "shcharClosetLEDs"
 #define MQTT_PREFIX "myHome"
 #define MQTT_GROUP "intLights"
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -48,11 +48,15 @@ RX - GPIO3 --> INPUT  ONLY
 myIOT iot(DEVICE_TOPIC);
 // ***************************
 
-#define NUM_SW 2
-const char *ledNames[] = {"Guy", "Anna"};
+#define NUM_SW 1
+const char *ledNames[] = {"LEDstrip", "Anna"};
 SensorSwitch s0(Pin_Sensor_0, Pin_Switch_0, SwitchTimeOUT_0, Pin_extbut_0);
+#if NUM_SW == 1
+SensorSwitch *s[NUM_SW] = {&s0};
+#else if NUM_SW == 2
 SensorSwitch s1(Pin_Sensor_1, Pin_Switch_1, SwitchTimeOUT_1, Pin_extbut_1);
 SensorSwitch *s[NUM_SW] = {&s0, &s1};
+#endif
 
 void startIOTservices()
 {
@@ -180,13 +184,14 @@ void setup()
         s0.ButtonPressed_def = LOW;
         s0.SensorDetection_def = LOW;
         s0.start();
-
+#if NUM_SW == 2
         s1.useButton = true;
         s1.usePWM = false;
         s1.RelayON_def = true;
         s1.ButtonPressed_def = LOW;
         s1.SensorDetection_def = LOW;
         s1.start();
+#endif
 
         startIOTservices();
 }
@@ -195,7 +200,9 @@ void loop()
 {
         iot.looper();
         s0.looper();
+#if NUM_SW == 2
         s1.looper();
+#endif
         notifyMQTT();
         delay(100);
 }

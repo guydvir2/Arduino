@@ -18,7 +18,7 @@
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 // ~~~~~~~ MQTT Topics ~~~~~~
-#define DEVICE_TOPIC "saloonSingle"
+#define DEVICE_TOPIC "laundryRoom"
 #define MQTT_PREFIX "myHome"
 #define MQTT_GROUP "Windows"
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -33,8 +33,8 @@ myIOT iot(DEVICE_TOPIC);
 
 // GPIO Pins for ESP8266
 //~~~~Internal Switch ~~~~~~
-const int inputUpPin = 4;
-const int inputDownPin = 5;
+const int inputUpPin = D3;   // main is D1 // D3 only for myHome/Windows/saloonSingle
+const int inputDownPin = D2; // main is D2 // D3 only for laundryRoom 
 const int outputUpPin = 14;
 const int outputDownPin = 12;
 //~~~~External Input ~~~~~~~~~

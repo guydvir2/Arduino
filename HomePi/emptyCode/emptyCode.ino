@@ -14,15 +14,14 @@
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 // ~~~~~~~ MQTT Topics ~~~~~~
-#define DEVICE_TOPIC "constantON"
+#define DEVICE_TOPIC "empty"
 #define MQTT_PREFIX "myHome"
-#define MQTT_GROUP "12V_Solar"
+#define MQTT_GROUP "test"
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 #define ADD_MQTT_FUNC addiotnalMQTT
 myIOT iot(DEVICE_TOPIC);
 // ***************************
-
 
 
 void startIOTservices()

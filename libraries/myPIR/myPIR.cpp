@@ -4,9 +4,9 @@
 PIRsensor::PIRsensor(int Pin, char *nick, int logic_length, bool detect)
 {
   _pin = Pin;
+  sensNick = nick;
   _length_logic_state = logic_length;
   _isDetect = detect;
-  sensNick = nick;
 }
 void PIRsensor::start()
 {
