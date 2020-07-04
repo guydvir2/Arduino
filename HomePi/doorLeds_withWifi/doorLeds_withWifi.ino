@@ -39,7 +39,7 @@ RX - GPIO3 --> INPUT  ONLY
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 // ~~~~~~~ MQTT Topics ~~~~~~
-#define DEVICE_TOPIC "shcharClosetLEDs"
+#define DEVICE_TOPIC "shacharCloset"
 #define MQTT_PREFIX "myHome"
 #define MQTT_GROUP "intLights"
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -49,7 +49,7 @@ myIOT iot(DEVICE_TOPIC);
 // ***************************
 
 #define NUM_SW 1
-const char *ledNames[] = {"LEDstrip", "Anna"};
+const char *ledNames[] = {"LEDstrip", "empty"};
 SensorSwitch s0(Pin_Sensor_0, Pin_Switch_0, SwitchTimeOUT_0, Pin_extbut_0);
 #if NUM_SW == 1
 SensorSwitch *s[NUM_SW] = {&s0};
