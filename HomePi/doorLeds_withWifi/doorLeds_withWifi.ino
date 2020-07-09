@@ -14,7 +14,7 @@ RX - GPIO3 --> INPUT  ONLY
 #define Pin_Sensor_0 2
 #define Pin_Switch_0 0
 #define Pin_extbut_0 13 // fake
-#define SwitchTimeOUT_0 30 //minutes
+#define SwitchTimeOUT_0 60 //minutes
 
 #define Pin_Switch_1 1
 #define Pin_Sensor_1 13 // fake io - not using sensor
@@ -85,11 +85,11 @@ void addiotnalMQTT(char *incoming_msg)
                 {
                         if (s[i]->swState < 1.0 && s[i]->swState > 0.0)
                         {
-                                sprintf(msg2, "LedStrip [%s] [%.1f%%] [On] ", ledNames[i], s[i]->swState * 100);
+                                sprintf(msg2, "[%s] [%.1f%%] [On] ", ledNames[i], s[i]->swState * 100);
                         }
                         else
                         {
-                                sprintf(msg2, "LedStrip [%s] [%s] ", ledNames[i], s[i]->swState ? "On" : "Off");
+                                sprintf(msg2, "[%s] [%s] ", ledNames[i], s[i]->swState ? "On" : "Off");
                         }
                         strcat(msg, msg2);
                 }
@@ -115,7 +115,7 @@ void addiotnalMQTT(char *incoming_msg)
                         if (s[i]->swState != 0.0)
                         {
                                 s[i]->turnOff();
-                                sprintf(msg, "MQTT: LedStrip [%s] Turned [Off]", ledNames[i]);
+                                sprintf(msg, "MQTT: [%s] Turned [Off]", ledNames[i]);
                                 iot.pub_msg(msg);
                         }
                 }
@@ -185,7 +185,7 @@ void setup()
         s0.usePWM = true;
         s0.RelayON_def = true;
         s0.ButtonPressed_def = LOW;
-        s0.SensorDetection_def = LOW;
+        s0.SensorDetection_def = HIGH;
         s0.start();
 #if NUM_SW == 2
         s1.useButton = true;

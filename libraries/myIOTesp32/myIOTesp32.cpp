@@ -36,7 +36,7 @@ void myIOT32::looper()
   if (WiFi.status() == WL_CONNECTED)
   {
     // Wifi OK
-    MQTTloop() ? _networkflags(1) : _networkflags(0);
+    MQTTloop();// ? _networkflags(1) : _networkflags(0);
   }
   else
   {
@@ -142,15 +142,15 @@ void myIOT32::MQTTcallback(char *topic, byte *payload, unsigned int length)
     }
     _notifyOnline();
   }
-  else if (strcmp(topic, _statusTopic) == 0)
-  {
-    _getMQTT2JSON(incoming_msg);
-  }
+  // else if (strcmp(topic, _statusTopic) == 0)
+  // {
+  //   _getMQTT2JSON(incoming_msg);
+  // }
   else if (useExtTopic && strcmp(topic, extTopic) == 0)
   {
-    sprintf(mqqt_ext_buffer[0], "%s", topic);
-    sprintf(mqqt_ext_buffer[1], "%s", incoming_msg);
-    sprintf(mqqt_ext_buffer[2], "%s", _deviceName); // not full path
+    sprintf(mqtt_msg.topic, "%s", topic);
+    sprintf(mqtt_msg.msg, "%s", incoming_msg);
+    sprintf(mqtt_msg.dev_name, "%s", _deviceName); // not full path
   }
 
   _MQTTcmds(incoming_msg);
@@ -217,8 +217,6 @@ bool myIOT32::connectMQTT()
   if (!mqttClient.connected())
   {
     bool a = mqttClient.connect(_devTopic, _user, _passw, _availTopic, 0, true, "offline");
-    networkOK = true;
-    _networkerr_clock = 0;
     if (!useResetKeeper)
     {
       _notifyOnline();
@@ -267,6 +265,8 @@ bool myIOT32::startMQTT()
   if (connectMQTT())
   {
     subscribeMQTT();
+    _networkflags(1);
+
     if (_alternativeMQTTserver)
     {
       char a[50];
@@ -280,17 +280,17 @@ bool myIOT32::startMQTT()
   }
   else
   {
-    networkOK = false;
+    _networkflags(0);
   }
 }
-bool myIOT32::MQTTloop()
+void myIOT32::MQTTloop()
 {
   static long lastReconnectAttempt = 0;
 
   if (mqttClient.connected())
   {
     mqttClient.loop();
-    return 1;
+    Serial.println("MQTT GOOD");
   }
   else
   {
@@ -306,20 +306,16 @@ bool myIOT32::MQTTloop()
         _updateKeepAlive();
         _networkflags(1);
         Serial.println("MQTT Server- re-connected");
-
-        return 1;
       }
       else
       {
+        Serial.println("MQTT Server- fail to reconnect");
         _networkflags(0);
-        return 0;
       }
     }
     else
     {
-      Serial.println("MQTT Server- fail to connected");
-
-      return 0;
+      Serial.println("MQTT Server- wait to reconnect");
     }
   }
 }
@@ -550,7 +546,7 @@ void myIOT32::_createStatusJSON()
   createDateStamp(convEpoch(DeviceStatus.boot_clock), clockChar);
 
   StaticJsonDocument<JDOC_SIZE> doc;
-  doc["topic"] = DeviceStatus.devicetopic; // minutes
+  doc["topic"] = DeviceStatus.devicetopic;
   doc["ip"] = DeviceStatus.ip;
   doc["boot"] = String(clockChar); // minutes
   doc["imAlive"] = DeviceStatus.last_keepalive;

@@ -145,8 +145,8 @@ void SensorSwitch::turnOff()
   {
     digitalWrite(_switchPin, !RelayON_def);
   }
-  _ONclock = 0;
   swState = 0.0;
+  _ONclock = 0;
 }
 void SensorSwitch::turnOn(int TO)
 {
@@ -154,17 +154,22 @@ void SensorSwitch::turnOn(int TO)
   {
     if (_currentPWMval == 0)
     {
-      _currentPWMval = 0.6 * _maxPWM;
+      _currentPWMval = (PWMres * def_brightness) / brightness_steps;
     }
+    swState = (float)_currentPWMval / (float)PWMres;
+
+    // Dimming Uo
     for (int i = 0; i <= _currentPWMval; i = i + _PWMdimm_step)
     {
       analogWrite(_switchPin, i);
       delay(_PWMdimm_delay);
     }
+    //  End Dimming
   }
   else
   {
     digitalWrite(_switchPin, RelayON_def);
+    swState = 1.0;
   }
   if (TO != 0)
   {
@@ -175,7 +180,6 @@ void SensorSwitch::turnOn(int TO)
     _timeout_mins = _stored_timeout;
   }
   _ONclock = millis();
-  swState = 1.0;
 }
 void SensorSwitch::start()
 {
@@ -209,10 +213,10 @@ void SensorSwitch::checkButton()
           }
           else
           {
-            _currentPWMval = _maxPWM;
+            _currentPWMval = PWMres;
           }
           analogWrite(_switchPin, _currentPWMval);
-          swState = (float)_currentPWMval / (float)_maxPWM;
+          swState = (float)_currentPWMval / (float)PWMres;
           delay(200);
         }
         else
@@ -259,10 +263,18 @@ void SensorSwitch::checkSensor()
     { // ms of debounce
       if (_sensorsState == SensorDetection_def)
       {
+        if (_bright_level < max_brightness)
+        {
+          _bright_level++;
+        }
         turnOn();
       }
       else
       {
+        if (_bright_level - 1 >= 0)
+        {
+          _bright_level--;
+        }
         turnOff();
       }
       _lastDetect_clock = millis();

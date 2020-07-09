@@ -1,6 +1,5 @@
 #include <myIOT.h>
 #include <myPIR.h>
-#include <myDisplay.h>
 #include <Arduino.h>
 
 // ********** Sketch Services  ***********
@@ -255,6 +254,8 @@ void addiotnalMQTT(char *incoming_msg)
 
 // ~~~~~~~~~~~~~ Display ~~~~~~~~~~~~~~~
 #if USE_DISPLAY
+#include <myDisplay.h>
+
 myOLED OLED(64);
 
 void displayClock()

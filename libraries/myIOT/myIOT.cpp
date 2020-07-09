@@ -1321,6 +1321,8 @@ void mySwitch::switchIt(char *txt1, float state, bool ignoreTO)
 
 void mySwitch::_checkSwitch_Pressed(int swPin, bool momentary)
 {
+        static unsigned long last_press = 0; // PWM only
+        int seconds_to_off = 10;
         momentary = is_momentery;
         if (momentary)
         {
@@ -1331,14 +1333,22 @@ void mySwitch::_checkSwitch_Pressed(int swPin, bool momentary)
                         {
                                 if (usePWM) // for mosfet switching
                                 {
-                                        if (current_power + step_power > max_power)
+                                        if (millis() > last_press + seconds_to_off * 1000)
                                         {
                                                 switchIt("Button", 0);
                                         }
                                         else
                                         {
-                                                switchIt("Button", current_power + step_power);
+                                                if (current_power + step_power > max_power)
+                                                {
+                                                        switchIt("Button", 0);
+                                                }
+                                                else
+                                                {
+                                                        switchIt("Button", current_power + step_power);
+                                                }
                                         }
+                                        last_press = millis();
                                 }
                                 else // for relay switching
                                 {
