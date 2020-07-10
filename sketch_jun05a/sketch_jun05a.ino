@@ -166,7 +166,8 @@ void ext_MQTT(char *incoming_msg)
 const char *server = "maker.ifttt.com";
 const char *resource = "/trigger/send_reading/with/key/cFLymB4JT9tlODsKLFn9TA";
 
-void makeIFTTTRequest(char *val1, char *val2, char *val3)
+template <typename T1, typename T2, typename T3>
+void makeIFTTTRequest(T1 val1, T2 val2, T3 val3)
 {
   Serial.print("Connecting to ");
   Serial.print(server);
@@ -231,22 +232,20 @@ void setup()
   strcat(a, b);
 
 #endif
-Serial.println("just before first msg");
+  Serial.println("just before first msg");
   iot.pub_msg(a);
   Serial.println("just after first msg");
 
-
-
-  // makeIFTTTRequest(go2sleep.WakeStatus.name, a,"The-End");
+  // makeIFTTTRequest(go2sleep.WakeStatus.name, a, "The-End");
   // iot.pub_tele(a);
 }
 
 void loop()
 {
-  static int loopc=0;
-  Serial.print("LOOOP: ");
-  Serial.println(loopc);
-  loopc++;
+  // static int loopc=0;
+  // Serial.print("LOOOP: ");
+  // Serial.println(loopc);
+  // loopc++;
   iot.looper();
 #if USE_SLEEP
   go2sleep.wait_forSleep(iot.networkOK, no_sleep_flag);

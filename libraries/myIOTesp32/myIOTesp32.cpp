@@ -78,7 +78,7 @@ void myIOT32::looper()
   if (millis() - lastUpdate > UPDATE_STATUS_MINS * 1000 * 60 || lastUpdate == 0)
   {
     lastUpdate = millis();
-    // _createStatusJSON();
+    _createStatusJSON();
     Serial.print("millis of status: ");
     Serial.println(lastUpdate);
   }
@@ -547,19 +547,21 @@ void myIOT32::sendReset(char *header)
 // ±±±±±±±± Update JSON status ±±±±±±±±±
 void myIOT32::_createStatusJSON()
 {
-  _updateKeepAlive();
+  String output;
   char clockChar[30];
+  StaticJsonDocument<JDOC_SIZE> doc;
+
+  _updateKeepAlive();
   createDateStamp(convEpoch(DeviceStatus.boot_clock), clockChar);
 
-  StaticJsonDocument<JDOC_SIZE> doc;
   doc["topic"] = DeviceStatus.devicetopic;
   doc["ip"] = DeviceStatus.ip;
   doc["boot"] = String(clockChar); // minutes
   doc["imAlive"] = DeviceStatus.last_keepalive;
 
-  String output;
-  int charleng = output.length() + 1;
   serializeJson(doc, output);
+  int charleng = output.length() + 1;
+
   char a[charleng];
   output.toCharArray(a, charleng);
   pub_Status(a);
