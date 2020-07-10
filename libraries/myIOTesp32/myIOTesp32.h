@@ -57,7 +57,7 @@ private:
     const int _wdtMaxRetries = 30; //seconds to bITE
 
 public:
-    const char *ver = "iot32_ver_1.1";
+    const char *ver = "iot32_ver_1.2";
     bool useSerial = false;
     bool useOTA = true;
     bool useWDT = true;

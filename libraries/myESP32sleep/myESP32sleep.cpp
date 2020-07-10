@@ -17,11 +17,11 @@ esp32Sleep::esp32Sleep(int deepsleep, int forcedwake, char *devname)
   WakeStatus.awake_duration = forcedwake;
   WakeStatus.name = devname;
 }
-void esp32Sleep::startServices()//struct tm *timeinfo, time_t epoch_time)
+void esp32Sleep::startServices() //struct tm *timeinfo, time_t epoch_time)
 {
   start_eeprom();
   Avg_Array_zeroing();
-  check_awake_ontime();//timeinfo, epoch_time);
+  check_awake_ontime(); //timeinfo, epoch_time);
 }
 void esp32Sleep::run_func(cb_func cb)
 {
@@ -69,27 +69,25 @@ void esp32Sleep::Avg_Array_zeroing()
 }
 
 // ~~~~~~~ Sleep & Drift calcs ~~~
-void esp32Sleep::update_clock(){
+void esp32Sleep::update_clock()
+{
   time(&epoch_time);
   getLocalTime(&timeinfo);
 }
-void esp32Sleep::check_awake_ontime(int min_t_avoidSleep)//struct tm *timeinfo, time_t epoch_time, int min_t_avoidSleep)
+void esp32Sleep::check_awake_ontime(int min_t_avoidSleep) //struct tm *timeinfo, time_t epoch_time, int min_t_avoidSleep)
 {
   update_clock();
   bootCounter++;
-  WakeStatus.bootCount =  bootCounter;
+  WakeStatus.bootCount = bootCounter;
   sprintf(sys_presets_str, "deviceName:[%s]; SleepTime: [%d min]; Forced-aWakeTime: [%d sec]", WakeStatus.name, WakeStatus.sleep_duration, WakeStatus.awake_duration);
   sprintf(wake_sleep_str, "Boot#: [%d]; Wake_Clock: [%02d:%02d:%02d]; ", bootCounter, timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec);
-
-  Serial.println(sys_presets_str);
-  Serial.println(wake_sleep_str);
 
   // ~~~~ Check if clock is OK ~~~
   if (timeinfo.tm_year >= 120)
   {
     if (clock_beforeSleep > 0)
     {
-      int wake_diff = (long)epoch_time - clock_expectedWake;          // not first boot
+      int wake_diff = (long)epoch_time - clock_expectedWake;           // not first boot
       WakeStatus.wake_err = wake_diff - (int)(round(millis() / 1000)); // diff between calc wake clock and current time
       WakeStatus.wake_clock = (long)epoch_time;
 
@@ -125,12 +123,15 @@ void esp32Sleep::check_awake_ontime(int min_t_avoidSleep)//struct tm *timeinfo, 
       saveEEPROMvalue(0, 0);
     }
   }
+
+  Serial.println(sys_presets_str);
+  Serial.println(wake_sleep_str);
 }
 int esp32Sleep::calc_nominal_sleepTime()
 {
   update_clock();
   int nominal_nextSleep = 0;
-  char tt[100];
+  char tt[150];
 
   if (timeinfo.tm_year >= 120)
   {
@@ -199,10 +200,12 @@ void esp32Sleep::new_driftUpdate(float lastboot_drift, byte cell)
 }
 void esp32Sleep::sleepNOW(float sec2sleep)
 {
+  Serial.println("The-End");
+  Serial.flush();
   esp_sleep_enable_timer_wakeup(sec2sleep * uS_TO_S_FACTOR);
   esp_deep_sleep_start();
 }
-void esp32Sleep::wait_forSleep(bool wifiOK, bool nosleep)//struct tm *timeinfo, time_t epoch_time, bool wifiOK, bool nosleep)
+void esp32Sleep::wait_forSleep(bool wifiOK, bool nosleep) //struct tm *timeinfo, time_t epoch_time, bool wifiOK, bool nosleep)
 {
   static bool lastMessage = false;
   const int epsilonb4sleep = 1000; //millis
@@ -212,7 +215,7 @@ void esp32Sleep::wait_forSleep(bool wifiOK, bool nosleep)//struct tm *timeinfo, 
     if (millis() >= (WakeStatus.awake_duration * 1000 - epsilonb4sleep) && lastMessage == false) // this way it call ext_ fuct before sleep
     {
       sleepduration = calc_nominal_sleepTime(); // seconds
-      WakeStatus.drift_err = driftRTC; // seconds
+      WakeStatus.drift_err = driftRTC;          // seconds
 
       if (_use_extfunc)
       {
@@ -224,12 +227,11 @@ void esp32Sleep::wait_forSleep(bool wifiOK, bool nosleep)//struct tm *timeinfo, 
     {
       if (wifiOK)
       {
-        if ( sleepduration <=0){
+        if (sleepduration <= 0)
+        {
           Serial.println("Error in Sleep Duration");
           sleepduration = WakeStatus.sleep_duration * 60;
         }
-        Serial.print("sleep is: ");
-        Serial.println(sleepduration);
         sleepNOW((float)sleepduration - driftRTC);
       }
       else

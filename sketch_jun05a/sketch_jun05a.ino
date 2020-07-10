@@ -38,7 +38,7 @@ void startIOT_services()
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 // ~~~~~~~ Sleep ~~~~~~~~~~~
-#define SLEEP_TIME 3
+#define SLEEP_TIME 1
 #define FORCE_AWAKE_TIME 15
 #define NO_SLEEP_TIME 4
 #define DEV_NAME DEVICE_TOPIC
@@ -47,8 +47,7 @@ bool no_sleep_flag = false;
 esp32Sleep go2sleep(SLEEP_TIME, FORCE_AWAKE_TIME, DEV_NAME);
 void b4sleep()
 {
-  Serial.println("Going to Sleep");
-  Serial.flush();
+  Serial.println("b4Sleep");
   iot.getTime();
   // postWake();
 }
@@ -232,7 +231,10 @@ void setup()
   strcat(a, b);
 
 #endif
+Serial.println("just before first msg");
   iot.pub_msg(a);
+  Serial.println("just after first msg");
+
 
 
   // makeIFTTTRequest(go2sleep.WakeStatus.name, a,"The-End");
@@ -241,6 +243,10 @@ void setup()
 
 void loop()
 {
+  static int loopc=0;
+  Serial.print("LOOOP: ");
+  Serial.println(loopc);
+  loopc++;
   iot.looper();
 #if USE_SLEEP
   go2sleep.wait_forSleep(iot.networkOK, no_sleep_flag);

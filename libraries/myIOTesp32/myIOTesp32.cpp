@@ -36,13 +36,15 @@ void myIOT32::looper()
   if (WiFi.status() == WL_CONNECTED)
   {
     // Wifi OK
-    MQTTloop();// ? _networkflags(1) : _networkflags(0);
+    MQTTloop(); // ? _networkflags(1) : _networkflags(0);
+    // _networkflags(1);
   }
   else
   {
     // NoWifi
     static long lastWifi_try = 0;
     long now = millis();
+    _networkflags(0);
 
     if (millis() - lastWifi_try > RECON_WIFI * 1000 * 60UL)
     {
@@ -76,7 +78,9 @@ void myIOT32::looper()
   if (millis() - lastUpdate > UPDATE_STATUS_MINS * 1000 * 60 || lastUpdate == 0)
   {
     lastUpdate = millis();
-    _createStatusJSON();
+    // _createStatusJSON();
+    Serial.print("millis of status: ");
+    Serial.println(lastUpdate);
   }
 }
 
@@ -142,10 +146,10 @@ void myIOT32::MQTTcallback(char *topic, byte *payload, unsigned int length)
     }
     _notifyOnline();
   }
-  // else if (strcmp(topic, _statusTopic) == 0)
-  // {
-  //   _getMQTT2JSON(incoming_msg);
-  // }
+  else if (strcmp(topic, _statusTopic) == 0)
+  {
+    _getMQTT2JSON(incoming_msg);
+  }
   else if (useExtTopic && strcmp(topic, extTopic) == 0)
   {
     sprintf(mqtt_msg.topic, "%s", topic);
@@ -254,6 +258,8 @@ void myIOT32::subscribeMQTT()
 }
 bool myIOT32::startMQTT()
 {
+  // _selectMQTTserver();
+  createTopics();
   mqttClient.setServer(_mqtt_server, _mqtt_port);
   mqttClient.setCallback(std::bind(&myIOT32::MQTTcallback, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
   if (useSerial)
@@ -261,7 +267,6 @@ bool myIOT32::startMQTT()
     Serial.print("MQTT Broker: ");
     Serial.println(_mqtt_server);
   }
-  createTopics();
   if (connectMQTT())
   {
     subscribeMQTT();
@@ -269,7 +274,7 @@ bool myIOT32::startMQTT()
 
     if (_alternativeMQTTserver)
     {
-      char a[50];
+      char a[60];
       sprintf(a, "<< Boot - alternative MQTT broker: %s", _mqtt_server);
       pub_log(a);
     }
@@ -290,15 +295,15 @@ void myIOT32::MQTTloop()
   if (mqttClient.connected())
   {
     mqttClient.loop();
-    Serial.println("MQTT GOOD");
   }
   else
   {
     long now = millis();
-    Serial.println("MQTT Server- NOT connected");
 
     if (now - lastReconnectAttempt > 5000)
     {
+      Serial.println("MQTT Server- try RE-connected");
+
       lastReconnectAttempt = now;
       if (connectMQTT())
       {
@@ -316,6 +321,7 @@ void myIOT32::MQTTloop()
     else
     {
       Serial.println("MQTT Server- wait to reconnect");
+      _networkflags(0);
     }
   }
 }
@@ -552,9 +558,10 @@ void myIOT32::_createStatusJSON()
   doc["imAlive"] = DeviceStatus.last_keepalive;
 
   String output;
+  int charleng = output.length() + 1;
   serializeJson(doc, output);
-  char a[150];
-  output.toCharArray(a, 150);
+  char a[charleng];
+  output.toCharArray(a, charleng);
   pub_Status(a);
 }
 void myIOT32::_getMQTT2JSON(char *input_str)
