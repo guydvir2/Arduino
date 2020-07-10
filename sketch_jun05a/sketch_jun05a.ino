@@ -1,21 +1,21 @@
 #include <myIOTesp32.h>
 #include <myESP32sleep.h>
 
-#define VER "ESP32_0.6v"
+#define VER "ESP32_0.7v"
 #define USE_VMEASURE false
 #define USE_SLEEP true
 // ~~~~~~~ myIOT32 ~~~~~~~~
-#define DEVICE_TOPIC "ESP32_light"
+#define DEVICE_TOPIC "ESP32_BAD"
 #define MQTT_PREFIX "myHome"
 #define MQTT_GROUP "solarPower"
 #define MQTT_TELEGRAM "myHome/Telegram"
-// #define MQTT_EXT_TOPIC MQTT_PREFIX "/" MQTT_GROUP "/" DEVICE_TOPIC "/" \
+#define MQTT_EXT_TOPIC MQTT_PREFIX "/" MQTT_GROUP "/" DEVICE_TOPIC "/" \
 //                                    "onWake"
-#define MQTT_EXT_TOPIC "myHome/solarPower/ESP32_light/onWake"
-#define USE_SERIAL true
+// #define MQTT_EXT_TOPIC "myHome/solarPower/ESP32_light/onWake"
+#define USE_SERIAL false
 #define USE_OTA true
 #define USE_WDT false
-#define USE_EXT_TOPIC false
+#define USE_EXT_TOPIC true
 #define USE_RESETKEEPER true
 
 myIOT32 iot(DEVICE_TOPIC);
@@ -38,7 +38,7 @@ void startIOT_services()
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 // ~~~~~~~ Sleep ~~~~~~~~~~~
-#define SLEEP_TIME 1
+#define SLEEP_TIME 30
 #define FORCE_AWAKE_TIME 15
 #define NO_SLEEP_TIME 4
 #define DEV_NAME DEVICE_TOPIC
@@ -49,7 +49,7 @@ void b4sleep()
 {
   Serial.println("b4Sleep");
   iot.getTime();
-  // postWake();
+  postWake();
 }
 void startSleep_services()
 {
@@ -232,9 +232,9 @@ void setup()
   strcat(a, b);
 
 #endif
-  Serial.println("just before first msg");
+  // Serial.println("just before first msg");
   iot.pub_msg(a);
-  Serial.println("just after first msg");
+  // Serial.println("just after first msg");
 
   // makeIFTTTRequest(go2sleep.WakeStatus.name, a, "The-End");
   // iot.pub_tele(a);
@@ -242,10 +242,6 @@ void setup()
 
 void loop()
 {
-  // static int loopc=0;
-  // Serial.print("LOOOP: ");
-  // Serial.println(loopc);
-  // loopc++;
   iot.looper();
 #if USE_SLEEP
   go2sleep.wait_forSleep(iot.networkOK, no_sleep_flag);
