@@ -49,7 +49,7 @@ private:
     bool _alternativeMQTTserver = false;
     char *_user = "";
     char *_passw = "";
-    char *_devTopic = "DEVICE_TOPIC OF MQTT";
+    // char *_devTopic = "DEVICE_TOPIC OF MQTT";
     long _networkerr_clock = 0;
 
     const int _OTA_upload_interval = 10; // 10 minute to try OTA

@@ -205,24 +205,13 @@ void esp32Sleep::sleepNOW(float sec2sleep)
   esp_sleep_enable_timer_wakeup(sec2sleep * uS_TO_S_FACTOR);
   esp_deep_sleep_start();
 }
-void esp32Sleep::wait_forSleep(bool wifiOK, bool nosleep) //struct tm *timeinfo, time_t epoch_time, bool wifiOK, bool nosleep)
+bool esp32Sleep::wait_forSleep(bool wifiOK, bool nosleep) //struct tm *timeinfo, time_t epoch_time, bool wifiOK, bool nosleep)
 {
   static bool lastMessage = false;
   const int epsilonb4sleep = 1000; //millis
 
   if (nosleep == false)
   {
-    if (millis() >= (WakeStatus.awake_duration * 1000 - epsilonb4sleep) && lastMessage == false) // this way it call ext_ fuct before sleep
-    {
-      sleepduration = calc_nominal_sleepTime(); // seconds
-      WakeStatus.drift_err = driftRTC;          // seconds
-
-      if (_use_extfunc)
-      {
-        _runFunc();
-      }
-      lastMessage = true;
-    }
     if (millis() >= WakeStatus.awake_duration * 1000)
     {
       if (wifiOK)
@@ -233,21 +222,51 @@ void esp32Sleep::wait_forSleep(bool wifiOK, bool nosleep) //struct tm *timeinfo,
           sleepduration = WakeStatus.sleep_duration * 60;
         }
         sleepNOW((float)sleepduration - driftRTC);
+        return 0;
       }
       else
       {
         sleepNOW(WakeStatus.sleep_duration * 60.0);
+        return 0;
       }
+    }
+    else if (millis() >= (WakeStatus.awake_duration * 1000 - epsilonb4sleep)) // this way it call ext_ fuct before sleep
+    {
+      if (lastMessage == false)
+      {
+        sleepduration = calc_nominal_sleepTime(); // seconds
+        WakeStatus.drift_err = driftRTC;          // seconds
+
+        if (_use_extfunc)
+        {
+          _runFunc();
+        }
+        lastMessage = true;
+        return 0;
+      }
+      else
+      {
+        return 0;
+      }
+    }
+    else
+    {
+      return 1;
     }
   }
   else
-  { // after no-sleep
+  { // after no-sleep7
     if (millis() > no_sleep_minutes * 60 * 1000UL)
     {
       Serial.println("no-sleep ended");
       Serial.flush();
       delay(1000);
       ESP.restart();
+      return 0;
+    }
+    else
+    {
+      return 1;
     }
   }
 }

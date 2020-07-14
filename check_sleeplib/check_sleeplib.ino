@@ -41,7 +41,7 @@ void ext_MQTT(char *incoming_msg)
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 // ~~~~~~~ Sleep ~~~~~~~~~~~
-#define SLEEP_TIME 30
+#define SLEEP_TIME 1
 #define FORCE_AWAKE_TIME 30
 #define NO_SLEEP_TIME 4
 #define DEV_NAME "ESP32"
@@ -66,8 +66,8 @@ void startSleep_services()
 const char *ssid = "Xiaomi_D6C8";
 const char *password = "guyd5161";
 
-WiFiClient espClient;
-PubSubClient mqttClient(espClient);
+// WiFiClient espClient;
+// PubSubClient mqttClient(espClient);
 
 void startWiFi()
 {
@@ -89,31 +89,31 @@ void startWiFi()
   Serial.println(WiFi.localIP());
 }
 
-void reconnect()
-{
-  // Loop until we're reconnected
-  while (!mqttClient.connected())
-  {
-    Serial.print("Attempting MQTT connection...");
-    // Attempt to connect
-    if (mqttClient.connect("arduinoClient"))
-    {
-      Serial.println("connected");
-      // Once connected, publish an announcement...
-      mqttClient.publish("myHome/Messages", "esp32 Reconnect");
-      // ... and resubscribe
-      mqttClient.subscribe("myHome/ESP32");
-    }
-    else
-    {
-      Serial.print("failed, rc=");
-      Serial.print(mqttClient.state());
-      Serial.println(" try again in 5 seconds");
-      // Wait 5 seconds before retrying
-      delay(5000);
-    }
-  }
-}
+// void reconnect()
+// {
+//   // Loop until we're reconnected
+//   while (!mqttClient.connected())
+//   {
+//     Serial.print("Attempting MQTT connection...");
+//     // Attempt to connect
+//     if (mqttClient.connect("arduinoClient"))
+//     {
+//       Serial.println("connected");
+//       // Once connected, publish an announcement...
+//       mqttClient.publish("myHome/Messages", "esp32 Reconnect");
+//       // ... and resubscribe
+//       mqttClient.subscribe("myHome/ESP32");
+//     }
+//     else
+//     {
+//       Serial.print("failed, rc=");
+//       Serial.print(mqttClient.state());
+//       Serial.println(" try again in 5 seconds");
+//       // Wait 5 seconds before retrying
+//       delay(5000);
+//     }
+//   }
+// }
 void callback(char *topic, byte *payload, unsigned int length)
 {
   Serial.print("Message arrived [");
@@ -125,6 +125,7 @@ void callback(char *topic, byte *payload, unsigned int length)
   }
   Serial.println();
 }
+
 void setup()
 {
   // WRITE_PERI_REG(RTC_CNTL_BROWN_OUT_REG, 0); //disable brownout detector
@@ -134,25 +135,26 @@ void setup()
   // startIOT_services();
 
   Serial.begin(9600);
-  startWiFi();
-  mqttClient.setServer("192.168.3.200", 1883);
-  mqttClient.setCallback(callback);
+  // startWiFi();
+  // mqttClient.setServer("192.168.3.200", 1883);
+  // mqttClient.setCallback(callback);
 
   startSleep_services();
-  reconnect();
+  // reconnect();
   char a[50];
 
   sprintf(a, "boot: %d", go2sleep.WakeStatus.bootCount);
-  mqttClient.publish("myHome/Messages", a);
+  // mqttClient.publish("myHome/Messages", a);
+  Serial.println(a);
 }
 
 void loop()
 {
-  if (!mqttClient.connected())
-  {
-    reconnect();
-  }
-  mqttClient.loop();
+  // if (!mqttClient.connected())
+  // {
+  //   reconnect();
+  // }
+  // mqttClient.loop();
   // iot.looper();
   go2sleep.wait_forSleep();
   delay(100);

@@ -26,7 +26,7 @@ public:
     char sys_presets_str[100];
     char wake_sleep_str[250];
 
-    const char *ver = "ESP32_SLEEP_3.2";
+    const char *ver = "ESP32_SLEEP_3.3";
     int no_sleep_minutes = 0;
 
     long startsleep_clock = 0;
@@ -68,7 +68,7 @@ public:
     void startServices();//struct tm *timeinfo=0, time_t *epoch_time=0);
     void check_awake_ontime(int min_t_avoidSleep = 10);//struct tm *timeinfo, time_t *epoch_time, int min_t_avoidSleep = 10);
     void sleepNOW(float sec2sleep = 2700);
-    void wait_forSleep(bool wifiOK = true, bool nosleep = false);//struct tm *timeinfo=0, time_t *epoch_time=0, bool wifiOK = true, bool nosleep = false);
+    bool wait_forSleep(bool wifiOK = true, bool nosleep = false);//struct tm *timeinfo=0, time_t *epoch_time=0, bool wifiOK = true, bool nosleep = false);
 };
 
 #endif

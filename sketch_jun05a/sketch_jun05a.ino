@@ -1,18 +1,18 @@
 #include <myIOTesp32.h>
 #include <myESP32sleep.h>
 
-#define VER "ESP32_0.7v"
+#define VER "ESP32_0.8v"
 #define USE_VMEASURE false
 #define USE_SLEEP true
 // ~~~~~~~ myIOT32 ~~~~~~~~
-#define DEVICE_TOPIC "ESP32_BAD"
+#define DEVICE_TOPIC "ESP32_12V"
 #define MQTT_PREFIX "myHome"
 #define MQTT_GROUP "solarPower"
 #define MQTT_TELEGRAM "myHome/Telegram"
 #define MQTT_EXT_TOPIC MQTT_PREFIX "/" MQTT_GROUP "/" DEVICE_TOPIC "/" \
-//                                    "onWake"
+                                   "onWake"
 // #define MQTT_EXT_TOPIC "myHome/solarPower/ESP32_light/onWake"
-#define USE_SERIAL false
+#define USE_SERIAL true
 #define USE_OTA true
 #define USE_WDT false
 #define USE_EXT_TOPIC true
@@ -79,13 +79,14 @@ void bat_measure()
   bat_volt = ((bat_volt / ((float)sample)) / ADC_res) * vcc * (1.0 / Rvalue);
 }
 
-// bool checkWake_topic()
-// {
-//   if (strcmp(iot.mqtt_msg.msg, "maintainance") == 0)
-//   {
-//     sprintf(iot.mqtt_msg.msg, "");
-//   }
-// }
+void checkWake_topic()
+{
+  if (strcmp(iot.mqtt_msg.msg, "maintainance") == 0)
+  {
+    start_maintainance();
+    sprintf(iot.mqtt_msg.msg, "");
+  }
+}
 void postWake()
 {
   StaticJsonDocument<300> doc;
@@ -106,7 +107,6 @@ void postWake()
   String output;
   serializeJson(doc, output);
   output.toCharArray(a, output.length() + 1);
-  Serial.println(a);
   iot.pub_ext(a, true);
 }
 void start_maintainance()
@@ -230,21 +230,30 @@ void setup()
   char b[30];
   sprintf(b, " ,Bat measured Voltage[%.2fv]", bat_volt);
   strcat(a, b);
-
 #endif
-  // Serial.println("just before first msg");
   iot.pub_msg(a);
-  // Serial.println("just after first msg");
 
   // makeIFTTTRequest(go2sleep.WakeStatus.name, a, "The-End");
   // iot.pub_tele(a);
+
+  // pinMode(32, OUTPUT);
+  // digitalWrite(32, HIGH);
 }
 
 void loop()
 {
-  iot.looper();
-#if USE_SLEEP
-  go2sleep.wait_forSleep(iot.networkOK, no_sleep_flag);
-#endif
+  if (go2sleep.wait_forSleep(iot.networkOK, no_sleep_flag))
+  {
+    iot.looper();
+  }
+  else
+  {
+    // iot.mqttClient.disconnect();
+  }
+  checkWake_topic();
+  // #if USE_SLEEP
+  //   go2sleep.wait_forSleep(iot.networkOK, no_sleep_flag);
+  // #endif
   delay(100);
+  // digitalWrite(32, !digitalRead(32));
 }
