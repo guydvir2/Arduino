@@ -17,9 +17,9 @@
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 // ~~~~~~~ MQTT Topics ~~~~~~
-#define DEVICE_TOPIC "kidsBed"
+#define DEVICE_TOPIC "frontDoorLEDs"
 #define MQTT_PREFIX "myHome"
-#define MQTT_GROUP "intLights"
+#define MQTT_GROUP "extLights"
 #define TELEGRAM_OUT_TOPIC "Telegram"
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -40,15 +40,15 @@ myIOT iot(DEVICE_TOPIC);
 // ~~~~~~~~~~~~~~~~~~~~
 
 // ~~~~ TO & dailyTO ~~~~~~
-const int START_dTO[2][3] = {{17, 0, 0}, {17, 0, 0}};
-const int END_dTO[2][3] = {{20, 30, 0}, {21, 30, 0}};
+const int START_dTO[2][3] = {{20, 0, 0}, {17, 0, 0}};
+const int END_dTO[2][3] = {{0, 30, 0}, {21, 30, 0}};
 const int TimeOUT[] = {120, 240}; // minutes
 // ~~~~~~~~~~~~~~~~~~~~
 
 // ~~~~~~ Hardware ~~~~~~~
-#define NUM_SW 2
-#define USE_PWM true
-#define USE_INPUT true
+#define NUM_SW 1
+#define USE_PWM false
+#define USE_INPUT false
 #define USE_EXT_TRIG false
 #define BUTTOM_MOMENT true
 
@@ -56,7 +56,7 @@ const int outputPin[] = {D3, D6}; // D3 for most PWM boards
 const int inputPin[] = {D4, D7};
 const int hRebbots[] = {1, 1};
 // ~~~~~~~~~~~~~~~~~~~~
-char *SW_Names[] = {"Oz", "Shachar"};
+char *SW_Names[] = {"LEDstrip", "Shachar"};
 
 /*
 ~~~~~ SONOFF HARDWARE ~~~~~

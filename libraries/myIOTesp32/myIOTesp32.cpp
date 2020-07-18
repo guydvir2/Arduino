@@ -131,31 +131,31 @@ void myIOT32::MQTTcallback(char *topic, byte *payload, unsigned int length)
   incoming_msg[length] = 0;
   Serial.println();
 
-  // if (strcmp(topic, _availTopic) == 0 && bootType == 2 && useResetKeeper)
-  // {
-  //   // bootType: (2) - value at init , (1) quick boot (0) - regulatBoot
-  //   if (strcmp(incoming_msg, "online") == 0)
-  //   {
-  //     bootType = 1;
-  //   }
-  //   else if (strcmp(incoming_msg, "offline") == 0)
-  //   {
-  //     bootType = 0;
-  //   }
-  //   _notifyOnline();
-  // }
-  // else if (strcmp(topic, _statusTopic) == 0)
-  // {
-  //   _getMQTT2JSON(incoming_msg);
-  // }
-  // else if (useExtTopic && strcmp(topic, extTopic) == 0)
-  // {
-  //   sprintf(mqtt_msg.topic, "%s", topic);
-  //   sprintf(mqtt_msg.msg, "%s", incoming_msg);
-  //   sprintf(mqtt_msg.dev_name, "%s", _deviceName); // not full path
-  // }
+  if (strcmp(topic, _availTopic) == 0 && bootType == 2 && useResetKeeper)
+  {
+    // bootType: (2) - value at init , (1) quick boot (0) - regulatBoot
+    if (strcmp(incoming_msg, "online") == 0)
+    {
+      bootType = 1;
+    }
+    else if (strcmp(incoming_msg, "offline") == 0)
+    {
+      bootType = 0;
+    }
+    _notifyOnline();
+  }
+  else if (strcmp(topic, _statusTopic) == 0)
+  {
+    _getMQTT2JSON(incoming_msg);
+  }
+  else if (useExtTopic && strcmp(topic, extTopic) == 0)
+  {
+    sprintf(mqtt_msg.topic, "%s", topic);
+    sprintf(mqtt_msg.msg, "%s", incoming_msg);
+    sprintf(mqtt_msg.dev_name, "%s", _deviceName); // not full path
+  }
 
-  // _MQTTcmds(incoming_msg);
+  _MQTTcmds(incoming_msg);
 }
 void myIOT32::_MQTTcmds(char *incoming_msg)
 {
@@ -219,18 +219,11 @@ bool myIOT32::connectMQTT()
   static int mqtt_connects_counter = 0;
   if (!mqttClient.connected())
   {
-    // char namedev[30];
-    // sprintf(namedev,"%s_%s",deviceTopic, ESP.getEfuseMac());
-    Serial.println(deviceTopic);
     bool a = mqttClient.connect(deviceTopic, _user, _passw, _availTopic, 0, true, "offline");
     if (!useResetKeeper)
     {
       _notifyOnline();
     }
-    Serial.print("MQTT IS: ");
-    Serial.println(a);
-
-    Serial.println("Mqqt_Counter: #" +String(++mqtt_connects_counter));
     return a;
   }
   else
@@ -307,11 +300,6 @@ void myIOT32::MQTTloop()
 {
   static long lastReconnectAttempt = 0;
 
-  // if (mqttClient.connected())
-  // {
-  //   mqttClient.loop();
-  // }
-  // else
   if (!mqttClient.loop())
   {
     long now = millis();

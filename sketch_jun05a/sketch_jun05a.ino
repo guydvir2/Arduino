@@ -1,17 +1,16 @@
 #include <myIOTesp32.h>
 #include <myESP32sleep.h>
 
-#define VER "ESP32_0.8v"
-#define USE_VMEASURE false
+#define VER "ESP32_v1.0"
+#define USE_VMEASURE true
 #define USE_SLEEP true
 // ~~~~~~~ myIOT32 ~~~~~~~~
-#define DEVICE_TOPIC "ESP32_12V"
+#define DEVICE_TOPIC "ESP32_6V"
 #define MQTT_PREFIX "myHome"
 #define MQTT_GROUP "solarPower"
 #define MQTT_TELEGRAM "myHome/Telegram"
 #define MQTT_EXT_TOPIC MQTT_PREFIX "/" MQTT_GROUP "/" DEVICE_TOPIC "/" \
                                    "onWake"
-// #define MQTT_EXT_TOPIC "myHome/solarPower/ESP32_light/onWake"
 #define USE_SERIAL true
 #define USE_OTA true
 #define USE_WDT false
@@ -39,7 +38,7 @@ void startIOT_services()
 
 // ~~~~~~~ Sleep ~~~~~~~~~~~
 #define SLEEP_TIME 30
-#define FORCE_AWAKE_TIME 15
+#define FORCE_AWAKE_TIME 20
 #define NO_SLEEP_TIME 4
 #define DEV_NAME DEVICE_TOPIC
 bool no_sleep_flag = false;
@@ -53,6 +52,7 @@ void b4sleep()
 }
 void startSleep_services()
 {
+  go2sleep.debug_mode = true;
   go2sleep.run_func(b4sleep); // define a function to be run prior to sleep.
   go2sleep.no_sleep_minutes = NO_SLEEP_TIME;
 
@@ -61,33 +61,60 @@ void startSleep_services()
 }
 // ~~~~~~~~~~~~~~~~~~~~~~~~~
 
-// ~~~~~ Power Managment ~~~~
-const int measureVoltagePin = 35;
+// ~~~~~ Voltage Measurements ~~~~
+const int bat_voltagePin = 35;
+const int solar_voltagePin = 36;
 const int ADC_res = 4095;
-const float Rvalue = 0.45; //0.75
 const float vcc = 3.3;
+const float v_div_bat = 1.33;
+const float v_div_solar = 4.0;
 float bat_volt = 0.0;
+float solar_volt = 0.0;
 
-void bat_measure()
+float measure_voltage(const int &pin, float ratio = 1.0)
 {
-  byte sample = 5;
-  bat_volt = 0.0;
+  float measure = 0.0;
+  float correction_factor = 0;
+  float non_linear_margin = 0.1;
+  byte sample = 10;
+
   for (int i = 0; i < sample; i++)
   {
-    bat_volt += analogRead(measureVoltagePin);
+    measure += analogRead(pin);
+    delay(10);
   }
-  bat_volt = ((bat_volt / ((float)sample)) / ADC_res) * vcc * (1.0 / Rvalue);
-}
 
+  float temp_calc = (measure / (float)sample)/(float)ADC_res;
+  Serial.println(temp_calc);
+  if (temp_calc > non_linear_margin && temp_calc < 1-non_linear_margin)
+  {
+    correction_factor = 0.2;
+  }
+  else
+  {
+    correction_factor = 0.0;
+  }
+  measure = ((measure / (float)sample) / (float)ADC_res) * ratio * vcc + correction_factor*ratio;
+  return measure;
+}
+void start_voltageMeasure()
+{
+  pinMode(bat_voltagePin, INPUT);
+  pinMode(solar_voltagePin, INPUT);
+
+  bat_volt = measure_voltage(bat_voltagePin, v_div_bat);
+  solar_volt = measure_voltage(solar_voltagePin, v_div_solar);
+}
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 void checkWake_topic()
 {
-  if (strcmp(iot.mqtt_msg.msg, "maintainance") == 0)
+  if (strcmp(iot.mqtt_msg.msg, "m") == 0)
   {
     start_maintainance();
     sprintf(iot.mqtt_msg.msg, "");
   }
 }
-void postWake()
+String postWake()
 {
   StaticJsonDocument<300> doc;
   // Constansts
@@ -108,11 +135,14 @@ void postWake()
   serializeJson(doc, output);
   output.toCharArray(a, output.length() + 1);
   iot.pub_ext(a, true);
+  return output;
 }
 void start_maintainance()
 {
   no_sleep_flag = true;
   iot.pub_ext("maintainance_started", true);
+  iot.pub_tele("Maintainance");
+
 }
 
 void ext_MQTT(char *incoming_msg)
@@ -220,40 +250,28 @@ void setup()
 {
   startIOT_services();
 #if USE_SLEEP
+  char a[50];
   startSleep_services();
+  sprintf(a, "Boot: [ #%d]", bootCounter);
 #endif
 
-  char a[50];
-  sprintf(a, "Boot: [#%d]", bootCounter);
 #if USE_VMEASURE
-  bat_measure();
-  char b[30];
-  sprintf(b, " ,Bat measured Voltage[%.2fv]", bat_volt);
-  strcat(a, b);
+  char b[80];
+  start_voltageMeasure();
+  sprintf(b, "Batt[%.2fv]; Solar [%.2fv]", bat_volt, solar_volt);
 #endif
   iot.pub_msg(a);
+  iot.pub_msg(b);
 
-  // makeIFTTTRequest(go2sleep.WakeStatus.name, a, "The-End");
-  // iot.pub_tele(a);
-
-  // pinMode(32, OUTPUT);
-  // digitalWrite(32, HIGH);
+  makeIFTTTRequest(go2sleep.WakeStatus.name, a, b);
 }
 
 void loop()
 {
   if (go2sleep.wait_forSleep(iot.networkOK, no_sleep_flag))
   {
+    checkWake_topic();
     iot.looper();
   }
-  else
-  {
-    // iot.mqttClient.disconnect();
-  }
-  checkWake_topic();
-  // #if USE_SLEEP
-  //   go2sleep.wait_forSleep(iot.networkOK, no_sleep_flag);
-  // #endif
   delay(100);
-  // digitalWrite(32, !digitalRead(32));
 }

@@ -17,11 +17,11 @@ esp32Sleep::esp32Sleep(int deepsleep, int forcedwake, char *devname)
   WakeStatus.awake_duration = forcedwake;
   WakeStatus.name = devname;
 }
-void esp32Sleep::startServices() //struct tm *timeinfo, time_t epoch_time)
+void esp32Sleep::startServices()
 {
   start_eeprom();
   Avg_Array_zeroing();
-  check_awake_ontime(); //timeinfo, epoch_time);
+  check_awake_ontime();
 }
 void esp32Sleep::run_func(cb_func cb)
 {
@@ -53,7 +53,10 @@ void esp32Sleep::start_eeprom(byte i)
 {
   if (!EEPROM.begin(EEPROM_SIZE))
   {
-    Serial.println("Fail to load EEPROM");
+    if (debug_mode)
+    {
+      Serial.println("Fail to load EEPROM");
+    }
   }
 }
 void esp32Sleep::Avg_Array_zeroing()
@@ -64,7 +67,10 @@ void esp32Sleep::Avg_Array_zeroing()
     {
       driftsArray_RTC[a] = zeroval;
     }
-    Serial.println("Erasing EEPROM");
+    if (debug_mode)
+    {
+      Serial.println("Erasing EEPROM");
+    }
   }
 }
 
@@ -74,7 +80,7 @@ void esp32Sleep::update_clock()
   time(&epoch_time);
   getLocalTime(&timeinfo);
 }
-void esp32Sleep::check_awake_ontime(int min_t_avoidSleep) //struct tm *timeinfo, time_t epoch_time, int min_t_avoidSleep)
+void esp32Sleep::check_awake_ontime(int min_t_avoidSleep) 
 {
   update_clock();
   bootCounter++;
@@ -144,7 +150,10 @@ int esp32Sleep::calc_nominal_sleepTime()
   }
   else // fail to obtain clock
   {
-    Serial.println("NO_CLOCK for sleep calc");
+    if (debug_mode)
+    {
+      Serial.println("NO_REALTIME_CLOCK");
+    }
     nominal_nextSleep = WakeStatus.sleep_duration * 60;
   }
 
@@ -200,15 +209,13 @@ void esp32Sleep::new_driftUpdate(float lastboot_drift, byte cell)
 }
 void esp32Sleep::sleepNOW(float sec2sleep)
 {
-  Serial.println("The-End");
-  Serial.flush();
   esp_sleep_enable_timer_wakeup(sec2sleep * uS_TO_S_FACTOR);
   esp_deep_sleep_start();
 }
-bool esp32Sleep::wait_forSleep(bool wifiOK, bool nosleep) //struct tm *timeinfo, time_t epoch_time, bool wifiOK, bool nosleep)
+bool esp32Sleep::wait_forSleep(bool wifiOK, bool nosleep) 
 {
   static bool lastMessage = false;
-  const int epsilonb4sleep = 1000; //millis
+  const int epsilonb4sleep = 300; //millis
 
   if (nosleep == false)
   {
@@ -218,7 +225,10 @@ bool esp32Sleep::wait_forSleep(bool wifiOK, bool nosleep) //struct tm *timeinfo,
       {
         if (sleepduration <= 0)
         {
-          Serial.println("Error in Sleep Duration");
+          if (debug_mode)
+          {
+            Serial.println("Error in Sleep Duration");
+          }
           sleepduration = WakeStatus.sleep_duration * 60;
         }
         sleepNOW((float)sleepduration - driftRTC);
@@ -227,6 +237,10 @@ bool esp32Sleep::wait_forSleep(bool wifiOK, bool nosleep) //struct tm *timeinfo,
       else
       {
         sleepNOW(WakeStatus.sleep_duration * 60.0);
+        if (debug_mode)
+        {
+          Serial.println("NO_WIFI");
+        }
         return 0;
       }
     }
@@ -258,8 +272,11 @@ bool esp32Sleep::wait_forSleep(bool wifiOK, bool nosleep) //struct tm *timeinfo,
   { // after no-sleep7
     if (millis() > no_sleep_minutes * 60 * 1000UL)
     {
-      Serial.println("no-sleep ended");
-      Serial.flush();
+      if (debug_mode)
+      {
+        Serial.println("no-sleep ended");
+        Serial.flush();
+      }
       delay(1000);
       ESP.restart();
       return 0;
