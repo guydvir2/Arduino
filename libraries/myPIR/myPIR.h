@@ -4,7 +4,6 @@
 #include "Arduino.h"
 #include <HCSR04.h>
 
-
 class PIRsensor
 {
     typedef void (*cb_func)();
@@ -65,11 +64,11 @@ private:
     int _timeout_mins, _stored_timeout;
 
     // PWM settings
-    byte _maxPWM = 240; // Arduino 256, ESP 1024
-    byte _PWMbutton_step = 60;
-    byte _PWMdimm_step = 20;
-    byte _PWMdimm_delay = 30;
-    byte _currentPWMval = _maxPWM;
+    byte _PWMbutton_step = 64;
+    byte _PWMdimm_step = 4;
+    byte _PWMdimm_delay = 10;
+    int _currentPWMval = PWMres;
+    int _bright_level = 0;
     long _PWMdiff = 0.1;
 
     bool _sensorsState, _last_sensorsState;
@@ -79,6 +78,10 @@ private:
 public:
     float swState = 0.0;
     int timeoutRem = 0;
+    int PWMres = 1024; // Arduino 256, ESP 1024
+    int brightness_steps = 4;
+    int max_brightness = 3;
+    int def_brightness = 3;
     bool useButton = false;
     bool usePWM = false;
     bool RelayON_def = true;
@@ -115,7 +118,7 @@ private:
     bool _use_end_detect_cb = false;
 
 private:
-    int readSensor(int x=1, int del=0);
+    int readSensor(int x = 1, int del = 0);
     void marginReadings(int get_val, int &ret_read);
     void detection_cb();
 

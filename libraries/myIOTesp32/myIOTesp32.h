@@ -49,7 +49,6 @@ private:
     bool _alternativeMQTTserver = false;
     char *_user = "";
     char *_passw = "";
-    char *_devTopic = "DEVICE_TOPIC OF MQTT";
     long _networkerr_clock = 0;
 
     const int _OTA_upload_interval = 10; // 10 minute to try OTA
@@ -57,7 +56,7 @@ private:
     const int _wdtMaxRetries = 30; //seconds to bITE
 
 public:
-    const char *ver = "iot32_ver_1.0";
+    const char *ver = "iot32_v1.3";
     bool useSerial = false;
     bool useOTA = true;
     bool useWDT = true;
@@ -72,7 +71,13 @@ public:
     char telegramServer[MaxTopicLength];
     char extTopic[MaxTopicLength];
     char inline_param[6][20]; //values from user
-    char mqqt_ext_buffer[3][150];
+    struct income_msg{
+        char topic[40];
+        char msg[250];
+        char dev_name[30];
+
+    };
+    income_msg mqtt_msg={"","",""};
 
     // Clock
     struct tm timeinfo;
@@ -115,7 +120,7 @@ public:
     bool checkInternet(char *externalSite, byte pings = 1);
 
 private:
-    bool MQTTloop();
+    void MQTTloop();
     void startNTP(const int gmtOffset_sec, const int daylightOffset_sec, const char *ntpServer);
     bool startWifi();
     void MQTTcallback(char *topic, byte *payload, unsigned int length);

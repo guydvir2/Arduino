@@ -1,10 +1,9 @@
 #include <myIOT.h>
 #include <myPIR.h>
-#include <myDisplay.h>
 #include <Arduino.h>
 
 // ********** Sketch Services  ***********
-#define VER "SONOFF_1.4"
+#define VER "WEMOS_1.4"
 #define USE_DISPLAY false
 
 // ********** myIOT Class ***********
@@ -18,10 +17,10 @@
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 // ~~~~~~~ MQTT Topics ~~~~~~
-#define DEVICE_TOPIC "PergolaBulbs"
+#define DEVICE_TOPIC "frontDoorLEDs"
 #define MQTT_PREFIX "myHome"
 #define MQTT_GROUP "extLights"
-#define TELEGRAM_OUT_TOPIC "Telegram_out"
+#define TELEGRAM_OUT_TOPIC "Telegram"
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 #define ADD_MQTT_FUNC addiotnalMQTT
@@ -37,12 +36,12 @@ myIOT iot(DEVICE_TOPIC);
 #define SAFETY_OFF true
 #define SAFEY_OFF_DURATION 300 //minutes
 #define USE_BADBOOT USE_RESETKEEPER
-#define USE_EEPROM_RESET_COUNTER true
+#define USE_EEPROM_RESET_COUNTER false
 // ~~~~~~~~~~~~~~~~~~~~
 
 // ~~~~ TO & dailyTO ~~~~~~
-const int START_dTO[2][3] = {{0, 0, 0}, {20, 0, 0}};
-const int END_dTO[2][3] = {{6, 30, 0}, {23, 0, 0}};
+const int START_dTO[2][3] = {{20, 0, 0}, {17, 0, 0}};
+const int END_dTO[2][3] = {{0, 30, 0}, {21, 30, 0}};
 const int TimeOUT[] = {120, 240}; // minutes
 // ~~~~~~~~~~~~~~~~~~~~
 
@@ -53,11 +52,11 @@ const int TimeOUT[] = {120, 240}; // minutes
 #define USE_EXT_TRIG false
 #define BUTTOM_MOMENT true
 
-const int outputPin[] = {12, 5}; // D3 for most PWM boards
-const int inputPin[] = {0, 8};
+const int outputPin[] = {D3, D6}; // D3 for most PWM boards
+const int inputPin[] = {D4, D7};
 const int hRebbots[] = {1, 1};
 // ~~~~~~~~~~~~~~~~~~~~
-char *SW_Names[] = {"Bulbs", "LED-Strips"};
+char *SW_Names[] = {"LEDstrip", "Shachar"};
 
 /*
 ~~~~~ SONOFF HARDWARE ~~~~~
@@ -150,10 +149,10 @@ void startIOTservices()
         iot.useOTA = USE_OTA;
         iot.useResetKeeper = USE_RESETKEEPER;
         iot.resetFailNTP = USE_FAILNTP;
-        iot.useTelegram = USE_TELEGRAM;
+        // iot.useTelegram = USE_TELEGRAM;
         strcpy(iot.prefixTopic, MQTT_PREFIX);
         strcpy(iot.addGroupTopic, MQTT_GROUP);
-        strcpy(iot.telegramServer, TELEGRAM_OUT_TOPIC);
+        // strcpy(iot.telegramServer, TELEGRAM_OUT_TOPIC);
         iot.start_services(ADD_MQTT_FUNC);
 }
 void giveStatus(char *outputmsg)
@@ -255,6 +254,8 @@ void addiotnalMQTT(char *incoming_msg)
 
 // ~~~~~~~~~~~~~ Display ~~~~~~~~~~~~~~~
 #if USE_DISPLAY
+#include <myDisplay.h>
+
 myOLED OLED(64);
 
 void displayClock()

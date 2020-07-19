@@ -1,17 +1,17 @@
 #include <myIOTesp32.h>
 #include <myESP32sleep.h>
 
-#define VER "ESP32_0.5v"
-#define USE_VMEASURE false
+#define VER "ESP32_v1.1"
+#define USE_VMEASURE true
 #define USE_SLEEP true
 // ~~~~~~~ myIOT32 ~~~~~~~~
-#define DEVICE_TOPIC "ESP32_12v"
+#define DEVICE_TOPIC "ESP32_6V"
 #define MQTT_PREFIX "myHome"
 #define MQTT_GROUP "solarPower"
 #define MQTT_TELEGRAM "myHome/Telegram"
 #define MQTT_EXT_TOPIC MQTT_PREFIX "/" MQTT_GROUP "/" DEVICE_TOPIC "/" \
                                    "onWake"
-#define USE_SERIAL true
+#define USE_SERIAL false
 #define USE_OTA true
 #define USE_WDT false
 #define USE_EXT_TOPIC true
@@ -46,54 +46,74 @@ bool no_sleep_flag = false;
 esp32Sleep go2sleep(SLEEP_TIME, FORCE_AWAKE_TIME, DEV_NAME);
 void b4sleep()
 {
-  Serial.println("Going to Sleep");
-  Serial.flush();
-  iot.getTime();
+  // iot.getTime();
   postWake();
-  // create_wake_status(bootCounter, go2sleep.nextwake_clock, go2sleep.sleepduration, iot.epoch_time, LOW, FORCE_AWAKE_TIME);
-  // Serial.println("name: " + String(go2sleep.WakeStatus.name));
-  // Serial.println("wake duration: " + String(go2sleep.WakeStatus.awake_duration));
-  // Serial.println("bootCount: " + String(go2sleep.WakeStatus.bootCount));
-  // Serial.println("Start Sleep:" + String(go2sleep.WakeStatus.startsleep_clock));
-  // Serial.println("next wake clock: " + String(go2sleep.WakeStatus.nextwake_clock));
-  // Serial.println("wake clock: " + String(go2sleep.WakeStatus.wake_clock));
 }
 void startSleep_services()
 {
+  go2sleep.debug_mode = false;
   go2sleep.run_func(b4sleep); // define a function to be run prior to sleep.
   go2sleep.no_sleep_minutes = NO_SLEEP_TIME;
 
-  iot.getTime(); // generate clock and passing it to next func.
-  go2sleep.startServices(&iot.timeinfo, &iot.epoch_time);
+  // iot.getTime(); // generate clock and passing it to next func.
+  go2sleep.startServices();
 }
 // ~~~~~~~~~~~~~~~~~~~~~~~~~
 
-// ~~~~~ Power Managment ~~~~
-const int measureVoltagePin = 35;
+// ~~~~~ Voltage Measurements ~~~~
+const int bat_voltagePin = 35;
+const int solar_voltagePin = 36;
 const int ADC_res = 4095;
-const float Rvalue = 0.45;//0.75
 const float vcc = 3.3;
+const float v_div_bat = 1.5; //1.33;
+const float v_div_solar = 3; // 5.0
 float bat_volt = 0.0;
+float solar_volt = 0.0;
 
-void bat_measure()
+float measure_voltage(const int &pin, float ratio = 1.0)
 {
-  byte sample = 5;
-  bat_volt = 0.0;
+  float measure = 0.0;
+  float correction_factor = 0;
+  float non_linear_margin = 0.1;
+  byte sample = 10;
+
   for (int i = 0; i < sample; i++)
   {
-    bat_volt += analogRead(measureVoltagePin);
+    measure += analogRead(pin);
+    delay(10);
   }
-  bat_volt = ((bat_volt / ((float)sample)) / ADC_res) * vcc * (1.0 / Rvalue);
-}
 
-bool checkWake_topic()
-{
-  if (strcmp(iot.mqqt_ext_buffer[1], "maintainance") == 0)
+  float temp_calc = (measure / (float)sample) / (float)ADC_res;
+  Serial.println(temp_calc);
+  if (temp_calc > non_linear_margin && temp_calc < 1 - non_linear_margin)
   {
-    sprintf(iot.mqqt_ext_buffer[1], "");
+    correction_factor = 0.2;
+  }
+  else
+  {
+    correction_factor = 0.0;
+  }
+  measure = ((measure / (float)sample) / (float)ADC_res) * ratio * vcc + correction_factor * ratio;
+  return measure;
+}
+void start_voltageMeasure()
+{
+  pinMode(bat_voltagePin, INPUT);
+  pinMode(solar_voltagePin, INPUT);
+
+  bat_volt = measure_voltage(bat_voltagePin, v_div_bat);
+  solar_volt = measure_voltage(solar_voltagePin, v_div_solar);
+}
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+void checkWake_topic()
+{
+  if (strcmp(iot.mqtt_msg.msg, "m") == 0)
+  {
+    start_maintainance();
+    sprintf(iot.mqtt_msg.msg, "");
   }
 }
-void postWake()
+String create_wakeStatus()
 {
   StaticJsonDocument<300> doc;
   // Constansts
@@ -104,21 +124,28 @@ void postWake()
   // Per wake cycle
   doc["sleepDuration"] = go2sleep.sleepduration;
   doc["Wake"] = go2sleep.WakeStatus.wake_clock;
-  doc["SleetStart"] = go2sleep.WakeStatus.startsleep_clock;
+  doc["SleepStart"] = go2sleep.WakeStatus.startsleep_clock;
   doc["nextWake"] = go2sleep.WakeStatus.nextwake_clock;
   doc["RTCdrift"] = go2sleep.WakeStatus.drift_err;
   doc["WakeErr"] = go2sleep.WakeStatus.wake_err;
 
   String output;
   serializeJson(doc, output);
+  return output;
+}
+void postWake()
+{
   char a[250];
-  output.toCharArray(a, 250);
+  String output = create_wakeStatus();
+  output.toCharArray(a, output.length() + 1);
   iot.pub_ext(a, true);
 }
 void start_maintainance()
 {
   no_sleep_flag = true;
   iot.pub_ext("maintainance_started", true);
+  iot.pub_tele("Maintainance");
+  iot.pub_log("Maintainance Started");
 }
 
 void ext_MQTT(char *incoming_msg)
@@ -168,33 +195,87 @@ void ext_MQTT(char *incoming_msg)
   }
 }
 
+// +++++++++++ IFTT  ++++++++++++++
+const char *server = "maker.ifttt.com";
+const char *resource = "/trigger/send_reading/with/key/cFLymB4JT9tlODsKLFn9TA";
+
+template <typename T1, typename T2, typename T3>
+void makeIFTTTRequest(T1 val1, T2 val2, T3 val3)
+{
+  Serial.print("Connecting to ");
+  Serial.print(server);
+
+  WiFiClient client;
+  int retries = 5;
+  while (!!!client.connect(server, 80) && (retries-- > 0))
+  {
+    Serial.print(".");
+  }
+  Serial.println();
+  if (!!!client.connected())
+  {
+    Serial.println("Failed to connect...");
+  }
+
+  Serial.print("Request resource: ");
+  Serial.println(resource);
+
+  String jsonObject = String("{\"value1\":\"") + val1 + "\",\"value2\":\"" + val2 + "\",\"value3\":\"" + val3 + "\"}";
+
+  client.println(String("POST ") + resource + " HTTP/1.1");
+  client.println(String("Host: ") + server);
+  client.println("Connection: close\r\nContent-Type: application/json");
+  client.print("Content-Length: ");
+  client.println(jsonObject.length());
+  client.println();
+  client.println(jsonObject);
+
+  int timeout = 5 * 10; // 5 seconds
+  while (!!!client.available() && (timeout-- > 0))
+  {
+    delay(100);
+  }
+  if (!!!client.available())
+  {
+    Serial.println("No response...");
+  }
+  while (client.available())
+  {
+    Serial.write(client.read());
+  }
+
+  Serial.println("\nclosing connection");
+  client.stop();
+}
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 void setup()
 {
   startIOT_services();
+  char a[50];
+  char b[80];
+
 #if USE_SLEEP
   startSleep_services();
-#endif
-
-  char a[50];
   sprintf(a, "Boot: [#%d]", bootCounter);
-#if USE_VMEASURE
-  bat_measure();
-  char b[30];
-  sprintf(b, " ,Bat measured Voltage[%.2fv]", bat_volt);
-  strcat(a, b);
-
 #endif
 
+#if USE_VMEASURE
+  start_voltageMeasure();
+  sprintf(b, "Batt[%.2fv]; Solar[%.2fv]", bat_volt, solar_volt);
+#endif
+  sprintf(a, "%s %s", a, b);
   iot.pub_msg(a);
-  iot.pub_tele(a);
+
+  makeIFTTTRequest(go2sleep.WakeStatus.name, a, b);
 }
 
 void loop()
 {
-  iot.looper();
-#if USE_SLEEP
-  iot.getTime();
-  go2sleep.wait_forSleep(&iot.timeinfo, &iot.epoch_time, iot.networkOK, no_sleep_flag);
-#endif
+  if (go2sleep.wait_forSleep(iot.networkOK, no_sleep_flag))
+  {
+    checkWake_topic();
+    iot.looper();
+  }
   delay(100);
 }

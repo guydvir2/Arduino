@@ -1,6 +1,6 @@
 #include <Servo.h>
 
-// Servo pitch_servo;
+Servo pitch_servo;
 Servo rotate_servo;
 #define pitchPin 8
 #define rotatePin 9
@@ -14,23 +14,23 @@ struct servo_defs
 };
 
 servo_defs pitch_defs = {120, 120, 180, pitchPin};
-servo_defs rotate_defs = {0, 0, 180, rotatePin};
+servo_defs rotate_defs = {90, 0, 180, rotatePin};
 
 void init_servo()
 {
-  // pitch_defs.pos = (int)(0.5 * (pitch_defs.min_angle + pitch_defs.max_angle));
-  // rotate_defs.pos = (int)(0.5 * (rotate_defs.min_angle + rotate_defs.max_angle));
+  pitch_defs.pos = (int)(0.5 * (pitch_defs.min_angle + pitch_defs.max_angle));
+  rotate_defs.pos = (int)(0.5 * (rotate_defs.min_angle + rotate_defs.max_angle));
 
-  // pitch_servo.attach(pitch_defs.PWMPin);   // attaches the servo on pin 9 to the servo object
+  pitch_servo.attach(pitch_defs.PWMPin);   // attaches the servo on pin 9 to the servo object
   rotate_servo.attach(rotate_defs.PWMPin); // attaches the servo on pin 9 to the servo object
 
-  // Serial.print("Pitch start_angle: ");
-  // Serial.println(pitch_defs.pos);
-  // Serial.print("Rotate start_angle: ");
-  // Serial.println(rotate_defs.pos);
+  Serial.print("Pitch start_angle: ");
+  Serial.println(pitch_defs.pos);
+  Serial.print("Rotate start_angle: ");
+  Serial.println(rotate_defs.pos);
 }
 
-void slide(Servo &servo, servo_defs &def, int start_angle, int stop_angle, int del = 10)
+void slide(Servo &servo, servo_defs &def, int start_angle, int stop_angle, int del = 50)
 {
   if (start_angle < def.min_angle)
   {
@@ -104,7 +104,6 @@ void Move(Servo &servo, servo_defs &def, int deg)
   }
 }
 
-// int Pins[] = {D7, D6, D5, D0};
 int Pins[] = {A0, A1, A2, A3};
 int analvals[] = {0, 0, 0, 0};
 
@@ -118,12 +117,12 @@ void setup()
   }
 
   init_servo();
-  // slide(pitch_servo, pitch_defs, pitch_defs.pos, pitch_defs.max_angle);
-  // delay(1000);
-  // slide(rotate_servo, rotate_defs, rotate_defs.min_angle, rotate_defs.max_angle);
-  // delay(1000);
+  slide(pitch_servo, pitch_defs, pitch_defs.pos, pitch_defs.max_angle);
+  delay(1000);
+  slide(rotate_servo, rotate_defs, rotate_defs.min_angle, rotate_defs.max_angle);
+  delay(1000);
   // Move(pitch_servo, pitch_defs, 180);
-  Move(rotate_servo, rotate_defs, 90);
+  // Move(rotate_servo, rotate_defs, 90);
 }
 
 void loop()
@@ -136,13 +135,13 @@ void loop()
   // delay(1000);
   // slide(rotate_servo, rotate_defs, rotate_defs.max_angle, rotate_defs.min_angle);
   // delay(1000);
-  for (int a = 0; a < 4; a++)
-  {
-    analvals[a] = analogRead(Pins[a]);
-    // Serial.print(analogRead(Pins[a]));
-    // Serial.print("; ");
-  }
-  Serial.println("");
+  // for (int a = 0; a < 4; a++)
+  // {
+  //   analvals[a] = analogRead(Pins[a]);
+  //   // Serial.print(analogRead(Pins[a]));
+  //   // Serial.print("; ");
+  // }
+  // Serial.println("");
 
   const int diff = 20;
   const int deg_inc = 1;
@@ -152,19 +151,19 @@ void loop()
   // Serial.println(delta_rot);
   // Serial.print("delta_pitch: ");
   // Serial.println(delta_pitch);
-  if (abs(delta_rot) > diff)
-  {
-    Serial.print("Rot: ");
-    Serial.println(delta_rot);
-    if (delta_rot > diff)
-    { // to much to the left
-      incMove(rotate_servo, rotate_defs, deg_inc);
-    }
-    else
-    {
-      incMove(rotate_servo, rotate_defs, -deg_inc);
-    }
-  }
+  // if (abs(delta_rot) > diff)
+  // {
+  //   Serial.print("Rot: ");
+  //   Serial.println(delta_rot);
+  //   if (delta_rot > diff)
+  //   { // to much to the left
+  //     incMove(rotate_servo, rotate_defs, deg_inc);
+  //   }
+  //   else
+  //   {
+  //     incMove(rotate_servo, rotate_defs, -deg_inc);
+  //   }
+  // }
 
   // if (abs(delta_pitch) > diff)
   // {
@@ -191,4 +190,6 @@ void loop()
   //   Serial.println("DOWN");
   // }
   delay(10);
+
+  Serial.println(pitch_servo.read());
 }

@@ -325,7 +325,7 @@ private:
   void _recoverReset(int rebootState = -1);
 
 public:
-  const char *ver = "mySwitch_1.1";
+  const char *ver = "mySwitch_1.2";
   bool usePWM = false;
   bool useSerial = false;
   bool useInput = false;

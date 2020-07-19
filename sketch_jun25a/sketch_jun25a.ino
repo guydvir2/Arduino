@@ -1,5 +1,5 @@
-int Pins[] = {34, 35, 32, 33};
-const char *dirs[] = {"UP", "LEFT", "DOWN", "RIGHT"};
+int Pins[] = {A0, A1, A2, A3};
+const char *dirs[] = {"0deg", "270deg", "180deg", "90deg"};
 // int Pins[]={5,4,3,2};
 void setup()
 {
@@ -26,12 +26,12 @@ void loop()
     Serial.print(";");
   }
   Serial.println("");
-  Serial.print("Sides: ");
-      Serial.print(analogRead(Pins[0]) - analogRead(Pins[2]));
-  Serial.print("; ");
-  Serial.print("Pitch: ");
-      Serial.print(analogRead(Pins[1]) - analogRead(Pins[3]));
-  Serial.println("");
+  // Serial.print("Sides: ");
+  //     Serial.print(analogRead(Pins[0]) - analogRead(Pins[2]));
+  // Serial.print("; ");
+  // Serial.print("Pitch: ");
+  //     Serial.print(analogRead(Pins[1]) - analogRead(Pins[3]));
+  // Serial.println("");
 
   delay(1000);
 }
