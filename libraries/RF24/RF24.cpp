@@ -11,13 +11,6 @@
 #include "RF24.h"
 
 
-#if ARDUINO_API_VERSION >= 10000 && !defined(__DOXYGEN__)
-inline void digitalWrite(uint8_t pin, bool value) 
-{
-    digitalWrite(pin, value ? HIGH : LOW);
-}
-#endif
-
 /****************************************************************************/
 
 void RF24::csn(bool mode)
@@ -1225,7 +1218,7 @@ void RF24::openReadingPipe(uint8_t child, uint64_t address)
         memcpy(pipe0_reading_address, &address, addr_width);
     }
 
-    if (child <= 6) {
+    if (child <= 5) {
         // For pipes 2-5, only write the LSB
         if (child < 2) {
             write_register(pgm_read_byte(&child_pipe[child]), reinterpret_cast<const uint8_t*>(&address), addr_width);
@@ -1266,7 +1259,7 @@ void RF24::openReadingPipe(uint8_t child, const uint8_t* address)
     if (child == 0) {
         memcpy(pipe0_reading_address, address, addr_width);
     }
-    if (child <= 6) {
+    if (child <= 5) {
         // For pipes 2-5, only write the LSB
         if (child < 2) {
             write_register(pgm_read_byte(&child_pipe[child]), address, addr_width);
