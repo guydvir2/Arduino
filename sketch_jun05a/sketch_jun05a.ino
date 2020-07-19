@@ -1,7 +1,7 @@
 #include <myIOTesp32.h>
 #include <myESP32sleep.h>
 
-#define VER "ESP32_v1.0"
+#define VER "ESP32_v1.1"
 #define USE_VMEASURE true
 #define USE_SLEEP true
 // ~~~~~~~ myIOT32 ~~~~~~~~
@@ -11,7 +11,7 @@
 #define MQTT_TELEGRAM "myHome/Telegram"
 #define MQTT_EXT_TOPIC MQTT_PREFIX "/" MQTT_GROUP "/" DEVICE_TOPIC "/" \
                                    "onWake"
-#define USE_SERIAL true
+#define USE_SERIAL false
 #define USE_OTA true
 #define USE_WDT false
 #define USE_EXT_TOPIC true
@@ -46,17 +46,16 @@ bool no_sleep_flag = false;
 esp32Sleep go2sleep(SLEEP_TIME, FORCE_AWAKE_TIME, DEV_NAME);
 void b4sleep()
 {
-  Serial.println("b4Sleep");
-  iot.getTime();
+  // iot.getTime();
   postWake();
 }
 void startSleep_services()
 {
-  go2sleep.debug_mode = true;
+  go2sleep.debug_mode = false;
   go2sleep.run_func(b4sleep); // define a function to be run prior to sleep.
   go2sleep.no_sleep_minutes = NO_SLEEP_TIME;
 
-  iot.getTime(); // generate clock and passing it to next func.
+  // iot.getTime(); // generate clock and passing it to next func.
   go2sleep.startServices();
 }
 // ~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -66,8 +65,8 @@ const int bat_voltagePin = 35;
 const int solar_voltagePin = 36;
 const int ADC_res = 4095;
 const float vcc = 3.3;
-const float v_div_bat = 1.33;
-const float v_div_solar = 4.0;
+const float v_div_bat = 1.5; //1.33;
+const float v_div_solar = 3; // 5.0
 float bat_volt = 0.0;
 float solar_volt = 0.0;
 
@@ -84,9 +83,9 @@ float measure_voltage(const int &pin, float ratio = 1.0)
     delay(10);
   }
 
-  float temp_calc = (measure / (float)sample)/(float)ADC_res;
+  float temp_calc = (measure / (float)sample) / (float)ADC_res;
   Serial.println(temp_calc);
-  if (temp_calc > non_linear_margin && temp_calc < 1-non_linear_margin)
+  if (temp_calc > non_linear_margin && temp_calc < 1 - non_linear_margin)
   {
     correction_factor = 0.2;
   }
@@ -94,7 +93,7 @@ float measure_voltage(const int &pin, float ratio = 1.0)
   {
     correction_factor = 0.0;
   }
-  measure = ((measure / (float)sample) / (float)ADC_res) * ratio * vcc + correction_factor*ratio;
+  measure = ((measure / (float)sample) / (float)ADC_res) * ratio * vcc + correction_factor * ratio;
   return measure;
 }
 void start_voltageMeasure()
@@ -114,7 +113,7 @@ void checkWake_topic()
     sprintf(iot.mqtt_msg.msg, "");
   }
 }
-String postWake()
+String create_wakeStatus()
 {
   StaticJsonDocument<300> doc;
   // Constansts
@@ -125,24 +124,28 @@ String postWake()
   // Per wake cycle
   doc["sleepDuration"] = go2sleep.sleepduration;
   doc["Wake"] = go2sleep.WakeStatus.wake_clock;
-  doc["SleetStart"] = go2sleep.WakeStatus.startsleep_clock;
+  doc["SleepStart"] = go2sleep.WakeStatus.startsleep_clock;
   doc["nextWake"] = go2sleep.WakeStatus.nextwake_clock;
   doc["RTCdrift"] = go2sleep.WakeStatus.drift_err;
   doc["WakeErr"] = go2sleep.WakeStatus.wake_err;
 
-  char a[250];
   String output;
   serializeJson(doc, output);
+  return output;
+}
+void postWake()
+{
+  char a[250];
+  String output = create_wakeStatus();
   output.toCharArray(a, output.length() + 1);
   iot.pub_ext(a, true);
-  return output;
 }
 void start_maintainance()
 {
   no_sleep_flag = true;
   iot.pub_ext("maintainance_started", true);
   iot.pub_tele("Maintainance");
-
+  iot.pub_log("Maintainance Started");
 }
 
 void ext_MQTT(char *incoming_msg)
@@ -249,19 +252,20 @@ void makeIFTTTRequest(T1 val1, T2 val2, T3 val3)
 void setup()
 {
   startIOT_services();
-#if USE_SLEEP
   char a[50];
+  char b[80];
+
+#if USE_SLEEP
   startSleep_services();
-  sprintf(a, "Boot: [ #%d]", bootCounter);
+  sprintf(a, "Boot: [#%d]", bootCounter);
 #endif
 
 #if USE_VMEASURE
-  char b[80];
   start_voltageMeasure();
-  sprintf(b, "Batt[%.2fv]; Solar [%.2fv]", bat_volt, solar_volt);
+  sprintf(b, "Batt[%.2fv]; Solar[%.2fv]", bat_volt, solar_volt);
 #endif
+  sprintf(a, "%s %s", a, b);
   iot.pub_msg(a);
-  iot.pub_msg(b);
 
   makeIFTTTRequest(go2sleep.WakeStatus.name, a, b);
 }
