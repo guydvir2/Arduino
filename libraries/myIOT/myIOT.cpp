@@ -47,7 +47,7 @@ void myIOT::looper()
         { // checks for OTA
                 acceptOTA();
         }
-        if (noNetwork_Clock > 0)
+        if (noNetwork_Clock > 0 && useNetworkReset)
         { // no Wifi or no MQTT will cause a reset
                 if (millis() - noNetwork_Clock > time2Reset_noNetwork)
                 {

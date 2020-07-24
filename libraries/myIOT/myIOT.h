@@ -117,6 +117,7 @@ public:
   bool useResetKeeper = false;
   bool resetFailNTP = false;
   bool useextTopic = false;
+  bool useNetworkReset = true; // allow reset due to no-network timeout
   // ~~~~~~~~~~~~~~~~~~~~~~~~~
   char inline_param[6][20]; //values from user
 
@@ -129,7 +130,7 @@ public:
   char extTopic[MaxTopicLength];
   char mqqt_ext_buffer[3][150];
 
-  const char *ver = "iot_7.3";
+  const char *ver = "iot_7.4";
   char timeStamp[20];
 
 private:
