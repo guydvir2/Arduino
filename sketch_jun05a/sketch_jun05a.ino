@@ -1,5 +1,8 @@
 #include <myIOTesp32.h>
 #include <myESP32sleep.h>
+// #include <IFTTTMaker.h>
+// #include <WiFiClientSecure.h>
+
 
 #define VER "ESP32_v1.1"
 #define USE_VMEASURE true
@@ -248,6 +251,17 @@ void makeIFTTTRequest(T1 val1, T2 val2, T3 val3)
   client.stop();
 }
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+//------- Replace the following! ------
+// char ssid[] = "xxx";       // your network SSID (name)
+// char password[] = "yyyy";  // your network key
+#define KEY "cFLymB4JT9tlODsKLFn9TA"  // Get it from this page https://ifttt.com/services/maker/settings
+#define EVENT_NAME "test1" // Name of your event name, set when you are creating the applet
+
+// WiFiClientSecure client;
+// IFTTTMaker ifttt(KEY, client);
+
 
 void setup()
 {

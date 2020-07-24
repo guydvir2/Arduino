@@ -1199,7 +1199,7 @@ void myTelegram::looper()
 
 // ~~~~~~~~~~~~~~~~ mySwitch ~~~~~~~~~~~~~~
 mySwitch::mySwitch(int switchPin, int timeout_val, char *name)
-    : TOswitch(name, timeout_val)
+    : TOswitch(name, timeout_val), hReboot(64, 0)
 {
         _switchPin = switchPin;
         sprintf(_switchName, "%s", name);
@@ -1316,6 +1316,14 @@ void mySwitch::switchIt(char *txt1, float state, bool ignoreTO)
         if (usesafetyOff)
         {
                 _safetyOff_clock = millis();
+        }
+        if (state !=0.0){
+                char a[10];
+                sprintf(_outMQTTstate,"[ON]");
+        }
+        else {
+                char a[10];
+                sprintf(_outMQTTstate,"[OFF]");
         }
 }
 
@@ -1455,11 +1463,11 @@ bool mySwitch::postMessages(char outmsg[150], byte &msg_type)
                 msg_type = 0;
                 return 1;
         }
-        else if (strcmp(_outMQTTlog, "") != 0)
+        else if (strcmp(_outMQTTstate, "") != 0)
         {
-                sprintf(outmsg, "%s", _outMQTTlog);
-                sprintf(_outMQTTlog, "%s", "");
-                msg_type = 1;
+                sprintf(outmsg, "%s", _outMQTTstate);
+                sprintf(_outMQTTstate, "%s", "");
+                msg_type = 2;
                 return 1;
         }
         else
@@ -1739,7 +1747,7 @@ void mySwitch::_recoverReset(int rebootState)
                 }
                 sprintf(_outMQTTlog, "%s", "--> NormalBoot & On-at-Boot. Restarting TimeOUT");
         }
-        else if (hReboot.resetFlag)
+        else if (hReboot.resetFlag && useHardReboot)
         { // using HardReboot
                 if (usePWM)
                 {
@@ -1767,7 +1775,7 @@ void mySwitch::_recoverReset(int rebootState)
         }
 
         if (useHardReboot)
-        { // hReboot.print_val(1);
+        { 
                 hReboot.zero_cell(0);
         }
 }

@@ -5,193 +5,240 @@
 
 #define LOG_LENGTH 4
 
-myJSON::myJSON(char *filename, bool useserial) {
+myJSON::myJSON(char *filename, bool useserial)
+{
         _useSerial = useserial;
-        sprintf(_filename,"%s",filename);
-        if (_useSerial) {
+        sprintf(_filename, "%s", filename);
+        if (_useSerial)
+        {
                 Serial.begin(9600);
         }
-        if (!SPIFFS.begin()) {
-                if (_useSerial) {
+        if (!SPIFFS.begin())
+        {
+                if (_useSerial)
+                {
                         Serial.println("Failed to mount file system");
                 }
         }
 }
 
 // ~~~~~~~~~~~~~~ File Functions ~~~~~~~~~~~
-bool myJSON::file_exists(){
-        if(SPIFFS.begin()) {
+bool myJSON::file_exists()
+{
+        if (SPIFFS.begin())
+        {
                 return SPIFFS.exists(_filename);
         }
 }
-bool myJSON::file_remove(){
-        if(SPIFFS.begin()) {
+bool myJSON::file_remove()
+{
+        if (SPIFFS.begin())
+        {
                 return SPIFFS.remove(_filename);
         }
 }
-bool myJSON::format(){
-        if(SPIFFS.begin()) {
-                if (_useSerial) {
+bool myJSON::format()
+{
+        if (SPIFFS.begin())
+        {
+                if (_useSerial)
+                {
                         Serial.print("Formating...");
                 }
                 bool flag = SPIFFS.format();
-                if (_useSerial) {
-                        if (flag) {
+                if (_useSerial)
+                {
+                        if (flag)
+                        {
                                 Serial.println("Done");
                         }
-                        else {
+                        else
+                        {
                                 Serial.println("Failed");
                         }
                 }
                 return flag;
         }
 }
-bool myJSON::FS_ok(){
+bool myJSON::FS_ok()
+{
         return SPIFFS.begin();
 }
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-
 // ~~~~~~~~~~~~~~ JSON Functions ~~~~~~~~~~~
-void myJSON::saveJSON2file(JsonDocument& _doc) {
+void myJSON::saveJSON2file(JsonDocument &_doc)
+{
         File writeFile = SPIFFS.open(_filename, "w");
         serializeJson(_doc, writeFile);
         delay(50);
-        // Serial.println("JSON file saved OK");
-        // myJSON::PrettyprintJSON(_doc);
+        Serial.println("JSON file saved OK");
+        myJSON::PrettyprintJSON(_doc);
 }
-void myJSON::readJSON_file(JsonDocument& _doc) {
+void myJSON::readJSON_file(JsonDocument &_doc)
+{
         File readFile = SPIFFS.open(_filename, "r");
         DeserializationError error = deserializeJson(_doc, readFile);
-        if (error) {
+        if (error)
+        {
                 Serial.println(F("Failed to read file"));
         }
-        else{
+        else
+        {
                 serializeJson(_doc, readFile);
         }
         delay(50);
 }
-void myJSON::printJSON(JsonDocument& _doc) {
+void myJSON::printJSON(JsonDocument &_doc)
+{
         serializeJson(_doc, Serial);
 }
-void myJSON::PrettyprintJSON(JsonDocument& _doc) {
+void myJSON::PrettyprintJSON(JsonDocument &_doc)
+{
         serializeJsonPretty(_doc, Serial);
 }
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 // ~~~ User Functions : JSON + file saving ~~~~~~~~~~~
-bool myJSON::getValue (const char *key, char value[20]){
+bool myJSON::getValue(const char *key, char *value)
+{
         DynamicJsonDocument tempJDOC(DOC_SIZE);
         readJSON_file(tempJDOC);
         bool hasKey = tempJDOC.containsKey(key);
-        if (hasKey) {
+        if (hasKey)
+        {
                 const char *val = tempJDOC[key];
-                sprintf(value,"%s",val);
+                sprintf(value, "%s", val);
                 return 1;
         }
-        else {
+        else
+        {
                 return 0; // when key is not present
         }
 }
-bool myJSON::getValue (const char *key, int &retval){
+bool myJSON::getValue(const char *key, int &retval)
+{
         DynamicJsonDocument tempJDOC(DOC_SIZE);
         readJSON_file(tempJDOC);
         bool hasKey = tempJDOC.containsKey(key);
-        if (hasKey) {
+        if (hasKey)
+        {
                 retval = tempJDOC[key];
                 return 1;
         }
-        else {
+        else
+        {
                 return 0; // when key is not present
         }
 }
-bool myJSON::getValue (const char *key, long &retval){
+bool myJSON::getValue(const char *key, long &retval)
+{
         DynamicJsonDocument tempJDOC(DOC_SIZE);
         readJSON_file(tempJDOC);
         bool hasKey = tempJDOC.containsKey(key);
-        if (hasKey) {
+        if (hasKey)
+        {
                 retval = tempJDOC[key];
                 return 1;
         }
-        else {
+        else
+        {
                 return 0; // when key is not present
         }
 }
 
-void myJSON::setValue(const char *key, char *value){
+void myJSON::setValue(const char *key, char *value)
+{
         DynamicJsonDocument tempJDOC(DOC_SIZE);
         readJSON_file(tempJDOC);
-        tempJDOC[key]=value;
+        tempJDOC[key] = value;
         saveJSON2file(tempJDOC);
 }
-void myJSON::setValue(const char *key, int value){
+void myJSON::setValue(const char *key, int value)
+{
         DynamicJsonDocument tempJDOC(DOC_SIZE);
         readJSON_file(tempJDOC);
-        tempJDOC[key]=value;
+        tempJDOC[key] = value;
         saveJSON2file(tempJDOC);
 }
-void myJSON::setValue(const char *key, long value){
+void myJSON::setValue(const char *key, long value)
+{
         DynamicJsonDocument tempJDOC(DOC_SIZE);
         readJSON_file(tempJDOC);
-        tempJDOC[key]=value;
+        tempJDOC[key] = value;
         saveJSON2file(tempJDOC);
 }
 
-void myJSON::add2Array(char* array_key, char *val) {
+void myJSON::add2Array(char *array_key, char *val)
+{
         DynamicJsonDocument tempJDOC(DOC_SIZE);
         readJSON_file(tempJDOC);
 
         JsonVariant data_key = tempJDOC[array_key];
-        if (data_key.isNull()) { // create for the first time
+        if (data_key.isNull())
+        { // create for the first time
                 JsonArray data = tempJDOC.createNestedArray(array_key);
                 data.add(val);
         }
-        else if (tempJDOC[array_key].size() < LOG_LENGTH) {
+        else if (tempJDOC[array_key].size() < LOG_LENGTH)
+        {
                 tempJDOC[array_key].add(val);
         }
-        else if (tempJDOC[array_key].size() >= LOG_LENGTH) {
-                for (int n = 0; n < LOG_LENGTH - 1; n++) {
+        else if (tempJDOC[array_key].size() >= LOG_LENGTH)
+        {
+                for (int n = 0; n < LOG_LENGTH - 1; n++)
+                {
                         tempJDOC[array_key][n] = tempJDOC[array_key][n + 1];
                 }
                 tempJDOC[array_key][LOG_LENGTH - 1] = val;
         }
         saveJSON2file(tempJDOC);
 }
-void myJSON::add2Array(char* array_key, int val) {
+void myJSON::add2Array(char *array_key, int val)
+{
         DynamicJsonDocument tempJDOC(DOC_SIZE);
         readJSON_file(tempJDOC);
 
         JsonVariant data_key = tempJDOC[array_key];
-        if (data_key.isNull()) { // create for the first time
+        if (data_key.isNull())
+        { // create for the first time
                 JsonArray data = tempJDOC.createNestedArray(array_key);
                 data.add(val);
         }
-        else if (tempJDOC[array_key].size() < LOG_LENGTH) {
+        else if (tempJDOC[array_key].size() < LOG_LENGTH)
+        {
                 tempJDOC[array_key].add(val);
         }
-        else if (tempJDOC[array_key].size() >= LOG_LENGTH) {
-                for (int n = 0; n < LOG_LENGTH - 1; n++) {
+        else if (tempJDOC[array_key].size() >= LOG_LENGTH)
+        {
+                for (int n = 0; n < LOG_LENGTH - 1; n++)
+                {
                         tempJDOC[array_key][n] = tempJDOC[array_key][n + 1];
                 }
                 tempJDOC[array_key][LOG_LENGTH - 1] = val;
         }
         saveJSON2file(tempJDOC);
 }
-void myJSON::add2Array(char* array_key, long val) {
+void myJSON::add2Array(char *array_key, long val)
+{
         DynamicJsonDocument tempJDOC(DOC_SIZE);
         readJSON_file(tempJDOC);
 
         JsonVariant data_key = tempJDOC[array_key];
-        if (data_key.isNull()) { // create for the first time
+        if (data_key.isNull())
+        { // create for the first time
 
                 JsonArray data = tempJDOC.createNestedArray(array_key);
                 data.add(val);
         }
-        else if (tempJDOC[array_key].size() < LOG_LENGTH) {
+        else if (tempJDOC[array_key].size() < LOG_LENGTH)
+        {
                 tempJDOC[array_key].add(val);
         }
-        else if (tempJDOC[array_key].size() >= LOG_LENGTH) {
-                for (int n = 0; n < LOG_LENGTH - 1; n++) {
+        else if (tempJDOC[array_key].size() >= LOG_LENGTH)
+        {
+                for (int n = 0; n < LOG_LENGTH - 1; n++)
+                {
                         tempJDOC[array_key][n] = tempJDOC[array_key][n + 1];
                 }
                 tempJDOC[array_key][LOG_LENGTH - 1] = val;
@@ -199,101 +246,123 @@ void myJSON::add2Array(char* array_key, long val) {
         saveJSON2file(tempJDOC);
 }
 
-bool myJSON::getArrayVal(char* array_key, int i, int &retval){
+bool myJSON::getArrayVal(char *array_key, int i, int &retval)
+{
         DynamicJsonDocument tempJDOC(DOC_SIZE);
         readJSON_file(tempJDOC);
 
         bool hasKey = tempJDOC.containsKey(array_key);
-        if (hasKey) {
+        if (hasKey)
+        {
                 retval = tempJDOC[array_key][i].as<int>();
                 return 1;
         }
-        else {
+        else
+        {
                 return 0;
         }
 }
-bool myJSON::getArrayVal(char* array_key, int i, long &retval){
+bool myJSON::getArrayVal(char *array_key, int i, long &retval)
+{
         DynamicJsonDocument tempJDOC(DOC_SIZE);
         readJSON_file(tempJDOC);
 
         bool hasKey = tempJDOC.containsKey(array_key);
-        if (hasKey) {
+        if (hasKey)
+        {
                 retval = tempJDOC[array_key][i].as<long>();
                 return 1;
         }
-        else {
+        else
+        {
                 return 0;
         }
 }
-bool myJSON::getArrayVal(char* array_key, int i, char value[20]){
+bool myJSON::getArrayVal(char *array_key, int i, char value[20])
+{
         DynamicJsonDocument tempJDOC(DOC_SIZE);
         readJSON_file(tempJDOC);
 
         bool hasKey = tempJDOC.containsKey(array_key);
-        if (hasKey) {
+        if (hasKey)
+        {
                 char val[20];
                 // strcpy(val,tempJDOC[array_key][i].as<char>());
                 // sprintf(value,"%s",val);//tempJDOC[array_key][i].as<char>());
                 return 1;
         }
-        else {
+        else
+        {
                 return 0;
         }
 }
 
-void myJSON::setArrayVal(char* array_key, int i, int val){
+void myJSON::setArrayVal(char *array_key, int i, int val)
+{
         DynamicJsonDocument tempJDOC(DOC_SIZE);
         readJSON_file(tempJDOC);
 
-        if (tempJDOC.containsKey(array_key)) {     // Key is alreay set
+        if (tempJDOC.containsKey(array_key))
+        { // Key is alreay set
                 JsonVariant data_key = tempJDOC[array_key];
                 // if (data_key.size()==0) {
                 //         Serial.println("HAVEKEY_BUT ZERO");
                 //         data_key.add(0);
                 // }
-                if(data_key.size()<=i) {
-                        for(int a=data_key.size(); a<=i; a++) {
+                if (data_key.size() <= i)
+                {
+                        for (int a = data_key.size(); a <= i; a++)
+                        {
                                 data_key.add(0);
                         }
                 }
-                data_key[i]=val;
+                data_key[i] = val;
         }
-        else{                                     // Create Key
+        else
+        { // Create Key
                 JsonArray array_data = tempJDOC.createNestedArray(array_key);
-                for(int a=0; a<=i; a++) {
+                for (int a = 0; a <= i; a++)
+                {
                         array_data.add(0);
                 }
-                array_data[i]=val;
+                array_data[i] = val;
         }
         saveJSON2file(tempJDOC);
 }
-void myJSON::setArrayVal(char* array_key, int i, long val){
-  DynamicJsonDocument tempJDOC(DOC_SIZE);
-  readJSON_file(tempJDOC);
+void myJSON::setArrayVal(char *array_key, int i, long val)
+{
+        DynamicJsonDocument tempJDOC(DOC_SIZE);
+        readJSON_file(tempJDOC);
 
-  if (tempJDOC.containsKey(array_key)) {     // Key is alreay set
-          JsonVariant data_key = tempJDOC[array_key];
-          // if (data_key.size()==0) {
-          //         Serial.println("HAVEKEY_BUT ZERO");
-          //         data_key.add(0);
-          // }
-          if(data_key.size()<=i) {
-                  for(int a=data_key.size(); a<=i; a++) {
-                          data_key.add(0);
-                  }
-          }
-          data_key[i]=val;
-  }
-  else{                                     // Create Key
-          JsonArray array_data = tempJDOC.createNestedArray(array_key);
-          for(int a=0; a<=i; a++) {
-                  array_data.add(0);
-          }
-          array_data[i]=val;
-  }
-  saveJSON2file(tempJDOC);
+        if (tempJDOC.containsKey(array_key))
+        { // Key is alreay set
+                JsonVariant data_key = tempJDOC[array_key];
+                // if (data_key.size()==0) {
+                //         Serial.println("HAVEKEY_BUT ZERO");
+                //         data_key.add(0);
+                // }
+                if (data_key.size() <= i)
+                {
+                        for (int a = data_key.size(); a <= i; a++)
+                        {
+                                data_key.add(0);
+                        }
+                }
+                data_key[i] = val;
+        }
+        else
+        { // Create Key
+                JsonArray array_data = tempJDOC.createNestedArray(array_key);
+                for (int a = 0; a <= i; a++)
+                {
+                        array_data.add(0);
+                }
+                array_data[i] = val;
+        }
+        saveJSON2file(tempJDOC);
 }
-void myJSON::setArrayVal(char* array_key, int i, char *val){
+void myJSON::setArrayVal(char *array_key, int i, char *val)
+{
         // DynamicJsonDocument tempJDOC(DOC_SIZE);
         // myJSON::readJSON_file(tempJDOC);
         //
@@ -301,9 +370,8 @@ void myJSON::setArrayVal(char* array_key, int i, char *val){
         // myJSON::saveJSON2file(tempJDOC);
 }
 
-
-
-void myJSON::nestedArray(char* array_key, long val) {
+void myJSON::nestedArray(char *array_key, long val)
+{
         DynamicJsonDocument tempJDOC(DOC_SIZE);
         readJSON_file(tempJDOC);
         JsonArray array = tempJDOC.to<JsonArray>();
@@ -312,7 +380,8 @@ void myJSON::nestedArray(char* array_key, long val) {
         saveJSON2file(tempJDOC);
 }
 
-void myJSON::eraseArray(char* array_key) {
+void myJSON::eraseArray(char *array_key)
+{
         DynamicJsonDocument tempJDOC(DOC_SIZE);
         readJSON_file(tempJDOC);
 
@@ -320,20 +389,32 @@ void myJSON::eraseArray(char* array_key) {
         JsonArray data = tempJDOC.createNestedArray(array_key);
         saveJSON2file(tempJDOC);
 }
-void myJSON::removeValue(const char *key){
+void myJSON::removeValue(const char *key)
+{
         DynamicJsonDocument tempJDOC(DOC_SIZE);
         readJSON_file(tempJDOC);
         tempJDOC.remove(key);
         saveJSON2file(tempJDOC);
 }
 
-void myJSON::printFile(){
+void myJSON::printFile()
+{
         DynamicJsonDocument tempJDOC(DOC_SIZE);
-        if(file_exists()){
-        readJSON_file(tempJDOC);
-        serializeJsonPretty(tempJDOC, Serial);
-      }
-
-
+        if (file_exists())
+        {
+                readJSON_file(tempJDOC);
+                serializeJsonPretty(tempJDOC, Serial);
+        }
 }
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+myTest::myTest()
+{
+        Serial.println("start");
+}
+
+// template <typename T1> 
+// void myTest::funcOne(T1 arg)
+// {
+//         Serial.println(arg);
+// }

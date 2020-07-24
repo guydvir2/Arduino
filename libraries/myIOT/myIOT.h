@@ -309,6 +309,7 @@ private:
   char _outMQTTmsg[150];
   char _out2MQTTmsg[150];
   char _outMQTTlog[150];
+  char _outMQTTstate[20];
   bool _ext_det = HIGH;
   bool _retrig = false;
   char *_trig_name = "ext_trigger";
@@ -324,7 +325,7 @@ private:
   void _recoverReset(int rebootState = -1);
 
 public:
-  const char *ver = "mySwitch_1.2";
+  const char *ver = "mySwitch_1.3";
   bool usePWM = false;
   bool useSerial = false;
   bool useInput = false;
