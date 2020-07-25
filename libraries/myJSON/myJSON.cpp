@@ -72,8 +72,8 @@ void myJSON::saveJSON2file(JsonDocument &_doc)
         File writeFile = SPIFFS.open(_filename, "w");
         serializeJson(_doc, writeFile);
         delay(50);
-        Serial.println("JSON file saved OK");
-        myJSON::PrettyprintJSON(_doc);
+        // Serial.println("JSON file saved OK");
+        // myJSON::PrettyprintJSON(_doc);
 }
 void myJSON::readJSON_file(JsonDocument &_doc)
 {

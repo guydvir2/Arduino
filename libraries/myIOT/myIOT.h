@@ -105,9 +105,8 @@ public:
   void pub_state(char *inmsg, byte i = 0);
   void pub_msg(char *inmsg);
   bool pub_log(char *inmsg);
-  void pub_ext(char *inmsg, char *name="");
+  void pub_ext(char *inmsg, char *name = "");
   int inline_read(char *inputstr);
-  // void send_tele_msg(char *msg);
 
   // ~~~~~~ Services ~~~~~~~~~
   bool useSerial = false;
@@ -130,14 +129,13 @@ public:
   char extTopic[MaxTopicLength];
   char mqqt_ext_buffer[3][150];
 
-  const char *ver = "iot_7.4";
+  const char *ver = "iot_7.5";
   char timeStamp[20];
 
 private:
   char *Ssid;
   char *Password;
   cb_func ext_mqtt;
-  // cb_func2 ext_telegram;
 
   // time interval parameters
 
@@ -282,18 +280,16 @@ private:
   {
     byte cell_index;
     byte value;
-    byte cell2_index;
-    byte value2;
   };
-  eeproms_storage boot_Counter = {0, 0, 0, 0};
-  // eeproms_storage totWrites_Counter = {1, 0, 0, 0};
-  // int _cell;
+  eeproms_storage boot_Counter = {0, 0};
+  int counter  = 0;
+  static int _counter;
 
 public:
-  hardReboot(int romsize = 64, int cell = 0);
-  void zero_cell(int i);
-  byte return_val(int i);
-  void print_val(int i);
+  hardReboot(int romsize = 64);
+  void zero_cell();
+  byte return_val();
+  void print_val();
   bool check_boot(byte threshold = 3);
   bool resetFlag = false;
 };
@@ -305,6 +301,7 @@ class mySwitch
 #define RelayOn HIGH
 
 private:
+  static int _counter;
   int _switchPin;
   char _switchName[20];
   char _outMQTTmsg[150];
@@ -326,7 +323,7 @@ private:
   void _recoverReset(int rebootState = -1);
 
 public:
-  const char *ver = "mySwitch_1.3";
+  const char *ver = "mySwitch_1.4";
   bool usePWM = false;
   bool useSerial = false;
   bool useInput = false;

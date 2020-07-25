@@ -3,12 +3,12 @@
 #include <Arduino.h>
 
 // ********** Sketch Services  ***********
-#define VER "WEMOS_1.4"
+#define VER "SONOFFdual_1.5"
 #define USE_DISPLAY false
 
 // ********** myIOT Class ***********
 //~~~~~ Services ~~~~~~~~~~~
-#define USE_SERIAL false     // Serial Monitor
+#define USE_SERIAL false      // Serial Monitor
 #define USE_WDT true         // watchDog resets
 #define USE_OTA true         // OTA updates
 #define USE_RESETKEEPER true // detect quick reboot and real reboots
@@ -17,9 +17,9 @@
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 // ~~~~~~~ MQTT Topics ~~~~~~
-#define DEVICE_TOPIC "parentsBedLEDs"
+#define DEVICE_TOPIC "PergolaLEDs"
 #define MQTT_PREFIX "myHome"
-#define MQTT_GROUP "intLights"
+#define MQTT_GROUP "extLights"
 #define TELEGRAM_OUT_TOPIC "Telegram"
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -29,34 +29,34 @@ myIOT iot(DEVICE_TOPIC);
 
 // *********** myTOswitch ***********
 // ~~~~~~ Services ~~~~~~~~
-#define ON_AT_BOOT true
-#define USE_QUICK_BOOT false
+#define ON_AT_BOOT false
+#define USE_QUICK_BOOT true
 #define USE_TO true
 #define USE_dailyTO true
 #define SAFETY_OFF true
-#define SAFEY_OFF_DURATION 600 //minutes
+#define SAFEY_OFF_DURATION 300 //minutes
 #define USE_BADBOOT USE_RESETKEEPER
-#define USE_EEPROM_RESET_COUNTER false
+#define USE_EEPROM_RESET_COUNTER true
 // ~~~~~~~~~~~~~~~~~~~~
 
 // ~~~~ TO & dailyTO ~~~~~~
-const int START_dTO[2][3] = {{17, 0, 0}, {20, 0, 0}};
-const int END_dTO[2][3] = {{0, 30, 0}, {0, 30, 0}};
-const int TimeOUT[] = {240, 120}; // minutes
+const int START_dTO[2][3] = {{20, 30, 0}, {21, 0, 0}};
+const int END_dTO[2][3] = {{22, 0, 0}, {22, 0, 0}};
+const int TimeOUT[] = {180, 120}; // minutes
 // ~~~~~~~~~~~~~~~~~~~~
 
 // ~~~~~~ Hardware ~~~~~~~
 #define NUM_SW 2
 #define USE_PWM false
-#define USE_INPUT true
+#define USE_INPUT false
 #define USE_EXT_TRIG false
-#define BUTTOM_MOMENT true
+#define BUTTOM_MOMENT false
 
-const int outputPin[] = {D1, D3}; // D3 for most PWM boards
-const int inputPin[] = {D5, D7};
-const int hRebbots[] = {1, 1};
+const int outputPin[] = {12, 5}; // D3 for most PWM boards
+const int inputPin[] = {0, 14};
+const int hRebbots[] = {1, 2};
 // ~~~~~~~~~~~~~~~~~~~~
-char *SW_Names[] = {"Bed", "Mirror"};
+char *SW_Names[] = {"Projector", "Ledstrip"};
 
 /*
 ~~~~~ SONOFF HARDWARE ~~~~~
@@ -97,6 +97,7 @@ void configTOswitches()
                 if (USE_EEPROM_RESET_COUNTER)
                 {
                         TOswitches[i]->hReboot.check_boot(hRebbots[i]);
+                        // Serial.println(TOswitches[i]->hReboot.return_val(i));
                 }
                 if (USE_QUICK_BOOT)
                 {
@@ -134,13 +135,13 @@ void TOswitch_looper()
                         {
                                 iot.pub_msg(msgtoMQTT);
                         }
-                        else if (mtyp == 1)
+                        if (mtyp == 1)
                         {
                                 iot.pub_log(msgtoMQTT);
                         }
-                        else if (mtyp == 2)
+                        if (mtyp == 2)
                         {
-                                iot.pub_state(msgtoMQTT,i);
+                                iot.pub_state(msgtoMQTT, i);
                         }
                 }
         }
@@ -287,6 +288,7 @@ void displayClock()
 
 void setup()
 {
+        Serial.begin(9600);
         configTOswitches();
         startIOTservices();
         startTOSwitch();

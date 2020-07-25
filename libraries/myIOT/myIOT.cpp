@@ -1199,12 +1199,14 @@ void myTelegram::looper()
 
 // ~~~~~~~~~~~~~~~~ mySwitch ~~~~~~~~~~~~~~
 mySwitch::mySwitch(int switchPin, int timeout_val, char *name)
-    : TOswitch(name, timeout_val), hReboot(64, 0)
+    : TOswitch(name, timeout_val), hReboot(64)
 {
+        _counter++;
         _switchPin = switchPin;
         sprintf(_switchName, "%s", name);
         pinMode(_switchPin, OUTPUT); // defined here for hReboot purposes
 }
+int mySwitch::_counter = 0;
 void mySwitch::begin()
 {
         if (useSerial)
@@ -1317,13 +1319,15 @@ void mySwitch::switchIt(char *txt1, float state, bool ignoreTO)
         {
                 _safetyOff_clock = millis();
         }
-        if (state !=0.0){
+        if (state != 0.0)
+        {
                 char a[10];
-                sprintf(_outMQTTstate,"[ON]");
+                sprintf(_outMQTTstate, "[ON]");
         }
-        else {
+        else
+        {
                 char a[10];
-                sprintf(_outMQTTstate,"[OFF]");
+                sprintf(_outMQTTstate, "[OFF]");
         }
 }
 
@@ -1461,6 +1465,13 @@ bool mySwitch::postMessages(char outmsg[150], byte &msg_type)
                 sprintf(outmsg, "%s", _out2MQTTmsg);
                 sprintf(_out2MQTTmsg, "%s", "");
                 msg_type = 0;
+                return 1;
+        }
+        else if (strcmp(_outMQTTlog, "") != 0)
+        {
+                sprintf(outmsg, "%s", _outMQTTlog);
+                sprintf(_outMQTTlog, "%s", "");
+                msg_type = 1;
                 return 1;
         }
         else if (strcmp(_outMQTTstate, "") != 0)
@@ -1736,7 +1747,7 @@ void mySwitch::quickPwrON()
 void mySwitch::_recoverReset(int rebootState)
 {
         if (rebootState == 0 && onAt_boot)
-        { // PowerOn - not a quickReboot
+        { // PowserialerOn - not a quickReboot
                 if (usePWM)
                 {
                         switchIt("onAtBoot", def_power);
@@ -1758,7 +1769,6 @@ void mySwitch::_recoverReset(int rebootState)
                         switchIt("onAtBoot", RelayOn);
                 }
                 sprintf(_outMQTTlog, "--> ForcedBoot. Restarting TimeOUT");
-                //         boot_overide[i] = true;
         }
         else if (TOswitch.looper() == 0)
         { // was not during TO
@@ -1775,44 +1785,41 @@ void mySwitch::_recoverReset(int rebootState)
         }
 
         if (useHardReboot)
-        { 
-                hReboot.zero_cell(0);
+        {
+                hReboot.zero_cell();
         }
 }
 
-hardReboot::hardReboot(int romsize, int cell)
+hardReboot::hardReboot(int romsize)
 {
         EEPROM.begin(romsize);
-        boot_Counter.cell_index = cell;
-        boot_Counter.cell2_index = cell + 1;
+        counter = _counter;
+        boot_Counter.cell_index = counter;
+        boot_Counter.value = return_val();
+        _counter++;
 }
-void hardReboot::zero_cell(int i)
+void hardReboot::zero_cell()
 {
-        EEPROM.write(i, 0);
+        EEPROM.write(boot_Counter.cell_index, 0);
         EEPROM.commit();
 }
-byte hardReboot::return_val(int i)
+byte hardReboot::return_val()
 {
-        return EEPROM.read(i);
+        return EEPROM.read(boot_Counter.cell_index);
 }
-void hardReboot::print_val(int i)
+void hardReboot::print_val()
 {
         Serial.print("Value of cell #");
-        Serial.print(i);
+        Serial.print(boot_Counter.cell_index);
         Serial.print(": ");
-        Serial.println(EEPROM.read(i));
+        Serial.println(EEPROM.read(boot_Counter.cell_index));
 }
 bool hardReboot::check_boot(byte threshold)
 {
-        boot_Counter.value = EEPROM.read(boot_Counter.cell_index);
-        boot_Counter.value2 = EEPROM.read(boot_Counter.cell2_index);
-
         if (boot_Counter.value < threshold)
         {
                 boot_Counter.value++;
-                boot_Counter.value2++;
                 EEPROM.write(boot_Counter.cell_index, boot_Counter.value);
-                EEPROM.write(boot_Counter.cell2_index, boot_Counter.value2);
                 EEPROM.commit();
                 resetFlag = 0;
                 return 0;
@@ -1820,6 +1827,8 @@ bool hardReboot::check_boot(byte threshold)
         else
         {
                 resetFlag = 1;
+                zero_cell();
                 return 1;
         }
 }
+int hardReboot::_counter = 0;
