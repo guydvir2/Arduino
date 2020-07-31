@@ -106,6 +106,7 @@ public:
   void pub_msg(char *inmsg);
   bool pub_log(char *inmsg);
   void pub_ext(char *inmsg, char *name = "");
+  void pub_debug(char *inmsg);
   int inline_read(char *inputstr);
 
   // ~~~~~~ Services ~~~~~~~~~
@@ -118,6 +119,7 @@ public:
   bool useextTopic = false;
   bool useNetworkReset = true; // allow reset due to no-network timeout
   // ~~~~~~~~~~~~~~~~~~~~~~~~~
+  bool useFlasglog = false;
   char inline_param[6][20]; //values from user
 
   bool alternativeMQTTserver = false;
@@ -167,6 +169,7 @@ private:
   char _stateTopic[MaxTopicLength];
   char _stateTopic2[MaxTopicLength];
   char _signalTopic[MaxTopicLength];
+  char _debugTopic[MaxTopicLength];
   // char _telegramServer[MaxTopicLength];
 
   char *topicArry[4] = {deviceTopic, _groupTopic, _availTopic, addGroupTopic};
@@ -180,6 +183,11 @@ private:
   char bootErrors[150];
   bool firstRun = true;
   bool _failNTP = false;
+  char *_logfilename = "/logfile.txt";
+  const static int _logsize = 30; // entries
+  const static int _log_length = 200; // chars in each entry
+  char _log_array[_logsize][_log_length];
+
   FVars _failNTPcounter_inFlash;
   FVars _failSafeCounter_inFlash;
   // ###################
@@ -205,6 +213,12 @@ private:
   void feedTheDog();
   void startWDT();
   void acceptOTA();
+
+  // ~~~~~~~~~~~~~~~Flash-log ~~~~~~~~~~~~~~~~~~~~~~~
+  void startlog();
+  int readlog();
+  void writelog(const char *message);
+  void postlog(int x);
 };
 
 class timeOUT

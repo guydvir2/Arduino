@@ -26,6 +26,7 @@
         "chrono": "cpp",
         "complex": "cpp",
         "cmath": "cpp",
-        "cstdlib": "cpp"
+        "cstdlib": "cpp",
+        "fstream": "cpp"
     }
 }

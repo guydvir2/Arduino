@@ -6,6 +6,9 @@
 #include <TimeLib.h>
 #include <TimeAlarms.h>
 
+#include <FS.h>
+#include <LittleFS.h>
+
 myJSON json(jfile, true);
 
 // ~~~~~~ myIOT CLASS ~~~~~~~~~~~ //
@@ -37,6 +40,11 @@ void myIOT::start_services(cb_func funct, char *ssid, char *password, char *mqtt
         if (useOTA)
         {
                 startOTA();
+        }
+
+        if (useFlasglog)
+        {
+                startlog();
         }
 }
 void myIOT::looper()
@@ -401,6 +409,7 @@ void myIOT::createTopics()
         snprintf(_groupTopic, MaxTopicLength, "%s/All", prefixTopic);
         snprintf(_errorTopic, MaxTopicLength, "%s/log", prefixTopic);
         snprintf(_signalTopic, MaxTopicLength, "%s/Signal", prefixTopic);
+        snprintf(_debugTopic, MaxTopicLength, "%s/debug", prefixTopic);
 
         if (strcmp(addGroupTopic, "") != 0)
         {
@@ -495,6 +504,8 @@ void myIOT::pub_msg(char *inmsg)
                 sprintf(tmpmsg, "[%s] [%s]", timeStamp, deviceTopic);
                 msgSplitter(inmsg, 200, tmpmsg, "#");
         }
+        writelog(inmsg);
+        postlog(3);
 }
 void myIOT::pub_state(char *inmsg, byte i)
 {
@@ -542,6 +553,17 @@ void myIOT::pub_ext(char *inmsg, char *name)
                         sprintf(tmpmsg, "[%s][%s]: [%s]", timeStamp, name, inmsg);
                 }
                 mqttClient.publish(extTopic, tmpmsg);
+        }
+}
+void myIOT::pub_debug(char *inmsg)
+{
+        char tmpmsg[250];
+        get_timeStamp();
+
+        if (mqttClient.connected())
+        {
+                sprintf(tmpmsg, ">> %s << [%s] %s", timeStamp, deviceTopic, inmsg);
+                mqttClient.publish(_debugTopic, tmpmsg);
         }
 }
 
@@ -754,6 +776,107 @@ void myIOT::startWDT()
 }
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+// ~~~~~~~~~~~~~~ FlashLog ~~~~~~~~~~~~
+void myIOT::startlog()
+{
+        if (!LittleFS.begin())
+        {
+                Serial.println("LittleFS mount failed");
+        }
+}
+int myIOT::readlog()
+{
+        int r = 0;
+        int c = 0;
+
+        File file = LittleFS.open(_logfilename, "r");
+        if (!file)
+        {
+                Serial.println("Failed to open file for reading");
+        }
+        Serial.print("file_Size: ");
+        Serial.println(file.size());
+        Serial.println("Read from file: ");
+        while (file.available())
+        {
+                char tt = file.read();
+                if (tt != '\r')
+                {
+                        _log_array[r][c] = tt;
+                        c++;
+                }
+                else
+                {
+                        _log_array[r][c] = '\r';
+                        Serial.println(_log_array[r]);
+                        r++;
+                        c = 0;
+                }
+        }
+        file.close();
+        return r;
+}
+void myIOT::writelog(const char *message)
+{
+        char a[200];
+        int num_lines = readlog();
+        Serial.print("LINES: ");
+        Serial.println(num_lines);
+        if (num_lines > 0)
+        {
+                for (int a = num_lines; a > 0; a--)
+                {
+                        sprintf(_log_array[a], _log_array[a - 1]);
+                        Serial.print(" line ");
+                        Serial.print(a);
+                        Serial.print(" :");
+                        Serial.println(_log_array[a]);
+                }
+        }
+        sprintf(a, "%s\r", message);
+        strcpy(_log_array[0], a);
+
+        Serial.println("Before saving:");
+
+        for (int a = 0; a <= num_lines; a++)
+        {
+                Serial.print("line ");
+                Serial.print(a);
+                Serial.print(" :");
+                Serial.println(_log_array[a]);
+        }
+
+        File file1 = LittleFS.open(_logfilename, "w");
+        if (!file1)
+        {
+                Serial.println("Failed to open file for appending");
+        }
+        for (int x = 0; x <= num_lines; x++)
+        {
+                if (file1.print(_log_array[x]))
+                {
+                        Serial.println("Message appended");
+                }
+                else
+                {
+                        Serial.println("Append failed");
+                }
+        }
+        file1.close();
+
+        readlog();
+}
+void myIOT::postlog(int x)
+{
+        int num_lines = readlog();
+        for (int a = 0; a < num_lines; a++)
+        {
+                pub_debug(_log_array[a]);
+                delay(100);
+        }
+}
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // ############################### FVars CLASS #################################
 FVars::FVars(char *key, char *pref)
 {

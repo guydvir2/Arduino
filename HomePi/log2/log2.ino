@@ -1,7 +1,4 @@
 #include <myIOT.h>
-#include <ArduinoJson.h>
-#include "FS.h"
-#include <LittleFS.h>
 #include <Arduino.h>
 
 // ********** Sketch Services  ***********
@@ -33,60 +30,10 @@ void startIOTservices()
         iot.useOTA = USE_OTA;
         iot.useResetKeeper = USE_RESETKEEPER;
         iot.resetFailNTP = USE_FAILNTP;
+        iot.useFlasglog = true;
         strcpy(iot.prefixTopic, MQTT_PREFIX);
         strcpy(iot.addGroupTopic, MQTT_GROUP);
         iot.start_services(ADD_MQTT_FUNC);
-}
-
-const char *filename = "/log.JSON";
-const char *log_prefix = "log_entry"
-const int JDOC_size = 300;
-const int max_filesize = 1024;
-const int lon_entries = 10;
-
-
-const char *keys[2]={"key1","key2"};
-
-
-
-bool readlog()
-{
-        File configFile = LittleFS.open(filename, "r");
-        if (!configFile)
-        {
-                Serial.println("Failed to open config file");
-                return false;
-        }
-
-        size_t size = configFile.size();
-        Serial.print("file size: ");
-        Serial.println(size);
-        if (size > max_filesize)
-        {
-                Serial.println("Config file size is too large");
-                return false;
-        }
-
-        std::unique_ptr<char[]> buf(new char[size]);
-        configFile.readBytes(buf.get(), size);
-
-        StaticJsonDocument<JDOC_size> doc;
-        DeserializationError error = deserializeJson(doc, buf.get());
-        if (error)
-        {
-                Serial.println("Failed to parse config file");
-                return false;
-        }
-
-        const char *serverName = doc["serverName"];
-        const char *accessToken = doc["accessToken"];
-        serializeJson(doc, Serial);
-
-        Serial.print("Loaded serverName: ");
-        Serial.println(serverName);
-        Serial.print("Loaded accessToken: ");
-        Serial.println(accessToken);
-        return true;
 }
 
 void addiotnalMQTT(char *incoming_msg)
@@ -96,7 +43,7 @@ void addiotnalMQTT(char *incoming_msg)
         if (strcmp(incoming_msg, "status") == 0)
         {
                 // sprintf(msg, "Status: Time [%s], Date [%s]", timeStamp, dateStamp);
-                iot.pub_msg(msg);
+                iot.pub_msg("Hi, I'm all OK");
         }
         else if (strcmp(incoming_msg, "ver") == 0)
         {
