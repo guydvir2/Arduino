@@ -6,7 +6,7 @@
 #define USE_VMEASURE true
 #define USE_SLEEP true
 // ~~~~~~~ myIOT32 ~~~~~~~~
-#define DEVICE_TOPIC "ESP32_6V"
+#define DEVICE_TOPIC "ESP32_12V"
 #define MQTT_PREFIX "myHome"
 #define MQTT_GROUP "solarPower"
 #define MQTT_TELEGRAM "myHome/Telegram"
@@ -38,7 +38,7 @@ void startIOT_services()
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 // ~~~~~~~ Sleep ~~~~~~~~~~~
-#define SLEEP_TIME 30
+#define SLEEP_TIME 60
 #define FORCE_AWAKE_TIME 20
 #define NO_SLEEP_TIME 4
 #define DEV_NAME DEVICE_TOPIC
@@ -63,8 +63,8 @@ const int bat_voltagePin = 35;
 const int solar_voltagePin = 36;
 const int ADC_res = 4095;
 const float vcc = 3.3;
-const float v_div_bat = 1.5; //1.33;
-const float v_div_solar = 2.0; //3; // 5.0
+const float v_div_bat = 1.33;// for 6v panel :1.5; 
+const float v_div_solar = 4.0; // for 6v panel: 2.0; // // 5.0
 float bat_volt = 0.0;
 float solar_volt = 0.0;
 
@@ -246,16 +246,6 @@ void makeIFTTTRequest(T1 val1, T2 val2, T3 val3)
   client.stop();
 }
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-
-//------- Replace the following! ------
-// char ssid[] = "xxx";       // your network SSID (name)
-// char password[] = "yyyy";  // your network key
-#define KEY "cFLymB4JT9tlODsKLFn9TA"  // Get it from this page https://ifttt.com/services/maker/settings
-#define EVENT_NAME "test1" // Name of your event name, set when you are creating the applet
-
-// WiFiClientSecure client;
-// IFTTTMaker ifttt(KEY, client);
 
 
 void setup()

@@ -60,8 +60,10 @@ class myTest
 {
 public:
     myTest();
-    // template <class T1> 
-    // void funcOne(T1 arg);
+    template <typename T1> 
+    void funcOne(T1 arg){
+            Serial.println(arg);
+    }
 };
 
 #endif
