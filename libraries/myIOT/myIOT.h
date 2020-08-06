@@ -129,7 +129,7 @@ public:
   char extTopic[MaxTopicLength];
   char mqqt_ext_buffer[3][150];
 
-  const char *ver = "iot_7.5";
+  const char *ver = "iot_7.6";
   char timeStamp[20];
 
 private:
@@ -181,7 +181,6 @@ private:
   bool firstRun = true;
   bool _failNTP = false;
   FVars _failNTPcounter_inFlash;
-  FVars _failSafeCounter_inFlash;
   // ###################
 
   // ~~~~~~~~~~~~~~WIFI ~~~~~~~~~~~~~~~~~~~~~

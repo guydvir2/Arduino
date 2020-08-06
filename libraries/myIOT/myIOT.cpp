@@ -138,14 +138,12 @@ void myIOT::network_looper()
                         { // succeed to reconnect
                                 mqttClient.loop();
                                 noNetwork_Clock = 0;
-                                Serial.println("REconnect MQTT- OK");
                         }
                         else
                         { // failed to reconnect
                                 if (noNetwork_Clock == 0)
                                 { // first time fail MQTT
                                         noNetwork_Clock = millis();
-                                        Serial.println("1st time -fail to REconnect MQTT");
                                 }
                         }
                 }
@@ -157,13 +155,11 @@ void myIOT::network_looper()
                         if (noNetwork_Clock == 0)
                         { // first time when NO NETWORK ?
                                 noNetwork_Clock = millis();
-                                // Serial.println("1st time -fail to Wifi");
                         }
                 }
                 else
                 { // reconnect succeeded
                         noNetwork_Clock = 0;
-                        // Serial.println("wifi reconnected!");
                 }
         }
 }
