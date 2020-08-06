@@ -1,8 +1,5 @@
 #include <myIOT.h>
 #include <Arduino.h>
-##include <ArduinoJson.h>
-#include "FS.h"
-#include <LittleFS.h>
 
 // ********** Sketch Services  ***********
 #define VER "WEMOS_1.0"

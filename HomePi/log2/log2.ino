@@ -30,7 +30,8 @@ void startIOTservices()
         iot.useOTA = USE_OTA;
         iot.useResetKeeper = USE_RESETKEEPER;
         iot.resetFailNTP = USE_FAILNTP;
-        iot.useFlasglog = true;
+        iot.useDebug = true;
+        iot.debug_level = 0;
         strcpy(iot.prefixTopic, MQTT_PREFIX);
         strcpy(iot.addGroupTopic, MQTT_GROUP);
         iot.start_services(ADD_MQTT_FUNC);
@@ -47,12 +48,13 @@ void addiotnalMQTT(char *incoming_msg)
         }
         else if (strcmp(incoming_msg, "ver") == 0)
         {
-                sprintf(msg, "ver #1: [%s], lib: [%s], WDT: [%d], OTA: [%d], SERIAL: [%d], ResetKeeper[%d], FailNTP[%d]", VER, iot.ver, USE_WDT, USE_OTA, USE_SERIAL, USE_RESETKEEPER, USE_FAILNTP);
+                sprintf(msg, "ver #1: [%s], lib: [%s], WDT: [%d], OTA: [%d], SERIAL: [%d], ResetKeeper[%d], FailNTP[%d], debug_log[%d]",
+                        VER, iot.ver, USE_WDT, USE_OTA, USE_SERIAL, USE_RESETKEEPER, USE_FAILNTP, iot.useDebug);
                 iot.pub_msg(msg);
         }
         else if (strcmp(incoming_msg, "help") == 0)
         {
-                sprintf(msg, "Help: Commands #1 - [status, boot, reset, ip, ota, ver, help]");
+                sprintf(msg, "Help: Commands #1 - [status, boot, reset, ip, ota, ver, help, debug_log, show_debug]");
                 iot.pub_msg(msg);
         }
 }

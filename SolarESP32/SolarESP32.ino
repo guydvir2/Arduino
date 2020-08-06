@@ -6,13 +6,13 @@
 #define USE_VMEASURE true
 #define USE_SLEEP true
 // ~~~~~~~ myIOT32 ~~~~~~~~
-#define DEVICE_TOPIC "ESP32_12V"
+#define DEVICE_TOPIC "ESP32_6V_NEWMCU"
 #define MQTT_PREFIX "myHome"
 #define MQTT_GROUP "solarPower"
 #define MQTT_TELEGRAM "myHome/Telegram"
 #define MQTT_EXT_TOPIC MQTT_PREFIX "/" MQTT_GROUP "/" DEVICE_TOPIC "/" \
                                    "onWake"
-#define USE_SERIAL false
+#define USE_SERIAL true
 #define USE_OTA true
 #define USE_WDT false
 #define USE_EXT_TOPIC true
@@ -38,7 +38,7 @@ void startIOT_services()
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 // ~~~~~~~ Sleep ~~~~~~~~~~~
-#define SLEEP_TIME 60
+#define SLEEP_TIME 5
 #define FORCE_AWAKE_TIME 20
 #define NO_SLEEP_TIME 4
 #define DEV_NAME DEVICE_TOPIC
@@ -63,8 +63,8 @@ const int bat_voltagePin = 35;
 const int solar_voltagePin = 36;
 const int ADC_res = 4095;
 const float vcc = 3.3;
-const float v_div_bat = 1.33;// for 6v panel :1.5; 
-const float v_div_solar = 4.0; // for 6v panel: 2.0; // // 5.0
+const float v_div_bat = 5.0; //1.33;// for 6v panel :1.5; 
+const float v_div_solar = 6.0; //4.0; // for 6v panel: 2.0; // // 5.0
 float bat_volt = 0.0;
 float solar_volt = 0.0;
 

@@ -2,12 +2,11 @@
 #include <Arduino.h>
 
 // ********** Sketch Services  ***********
-#define VER "NodeMCU_5.8"
+#define VER "NodeMCU_5.9"
 #define USE_BOUNCE_DEBUG false
 #define USE_2_EXT_INPUT false // Only for dual input window
 #define USE_AUTO_RELAY_OFF true
-// #define USE_AUTO_OFF true
-#define AUTO_RELAY_TIMEOUT 90
+#define AUTO_RELAY_TIMEOUT 90 // seconds to set Relay to off
 // ********** myIOT Class ***********
 //~~~~~ Services ~~~~~~~~~~~
 #define USE_SERIAL false
@@ -15,10 +14,11 @@
 #define USE_OTA true
 #define USE_RESETKEEPER false
 #define USE_FAILNTP true
+#define USE_DEBUG_LOG true
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 // ~~~~~~~ MQTT Topics ~~~~~~
-#define DEVICE_TOPIC "!@#" // laundry & saloonSingle has different GPIO from others
+#define DEVICE_TOPIC "familyRoom" // laundry & saloonSingle has different GPIO from others
 #define MQTT_PREFIX "myHome"
 #define MQTT_GROUP "Windows"
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -33,8 +33,8 @@ myIOT iot(DEVICE_TOPIC);
 
 // GPIO Pins for ESP8266
 //~~~~Internal Switch ~~~~~~
-const int inputUpPin = D1;   // main is D1 // D3 only for saloonSingle
-const int inputDownPin = D2; // main is D2 // D3 only for laundryRoom 
+const int inputUpPin = D2;   // main is D2 // D3 only for saloonSingle
+const int inputDownPin = D1; // main is D1 // D3 only for laundryRoom 
 const int outputUpPin = 14;
 const int outputDownPin = 12;
 //~~~~External Input ~~~~~~~~~
@@ -60,6 +60,8 @@ void startIOTservices()
         iot.useOTA = USE_OTA;
         iot.useResetKeeper = USE_RESETKEEPER;
         iot.resetFailNTP = USE_FAILNTP;
+        iot.useDebug = USE_DEBUG_LOG;
+        iot.debug_level =0; //All operations are monitored
         strcpy(iot.prefixTopic, MQTT_PREFIX);
         strcpy(iot.addGroupTopic, MQTT_GROUP);
         iot.start_services(ADD_MQTT_FUNC); //, SSID_ID, PASS_WIFI, MQTT_USER, MQTT_PASS, "192.168.3.201");
@@ -135,13 +137,13 @@ void addiotnalMQTT(char incoming_msg[50])
         }
         else if (strcmp(incoming_msg, "ver") == 0)
         {
-                sprintf(msg, "ver:[%s], lib:[%s], WDT:[%d], OTA:[%d], SERIAL:[%d],ResetKeeper[%d], FailNTP[%d], AutoOFF[%d]",
-                        VER, iot.ver, USE_WDT, USE_OTA, USE_SERIAL, USE_RESETKEEPER, USE_FAILNTP, USE_AUTO_RELAY_OFF);
+                sprintf(msg, "ver:[%s], lib:[%s], WDT:[%d], OTA:[%d], SERIAL:[%d],ResetKeeper[%d], FailNTP[%d], AutoOFF[%d], useDebug[%d]",
+                        VER, iot.ver, USE_WDT, USE_OTA, USE_SERIAL, USE_RESETKEEPER, USE_FAILNTP, USE_AUTO_RELAY_OFF, USE_DEBUG_LOG);
                 iot.pub_msg(msg);
         }
         else if (strcmp(incoming_msg, "help") == 0)
         {
-                sprintf(msg, "Help: Commands #1 - [status, boot, reset, ip, ota, ver, help]");
+                sprintf(msg, "Help: Commands #1 - [status, boot, reset, ip, ota, ver, help, debug_log, show_debug");
                 iot.pub_msg(msg);
                 sprintf(msg, "Help: Commands #2 - [up, down, off]");
                 iot.pub_msg(msg);
