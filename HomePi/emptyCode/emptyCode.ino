@@ -11,6 +11,8 @@
 #define USE_OTA true          // OTA updates
 #define USE_RESETKEEPER false // detect quick reboot and real reboots
 #define USE_FAILNTP true      // saves amoount of fail clock updates
+#define USE_DEBUG true
+#define DEBUG_LEVEL 0
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 // ~~~~~~~ MQTT Topics ~~~~~~
@@ -30,6 +32,8 @@ void startIOTservices()
         iot.useOTA = USE_OTA;
         iot.useResetKeeper = USE_RESETKEEPER;
         iot.resetFailNTP = USE_FAILNTP;
+        iot.useDebug = USE_DEBUG;
+        iot.debug_level = DEBUG_LEVEL;
         strcpy(iot.prefixTopic, MQTT_PREFIX);
         strcpy(iot.addGroupTopic, MQTT_GROUP);
         iot.start_services(ADD_MQTT_FUNC);
@@ -41,17 +45,12 @@ void addiotnalMQTT(char *incoming_msg)
         char msg2[20];
         if (strcmp(incoming_msg, "status") == 0)
         {
-                // sprintf(msg, "Status: Time [%s], Date [%s]", timeStamp, dateStamp);
+                sprintf(msg, "Status: OK");
                 iot.pub_msg(msg);
         }
-        else if (strcmp(incoming_msg, "ver") == 0)
+        else if (strcmp(incoming_msg, "help2") == 0)
         {
-                sprintf(msg, "ver #1: [%s], lib: [%s], WDT: [%d], OTA: [%d], SERIAL: [%d], ResetKeeper[%d], FailNTP[%d]", VER, iot.ver, USE_WDT, USE_OTA, USE_SERIAL, USE_RESETKEEPER, USE_FAILNTP);
-                iot.pub_msg(msg);
-        }
-        else if (strcmp(incoming_msg, "help") == 0)
-        {
-                sprintf(msg, "Help: Commands #1 - [status, boot, reset, ip, ota, ver, help]");
+                sprintf(msg, "Help: Commands #3 - [NEW]");
                 iot.pub_msg(msg);
         }
 }

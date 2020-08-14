@@ -112,34 +112,23 @@ public:
     /**@{*/
 
     /**
-     * Arduino Constructor
+     * RF24 Constructor
      *
      * Creates a new instance of this driver.  Before using, you create an instance
      * and send in the unique pins that this chip is connected to.
      *
-     * See http://tmrh20.github.io/RF24/pages.html for device specific information
+     * See http://tmrh20.github.io/RF24/pages.html for device specific information <br>
+     *
+     * @note Users can specify default SPI speed by modifying #define RF24_SPI_SPEED in RF24_config.h <br>
+     * For Arduino, SPI speed will only be properly configured this way on devices supporting SPI TRANSACTIONS <br>
+     * Older/Unsupported Arduino devices will use a default clock divider & settings configuration <br>
+     * Linux: The old way of setting SPI speeds using BCM2835 driver enums has been removed <br>
      *
      * @param _cepin The pin attached to Chip Enable on the RF module
      * @param _cspin The pin attached to Chip Select
+     * @param spispeed The SPI speed in Hz ie: 1000000 == 1Mhz
      */
-    RF24(uint16_t _cepin, uint16_t _cspin);
-    //#if defined (RF24_LINUX)
-
-    /**
-  * Optional Linux Constructor
-  *
-  * Creates a new instance of this driver.  Before using, you create an instance
-  * and send in the unique pins that this chip is connected to.
-  *
-  * See http://tmrh20.github.io/RF24/pages.html for device specific information
-  *
-  * @param _cepin The pin attached to Chip Enable on the RF module
-  * @param _cspin The pin attached to Chip Select
-  * @param spispeed For RPi, the SPI speed in MHZ ie: BCM2835_SPI_SPEED_8MHZ
-  */
-
-    RF24(uint16_t _cepin, uint16_t _cspin, uint32_t spispeed);
-    //#endif
+    RF24(uint16_t _cepin, uint16_t _cspin, uint32_t _spispeed = RF24_SPI_SPEED);
 
     #if defined (RF24_LINUX)
     virtual ~RF24() {};
@@ -874,13 +863,15 @@ public:
      * RF24_PA_MIN, RF24_PA_LOW, RF24_PA_HIGH and RF24_PA_MAX
      *
      * The power levels correspond to the following output levels respectively:
-     * NRF24L01: -18dBm, -12dBm,-6dBM, and 0dBm
+     * NRF24L01: -18dBm, -12dBm,-6dBM, and 0dBm, lnaEnable affects modules with LNA
      *
-     * SI24R1: -6dBm, 0dBm, 3dBM, and 7dBm.
+     * SI24R1: -6dBm, 0dBm, 3dBm and 7dBm with lnaEnable = 1 
+     *        -12dBm,-4dBm, 1dBm and 4dBm with lnaEnable = 0
      *
      * @param level Desired PA level.
+     * @param lnaEnable En/Disable LNA Gain
      */
-    void setPALevel(uint8_t level);
+    void setPALevel(uint8_t level, bool lnaEnable = 1);
 
     /**
      * Fetches the current PA level.
@@ -983,6 +974,19 @@ public:
     */
 
     uint32_t csDelay;
+
+    /**
+     * Transmission of constant carrier wave with defined frequency and output power
+     * 
+     * @param level Output power to use
+     * @param channel The channel to use
+     */    
+    void startConstCarrier(rf24_pa_dbm_e level, uint8_t channel);
+
+    /**
+     * Stop transmission of constant wave and reset PLL and CONT registers  
+     */
+    void stopConstCarrier(void);
 
     /**@}*/
     /**
@@ -1408,6 +1412,12 @@ private:
  *
  * @section News News
  *
+ * **March-July 2020**
+ * - Fixes for SPI_HAS_TRANSACTION detection (Affecting many devices)
+ * - Add ability to configure SPI speed properly in Linux constructor
+ * - Support multiple instances of SPIDEV on Linux
+ * - Minor fixes & changes
+ *
  * **Feb 2020**<br>
  * - MegaAVR fixes
  * - Raspberry Pi 4 & 1 fixes
@@ -1716,12 +1726,12 @@ private:
  * 
  *
  *
- * @page RPi Raspberry Pi
+ * @page RPi Linux General/Raspberry Pi 
  *
  * RF24 supports a variety of Linux based devices via various drivers. Some boards like RPi can utilize multiple methods
  * to drive the GPIO and SPI functionality.
  *
- * <br>
+ * 
  * @section PreConfig Potential PreConfiguration
  *
  * If SPI is not already enabled, load it on boot:
@@ -1731,7 +1741,7 @@ private:
  * C. Update other software and libraries
  * @code sudo apt-get update @endcode
  * @code sudo apt-get upgrade @endcode 
- * <br><br>
+ * <br>
  *
  * @section Build Build Options
  * The default build on Raspberry Pi utilizes the included **BCM2835** driver from http://www.airspayce.com/mikem/bcm2835
@@ -1778,30 +1788,15 @@ private:
  *
  * Using pin 15/GPIO 22 for CE, pin 24/GPIO8 (CE0) for CSN
  *
- * Can use either RPi CE0 or CE1 pins for radio CSN.<br>
- * Choose any RPi output pin for radio CE pin.
+ * Can use any available SPI BUS for CSN.<br>
+ * In general, use @code RF24 radio(<ce_pin>, <a>*10+<b>); @endcode for proper constructor to 
+ * address correct spi device at /dev/spidev\<a\>.\<b\> 
+ * <br>
+ * Choose any GPIO output pin for radio CE pin.
+ * 
+ * **General:**
+ * @code RF24 radio(22,0); @endcode
  *
- * **BCM2835 Constructor:**
- * @code
- *  RF24 radio(RPI_V2_GPIO_P1_15,BCM2835_SPI_CS0, BCM2835_SPI_SPEED_8MHZ);
- *   or
- *  RF24 radio(RPI_V2_GPIO_P1_15,BCM2835_SPI_CS1, BCM2835_SPI_SPEED_8MHZ);
- *	
- *  RPi B+:
- *  RF24 radio(RPI_BPLUS_GPIO_J8_15,RPI_BPLUS_GPIO_J8_24, BCM2835_SPI_SPEED_8MHZ);
- *  or
- *  RF24 radio(RPI_BPLUS_GPIO_J8_15,RPI_BPLUS_GPIO_J8_26, BCM2835_SPI_SPEED_8MHZ);
- *
- *  General:
- *  RF24 radio(22,0);
- *  or
- *  RF24 radio(22,1);
- *
- * @endcode
- * See the gettingstarted example for an example of pin configuration
- *
- * See http://www.airspayce.com/mikem/bcm2835/index.html for BCM2835 class documentation.
- * <br><br>
  * **MRAA Constructor:**
  *
  * @code RF24 radio(15,0); @endcode
@@ -1811,9 +1806,9 @@ private:
  * **SPI_DEV Constructor**
  *
  * @code RF24 radio(22,0); @endcode
- * In general, use @code RF24 radio(<ce_pin>, <a>*10+<b>); @endcode for proper SPIDEV constructor to address correct spi device at /dev/spidev\<a\>.\<b\>
+ * 
  *
- * See http://pi.gadgetoid.com/pinout
+ * https://www.raspberrypi.org/documentation/usage/gpio/
  *
  * **Pins:**  
  *

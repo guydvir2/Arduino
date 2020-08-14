@@ -1,14 +1,13 @@
 #ifndef myIOT_h
 #define myIOT_h
 
-#define jfile "myfile.json"
-
-#include "secrets.h"
 #include "Arduino.h"
+#include "/home/guy/Documents/git/Arduino/libraries/myIOT/secrets.h"
 #include <myJSON.h>
+#include <myLOG.h>
+#include <EEPROM.h>
 
 #include <ESP8266WiFi.h>
-// #include "WiFi.h"
 
 #include <PubSubClient.h> //MQTT
 #include <Ticker.h>       //WDT
@@ -24,18 +23,17 @@
 #include <WiFiClientSecure.h>
 
 #include <TimeLib.h>
-#include <TimeAlarms.h>
 
 // define generic functiobs
 typedef void (*cb_func)(char msg1[50]);
 typedef void (*cb_func2)(String msg1, String msg2, String msg3, char *msg4);
 
-#include <EEPROM.h>
+
 
 class FVars
 {
 public:
-    FVars(char *key = "def_key", char *pref = "");
+    FVars(char *key = "def_key", char *pref = "", char *fname = "/myfile.json");
     bool getValue(int &ret_val);
     bool getValue(long &ret_val);
     bool getValue(char value[20]);
@@ -50,6 +48,7 @@ public:
 
 private:
     char _key[20];
+    myJSON json;
 };
 
 class myTelegram
@@ -88,6 +87,7 @@ public:
     WiFiClient espClient;
     PubSubClient mqttClient;
     Ticker wdt;
+    flashLOG flog;
 
     myIOT(char *devTopic, char *key = "failNTPcount");
     void start_services(cb_func funct, char *ssid = SSID_ID, char *password = PASS_WIFI, char *mqtt_user = MQTT_USER, char *mqtt_passw = MQTT_PASS, char *mqtt_broker = MQTT_SERVER1);
@@ -133,7 +133,7 @@ public:
     char extTopic[MaxTopicLength];
     char mqqt_ext_buffer[3][150];
 
-    const char *ver = "iot_7.7";
+    const char *ver = "iot_7.9";
     char timeStamp[20];
 
 private:
@@ -185,13 +185,7 @@ private:
     bool firstRun = true;
     bool _failNTP = false;
 
-    char *_logfilename = "/logfile.txt";
-    const static int _logsize = 5;     // entries
-    const static int _log_length = 20; // chars in each entry
-    char _log_array[_logsize][_log_length];
-
     FVars _failNTPcounter_inFlash;
-    FVars _failSafeCounter_inFlash;
     // ###################
 
     // ~~~~~~~~~~~~~~WIFI ~~~~~~~~~~~~~~~~~~~~~
@@ -211,34 +205,14 @@ private:
     void pub_offline_errs();
     void firstRun_ResetKeeper(char *msg);
     void register_err(char *inmsg);
+    void write_log(char *inmsg, int x);
+
     // ~~~~~~~ Services  ~~~~~~~~~~~~~~~~~~~~~~~~
     void feedTheDog();
     void startWDT();
     void acceptOTA();
-
-    // ~~~~~~~~~~~~~~~Flash-log ~~~~~~~~~~~~~~~~~~~~~~~
-    void startlog();
-    int readlog();
-    void writelog(const char *message);
-    void postlog(int x=_log_length);
-    int sizelog();
 };
 
-class flashLOG {
-private:
-    char *_logfilename = "/logfile.txt";
-    const static int _logsize = 5;     // entries
-    const static int _log_length = 20; // chars in each entry
-    char _log_array[_logsize][_log_length];
-public:
-    flashLOG(char *filename = "logfile.txt");
-    void start();
-    int read();
-    void write(const char *message);
-    void postlog(int x);
-    int sizelog();
-
-};
 class timeOUT
 {
     #define _key1 "_endTO"

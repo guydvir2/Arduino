@@ -3,7 +3,8 @@
 
 #include "Arduino.h"
 #include <ArduinoJson.h>
-#include "FS.h"
+#include <FS.h>
+#include <LittleFS.h>
 
 #define DOC_SIZE 1000
 
@@ -56,14 +57,5 @@ private:
     void PrettyprintJSON(JsonDocument &_doc);
 };
 
-class myTest
-{
-public:
-    myTest();
-    template <typename T1> 
-    void funcOne(T1 arg){
-            Serial.println(arg);
-    }
-};
 
 #endif

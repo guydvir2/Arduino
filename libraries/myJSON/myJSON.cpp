@@ -407,14 +407,3 @@ void myJSON::printFile()
         }
 }
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-myTest::myTest()
-{
-        Serial.println("start");
-}
-
-// template <typename T1> 
-// void myTest::funcOne(T1 arg)
-// {
-//         Serial.println(arg);
-// }

@@ -83,11 +83,7 @@ private:
     int fd;
     uint32_t _spi_speed;
     bool spiIsInitialized = false;
-<<<<<<< HEAD
-    void init(uint32_t spi_speed = RF24_SPIDEV_SPEED);
-=======
     void init(uint32_t spi_speed = RF24_SPI_SPEED);
->>>>>>> c86bae5c751e71f3db355ebfd113f6786eaf5a16
 };
 
 /**

@@ -4,16 +4,10 @@
 #include <ESP8266Ping.h>
 #include <myJSON.h>
 #include <TimeLib.h>
-#include <TimeAlarms.h>
-
-#include <FS.h>
-#include <LittleFS.h>
-
-myJSON json(jfile, true);
 
 // ~~~~~~ myIOT CLASS ~~~~~~~~~~~ //
 myIOT::myIOT(char *devTopic, char *key)
-    : _failNTPcounter_inFlash(key), mqttClient(espClient)
+    : mqttClient(espClient), _failNTPcounter_inFlash(key), flog("/myIOT.txt")
 {
     strcpy(_deviceName, devTopic); // for OTA only
 }
@@ -34,8 +28,7 @@ void myIOT::start_services(cb_func funct, char *ssid, char *password, char *mqtt
     }
     if (useDebug)
     {
-        startlog();
-
+        flog.start();
     }
     start_network_services();
     if (useWDT)
@@ -486,17 +479,51 @@ void myIOT::callback(char *topic, byte *payload, unsigned int length)
     {
         sendReset("MQTT");
     }
-    else if (strcmp(incoming_msg, "debug_log") == 0)
+    else if (strcmp(incoming_msg, "ver") == 0)
     {
-        int num_lines = readlog();
-        int filesize = sizelog();
-        sprintf(msg, "debug_log: active[%s], entries [#%d], file-size[%.2f kb]", useDebug ? "Yes" : "No", num_lines, (float)(filesize / 1000.0));
+        sprintf(msg, "ver: IOTlib: [%s], WDT: [%d], OTA: [%d], SERIAL: [%d], ResetKeeper[%d], FailNTP[%d], debug_Log[%d]",
+                ver, useWDT, useOTA, useSerial, useResetKeeper, resetFailNTP, useDebug);
         pub_msg(msg);
     }
-    else if (strcmp(incoming_msg, "show_debug") == 0)
+    else if (strcmp(incoming_msg, "help") == 0)
     {
-        postlog();
-        pub_msg("debug_log: extracted");
+        sprintf(msg, "Help: Commands #1 - [status, boot, reset, ip, ota, ver, help, help2]");
+        pub_msg(msg);
+        sprintf(msg, "Help: Commands #2 - [debug_log, del_log, show_log]");
+        pub_msg(msg);
+    }
+    else if (strcmp(incoming_msg, "debug_log") == 0)
+    {
+        if (useDebug)
+        {
+            int num_lines = flog.read();
+            int filesize = flog.sizelog();
+            sprintf(msg, "debug_log: active[%s], entries [#%d], file-size[%.2f kb]", useDebug ? "Yes" : "No", num_lines, (float)(filesize / 1000.0));
+            pub_msg(msg);
+        }
+    }
+    else if (strcmp(incoming_msg, "show_log") == 0)
+    {
+        if (useDebug)
+        {
+            char m[250];
+            int x = flog.read();
+            for (int a = 0; a < x; a++)
+            {
+                flog.postlog(m, a);
+                pub_debug(m);
+                delay(20);
+            }
+            pub_msg("debug_log: extracted");
+        }
+    }
+    else if (strcmp(incoming_msg, "del_log") == 0)
+    {
+        if (useDebug)
+        {
+            flog.delog();
+            pub_msg("debug_log: file deleted");
+        }
     }
     else
     {
@@ -517,11 +544,7 @@ void myIOT::pub_msg(char *inmsg)
         msgSplitter(inmsg, 200, tmpmsg, "#");
     }
 
-    if (useDebug && debug_level == 0)
-    {
-        writelog(inmsg);
-        postlog(1);
-    }
+    write_log(inmsg, 0);
 }
 void myIOT::pub_state(char *inmsg, byte i)
 {
@@ -535,13 +558,7 @@ void myIOT::pub_state(char *inmsg, byte i)
         {
             mqttClient.publish(_stateTopic2, inmsg, true);
         }
-        if (useDebug && debug_level <= 1)
-        {
-            char a[20];
-            sprintf(a, "#%d - %s", i, inmsg);
-            // writelog(a);
-            // postlog(1);
-        }
+        write_log(inmsg, 2);
     }
 }
 bool myIOT::pub_log(char *inmsg)
@@ -553,11 +570,7 @@ bool myIOT::pub_log(char *inmsg)
     if (mqttClient.connected())
     {
         mqttClient.publish(_errorTopic, tmpmsg);
-        if (useDebug && debug_level <= 2)
-        {
-            // writelog(inmsg);
-            // postlog(1);
-        }
+        write_log(inmsg, 1);
         return 1;
     }
     else
@@ -645,11 +658,7 @@ int myIOT::inline_read(char *inputstr)
 void myIOT::notifyOnline()
 {
     mqttClient.publish(_availTopic, "online", true);
-    if (useDebug && debug_level <= 2)
-    {
-        // writelog("online");
-        // postlog(1);
-    }
+    write_log("online", 2);
 }
 void myIOT::notifyOffline()
 {
@@ -685,7 +694,16 @@ void myIOT::register_err(char *inmsg)
     sprintf(temp, "--> %s", inmsg);
     strcat(bootErrors, temp);
 }
-
+void myIOT::write_log(char *inmsg, int x)
+{
+    char a[250];
+    if (useDebug && debug_level <= x)
+    {
+        get_timeStamp();
+        sprintf(a, ">>%s<< %s", timeStamp, inmsg);
+        flog.write(a);
+    }
+}
 // ~~~~~~ Reset and maintability ~~~~~~
 void myIOT::sendReset(char *header)
 {
@@ -762,15 +780,15 @@ void myIOT::startOTA()
         // Serial.println("Start updating " + type);
         //    }
         // Serial.end();
-        });
+    });
     if (useSerial)
     { // for debug
         ArduinoOTA.onEnd([]() {
             Serial.println("\nEnd");
-            });
+        });
         ArduinoOTA.onProgress([](unsigned int progress, unsigned int total) {
             Serial.printf("Progress: %u%%\r", (progress / (total / 100)));
-            });
+        });
         ArduinoOTA.onError([](ota_error_t error) {
             Serial.printf("Error[%u]: ", error);
             if (error == OTA_AUTH_ERROR)
@@ -793,7 +811,7 @@ void myIOT::startOTA()
             {
                 Serial.println("End Failed");
             }
-            });
+        });
         // ArduinoOTA.begin();
         // Serial.println("Ready");
         // Serial.print("IP address: ");
@@ -808,116 +826,8 @@ void myIOT::startWDT()
 }
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-// ~~~~~~~~~~~~~~ debug log ~~~~~~~~~~~~
-void myIOT::startlog()
-{
-    if (!LittleFS.begin())
-    {
-        if (useSerial)
-        {
-            Serial.println("LittleFS mount failed");
-        }
-    }
-    else {
-        Serial.println("MOUNTED OK");
-    }
-}
-int myIOT::readlog()
-{
-    int r = 0;
-    int c = 0;
-
-    File file = LittleFS.open(_logfilename, "r");
-    if (!file)
-    {
-        if (useSerial)
-        {
-            Serial.println("Failed to open file for reading");
-        }
-    }
-    while (file.available())
-    {
-        char tt = file.read();
-        // if (tt != '\r')
-        // {
-        //         _log_array[r][c] = tt;
-        //         c++;
-        // }
-        // else
-        // {
-        //         _log_array[r][c] = '\r';
-        //         r++;
-        //         c = 0;
-        // }
-        Serial.write(tt);
-    }
-    file.close();
-    return r;
-}
-void myIOT::writelog(const char *message)
-{
-    char a[250];
-    get_timeStamp();
-    int num_lines = readlog();
-    // if (num_lines > 0)
-    // {
-    //         for (int a = num_lines; a > 0; a--)
-    //         {
-    //                 sprintf(_log_array[a], "%s", _log_array[a - 1]);
-    //         }
-    // }
-    sprintf(a, ">> %s << [%s] %s\n", timeStamp, deviceTopic, message);
-    // strcpy(_log_array[0], a);
-
-    File file1 = LittleFS.open(_logfilename, "a");
-    if (!file1)
-    {
-        if (useSerial)
-        {
-            Serial.println("Failed to open file for appending");
-        }
-    }
-    else {
-        file1.print(a);//,_log_array[x]) && useSerial)
-    }
-
-    // for (int x = 0; x <= num_lines; x++)
-    // {
-    //         if (!file1.print(_log_array[x]) && useSerial)
-    //         {
-    //                 Serial.println("Append failed");
-    //         }
-    // }
-    file1.close();
-}
-void myIOT::postlog(int x)
-{
-    int num_lines = readlog();
-    int y = min(x, num_lines);
-    for (int a = 0; a < y; a++)
-    {
-        if (y > 1)
-        {
-            char t[250];
-            sprintf(t, "[#%d] %s", a, _log_array[a]);
-            pub_debug(t);
-        }
-        else
-        {
-            pub_debug(_log_array[a]);
-        }
-    }
-}
-int myIOT::sizelog()
-{
-    File file = LittleFS.open(_logfilename, "r");
-    int f=file.size();
-    file.close();
-    return f;
-}
-// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // ############################### FVars CLASS #################################
-FVars::FVars(char *key, char *pref)
+FVars::FVars(char *key, char *pref, char *fname) : json(fname, true)
 {
     sprintf(_key, "%s%s", pref, key);
 }
@@ -959,95 +869,11 @@ void FVars::format()
     json.format();
 }
 
-
-// ~~~~~~~~~~~~~ FS log ~~~~~~~~~~~~~~~~~
-flashLOG::flashLOG(char *filename) {
-        _logfilename = filename;
-}
-void flashLOG::start() {
-    if (!LittleFS.begin())
-    {
-        Serial.println("LittleFS mount failed");
-    }
-    else {
-        Serial.println("MOUNTED OK");
-    }
-}
-int flashLOG::read() {
-    int r = 0;
-    int c = 0;
-
-    File file = LittleFS.open(_logfilename, "r");
-    if (!file)
-    {
-        Serial.println("Failed to open file for reading");
-    }
-    while (file.available())
-    {
-        char tt = file.read();
-        if (tt != '\n')
-        {
-            _log_array[r][c] = tt;
-            c++;
-        }
-        else
-        {
-            _log_array[r][c] = '\n';
-            r++;
-            c = 0;
-        }
-        Serial.write(tt);
-
-    }
-    file.close();
-    return r;
-
-}
-void flashLOG::write(const char *message)
-{
-    char a[_log_length];
-    sprintf(a, "%s\n", message);
-
-    File file = LittleFS.open(_logfilename, "a");
-    if (!file)
-    {
-        Serial.println("Failed to open file for appending");
-    }
-    else {
-        file.print(a);
-    }
-    file.close();
-}
-void flashLOG::postlog(int x)
-{
-    int num_lines = read();
-    int y = min(x, num_lines);
-    for (int a = 0; a < y; a++)
-    {
-        if (y > 1)
-        {
-            char t[_log_length];
-            sprintf(t, "[#%d] %s", a, _log_array[a]);
-            Serial.println(t);
-        }
-        else
-        {
-            Serial.println(_log_array[a]);
-        }
-    }
-}
-int flashLOG::sizelog()
-{
-    File file = LittleFS.open(_logfilename, "r");
-    int f=file.size();
-    file.close();
-    return f;
-}
 // ~~~~~~~~~~~ TimeOut Class ~~~~~~~~~~~~
 timeOUT::timeOUT(char *sw_num, int def_val)
     : endTimeOUT_inFlash(_key1, sw_num), inCodeTimeOUT_inFlash(_key2, sw_num),
-    updatedTimeOUT_inFlash(_key3, sw_num), startTimeOUT_inFlash(_key4, sw_num),
-    dailyTO_inFlash("TO.json", true)
+      updatedTimeOUT_inFlash(_key3, sw_num), startTimeOUT_inFlash(_key4, sw_num),
+      dailyTO_inFlash("TO.json", true)
 {
     /* endTimeOUT_inFlash     -- Save clock when TO ends (sec from epoch)
        inCodeTimeOUT_inFlash  -- save value of TO defined in code [ minutes]
@@ -1113,7 +939,7 @@ bool timeOUT::begin()
 {
     // ~~~~~~~~ Check if stored end value stil valid ~~~~~~~~~~~~~~
     if (endTO_inFlash > now())
-    {                                    // get saved value- still have to go
+    {                                // get saved value- still have to go
         _calc_endTO = endTO_inFlash; //clock time to stop
         switchON();
         return 1;
@@ -1361,7 +1187,7 @@ void timeOUT::store_dailyTO_inFlash(dTO &dailyTO, int x)
 void timeOUT::restart_dailyTO(dTO &dailyTO)
 {
     time_t t = now();
-    dTO temp_dTO ={ { hour(t), minute(t), second(t) }, { dailyTO.off[0], dailyTO.off[1], dailyTO.off[2] }, 1, 1, 0 };
+    dTO temp_dTO = {{hour(t), minute(t), second(t)}, {dailyTO.off[0], dailyTO.off[1], dailyTO.off[2]}, 1, 1, 0};
     int tot_time = calc_dailyTO(temp_dTO);
 
     setNewTimeout(tot_time, false);
@@ -1852,7 +1678,7 @@ void mySwitch::getMQTT(char *parm1, int p2, int p3, int p4)
     else if (strcmp(parm1, "statusTO") == 0)
     {
         sprintf(_outMQTTmsg, "%s: Switch [%s] {inCode: [%d] mins} {Flash: [%d] mins}, {Active: [%s]}",
-            "TimeOut", _switchName, TOswitch.inCodeTO, TOswitch.updatedTO_inFlash, TOswitch.updatedTO_inFlash ? "Flash" : "inCode");
+                "TimeOut", _switchName, TOswitch.inCodeTO, TOswitch.updatedTO_inFlash, TOswitch.updatedTO_inFlash ? "Flash" : "inCode");
         //postMessages(_outMQTTmsg);
     }
     else if (strcmp(parm1, "endTO") == 0)
@@ -1879,8 +1705,8 @@ void mySwitch::getMQTT(char *parm1, int p2, int p3, int p4)
         TOswitch.store_dailyTO_inFlash(TOswitch.dailyTO);
 
         sprintf(_outMQTTmsg, "%s: Switch [%s] [ON] updated [%02d:%02d:%02d]", _clockAlias, _switchName,
-            TOswitch.dailyTO.on[0], TOswitch.dailyTO.on[1],
-            TOswitch.dailyTO.on[2]);
+                TOswitch.dailyTO.on[0], TOswitch.dailyTO.on[1],
+                TOswitch.dailyTO.on[2]);
 
         //postMessages(_outMQTTmsg);
     }
@@ -1893,7 +1719,7 @@ void mySwitch::getMQTT(char *parm1, int p2, int p3, int p4)
         TOswitch.store_dailyTO_inFlash(TOswitch.dailyTO);
 
         sprintf(_outMQTTmsg, "%s: Switch [%s] [OFF] updated [%02d:%02d:%02d]", _clockAlias, _switchName,
-            TOswitch.dailyTO.off[0], TOswitch.dailyTO.off[1], TOswitch.dailyTO.off[2]);
+                TOswitch.dailyTO.off[0], TOswitch.dailyTO.off[1], TOswitch.dailyTO.off[2]);
 
         //postMessages(_outMQTTmsg);
     }
@@ -1903,7 +1729,7 @@ void mySwitch::getMQTT(char *parm1, int p2, int p3, int p4)
         TOswitch.store_dailyTO_inFlash(TOswitch.dailyTO);
 
         sprintf(_outMQTTmsg, "%s: [%s] using [%s] values", _clockAlias,
-            _switchName, p2 ? "ON" : "OFF");
+                _switchName, p2 ? "ON" : "OFF");
     }
     else if (strcmp(parm1, "useflash_dailyTO") == 0)
     {
@@ -1915,9 +1741,9 @@ void mySwitch::getMQTT(char *parm1, int p2, int p3, int p4)
     else if (strcmp(parm1, "status_dailyTO") == 0)
     {
         sprintf(_outMQTTmsg, "%s: Switch [%s] {ON:%02d:%02d:%02d} {OFF:%02d:%02d:%02d} {Flag:%s} {Values:%s}",
-            _clockAlias, _switchName, TOswitch.dailyTO.on[0], TOswitch.dailyTO.on[1], TOswitch.dailyTO.on[2],
-            TOswitch.dailyTO.off[0], TOswitch.dailyTO.off[1], TOswitch.dailyTO.off[2],
-            TOswitch.dailyTO.flag ? "ON" : "OFF", TOswitch.dailyTO.useFlash ? "Flash" : "inCode");
+                _clockAlias, _switchName, TOswitch.dailyTO.on[0], TOswitch.dailyTO.on[1], TOswitch.dailyTO.on[2],
+                TOswitch.dailyTO.off[0], TOswitch.dailyTO.off[1], TOswitch.dailyTO.off[2],
+                TOswitch.dailyTO.flag ? "ON" : "OFF", TOswitch.dailyTO.useFlash ? "Flash" : "inCode");
         //postMessages(_outMQTTmsg);
     }
     else if (strcmp(parm1, "restart_dailyTO") == 0)
@@ -1966,7 +1792,7 @@ void mySwitch::quickPwrON()
        other than 0
      */
 
-     /*
+    /*
       # conditions in for loop:
         1) Has more time to go in TO
         2) ON_AT_BOOT defines to be ON at bootTime
