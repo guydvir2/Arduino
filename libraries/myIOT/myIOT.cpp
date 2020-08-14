@@ -127,6 +127,7 @@ void myIOT::start_network_services()
 }
 void myIOT::network_looper()
 {
+<<<<<<< HEAD
     if (WiFi.status() == WL_CONNECTED)
     { // wifi is ok
         if (mqttClient.connected())
@@ -165,6 +166,43 @@ void myIOT::network_looper()
         { // reconnect succeeded
             noNetwork_Clock = 0;
             // Serial.println("wifi reconnected!");
+=======
+        if (WiFi.status() == WL_CONNECTED)
+        { // wifi is ok
+                if (mqttClient.connected())
+                { // mqtt is good
+                        mqttClient.loop();
+                }
+                else
+                { // not connected mqtt
+                        if (subscribeMQTT())
+                        { // succeed to reconnect
+                                mqttClient.loop();
+                                noNetwork_Clock = 0;
+                        }
+                        else
+                        { // failed to reconnect
+                                if (noNetwork_Clock == 0)
+                                { // first time fail MQTT
+                                        noNetwork_Clock = millis();
+                                }
+                        }
+                }
+        }
+        else
+        { // no WIFI
+                if (!startWifi(Ssid, Password))
+                { // failed to reconnect ?
+                        if (noNetwork_Clock == 0)
+                        { // first time when NO NETWORK ?
+                                noNetwork_Clock = millis();
+                        }
+                }
+                else
+                { // reconnect succeeded
+                        noNetwork_Clock = 0;
+                }
+>>>>>>> 801daf4cfe63559f0feacce2e5ef5756d7a8e1c5
         }
     }
 }

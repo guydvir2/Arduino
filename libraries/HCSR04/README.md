@@ -1,46 +1,36 @@
-# Arduino library for HC-SR04 ultrasonic distance sensor.
+[![license-badge][]][license] ![version] [![stars][]][stargazers] [![hit-count][]][count] [![github-issues][]][issues]
 
-HC-SR04 is an ultrasonic sensor that measures distances from 2 to 400cm.
+# HС-SR04
+This is an Arduino library for HC-SR04, HC-SRF05, DYP-ME007, BLJ-ME007Y, SEN136B5B, US-100 (PWM output mode), JSN-SR04T (PWM output mode) ultrasonic ranging sensor
 
-![HC-SR04](/hcsr04.jpg)
+- Operating voltage:    5v
+- Operating current:    10..20mA
+- Default range:        4cm..250cm
+- Measuring angle:      15°
+- Operating frequency:  40kHz
+- Resolution:           0.3cm
+- Maximum polling rate: 20Hz
 
-This is a simple library for it!
+Features:
+- Read distance from 4cm to 250mm**
+- Compensate speed of sound according to the ambient temperature
+- Pass distance thought median filter
+- Set maximum distance to speed up measurement
 
-## Usage
-Sensor is initialized by creating instance of class UltraSonicDistanceSensor and providing trigger and echo pins.
-```c
-UltraSonicDistanceSensor sensor(triggerPin, echoPin);
-```
+Tested on:
 
-Then, to measure the distance, you just call `measureDistanceCm()`, which will return distance in centimeters (double). If distance is larger than 400cm, it will return negative value.
+- Arduino AVR
+- Arduino ESP8266
+- Arduino STM32
 
-The calculation assumes a temperature of around 20°C. For improved accuracy you may also provide a temperature yourself, either an average for your location or directly measured from another sensor. The call for a temperature of 3.5°C would as such look like this: `measureDistanceCm(3.5)`.
+**Library returns 38000 if OUT OF RANGE
 
-## Example
-
-In this simple example, we need to connect sensors pins like this:
-
-- vcc to 5V
-- trig to digital pin 13
-- echo to digital pin 12
-- gnd to gnd
-
-```c
-#include <HCSR04.h>
-
-// Initialize sensor that uses digital pins 13 and 12.
-int triggerPin = 13;
-int echoPin = 12;
-UltraSonicDistanceSensor distanceSensor(triggerPin, echoPin);
-
-void setup () {
-    Serial.begin(9600);  // We initialize serial connection so that we could print values from sensor.
-}
-
-void loop () {
-    // Every 500 miliseconds, do a measurement using the sensor and print the distance in centimeters.
-    double distance = distanceSensor.measureDistanceCm();
-    Serial.println(distance);
-    delay(500);
-}
-```
+[license-badge]: https://img.shields.io/badge/License-GPLv3-blue.svg
+[license]:       https://choosealicense.com/licenses/gpl-3.0/
+[version]:       https://img.shields.io/badge/Version-1.3.0-green.svg
+[stars]:         https://img.shields.io/github/stars/enjoyneering/HCSR04.svg
+[stargazers]:    https://github.com/enjoyneering/HCSR04/stargazers
+[hit-count]:     http://hits.dwyl.io/enjoyneering/HCSR04/badges.svg
+[count]:         http://hits.dwyl.io/enjoyneering/HCSR04/badges
+[github-issues]: https://img.shields.io/github/issues/enjoyneering/HCSR04.svg
+[issues]:        https://github.com/enjoyneering/HCSR04/issues/
