@@ -1,0 +1,20 @@
+{
+    "2_ext_inputs": false,
+    "auto_relay_off": true,
+    "auto_relay_off_timeout": 90,
+    "useSerial": true,
+    "useWDT": true,
+    "useOTA": true,
+    "useResetKeeper": true,
+    "useFailNTP": true,
+    "useDebugLog": true,
+    "deviceTopic": "familyRoom",
+    "groupTopic": "Windows",
+    "prefixTopic": "myHome",
+    "inputUpPin": "D2",
+    "inputDownPin": "D1",
+    "outputUpPin": 14,
+    "outputDownPin": 12,
+    "inputUpExtPin": 0,
+    "inputDownExtPin": 2
+}

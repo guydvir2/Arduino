@@ -85,8 +85,8 @@ void PIRsensor::end_detection_callback()
 
   if (use_serial)
   {
-    // Serial.print("~~end_detect ");
-    // Serial.println(sensNick);
+    Serial.print("~~end_detect ");
+    Serial.println(sensNick);
   }
 }
 void PIRsensor::checkSensor()

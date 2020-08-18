@@ -123,7 +123,7 @@ void loop(void)
 
   if (P.displayAnimate()) // animates and returns true when an animation is completed
   {
-    // rotate the justification if needed
+    // progress the justification if needed
     if (i == ARRAY_SIZE(catalog))
     {
       j++;

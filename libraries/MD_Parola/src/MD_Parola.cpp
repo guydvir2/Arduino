@@ -22,22 +22,18 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
 
 #include <MD_Parola.h>
 #include <MD_Parola_lib.h>
-#include <MD_MAX72xx.h>
+//#include <MD_MAX72xx.h>
 /**
  * \file
  * \brief Implements core MD_Parola class methods
  */
 
-#define STATIC_ZONES 0
-
-MD_Parola::MD_Parola(MD_MAX72XX::moduleType_t mod, uint8_t dataPin, uint8_t clkPin, uint8_t csPin, uint8_t numDevices):
-_D(mod, dataPin, clkPin, csPin, numDevices), _numModules(numDevices)
+MD_Parola::~MD_Parola(void)
 {
-}
-
-MD_Parola::MD_Parola(MD_MAX72XX::moduleType_t mod, uint8_t csPin, uint8_t numDevices):
-_D(mod, csPin, numDevices), _numModules(numDevices)
-{
+#if !STATIC_ZONES
+  // release the dynamically allocated zone array
+  delete[] _Z;
+#endif
 }
 
 void MD_Parola::begin(uint8_t numZones)
@@ -52,8 +48,8 @@ void MD_Parola::begin(uint8_t numZones)
   _numZones = numZones;
 
 #if !STATIC_ZONES
-  // Create the zone objects array
-  _Z = new MD_PZone[_numZones];   // for dynamic zones
+  // Create the zone objects array for dynamic zones
+  _Z = new MD_PZone[_numZones];
 #endif
 
   for (uint8_t i = 0; i < _numZones; i++)
@@ -70,20 +66,7 @@ void MD_Parola::begin(uint8_t numZones)
   setScrollSpacing(0);
   setTextAlignment(PA_LEFT);
   setTextEffect(PA_PRINT, PA_NO_EFFECT);
-  setTextBuffer(nullptr);
   setInvert(false);
-  setIntensity(MAX_INTENSITY / 2);
-
-  // Now set the default viewing parameters for this library
-  _D.setFont(nullptr);
-}
-
-MD_Parola::~MD_Parola(void)
-{
-#if !STATIC_ZONES
-  // release the zone array (dynamically allocated)
-  delete [] _Z;
-#endif
 }
 
 bool MD_Parola::setZone(uint8_t z, uint8_t moduleStart, uint8_t moduleEnd)

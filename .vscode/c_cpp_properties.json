@@ -3,37 +3,15 @@
         {
             "name": "Linux",
             "includePath": [
-                "${workspaceFolder}/**",
-                "/Users/guydvir/Library/Arduino15/packages/esp8266/hardware/esp8266/2.6.2/**",
-                "/Users/guydvir/Library/Arduino15/packages/esp8266/tools/**",
-                "/home/guy/.arduino15/packages/esp8266/hardware/esp8266/2.6.2/**",
                 "/home/guy/.arduino15/packages/esp8266/tools/**",
-                "/home/guy/.arduino15/packages/esp8266/hardware/esp8266/2.6.3/**",
-                "/Users/guydvir/Library/Arduino15/packages/esp8266/hardware/esp8266/2.6.3/**",
-                "/home/guy/.arduino15/packages/esp8266/hardware/esp8266/2.7.1/**",
-                "/Users/guydvir/Library/Arduino15/packages/esp8266/hardware/esp8266/2.7.1/**",
-                "/home/guy/.arduino15/packages/esp8266/hardware/esp8266/2.7.2/**",
-<<<<<<< HEAD
-                "/home/guy/.arduino15/packages/esp8266/hardware/esp8266/2.7.4/**"
-=======
-                "/Users/guydvir/Library/Arduino15/packages/esp8266/hardware/esp8266/2.7.2/**"
->>>>>>> 801daf4cfe63559f0feacce2e5ef5756d7a8e1c5
+                "/home/guy/.arduino15/packages/esp8266/hardware/esp8266/2.7.4/**",
+                "${workspaceFolder}/**"
             ],
             "defines": [],
             "compilerPath": "/usr/bin/clang",
             "cStandard": "c11",
-            "cppStandard": "c++17",
+            "cppStandard": "c++14",
             "intelliSenseMode": "clang-x64",
-            "forcedInclude": []
-        },
-        {
-            "name": "Mac",
-            "includePath": [
-                "/Users/guydvir/Library/Arduino15/packages/esp8266/tools/**",
-                "/Users/guydvir/Library/Arduino15/packages/esp8266/hardware/esp8266/2.6.3/**",
-                "${workspaceFolder}/libraries/",
-                "${workspaceFolder}/libraries/myIOT"
-            ],
             "forcedInclude": []
         }
     ],

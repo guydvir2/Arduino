@@ -10,7 +10,7 @@
 #define USE_WDT true          // watchDog resets
 #define USE_OTA true          // OTA updates
 #define USE_RESETKEEPER false // detect quick reboot and real reboots
-#define USE_FAILNTP true      // saves amoount of fail clock updates
+#define USE_FAILNTP true      // saves amount of fail clock updates
 #define USE_DEBUG true
 #define DEBUG_LEVEL 0
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~

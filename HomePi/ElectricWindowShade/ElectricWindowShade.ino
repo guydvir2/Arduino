@@ -2,7 +2,7 @@
 #include <Arduino.h>
 
 // ********** Sketch Services  ***********
-#define VER "NodeMCU_5.9"
+#define VER "NodeMCU_5.91"
 #define USE_BOUNCE_DEBUG false
 #define USE_2_EXT_INPUT false // Only for dual input window
 #define USE_AUTO_RELAY_OFF true
@@ -135,16 +135,13 @@ void addiotnalMQTT(char incoming_msg[50])
         {
                 switchIt("MQTT", incoming_msg);
         }
-        else if (strcmp(incoming_msg, "ver") == 0)
+        else if (strcmp(incoming_msg, "ver2") == 0)
         {
-                sprintf(msg, "ver:[%s], lib:[%s], WDT:[%d], OTA:[%d], SERIAL:[%d],ResetKeeper[%d], FailNTP[%d], AutoOFF[%d], useDebug[%d]",
-                        VER, iot.ver, USE_WDT, USE_OTA, USE_SERIAL, USE_RESETKEEPER, USE_FAILNTP, USE_AUTO_RELAY_OFF, USE_DEBUG_LOG);
+                sprintf(msg, "ver2:[%s], AutoOFF[%d]", VER, USE_AUTO_RELAY_OFF);
                 iot.pub_msg(msg);
         }
-        else if (strcmp(incoming_msg, "help") == 0)
+        else if (strcmp(incoming_msg, "help2") == 0)
         {
-                sprintf(msg, "Help: Commands #1 - [status, boot, reset, ip, ota, ver, help, debug_log, show_debug");
-                iot.pub_msg(msg);
                 sprintf(msg, "Help: Commands #2 - [up, down, off]");
                 iot.pub_msg(msg);
         }

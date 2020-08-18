@@ -55,21 +55,23 @@ void addiotnalMQTT(char *incoming_msg)
     iot.pub_msg(msg);
   }
 }
-void checkSensor() {
+void checkSensor()
+{
   bool sensor = digitalRead(D1);
   static long last_det_clock = 0;
   static bool detect = false;
 
-  if (sensor && !detect && millis() > last_det_clock + 10000) {
+  if (sensor && !detect && millis() > last_det_clock + 10000)
+  {
     iot.pub_msg("Detection");
     detect = true;
     last_det_clock = millis();
   }
-  else if (!sensor && detect ) {
+  else if (!sensor && detect)
+  {
     iot.pub_msg("END_Detection");
     detect = false;
   }
-
 }
 void setup()
 {

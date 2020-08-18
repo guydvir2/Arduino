@@ -146,6 +146,21 @@ bool myJSON::getValue(const char *key, long &retval)
                 return 0; // when key is not present
         }
 }
+bool myJSON::getValue(const char *key, bool &retval)
+{
+        DynamicJsonDocument tempJDOC(DOC_SIZE);
+        readJSON_file(tempJDOC);
+        bool hasKey = tempJDOC.containsKey(key);
+        if (hasKey)
+        {
+                retval = tempJDOC[key];
+                return 1;
+        }
+        else
+        {
+                return 0; // when key is not present
+        }
+}
 
 void myJSON::setValue(const char *key, char *value)
 {
@@ -162,6 +177,13 @@ void myJSON::setValue(const char *key, int value)
         saveJSON2file(tempJDOC);
 }
 void myJSON::setValue(const char *key, long value)
+{
+        DynamicJsonDocument tempJDOC(DOC_SIZE);
+        readJSON_file(tempJDOC);
+        tempJDOC[key] = value;
+        saveJSON2file(tempJDOC);
+}
+void myJSON::setValue(const char *key, bool value)
 {
         DynamicJsonDocument tempJDOC(DOC_SIZE);
         readJSON_file(tempJDOC);

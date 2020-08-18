@@ -36,6 +36,7 @@ Parola A-to-Z Blog Articles
 - [Adapting for Different Hardware] (https://arduinoplusplus.wordpress.com/2017/04/14/parola-a-to-z-adapting-for-different-hardware/)
 - [Defining Fonts] (https://arduinoplusplus.wordpress.com/2016/11/08/parola-fonts-a-to-z-defining-fonts/)
 - [Managing Fonts] (https://arduinoplusplus.wordpress.com/2016/11/13/parola-fonts-a-to-z-managing-fonts/)
+- [UTF-8 Characters] (https://arduinoplusplus.wordpress.com/2020/03/21/parola-a-to-z-handling-non-ascii-characters-utf-8/})
 - [Text Animation] (https://arduinoplusplus.wordpress.com/2017/02/10/parola-a-to-z-text-animation/)
 - [Managing Animation] (https://arduinoplusplus.wordpress.com/2017/03/02/parola-a-to-z-managing-animation/)
 - [Double Height Displays] (https://arduinoplusplus.wordpress.com/2017/03/15/parola-a-to-z-double-height-displays/)
@@ -49,8 +50,20 @@ Parola A-to-Z Blog Articles
 If you like and use this library please consider making a small donation using [PayPal](https://paypal.me/MajicDesigns/4USD)
 
 \page pageRevHistory Revision History
+Aug 2020 - version 3.5.0
+- setSpeed() now allows setting independent IN and OUT speed
+- Added getZone() method
+- Added Animation_2Speed example
+- Workaround for issue #56 (https://github.com/MajicDesigns/MD_Parola/issues/56) built into library 
+- Maintenance release for new (more picky) IDE compiler settings
+
+Aug 2020 - version 3.4.0
+- Updated parts of documentation
+- Exposed getTextColumns() as public
+
 Oct 2019 - version 3.3.0
-- Reverted back to dynamic zone allocation removed in v2.6.6. Tested 22 zones seems ok.
+- Reverted back to dynamic zone allocation removed in v2.6.6. Tested 22 zones seems ok. 
+  STATIC_ZONES defined value will immediately switch back to static zones.
 
 Aug 2019 - version 3.2.0
 - Changed to use 16 bit character code
@@ -292,6 +305,7 @@ next time the character is used.
 ### More Information
 - [Parola A to Z - Defining Fonts] (https://arduinoplusplus.wordpress.com/2016/11/08/parola-fonts-a-to-z-defining-fonts/)
 - [Parola A to Z - Managing Fonts] (https://arduinoplusplus.wordpress.com/2016/11/13/parola-fonts-a-to-z-managing-fonts/)
+- [PArola A to Z - Handling non-ASCII (UTF-8) Characters] (https://arduinoplusplus.wordpress.com/2020/03/21/parola-a-to-z-handling-non-ascii-characters-utf-8/)
 
 ___
 
@@ -437,18 +451,20 @@ takes about 1-2ms to update in the MD_MAX72XX display buffers.
 #endif
 
 // Miscellaneous defines
-#define ARRAY_SIZE(x) (sizeof(x) / sizeof(x[0]))  ///< Generic macro for obtaining number of elements of an array
+#define ARRAY_SIZE(a) (sizeof(a) / sizeof((a)[0]))  ///< Generic macro for obtaining number of elements of an array
+#define STATIC_ZONES 0    ///< Developer testing flag for quickly flipping between static/dynamic zones
 
-// static zones
-//#ifndef MAX_ZONES
-//#define MAX_ZONES 4     ///< Maximum number of zones allowed. Change to allow more or less zones but uses RAM even if not used.
-//#endif
+#if STATIC_ZONES
+#ifndef MAX_ZONES
+#define MAX_ZONES 4     ///< Maximum number of zones allowed. Change to allow more or less zones but uses RAM even if not used.
+#endif
+#endif
 
 // Zone column calculations
-#define ZONE_START_COL(m) (m * COL_SIZE)    ///< The first column of the first zone module
-#define ZONE_END_COL(m)   (((m + 1) * COL_SIZE) - 1)///< The last column of the last zone module
+#define ZONE_START_COL(m) ((m) * COL_SIZE)    ///< The first column of the first zone module
+#define ZONE_END_COL(m)   ((((m) + 1) * COL_SIZE) - 1)///< The last column of the last zone module
 
-class MD_Parola;
+//class MD_Parola;
 
 /**
 * Text alignment enumerated type specification.
@@ -552,7 +568,7 @@ public:
    * Initialize the object data. This will be called to initialize
    * new data for the class that cannot be done during the object creation.
    *
-   * \param p pointer to the parent object for this zone.
+   * \param p pointer to the parent's MD_MAX72xx object.
    */
   void begin(MD_MAX72XX *p);
 
@@ -588,6 +604,16 @@ public:
    * \return bool true if the zone animation is completed
    */
   bool getStatus(void) { return (_fsmState == END); }
+
+  /**
+   * Get the start and end parameters for a zone.
+   *
+   * See comments for the MD_Parola namesake method.
+   *
+   * \param zStart  value for the start module number placed here [0..numZones-1].
+   * \param zEnd  value for the end module number placed here [0..numZones-1].
+   */
+  inline void getZone(uint8_t &zStart, uint8_t &zEnd) { zStart = _zoneStart; zEnd = _zoneEnd; }
 
   /**
   * Check if animation frame has advanced.
@@ -699,12 +725,32 @@ public:
   /**
    * Get the zone animation speed.
    *
-   * See the setSpeed() method
+   * See the setSpeed() method.
+   * This should be replaced with either getSpeedIn() or getSpeedOut()
+   * unless it is known that both directions are running at the same speed.
+   *
+   * \return the IN speed value.
+   */
+  inline uint16_t getSpeed(void) { return getSpeedIn(); }
+
+  /**
+   * Get the zone animation IN speed.
+   *
+   * See the setSpeed() method.
    *
    * \return the speed value.
    */
-  inline uint16_t getSpeed(void) { return _tickTime; }
+  inline uint16_t getSpeedIn(void) { return _tickTimeIn; }
 
+  /**
+   * Get the zone animation OUT speed.
+   *
+   * See the setSpeed() method.
+   *
+   * \return the speed value.
+   */
+  inline uint16_t getSpeedOut(void) { return _tickTimeOut; }
+  
   /**
   * Get the zone animation start time.
   *
@@ -720,6 +766,17 @@ public:
    * \return the current text alignment setting
    */
   inline textPosition_t getTextAlignment(void) { return _textAlignment; }
+
+  /**
+   *  Get the width of text in columns
+   *
+   * Calculate the width of the characters and the space between them
+   * using the current font and text settings.
+   *
+   * \param p   pointer to a text string
+   * \return the width of the string in display columns
+   */
+   uint16_t getTextWidth(const uint8_t* p);
 
   /**
    * Get the value of specified display effect.
@@ -750,7 +807,7 @@ public:
    * \param intensity the intensity to set the display (0-15).
    * \return No return value.
    */
-  inline void setIntensity(uint8_t intensity) { _intensity = intensity; _MX->control(_zoneStart, _zoneEnd, MD_MAX72XX::INTENSITY, _intensity); }
+  inline void setIntensity(uint8_t intensity) { _intensity = intensity; /*_MX->control(_zoneStart, _zoneEnd, MD_MAX72XX::INTENSITY, _intensity);*/ }
 
   /**
    * Invert the zone display.
@@ -793,10 +850,26 @@ public:
    * The speed of the display is the 'tick' time between animation frames. The lower this time
    * the faster the animation; set it to zero to run as fast as possible.
    *
+   * This method will set both the IN and OUT animations to the same speed.
+   *
    * \param speed the time, in milliseconds, between animation frames.
    * \return No return value.
    */
-  inline void setSpeed(uint16_t speed) { _tickTime = speed; }
+  inline void setSpeed(uint16_t speed) { setSpeed(speed, speed); }
+
+  /**
+   * Set separate IN and OUT zone animation frame speed.
+   *
+   * The speed of the display is the 'tick' time between animation frames. The lower this time
+   * the faster the animation; set it to zero to run as fast as possible.
+   *
+   * This method will set both the IN and OUT animations separately to the specified speed.
+   *
+   * \param speedIn the time, in milliseconds, between IN animation frames.
+   * \param speedOut the time, in milliseconds, between OUT animation frames.
+   * \return No return value.
+   */
+  inline void setSpeed(uint16_t speedIn, uint16_t speedOut) { _tickTimeIn = speedIn; _tickTimeOut = speedOut; }
 
 #if ENA_SPRITE
   /**
@@ -862,7 +935,7 @@ public:
    * \param effectOut the exit effect, one of the textEffect_t enumerated values.
    * \return No return value.
    */
-  inline void setTextEffect(textEffect_t effectIn, textEffect_t effectOut) { _effectIn = effectIn, _effectOut = effectOut; }
+  inline void setTextEffect(textEffect_t effectIn, textEffect_t effectOut) { _effectIn = (effectIn == PA_NO_EFFECT ? PA_PRINT : effectIn), _effectOut = effectOut; }
 
   /**
    * Set the zone display effect.
@@ -992,12 +1065,13 @@ private:
     charDef_t *next;  ///< next in the list
   };
 
-  MD_MAX72XX *_MX;   ///< Pointer to the parent passed in at begin()
+  MD_MAX72XX  *_MX;   ///< Pointer to parent's MD_MAX72xx object passed in at begin()
 
   // Time and speed controlling data and methods
   bool      _suspend;     // don't do anything
   uint32_t  _lastRunTime; // the millis() value for when the animation was last run
-  uint16_t  _tickTime;    // the time between animations in milliseconds
+  uint16_t  _tickTimeIn;  // the time between IN animations in milliseconds
+  uint16_t  _tickTimeOut; // the time between OUT animations in milliseconds
   uint16_t  _pauseTime;   // time to pause the animation between 'in' and 'out'
 
   // Display control data and methods
@@ -1017,7 +1091,6 @@ private:
   bool            _animationAdvanced;  // true is animation advanced inthe last animation call
 
   void      setInitialConditions(void);    // set up initial conditions for an effect
-  uint16_t  getTextWidth(const uint8_t *p); // width of text in columns
   bool      calcTextLimits(const uint8_t *p); // calculate the right and left limits for the text
 
   // Variables used in the effects routines. These can be used by the functions as needed.
@@ -1067,37 +1140,36 @@ private:
   // Effect functions
   void  commonPrint(void);
   void  effectPrint(bool bIn);
-//#if ENA_MISC
+  void  effectVScroll(bool bUp, bool bIn);
+  void  effectHScroll(bool bLeft, bool bIn);
+#if ENA_MISC
   void  effectSlice(bool bIn);
   void  effectMesh(bool bIn);
   void  effectFade(bool bIn);
   void  effectBlinds(bool bIn);
   void  effectDissolve(bool bIn);
   void  effectRandom(bool bIn);
-//#if ENA_SPRITE
+#endif // ENA_MISC
+#if ENA_SPRITE
   void  effectSprite(bool bIn, uint8_t id);
-//#endif // ENA_MISC
-//#if ENA_WIPE
+#endif // ENA_SPRITE
+#if ENA_WIPE
   void  effectWipe(bool bLightBar, bool bIn);
-//#endif
-//#if ENA_OPNCLS
+#endif // ENA_WIPE
+#if ENA_OPNCLS
   void  effectOpen(bool bLightBar, bool bIn);
   void  effectClose(bool bLightBar, bool bIn);
-//#endif // ENA_OPNCLS
-//#if ENA_SCR_STR
-  void  effectVScroll(bool bUp, bool bIn);
-  void  effectHScroll(bool bLeft, bool bIn);
-//#endif // ENA_SCR_STR
-//#if ENA_SCR_DIA
+#endif // ENA_OPNCLS
+#if ENA_SCR_DIA
   void  effectDiag(bool bUp, bool bLeft, bool bIn);
-//#endif // ENA_SCR_DIA
-//#if ENA_SCAN
+#endif // ENA_SCR_DIA
+#if ENA_SCAN
   void  effectHScan(bool bIn, bool bBlank);
   void  effectVScan(bool bIn, bool bBlank);
-//#endif // ENA_SCAN
-//#if ENA_GROW
+#endif // ENA_SCAN
+#if ENA_GROW
   void  effectGrow(bool bUp, bool bIn);
-//#endif // ENA_GROW
+#endif // ENA_GROW
 };
 
 /**
@@ -1121,7 +1193,9 @@ public:
    * \param csPin     output for selecting the device.
    * \param numDevices  number of devices connected. Default is 1 if not supplied.
    */
-  MD_Parola(MD_MAX72XX::moduleType_t mod, uint8_t dataPin, uint8_t clkPin, uint8_t csPin, uint8_t numDevices = 1);
+  MD_Parola(MD_MAX72XX::moduleType_t mod, uint8_t dataPin, uint8_t clkPin, uint8_t csPin, uint8_t numDevices = 1) :
+    _D(mod, dataPin, clkPin, csPin, numDevices), _numModules(numDevices)
+  {}
 
   /**
    * Class constructor - SPI hardware interface.
@@ -1135,7 +1209,9 @@ public:
    * \param csPin   output for selecting the device.
    * \param numDevices  number of devices connected. Default is 1 if not supplied.
    */
-  MD_Parola(MD_MAX72XX::moduleType_t mod, uint8_t csPin, uint8_t numDevices = 1);
+  MD_Parola(MD_MAX72XX::moduleType_t mod, uint8_t csPin, uint8_t numDevices = 1) :
+    _D(mod, csPin, numDevices), _numModules(numDevices)
+  {}
 
   /**
    * Initialize the object.
@@ -1151,8 +1227,11 @@ public:
    *
    * Initialize the object data. This needs to be called during setup() to initialize new
    * data for the class that cannot be done during the object creation. This form of the
-   * method allows specifying the number of zones used.The module
-   * limits for the zones need to be initialized separately using setZone().
+   * method allows specifying the number of zones used. The module limits for the individual
+   * zones are initialized separately using setZone(), which should be done immediately after
+   * the invoking begin().
+   *
+   * \sa setZone()
    *
    * \param numZones  maximum number of zones
    */
@@ -1254,7 +1333,6 @@ public:
   * be blank during the shutdown. Calling animate() will continue to
   * animate the display in the memory buffers but this will not be visible
   * on the display (ie, the libraries still function but the display does not).
-  * To reset the animation back to the beginning, use the displayReset() method.
   *
   * \param b  boolean value to shutdown (true) or resume (false).
   * \return No return value.
@@ -1289,15 +1367,33 @@ public:
   bool isAnimationAdvanced(void) { bool b = false; for (uint8_t i = 0; i < _numZones; i++) b |= _Z[i].isAnimationAdvanced(); return(b); }
 
   /**
+   * Get the module limits for a zone.
+   *
+   * Once a zone has been defined, this method will return the 
+   * start and end module that were defined for the specified zone.
+   *
+   * \sa setZone()
+   *
+   * \param z   zone number.
+   * \param moduleStart returns the first module number for the zone [0..numZones-1].
+   * \param moduleEnd   returns last module number for the zone [0..numZones-1].
+   */
+  inline void getZone(uint8_t z, uint8_t& moduleStart, uint8_t& moduleEnd) { if (z < _numZones) _Z[z].getZone(moduleStart, moduleEnd); }
+
+  /**
    * Define the module limits for a zone.
    *
    * When multiple zones are defined, the library needs to know the contiguous module
    * ranges that make up the different zones. If the library has been started with only
    * one zone then it will automatically initialize the zone to be the entire range for
-   * the display modules, so calling this function is not required.
+   * the display modules, so calling this function is not required. However, when multiple
+   * zones are defined, setZone() for each zone should be should be invoked immediately 
+   * after the call to begin().
    *
    * A module is a unit of 8x8 LEDs, as defined in the MD_MAX72xx library.
    * Zones should not overlap or unexpected results will occur.
+   *
+   * \sa begin()
    *
    * \param z   zone number.
    * \param moduleStart the first module number for the zone [0..numZones-1].
@@ -1376,7 +1472,7 @@ public:
    *
    * \return the current setting for the space between characters in columns. Assumes one zone only.
    */
-  inline uint8_t getCharSpacing(void) { return _Z[0].getCharSpacing(); }
+  inline uint8_t getCharSpacing(void) { return getCharSpacing(0); }
 
   /**
    * Get the inter-character spacing in columns for a specific zone.
@@ -1393,7 +1489,7 @@ public:
    *
    * \return true if the display is inverted. Assumes one zone only.
    */
-  inline bool getInvert(void) { return _Z[0].getInvert(); }
+  inline bool getInvert(void) { return getInvert(0); }
 
   /**
    * Get the current display invert state for a specific zone.
@@ -1412,7 +1508,7 @@ public:
    *
    * \return the pause value in milliseconds.
    */
-  inline uint16_t getPause(void) { return _Z[0].getPause(); }
+  inline uint16_t getPause(void) { return getPause(0); }
 
   /**
    * Get the current pause time for a specific zone.
@@ -1434,16 +1530,16 @@ public:
   inline uint16_t getScrollSpacing(void) { return _Z[0].getScrollSpacing(); }
 
   /**
-   * Get the current animation speed.
+   * Get the current IN animation speed.
    *
    * See the setSpeed() method. Assumes one zone only
    *
    * \return the speed value.
    */
-  inline uint16_t getSpeed(void) { return _Z[0].getSpeed(); }
+  inline uint16_t getSpeed(void) { return getSpeed(0); }
 
   /**
-   * Get the current animation speed for the specified zone.
+   * Get the current IN animation speed for the specified zone.
    *
    * See the setSpeed() method.
    *
@@ -1452,6 +1548,26 @@ public:
    */
   inline uint16_t getSpeed(uint8_t z) { return (z < _numZones ? _Z[z].getSpeed() : 0); }
 
+  /**
+   * Get the current IN animation speed for the specified zone.
+   *
+   * See the setSpeed() method.
+   *
+   * \param z   zone number.
+   * \return the IN speed value for the specified zone.
+   */
+  inline uint16_t getSpeedIn(uint8_t z) { return (z < _numZones ? _Z[z].getSpeedIn() : 0); }
+
+  /**
+   * Get the current OUT animation speed for the specified zone.
+   *
+   * See the setSpeed() method.
+   *
+   * \param z   zone number.
+   * \return the OUT speed value for the specified zone.
+   */
+  inline uint16_t getSpeedOut(uint8_t z) { return (z < _numZones ? _Z[z].getSpeedOut() : 0); }
+
  /**
    * Get the current text alignment specification.
    *
@@ -1459,7 +1575,7 @@ public:
    *
    * \return the current text alignment setting.
    */
-  inline textPosition_t getTextAlignment(void) { return _Z[0].getTextAlignment(); }
+  inline textPosition_t getTextAlignment(void) { return getTextAlignment(0); }
 
  /**
    * Get the current text alignment specification for the specified zone.
@@ -1468,6 +1584,31 @@ public:
    * \return the current text alignment setting for the specified zone.
    */
   inline textPosition_t getTextAlignment(uint8_t z) { return (z < _numZones ? _Z[z].getTextAlignment() : PA_CENTER); }
+
+ /**
+   * Get the text width in columns
+
+   * Evaluate the width in column for the text string *p as the sum of all 
+   * the characters and the space between them, using the currently assigned font.
+   * Assumes one zone display.
+   *
+   * \param p   nul terminate character string to evaluate.
+   * \return the number of columns used to display the text.
+   */
+  inline uint16_t getTextColumns(const char *p) { return(getTextColumns(0, p)); }
+  
+ /**
+   * Get the text width in columns
+
+   * Evaluate the width in column for the text string *p in the zone specified, as 
+   * the sum of all the characters and the space between them. As each zone can  
+   * display using a different font table, the result can vary between zones.
+   *
+   * \param z   zone number.
+   * \param p   nul terminate character string to evaluate.
+   * \return the number of columns used to display the text.
+   */
+  inline uint16_t getTextColumns(uint8_t z, const char *p) { return(z < _numZones && p != nullptr ? _Z[z].getTextWidth((uint8_t *)p) : 0); }
 
  /**
    * Get the value of specified display effect.
@@ -1581,10 +1722,12 @@ public:
   inline void setScrollSpacing(uint16_t space) { for (uint8_t i = 0; i < _numZones; i++) _Z[i].setScrollSpacing(space); }
 
   /**
-   * Set the animation frame speed for all zones.
+   * Set identical IN and OUT animation frame speed for all zones.
    *
    * The speed of the display is the 'tick' time between animation frames. The lower this time
    * the faster the animation; set it to zero to run as fast as possible.
+   * 
+   * This method sets the IN and OUT animation speeds to be the same.
    *
    * \param speed the time, in milliseconds, between animation frames.
    * \return No return value.
@@ -1592,7 +1735,21 @@ public:
   inline void setSpeed(uint16_t speed) { for (uint8_t i = 0; i < _numZones; i++) _Z[i].setSpeed(speed); }
 
   /**
-   * Set the animation frame speed for the specified zone.
+   * Set separate IN and OUT animation frame speed for all zones.
+   *
+   * The speed of the display is the 'tick' time between animation frames. The lower this time
+   * the faster the animation; set it to zero to run as fast as possible.
+   * 
+   * This method allows the IN and OUT animation speeds to be different.
+   *
+   * \param speedIn the time, in milliseconds, between IN animation frames.
+   * \param speedOut the time, in milliseconds, between OUT animation frames.
+   * \return No return value.
+   */
+  inline void setSpeed(uint16_t speedIn, uint16_t speedOut) { for (uint8_t i = 0; i < _numZones; i++) _Z[i].setSpeed(speedIn, speedOut); }
+
+  /**
+   * Set the identical IN and OUT animation frame speed for the specified zone.
    *
    * See comments for the 'all zones' variant of this method.
    *
@@ -1601,6 +1758,18 @@ public:
    * \return No return value.
    */
   inline void setSpeed(uint8_t z, uint16_t speed) { if (z < _numZones) _Z[z].setSpeed(speed); }
+
+  /**
+   * Set the separate IN and OUT animation frame speed for the specified zone.
+   *
+   * See comments for the 'all zones' variant of this method.
+   *
+   * \param z   zone number.
+   * \param speedIn the time, in milliseconds, between IN animation frames.
+   * \param speedOut the time, in milliseconds, between OUT animation frames.
+   * \return No return value.
+   */
+  inline void setSpeed(uint8_t z, uint16_t speedIn, uint16_t speedOut) { if (z < _numZones) _Z[z].setSpeed(speedIn, speedOut); }
 
 #if ENA_SPRITE
   /**
@@ -1687,7 +1856,7 @@ public:
    * \param pb  pointer to the text buffer to be used.
    * \return No return value.
    */
-  inline void setTextBuffer(const char *pb) { /*for (uint8_t i = 0; i<_numZones; i++) */_Z[0].setTextBuffer(pb); }
+  inline void setTextBuffer(const char *pb) { setTextBuffer(0, pb); }
 
   /**
    * Set the pointer to the text buffer for the specified zone.
@@ -1979,8 +2148,11 @@ public:
   private:
   // The display hardware controlled by this library
   MD_MAX72XX  _D;         ///< Hardware library object
-  //MD_PZone    _Z[MAX_ZONES];  ///< Fixed number of zones - static zone allocation
+#if STATIC_ZONES
+  MD_PZone    _Z[MAX_ZONES];  ///< Fixed number of zones - static zone allocation
+#else
   MD_PZone    *_Z;        ///< Zones buffers - dynamic zone allocation
+#endif
   uint8_t     _numModules;///< Number of display modules [0..numModules-1]
   uint8_t     _numZones;  ///< Max number of zones in the display [0..numZones-1]
 };
