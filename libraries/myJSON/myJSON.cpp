@@ -20,6 +20,13 @@ myJSON::myJSON(char *filename, bool useserial)
                         Serial.println("Failed to mount file system");
                 }
         }
+        else
+        {
+                if (SPIFFS.exists(_filename))
+                {
+                        _openOK = true;
+                }
+        }
 }
 
 // ~~~~~~~~~~~~~~ File Functions ~~~~~~~~~~~
@@ -62,7 +69,7 @@ bool myJSON::format()
 }
 bool myJSON::FS_ok()
 {
-        return SPIFFS.begin();
+        return _openOK;
 }
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -75,17 +82,22 @@ void myJSON::saveJSON2file(JsonDocument &_doc)
         // Serial.println("JSON file saved OK");
         // myJSON::PrettyprintJSON(_doc);
 }
-void myJSON::readJSON_file(JsonDocument &_doc)
+bool myJSON::readJSON_file(JsonDocument &_doc)
 {
         File readFile = SPIFFS.open(_filename, "r");
         DeserializationError error = deserializeJson(_doc, readFile);
         if (error)
         {
-                Serial.println(F("Failed to read file"));
+                Serial.println(F("Failed to read JSON file"));
+                Serial.println(error.c_str());
+                readFile.close();
+                return 0;
         }
         else
         {
                 serializeJson(_doc, readFile);
+                readFile.close();
+                return 1;
         }
         delay(50);
 }

@@ -1,12 +1,14 @@
 #include <myJSON.h>
+#include "param.h"
 
 // myJSON jPar("Jparameters.JSON");
-myJSON jPar("/config.JSON");
 
-void setup() {
+void setup()
+{
 	// put your setup code here, to run once:
 	Serial.begin(9600);
 	Serial.println("Begin");
+	sayhi();
 
 	// char a[20];
 	// int b;
@@ -29,15 +31,15 @@ void setup() {
 	// 		Serial.printf("bool stored is %d\n",c);
 	// 	}
 
-//	jPar.setValue("char_param","value_c");
-//	jPar.setValue("int_param",123);
-//	jPar.setValue("bool_param", true);
+	//	jPar.setValue("char_param","value_c");
+	//	jPar.setValue("int_param",123);
+	//	jPar.setValue("bool_param", true);
 
-	jPar.printFile();
-
+	// param_of_flash.printFile();
+	  readfromfile();
 }
 
-void loop() {
+void loop()
+{
 	// put your main code here, to run repeatedly:
-
 }

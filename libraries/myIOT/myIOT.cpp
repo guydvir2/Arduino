@@ -6,9 +6,9 @@
 #include <TimeLib.h>
 
 // ~~~~~~ myIOT CLASS ~~~~~~~~~~~ //
-myIOT::myIOT(char *devTopic, char *key) :
-		mqttClient(espClient), _failNTPcounter_inFlash(key), flog("/myIOT.txt") {
-	strcpy(_deviceName, devTopic); // for OTA only
+myIOT::myIOT(char *key) :
+		mqttClient(espClient), _failNTPcounter_inFlash(key), flog("/myIOTlog.txt") {
+	// strcpy(deviceTopic, devTopic); // for OTA only
 }
 void myIOT::start_services(cb_func funct, char *ssid, char *password,
 		char *mqtt_user, char *mqtt_passw, char *mqtt_broker) {
@@ -313,16 +313,16 @@ void myIOT::createTopics() {
 		snprintf(addGroupTopic, MaxTopicLength, "%s/%s", prefixTopic,
 				temptopic);
 
-		snprintf(deviceTopic, MaxTopicLength, "%s/%s", addGroupTopic,
-				_deviceName);
+		snprintf(_deviceName, MaxTopicLength, "%s/%s", addGroupTopic,
+				deviceTopic);
 	} else {
-		snprintf(deviceTopic, MaxTopicLength, "%s/%s", prefixTopic,
-				_deviceName);
+		snprintf(_deviceName, MaxTopicLength, "%s/%s", prefixTopic,
+				deviceTopic);
 	}
 
-	snprintf(_stateTopic, MaxTopicLength, "%s/State", deviceTopic);
-	snprintf(_stateTopic2, MaxTopicLength, "%s/State_2", deviceTopic);
-	snprintf(_availTopic, MaxTopicLength, "%s/Avail", deviceTopic);
+	snprintf(_stateTopic, MaxTopicLength, "%s/State", _deviceName);
+	snprintf(_stateTopic2, MaxTopicLength, "%s/State_2", _deviceName);
+	snprintf(_availTopic, MaxTopicLength, "%s/Avail", _deviceName);
 }
 void myIOT::callback(char *topic, byte *payload, unsigned int length) {
 	char incoming_msg[150];
@@ -347,7 +347,7 @@ void myIOT::callback(char *topic, byte *payload, unsigned int length) {
 	if (useextTopic && strcmp(topic, extTopic) == 0) {
 		sprintf(mqqt_ext_buffer[0], "%s", topic);
 		sprintf(mqqt_ext_buffer[1], "%s", incoming_msg);
-		sprintf(mqqt_ext_buffer[2], "%s", _deviceName); // not full path
+		sprintf(mqqt_ext_buffer[2], "%s", deviceTopic); // not full path
 	}
 	if (strcmp(topic, _availTopic) == 0 && useResetKeeper && firstRun) {
 		firstRun_ResetKeeper(incoming_msg);
@@ -417,7 +417,7 @@ void myIOT::pub_msg(char *inmsg) {
 	get_timeStamp();
 
 	if (mqttClient.connected()) {
-		sprintf(tmpmsg, "[%s] [%s]", timeStamp, deviceTopic);
+		sprintf(tmpmsg, "[%s] [%s]", timeStamp, _deviceName);
 		msgSplitter(inmsg, 200, tmpmsg, "#");
 	}
 
@@ -436,7 +436,7 @@ void myIOT::pub_state(char *inmsg, byte i) {
 bool myIOT::pub_log(char *inmsg) {
 	char tmpmsg[150];
 	get_timeStamp();
-	sprintf(tmpmsg, "[%s] [%s] log: %s", timeStamp, deviceTopic, inmsg);
+	sprintf(tmpmsg, "[%s] [%s] log: %s", timeStamp, _deviceName, inmsg);
 
 	if (mqttClient.connected()) {
 		mqttClient.publish(_errorTopic, tmpmsg);
@@ -452,7 +452,7 @@ void myIOT::pub_ext(char *inmsg, char *name) {
 
 	if (mqttClient.connected()) {
 		if (strcmp(name, "") == 0) {
-			sprintf(tmpmsg, "[%s][%s]: [%s]", timeStamp, deviceTopic, inmsg);
+			sprintf(tmpmsg, "[%s][%s]: [%s]", timeStamp, _deviceName, inmsg);
 		} else {
 			sprintf(tmpmsg, "[%s][%s]: [%s]", timeStamp, name, inmsg);
 		}
@@ -540,7 +540,7 @@ void myIOT::write_log(char *inmsg, int x) {
 	char a[250];
 	if (useDebug && debug_level <= x) {
 		get_timeStamp();
-		sprintf(a, ">>%s<< [%s] %s", timeStamp, deviceTopic, inmsg);
+		sprintf(a, ">>%s<< [%s] %s", timeStamp, _deviceName, inmsg);
 		flog.write(a);
 	}
 }
@@ -573,10 +573,10 @@ void myIOT::acceptOTA() {
 void myIOT::startOTA() {
 	char OTAname[100];
 	int m = 0;
-	// create OTAname from deviceTopic
-	for (int i = ((String) deviceTopic).lastIndexOf("/") + 1;
-			i < strlen(deviceTopic); i++) {
-		OTAname[m] = deviceTopic[i];
+	// create OTAname from _deviceName
+	for (int i = ((String) _deviceName).lastIndexOf("/") + 1;
+			i < strlen(_deviceName); i++) {
+		OTAname[m] = _deviceName[i];
 		OTAname[m + 1] = '\0';
 		m++;
 	}

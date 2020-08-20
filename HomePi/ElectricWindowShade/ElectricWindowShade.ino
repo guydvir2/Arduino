@@ -1,46 +1,25 @@
 #include <myIOT.h>
+#include "win_param.h"
 #include <Arduino.h>
 
 // ********** Sketch Services  ***********
-#define VER "NodeMCU_5.91"
+#define VER "NodeMCU_6.0"
 #define USE_BOUNCE_DEBUG false
-#define USE_2_EXT_INPUT false // Only for dual input window
-#define USE_AUTO_RELAY_OFF true
-#define AUTO_RELAY_TIMEOUT 90 // seconds to set Relay to off
-// ********** myIOT Class ***********
-//~~~~~ Services ~~~~~~~~~~~
-#define USE_SERIAL false
-#define USE_WDT true
-#define USE_OTA true
-#define USE_RESETKEEPER false
-#define USE_FAILNTP true
-#define USE_DEBUG_LOG true
-// ~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-// ~~~~~~~ MQTT Topics ~~~~~~
-#define DEVICE_TOPIC "familyRoom" // laundry & saloonSingle has different GPIO from others
-#define MQTT_PREFIX "myHome"
-#define MQTT_GROUP "Windows"
-// ~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-#define ADD_MQTT_FUNC addiotnalMQTT
-myIOT iot(DEVICE_TOPIC);
-// ***************************
-
-// state definitions
 #define RelayOn LOW
 #define SwitchOn LOW
 
-// GPIO Pins for ESP8266
+
+bool auto_relay_off;
+int auto_relay_off_timeout;
+
 //~~~~Internal Switch ~~~~~~
-const int inputUpPin = D2;   // main is D2 // D3 only for saloonSingle
-const int inputDownPin = D1; // main is D1 // D3 only for laundryRoom 
-const int outputUpPin = 14;
-const int outputDownPin = 12;
+int inputUpPin;
+int inputDownPin;
+int outputUpPin;
+int outputDownPin;
 //~~~~External Input ~~~~~~~~~
-const int inputUpExtPin = 0;
-const int inputDownExtPin = 2;
-//############################
+int inputUpExtPin;
+int inputDownExtPin;
 
 // GPIO status flags
 //~~~~Internal Switch ~~~~~~
@@ -49,27 +28,39 @@ bool inputDown_lastState;
 //~~~~External Input ~~~~~~~
 bool inputUpExt_lastState;
 bool inputDownExt_lastState;
-// ###########################
+
+// state definitions & constatns
 
 const int deBounceInt = 50;
 
+// ~~ myIOT definitions ~~
+#define ADD_MQTT_FUNC addiotnalMQTT
+bool ext_inputs;
+myIOT iot;
+
+
+// ~~~~~~~~~~~~~~~~~~~~~~~
+
 void startIOTservices()
 {
-        iot.useSerial = USE_SERIAL;
-        iot.useWDT = USE_WDT;
-        iot.useOTA = USE_OTA;
-        iot.useResetKeeper = USE_RESETKEEPER;
-        iot.resetFailNTP = USE_FAILNTP;
-        iot.useDebug = USE_DEBUG_LOG;
-        iot.debug_level =0; //All operations are monitored
-        strcpy(iot.prefixTopic, MQTT_PREFIX);
-        strcpy(iot.addGroupTopic, MQTT_GROUP);
+        iot.useSerial = paramJSON["useSerial"];
+        iot.useWDT = paramJSON["useWDT"];
+        iot.useOTA = paramJSON["useOTA"];
+        iot.useResetKeeper = paramJSON["useResetKeeper"];
+        iot.resetFailNTP = paramJSON["useFailNTP"];
+        iot.useDebug = paramJSON["useDebugLog"];
+        iot.debug_level = 0; //All operations are monitored
+        strcpy(iot.deviceTopic, paramJSON["deviceTopic"]);
+        strcpy(iot.prefixTopic, paramJSON["prefixTopic"]);
+        strcpy(iot.addGroupTopic, paramJSON["groupTopic"]);
         iot.start_services(ADD_MQTT_FUNC); //, SSID_ID, PASS_WIFI, MQTT_USER, MQTT_PASS, "192.168.3.201");
 }
 void setup()
 {
+        read_parameters_from_file();
         startGPIOs();
         startIOTservices();
+        paramJSON.clear();
 }
 
 // ~~~~~~~~~ StartUp ~~~~~~~~~~~~
@@ -77,7 +68,7 @@ void startGPIOs()
 {
         pinMode(inputUpPin, INPUT_PULLUP);
         pinMode(inputDownPin, INPUT_PULLUP);
-        if (USE_2_EXT_INPUT)
+        if (ext_inputs)
         {
                 pinMode(inputUpExtPin, INPUT_PULLUP);
                 pinMode(inputDownExtPin, INPUT_PULLUP);
@@ -137,7 +128,7 @@ void addiotnalMQTT(char incoming_msg[50])
         }
         else if (strcmp(incoming_msg, "ver2") == 0)
         {
-                sprintf(msg, "ver2:[%s], AutoOFF[%d]", VER, USE_AUTO_RELAY_OFF);
+                sprintf(msg, "ver2:[%s], AutoOFF[%d]", VER, auto_relay_off);
                 iot.pub_msg(msg);
         }
         else if (strcmp(incoming_msg, "help2") == 0)
@@ -153,7 +144,7 @@ void allOff()
         digitalWrite(outputDownPin, !RelayOn);
         inputUp_lastState = digitalRead(inputUpPin);
         inputDown_lastState = digitalRead(inputDownPin);
-        if (USE_2_EXT_INPUT)
+        if (ext_inputs)
         {
                 inputUpExt_lastState = digitalRead(inputUpExtPin);
                 inputDownExt_lastState = digitalRead(inputDownExtPin);
@@ -212,7 +203,7 @@ void switchIt(char *type, char *dir)
         sprintf(mqttmsg, "%s: Switched [%s]", type, dir);
         iot.pub_msg(mqttmsg);
 
-        if (USE_AUTO_RELAY_OFF)
+        if (auto_relay_off)
         {
                 if (digitalRead(outputDownPin) == RelayOn || digitalRead(outputUpPin) == RelayOn)
                 {
@@ -267,14 +258,14 @@ void loop()
 
         checkSwitch_looper(inputUpPin, "up", inputUp_lastState, "inButton");
         checkSwitch_looper(inputDownPin, "down", inputDown_lastState, "inButton");
-        if (USE_2_EXT_INPUT)
+        if (ext_inputs)
         {
                 checkSwitch_looper(inputUpExtPin, "up", inputUpExt_lastState, "extButton");
                 checkSwitch_looper(inputDownExtPin, "down", inputDownExt_lastState, "extButton");
         }
-        if (USE_AUTO_RELAY_OFF)
+        if (auto_relay_off)
         {
-                checkTimeout_AutoRelay_Off(AUTO_RELAY_TIMEOUT);
+                checkTimeout_AutoRelay_Off(auto_relay_off_timeout);
         }
         delay(100);
 }

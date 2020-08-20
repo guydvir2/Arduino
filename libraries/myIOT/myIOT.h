@@ -89,7 +89,7 @@ public:
     Ticker wdt;
     flashLOG flog;
 
-    myIOT(char *devTopic, char *key = "failNTPcount");
+    myIOT(char *key = "failNTPcount");
     void start_services(cb_func funct, char *ssid = SSID_ID, char *password = PASS_WIFI, char *mqtt_user = MQTT_USER, char *mqtt_passw = MQTT_PASS, char *mqtt_broker = MQTT_SERVER1);
     void looper();
     void startOTA();
@@ -133,7 +133,7 @@ public:
     char extTopic[MaxTopicLength];
     char mqqt_ext_buffer[3][150];
 
-    const char *ver = "iot_7.9";
+    const char *ver = "iot_8.0";
     char timeStamp[20];
 
 private:
@@ -148,7 +148,7 @@ private:
     const int OTA_upload_interval = (1000 * 60) * 10;    // 10 minute to try OTA
     const long time2Reset_noNetwork = (1000 * 60) * 10L; // minutues pass without any network
     volatile int wdtResetCounter = 0;
-    const int wdtMaxRetries = 30; //seconds to bITE
+    const int wdtMaxRetries = 60; //seconds to bITE
     long noNetwork_Clock = 0;     // clock
     long allowOTA_clock = 0;      // clock
     long lastReconnectAttempt = 0;
@@ -173,7 +173,7 @@ private:
     char _signalTopic[MaxTopicLength];
     char _debugTopic[MaxTopicLength];
 
-    char *topicArry[4] ={ deviceTopic, _groupTopic, _availTopic, addGroupTopic };
+    char *topicArry[4] ={ _deviceName, _groupTopic, _availTopic, addGroupTopic };
     // ##############################################
 
     // MQTT connection flags

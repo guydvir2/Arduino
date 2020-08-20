@@ -12,12 +12,14 @@ class myJSON
 {
 private:
     bool _useSerial = false;
+    bool _openOK = false;
     char _filename[30];
 
 public:
     char *ver = "myJSON_v1.7";
     myJSON(char *filename, bool useserial = false);
 
+    bool readJSON_file(JsonDocument &_doc);
     bool file_exists();
     bool file_remove();
     bool format();
@@ -53,7 +55,6 @@ public:
 
 private:
     void saveJSON2file(JsonDocument &_doc);
-    void readJSON_file(JsonDocument &_doc);
 
     void printJSON(JsonDocument &_doc);
     void PrettyprintJSON(JsonDocument &_doc);
