@@ -8,7 +8,7 @@
     "useResetKeeper": true,
     "useFailNTP": true,
     "useDebugLog": true,
-    "deviceTopic": "test",
+    "deviceTopic": "test2",
     "groupTopic": "Windows",
     "prefixTopic": "myHome",
     "inputUpPin": 4,

@@ -1,189 +1,174 @@
 #include <myIOT.h>
-#include <myPIR.h>
+#include "SWITCH_param.h"
 #include <Arduino.h>
 
 // ********** Sketch Services  ***********
-#define VER "ESP01_1.6"
+#define VER "ESP01_2.0"
 #define USE_DISPLAY false
+#define numSW 1
 
 // ********** myIOT Class ***********
-//~~~~~ Services ~~~~~~~~~~~
-#define USE_SERIAL true     // Serial Monitor
-#define USE_WDT true         // watchDog resets
-#define USE_OTA true         // OTA updates
-#define USE_RESETKEEPER true // detect quick reboot and real reboots
-#define USE_FAILNTP true     // saves amount of fail clock updates
-#define USE_DEBUG false
-#define DEBUG_LEVEL 0
-// ~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-// ~~~~~~~ MQTT Topics ~~~~~~
-#define DEVICE_TOPIC "ToiletLEDs"
-#define MQTT_PREFIX "myHome"
-#define MQTT_GROUP "intLights"
-// ~~~~~~~~~~~~~~~~~~~~~~~~~~
-
 #define ADD_MQTT_FUNC addiotnalMQTT
-myIOT iot(DEVICE_TOPIC);
-// ***************************
-
-// *********** myTOswitch ***********
-// ~~~~~~ Services ~~~~~~~~
-#define ON_AT_BOOT false
-#define USE_QUICK_BOOT false
-#define USE_TO true
-#define USE_dailyTO true
-#define SAFETY_OFF true
-#define SAFEY_OFF_DURATION 60 //minutes
-#define USE_BADBOOT USE_RESETKEEPER
-#define USE_EEPROM_RESET_COUNTER false
-
-// ~~~~~~~~~~~~~~~~~~~~
+myIOT iot;
 
 // ~~~~ TO & dailyTO ~~~~~~
-const int START_dTO[2][3] = { { 19, 0, 0 }, { 23, 30, 0 } };
-const int END_dTO[2][3] = { { 23, 30, 0 }, { 22, 0, 0 } };
-const int TimeOUT[] = { 10, 120 }; // minutes
-// ~~~~~~~~~~~~~~~~~~~~
+int START_dTO[2][3];
+int END_dTO[2][3];
+int TimeOUT[2];
 
 // ~~~~~~ Hardware ~~~~~~~
-#define NUM_SW 1
-#define USE_PWM true
-#define USE_INPUT false    // a button or sensor - GPIO is defined in this code as input
-#define USE_EXT_TRIG true  // get a bool High or Low for a variable inside the class () , will not activate when dailyTO is on.
-#define BUTTOM_MOMENT true // Momentary input, for input only
+bool usePWM;
+int outputPin[2];
+int inputPin[2];	  
+int extTrigPin;		  
+int hRebbots[2];	  
+char SW_Names[2][30]; 
 
-const int outputPin[] = { 12, 5 }; // D3 for most PWM boards
-const int inputPin[] = { 0, 2 };   // input is not for extTrig
-const int extTrigPin = 5;
-const int hRebbots[] = { 1, 2 };
-// ~~~~~~~~~~~~~~~~~~~~
-char *SW_Names[] = { "LEDstrip", "Ledstrip" };
-
-/*
- ~~~~~ SONOFF HARDWARE ~~~~~
- #define RELAY1 12
- #define RELAY2 5
- #define INPUT1 0  // 0 for onBoard Button
- #define INPUT2 14 // 14 for extButton
- #define indic_LEDpin 13
- */
-
-// ~~~~~~~~~~~~~~~~~~~~~~~
 mySwitch myTOsw0(outputPin[0], TimeOUT[0], SW_Names[0]);
-#if NUM_SW == 2
+#if numSW == 2
 mySwitch myTOsw1(outputPin[1], TimeOUT[1], SW_Names[1]);
-mySwitch *TOswitches[NUM_SW] = {&myTOsw0, &myTOsw1};
-#elif NUM_SW == 1
-mySwitch *TOswitches[NUM_SW] = { &myTOsw0 };
+mySwitch *TOswitches[numSW] = {&myTOsw0, &myTOsw1};
+#elif numSW == 1
+mySwitch *TOswitches[numSW] = {&myTOsw0};
 #endif
 
 //~~ extTrig functions
-void startExtTrig() {
+void startExtTrig()
+{
 	pinMode(extTrigPin, INPUT);
 }
-void readExtTrig_looper() {
+void readExtTrig_looper()
+{
 	TOswitches[0]->ext_trig_signal = digitalRead(extTrigPin);
 }
 
-
-void configTOswitches() {
-	for (int i = 0; i < NUM_SW; i++) {
-		TOswitches[i]->usePWM = USE_PWM;
-		TOswitches[i]->useSerial = USE_SERIAL;
-		TOswitches[i]->useInput = USE_INPUT;
-		TOswitches[i]->useEXTtrigger = USE_EXT_TRIG;
-		TOswitches[i]->useHardReboot = USE_EEPROM_RESET_COUNTER;
-		TOswitches[i]->is_momentery = BUTTOM_MOMENT;
-		TOswitches[i]->badBoot = USE_BADBOOT;
-		TOswitches[i]->useDailyTO = USE_dailyTO;
-		TOswitches[i]->usesafetyOff = SAFETY_OFF;
-		TOswitches[i]->set_safetyoff = SAFEY_OFF_DURATION;
-		TOswitches[i]->usequickON = USE_QUICK_BOOT;
-		TOswitches[i]->onAt_boot = ON_AT_BOOT;
+void configTOswitches()
+{
+	for (int i = 0; i < numSW; i++)
+	{
+		TOswitches[i]->usePWM = usePWM;
+		TOswitches[i]->useSerial = paramJSON["useSerial"];
+		TOswitches[i]->useInput = paramJSON["useInput"];
+		TOswitches[i]->useEXTtrigger = paramJSON["useExtTrig"];
+		TOswitches[i]->useHardReboot = paramJSON["useEEPROM_resetCounter"];
+		TOswitches[i]->is_momentery = paramJSON["momentryButtorn"];
+		TOswitches[i]->badBoot = paramJSON["useResetKeeper"];
+		TOswitches[i]->useDailyTO = paramJSON["usedailyTO"];
+		TOswitches[i]->usesafetyOff = paramJSON["useSafteyOff"];
+		TOswitches[i]->set_safetyoff = paramJSON["safetyOffDuration"];
+		TOswitches[i]->usequickON = paramJSON["usequickBoot"];
+		TOswitches[i]->onAt_boot = paramJSON["useOnatBoot"];
 		TOswitches[i]->inputPin = inputPin[i];
 
-		if (USE_EEPROM_RESET_COUNTER) {
+		if (paramJSON["useEEPROM_resetCounter"])
+		{
 			TOswitches[i]->hReboot.check_boot(hRebbots[i]);
 		}
-		if (USE_QUICK_BOOT) {
+		if (paramJSON["usequickBoot"])
+		{
 			TOswitches[i]->quickPwrON();
 		}
 	}
 }
-void startTOSwitch() {
+void startTOSwitch()
+{
 	// After Wifi is On
-	for (int i = 0; i < NUM_SW; i++) {
-		if (TOswitches[i]->useDailyTO) {
+	for (int i = 0; i < numSW; i++)
+	{
+		if (TOswitches[i]->useDailyTO)
+		{
 			TOswitches[i]->setdailyTO(START_dTO[i], END_dTO[i]);
 		}
-		if (TOswitches[i]->useEXTtrigger) {
+		if (TOswitches[i]->useEXTtrigger)
+		{
 			TOswitches[i]->extTrig_cb(HIGH, true, "PIR_detector");
 		}
 		TOswitches[i]->begin();
 	}
-#if USE_EXT_TRIG
-	startExtTrig();
-#endif
+	if (paramJSON["useExtTrig"])
+	{
+		startExtTrig();
+	}
 }
-void TOswitch_looper() {
+void TOswitch_looper()
+{
 	char msgtoMQTT[150];
 	byte mtyp;
 
-	for (int i = 0; i < NUM_SW; i++) {
+	for (int i = 0; i < numSW; i++)
+	{
 		TOswitches[i]->looper(iot.mqtt_detect_reset);
-		if (TOswitches[i]->postMessages(msgtoMQTT, mtyp)) {
-			if (mtyp == 0) {
+		if (TOswitches[i]->postMessages(msgtoMQTT, mtyp))
+		{
+			if (mtyp == 0)
+			{
 				iot.pub_msg(msgtoMQTT);
 			}
-			if (mtyp == 1) {
+			if (mtyp == 1)
+			{
 				iot.pub_log(msgtoMQTT);
 			}
-			if (mtyp == 2) {
+			if (mtyp == 2)
+			{
 				iot.pub_state(msgtoMQTT, i);
 			}
 		}
 	}
-#if USE_EXT_TRIG
-	readExtTrig_looper();
-#endif
+	if (paramJSON["useExtTrig"])
+	{
+		readExtTrig_looper();
+	}
 }
 
 // ***********************************
-void startIOTservices() {
-	iot.useSerial = USE_SERIAL;
-	iot.useWDT = USE_WDT;
-	iot.useOTA = USE_OTA;
-	iot.useResetKeeper = USE_RESETKEEPER;
-	iot.resetFailNTP = USE_FAILNTP;
-	iot.useDebug = USE_DEBUG;
-	iot.debug_level = DEBUG_LEVEL;
-	strcpy(iot.prefixTopic, MQTT_PREFIX);
-	strcpy(iot.addGroupTopic, MQTT_GROUP);
+void startIOTservices()
+{
+	iot.useSerial = paramJSON["useSerial"];
+	iot.useWDT = paramJSON["useWDT"];
+	iot.useOTA = paramJSON["useOTA"];
+	iot.useResetKeeper = paramJSON["useResetKeeper"];
+	iot.resetFailNTP = paramJSON["useFailNTP"];
+	iot.useDebug = paramJSON["useDebugLog"];
+	iot.debug_level = paramJSON["debug_level"];
+	;
+	strcpy(iot.deviceTopic, paramJSON["deviceTopic"]);
+	strcpy(iot.prefixTopic, paramJSON["prefixTopic"]);
+	strcpy(iot.addGroupTopic, paramJSON["groupTopic"]);
 	iot.start_services(ADD_MQTT_FUNC);
 }
-void giveStatus(char *outputmsg) {
+void giveStatus(char *outputmsg)
+{
 	char t1[50];
 	char t2[50];
 	char t3[150];
 
 	sprintf(t3, "Status: ");
-	for (int i = 0; i < NUM_SW; i++) {
-		if (TOswitches[i]->TOswitch.remain() > 0) {
+	for (int i = 0; i < numSW; i++)
+	{
+		if (TOswitches[i]->TOswitch.remain() > 0)
+		{
 			TOswitches[i]->TOswitch.convert_epoch2clock(
-					now() + TOswitches[i]->TOswitch.remain(), now(), t2, t1);
+				now() + TOswitches[i]->TOswitch.remain(), now(), t2, t1);
 			sprintf(t1, "timeLeft[%s]", t2);
-		} else {
+		}
+		else
+		{
 			sprintf(t1, "");
 		}
-		if (USE_PWM) {
-			if (TOswitches[i]->current_power == 0) {
+		if (usePWM)
+		{
+			if (TOswitches[i]->current_power == 0)
+			{
 				sprintf(t2, "[%s] [OFF] %s ", SW_Names[i], t1);
-			} else {
+			}
+			else
+			{
 				sprintf(t2, "[%s] power[%.0f%%] %s ", SW_Names[i],
 						TOswitches[i]->current_power * 100, t1);
 			}
-		} else {
+		}
+		else
+		{
 			sprintf(t2, "[%s] [%s] %s ", SW_Names[i],
 					TOswitches[i]->current_power ? "ON" : "OFF", t1);
 		}
@@ -191,22 +176,30 @@ void giveStatus(char *outputmsg) {
 	}
 	sprintf(outputmsg, "%s", t3);
 }
-void all_off(char *from) {
-	for (int i = 0; i < NUM_SW; i++) {
+void all_off(char *from)
+{
+	for (int i = 0; i < numSW; i++)
+	{
 		TOswitches[i]->all_off(from);
 	}
 }
-void addiotnalMQTT(char *incoming_msg) {
+void addiotnalMQTT(char *incoming_msg)
+{
 	char msg[150];
 	char msg2[20];
 
-	if (strcmp(incoming_msg, "status") == 0) {
+	if (strcmp(incoming_msg, "status") == 0)
+	{
 		giveStatus(msg);
 		iot.pub_msg(msg);
-	} else if (strcmp(incoming_msg, "ver2") == 0) {
-		sprintf(msg, "ver #2: [%s], useSafeyOff[%d], safetyDuration[%d]", VER, SAFETY_OFF, SAFEY_OFF_DURATION);
+	}
+	else if (strcmp(incoming_msg, "ver2") == 0)
+	{
+		sprintf(msg, "ver #2: [%s], useSafeyOff[%d], safetyDuration[%d]", VER, paramJSON["useSafteyOff"].as<int>(), paramJSON["safetyOffDuration"].as<int>());
 		iot.pub_msg(msg);
-	} else if (strcmp(incoming_msg, "help2") == 0) {
+	}
+	else if (strcmp(incoming_msg, "help2") == 0)
+	{
 		sprintf(msg,
 				"Help: Commands #3 - [remain, restartTO, timeout, endTO, updateTO, restoreTO, statusTO]");
 		iot.pub_msg(msg);
@@ -216,71 +209,79 @@ void addiotnalMQTT(char *incoming_msg) {
 		sprintf(msg,
 				"Help: Commands #5 - [on, off, change_pwm, all_off, flash, format]");
 		iot.pub_msg(msg);
-	} else if (strcmp(incoming_msg, "flash") == 0) {
+	}
+	else if (strcmp(incoming_msg, "flash") == 0)
+	{
 		myTOsw0.TOswitch.inCodeTimeOUT_inFlash.printFile();
-	} else if (strcmp(incoming_msg, "format") == 0) {
+	}
+	else if (strcmp(incoming_msg, "format") == 0)
+	{
 		myTOsw0.TOswitch.inCodeTimeOUT_inFlash.format();
-	} else if (strcmp(incoming_msg, "all_off") == 0) {
+	}
+	else if (strcmp(incoming_msg, "all_off") == 0)
+	{
 		all_off("MQTT");
 	}
 
 	// ±±±±±±±±±± MQTT MSGS from mySwitch Library ±±±±±±±±±±±±
-	else {
+	else
+	{
 		int num_parameters = iot.inline_read(incoming_msg);
-		TOswitches[atoi(iot.inline_param[0])]->getMQTT(iot.inline_param[1],
-				atoi(iot.inline_param[2]), atoi(iot.inline_param[3]),
-				atoi(iot.inline_param[4]));
-		for (int n = 0; n <= num_parameters - 1; n++) {
+		TOswitches[atoi(iot.inline_param[0])]->getMQTT(iot.inline_param[1], atoi(iot.inline_param[2]), atoi(iot.inline_param[3]), atoi(iot.inline_param[4]));
+		for (int n = 0; n <= num_parameters - 1; n++)
+		{
 			sprintf(iot.inline_param[n], "");
 		}
 	}
-	// ±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
 }
 
 // ~~~~~~~~~~~~~ Display ~~~~~~~~~~~~~~~
-#if USE_DISPLAY
-#include <myDisplay.h>
+// #if USE_DISPLAY
+// #include <myDisplay.h>
+// myOLED OLED(64);
 
-myOLED OLED(64);
+// void displayClock()
+// {
+// 	char clock[20];
+// 	char date[20];
+// 	const int swapPeriod = 5000; // milli-seconds
+// 	static unsigned long swapLines_counter = 0;
 
-void displayClock()
+// 	iot.return_clock(clock);
+// 	iot.return_date(date);
+
+// 	if (millis() - swapLines_counter < swapPeriod)
+// 	{
+// 		OLED.CenterTXT(clock, "", "", date);
+// 	}
+// 	else if (millis() - swapLines_counter < 2 * swapPeriod && millis() - swapLines_counter >= swapPeriod)
+// 	{
+// 		OLED.CenterTXT("", clock, date, "");
+// 	}
+// 	else
+// 	{
+// 		swapLines_counter = millis();
+// 	}
+// }
+// #endif
+
+void setup()
 {
-  char clock[20];
-  char date[20];
-  const int swapPeriod = 5000; // milli-seconds
-  static unsigned long swapLines_counter = 0;
-
-  iot.return_clock(clock);
-  iot.return_date(date);
-
-  if (millis() - swapLines_counter < swapPeriod)
-  {
-    OLED.CenterTXT(clock, "", "", date);
-  }
-  else if (millis() - swapLines_counter < 2 * swapPeriod && millis() - swapLines_counter >= swapPeriod)
-  {
-    OLED.CenterTXT("", clock, date, "");
-  }
-  else
-  {
-    swapLines_counter = millis();
-  }
-}
-#endif
-
-void setup() {
+	read_parameters_from_file();
 	configTOswitches();
 	startIOTservices();
 	startTOSwitch();
-#if USE_DISPLAY
-  OLED.start();
-#endif
+	// #if USE_DISPLAY
+	// 	OLED.start();
+	// #endif
+	free_paramJSON();
 }
-void loop() {
+void loop()
+{
 	iot.looper();
 	TOswitch_looper();
-#if USE_DISPLAY
-  displayClock();
-#endif
+	// #if USE_DISPLAY
+	// 	displayClock();
+	// #endif
 	delay(100);
 }

@@ -5,9 +5,6 @@
 // ********** Sketch Services  ***********
 #define VER "NodeMCU_6.0"
 #define USE_BOUNCE_DEBUG false
-#define RelayOn LOW
-#define SwitchOn LOW
-
 
 bool auto_relay_off;
 int auto_relay_off_timeout;
@@ -30,15 +27,14 @@ bool inputUpExt_lastState;
 bool inputDownExt_lastState;
 
 // state definitions & constatns
-
+#define RelayOn LOW
+#define SwitchOn LOW
 const int deBounceInt = 50;
 
 // ~~ myIOT definitions ~~
 #define ADD_MQTT_FUNC addiotnalMQTT
 bool ext_inputs;
 myIOT iot;
-
-
 // ~~~~~~~~~~~~~~~~~~~~~~~
 
 void startIOTservices()
@@ -60,7 +56,10 @@ void setup()
         read_parameters_from_file();
         startGPIOs();
         startIOTservices();
-        paramJSON.clear();
+        free_paramJSON();
+        //         post_parameters();
+        //         Serial.println(aa);
+        //         iot.pub_msg(aa);
 }
 
 // ~~~~~~~~~ StartUp ~~~~~~~~~~~~
@@ -79,7 +78,7 @@ void startGPIOs()
 
         allOff();
 }
-void addiotnalMQTT(char incoming_msg[50])
+void addiotnalMQTT(char *incoming_msg)
 {
         char state[5];
         char state2[5];
@@ -128,12 +127,18 @@ void addiotnalMQTT(char incoming_msg[50])
         }
         else if (strcmp(incoming_msg, "ver2") == 0)
         {
-                sprintf(msg, "ver2:[%s], AutoOFF[%d]", VER, auto_relay_off);
+                sprintf(msg, "ver2:[%s], AutoOFF[%d], AutoOFFduration[%d sec]", VER, auto_relay_off, auto_relay_off_timeout);
                 iot.pub_msg(msg);
         }
         else if (strcmp(incoming_msg, "help2") == 0)
         {
-                sprintf(msg, "Help: Commands #2 - [up, down, off]");
+                sprintf(msg, "Help: Commands #3 - [up, down, off, gpios]");
+                iot.pub_msg(msg);
+        }
+        else if (strcmp(incoming_msg, "gpios") == 0)
+        {
+                sprintf(msg, "GPIO pins: inputUP[%d], inputDown[%d], outputUP[%d], outputDown[%d], useExtPins[%d], extUp[%d], extDown[%d]",
+                        inputUpPin, inputDownPin, outputUpPin, outputDownPin, ext_inputs, inputUpExtPin, inputDownExtPin);
                 iot.pub_msg(msg);
         }
 }

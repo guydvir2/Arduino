@@ -1,7 +1,7 @@
+char *jsom_param_file = "/win_IOTpar.json";
+StaticJsonDocument<600> paramJSON;
 String json_def_value = "{\"ext_inputs\":false,\"auto_relay_off\":false,\"useSerial\":true,\"useWDT\":false,\"useOTA\":true,\"useResetKeeper\": false,\"useFailNTP\":true,\"useDebugLog\":true,\"deviceTopic\":\"devTopic\",\"groupTopic\":\"noGroup\",\"prefixTopic\":\"myHome\",\"inputUpPin\":4,\"inputDownPin\":5,\"outputUpPin\":14,\"outputDownPin\":12,\"inputUpExtPin\":0,\"inputDownExtPin\":2,\"auto_relay_off_timeout\":60}";
 
-myJSON param_of_flash("/win_IOTpar.json");
-StaticJsonDocument<600> paramJSON;
 
 //~~~~Internal Switch ~~~~~~
 extern int inputUpPin;    // = D2;   // main is D2 // D3 only for saloonSingle
@@ -17,7 +17,7 @@ extern bool auto_relay_off;
 extern int auto_relay_off_timeout;
 //############################
 
-bool readfile_ok=false;
+bool readfile_ok = false;
 
 void update_vars()
 {
@@ -34,19 +34,25 @@ void update_vars()
 }
 void read_parameters_from_file()
 {
+  myJSON param_of_flash(jsom_param_file);
+
   if (param_of_flash.file_exists())
   {
-    if(param_of_flash.readJSON_file(paramJSON)){
-          Serial.println("saved_values");
-          readfile_ok=true;
+    if (param_of_flash.readJSON_file(paramJSON))
+    {
+      // Serial.println("saved_values");
+      readfile_ok = true;
     }
   }
   else
   {
     deserializeJson(paramJSON, json_def_value);
-    Serial.println("def_values");
+    // Serial.println("def_values");
   }
-  serializeJsonPretty(paramJSON, Serial);
-  // Serial.println(paramJSON.memoryUsage());
+  // serializeJsonPretty(paramJSON, Serial);
   update_vars();
+}
+void free_paramJSON()
+{
+  paramJSON.clear();
 }
