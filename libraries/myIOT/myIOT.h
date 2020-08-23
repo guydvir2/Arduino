@@ -28,12 +28,10 @@
 typedef void (*cb_func)(char msg1[50]);
 typedef void (*cb_func2)(String msg1, String msg2, String msg3, char *msg4);
 
-
-
 class FVars
 {
 public:
-    FVars(char *key = "def_key", char *pref = "", char *fname = "/myfile.json");
+    FVars(char *key = "def_key", char *fname = "/myfile.json", bool _counter = false);
     bool getValue(int &ret_val);
     bool getValue(long &ret_val);
     bool getValue(char value[20]);
@@ -49,6 +47,7 @@ public:
 private:
     char _key[20];
     myJSON json;
+    static int _counter;
 };
 
 class myTelegram
@@ -65,7 +64,7 @@ private:
     char _ssid[20];
     char _password[20];
     int _Bot_mtbs = 1000; //mean time between scan messages in sec
-    #define def_time_check_M 5
+#define def_time_check_M 5
 
     long _Bot_lasttime; //last time messages' scan has been done
 
@@ -119,7 +118,7 @@ public:
     bool useNetworkReset = true; // allow reset due to no-network timeout
     // ~~~~~~~~~~~~~~~~~~~~~~~~~
     bool useDebug = false;
-    int debug_level = 0;  // 0- All, 1- system states; 2- log only
+    int debug_level = 0;      // 0- All, 1- system states; 2- log only
     char inline_param[6][20]; //values from user
 
     bool alternativeMQTTserver = false;
@@ -173,7 +172,7 @@ private:
     char _signalTopic[MaxTopicLength];
     char _debugTopic[MaxTopicLength];
 
-    char *topicArry[4] ={ _deviceName, _groupTopic, _availTopic, addGroupTopic };
+    char *topicArry[4] = {_deviceName, _groupTopic, _availTopic, addGroupTopic};
     // ##############################################
 
     // MQTT connection flags
@@ -215,15 +214,16 @@ private:
 
 class timeOUT
 {
-    #define _key1 "_endTO"
-    #define _key2 "_codedTO"
-    #define _key3 "_updatedTO"
-    #define _key4 "_startTO"
+#define _key1 "_endTO"
+#define _key2 "_codedTO"
+#define _key3 "_updatedTO"
+#define _key4 "_startTO"
 
 private:
     long _calc_endTO = 0; // corrected clock ( case of restart)
     int _calc_TO = 0;     // stores UpdateTO or inCodeTO
     bool _inTO = false;
+    static int _ins_counter;
 
     struct dTO
     {
@@ -234,23 +234,22 @@ private:
         bool onNow;
     };
 
-    const int items_each_array[3] ={ 3, 3, 1 };
+    const int items_each_array[3] = {3, 3, 1};
 
-    dTO defaultVals ={ { 0, 0, 0 }, { 0, 0, 59 }, 1, 0, 0 };
+    dTO defaultVals = {{0, 0, 0}, {0, 0, 59}, 1, 0, 0};
 
 public:
     int inCodeTO = 0; // default value for TO ( hard coded )
     int updatedTO_inFlash = 0;
     long endTO_inFlash = 0;   // clock to stop TO
     long startTO_inFlash = 0; // clock TO started
-    dTO dailyTO ={ { 22, 16, 0 }, { 22, 16, 10 }, 1, 0, 0 };
-//    dTO dailyTO2 ={ { 1, 1, 0 }, { 17, 14, 0 }, 1, 0, 0 };
-//    dTO *dTOlist[2] ={ &dailyTO, &dailyTO2 };
-    const char *clock_fields[4] ={ "ontime", "off_time", "flag", "use_inFl_vals" };
+    dTO dailyTO = {{22, 16, 0}, {22, 16, 10}, 1, 0, 0};
+    const char *clock_fields[4] = {"ontime", "off_time", "flag", "use_inFl_vals"};
     char dTO_pubMsg[40];
 
 public:
-    timeOUT(char *key = "timeOUTsw", int def_val = 60);
+    timeOUT(char *key = "timeOUTsw");
+    void set_fvars(int def_val = 60);
     bool looper();
     int remain();
     bool begin();
@@ -287,7 +286,7 @@ private:
         byte cell_index;
         byte value;
     };
-    eeproms_storage boot_Counter ={ 0, 0 };
+    eeproms_storage boot_Counter = {0, 0};
     int counter = 0;
     static int _counter;
 
@@ -302,9 +301,9 @@ public:
 
 class mySwitch
 {
-    #define PWM_RES 1024
-    #define SwitchOn LOW
-    #define RelayOn HIGH
+#define PWM_RES 1024
+#define SwitchOn LOW
+#define RelayOn HIGH
 
 private:
     static int _counter;
@@ -329,7 +328,7 @@ private:
     void _recoverReset(int rebootState = -1);
 
 public:
-    const char *ver = "mySwitch_1.4";
+    const char *ver = "mySwitch_1.6";
     bool usePWM = false;
     bool useSerial = false;
     bool useInput = false;
@@ -354,15 +353,17 @@ public:
     float min_power = step_power;
     float def_power = 0.7;
     float current_power = 0.0;
-    int START_dailyTO[3] ={ 23, 27, 30 };
-    int END_dailyTO[3] ={ 23, 28, 0 };
+    int START_dailyTO[3] = {23, 27, 30};
+    int END_dailyTO[3] = {23, 28, 0};
     int set_safetyoff = 360; //minutes
 
     timeOUT TOswitch;
     hardReboot hReboot;
+    //(64);
 
 public:
-    mySwitch(int switchPin, int timeout_val = 60, char *name = "mySwitch");
+    mySwitch();
+    void config(int switchPin, int timeout_val = 60, char *name = "mySwitch");
     void changePower(float val);
     void switchIt(char *txt1, float state, bool ignoreTO = false);
     void begin();

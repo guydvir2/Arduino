@@ -1,32 +1,32 @@
+#define numSW 1
 #include <myIOT.h>
 #include "SWITCH_param.h"
 #include <Arduino.h>
 
 // ********** Sketch Services  ***********
 #define VER "ESP01_2.0"
-#define USE_DISPLAY false
-#define numSW 1
+bool usePWM;
+bool useExtTrig;
 
 // ********** myIOT Class ***********
 #define ADD_MQTT_FUNC addiotnalMQTT
 myIOT iot;
 
 // ~~~~ TO & dailyTO ~~~~~~
-int START_dTO[2][3];
-int END_dTO[2][3];
-int TimeOUT[2];
+int START_dTO[numSW][3];
+int END_dTO[numSW][3];
+int TimeOUT[numSW];
 
 // ~~~~~~ Hardware ~~~~~~~
-bool usePWM;
-int outputPin[2];
-int inputPin[2];	  
+int outputPin[numSW];
+int inputPin[numSW];	  
 int extTrigPin;		  
-int hRebbots[2];	  
-char SW_Names[2][30]; 
+int hRebbots[numSW];	  
+char SW_Names[numSW][30];
 
-mySwitch myTOsw0(outputPin[0], TimeOUT[0], SW_Names[0]);
+mySwitch myTOsw0;
 #if numSW == 2
-mySwitch myTOsw1(outputPin[1], TimeOUT[1], SW_Names[1]);
+mySwitch myTOsw1;
 mySwitch *TOswitches[numSW] = {&myTOsw0, &myTOsw1};
 #elif numSW == 1
 mySwitch *TOswitches[numSW] = {&myTOsw0};
@@ -58,8 +58,8 @@ void configTOswitches()
 		TOswitches[i]->set_safetyoff = paramJSON["safetyOffDuration"];
 		TOswitches[i]->usequickON = paramJSON["usequickBoot"];
 		TOswitches[i]->onAt_boot = paramJSON["useOnatBoot"];
+		TOswitches[i]->def_power = paramJSON["defPWM"];
 		TOswitches[i]->inputPin = inputPin[i];
-
 		if (paramJSON["useEEPROM_resetCounter"])
 		{
 			TOswitches[i]->hReboot.check_boot(hRebbots[i]);
@@ -68,6 +68,7 @@ void configTOswitches()
 		{
 			TOswitches[i]->quickPwrON();
 		}
+		myTOsw0.config(outputPin[i], TimeOUT[i], SW_Names[i]);
 	}
 }
 void startTOSwitch()
@@ -85,7 +86,7 @@ void startTOSwitch()
 		}
 		TOswitches[i]->begin();
 	}
-	if (paramJSON["useExtTrig"])
+	if (useExtTrig)
 	{
 		startExtTrig();
 	}
@@ -114,7 +115,7 @@ void TOswitch_looper()
 			}
 		}
 	}
-	if (paramJSON["useExtTrig"])
+	if (useExtTrig)
 	{
 		readExtTrig_looper();
 	}
@@ -195,7 +196,7 @@ void addiotnalMQTT(char *incoming_msg)
 	}
 	else if (strcmp(incoming_msg, "ver2") == 0)
 	{
-		sprintf(msg, "ver #2: [%s], useSafeyOff[%d], safetyDuration[%d]", VER, paramJSON["useSafteyOff"].as<int>(), paramJSON["safetyOffDuration"].as<int>());
+		sprintf(msg, "ver #2: [%s], useSafeyOff[%d], safetyDuration[%d]", VER, TOswitches[0]->usesafetyOff, TOswitches[0]->set_safetyoff);
 		iot.pub_msg(msg);
 	}
 	else if (strcmp(incoming_msg, "help2") == 0)
@@ -235,53 +236,17 @@ void addiotnalMQTT(char *incoming_msg)
 	}
 }
 
-// ~~~~~~~~~~~~~ Display ~~~~~~~~~~~~~~~
-// #if USE_DISPLAY
-// #include <myDisplay.h>
-// myOLED OLED(64);
-
-// void displayClock()
-// {
-// 	char clock[20];
-// 	char date[20];
-// 	const int swapPeriod = 5000; // milli-seconds
-// 	static unsigned long swapLines_counter = 0;
-
-// 	iot.return_clock(clock);
-// 	iot.return_date(date);
-
-// 	if (millis() - swapLines_counter < swapPeriod)
-// 	{
-// 		OLED.CenterTXT(clock, "", "", date);
-// 	}
-// 	else if (millis() - swapLines_counter < 2 * swapPeriod && millis() - swapLines_counter >= swapPeriod)
-// 	{
-// 		OLED.CenterTXT("", clock, date, "");
-// 	}
-// 	else
-// 	{
-// 		swapLines_counter = millis();
-// 	}
-// }
-// #endif
-
 void setup()
 {
 	read_parameters_from_file();
 	configTOswitches();
 	startIOTservices();
 	startTOSwitch();
-	// #if USE_DISPLAY
-	// 	OLED.start();
-	// #endif
 	free_paramJSON();
 }
 void loop()
 {
 	iot.looper();
 	TOswitch_looper();
-	// #if USE_DISPLAY
-	// 	displayClock();
-	// #endif
 	delay(100);
 }

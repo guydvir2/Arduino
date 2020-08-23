@@ -4,8 +4,8 @@
     "useOTA": true,
     "useResetKeeper": true,
     "useFailNTP": true,
-    "useDebugLog": true,
-    "deviceTopic": "toiletLEDs2",
+    "useDebugLog": false,
+    "deviceTopic": "toiletLEDs",
     "groupTopic": "intLights",
     "prefixTopic": "myHome",
     "useOnatBoot": false,
@@ -15,7 +15,7 @@
     "useEEPROM_resetCounter": false,
     "usePWM": true,
     "useInput": false,
-    "useExtTrig": false,
+    "useExtTrig": true,
     "momentryButtorn": true,
     "useDisplay":false,
     "numSW": 1,
@@ -23,13 +23,13 @@
     "debug_level":0,
     "inputPin": [
         0,
-        2
+        1
     ],
     "outputPin": [
-        12,
+        3,
         5
     ],
-    "extTrigPin": 5,
+    "extTrigPin": 2,
     "hReboots": [
         1,
         2
@@ -65,5 +65,6 @@
     "SW_Names": [
         "LED1",
         "LED2"
-    ]
+    ],
+    "defPWM":0.5
 }

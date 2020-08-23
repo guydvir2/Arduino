@@ -837,10 +837,19 @@ void myIOT::startWDT()
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 // ############################### FVars CLASS #################################
-FVars::FVars(char *key, char *pref, char *fname) : json(fname, true)
+FVars::FVars(char *key, char *fname, bool counter) : json(fname, true)
 {
-	sprintf(_key, "%s%s", pref, key);
+	if (counter)
+	{
+		_counter++;
+		sprintf(_key, "%s_%d", key, _counter);
+	}
+	else
+	{
+		sprintf(_key, "%s", key);
+	}
 }
+int FVars::_counter = 0;
 bool FVars::getValue(int &ret_val)
 {
 	return json.getValue(_key, ret_val);
@@ -880,10 +889,14 @@ void FVars::format()
 }
 
 // ~~~~~~~~~~~ TimeOut Class ~~~~~~~~~~~~
-timeOUT::timeOUT(char *sw_num, int def_val) : endTimeOUT_inFlash(_key1, sw_num), inCodeTimeOUT_inFlash(_key2, sw_num), updatedTimeOUT_inFlash(
-																														   _key3, sw_num),
-											  startTimeOUT_inFlash(_key4, sw_num), dailyTO_inFlash(
-																					   "TO.json", true)
+timeOUT::timeOUT(char *key) : endTimeOUT_inFlash(_key1, "timeout.JSON", true),
+							   inCodeTimeOUT_inFlash(_key2, "timeout.JSON", true),
+							   updatedTimeOUT_inFlash(_key3, "timeout.JSON", true),
+							   startTimeOUT_inFlash(_key4), dailyTO_inFlash("TO.json", true)
+{
+	_ins_counter++;
+}
+void timeOUT::set_fvars(int def_val)
 {
 	/* endTimeOUT_inFlash     -- Save clock when TO ends (sec from epoch)
 	 inCodeTimeOUT_inFlash  -- save value of TO defined in code [ minutes]
@@ -928,6 +941,8 @@ timeOUT::timeOUT(char *sw_num, int def_val) : endTimeOUT_inFlash(_key1, sw_num),
 		_calc_TO = inCodeTO;
 	}
 }
+
+int timeOUT::_ins_counter = 0;
 bool timeOUT::looper()
 {
 	dailyTO_looper(dailyTO);
@@ -1287,12 +1302,18 @@ void myTelegram::looper()
 }
 
 // ~~~~~~~~~~~~~~~~ mySwitch Class~~~~~~~~~~~~~~
-mySwitch::mySwitch(int switchPin, int timeout_val, char *name) : TOswitch(name, timeout_val), hReboot(64)
+mySwitch::mySwitch()
 {
 	_counter++;
+}
+void mySwitch::config(int switchPin, int timeout_val, char *name)
+{
 	_switchPin = switchPin;
-	sprintf(_switchName, "%s", name);
+	strcpy(_switchName, name);
 	pinMode(_switchPin, OUTPUT); // defined here for hReboot purposes
+	if(usetimeOUT){
+		TOswitch.set_fvars(timeout_val);
+	}
 }
 int mySwitch::_counter = 0;
 void mySwitch::begin()
@@ -1561,7 +1582,7 @@ void mySwitch::_checkSwitch_Pressed(int swPin, bool momentary)
 					}
 					else
 					{
-						switchIt("Button1", 1);
+						switchIt("Button", 1);
 					}
 				}
 			}
