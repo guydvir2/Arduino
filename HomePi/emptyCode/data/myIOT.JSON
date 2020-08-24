@@ -1,1 +1,0 @@
-{"useSerial":true,"useWDT":true, "useResetKeeper":true, "useFailNTP":true, "deviceTopic":"emptycode", "MQTT_group":"tests","MQTT_prefix":"myHome"}

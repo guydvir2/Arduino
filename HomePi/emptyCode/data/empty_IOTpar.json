@@ -1,0 +1,12 @@
+{
+    "useSerial": true,
+    "useWDT": true,
+    "useOTA": true,
+    "useResetKeeper": true,
+    "useFailNTP": true,
+    "useDebugLog": false,
+    "deviceTopic": "Empty",
+    "groupTopic": "noGroup",
+    "prefixTopic": "myHome",
+    "debug_level":0
+}

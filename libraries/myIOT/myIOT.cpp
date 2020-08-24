@@ -182,12 +182,10 @@ void myIOT::start_clock()
 		else
 		{
 			_failNTPcounter_inFlash.setValue(0);
-			register_err("Fail Write Flash NTP");
 		}
 	}
 	else
 	{
-		register_err("Fail connecting NTP server");
 		if (resetFailNTP)
 		{
 			if (_failNTPcounter_inFlash.getValue(failcount))
@@ -201,7 +199,6 @@ void myIOT::start_clock()
 			else
 			{
 				_failNTPcounter_inFlash.setValue(1);
-				register_err("set value in flash");
 			}
 		}
 		_failNTP = true;
@@ -231,11 +228,11 @@ bool myIOT::startNTP()
 		NTP_OK = true;
 		return 1;
 	}
-	if (year(t) == 1970)
-	{
-		register_err("NTP Fail obtain valid Clock");
-		return 0;
-	}
+	// if (year(t) == 1970)
+	// {
+	// 	register_err("NTP Fail obtain valid Clock");
+	// 	return 0;
+	// }
 }
 void myIOT::get_timeStamp(time_t t)
 {
@@ -400,7 +397,7 @@ void myIOT::createTopics()
 {
 	snprintf(_msgTopic, MaxTopicLength, "%s/Messages", prefixTopic);
 	snprintf(_groupTopic, MaxTopicLength, "%s/All", prefixTopic);
-	snprintf(_errorTopic, MaxTopicLength, "%s/log", prefixTopic);
+	snprintf(_logTopic, MaxTopicLength, "%s/log", prefixTopic);
 	snprintf(_signalTopic, MaxTopicLength, "%s/Signal", prefixTopic);
 	snprintf(_debugTopic, MaxTopicLength, "%s/debug", prefixTopic);
 
@@ -577,7 +574,7 @@ bool myIOT::pub_log(char *inmsg)
 
 	if (mqttClient.connected())
 	{
-		mqttClient.publish(_errorTopic, tmpmsg);
+		mqttClient.publish(_logTopic, tmpmsg);
 		write_log(inmsg, 1);
 		return 1;
 	}
@@ -615,8 +612,7 @@ void myIOT::pub_debug(char *inmsg)
 	}
 }
 
-void myIOT::msgSplitter(const char *msg_in, int max_msgSize, char *prefix,
-						char *split_msg)
+void myIOT::msgSplitter(const char *msg_in, int max_msgSize, char *prefix,char *split_msg)
 {
 	char tmp[120];
 
@@ -673,16 +669,16 @@ void myIOT::notifyOffline()
 {
 	mqttClient.publish(_availTopic, "offline", true);
 }
-void myIOT::pub_offline_errs()
-{
-	if (strcmp(bootErrors, "") != 0)
-	{
-		if (pub_log(bootErrors))
-		{
-			strcpy(bootErrors, "");
-		}
-	}
-}
+// void myIOT::pub_offline_errs()
+// {
+// 	if (strcmp(bootErrors, "") != 0)
+// 	{
+// 		if (pub_log(bootErrors))
+// 		{
+// 			strcpy(bootErrors, "");
+// 		}
+// 	}
+// }
 void myIOT::firstRun_ResetKeeper(char *msg)
 {
 	if (strcmp(msg, "online") == 0)
@@ -696,13 +692,13 @@ void myIOT::firstRun_ResetKeeper(char *msg)
 	firstRun = false;
 	notifyOnline();
 }
-void myIOT::register_err(char *inmsg)
-{
-	char temp[50];
+// void myIOT::register_err(char *inmsg)
+// {
+// 	char temp[50];
 
-	sprintf(temp, "--> %s", inmsg);
-	strcat(bootErrors, temp);
-}
+// 	sprintf(temp, "--> %s", inmsg);
+// 	strcat(bootErrors, temp);
+// }
 void myIOT::write_log(char *inmsg, int x)
 {
 	char a[250];
@@ -1049,8 +1045,7 @@ void timeOUT::endNow()
 		sprintf(dTO_pubMsg, "DailyTimeOut: [End]");
 	}
 }
-void timeOUT::convert_epoch2clock(long t1, long t2, char *time_str,
-								  char *days_str)
+void timeOUT::convert_epoch2clock(long t1, long t2, char *time_str,char *days_str)
 {
 	byte days = 0;
 	byte hours = 0;

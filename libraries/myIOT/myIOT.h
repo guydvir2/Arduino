@@ -164,7 +164,7 @@ private:
     // MQTT topics
     char _msgTopic[MaxTopicLength];
     char _groupTopic[MaxTopicLength];
-    char _errorTopic[MaxTopicLength];
+    char _logTopic[MaxTopicLength];
     char _deviceName[MaxTopicLength];
     char _availTopic[MaxTopicLength];
     char _stateTopic[MaxTopicLength];
@@ -180,7 +180,7 @@ private:
 
     // holds informamtion
     char bootTime[50];
-    char bootErrors[150];
+    // char bootErrors[150];
     bool firstRun = true;
     bool _failNTP = false;
 
@@ -201,9 +201,9 @@ private:
     void createTopics();
     void callback(char *topic, byte *payload, unsigned int length);
     void msgSplitter(const char *msg_in, int max_msgSize, char *prefix, char *split_msg);
-    void pub_offline_errs();
+    // void pub_offline_errs();
     void firstRun_ResetKeeper(char *msg);
-    void register_err(char *inmsg);
+    // void register_err(char *inmsg);
     void write_log(char *inmsg, int x);
 
     // ~~~~~~~ Services  ~~~~~~~~~~~~~~~~~~~~~~~~

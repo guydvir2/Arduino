@@ -131,7 +131,6 @@ void startIOTservices()
 	iot.resetFailNTP = paramJSON["useFailNTP"];
 	iot.useDebug = paramJSON["useDebugLog"];
 	iot.debug_level = paramJSON["debug_level"];
-	;
 	strcpy(iot.deviceTopic, paramJSON["deviceTopic"]);
 	strcpy(iot.prefixTopic, paramJSON["prefixTopic"]);
 	strcpy(iot.addGroupTopic, paramJSON["groupTopic"]);
