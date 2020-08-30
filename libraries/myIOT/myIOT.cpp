@@ -8,10 +8,9 @@
 // ~~~~~~ myIOT CLASS ~~~~~~~~~~~ //
 myIOT::myIOT(char *key) : mqttClient(espClient), _failNTPcounter_inFlash(key), flog("/myIOTlog.txt")
 {
-	// strcpy(deviceTopic, devTopic); // for OTA only
+	// yield();
 }
-void myIOT::start_services(cb_func funct, char *ssid, char *password,
-						   char *mqtt_user, char *mqtt_passw, char *mqtt_broker)
+void myIOT::start_services(cb_func funct, char *ssid, char *password, char *mqtt_user, char *mqtt_passw, char *mqtt_broker)
 {
 	mqtt_server = mqtt_broker;
 	user = mqtt_user;
@@ -38,6 +37,9 @@ void myIOT::start_services(cb_func funct, char *ssid, char *password,
 	if (useOTA)
 	{
 		startOTA();
+	}
+	if (useNetworkReset){
+		time2Reset_noNetwork = (1000 * 60L) * noNetwork_reset;
 	}
 }
 void myIOT::looper()
@@ -75,9 +77,10 @@ bool myIOT::startWifi(char *ssid, char *password)
 		Serial.print("Connecting to ");
 		Serial.println(ssid);
 	}
+	WiFi.mode(WIFI_OFF); // <---- NEW
 	WiFi.mode(WIFI_STA);
 	WiFi.begin(ssid, password);
-	// WiFi.setAutoReconnect(true);
+	WiFi.setAutoReconnect(true); // <-- BACK
 
 	// in case of reboot - timeOUT to wifi
 	while (WiFi.status() != WL_CONNECTED && millis() - startWifiConnection < WIFItimeOut)
@@ -97,6 +100,7 @@ bool myIOT::startWifi(char *ssid, char *password)
 			Serial.println("no wifi detected");
 		}
 		noNetwork_Clock = millis();
+		WiFi.disconnect(true); // <--- NEW in case of stuck wifi
 		return 0;
 	}
 
@@ -228,11 +232,6 @@ bool myIOT::startNTP()
 		NTP_OK = true;
 		return 1;
 	}
-	// if (year(t) == 1970)
-	// {
-	// 	register_err("NTP Fail obtain valid Clock");
-	// 	return 0;
-	// }
 }
 void myIOT::get_timeStamp(time_t t)
 {
@@ -334,8 +333,7 @@ bool myIOT::subscribeMQTT()
 			char tempname[15];
 			sprintf(tempname, "ESP_%s", String(ESP.getChipId()).c_str());
 
-			if (mqttClient.connect(tempname, user, passw, _availTopic, 0, true,
-								   "offline"))
+			if (mqttClient.connect(tempname, user, passw, _availTopic, 0, true,"offline"))
 			{
 				// Connecting sequence
 				for (int i = 0; i < sizeof(topicArry) / sizeof(char *); i++)
@@ -612,7 +610,7 @@ void myIOT::pub_debug(char *inmsg)
 	}
 }
 
-void myIOT::msgSplitter(const char *msg_in, int max_msgSize, char *prefix,char *split_msg)
+void myIOT::msgSplitter(const char *msg_in, int max_msgSize, char *prefix, char *split_msg)
 {
 	char tmp[120];
 
@@ -669,16 +667,6 @@ void myIOT::notifyOffline()
 {
 	mqttClient.publish(_availTopic, "offline", true);
 }
-// void myIOT::pub_offline_errs()
-// {
-// 	if (strcmp(bootErrors, "") != 0)
-// 	{
-// 		if (pub_log(bootErrors))
-// 		{
-// 			strcpy(bootErrors, "");
-// 		}
-// 	}
-// }
 void myIOT::firstRun_ResetKeeper(char *msg)
 {
 	if (strcmp(msg, "online") == 0)
@@ -692,13 +680,6 @@ void myIOT::firstRun_ResetKeeper(char *msg)
 	firstRun = false;
 	notifyOnline();
 }
-// void myIOT::register_err(char *inmsg)
-// {
-// 	char temp[50];
-
-// 	sprintf(temp, "--> %s", inmsg);
-// 	strcat(bootErrors, temp);
-// }
 void myIOT::write_log(char *inmsg, int x)
 {
 	char a[250];
@@ -886,9 +867,9 @@ void FVars::format()
 
 // ~~~~~~~~~~~ TimeOut Class ~~~~~~~~~~~~
 timeOUT::timeOUT(char *key) : endTimeOUT_inFlash(_key1, "timeout.JSON", true),
-							   inCodeTimeOUT_inFlash(_key2, "timeout.JSON", true),
-							   updatedTimeOUT_inFlash(_key3, "timeout.JSON", true),
-							   startTimeOUT_inFlash(_key4), dailyTO_inFlash("TO.json", true)
+							  inCodeTimeOUT_inFlash(_key2, "timeout.JSON", true),
+							  updatedTimeOUT_inFlash(_key3, "timeout.JSON", true),
+							  startTimeOUT_inFlash(_key4), dailyTO_inFlash("TO.json", true)
 {
 	_ins_counter++;
 }
@@ -1045,7 +1026,7 @@ void timeOUT::endNow()
 		sprintf(dTO_pubMsg, "DailyTimeOut: [End]");
 	}
 }
-void timeOUT::convert_epoch2clock(long t1, long t2, char *time_str,char *days_str)
+void timeOUT::convert_epoch2clock(long t1, long t2, char *time_str, char *days_str)
 {
 	byte days = 0;
 	byte hours = 0;
@@ -1306,7 +1287,8 @@ void mySwitch::config(int switchPin, int timeout_val, char *name)
 	_switchPin = switchPin;
 	strcpy(_switchName, name);
 	pinMode(_switchPin, OUTPUT); // defined here for hReboot purposes
-	if(usetimeOUT){
+	if (usetimeOUT)
+	{
 		TOswitch.set_fvars(timeout_val);
 	}
 }

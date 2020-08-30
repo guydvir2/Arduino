@@ -124,6 +124,7 @@ public:
     bool alternativeMQTTserver = false;
     bool NTP_OK = false;
     byte mqtt_detect_reset = 2;
+    int noNetwork_reset = 10; // minutes
 
     static const int MaxTopicLength = 64; //topics
     char prefixTopic[MaxTopicLength];
@@ -132,7 +133,7 @@ public:
     char extTopic[MaxTopicLength];
     char mqqt_ext_buffer[3][150];
 
-    const char *ver = "iot_8.0";
+    const char *ver = "iot_8.1";
     char timeStamp[20];
 
 private:
@@ -141,11 +142,10 @@ private:
     cb_func ext_mqtt;
 
     // time interval parameters
-
-    const int clockUpdateInt = 60 * 60 * 5;              // seconds to update NTP
-    const int WIFItimeOut = (1000 * 60) * 1 / 2;         // 30 sec try to connect WiFi
-    const int OTA_upload_interval = (1000 * 60) * 10;    // 10 minute to try OTA
-    const long time2Reset_noNetwork = (1000 * 60) * 10L; // minutues pass without any network
+    const int clockUpdateInt = 60 * 60 * 5;                        // seconds to update NTP
+    const int WIFItimeOut = (1000 * 60) * 1 / 2;                   // 30 sec try to connect WiFi
+    const int OTA_upload_interval = (1000 * 60) * 10;              // 10 minute to try OTA
+    long time2Reset_noNetwork = (1000 * 60L) * noNetwork_reset; // minutues pass without any network
     volatile int wdtResetCounter = 0;
     const int wdtMaxRetries = 60; //seconds to bITE
     long noNetwork_Clock = 0;     // clock
@@ -180,7 +180,6 @@ private:
 
     // holds informamtion
     char bootTime[50];
-    // char bootErrors[150];
     bool firstRun = true;
     bool _failNTP = false;
 
@@ -201,9 +200,7 @@ private:
     void createTopics();
     void callback(char *topic, byte *payload, unsigned int length);
     void msgSplitter(const char *msg_in, int max_msgSize, char *prefix, char *split_msg);
-    // void pub_offline_errs();
     void firstRun_ResetKeeper(char *msg);
-    // void register_err(char *inmsg);
     void write_log(char *inmsg, int x);
 
     // ~~~~~~~ Services  ~~~~~~~~~~~~~~~~~~~~~~~~

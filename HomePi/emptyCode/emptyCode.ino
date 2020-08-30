@@ -16,6 +16,7 @@ void startIOTservices()
         iot.resetFailNTP = paramJSON["useFailNTP"];
         iot.useDebug = paramJSON["useDebugLog"];
         iot.debug_level = paramJSON["debug_level"];
+        iot.noNetwork_reset = 2;
         strcpy(iot.deviceTopic, paramJSON["deviceTopic"]);
         strcpy(iot.prefixTopic, paramJSON["prefixTopic"]);
         strcpy(iot.addGroupTopic, paramJSON["groupTopic"]);
@@ -44,7 +45,9 @@ void addiotnalMQTT(char *incoming_msg)
 
 void setup()
 {
+        read_parameters_from_file();
         startIOTservices();
+        free_paramJSON();
 }
 void loop()
 {
