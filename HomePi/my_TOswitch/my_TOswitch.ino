@@ -1,47 +1,62 @@
-#define numSW 1
+
 #include <myIOT.h>
 #include "SWITCH_param.h"
 #include <Arduino.h>
 
 // ********** Sketch Services  ***********
-#define VER "ESP01_2.0"
+#define VER "ESP01_2.1"
 bool usePWM;
 bool useExtTrig;
+int numSW = 0;
+int *A[] = {};
 
 // ********** myIOT Class ***********
 #define ADD_MQTT_FUNC addiotnalMQTT
 myIOT iot;
 
 // ~~~~ TO & dailyTO ~~~~~~
-int START_dTO[numSW][3];
-int END_dTO[numSW][3];
-int TimeOUT[numSW];
+static mySwitch myTOsw0;
+// TOswitches[0] = &myTOsw0;
+mySwitch *TOswitches[] = {&myTOsw0};
+int START_dTO[maxSW][3];
+int END_dTO[maxSW][3];
+int TimeOUT[maxSW];
 
 // ~~~~~~ Hardware ~~~~~~~
-int outputPin[numSW];
-int inputPin[numSW];	  
-int extTrigPin;		  
-int hRebbots[numSW];	  
-char SW_Names[numSW][30];
-
-mySwitch myTOsw0;
-#if numSW == 2
-mySwitch myTOsw1;
-mySwitch *TOswitches[numSW] = {&myTOsw0, &myTOsw1};
-#elif numSW == 1
-mySwitch *TOswitches[numSW] = {&myTOsw0};
-#endif
+int outputPin[maxSW];
+int inputPin[maxSW];
+int extTrigPin;
+int hRebbots[maxSW];
+char SW_Names[maxSW][30];
 
 //~~ extTrig functions
 void startExtTrig()
 {
 	pinMode(extTrigPin, INPUT);
 }
-void readExtTrig_looper()
+void readExtTrig_looper(int a=0)
 {
-	TOswitches[0]->ext_trig_signal = digitalRead(extTrigPin);
+	TOswitches[a]->ext_trig_signal = digitalRead(extTrigPin);
 }
 
+void init_TO()
+{
+	static mySwitch myTOsw0;
+	TOswitches[0] = &myTOsw0;
+	static int ccc = 3;
+
+	A[0] = &ccc;
+
+	// if (numSW == 2)
+	// {
+	// 	static mySwitch myTOsw1;
+	// 	mySwitch *TOswitches[] = {&myTOsw0, &myTOsw1};
+	// }
+	// else
+	// {
+	// 	TOswitches[0] = &myTOsw0;
+	// }
+}
 void configTOswitches()
 {
 	for (int i = 0; i < numSW; i++)
@@ -68,7 +83,7 @@ void configTOswitches()
 		{
 			TOswitches[i]->quickPwrON();
 		}
-		myTOsw0.config(outputPin[i], TimeOUT[i], SW_Names[i]);
+		TOswitches[i]->config(outputPin[i], TimeOUT[i], SW_Names[i]);
 	}
 }
 void startTOSwitch()
@@ -212,11 +227,11 @@ void addiotnalMQTT(char *incoming_msg)
 	}
 	else if (strcmp(incoming_msg, "flash") == 0)
 	{
-		myTOsw0.TOswitch.inCodeTimeOUT_inFlash.printFile();
+		TOswitches[0]->TOswitch.inCodeTimeOUT_inFlash.printFile();
 	}
 	else if (strcmp(incoming_msg, "format") == 0)
 	{
-		myTOsw0.TOswitch.inCodeTimeOUT_inFlash.format();
+		TOswitches[0]->TOswitch.inCodeTimeOUT_inFlash.format();
 	}
 	else if (strcmp(incoming_msg, "all_off") == 0)
 	{
@@ -238,14 +253,16 @@ void addiotnalMQTT(char *incoming_msg)
 void setup()
 {
 	read_parameters_from_file();
+	init_TO();
+	Serial.println(*A[0]);
 	configTOswitches();
 	startIOTservices();
-	startTOSwitch();
-	free_paramJSON();
+	// startTOSwitch();
+	// free_paramJSON();
 }
 void loop()
 {
 	iot.looper();
-	TOswitch_looper();
+	// TOswitch_looper();
 	delay(100);
 }

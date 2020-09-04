@@ -6,18 +6,21 @@
 #include <FS.h>
 #include <LittleFS.h>
 
-#define DOC_SIZE 1000
+// #define DOC_SIZE 400
 
 class myJSON
 {
+    #define _def_dsize 400
+
 private:
     bool _useSerial = false;
     bool _openOK = false;
     char _filename[30];
 
 public:
-    char *ver = "myJSON_v1.7";
-    myJSON(char *filename, bool useserial = false);
+    char *ver = "myJSON_v1.8";
+    int DOC_SIZE;
+    myJSON(char *filename, bool useserial = false, int doc_size = _def_dsize);
 
     bool readJSON_file(JsonDocument &_doc);
     bool file_exists();

@@ -5,8 +5,10 @@
     "useResetKeeper": true,
     "useFailNTP": true,
     "useDebugLog": false,
+    "useNetworkReset":true,
     "deviceTopic": "Empty",
-    "groupTopic": "noGroup",
+    "groupTopic": "",
     "prefixTopic": "myHome",
-    "debug_level":0
+    "debug_level":0,
+    "noNetwork_reset":1
 }
