@@ -4,23 +4,17 @@
 #include <Arduino.h>
 
 // ********** Sketch Services  ***********
-#define VER "ESP01_2.1"
+#define VER "ESP01_2.3"
 bool usePWM;
 bool useExtTrig;
-int numSW = 0;
-int *A[] = {};
+int numSW = 2; // changes after reading JSON param
 
 // ********** myIOT Class ***********
 #define ADD_MQTT_FUNC addiotnalMQTT
 myIOT iot;
 
 // ~~~~ TO & dailyTO ~~~~~~
-static mySwitch myTOsw0;
-// TOswitches[0] = &myTOsw0;
-mySwitch *TOswitches[] = {&myTOsw0};
-int START_dTO[maxSW][3];
-int END_dTO[maxSW][3];
-int TimeOUT[maxSW];
+mySwitch *TOswitches[maxSW] = {};
 
 // ~~~~~~ Hardware ~~~~~~~
 int outputPin[maxSW];
@@ -34,61 +28,67 @@ void startExtTrig()
 {
 	pinMode(extTrigPin, INPUT);
 }
-void readExtTrig_looper(int a=0)
+void readExtTrig_looper(int a = 0)
 {
 	TOswitches[a]->ext_trig_signal = digitalRead(extTrigPin);
 }
 
-void init_TO()
-{
-	static mySwitch myTOsw0;
-	TOswitches[0] = &myTOsw0;
-	static int ccc = 3;
-
-	A[0] = &ccc;
-
-	// if (numSW == 2)
-	// {
-	// 	static mySwitch myTOsw1;
-	// 	mySwitch *TOswitches[] = {&myTOsw0, &myTOsw1};
-	// }
-	// else
-	// {
-	// 	TOswitches[0] = &myTOsw0;
-	// }
-}
 void configTOswitches()
 {
 	for (int i = 0; i < numSW; i++)
 	{
 		TOswitches[i]->usePWM = usePWM;
-		TOswitches[i]->useSerial = paramJSON["useSerial"];
-		TOswitches[i]->useInput = paramJSON["useInput"];
-		TOswitches[i]->useEXTtrigger = paramJSON["useExtTrig"];
-		TOswitches[i]->useHardReboot = paramJSON["useEEPROM_resetCounter"];
-		TOswitches[i]->is_momentery = paramJSON["momentryButtorn"];
-		TOswitches[i]->badBoot = paramJSON["useResetKeeper"];
-		TOswitches[i]->useDailyTO = paramJSON["usedailyTO"];
-		TOswitches[i]->usesafetyOff = paramJSON["useSafteyOff"];
-		TOswitches[i]->set_safetyoff = paramJSON["safetyOffDuration"];
-		TOswitches[i]->usequickON = paramJSON["usequickBoot"];
-		TOswitches[i]->onAt_boot = paramJSON["useOnatBoot"];
-		TOswitches[i]->def_power = paramJSON["defPWM"];
+		TOswitches[i]->useSerial = sketchJSON["useSerial"];
+		TOswitches[i]->useInput = sketchJSON["useInput"];
+		TOswitches[i]->useEXTtrigger = sketchJSON["useExtTrig"];
+		TOswitches[i]->useHardReboot = sketchJSON["useEEPROM_resetCounter"];
+		TOswitches[i]->is_momentery = sketchJSON["momentryButtorn"];
+		TOswitches[i]->badBoot = sketchJSON["useResetKeeper"];
+		TOswitches[i]->useDailyTO = sketchJSON["usedailyTO"];
+		TOswitches[i]->usesafetyOff = sketchJSON["useSafteyOff"];
+		TOswitches[i]->set_safetyoff = sketchJSON["safetyOffDuration"];
+		TOswitches[i]->usequickON = sketchJSON["usequickBoot"];
+		TOswitches[i]->onAt_boot = sketchJSON["useOnatBoot"];
+		TOswitches[i]->def_power = sketchJSON["defPWM"];
 		TOswitches[i]->inputPin = inputPin[i];
-		if (paramJSON["useEEPROM_resetCounter"])
+		if (sketchJSON["useEEPROM_resetCounter"])
 		{
 			TOswitches[i]->hReboot.check_boot(hRebbots[i]);
 		}
-		if (paramJSON["usequickBoot"])
+		if (sketchJSON["usequickBoot"])
 		{
 			TOswitches[i]->quickPwrON();
 		}
-		TOswitches[i]->config(outputPin[i], TimeOUT[i], SW_Names[i]);
+		TOswitches[i]->config(outputPin[i], sketchJSON["timeOUTS"][i], SW_Names[i]);
 	}
 }
-void startTOSwitch()
+void TOswitch_init()
+{
+	static mySwitch myTOsw0;
+	TOswitches[0] = &myTOsw0;
+
+	if (numSW == 2)
+	{
+		static mySwitch myTOsw1;
+		TOswitches[1] = &myTOsw1;
+	}
+	configTOswitches();
+}
+void startdTO()
 {
 	// After Wifi is On
+	int START_dTO[maxSW][3];
+	int END_dTO[maxSW][3];
+
+	for (int a = 0; a < numSW; a++)
+	{
+		for (int i = 0; i < 3; i++)
+		{
+			START_dTO[a][i] = sketchJSON["start_dTO"][a][i].as<int>();
+			END_dTO[a][i] = sketchJSON["end_dTO"][a][i].as<int>();
+		}
+	}
+
 	for (int i = 0; i < numSW; i++)
 	{
 		if (TOswitches[i]->useDailyTO)
@@ -146,6 +146,8 @@ void startIOTservices()
 	iot.resetFailNTP = paramJSON["useFailNTP"];
 	iot.useDebug = paramJSON["useDebugLog"];
 	iot.debug_level = paramJSON["debug_level"];
+	iot.useNetworkReset = paramJSON["useNetworkReset"];
+	iot.noNetwork_reset = paramJSON["noNetwork_reset"];
 	strcpy(iot.deviceTopic, paramJSON["deviceTopic"]);
 	strcpy(iot.prefixTopic, paramJSON["prefixTopic"]);
 	strcpy(iot.addGroupTopic, paramJSON["groupTopic"]);
@@ -252,17 +254,15 @@ void addiotnalMQTT(char *incoming_msg)
 
 void setup()
 {
-	read_parameters_from_file();
-	init_TO();
-	Serial.println(*A[0]);
-	configTOswitches();
+	startRead_parameters();
+	TOswitch_init();
 	startIOTservices();
-	// startTOSwitch();
-	// free_paramJSON();
+	startdTO();
+	endRead_parameters();
 }
 void loop()
 {
 	iot.looper();
-	// TOswitch_looper();
+	TOswitch_looper();
 	delay(100);
 }

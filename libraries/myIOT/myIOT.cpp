@@ -1850,6 +1850,7 @@ void mySwitch::setdailyTO(const int start_clk[], const int end_clk[])
 		START_dailyTO[i] = start_clk[i];
 		END_dailyTO[i] = end_clk[i];
 	}
+	Serial.flush();
 }
 void mySwitch::all_off(char *from)
 {

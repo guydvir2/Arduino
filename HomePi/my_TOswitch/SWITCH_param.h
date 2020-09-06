@@ -8,15 +8,13 @@
 char *myIOT_paramfile = "/myIOT_param.json";
 char *sketch_paramfile = "/sketch_param.json";
 bool readfile_ok = false;
-
-StaticJsonDocument<JSON_SIZE_IOT> paramJSON;
-
 static const int maxSW = 2;
 
+StaticJsonDocument<JSON_SIZE_IOT> paramJSON;
+StaticJsonDocument<JSON_SIZE_SKETCH> sketchJSON;
+
+extern myIOT iot;
 extern int numSW;
-extern int START_dTO[maxSW][3];  // = {{19, 0, 0}, {21, 30, 0}};
-extern int END_dTO[maxSW][3];    // = {{23, 30, 0}, {22, 0, 0}};
-extern int TimeOUT[maxSW];       // = {10, 120}; // minutes
 extern int outputPin[maxSW];     // = {12, 5}; // D3 for most PWM boards
 extern int inputPin[maxSW];      // = {0, 2};	 // input is not for extTrig
 extern int extTrigPin;           // = 5;
@@ -39,27 +37,18 @@ extern bool useExtTrig;
 void update_vars(JsonDocument &DOC)
 {
   numSW = DOC["numSW"];
+  extTrigPin = DOC["extTrigPin"];
+  useExtTrig = DOC["useExtTrig"];
+  usePWM = DOC["usePWM"];
+
   for (int a = 0; a < numSW; a++)
   {
     inputPin[a] = DOC["inputPin"][a];
     outputPin[a] = DOC["outputPin"][a];
     hRebbots[a] = DOC["hReboots"][a];
-    TimeOUT[a] = DOC["timeOUTS"][a];
     strcpy(SW_Names[a], DOC["SW_Names"][a].as<const char *>());
-
-    for (int i = 0; i < 3; i++)
-    {
-      START_dTO[a][i] = DOC["start_dTO"][a][i];
-      END_dTO[a][i] = DOC["end_dTO"][a][i];
-    }
   }
-  extTrigPin = DOC["extTrigPin"];
-  useExtTrig = DOC["useExtTrig"];
-  usePWM = DOC["usePWM"];
 }
-
-// ±±±±±±±±±±±±±±±
-
 void read_flash_parameters(char *filename, String &defs, JsonDocument &DOC)
 {
   myJSON param_on_flash(filename, true, JSON_SIZE_IOT);
@@ -76,13 +65,11 @@ void read_flash_parameters(char *filename, String &defs, JsonDocument &DOC)
     Serial.printf("\nfile %s read NOT-OK", filename);
     deserializeJson(DOC, defs);
   }
-  serializeJsonPretty(DOC, Serial);
-  Serial.flush();
+  // serializeJsonPretty(DOC, Serial);
+  // Serial.flush();
 }
-void read_parameters_from_file()
+void startRead_parameters()
 {
-  StaticJsonDocument<JSON_SIZE_SKETCH> sketchJSON;
-
   String sketch_defs = "{\"useDisplay\":false,\"useOnatBoot\" : false,\"usequickBoot\" : false,\"usedailyTO\" : true,\
                         \"useSafteyOff\" : true,\"useEEPROM_resetCounter\" : false,\"usePWM\" : true,\"useInput\" : false,\
                         \"useExtTrig\" : false,\"momentryButtorn\" : true,\"numSW\" : 1,\"safetyOffDuration\" : 60,\
@@ -91,14 +78,19 @@ void read_parameters_from_file()
                         \"SW_Names\" : [\"LED1\",\"LED2\"],\"defPWM\":0.7}";
 
   String myIOT_defs = "{\"useSerial\":true,\"useWDT\":false,\"useOTA\":true,\"useResetKeeper\" : false,\
-                        \"useFailNTP\" : true,\"useDebugLog\" : true,\"useNetworkReset\":true, \"deviceTopic\" : \"devTopic\",\
+                        \"useFailNTP\" : true,\"useDebugLog\" : true,\"useNetworkReset\":false, \"deviceTopic\" : \"devTopic\",\
                         \" groupTopic\" : \"group\",\" prefixTopic\" : \"myHome\",\"debug_level\":0,\"noNetwork_reset\":1}";
 
   read_flash_parameters(myIOT_paramfile, myIOT_defs, paramJSON);
   read_flash_parameters(sketch_paramfile, sketch_defs, sketchJSON);
   update_vars(sketchJSON);
 }
-void free_paramJSON()
+void endRead_parameters()
 {
+  if (!readfile_ok)
+  {
+    iot.pub_log("Error read Parameters from file. Defaults values loaded.");
+  }
   paramJSON.clear();
+  sketchJSON.clear();
 }
