@@ -10,9 +10,11 @@ bool readfile_ok = false;
 
 
 StaticJsonDocument<JSON_SIZE_IOT> paramJSON;
+StaticJsonDocument<JSON_SIZE_SKETCH> sketchJSON;
 
 char paramA[20];
 int paramB = 0;
+extern myIOT iot;
 
 void update_vars(JsonDocument &DOC)
 {
@@ -40,7 +42,7 @@ void read_flash_parameters(char *filename, String &defs, JsonDocument &DOC)
 }
 void read_parameters_from_file()
 {
-  StaticJsonDocument<JSON_SIZE_SKETCH> sketchJSON;
+  
 
   String myIOT_defs = "{\"useSerial\":true,\"useWDT\":false,\"useOTA\":true,\"useResetKeeper\" : false,\
                         \"useFailNTP\" : true,\"useDebugLog\" : true,\"useNetworkReset\":true, \"deviceTopic\" : \"devTopic\",\
@@ -54,5 +56,10 @@ void read_parameters_from_file()
 }
 void free_paramJSON()
 {
+  if (!readfile_ok)
+  {
+    iot.pub_log("Error read Parameters from file. Defaults values loaded.");
+  }
   paramJSON.clear();
+  sketchJSON.clear();
 }

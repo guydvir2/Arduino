@@ -1,0 +1,14 @@
+{
+    "useSerial": false,
+    "useWDT": true,
+    "useOTA": true,
+    "useResetKeeper": false,
+    "useFailNTP": true,
+    "useDebugLog": true,
+    "useNetworkReset":true,
+    "deviceTopic": "familyRoom",
+    "groupTopic": "Windows",
+    "prefixTopic": "myHome",
+    "debug_level":0,
+    "noNetwork_reset":1
+}

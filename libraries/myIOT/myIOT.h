@@ -133,7 +133,7 @@ public:
     char extTopic[MaxTopicLength];
     char mqqt_ext_buffer[3][150];
 
-    const char *ver = "iot_8.1";
+    const char *ver = "iot_8.2";
     char timeStamp[20];
 
 private:
@@ -145,6 +145,8 @@ private:
     const int clockUpdateInt = 60 * 60 * 5;                        // seconds to update NTP
     const int WIFItimeOut = (1000 * 60) * 1 / 2;                   // 30 sec try to connect WiFi
     const int OTA_upload_interval = (1000 * 60) * 10;              // 10 minute to try OTA
+    const int retryConnectWiFi = (1000 * 60) * 5;                  // 5 minuter between fail Wifi reconnect reties
+
     long time2Reset_noNetwork = (1000 * 60L) * noNetwork_reset; // minutues pass without any network
     volatile int wdtResetCounter = 0;
     const int wdtMaxRetries = 60; //seconds to bITE
@@ -190,8 +192,7 @@ private:
     bool startWifi(char *ssid, char *password);
     bool startNTP();
     void start_clock();
-    void network_looper();
-    bool bootKeeper();
+    bool network_looper();
     void start_network_services();
 
     // ~~~~~~~ MQTT ~~~~~~~~~~~~~~~~~~~~~~~~~~~~

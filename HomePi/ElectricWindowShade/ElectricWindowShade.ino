@@ -3,7 +3,7 @@
 #include <Arduino.h>
 
 // ********** Sketch Services  ***********
-#define VER "NodeMCU_6.0"
+#define VER "NodeMCU_6.1"
 #define USE_BOUNCE_DEBUG false
 
 bool auto_relay_off;
@@ -45,7 +45,7 @@ void startIOTservices()
         iot.useResetKeeper = paramJSON["useResetKeeper"];
         iot.resetFailNTP = paramJSON["useFailNTP"];
         iot.useDebug = paramJSON["useDebugLog"];
-        iot.debug_level = 0; //All operations are monitored
+        iot.debug_level = paramJSON["debug_level"]; //All operations are monitored
         strcpy(iot.deviceTopic, paramJSON["deviceTopic"]);
         strcpy(iot.prefixTopic, paramJSON["prefixTopic"]);
         strcpy(iot.addGroupTopic, paramJSON["groupTopic"]);
@@ -53,13 +53,10 @@ void startIOTservices()
 }
 void setup()
 {
-        read_parameters_from_file();
+        startRead_parameters();
         startGPIOs();
         startIOTservices();
-        free_paramJSON();
-        //         post_parameters();
-        //         Serial.println(aa);
-        //         iot.pub_msg(aa);
+        endRead_parameters();
 }
 
 // ~~~~~~~~~ StartUp ~~~~~~~~~~~~
