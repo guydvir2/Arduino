@@ -79,7 +79,7 @@ void startRead_parameters()
 
   String myIOT_defs = "{\"useSerial\":true,\"useWDT\":false,\"useOTA\":true,\"useResetKeeper\" : false,\
                         \"useFailNTP\" : true,\"useDebugLog\" : true,\"useNetworkReset\":false, \"deviceTopic\" : \"devTopic\",\
-                        \"groupTopic\" : \"group\",\" prefixTopic\" : \"myHome\",\"debug_level\":0,\"noNetwork_reset\":1}";
+                        \"groupTopic\" : \"group\",\"prefixTopic\" : \"myHome\",\"debug_level\":0,\"noNetwork_reset\":1}";
 
   read_flash_parameters(myIOT_paramfile, myIOT_defs, paramJSON);
   read_flash_parameters(sketch_paramfile, sketch_defs, sketchJSON);

@@ -1,13 +1,13 @@
 {
-    "useSerial": true,
+    "useSerial": false,
     "useWDT": true,
     "useOTA": true,
     "useResetKeeper": true,
     "useFailNTP": true,
     "useDebugLog": true,
     "useNetworkReset":true,
-    "deviceTopic": "myTOSwitch",
-    "groupTopic": "",
+    "deviceTopic": "toiletLEDs2",
+    "groupTopic": "intLights",
     "prefixTopic": "myHome",
     "debug_level":0,
     "noNetwork_reset":1

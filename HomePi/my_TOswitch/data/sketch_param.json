@@ -4,13 +4,13 @@
     "usedailyTO": true,
     "useSafteyOff": true,
     "useEEPROM_resetCounter": false,
-    "usePWM": false,
+    "usePWM": true,
     "useInput": false,
-    "useExtTrig": false,
+    "useExtTrig": true,
     "momentryButtorn": false,
     "useDisplay":false,
-    "numSW": 2,
-    "safetyOffDuration": 60,
+    "numSW": 1,
+    "safetyOffDuration": 300,
     "inputPin": [
         3,
         1
@@ -19,28 +19,28 @@
         5,
         4
     ],
-    "extTrigPin": 2,
+    "extTrigPin": 0,
     "hReboots": [
         1,
         2
     ],
     "start_dTO": [
         [
-            13,
+            20,
             0,
             0
         ],
         [
-            17,
-            39,
-            10
+            23,
+            30,
+            0
         ]
     ],
     "end_dTO": [
         [
-            13,
-            40,
-            30
+            23,
+            30,
+            0
         ],
         [
             17,
