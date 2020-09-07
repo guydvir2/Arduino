@@ -10,8 +10,7 @@ myIOT::myIOT(char *key) : mqttClient(espClient), _failNTPcounter_inFlash(key), f
 {
 	// strcpy(deviceTopic, devTopic); // for OTA only
 }
-void myIOT::start_services(cb_func funct, char *ssid, char *password,
-						   char *mqtt_user, char *mqtt_passw, char *mqtt_broker)
+void myIOT::start_services(cb_func funct, char *ssid, char *password, char *mqtt_user, char *mqtt_passw, char *mqtt_broker)
 {
 	mqtt_server = mqtt_broker;
 	user = mqtt_user;
@@ -612,7 +611,7 @@ void myIOT::pub_debug(char *inmsg)
 	}
 }
 
-void myIOT::msgSplitter(const char *msg_in, int max_msgSize, char *prefix,char *split_msg)
+void myIOT::msgSplitter(const char *msg_in, int max_msgSize, char *prefix, char *split_msg)
 {
 	char tmp[120];
 
@@ -669,16 +668,6 @@ void myIOT::notifyOffline()
 {
 	mqttClient.publish(_availTopic, "offline", true);
 }
-// void myIOT::pub_offline_errs()
-// {
-// 	if (strcmp(bootErrors, "") != 0)
-// 	{
-// 		if (pub_log(bootErrors))
-// 		{
-// 			strcpy(bootErrors, "");
-// 		}
-// 	}
-// }
 void myIOT::firstRun_ResetKeeper(char *msg)
 {
 	if (strcmp(msg, "online") == 0)
@@ -692,13 +681,6 @@ void myIOT::firstRun_ResetKeeper(char *msg)
 	firstRun = false;
 	notifyOnline();
 }
-// void myIOT::register_err(char *inmsg)
-// {
-// 	char temp[50];
-
-// 	sprintf(temp, "--> %s", inmsg);
-// 	strcat(bootErrors, temp);
-// }
 void myIOT::write_log(char *inmsg, int x)
 {
 	char a[250];
@@ -886,9 +868,9 @@ void FVars::format()
 
 // ~~~~~~~~~~~ TimeOut Class ~~~~~~~~~~~~
 timeOUT::timeOUT(char *key) : endTimeOUT_inFlash(_key1, "timeout.JSON", true),
-							   inCodeTimeOUT_inFlash(_key2, "timeout.JSON", true),
-							   updatedTimeOUT_inFlash(_key3, "timeout.JSON", true),
-							   startTimeOUT_inFlash(_key4), dailyTO_inFlash("TO.json", true)
+							  inCodeTimeOUT_inFlash(_key2, "timeout.JSON", true),
+							  updatedTimeOUT_inFlash(_key3, "timeout.JSON", true),
+							  startTimeOUT_inFlash(_key4), dailyTO_inFlash("TO.json", true)
 {
 	_ins_counter++;
 }
@@ -1045,7 +1027,7 @@ void timeOUT::endNow()
 		sprintf(dTO_pubMsg, "DailyTimeOut: [End]");
 	}
 }
-void timeOUT::convert_epoch2clock(long t1, long t2, char *time_str,char *days_str)
+void timeOUT::convert_epoch2clock(long t1, long t2, char *time_str, char *days_str)
 {
 	byte days = 0;
 	byte hours = 0;
@@ -1306,7 +1288,8 @@ void mySwitch::config(int switchPin, int timeout_val, char *name)
 	_switchPin = switchPin;
 	strcpy(_switchName, name);
 	pinMode(_switchPin, OUTPUT); // defined here for hReboot purposes
-	if(usetimeOUT){
+	if (usetimeOUT)
+	{
 		TOswitch.set_fvars(timeout_val);
 	}
 }

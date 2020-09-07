@@ -1,29 +1,20 @@
 #include <myIOT.h>
+#include "internet_param.h"
 #include <Arduino.h>
 #include <myDisplay.h>
 
 // ********** Sketch Services  ***********
-#define VER "WEMOS_1.3"
+#define VER "WEMOS_2.0"
 #define USE_DISPLAY true
 
 // ********** myIOT Class ***********
-//~~~~~ Services ~~~~~~~~~~~
-#define USE_SERIAL true       // Serial Monitor
-#define USE_WDT true          // watchDog resets
-#define USE_OTA true          // OTA updates
-#define USE_RESETKEEPER false // detect quick reboot and real reboots
-#define USE_FAILNTP true      // saves amoount of fail clock updates
-// ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 // ~~~~~~~ MQTT Topics ~~~~~~
-#define DEVICE_TOPIC "internetMonitor"
-#define MQTT_PREFIX "myHome"
-#define MQTT_GROUP ""
 #define TELEGRAM_OUT_TOPIC "myHome/Telegram"
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 #define ADD_MQTT_FUNC addiotnalMQTT
-myIOT iot(DEVICE_TOPIC);
+myIOT iot;
 // ***************************
 
 char monitor_string[200];
@@ -31,30 +22,40 @@ bool internetConnected = false;
 const int seconds_offline_alarm = 60; // past this time , an Alert will be sent upon reconnection
 const int disconnects_1hr_alarm = 5;
 const int disconnects_24hr_alarm = 10;
+const int min_ping_interval = 10; //seconds
+const int max_ping_interval = 60; // seconds
+
 int disc_1h[disconnects_1hr_alarm];
 int disc_24hr[disconnects_24hr_alarm];
 int disconnect_counter = 0;
 int longest_discon = 0;
-const int min_ping_interval = 10; //seconds
-const int max_ping_interval = 60; // seconds
+
 int adaptive_ping_val = min_ping_interval;
 long accum_connect = 0;
 float conn_ratio = 0;
 long accum_disconnect = 0;
+
 time_t begin_monitor_clock;
 time_t inter_ok_start = 0;
 time_t inter_fail_start = 0;
 
 void startIOTservices()
 {
-        iot.useSerial = USE_SERIAL;
-        iot.useWDT = USE_WDT;
-        iot.useOTA = USE_OTA;
-        iot.useResetKeeper = USE_RESETKEEPER;
-        iot.resetFailNTP = USE_FAILNTP;
-        strcpy(iot.prefixTopic, MQTT_PREFIX);
-        strcpy(iot.addGroupTopic, MQTT_GROUP);
-        iot.start_services(ADD_MQTT_FUNC);
+        iot.useSerial = paramJSON["useSerial"];
+        iot.useWDT = paramJSON["useWDT"];
+        iot.useOTA = paramJSON["useOTA"];
+        iot.useResetKeeper = paramJSON["useResetKeeper"];
+        iot.resetFailNTP = paramJSON["useFailhNTP"];
+        iot.useDebug = paramJSON["useDebugLog"];
+        iot.debug_level = paramJSON["debug_level"];
+        iot.useextTopic = paramJSON["useextTopic"];
+        iot.useNetworkReset = paramJSON["useNetworkReset"];
+        strcpy(iot.deviceTopic, paramJSON["deviceTopic"]);
+        strcpy(iot.prefixTopic, paramJSON["prefixTopic"]);
+        strcpy(iot.addGroupTopic, paramJSON["groupTopic"]);
+        strcpy(iot.extTopic, paramJSON["extTopic"])
+
+            iot.start_services(ADD_MQTT_FUNC);
 }
 void addiotnalMQTT(char *incoming_msg)
 {
@@ -64,16 +65,14 @@ void addiotnalMQTT(char *incoming_msg)
                 generate_monitor_status();
                 iot.pub_msg(monitor_string);
         }
-        else if (strcmp(incoming_msg, "ver") == 0)
+        else if (strcmp(incoming_msg, "ver2") == 0)
         {
-                sprintf(msg, "ver #1: [%s], lib: [%s], WDT: [%d], OTA: [%d], SERIAL: [%d], ResetKeeper[%d], FailNTP[%d]", VER, iot.ver, USE_WDT, USE_OTA, USE_SERIAL, USE_RESETKEEPER, USE_FAILNTP);
+                sprintf(msg, "ver #2: [%s]", VER);
                 iot.pub_msg(msg);
         }
-        else if (strcmp(incoming_msg, "help") == 0)
+        else if (strcmp(incoming_msg, "help2") == 0)
         {
-                sprintf(msg, "Help: Commands #1 - [status, boot, reset, ip, ota, ver, help]");
-                iot.pub_msg(msg);
-                sprintf(msg, "Help: Commands #2 - [disconnect_1, disconnect_2]");
+                sprintf(msg, "Help: Commands #3 - [disconnect_1, disconnect_2]");
                 iot.pub_msg(msg);
         }
         else if (strcmp(incoming_msg, "disconnect_1") == 0)
@@ -126,13 +125,13 @@ void gen_report_LCD(int refresh_time = 5000)
 #endif
 
 // ~~~~~~~~~~~~~ Internet Monitoring ~~~~~~~~~~
-void sendTelegramServer(char *msg, char *tele_server = TELEGRAM_OUT_TOPIC)
-{
-        char t[200];
-        iot.get_timeStamp(now());
-        sprintf(t, "[%s][%s]: %s", iot.timeStamp, iot.deviceTopic, msg);
-        iot.mqttClient.publish(tele_server, t);
-}
+// void sendTelegramServer(char *msg, char *tele_server = TELEGRAM_OUT_TOPIC)
+// {
+//         char t[200];
+//         iot.get_timeStamp(now());
+//         sprintf(t, "[%s][%s]: %s", iot.timeStamp, iot.deviceTopic, msg);
+//         iot.mqttClient.publish(tele_server, t);
+// }
 void convert_epoch2clock(long t1, long t2, char *time_str, char *days_str)
 {
         byte days = 0;
@@ -209,12 +208,12 @@ void generate_monitor_status()
         char line3[25];
 
         iot.get_timeStamp(now());
-        bool mqtt_ping = iot.checkInternet("192.168.3.200",2);
-        bool HA_ping = iot.checkInternet("192.168.3.199",2);
+        bool mqtt_ping = iot.checkInternet("192.168.3.200", 2);
+        bool HA_ping = iot.checkInternet("192.168.3.199", 2);
         sprintf(line2, "Time: %s", iot.timeStamp);
 
-        sprintf(line1, "internet:%s, f:%.2f%%", internetConnected ? "OK" : "Fail",(float)(temp_disconn_accu/(float)dur)*100);
-        sprintf(line2, "MQTTbrok:%s HA:%s", mqtt_ping?"OK" : "Fail",HA_ping?"OK" : "Fail");
+        sprintf(line1, "internet:%s, f:%.2f%%", internetConnected ? "OK" : "Fail", (float)(temp_disconn_accu / (float)dur) * 100);
+        sprintf(line2, "MQTTbrok:%s HA:%s", mqtt_ping ? "OK" : "Fail", HA_ping ? "OK" : "Fail");
         convert_epoch2clock(now(), begin_monitor_clock, cloc, days);
         sprintf(line3, "upTime:%s %s", days, cloc);
 
@@ -241,7 +240,7 @@ void prcoess_status(bool get_ping)
                                 {
                                         char tempmsg[50];
                                         sprintf(tempmsg, "Internet back ON after [%d sec]", now() - inter_fail_start);
-                                        sendTelegramServer(tempmsg);
+                                        iot.pub_ext(tempmsg);
                                 }
 
                                 // Exceed amount of disconnects in 1 hr - Alarm
@@ -256,7 +255,7 @@ void prcoess_status(bool get_ping)
                                         {
                                                 char tempmsg[50];
                                                 sprintf(tempmsg, "Exceed [%d] disconnections in 1hr, [%d secs]", disconnects_1hr_alarm, now() - disc_1h[0]);
-                                                sendTelegramServer(tempmsg);
+                                                iot.pub_ext(tempmsg);
                                                 for (int i = 0; i < disconnects_1hr_alarm; i++)
                                                 {
                                                         disc_1h[i] = 0;
@@ -285,7 +284,7 @@ void prcoess_status(bool get_ping)
                                         {
                                                 char tempmsg[50];
                                                 sprintf(tempmsg, "Exceed [%d] disconnections in 24hr, [%d secs]", disconnects_24hr_alarm, now() - disc_24hr[0]);
-                                                sendTelegramServer(tempmsg);
+                                                iot.pub_ext(tempmsg);
                                                 for (int i = 0; i < disconnects_24hr_alarm; i++)
                                                 {
                                                         disc_24hr[i] = 0;
@@ -320,7 +319,7 @@ void prcoess_status(bool get_ping)
 
                                 sprintf(notif, "Reconnect: [%s]; Disconnect: [%s], offline-duration: [%d sec]", clock0, clock1, inter_ok_start - inter_fail_start);
                                 iot.pub_msg(notif);
-                                sendTelegramServer(notif);
+                                iot.pub_ext(notif);
                         }
                         else
                         {
@@ -379,7 +378,7 @@ void setup()
 {
         startIOTservices();
         begin_monitor_clock = now() - (int)(millis() / 1000);
-        sendTelegramServer("BootUp");
+        iot.pub_ext("BootUp");
 #if USE_DISPLAY
         LCD.start();
 #endif
