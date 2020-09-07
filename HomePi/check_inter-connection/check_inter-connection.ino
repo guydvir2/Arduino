@@ -4,7 +4,11 @@
 #include <myDisplay.h>
 
 // ********** Sketch Services  ***********
+<<<<<<< HEAD
 #define VER "WEMOS_2.0"
+=======
+#define VER "WEMOS_1.4"
+>>>>>>> ba09f533358c532a06a282122eaea4043ff78920
 #define USE_DISPLAY true
 
 // ********** myIOT Class ***********
@@ -41,6 +45,7 @@ time_t inter_fail_start = 0;
 
 void startIOTservices()
 {
+<<<<<<< HEAD
         iot.useSerial = paramJSON["useSerial"];
         iot.useWDT = paramJSON["useWDT"];
         iot.useOTA = paramJSON["useOTA"];
@@ -56,6 +61,27 @@ void startIOTservices()
         strcpy(iot.extTopic, paramJSON["extTopic"])
 
             iot.start_services(ADD_MQTT_FUNC);
+=======
+        iot.useSerial = USE_SERIAL;
+        iot.useWDT = USE_WDT;
+        iot.useOTA = USE_OTA;
+        iot.useResetKeeper = USE_RESETKEEPER;
+        iot.resetFailNTP = USE_FAILNTP;
+        iot.useNetworkReset = false;
+        iot.useDebug = true;
+        iot.debug_level = 0;
+        iot.useextTopic = true;
+        //paramJSON["debug_level"];
+        // strcpy(iot.deviceTopic, paramJSON["deviceTopic"]);
+        // strcpy(iot.prefixTopic, paramJSON["prefixTopic"]);
+        // strcpy(iot.addGroupTopic, paramJSON["groupTopic"]);
+
+        strcpy(iot.deviceTopic, DEVICE_TOPIC);
+        strcpy(iot.prefixTopic, MQTT_PREFIX);
+        strcpy(iot.addGroupTopic, MQTT_GROUP);
+        strcpy(iot.extTopic, TELEGRAM_OUT_TOPIC);
+        iot.start_services(ADD_MQTT_FUNC);
+>>>>>>> ba09f533358c532a06a282122eaea4043ff78920
 }
 void addiotnalMQTT(char *incoming_msg)
 {
@@ -72,7 +98,11 @@ void addiotnalMQTT(char *incoming_msg)
         }
         else if (strcmp(incoming_msg, "help2") == 0)
         {
+<<<<<<< HEAD
                 sprintf(msg, "Help: Commands #3 - [disconnect_1, disconnect_2]");
+=======
+                sprintf(msg, "Help #2: Commands #3 - [disconnect_1, disconnect_2]");
+>>>>>>> ba09f533358c532a06a282122eaea4043ff78920
                 iot.pub_msg(msg);
         }
         else if (strcmp(incoming_msg, "disconnect_1") == 0)
@@ -125,6 +155,7 @@ void gen_report_LCD(int refresh_time = 5000)
 #endif
 
 // ~~~~~~~~~~~~~ Internet Monitoring ~~~~~~~~~~
+<<<<<<< HEAD
 // void sendTelegramServer(char *msg, char *tele_server = TELEGRAM_OUT_TOPIC)
 // {
 //         char t[200];
@@ -132,6 +163,8 @@ void gen_report_LCD(int refresh_time = 5000)
 //         sprintf(t, "[%s][%s]: %s", iot.timeStamp, iot.deviceTopic, msg);
 //         iot.mqttClient.publish(tele_server, t);
 // }
+=======
+>>>>>>> ba09f533358c532a06a282122eaea4043ff78920
 void convert_epoch2clock(long t1, long t2, char *time_str, char *days_str)
 {
         byte days = 0;

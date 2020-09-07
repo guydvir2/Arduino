@@ -1,8 +1,17 @@
-char *jsom_param_file = "/win_IOTpar.json";
-StaticJsonDocument<600> paramJSON;
-String json_def_value = "{\"ext_inputs\":false,\"auto_relay_off\":false,\"useSerial\":true,\"useWDT\":false,\"useOTA\":true,\"useResetKeeper\": false,\"useFailNTP\":true,\"useDebugLog\":true,\"deviceTopic\":\"devTopic\",\"groupTopic\":\"noGroup\",\"prefixTopic\":\"myHome\",\"inputUpPin\":4,\"inputDownPin\":5,\"outputUpPin\":14,\"outputDownPin\":12,\"inputUpExtPin\":0,\"inputDownExtPin\":2,\"auto_relay_off_timeout\":60}";
+#include <Arduino.h>
+#include <myIOT.h>
+#include <ArduinoJson.h>
 
+#define JSON_SIZE_IOT 400
+#define JSON_SIZE_SKETCH 300
+char *myIOT_paramfile = "/myIOT_param.json";
+char *sketch_paramfile = "/sketch_param.json";
 
+bool readfile_ok = false;
+StaticJsonDocument<JSON_SIZE_IOT> paramJSON;
+StaticJsonDocument<JSON_SIZE_SKETCH> sketchJSON;
+
+extern myIOT iot;
 //~~~~Internal Switch ~~~~~~
 extern int inputUpPin;    // = D2;   // main is D2 // D3 only for saloonSingle
 extern int inputDownPin;  // = D1; // main is D1 // D3 only for laundryRoom
@@ -17,42 +26,57 @@ extern bool auto_relay_off;
 extern int auto_relay_off_timeout;
 //############################
 
-bool readfile_ok = false;
-
-void update_vars()
+void update_vars(JsonDocument &DOC)
 {
-  inputUpPin = paramJSON["inputUpPin"];
-  inputDownPin = paramJSON["inputDownPin"];
-  outputUpPin = paramJSON["outputUpPin"];
-  outputDownPin = paramJSON["outputDownPin"];
-  inputUpExtPin = paramJSON["inputUpExtPin"];
-  inputDownExtPin = paramJSON["inputDownExtPin"];
+  inputUpPin = DOC["inputUpPin"];
+  inputDownPin = DOC["inputDownPin"];
+  outputUpPin = DOC["outputUpPin"];
+  outputDownPin = DOC["outputDownPin"];
+  inputUpExtPin = DOC["inputUpExtPin"];
+  inputDownExtPin = DOC["inputDownExtPin"];
 
-  ext_inputs = paramJSON["ext_inputs"];
-  auto_relay_off = paramJSON["auto_relay_off"];
-  auto_relay_off_timeout = paramJSON["auto_relay_off_timeout"];
+  ext_inputs = DOC["ext_inputs"];
+  auto_relay_off = DOC["auto_relay_off"];
+  auto_relay_off_timeout = DOC["auto_relay_off_timeout"];
 }
-void read_parameters_from_file()
+void read_flash_parameters(char *filename, String &defs, JsonDocument &DOC)
 {
-  myJSON param_of_flash(jsom_param_file);
+  myJSON param_on_flash(filename, true, JSON_SIZE_IOT);
 
-  if (param_of_flash.file_exists())
+  if (param_on_flash.file_exists())
   {
-    if (param_of_flash.readJSON_file(paramJSON))
+    if (param_on_flash.readJSON_file(DOC))
     {
-      // Serial.println("saved_values");
       readfile_ok = true;
     }
   }
   else
   {
-    deserializeJson(paramJSON, json_def_value);
-    // Serial.println("def_values");
+    Serial.printf("\nfile %s read NOT-OK", filename);
+    deserializeJson(DOC, defs);
   }
-  // serializeJsonPretty(paramJSON, Serial);
-  update_vars();
+  // serializeJsonPretty(DOC, Serial);
+  // Serial.flush();
 }
-void free_paramJSON()
+void startRead_parameters()
 {
+  String sketch_defs = "{\"ext_inputs\":false,\"auto_relay_off\":false,\"inputUpPin\":4,\"inputDownPin\":5,\
+                        \"outputUpPin\":14,\"outputDownPin\":12,\"inputUpExtPin\":0,\"inputDownExtPin\":2,\"auto_relay_off_timeout\":60}";
+
+  String myIOT_defs = "{\"useSerial\":true,\"useWDT\":false,\"useOTA\":true,\"useResetKeeper\" : false,\
+                        \"useFailNTP\" : true,\"useDebugLog\" : true,\"useNetworkReset\":false, \"deviceTopic\" : \"myWindow\",\
+                        \"groupTopic\" : \"Windows\",\"prefixTopic\" : \"myHome\",\"debug_level\":0,\"noNetwork_reset\":1}";
+
+  read_flash_parameters(myIOT_paramfile, myIOT_defs, paramJSON);
+  read_flash_parameters(sketch_paramfile, sketch_defs, sketchJSON);
+  update_vars(sketchJSON);
+}
+void endRead_parameters()
+{
+  if (!readfile_ok)
+  {
+    iot.pub_log("Error read Parameters from file. Defaults values loaded.");
+  }
   paramJSON.clear();
+  sketchJSON.clear();
 }

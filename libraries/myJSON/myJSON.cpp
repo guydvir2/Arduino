@@ -5,9 +5,10 @@
 
 #define LOG_LENGTH 4
 
-myJSON::myJSON(char *filename, bool useserial)
+myJSON::myJSON(char *filename, bool useserial, int doc_size)
 {
         _useSerial = useserial;
+        DOC_SIZE = doc_size;
         sprintf(_filename, "%s", filename);
         if (_useSerial)
         {

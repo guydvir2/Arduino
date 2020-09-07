@@ -8,7 +8,7 @@
 // ~~~~~~ myIOT CLASS ~~~~~~~~~~~ //
 myIOT::myIOT(char *key) : mqttClient(espClient), _failNTPcounter_inFlash(key), flog("/myIOTlog.txt")
 {
-	// strcpy(deviceTopic, devTopic); // for OTA only
+	// yield();
 }
 void myIOT::start_services(cb_func funct, char *ssid, char *password, char *mqtt_user, char *mqtt_passw, char *mqtt_broker)
 {
@@ -38,20 +38,26 @@ void myIOT::start_services(cb_func funct, char *ssid, char *password, char *mqtt
 	{
 		startOTA();
 	}
+	if (useNetworkReset)
+	{
+		time2Reset_noNetwork = (1000 * 60L) * noNetwork_reset;
+	}
 }
 void myIOT::looper()
 {
-	network_looper();	 // runs wifi/mqtt connectivity
 	wdtResetCounter = 0; //reset WDT watchDog
 	if (useOTA)
-	{ // checks for OTA
+	{
 		acceptOTA();
 	}
-	if (noNetwork_Clock > 0 && useNetworkReset)
-	{ // no Wifi or no MQTT will cause a reset
-		if (millis() - noNetwork_Clock > time2Reset_noNetwork)
-		{
-			sendReset("NO NETWoRK");
+	if (network_looper() == 0)
+	{
+		if (noNetwork_Clock > 0 && useNetworkReset)
+		{ // no Wifi or no MQTT will cause a reset
+			if (millis() - noNetwork_Clock > time2Reset_noNetwork)
+			{
+				sendReset("NO NETWoRK");
+			}
 		}
 	}
 	if (alternativeMQTTserver == true)
@@ -74,9 +80,10 @@ bool myIOT::startWifi(char *ssid, char *password)
 		Serial.print("Connecting to ");
 		Serial.println(ssid);
 	}
+	WiFi.mode(WIFI_OFF); // <---- NEW
 	WiFi.mode(WIFI_STA);
 	WiFi.begin(ssid, password);
-	// WiFi.setAutoReconnect(true);
+	WiFi.setAutoReconnect(true); // <-- BACK
 
 	// in case of reboot - timeOUT to wifi
 	while (WiFi.status() != WL_CONNECTED && millis() - startWifiConnection < WIFItimeOut)
@@ -96,6 +103,7 @@ bool myIOT::startWifi(char *ssid, char *password)
 			Serial.println("no wifi detected");
 		}
 		noNetwork_Clock = millis();
+		WiFi.disconnect(true); // <--- NEW in case of stuck wifi
 		return 0;
 	}
 
@@ -119,18 +127,19 @@ void myIOT::start_network_services()
 		start_clock();
 		startMQTT();
 	}
-	else
-	{
-		noNetwork_Clock = millis();
-	}
+	// else
+	// {
+	// 	noNetwork_Clock = millis();
+	// }
 }
-void myIOT::network_looper()
+bool myIOT::network_looper()
 {
 	if (WiFi.status() == WL_CONNECTED)
 	{ // wifi is ok
 		if (mqttClient.connected())
 		{ // mqtt is good
 			mqttClient.loop();
+			return 1;
 		}
 		else
 		{ // not connected mqtt
@@ -138,28 +147,39 @@ void myIOT::network_looper()
 			{ // succeed to reconnect
 				mqttClient.loop();
 				noNetwork_Clock = 0;
+				return 1;
 			}
 			else
 			{ // failed to reconnect
 				if (noNetwork_Clock == 0)
 				{ // first time fail MQTT
 					noNetwork_Clock = millis();
+					return 0;
 				}
 			}
 		}
 	}
 	else
 	{ // no WIFI
-		if (!startWifi(Ssid, Password))
-		{ // failed to reconnect ?
-			if (noNetwork_Clock == 0)
-			{ // first time when NO NETWORK ?
-				noNetwork_Clock = millis();
+		if (millis() > noNetwork_Clock + retryConnectWiFi)
+		{
+			if (!startWifi(Ssid, Password))
+			{ // failed to reconnect ?
+				if (noNetwork_Clock == 0)
+				{ // first time when NO NETWORK ?
+					noNetwork_Clock = millis();
+					return 0;
+				}
+			}
+			else
+			{ // reconnect succeeded
+				noNetwork_Clock = 0;
+				return 1;
 			}
 		}
 		else
-		{ // reconnect succeeded
-			noNetwork_Clock = 0;
+		{
+			return 1;
 		}
 	}
 }
@@ -227,11 +247,6 @@ bool myIOT::startNTP()
 		NTP_OK = true;
 		return 1;
 	}
-	// if (year(t) == 1970)
-	// {
-	// 	register_err("NTP Fail obtain valid Clock");
-	// 	return 0;
-	// }
 }
 void myIOT::get_timeStamp(time_t t)
 {
@@ -333,8 +348,7 @@ bool myIOT::subscribeMQTT()
 			char tempname[15];
 			sprintf(tempname, "ESP_%s", String(ESP.getChipId()).c_str());
 
-			if (mqttClient.connect(tempname, user, passw, _availTopic, 0, true,
-								   "offline"))
+			if (mqttClient.connect(tempname, user, passw, _availTopic, 0, true, "offline"))
 			{
 				// Connecting sequence
 				for (int i = 0; i < sizeof(topicArry) / sizeof(char *); i++)
@@ -490,7 +504,7 @@ void myIOT::callback(char *topic, byte *payload, unsigned int length)
 		sprintf(msg,
 				"Help: Commands #1 - [status, boot, reset, ip, ota, ver,ver2, help, help2]");
 		pub_msg(msg);
-		sprintf(msg, "Help: Commands #2 - [debug_log, del_log, show_log]");
+		sprintf(msg, "Help: Commands #2 - [flash_format, debug_log, del_log, show_log]");
 		pub_msg(msg);
 	}
 	else if (strcmp(incoming_msg, "debug_log") == 0)
@@ -529,6 +543,21 @@ void myIOT::callback(char *topic, byte *payload, unsigned int length)
 			pub_msg("debug_log: file deleted");
 		}
 	}
+	else if (strcmp(incoming_msg, "flash_format") == 0)
+	{
+		pub_msg("Flash: Starting flash Format. System will reset at end.");
+		_failNTPcounter_inFlash.format();
+		sendReset("End Format");
+	}
+	else if (strcmp(incoming_msg, "del_log") == 0)
+	{
+		if (useDebug)
+		{
+			flog.delog();
+			pub_msg("debug_log: file deleted");
+		}
+	}
+
 	else
 	{
 		if (extDefine)
@@ -1851,6 +1880,7 @@ void mySwitch::setdailyTO(const int start_clk[], const int end_clk[])
 		START_dailyTO[i] = start_clk[i];
 		END_dailyTO[i] = end_clk[i];
 	}
+	Serial.flush();
 }
 void mySwitch::all_off(char *from)
 {

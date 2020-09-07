@@ -34,6 +34,7 @@ public:
   void start();
   void CenterTXT(char *line1 = "", char *line2 = "", char *line3 = "", char *line4 = "");
   void freeTXT(char *line1 = "", char *line2 = "", char *line3 = "", char *line4 = "");
+  void clear();
 
   LiquidCrystal_I2C lcd;
 

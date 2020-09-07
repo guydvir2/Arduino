@@ -162,6 +162,12 @@ void myLCD::freeTXT(char *line1, char *line2, char *line3, char *line4)
         {
             lcd.setCursor(0, n);
             lcd.print(Lines[n]);
+            
+            
         }
     }
+}
+void myLCD::clear()
+{
+    lcd.clear();
 }
