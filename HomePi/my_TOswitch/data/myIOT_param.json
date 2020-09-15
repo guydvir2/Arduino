@@ -6,7 +6,7 @@
     "useFailNTP": true,
     "useDebugLog": true,
     "useNetworkReset":true,
-    "deviceTopic": "toiletLEDs2",
+    "deviceTopic": "toiletLEDs",
     "groupTopic": "intLights",
     "prefixTopic": "myHome",
     "debug_level":0,

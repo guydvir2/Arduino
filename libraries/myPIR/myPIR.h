@@ -40,7 +40,7 @@ public:
     bool logic_state = false; // a flag that will be on for some time, altghot physucal state has changed
     bool stop_sensor = false; // during code run, select to disable sensor activity
     bool trigger_once = true; // when using timer, how to react to re-detect ? add time ?
-    float ver = 2.2;
+    float ver = 2.3;
 
 private:
     void update_timer_end();
@@ -54,6 +54,7 @@ public:
     void start();
     void detect_cb(cb_func cb);
     void end_detect_cb(cb_func cb);
+    void turnOff();
     void looper();
 };
 

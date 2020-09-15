@@ -1,5 +1,5 @@
 {
-    "useOnatBoot": false,
+    "useOnatBoot": true,
     "usequickBoot": true,
     "usedailyTO": true,
     "useSafteyOff": true,
@@ -10,36 +10,36 @@
     "momentryButtorn": false,
     "useDisplay":false,
     "numSW": 1,
-    "safetyOffDuration": 300,
+    "safetyOffDuration": 400,
     "inputPin": [
-        3,
+        14,
         1
     ],
     "outputPin": [
-        5,
+        0,
         4
     ],
-    "extTrigPin": 0,
+    "extTrigPin": 2,
     "hReboots": [
         1,
         2
     ],
     "start_dTO": [
         [
-            20,
-            0,
+            19,
+            30,
             0
         ],
         [
-            23,
+            0,
             30,
             0
         ]
     ],
     "end_dTO": [
         [
-            23,
-            30,
+            0,
+            0,
             0
         ],
         [
@@ -49,12 +49,12 @@
         ]
     ],
     "timeOUTS": [
-        5,
+        10,
         120
     ],
     "SW_Names": [
-        "ledStrip",
+        "sinkLEDs",
         "LED2"
     ],
-    "defPWM":0.5
+    "defPWM":0.6
 }

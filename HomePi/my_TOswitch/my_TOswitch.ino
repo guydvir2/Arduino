@@ -4,7 +4,7 @@
 #include <Arduino.h>
 
 // ********** Sketch Services  ***********
-#define VER "ESP01_2.3"
+#define VER "mySWITCH_V2.5"
 bool usePWM;
 bool useExtTrig;
 int numSW = 2; // changes after reading JSON param
@@ -212,7 +212,7 @@ void addiotnalMQTT(char *incoming_msg)
 	}
 	else if (strcmp(incoming_msg, "ver2") == 0)
 	{
-		sprintf(msg, "ver #2: [%s], useSafeyOff[%d], safetyDuration[%d]", VER, TOswitches[0]->usesafetyOff, TOswitches[0]->set_safetyoff);
+		sprintf(msg, "ver #2: [%s], useSafeyOff[%d], safetyDuration[%d], NumSwitches[%d]", VER, TOswitches[0]->usesafetyOff, TOswitches[0]->set_safetyoff, numSW);
 		iot.pub_msg(msg);
 	}
 	else if (strcmp(incoming_msg, "help2") == 0)
@@ -224,7 +224,7 @@ void addiotnalMQTT(char *incoming_msg)
 				"Help: Commands #4 - [off_dailyTO, on_dailyTO, flag_dailyTO, useflash_dailyTO, status_dailyTO]");
 		iot.pub_msg(msg);
 		sprintf(msg,
-				"Help: Commands #5 - [on, off, change_pwm, all_off, flash, format]");
+				"Help: Commands #5 - [on, off, change_pwm, all_off, flash, format, gpios]");
 		iot.pub_msg(msg);
 	}
 	else if (strcmp(incoming_msg, "flash") == 0)
@@ -238,6 +238,28 @@ void addiotnalMQTT(char *incoming_msg)
 	else if (strcmp(incoming_msg, "all_off") == 0)
 	{
 		all_off("MQTT");
+	}
+	else if (strcmp(incoming_msg, "gpios") == 0)
+	{
+		char ins[20];
+		char outs[20];
+		char trig[20];
+		char totals[80];
+
+		if (numSW == 1)
+		{
+			sprintf(ins, "Input Pins:[%d]", inputPin[0]);
+			sprintf(outs, "Output Pins:[%d]", outputPin[0]);
+			sprintf(trig, "Trig Pins:[%d]", extTrigPin);
+		}
+		else if (numSW == 2)
+		{
+			sprintf(ins, "Input Pins:[%d, %d]", inputPin[0], inputPin[1]);
+			sprintf(outs, "Output Pins:[%d, %d]", outputPin[0], outputPin[1]);
+			sprintf(trig, "Trig Pins:[%d]", extTrigPin);
+		}
+		sprintf(totals, "GPIO's used: %s %s %s", TOswitches[0]->useInput ? ins : "", outs, TOswitches[0]->useEXTtrigger ? trig : "");
+		iot.pub_msg(totals);
 	}
 
 	// ±±±±±±±±±± MQTT MSGS from mySwitch Library ±±±±±±±±±±±±

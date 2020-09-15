@@ -56,11 +56,6 @@ void startIOTservices()
         iot.useDebug = true;
         iot.debug_level = 0;
         iot.useextTopic = true;
-        //paramJSON["debug_level"];
-        // strcpy(iot.deviceTopic, paramJSON["deviceTopic"]);
-        // strcpy(iot.prefixTopic, paramJSON["prefixTopic"]);
-        // strcpy(iot.addGroupTopic, paramJSON["groupTopic"]);
-
         strcpy(iot.deviceTopic, DEVICE_TOPIC);
         strcpy(iot.prefixTopic, MQTT_PREFIX);
         strcpy(iot.addGroupTopic, MQTT_GROUP);

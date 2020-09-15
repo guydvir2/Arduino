@@ -27,19 +27,23 @@ void PIRsensor::update_timer_end()
 {
   _endTimer = millis() + (long)timer_duration * 1000;
 }
+void PIRsensor::turnOff()
+{
+  // ending Timer
+  _timer_is_on = false;
+  timeLeft = 0;
+  if (_use_enddetfunc)
+  {
+    _end_detect_cb();
+  }
+}
 void PIRsensor::check_timer()
 {
   if (use_timer && _timer_is_on) // check if timer is on and time remains
   {
     if (millis() > _endTimer)
     {
-      // ending Timer
-      _timer_is_on = false;
-      timeLeft = 0;
-      if (_use_enddetfunc)
-      {
-        _end_detect_cb();
-      }
+      turnOff();
     }
     else
     {

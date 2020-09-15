@@ -78,7 +78,7 @@ void startRead_parameters()
                         \"SW_Names\" : [\"LED1\",\"LED2\"],\"defPWM\":0.7}";
 
   String myIOT_defs = "{\"useSerial\":true,\"useWDT\":false,\"useOTA\":true,\"useResetKeeper\" : false,\
-                        \"useFailNTP\" : true,\"useDebugLog\" : true,\"useNetworkReset\":false, \"deviceTopic\" : \"devTopic\",\
+                        \"useFailNTP\" : true,\"useDebugLog\" : true,\"useNetworkReset\":false, \"deviceTopic\" : \"mySwitch\",\
                         \"groupTopic\" : \"group\",\"prefixTopic\" : \"myHome\",\"debug_level\":0,\"noNetwork_reset\":1}";
 
   read_flash_parameters(myIOT_paramfile, myIOT_defs, paramJSON);
