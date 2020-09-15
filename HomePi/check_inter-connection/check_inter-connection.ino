@@ -1,24 +1,19 @@
 #include <myIOT.h>
+#include "internet_param.h"
 #include <Arduino.h>
 #include <myDisplay.h>
 
 // ********** Sketch Services  ***********
+<<<<<<< HEAD
+#define VER "WEMOS_2.0"
+=======
 #define VER "WEMOS_1.4"
+>>>>>>> ba09f533358c532a06a282122eaea4043ff78920
 #define USE_DISPLAY true
 
 // ********** myIOT Class ***********
-//~~~~~ Services ~~~~~~~~~~~
-#define USE_SERIAL true       // Serial Monitor
-#define USE_WDT true          // watchDog resets
-#define USE_OTA true          // OTA updates
-#define USE_RESETKEEPER false // detect quick reboot and real reboots
-#define USE_FAILNTP true      // saves amoount of fail clock updates
-// ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 // ~~~~~~~ MQTT Topics ~~~~~~
-#define DEVICE_TOPIC "internetMonitor"
-#define MQTT_PREFIX "myHome"
-#define MQTT_GROUP ""
 #define TELEGRAM_OUT_TOPIC "myHome/Telegram"
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -31,22 +26,42 @@ bool internetConnected = false;
 const int seconds_offline_alarm = 60; // past this time , an Alert will be sent upon reconnection
 const int disconnects_1hr_alarm = 5;
 const int disconnects_24hr_alarm = 10;
+const int min_ping_interval = 10; //seconds
+const int max_ping_interval = 60; // seconds
+
 int disc_1h[disconnects_1hr_alarm];
 int disc_24hr[disconnects_24hr_alarm];
 int disconnect_counter = 0;
 int longest_discon = 0;
-const int min_ping_interval = 10; //seconds
-const int max_ping_interval = 60; // seconds
+
 int adaptive_ping_val = min_ping_interval;
 long accum_connect = 0;
 float conn_ratio = 0;
 long accum_disconnect = 0;
+
 time_t begin_monitor_clock;
 time_t inter_ok_start = 0;
 time_t inter_fail_start = 0;
 
 void startIOTservices()
 {
+<<<<<<< HEAD
+        iot.useSerial = paramJSON["useSerial"];
+        iot.useWDT = paramJSON["useWDT"];
+        iot.useOTA = paramJSON["useOTA"];
+        iot.useResetKeeper = paramJSON["useResetKeeper"];
+        iot.resetFailNTP = paramJSON["useFailhNTP"];
+        iot.useDebug = paramJSON["useDebugLog"];
+        iot.debug_level = paramJSON["debug_level"];
+        iot.useextTopic = paramJSON["useextTopic"];
+        iot.useNetworkReset = paramJSON["useNetworkReset"];
+        strcpy(iot.deviceTopic, paramJSON["deviceTopic"]);
+        strcpy(iot.prefixTopic, paramJSON["prefixTopic"]);
+        strcpy(iot.addGroupTopic, paramJSON["groupTopic"]);
+        strcpy(iot.extTopic, paramJSON["extTopic"])
+
+            iot.start_services(ADD_MQTT_FUNC);
+=======
         iot.useSerial = USE_SERIAL;
         iot.useWDT = USE_WDT;
         iot.useOTA = USE_OTA;
@@ -61,6 +76,7 @@ void startIOTservices()
         strcpy(iot.addGroupTopic, MQTT_GROUP);
         strcpy(iot.extTopic, TELEGRAM_OUT_TOPIC);
         iot.start_services(ADD_MQTT_FUNC);
+>>>>>>> ba09f533358c532a06a282122eaea4043ff78920
 }
 void addiotnalMQTT(char *incoming_msg)
 {
@@ -77,7 +93,11 @@ void addiotnalMQTT(char *incoming_msg)
         }
         else if (strcmp(incoming_msg, "help2") == 0)
         {
+<<<<<<< HEAD
+                sprintf(msg, "Help: Commands #3 - [disconnect_1, disconnect_2]");
+=======
                 sprintf(msg, "Help #2: Commands #3 - [disconnect_1, disconnect_2]");
+>>>>>>> ba09f533358c532a06a282122eaea4043ff78920
                 iot.pub_msg(msg);
         }
         else if (strcmp(incoming_msg, "disconnect_1") == 0)
@@ -130,6 +150,16 @@ void gen_report_LCD(int refresh_time = 5000)
 #endif
 
 // ~~~~~~~~~~~~~ Internet Monitoring ~~~~~~~~~~
+<<<<<<< HEAD
+// void sendTelegramServer(char *msg, char *tele_server = TELEGRAM_OUT_TOPIC)
+// {
+//         char t[200];
+//         iot.get_timeStamp(now());
+//         sprintf(t, "[%s][%s]: %s", iot.timeStamp, iot.deviceTopic, msg);
+//         iot.mqttClient.publish(tele_server, t);
+// }
+=======
+>>>>>>> ba09f533358c532a06a282122eaea4043ff78920
 void convert_epoch2clock(long t1, long t2, char *time_str, char *days_str)
 {
         byte days = 0;
