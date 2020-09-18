@@ -102,10 +102,14 @@ public:
     void notifyOffline();
     void pub_state(char *inmsg, byte i = 0);
     void pub_msg(char *inmsg);
-    bool pub_log(char *inmsg);
+    void pub_log(char *inmsg);
     void pub_ext(char *inmsg, char *name = "");
     void pub_debug(char *inmsg);
     int inline_read(char *inputstr);
+
+    // ~~~~~~ Flash Parameters~~~~~~~~
+    bool read_fPars(char *filename, String &defs, JsonDocument &DOC, int JSIZE = 500);
+    char *export_fPars(char *filename, JsonDocument &DOC, int JSIZE = 500);
 
     // ~~~~~~ Services ~~~~~~~~~
     bool useSerial = false;
@@ -133,8 +137,9 @@ public:
     char extTopic[MaxTopicLength];
     char mqqt_ext_buffer[3][150];
 
-    const char *ver = "iot_8.2";
+    const char *ver = "iot_8.4";
     char timeStamp[20];
+    char *myIOT_paramfile = "/myIOT_param.json";
 
 private:
     char *Ssid;
@@ -142,10 +147,10 @@ private:
     cb_func ext_mqtt;
 
     // time interval parameters
-    const int clockUpdateInt = 60 * 60 * 5;                        // seconds to update NTP
-    const int WIFItimeOut = (1000 * 60) * 1 / 2;                   // 30 sec try to connect WiFi
-    const int OTA_upload_interval = (1000 * 60) * 10;              // 10 minute to try OTA
-    const int retryConnectWiFi = (1000 * 60) * 5;                  // 5 minuter between fail Wifi reconnect reties
+    const int clockUpdateInt = 60 * 60 * 5;           // seconds to update NTP
+    const int WIFItimeOut = (1000 * 60) * 1 / 2;      // 30 sec try to connect WiFi
+    const int OTA_upload_interval = (1000 * 60) * 10; // 10 minute to try OTA
+    const int retryConnectWiFi = (1000 * 60) * 5;     // 5 minuter between fail Wifi reconnect reties
 
     long time2Reset_noNetwork = (1000 * 60L) * noNetwork_reset; // minutues pass without any network
     volatile int wdtResetCounter = 0;
@@ -161,6 +166,10 @@ private:
     // char* mqtt_server2 = "broker.hivemq.com";
     char *user = "";
     char *passw = "";
+
+    const int _maxMQTTmsg = 180;
+    const int _maxMQTTheader = 70;
+
     // ######################################
 
     // MQTT topics
@@ -203,6 +212,7 @@ private:
     void msgSplitter(const char *msg_in, int max_msgSize, char *prefix, char *split_msg);
     void firstRun_ResetKeeper(char *msg);
     void write_log(char *inmsg, int x);
+    void _pub_generic(char *topic, char *inmsg, bool retain = false, char *devname = "");
 
     // ~~~~~~~ Services  ~~~~~~~~~~~~~~~~~~~~~~~~
     void feedTheDog();

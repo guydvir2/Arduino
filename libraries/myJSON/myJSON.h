@@ -18,7 +18,7 @@ private:
     char _filename[30];
 
 public:
-    char *ver = "myJSON_v1.8";
+    char *ver = "myJSON_v1.9";
     int DOC_SIZE;
     myJSON(char *filename, bool useserial = false, int doc_size = _def_dsize);
 
@@ -27,6 +27,8 @@ public:
     bool file_remove();
     bool format();
     bool FS_ok();
+    
+    char *retAllJSON();
 
     bool getValue(const char *key, char *value);
     bool getValue(const char *key, int &retval);

@@ -3,7 +3,7 @@
 #include <Arduino.h>
 
 // ********** Sketch Services  ***********
-#define VER "NodeMCU_6.1"
+#define VER "NodeMCU_6.2"
 #define USE_BOUNCE_DEBUG false
 
 bool auto_relay_off;
@@ -127,9 +127,23 @@ void addiotnalMQTT(char *incoming_msg)
                 sprintf(msg, "ver2:[%s], AutoOFF[%d], AutoOFFduration[%d sec]", VER, auto_relay_off, auto_relay_off_timeout);
                 iot.pub_msg(msg);
         }
+        else if (strcmp(incoming_msg, "inflash_parameters") == 0)
+        {
+                char temp[300];
+                char temp3[350];
+                char *a[] = {iot.myIOT_paramfile, sketch_paramfile};
+
+                for (int e = 0; e <=sizeof(a); e++)
+                {
+                        strcpy(temp, iot.export_fPars(a[e], paramJSON));
+                        sprintf(temp3, "%s: %s", a[e], temp);
+                        iot.pub_debug(temp3);
+                        paramJSON.clear();
+                }
+        }
         else if (strcmp(incoming_msg, "help2") == 0)
         {
-                sprintf(msg, "Help: Commands #3 - [up, down, off, gpios]");
+                sprintf(msg, "Help: Commands #3 - [up, down, off, gpios, inflash_parameters]");
                 iot.pub_msg(msg);
         }
         else if (strcmp(incoming_msg, "gpios") == 0)

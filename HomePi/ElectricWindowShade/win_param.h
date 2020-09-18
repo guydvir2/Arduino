@@ -39,25 +39,6 @@ void update_vars(JsonDocument &DOC)
   auto_relay_off = DOC["auto_relay_off"];
   auto_relay_off_timeout = DOC["auto_relay_off_timeout"];
 }
-void read_flash_parameters(char *filename, String &defs, JsonDocument &DOC)
-{
-  myJSON param_on_flash(filename, true, JSON_SIZE_IOT);
-
-  if (param_on_flash.file_exists())
-  {
-    if (param_on_flash.readJSON_file(DOC))
-    {
-      readfile_ok = true;
-    }
-  }
-  else
-  {
-    Serial.printf("\nfile %s read NOT-OK", filename);
-    deserializeJson(DOC, defs);
-  }
-  // serializeJsonPretty(DOC, Serial);
-  // Serial.flush();
-}
 void startRead_parameters()
 {
   String sketch_defs = "{\"ext_inputs\":false,\"auto_relay_off\":false,\"inputUpPin\":4,\"inputDownPin\":5,\
@@ -67,8 +48,10 @@ void startRead_parameters()
                         \"useFailNTP\" : true,\"useDebugLog\" : true,\"useNetworkReset\":false, \"deviceTopic\" : \"myWindow\",\
                         \"groupTopic\" : \"Windows\",\"prefixTopic\" : \"myHome\",\"debug_level\":0,\"noNetwork_reset\":1}";
 
-  read_flash_parameters(myIOT_paramfile, myIOT_defs, paramJSON);
-  read_flash_parameters(sketch_paramfile, sketch_defs, sketchJSON);
+  if (iot.read_fPars(iot.myIOT_paramfile, myIOT_defs, paramJSON) && iot.read_fPars(sketch_paramfile, sketch_defs, sketchJSON))
+  {
+    readfile_ok = true;
+  }
   update_vars(sketchJSON);
 }
 void endRead_parameters()

@@ -530,6 +530,7 @@ void myIOT::callback(char *topic, byte *payload, unsigned int length)
 			{
 				flog.postlog(m, a);
 				pub_debug(m);
+				Serial.println(m);
 				delay(20);
 			}
 			pub_msg("debug_log: extracted");
@@ -566,113 +567,118 @@ void myIOT::callback(char *topic, byte *payload, unsigned int length)
 		}
 	}
 }
+void myIOT::_pub_generic(char *topic, char *inmsg, bool retain, char *devname)
+{
+	char header[100];
+	const int mqtt_defsize = mqttClient.getBufferSize();
+	const byte mqtt_overhead_size = 23;
+
+	get_timeStamp();
+	if (strcmp(devname, "") == 0)
+	{
+		sprintf(header, "[%s] [%s]", timeStamp, _deviceName);
+	}
+	else
+	{
+		sprintf(header, "[%s] [%s]", timeStamp, devname);
+	}
+	int lenhdr = strlen(header);
+	int lenmsg = strlen(inmsg);
+
+	char tmpmsg[lenmsg + lenhdr + 5];
+	sprintf(tmpmsg, "[%s] [%s] %s", timeStamp, _deviceName, inmsg);
+	if (strlen(tmpmsg) + mqtt_overhead_size > mqtt_defsize)
+	{
+		mqttClient.setBufferSize(strlen(tmpmsg) + mqtt_overhead_size);
+		mqttClient.publish(topic, tmpmsg);
+		mqttClient.setBufferSize(mqtt_defsize);
+	}
+	else
+	{
+		mqttClient.publish(topic, tmpmsg);
+	}
+}
 void myIOT::pub_msg(char *inmsg)
 {
-	char tmpmsg[250];
-	get_timeStamp();
-
-	if (mqttClient.connected())
-	{
-		sprintf(tmpmsg, "[%s] [%s]", timeStamp, _deviceName);
-		msgSplitter(inmsg, 200, tmpmsg, "#");
-	}
-
+	_pub_generic(_msgTopic, inmsg);
 	write_log(inmsg, 0);
 }
 void myIOT::pub_state(char *inmsg, byte i)
 {
-	if (mqttClient.connected())
-	{
-		if (i == 0)
-		{
-			mqttClient.publish(_stateTopic, inmsg, true);
-		}
-		else if (i == 1)
-		{
-			mqttClient.publish(_stateTopic2, inmsg, true);
-		}
-		write_log(inmsg, 2);
-	}
-}
-bool myIOT::pub_log(char *inmsg)
-{
-	char tmpmsg[150];
-	get_timeStamp();
-	sprintf(tmpmsg, "[%s] [%s] log: %s", timeStamp, _deviceName, inmsg);
+	char *st[] = {_stateTopic, _stateTopic2};
+	mqttClient.publish(st[i], inmsg, true);
+	write_log(inmsg, 2);
 
-	if (mqttClient.connected())
-	{
-		mqttClient.publish(_logTopic, tmpmsg);
-		write_log(inmsg, 1);
-		return 1;
-	}
-	else
-	{
-		return 0;
-	}
+	// if (i == 0)
+	// {
+	// 	mqttClient.publish(_stateTopic, inmsg, true);
+	// }
+	// else if (i == 1)
+	// {
+	// 	mqttClient.publish(_stateTopic2, inmsg, true);
+	// }
+}
+void myIOT::pub_log(char *inmsg)
+{
+	_pub_generic(_logTopic, inmsg);
+	write_log(inmsg, 1);
 }
 void myIOT::pub_ext(char *inmsg, char *name)
 {
-	char tmpmsg[200];
-	get_timeStamp();
-
-	if (mqttClient.connected())
-	{
-		if (strcmp(name, "") == 0)
-		{
-			sprintf(tmpmsg, "[%s][%s]: [%s]", timeStamp, _deviceName, inmsg);
-		}
-		else
-		{
-			sprintf(tmpmsg, "[%s][%s]: [%s]", timeStamp, name, inmsg);
-		}
-		mqttClient.publish(extTopic, tmpmsg);
-	}
+	_pub_generic(extTopic, inmsg, false, name);
+	write_log(inmsg, 0);
 }
 void myIOT::pub_debug(char *inmsg)
 {
-	char tmpmsg[250];
-	get_timeStamp();
-
-	if (mqttClient.connected())
+	if (strlen(inmsg) + 23 > mqttClient.getBufferSize())
+	{
+		const int mqtt_defsize = mqttClient.getBufferSize();
+		mqttClient.setBufferSize(mqttClient.getBufferSize() + 23);
+		mqttClient.publish(_debugTopic, inmsg);
+		mqttClient.setBufferSize(mqtt_defsize);
+	}
+	else
 	{
 		mqttClient.publish(_debugTopic, inmsg);
 	}
 }
-
 void myIOT::msgSplitter(const char *msg_in, int max_msgSize, char *prefix, char *split_msg)
 {
-	char tmp[120];
+	char tmp[280];
 
-	if (strlen(prefix) + strlen(msg_in) > max_msgSize)
+	// if (strlen(prefix) + strlen(msg_in) > max_msgSize)
+	// {
+	Serial.println("BIG SMG");
+	int max_chunk = max_msgSize - strlen(prefix) - strlen(split_msg);
+	int num = ceil((float)strlen(msg_in) / max_chunk);
+	int pre_len;
+	Serial.print("NUM CHUNKS: ");
+	Serial.println(num);
+
+	for (int k = 0; k < num; k++)
 	{
-		int max_chunk = max_msgSize - strlen(prefix) - strlen(split_msg);
-		int num = ceil((float)strlen(msg_in) / max_chunk);
-		int pre_len;
-
-		for (int k = 0; k < num; k++)
+		sprintf(tmp, "%s %s%d: ", prefix, split_msg, k);
+		pre_len = strlen(tmp);
+		for (int i = 0; i < max_chunk; i++)
 		{
-			sprintf(tmp, "%s %s%d: ", prefix, split_msg, k);
-			pre_len = strlen(tmp);
-			for (int i = 0; i < max_chunk; i++)
-			{
-				tmp[i + pre_len] = (char)msg_in[i + k * max_chunk];
-				tmp[i + 1 + pre_len] = '\0';
-			}
-			if (mqttClient.connected() == true)
-			{
-				mqttClient.publish(_msgTopic, tmp);
-			}
+			tmp[i + pre_len] = (char)msg_in[i + k * max_chunk];
+			tmp[i + 1 + pre_len] = '\0';
 		}
-	}
-	else
-	{
 		if (mqttClient.connected() == true)
 		{
-			sprintf(tmp, "%s %s", prefix, msg_in);
 			mqttClient.publish(_msgTopic, tmp);
+			Serial.println(tmp);
 		}
 	}
+	// }
+	// else
+	// {
+	// 	if (mqttClient.connected() == true)
+	// 	{
+	// 		sprintf(tmp, "%s %s", prefix, msg_in);
+	// 		mqttClient.publish(_msgTopic, tmp);
+	// 	}
+	// }
 }
 int myIOT::inline_read(char *inputstr)
 {
@@ -712,12 +718,16 @@ void myIOT::firstRun_ResetKeeper(char *msg)
 }
 void myIOT::write_log(char *inmsg, int x)
 {
-	char a[250];
+	char a[strlen(inmsg) + 100];
+	char b[LOG_LEN];
+
 	if (useDebug && debug_level <= x)
 	{
 		get_timeStamp();
+		memset(b, '\0', sizeof(b));
 		sprintf(a, ">>%s<< [%s] %s", timeStamp, _deviceName, inmsg);
-		flog.write(a);
+		strncpy(b, a, LOG_LEN - 3);
+		flog.write(b);
 	}
 }
 // ~~~~~~ Reset and maintability ~~~~~~
@@ -842,7 +852,45 @@ void myIOT::startWDT()
 	wdt.attach(1, std::bind(&myIOT::feedTheDog, this)); // Start WatchDog
 }
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+bool myIOT::read_fPars(char *filename, String &defs, JsonDocument &DOC, int JSIZE)
+{
+	myJSON param_on_flash(filename, false, JSIZE);
 
+	if (param_on_flash.file_exists())
+	{
+		if (param_on_flash.readJSON_file(DOC))
+		{
+			return 1;
+		}
+	}
+	else
+	{
+		Serial.printf("\nfile %s read NOT-OK", filename);
+		deserializeJson(DOC, defs);
+		return 0;
+	}
+}
+char *myIOT::export_fPars(char *filename, JsonDocument &DOC, int JSIZE)
+{
+	myJSON param_on_flash(filename, false, JSIZE);
+	if (param_on_flash.file_exists())
+	{
+		if (param_on_flash.readJSON_file(DOC))
+		{
+			char ret[300];
+			strcpy(ret, param_on_flash.retAllJSON());
+			// Serial.println("this");
+			// Serial.println(ret);
+			// Serial.println("end");
+			return ret;
+		}
+	}
+	else
+	{
+		Serial.printf("\nfile %s read NOT-OK", filename);
+		return 0;
+	}
+}
 // ############################### FVars CLASS #################################
 FVars::FVars(char *key, char *fname, bool counter) : json(fname, true)
 {

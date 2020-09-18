@@ -131,12 +131,12 @@ void start_dotMatrix()
 void updateDisplay()
 {
   char clk[10];
-  char dat[10];
   const int blink_delay = 500;
   static int lastMin = 0;
   static bool blink = false;
   static bool dateshown = false;
   static unsigned long blink_clock = 0;
+
   time_t t = now();
 
   if (lastMin != minute(t))
@@ -149,26 +149,26 @@ void updateDisplay()
     {
     }
   }
-  else if (second(t) > 5 && second(t) <= 10)
-  {
-    if (dateshown == false)
-    {
-      sprintf(dispText, "%02d/%02d\0", day(t), month(t));
-      dotMatrix.displayText(dispText, PA_CENTER, 100, 0, PA_OPENING);
-      dateshown = true;
-      while (!dotMatrix.displayAnimate())
-      {
-      }
-    }
-  }
-  else if (millis() >= blink_clock + blink_delay)
-  {
-    sprintf(dispText, "%02d%c%02d\0", hour(t), blink ? ':' : ' ', minute(t));
-    dotMatrix.displayText(dispText, PA_CENTER, 0, 0, PA_PRINT);
-    dotMatrix.displayAnimate();
-    blink = !blink;
-    blink_clock = millis();
-  }
+  // else if (second(t) > 5 && second(t) <= 10)
+  // {
+  //   if (dateshown == false)
+  //   {
+  //     sprintf(dispText, "%02d/%02d\0", day(t), month(t));
+  //     dotMatrix.displayText(dispText, PA_CENTER, 100, 0, PA_OPENING);
+  //     dateshown = true;
+  //     while (!dotMatrix.displayAnimate())
+  //     {
+  //     }
+  //   }
+  // }
+  // else if (millis() >= blink_clock + blink_delay)
+  // {
+  //   sprintf(dispText, "%02d%c%02d\0", hour(t), blink ? ':' : ' ', minute(t));
+  //   dotMatrix.displayText(dispText, PA_CENTER, 0, 0, PA_PRINT);
+  //   dotMatrix.displayAnimate();
+  //   blink = !blink;
+  //   blink_clock = millis();
+  // }
 }
 
 void checkButton()
