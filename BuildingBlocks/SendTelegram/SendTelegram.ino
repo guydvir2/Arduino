@@ -3,6 +3,9 @@
 #include <WiFiClientSecure.h>
 #include <UniversalTelegramBot.h>
 
+#include <myLOG.h>
+
+flashLOG LOG;
 
 #define BOTtoken "812406965:AAEaV-ONCIru8ePuisuMfm0ECygsm5adZHs"
 #define CHAT_ID "596123373"
@@ -156,6 +159,7 @@ void telegram_looper(){
 myTelegram telegram(BOTtoken, CHAT_ID);
 void setup(){
         Serial.begin(115200);
+        // LOG.start();
         // startIOTservices();
         telegram.begin();
         delay(10);

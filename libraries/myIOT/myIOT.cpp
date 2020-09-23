@@ -10,7 +10,7 @@ myIOT::myIOT(char *key) : mqttClient(espClient), _failNTPcounter_inFlash(key), f
 {
 	// yield();
 }
-void myIOT::start_services(cb_func funct, char *ssid, char *password, char *mqtt_user, char *mqtt_passw, char *mqtt_broker)
+void myIOT::start_services(cb_func funct, char *ssid, char *password, char *mqtt_user, char *mqtt_passw, char *mqtt_broker, int log_ents, int log_len)
 {
 	mqtt_server = mqtt_broker;
 	user = mqtt_user;
@@ -27,7 +27,7 @@ void myIOT::start_services(cb_func funct, char *ssid, char *password, char *mqtt
 	}
 	if (useDebug)
 	{
-		flog.start();
+		flog.start(log_ents, log_len);
 	}
 	start_network_services();
 	if (useWDT)
@@ -80,15 +80,16 @@ bool myIOT::startWifi(char *ssid, char *password)
 		Serial.print("Connecting to ");
 		Serial.println(ssid);
 	}
-	WiFi.mode(WIFI_OFF); // <---- NEW
+	// WiFi.mode(WIFI_OFF); // <---- NEW
 	WiFi.mode(WIFI_STA);
+	WiFi.disconnect();
 	WiFi.begin(ssid, password);
 	WiFi.setAutoReconnect(true); // <-- BACK
 
 	// in case of reboot - timeOUT to wifi
-	while (WiFi.status() != WL_CONNECTED && millis() - startWifiConnection < WIFItimeOut)
+	while (WiFi.status() != WL_CONNECTED && millis() < WIFItimeOut + startWifiConnection)
 	{
-		delay(500);
+		delay(200);
 		if (useSerial)
 		{
 			Serial.print(".");
@@ -102,7 +103,10 @@ bool myIOT::startWifi(char *ssid, char *password)
 		{
 			Serial.println("no wifi detected");
 		}
-		noNetwork_Clock = millis();
+		if (noNetwork_Clock == 0)
+		{
+			noNetwork_Clock = millis();
+		}
 		WiFi.disconnect(true); // <--- NEW in case of stuck wifi
 		return 0;
 	}
@@ -127,10 +131,6 @@ void myIOT::start_network_services()
 		start_clock();
 		startMQTT();
 	}
-	// else
-	// {
-	// 	noNetwork_Clock = millis();
-	// }
 }
 bool myIOT::network_looper()
 {
@@ -139,6 +139,7 @@ bool myIOT::network_looper()
 		if (mqttClient.connected())
 		{ // mqtt is good
 			mqttClient.loop();
+			noNetwork_Clock = 0;
 			return 1;
 		}
 		else
@@ -154,8 +155,9 @@ bool myIOT::network_looper()
 				if (noNetwork_Clock == 0)
 				{ // first time fail MQTT
 					noNetwork_Clock = millis();
-					return 0;
 				}
+
+				return 0;
 			}
 		}
 	}
@@ -179,7 +181,7 @@ bool myIOT::network_looper()
 		}
 		else
 		{
-			return 1;
+			return 0;
 		}
 	}
 }
@@ -525,15 +527,17 @@ void myIOT::callback(char *topic, byte *payload, unsigned int length)
 		if (useDebug)
 		{
 			char m[250];
-			int x = flog.read();
+			int x = flog.getnumlines();
+			pub_debug("~~~ Start ~~~");
 			for (int a = 0; a < x; a++)
 			{
-				flog.postlog(m, a);
+				flog.readline(a, m);
 				pub_debug(m);
 				Serial.println(m);
 				delay(20);
 			}
 			pub_msg("debug_log: extracted");
+			pub_debug("~~~ END ~~~");
 		}
 	}
 	else if (strcmp(incoming_msg, "del_log") == 0)
@@ -719,15 +723,12 @@ void myIOT::firstRun_ResetKeeper(char *msg)
 void myIOT::write_log(char *inmsg, int x)
 {
 	char a[strlen(inmsg) + 100];
-	char b[LOG_LEN];
 
 	if (useDebug && debug_level <= x)
 	{
 		get_timeStamp();
-		memset(b, '\0', sizeof(b));
 		sprintf(a, ">>%s<< [%s] %s", timeStamp, _deviceName, inmsg);
-		strncpy(b, a, LOG_LEN - 3);
-		flog.write(b);
+		flog.write(a);
 	}
 }
 // ~~~~~~ Reset and maintability ~~~~~~
@@ -891,6 +892,7 @@ char *myIOT::export_fPars(char *filename, JsonDocument &DOC, int JSIZE)
 		return 0;
 	}
 }
+
 // ############################### FVars CLASS #################################
 FVars::FVars(char *key, char *fname, bool counter) : json(fname, true)
 {
@@ -1280,13 +1282,12 @@ void timeOUT::restart_dailyTO(dTO &dailyTO)
 }
 
 // ~~~~~~~~~~~ myTelegram Class ~~~~~~~~~~~~
-myTelegram::myTelegram(char *Bot, char *chatID, int checkServer_interval,
-					   char *ssid, char *password) : bot(Bot, client)
+myTelegram::myTelegram(char *Bot, char *chatID, int checkServer_interval, char *ssid, char *password) : bot(Bot, client)
 {
-	sprintf(_bot, "%s", Bot);
-	sprintf(_chatID, "%s", chatID);
-	sprintf(_ssid, "%s", ssid);
-	sprintf(_password, "%s", password);
+	sprintf(_bot, Bot);
+	sprintf(_chatID, chatID);
+	sprintf(_ssid, ssid);
+	sprintf(_password, password);
 }
 void myTelegram::handleNewMessages(int numNewMessages)
 {
@@ -1312,24 +1313,25 @@ void myTelegram::begin(cb_func2 funct)
 
 	_ext_func = funct; // call to external function outside of clss
 
-	if (WiFi.status() != WL_CONNECTED)
-	{
-		WiFi.mode(WIFI_STA);
-		WiFi.disconnect();
-		delay(100);
+	// if (WiFi.status() != WL_CONNECTED)
+	// {
+	// 	WiFi.mode(WIFI_STA);
+	// 	WiFi.disconnect();
+	// 	delay(100);
 
-		// Serial.print("Connecting Wifi: ");
-		// Serial.println(_ssid);
-		// WiFi.begin(_ssid, _password);
+	// 	Serial.print("Connecting Wifi: ");
+	// 	Serial.println(_ssid);
+	// 	WiFi.begin(_ssid, _password);
 
-		while (WiFi.status() != WL_CONNECTED)
-		{
-			// Serial.print(".");
-			delay(500);
-		}
-		WiFi.setAutoReconnect(true);
-	}
+	// 	while (WiFi.status() != WL_CONNECTED)
+	// 	{
+	// 		Serial.print(".");
+	// 		delay(500);
+	// 	}
+	// 	WiFi.setAutoReconnect(true);
+	// }
 	client.setInsecure();
+	// Serial.println(bot.sendMessage(_chatID, "msg", ""));
 }
 void myTelegram::send_msg(char *msg)
 {

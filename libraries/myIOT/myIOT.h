@@ -66,7 +66,7 @@ private:
     int _Bot_mtbs = 1000; //mean time between scan messages in sec
 #define def_time_check_M 5
 
-    long _Bot_lasttime; //last time messages' scan has been done
+    long _Bot_lasttime=0; //last time messages' scan has been done
 
 private:
     void handleNewMessages(int numNewMessages);
@@ -89,7 +89,7 @@ public:
     flashLOG flog;
 
     myIOT(char *key = "failNTPcount");
-    void start_services(cb_func funct, char *ssid = SSID_ID, char *password = PASS_WIFI, char *mqtt_user = MQTT_USER, char *mqtt_passw = MQTT_PASS, char *mqtt_broker = MQTT_SERVER1);
+    void start_services(cb_func funct, char *ssid = SSID_ID, char *password = PASS_WIFI, char *mqtt_user = MQTT_USER, char *mqtt_passw = MQTT_PASS, char *mqtt_broker = MQTT_SERVER1, int log_ents=50, int log_len=250);
     void looper();
     void startOTA();
     void get_timeStamp(time_t t = 0);
@@ -137,7 +137,7 @@ public:
     char extTopic[MaxTopicLength];
     char mqqt_ext_buffer[3][150];
 
-    const char *ver = "iot_8.4";
+    const char *ver = "iot_8.6";
     char timeStamp[20];
     char *myIOT_paramfile = "/myIOT_param.json";
 
@@ -148,9 +148,9 @@ private:
 
     // time interval parameters
     const int clockUpdateInt = 60 * 60 * 5;           // seconds to update NTP
-    const int WIFItimeOut = (1000 * 60) * 1 / 2;      // 30 sec try to connect WiFi
+    const int WIFItimeOut = (1000 * 60) * 1 / 4;      // 30 sec try to connect WiFi
     const int OTA_upload_interval = (1000 * 60) * 10; // 10 minute to try OTA
-    const int retryConnectWiFi = (1000 * 60) * 5;     // 5 minuter between fail Wifi reconnect reties
+    const int retryConnectWiFi = (1000 * 60) * 1;     // 5 minuter between fail Wifi reconnect reties
 
     long time2Reset_noNetwork = (1000 * 60L) * noNetwork_reset; // minutues pass without any network
     volatile int wdtResetCounter = 0;

@@ -6,7 +6,7 @@
 #include <SPI.h>
 
 // ********** Sketch Services  ***********
-#define VER "NodeMCU V0.1"
+#define VER "WEMoSV0.2"
 #define ADD_MQTT_FUNC addiotnalMQTT
 
 #define BUTTON_PIN D2
@@ -24,7 +24,7 @@
 #define DATA_PIN D7
 #define CS_PIN D4
 
-const int minutesON = 5;
+const int minutesON = 30;
 bool lastDet_state = false;
 unsigned long ONclock = 0;
 char dispText[10];
@@ -161,14 +161,14 @@ void updateDisplay()
   //     }
   //   }
   // }
-  // else if (millis() >= blink_clock + blink_delay)
-  // {
-  //   sprintf(dispText, "%02d%c%02d\0", hour(t), blink ? ':' : ' ', minute(t));
-  //   dotMatrix.displayText(dispText, PA_CENTER, 0, 0, PA_PRINT);
-  //   dotMatrix.displayAnimate();
-  //   blink = !blink;
-  //   blink_clock = millis();
-  // }
+  else if (millis() >= blink_clock + blink_delay)
+  {
+    sprintf(dispText, "%02d%c%02d\0", hour(t), blink ? ':' : ' ', minute(t));
+    dotMatrix.displayText(dispText, PA_CENTER, 0, 0, PA_PRINT);
+    dotMatrix.displayAnimate();
+    blink = !blink;
+    blink_clock = millis();
+  }
 }
 
 void checkButton()

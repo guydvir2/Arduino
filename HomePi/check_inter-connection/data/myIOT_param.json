@@ -1,10 +1,10 @@
 {
-    "useSerial": false,
+    "useSerial": true,
     "useWDT": true,
     "useOTA": true,
     "useResetKeeper": true,
     "useFailNTP": true,
-    "useDebugLog": false,
+    "useDebugLog": true,
     "useextTopic":true,
     "useNetworkReset":false,
     "deviceTopic": "internetMonitor",

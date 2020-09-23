@@ -3,13 +3,20 @@
 #include <myJSON.h>
 
 #define JSON_SIZE_IOT 400
+// #define JSON_SIZE_SKETCH 200
+char *sketch_paramfile = "/sketch_param.json";
 bool readfile_ok = false;
 
 StaticJsonDocument<JSON_SIZE_IOT> paramJSON;
+// StaticJsonDocument<JSON_SIZE_SKETCH> sketchJSON;
+
+char paramA[20];
+int paramB = 0;
 extern myIOT iot;
 
-void update_vars()
+void update_vars(JsonDocument &DOC)
 {
+
 }
 void startRead_parameters()
 {
@@ -31,5 +38,5 @@ void endRead_parameters()
     iot.pub_log("Error read Parameters from file. Defaults values loaded.");
   }
   else
-  paramJSON.clear();
+    paramJSON.clear();
 }

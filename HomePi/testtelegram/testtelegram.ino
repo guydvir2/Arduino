@@ -42,56 +42,56 @@ myTelegram teleNotify(BOT_TOKEN, CHAT_ID, time_check_messages);
 
 void telecmds(String in_msg, String from, String chat_id, char *snd_msg)
 {
-        String command_set[] = {"whois_online", "status", "reset", "help", "whoami"};
-        byte num_commands = sizeof(command_set) / sizeof(command_set[0]);
-        String comp_command[num_commands];
-        char prefix[100], prefix2[100];
-        char t1[50], t2[50];
+        // String command_set[] = {"whois_online", "status", "reset", "help", "whoami"};
+        // byte num_commands = sizeof(command_set) / sizeof(command_set[0]);
+        // String comp_command[num_commands];
+        // char prefix[100], prefix2[100];
+        // char t1[50], t2[50];
 
-        sprintf(snd_msg, ""); // when not meeting any conditions, has to be empty
+        // sprintf(snd_msg, ""); // when not meeting any conditions, has to be empty
 
-        from.toCharArray(t1, from.length() + 1);
-        in_msg.toCharArray(t2, in_msg.length() + 1);
+        // from.toCharArray(t1, from.length() + 1);
+        // in_msg.toCharArray(t2, in_msg.length() + 1);
 
-        sprintf(prefix, "/%s_", Telegram_Nick);
-        sprintf(prefix2, "from user: %s\ndevice replies: %s\ncommand: %s\n~~~~~~~~~~~~~~~~~~~~\n ", t1, Telegram_Nick, t2);
+        // sprintf(prefix, "/%s_", Telegram_Nick);
+        // sprintf(prefix2, "from user: %s\ndevice replies: %s\ncommand: %s\n~~~~~~~~~~~~~~~~~~~~\n ", t1, Telegram_Nick, t2);
 
-        for (int i = 0; i < num_commands; i++)
-        {
-                comp_command[i] = prefix;
-                comp_command[i] += command_set[i];
-        }
+        // for (int i = 0; i < num_commands; i++)
+        // {
+        //         comp_command[i] = prefix;
+        //         comp_command[i] += command_set[i];
+        // }
 
-        if (in_msg == "/whois_online")
-        {
-                sprintf(snd_msg, "%s%s", prefix2, Telegram_Nick);
-        }
-        else if (in_msg == comp_command[1])
-        {
-                // giveStatus(t1);
-                sprintf(snd_msg, "%s%s", prefix2, t1);
-        } // status
-        else if (in_msg == comp_command[2])
-        {
-                sprintf(snd_msg, "%s", prefix2);
-                iot.sendReset("Telegram");
-        } // reset
-        else if (in_msg == comp_command[3])
-        {
-                char t[50];
-                sprintf(snd_msg, "%sCommands Available:\n", prefix2, Telegram_Nick);
-                for (int i = 0; i < num_commands; i++)
-                {
-                        command_set[i].toCharArray(t, 30);
-                        sprintf(t1, "%s\n", t);
-                        strcat(snd_msg, t1);
-                }
+        // if (in_msg == "/whois_online")
+        // {
+        //         sprintf(snd_msg, "%s%s", prefix2, Telegram_Nick);
+        // }
+        // else if (in_msg == comp_command[1])
+        // {
+        //         // giveStatus(t1);
+        //         sprintf(snd_msg, "%s%s", prefix2, t1);
+        // } // status
+        // else if (in_msg == comp_command[2])
+        // {
+        //         sprintf(snd_msg, "%s", prefix2);
+        //         iot.sendReset("Telegram");
+        // } // reset
+        // else if (in_msg == comp_command[3])
+        // {
+        //         char t[50];
+        //         sprintf(snd_msg, "%sCommands Available:\n", prefix2, Telegram_Nick);
+        //         for (int i = 0; i < num_commands; i++)
+        //         {
+        //                 command_set[i].toCharArray(t, 30);
+        //                 sprintf(t1, "%s\n", t);
+        //                 strcat(snd_msg, t1);
+        //         }
 
-        } // all_commands
-        else if (in_msg == comp_command[4])
-        {
-                sprintf(snd_msg, "%s~%s~ is %s", prefix2, Telegram_Nick, DEVICE_TOPIC);
-        } // whoami
+        // } // all_commands
+        // else if (in_msg == comp_command[4])
+        // {
+        //         sprintf(snd_msg, "%s~%s~ is %s", prefix2, Telegram_Nick, DEVICE_TOPIC);
+        // } // whoami
 }
 
 void listenMQTT_forTelegram()
