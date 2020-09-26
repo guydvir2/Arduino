@@ -1,11 +1,10 @@
 #include <Arduino.h>
 #include <myIOT.h>
-#include <myPIR.h>
 #include <MD_Parola.h>
 #include <MD_MAX72xx.h>
 #include <SPI.h>
 
-// ********** Sketch Services  ***********
+// ********** Sketch Services ***********
 #define VER "WEMoSV0.2"
 #define ADD_MQTT_FUNC addiotnalMQTT
 
@@ -112,14 +111,9 @@ void addiotnalMQTT(char *incoming_msg)
   }
   else if (strcmp(incoming_msg, "off") == 0)
   {
-    // if (PIR.timeLeft > 0)
-    // {
-    //   PIR.turnOff();
-    // }
-    // else
-    // {
-    //   turnLEDsOFF("MQTT");
-    // }
+    turnLEDsOFF();
+    sprintf(msg, "MQTT: LEDstrip switched [OFF]");
+    iot.pub_msg(msg);
   }
 }
 
@@ -149,18 +143,20 @@ void updateDisplay()
     {
     }
   }
-  // else if (second(t) > 5 && second(t) <= 10)
-  // {
-  //   if (dateshown == false)
-  //   {
-  //     sprintf(dispText, "%02d/%02d\0", day(t), month(t));
-  //     dotMatrix.displayText(dispText, PA_CENTER, 100, 0, PA_OPENING);
-  //     dateshown = true;
-  //     while (!dotMatrix.displayAnimate())
-  //     {
-  //     }
-  //   }
-  // }
+  else if (second(t) > 5 && second(t) <= 10)
+  {
+    if (dateshown == false)
+    {
+      dateshown = true;
+
+      sprintf(dispText, "%02d/%02d\0", day(t), month(t));
+      dotMatrix.displayText(dispText, PA_CENTER, 30, 0, PA_SCROLL_RIGHT);
+      dotMatrix.displayText(dispText, PA_CENTER, 20, 0, PA_OPENING);
+      while (!dotMatrix.displayAnimate())
+      {
+      }
+    }
+  }
   else if (millis() >= blink_clock + blink_delay)
   {
     sprintf(dispText, "%02d%c%02d\0", hour(t), blink ? ':' : ' ', minute(t));

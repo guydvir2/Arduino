@@ -15,13 +15,11 @@ void flashLOG::start(int max_entries, int max_entry_len)
 }
 void flashLOG::write(const char *message)
 {
-    char a[_log_length+3];
-    char b[_log_length+3];
+    char a[_log_length + 3];
+    char b[_log_length + 3];
 
     char *tfile = "/tempfile.txt";
     int num_lines = getnumlines();
-    // Serial.print("lines at origin file:");
-    // Serial.println(num_lines);
 
     File file2 = SPIFFS.open(tfile, "w");
     if (!file2)
@@ -32,8 +30,6 @@ void flashLOG::write(const char *message)
     {
         strncpy(b, message, _log_length);
         sprintf(a, "%s%c", b, _EOL);
-        // Serial.print("inserting line: ");
-        // Serial.println(a);
         file2.print(a);
         if (num_lines > 0)
         {
@@ -41,12 +37,54 @@ void flashLOG::write(const char *message)
             {
                 if (readline(x, a))
                 {
-                    // Serial.printf("line %d:%s\n", x, a);
                     file2.print(a);
                 }
                 else
                 {
                     Serial.println("Append failed");
+                }
+            }
+        }
+    }
+    file2.close();
+    SPIFFS.remove(_logfilename);
+    SPIFFS.rename(tfile, _logfilename);
+}
+void flashLOG::overWrite(const char *message, int cell)
+{
+    char a[_log_length + 3];
+    char b[_log_length + 3];
+
+    char *tfile = "/tempfile.txt";
+    int num_lines = getnumlines();
+
+    File file2 = SPIFFS.open(tfile, "w");
+    if (!file2)
+    {
+        Serial.println("Failed to open file for appending");
+    }
+    else
+    {
+        if (num_lines > 0)
+        {
+            for (int x = 0; x < min(num_lines, _logsize); x++)
+            {
+                if (x == cell)
+                {
+                    strncpy(b, message, _log_length);
+                    sprintf(a, "%s%c", b, _EOL);
+                    file2.print(a);
+                }
+                else
+                {
+                    if (readline(x, a))
+                    {
+                        file2.print(a);
+                    }
+                    else
+                    {
+                        Serial.println("Append failed");
+                    }
                 }
             }
         }
@@ -108,7 +146,7 @@ bool flashLOG::readline(int r, char retLog[])
     while (file.available())
     {
         char tt = file.read();
-        if (tt == _EOL && row_counter !=r)
+        if (tt == _EOL && row_counter != r)
         {
             row_counter++;
         }
