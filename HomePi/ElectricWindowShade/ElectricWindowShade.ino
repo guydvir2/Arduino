@@ -3,7 +3,7 @@
 #include <Arduino.h>
 
 // ********** Sketch Services  ***********
-#define VER "NodeMCU_6.3"
+#define VER "NodeMCU_6.4"
 #define USE_BOUNCE_DEBUG false
 
 bool auto_relay_off;
@@ -39,6 +39,8 @@ myIOT iot;
 
 void startIOTservices()
 {
+        startRead_parameters();
+
         iot.useSerial = paramJSON["useSerial"];
         iot.useWDT = paramJSON["useWDT"];
         iot.useOTA = paramJSON["useOTA"];
@@ -50,13 +52,13 @@ void startIOTservices()
         strcpy(iot.prefixTopic, paramJSON["prefixTopic"]);
         strcpy(iot.addGroupTopic, paramJSON["groupTopic"]);
         iot.start_services(ADD_MQTT_FUNC); //, SSID_ID, PASS_WIFI, MQTT_USER, MQTT_PASS, "192.168.3.201");
+
+        endRead_parameters();
 }
 void setup()
 {
-        startRead_parameters();
         startGPIOs();
         startIOTservices();
-        endRead_parameters();
 }
 
 // ~~~~~~~~~ StartUp ~~~~~~~~~~~~

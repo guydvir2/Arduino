@@ -104,34 +104,6 @@ int flashLOG::sizelog()
     file.close();
     return f;
 }
-int flashLOG::read()
-{
-    // int r = 0;
-    // int c = 0;
-
-    // File file = SPIFFS.open(_logfilename, "r");
-    // if (!file)
-    // {
-    //     Serial.println("Failed to open file for reading");
-    // }
-    // while (file.available())
-    // {
-    //     char tt = file.read();
-    //     if (tt != _EOL)
-    //     {
-    //         _log_array[r][c] = tt;
-    //         c++;
-    //     }
-    //     else
-    //     {
-    //         _log_array[r][c] = _EOL;
-    //         r++;
-    //         c = 0;
-    //     }
-    // }
-    // file.close();
-    // return r;
-}
 bool flashLOG::readline(int r, char retLog[])
 {
     int c = 0;

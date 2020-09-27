@@ -16,13 +16,13 @@ private:
     const char _EOL = '\r';
 
 public:
+    char *VeR = "flashLOG v0.2";
     flashLOG(char *filename = "/logfile.txt"); //, int log_size = LOG_SIZE, int log_length = LOG_LEN);
     void start(int max_entries = 10, int max_entry_len = 100);
     void write(const char *message);
     void overWrite(const char *message, int cell);
     void delog();
     int sizelog();
-    int read();
     bool readline(int r, char *retLog);
     int getnumlines();
 };

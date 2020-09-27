@@ -497,8 +497,8 @@ void myIOT::callback(char *topic, byte *payload, unsigned int length)
 	}
 	else if (strcmp(incoming_msg, "ver") == 0)
 	{
-		sprintf(msg, "ver: IOTlib: [%s], WDT: [%d], OTA: [%d], SERIAL: [%d], ResetKeeper[%d], FailNTP[%d], debug_Log[%d]",
-				ver, useWDT, useOTA, useSerial, useResetKeeper, resetFailNTP, useDebug);
+		sprintf(msg, "ver: IOTlib: [%s], WDT: [%d], OTA: [%d], SERIAL: [%d], ResetKeeper[%d], FailNTP[%d], useDebugLog[%d] debugLog_VER[%s]",
+				ver, useWDT, useOTA, useSerial, useResetKeeper, resetFailNTP, useDebug, flog.VeR);
 		pub_msg(msg);
 	}
 	else if (strcmp(incoming_msg, "help") == 0)
@@ -513,7 +513,7 @@ void myIOT::callback(char *topic, byte *payload, unsigned int length)
 	{
 		if (useDebug)
 		{
-			int num_lines = flog.read();
+			int num_lines = flog.getnumlines();
 			int filesize = flog.sizelog();
 			sprintf(msg,
 					"debug_log: active[%s], entries [#%d], file-size[%.2f kb]",

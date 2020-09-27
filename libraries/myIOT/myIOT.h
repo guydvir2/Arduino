@@ -120,9 +120,10 @@ public:
     bool resetFailNTP = false;
     bool useextTopic = false;
     bool useNetworkReset = true; // allow reset due to no-network timeout
-    // ~~~~~~~~~~~~~~~~~~~~~~~~~
     bool useDebug = false;
-    byte debug_level = 0;      // 0- All, 1- system states; 2- log only
+    byte debug_level = 0; // 0- All, 1- system states; 2- log only
+    // ~~~~~~~~~~~~~~~~~~~~~~~~~
+
     static const byte num_param = 6;
     char inline_param[num_param][100]; //values from user
 
@@ -138,7 +139,7 @@ public:
     char extTopic[MaxTopicLength];
     char mqqt_ext_buffer[3][50];
 
-    const char *ver = "iot_8.7";
+    const char *ver = "iot_8.71";
     char timeStamp[20];
     char *myIOT_paramfile = "/myIOT_param.json";
 

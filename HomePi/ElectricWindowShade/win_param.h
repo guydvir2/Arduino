@@ -4,7 +4,6 @@
 
 #define JSON_SIZE_IOT 400
 #define JSON_SIZE_SKETCH 300
-char *myIOT_paramfile = "/myIOT_param.json";
 char *sketch_paramfile = "/sketch_param.json";
 
 bool readfile_ok = false;

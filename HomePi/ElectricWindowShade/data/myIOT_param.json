@@ -6,7 +6,7 @@
     "useFailNTP": true,
     "useDebugLog": true,
     "useNetworkReset":true,
-    "deviceTopic": "kidsRoom",
+    "deviceTopic": "kidsRoom2",
     "groupTopic": "Windows",
     "prefixTopic": "myHome",
     "debug_level":0,
