@@ -690,7 +690,7 @@ int myIOT::inline_read(char *inputstr)
 	int i = 0;
 
 	pch = strtok(inputstr, " ,.-");
-	while (pch != NULL)
+	while (pch != NULL && i < num_param)
 	{
 		sprintf(inline_param[i], "%s", pch);
 		pch = strtok(NULL, " ,.-");
@@ -859,9 +859,14 @@ bool myIOT::read_fPars(char *filename, String &defs, JsonDocument &DOC, int JSIZ
 
 	if (param_on_flash.file_exists())
 	{
+		// return 0;
 		if (param_on_flash.readJSON_file(DOC))
 		{
 			return 1;
+		}
+		else
+		{
+			return 0;
 		}
 	}
 	else

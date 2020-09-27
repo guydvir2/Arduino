@@ -122,8 +122,9 @@ public:
     bool useNetworkReset = true; // allow reset due to no-network timeout
     // ~~~~~~~~~~~~~~~~~~~~~~~~~
     bool useDebug = false;
-    int debug_level = 0;      // 0- All, 1- system states; 2- log only
-    char inline_param[6][20]; //values from user
+    byte debug_level = 0;      // 0- All, 1- system states; 2- log only
+    static const byte num_param = 6;
+    char inline_param[num_param][100]; //values from user
 
     bool alternativeMQTTserver = false;
     bool NTP_OK = false;
@@ -135,9 +136,9 @@ public:
     char deviceTopic[MaxTopicLength];
     char addGroupTopic[MaxTopicLength];
     char extTopic[MaxTopicLength];
-    char mqqt_ext_buffer[3][150];
+    char mqqt_ext_buffer[3][50];
 
-    const char *ver = "iot_8.6";
+    const char *ver = "iot_8.7";
     char timeStamp[20];
     char *myIOT_paramfile = "/myIOT_param.json";
 

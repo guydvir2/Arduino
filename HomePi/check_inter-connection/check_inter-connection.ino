@@ -4,8 +4,8 @@
 #include <myDisplay.h>
 
 // ********** Sketch Services  ***********
-#define VER "WEMOS_2.4"
-#define USE_DISPLAY false
+#define VER "WEMOS_2.5"
+#define USE_DISPLAY true
 #define USE_TELEGRAM true
 struct MQTT_msg
 {
@@ -44,17 +44,21 @@ time_t readFlog(flashLOG &LOG, int numLine)
 void writeFlog(flashLOG &LOG, time_t value = now())
 {
         char c[12];
-        // time_t t;
+        time_t t = now();
 
-        // if (year(t) == 1970)
-        // {
-        //         iot.pub_msg("NTP is not set - not entering logs entries");
-        // }
-        // else
-        // {
-        sprintf(c, "%d", value);
-        LOG.write(c);
-        // }
+        if (year(t) == 1970)
+        {
+                iot.pub_log("NTP is not set - not entering logs entries");
+        }
+        else
+        {
+                sprintf(c, "%d", value);
+                LOG.write(c);
+        }
+}
+void deleteFlog(flashLOG &LOG)
+{
+        LOG.delog();
 }
 void epoch2datestr(time_t t, char clockstr[50])
 {
@@ -164,8 +168,15 @@ void addiotnalMQTT(char *incoming_msg)
         }
         else if (strcmp(incoming_msg, "help2") == 0)
         {
-                sprintf(msg, "Help #2: Commands #3 - [disconnects_1h, disconnects_24h, disconnects_1w, disconnects_log]");
+                sprintf(msg, "Help #2: Commands #3 - [disconnects,[x],[y] {[x=num] [y=h,d,w]}, disconnects_log, del_disc_log]");
                 iot.pub_msg(msg);
+        }
+        else if (strcmp(incoming_msg, "del_disc_log") == 0)
+        {
+                deleteFlog(connectionLOG);
+                deleteFlog(disconnectionLOG);
+                iot.pub_log("Connection logs - Deleted");
+                iot.sendReset("logs deletion");
         }
         else if (strcmp(incoming_msg, "disconnects_log") == 0)
         {
@@ -370,7 +381,6 @@ void internetMonitor(bool get_ping)
                 }
         }
 }
-
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 // ~~~~~~~~~~~~~~~ Use Telegram Server ~~~~~~~~~~~
@@ -506,15 +516,9 @@ void setup()
 
 #if USE_TELEGRAM
         teleNotify.begin(telecmds);
-        iot.pub_ext("BootUp");
+        iot.pub_ext("internetMonitor --> Boot");
+
 #endif
-        // connectionLOG.delog();
-        // disconnectionLOG.delog();
-        // writeFlog(connectionLOG, now() - 45);
-        // writeFlog(disconnectionLOG, now() - 30);
-        // writeFlog(connectionLOG, now() - 10);
-        // writeFlog(disconnectionLOG, now() - 5);
-        // writeFlog(connectionLOG, now());
 }
 void loop()
 {

@@ -3,7 +3,7 @@
 #include <Arduino.h>
 
 // ********** Sketch Services  ***********
-#define VER "NodeMCU_6.2"
+#define VER "NodeMCU_6.3"
 #define USE_BOUNCE_DEBUG false
 
 bool auto_relay_off;
@@ -127,23 +127,24 @@ void addiotnalMQTT(char *incoming_msg)
                 sprintf(msg, "ver2:[%s], AutoOFF[%d], AutoOFFduration[%d sec]", VER, auto_relay_off, auto_relay_off_timeout);
                 iot.pub_msg(msg);
         }
-        else if (strcmp(incoming_msg, "inflash_parameters") == 0)
+        else if (strcmp(incoming_msg, "show_flash_param") == 0)
         {
                 char temp[300];
                 char temp3[350];
                 char *a[] = {iot.myIOT_paramfile, sketch_paramfile};
-
-                for (int e = 0; e <=sizeof(a); e++)
+                iot.pub_debug("~~~Start~~~");
+                for (int e = 0; e < sizeof(a) / sizeof(a[0]); e++)
                 {
                         strcpy(temp, iot.export_fPars(a[e], paramJSON));
                         sprintf(temp3, "%s: %s", a[e], temp);
                         iot.pub_debug(temp3);
                         paramJSON.clear();
                 }
+                iot.pub_debug("~~~End~~~");
         }
         else if (strcmp(incoming_msg, "help2") == 0)
         {
-                sprintf(msg, "Help: Commands #3 - [up, down, off, gpios, inflash_parameters]");
+                sprintf(msg, "Help: Commands #3 - [up, down, off, gpios, show_flash_param]");
                 iot.pub_msg(msg);
         }
         else if (strcmp(incoming_msg, "gpios") == 0)
@@ -285,3 +286,4 @@ void loop()
         }
         delay(100);
 }
+
