@@ -11,5 +11,5 @@
     "groupTopic": "",
     "prefixTopic": "myHome",
     "extTopic":"myHome/Telegram",
-    "debug_level":1
+    "debug_level":2
 }

@@ -14,8 +14,8 @@ extern myIOT iot;
 //~~~~Internal Switch ~~~~~~
 extern int inputUpPin;    // = D2;   // main is D2 // D3 only for saloonSingle
 extern int inputDownPin;  // = D1; // main is D1 // D3 only for laundryRoom
-extern int outputUpPin;   // = 14;
-extern int outputDownPin; // = 12;
+extern int outputUpPin;   // = 14; D5
+extern int outputDownPin; // = 12; D6
 //~~~~External Input ~~~~~~~~~
 extern int inputUpExtPin;   // = 0;
 extern int inputDownExtPin; // = 2;
@@ -37,6 +37,8 @@ void update_vars(JsonDocument &DOC)
   ext_inputs = DOC["ext_inputs"];
   auto_relay_off = DOC["auto_relay_off"];
   auto_relay_off_timeout = DOC["auto_relay_off_timeout"];
+
+  
 }
 void startRead_parameters()
 {
@@ -44,7 +46,7 @@ void startRead_parameters()
                         \"outputUpPin\":14,\"outputDownPin\":12,\"inputUpExtPin\":0,\"inputDownExtPin\":2,\"auto_relay_off_timeout\":60}";
 
   String myIOT_defs = "{\"useSerial\":true,\"useWDT\":false,\"useOTA\":true,\"useResetKeeper\" : false,\
-                        \"useFailNTP\" : true,\"useDebugLog\" : true,\"useNetworkReset\":false, \"deviceTopic\" : \"myWindow\",\
+                        \"useFailNTP\" : true,\"useDebugLog\" : false,\"useNetworkReset\":false, \"deviceTopic\" : \"myWindow\",\
                         \"groupTopic\" : \"Windows\",\"prefixTopic\" : \"myHome\",\"debug_level\":0,\"noNetwork_reset\":1}";
 
   if (iot.read_fPars(iot.myIOT_paramfile, myIOT_defs, paramJSON) && iot.read_fPars(sketch_paramfile, sketch_defs, sketchJSON))

@@ -589,8 +589,15 @@ void myIOT::_pub_generic(char *topic, char *inmsg, bool retain, char *devname)
 	int lenhdr = strlen(header);
 	int lenmsg = strlen(inmsg);
 
+	Serial.print("header: ");
+	Serial.println(header);
+	Serial.print("inmsg: ");
+	Serial.println(inmsg);
+
 	char tmpmsg[lenmsg + lenhdr + 5];
-	sprintf(tmpmsg, "[%s] [%s] %s", timeStamp, _deviceName, inmsg);
+	sprintf(tmpmsg, "%s %s", header, inmsg);
+	Serial.print("tmpmsg: ");
+	Serial.println(tmpmsg);
 	if (strlen(tmpmsg) + mqtt_overhead_size > mqtt_defsize)
 	{
 		mqttClient.setBufferSize(strlen(tmpmsg) + mqtt_overhead_size);

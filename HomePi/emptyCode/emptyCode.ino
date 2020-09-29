@@ -46,9 +46,9 @@ void addiotnalMQTT(char *incoming_msg)
 
 void setup()
 {
-        read_parameters_from_file();
+        startRead_parameters();
         startIOTservices();
-        free_paramJSON();
+        endRead_parameters();
 }
 void loop()
 {

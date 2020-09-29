@@ -4,11 +4,13 @@
     "useOTA": true,
     "useResetKeeper": true,
     "useFailNTP": true,
-    "useDebugLog": true,
+    "useDebugLog": false,
     "useNetworkReset":true,
-    "deviceTopic": "Empty",
+    "useextTopic": true,
+    "deviceTopic": "TelegramServer",
     "groupTopic": "",
     "prefixTopic": "myHome",
+    "extTopic": "myHome/Telegram",
     "debug_level":0,
     "noNetwork_reset":1
 }

@@ -1,14 +1,14 @@
 {
-    "useSerial": false,
+    "useSerial": true,
     "useWDT": true,
     "useOTA": true,
     "useResetKeeper": false,
     "useFailNTP": true,
-    "useDebugLog": true,
+    "useDebugLog": false,
     "useNetworkReset":true,
-    "deviceTopic": "kidsRoom2",
+    "deviceTopic": "parentsRoom",
     "groupTopic": "Windows",
     "prefixTopic": "myHome",
-    "debug_level":0,
+    "debug_level":2,
     "noNetwork_reset":5
 }

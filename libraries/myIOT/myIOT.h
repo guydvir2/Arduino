@@ -137,7 +137,7 @@ public:
     char deviceTopic[MaxTopicLength];
     char addGroupTopic[MaxTopicLength];
     char extTopic[MaxTopicLength];
-    char mqqt_ext_buffer[3][50];
+    char mqqt_ext_buffer[3][150];
 
     const char *ver = "iot_8.71";
     char timeStamp[20];

@@ -2,14 +2,12 @@
 #include <myIOT.h>
 #include <ArduinoJson.h>
 
-
 #define JSON_SIZE_IOT 400
 #define JSON_SIZE_SKETCH 1300
-char *myIOT_paramfile = "/myIOT_param.json";
 char *sketch_paramfile = "/sketch_param.json";
-bool readfile_ok = false;
 static const int maxSW = 2;
 
+bool readfile_ok = false;
 StaticJsonDocument<JSON_SIZE_IOT> paramJSON;
 StaticJsonDocument<JSON_SIZE_SKETCH> sketchJSON;
 
@@ -49,25 +47,7 @@ void update_vars(JsonDocument &DOC)
     strcpy(SW_Names[a], DOC["SW_Names"][a].as<const char *>());
   }
 }
-void read_flash_parameters(char *filename, String &defs, JsonDocument &DOC)
-{
-  myJSON param_on_flash(filename, true, JSON_SIZE_IOT);
 
-  if (param_on_flash.file_exists())
-  {
-    if (param_on_flash.readJSON_file(DOC))
-    {
-      readfile_ok = true;
-    }
-  }
-  else
-  {
-    Serial.printf("\nfile %s read NOT-OK", filename);
-    deserializeJson(DOC, defs);
-  }
-  // serializeJsonPretty(DOC, Serial);
-  // Serial.flush();
-}
 void startRead_parameters()
 {
   String sketch_defs = "{\"useDisplay\":false,\"useOnatBoot\" : false,\"usequickBoot\" : false,\"usedailyTO\" : true,\
@@ -81,8 +61,10 @@ void startRead_parameters()
                         \"useFailNTP\" : true,\"useDebugLog\" : true,\"useNetworkReset\":false, \"deviceTopic\" : \"mySwitch\",\
                         \"groupTopic\" : \"group\",\"prefixTopic\" : \"myHome\",\"debug_level\":0,\"noNetwork_reset\":1}";
 
-  read_flash_parameters(myIOT_paramfile, myIOT_defs, paramJSON);
-  read_flash_parameters(sketch_paramfile, sketch_defs, sketchJSON);
+  if (iot.read_fPars(iot.myIOT_paramfile, myIOT_defs, paramJSON) && iot.read_fPars(sketch_paramfile, sketch_defs, sketchJSON))
+  {
+    readfile_ok = true;
+  }
   update_vars(sketchJSON);
 }
 void endRead_parameters()
@@ -94,3 +76,49 @@ void endRead_parameters()
   paramJSON.clear();
   sketchJSON.clear();
 }
+
+// void read_flash_parameters(char *filename, String &defs, JsonDocument &DOC)
+// {
+//   myJSON param_on_flash(filename, true, JSON_SIZE_IOT);
+
+//   if (param_on_flash.file_exists())
+//   {
+//     if (param_on_flash.readJSON_file(DOC))
+//     {
+//       readfile_ok = true;
+//     }
+//   }
+//   else
+//   {
+//     Serial.printf("\nfile %s read NOT-OK", filename);
+//     deserializeJson(DOC, defs);
+//   }
+//   // serializeJsonPretty(DOC, Serial);
+//   // Serial.flush();
+// }
+// void startRead_parameters()
+// {
+//   String sketch_defs = "{\"useDisplay\":false,\"useOnatBoot\" : false,\"usequickBoot\" : false,\"usedailyTO\" : true,\
+//                         \"useSafteyOff\" : true,\"useEEPROM_resetCounter\" : false,\"usePWM\" : true,\"useInput\" : false,\
+//                         \"useExtTrig\" : false,\"momentryButtorn\" : true,\"numSW\" : 1,\"safetyOffDuration\" : 60,\
+//                         \"inputPin\" : [0, 2],\"outputPin\":[12,5],\"extTrigPin\" : 5,\"hReboots\" : [1,2],\
+//                         \"start_dTO\" : [[19,0, 0],[20,30,0]],\"end_dTO\" : [[23,30,0],[22,0,0]],\"timeOUTS\" : [120,120],\
+//                         \"SW_Names\" : [\"LED1\",\"LED2\"],\"defPWM\":0.7}";
+
+//   String myIOT_defs = "{\"useSerial\":true,\"useWDT\":false,\"useOTA\":true,\"useResetKeeper\" : false,\
+//                         \"useFailNTP\" : true,\"useDebugLog\" : true,\"useNetworkReset\":false, \"deviceTopic\" : \"mySwitch\",\
+//                         \"groupTopic\" : \"group\",\"prefixTopic\" : \"myHome\",\"debug_level\":0,\"noNetwork_reset\":1}";
+
+//   read_flash_parameters(myIOT_paramfile, myIOT_defs, paramJSON);
+//   read_flash_parameters(sketch_paramfile, sketch_defs, sketchJSON);
+//   update_vars(sketchJSON);
+// }
+// void endRead_parameters()
+// {
+//   if (!readfile_ok)
+//   {
+//     iot.pub_log("Error read Parameters from file. Defaults values loaded.");
+//   }
+//   paramJSON.clear();
+//   sketchJSON.clear();
+// }

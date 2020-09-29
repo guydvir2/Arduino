@@ -4,7 +4,7 @@
 #include <Arduino.h>
 
 // ********** Sketch Services  ***********
-#define VER "mySWITCH_V2.5"
+#define VER "mySWITCH_V2.6"
 bool usePWM;
 bool useExtTrig;
 int numSW = 2; // changes after reading JSON param
@@ -51,6 +51,7 @@ void configTOswitches()
 		TOswitches[i]->onAt_boot = sketchJSON["useOnatBoot"];
 		TOswitches[i]->def_power = sketchJSON["defPWM"];
 		TOswitches[i]->inputPin = inputPin[i];
+		
 		if (sketchJSON["useEEPROM_resetCounter"])
 		{
 			TOswitches[i]->hReboot.check_boot(hRebbots[i]);
@@ -59,6 +60,7 @@ void configTOswitches()
 		{
 			TOswitches[i]->quickPwrON();
 		}
+
 		TOswitches[i]->config(outputPin[i], sketchJSON["timeOUTS"][i], SW_Names[i]);
 	}
 }
