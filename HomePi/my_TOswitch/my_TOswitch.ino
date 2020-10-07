@@ -20,7 +20,7 @@ mySwitch *TOswitches[maxSW] = {};
 int outputPin[maxSW];
 int inputPin[maxSW];
 int extTrigPin;
-int hRebbots[maxSW];
+int hRebbots[maxSW];    // <--- Need to fix usage
 char SW_Names[maxSW][30];
 
 //~~ extTrig functions
@@ -33,8 +33,17 @@ void readExtTrig_looper(int a = 0)
 	TOswitches[a]->ext_trig_signal = digitalRead(extTrigPin);
 }
 
-void configTOswitches()
+void TOswitch_init()
 {
+	static mySwitch myTOsw0;
+	TOswitches[0] = &myTOsw0;
+
+	if (numSW == 2)
+	{
+		static mySwitch myTOsw1;
+		TOswitches[1] = &myTOsw1;
+	}
+
 	for (int i = 0; i < numSW; i++)
 	{
 		TOswitches[i]->usePWM = usePWM;
@@ -50,31 +59,12 @@ void configTOswitches()
 		TOswitches[i]->usequickON = sketchJSON["usequickBoot"];
 		TOswitches[i]->onAt_boot = sketchJSON["useOnatBoot"];
 		TOswitches[i]->def_power = sketchJSON["defPWM"];
+		TOswitches[i]->usetimeOUT = sketchJSON["usetimeOUT"];
+		TOswitches[i]->inputState = sketchJSON["inputState"];
 		TOswitches[i]->inputPin = inputPin[i];
-		
-		if (sketchJSON["useEEPROM_resetCounter"])
-		{
-			TOswitches[i]->hReboot.check_boot(hRebbots[i]);
-		}
-		if (sketchJSON["usequickBoot"])
-		{
-			TOswitches[i]->quickPwrON();
-		}
 
 		TOswitches[i]->config(outputPin[i], sketchJSON["timeOUTS"][i], SW_Names[i]);
 	}
-}
-void TOswitch_init()
-{
-	static mySwitch myTOsw0;
-	TOswitches[0] = &myTOsw0;
-
-	if (numSW == 2)
-	{
-		static mySwitch myTOsw1;
-		TOswitches[1] = &myTOsw1;
-	}
-	configTOswitches();
 }
 void startdTO()
 {
@@ -144,7 +134,7 @@ void startIOTservices()
 	iot.useSerial = paramJSON["useSerial"];
 	iot.useWDT = paramJSON["useWDT"];
 	iot.useOTA = paramJSON["useOTA"];
-	iot.useResetKeeper = paramJSON["useResetKeeper"];
+	iot.useResetKeeper = sketchJSON["useResetKeeper"]; // Attention <--- definition 
 	iot.resetFailNTP = paramJSON["useFailNTP"];
 	iot.useDebug = paramJSON["useDebugLog"];
 	iot.debug_level = paramJSON["debug_level"];

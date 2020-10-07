@@ -67,6 +67,10 @@ void myIOT::looper()
 			sendReset("Reset- restore main MQTT server");
 		}
 	}
+	if (useDebug)
+	{
+		flog.looper(5);
+	}
 }
 
 // ~~~~~~~ Wifi functions ~~~~~~~
@@ -377,10 +381,10 @@ bool myIOT::subscribeMQTT()
 						mqtt_detect_reset = 0;
 						notifyOnline();
 					}
-					else
-					{ // using reset keeper
-						mqttClient.publish(_availTopic, "resetKeeper", true);
-					}
+					// else
+					// { // using reset keeper
+					// 	mqttClient.publish(_availTopic, "resetKeeper", true);
+					// }
 				}
 				else
 				{ // not first run
@@ -589,15 +593,8 @@ void myIOT::_pub_generic(char *topic, char *inmsg, bool retain, char *devname)
 	int lenhdr = strlen(header);
 	int lenmsg = strlen(inmsg);
 
-	Serial.print("header: ");
-	Serial.println(header);
-	Serial.print("inmsg: ");
-	Serial.println(inmsg);
-
 	char tmpmsg[lenmsg + lenhdr + 5];
 	sprintf(tmpmsg, "%s %s", header, inmsg);
-	Serial.print("tmpmsg: ");
-	Serial.println(tmpmsg);
 	if (strlen(tmpmsg) + mqtt_overhead_size > mqtt_defsize)
 	{
 		mqttClient.setBufferSize(strlen(tmpmsg) + mqtt_overhead_size);
@@ -1016,6 +1013,12 @@ bool timeOUT::looper()
 {
 	dailyTO_looper(dailyTO);
 
+	// Serial.print("calc_endTO: ");
+	// Serial.println(_calc_endTO);
+
+	// Serial.print("now is: ");
+	// Serial.println(now());
+
 	if (_calc_endTO > now())
 	{
 		return 1;
@@ -1043,17 +1046,6 @@ bool timeOUT::begin()
 		switchOFF();
 		return 0;
 	}
-	// ~~~~~~~~~ Case of fresh Start - not a quick boot ~~~~~~~~~~~~~~~~
-	// else if (endTO_inFlash == 0 && newReboot == true) {                   // fresh start
-	//         if (_calc_TO != 0) {
-	//                 setNewTimeout(_calc_TO);
-	//                 return 1;
-	//         }
-	//         else {
-	//                 _calc_endTO = 0;
-	//                 return 0;
-	//         }
-	// }
 	else if (endTO_inFlash == 0)
 	{ // timeour ended correctly
 		return 0;
@@ -1379,6 +1371,14 @@ void mySwitch::config(int switchPin, int timeout_val, char *name)
 	_switchPin = switchPin;
 	strcpy(_switchName, name);
 	pinMode(_switchPin, OUTPUT); // defined here for hReboot purposes
+	if (useHardReboot)
+	{
+		hReboot.check_boot(1);
+	}
+	if (usequickON)
+	{
+		quickPwrON();
+	}
 	if (usetimeOUT)
 	{
 		TOswitch.set_fvars(timeout_val);
@@ -1468,21 +1468,10 @@ void mySwitch::quickPwrON()
 }
 void mySwitch::_recoverReset(int rebootState)
 {
-	if (rebootState == 0 && onAt_boot)
-	{ // PowserialerOn - not a quickReboot
-		if (usePWM)
-		{
-			switchIt("onAtBoot", def_power);
-		}
-		else
-		{
-			switchIt("onAtBoot", RelayOn);
-		}
-		sprintf(_outMQTTlog, "%s",
-				"--> NormalBoot & On-at-Boot. Restarting TimeOUT");
-	}
-	else if (hReboot.resetFlag && useHardReboot)
-	{ // using HardReboot
+	if (hReboot.resetFlag && useHardReboot)
+	{
+		// using HardReboot
+		Serial.println("B");
 		if (usePWM)
 		{
 			switchIt("onAtBoot", def_power);
@@ -1493,18 +1482,69 @@ void mySwitch::_recoverReset(int rebootState)
 		}
 		sprintf(_outMQTTlog, "--> ForcedBoot. Restarting TimeOUT");
 	}
-	else if (TOswitch.looper() == 0)
-	{ // was not during TO
-		if (rebootState == 1)
-		{
-			sprintf(_outMQTTlog, "%s", "--> PowerLoss Boot");
-		}
-		changePower(0);
-		sprintf(_outMQTTlog, "%s", "--> Stopping Quick-PowerON");
-	}
-	else
+	else if (badBoot)
 	{
-		sprintf(_outMQTTlog, "%s", "--> Continue unfinished TimeOuts");
+		if (rebootState == 0)
+		{
+			// regular boot
+			if (onAt_boot)
+			{
+				if (usePWM)
+				{
+					switchIt("onAtBoot", def_power);
+				}
+				else
+				{
+					switchIt("onAtBoot", RelayOn);
+				}
+				sprintf(_outMQTTlog, "%s",
+						"--> NormalBoot & On-at-Boot. Restarting TimeOUT");
+			}
+			else if (usequickON == false || onAt_boot == false)
+			{
+				changePower(0);
+				sprintf(_outMQTTlog, "%s", "--> Stopping Quick-PowerON");
+			}
+		}
+		else
+		{
+			// after quickreset
+			if (TOswitch.looper() > 0)
+			{
+				sprintf(_outMQTTlog, "%s", "--> PowerLoss. Continue unfinished TimeOuts");
+			}
+			else
+			{
+				changePower(0);
+				sprintf(_outMQTTlog, "%s", "--> PowerLoss. Stopping Quick-PowerON");
+			}
+		}
+	}
+	else if (!badBoot)
+	{
+		// regular boot
+		if (onAt_boot)
+		{
+			if (TOswitch.looper() > 0)
+			{
+				TOswitch.endNow();
+			}
+			if (usePWM)
+			{
+				switchIt("onAtBoot", def_power);
+			}
+			else
+			{
+				switchIt("onAtBoot", RelayOn);
+			}
+			sprintf(_outMQTTlog, "%s",
+					"--> NormalBoot & On-at-Boot. Restarting TimeOUT");
+		}
+		else if (usequickON == false || onAt_boot == false)
+		{
+			changePower(0);
+			sprintf(_outMQTTlog, "%s", "--> Stopping Quick-PowerON");
+		}
 	}
 
 	if (useHardReboot)
@@ -1516,6 +1556,7 @@ void mySwitch::_recoverReset(int rebootState)
 //~~ Switching functions ~~
 void mySwitch::changePower(float val)
 {
+	// relevant to PWM only
 	if (val != current_power)
 	{
 		if (val >= max_power)
@@ -1565,34 +1606,33 @@ void mySwitch::switchIt(char *txt1, float state, bool ignoreTO)
 		}
 		else
 		{
-			if (state != current_power)
-			{
-				digitalWrite(_switchPin, state);
-				current_power = state;
-				sprintf(_out2MQTTmsg, "%s: [%s] Switched [%s]", txt1,
-						_switchName, (int)current_power ? "On" : "Off");
-			}
+			// if (state != current_power)
+			// {
+			digitalWrite(_switchPin, state);
+			current_power = state;
+			sprintf(_out2MQTTmsg, "%s: [%s] Switched [%s]", txt1, _switchName, (int)current_power ? "On" : "Off");
+			// }
 		}
 
 		if (usetimeOUT && ignoreTO == false)
 		{
+			// Turn OFF
 			if (TOswitch.remain() > 0 && current_power == 0.0)
 			{
 				TOswitch.endNow();
 			}
+
 			else if (TOswitch.remain() == 0 && current_power > 0.0)
 			{
 				TOswitch.restart_to();
-				TOswitch.convert_epoch2clock(now() + TOswitch.remain(), now(),
-											 msg1, msg2);
+				TOswitch.convert_epoch2clock(now() + TOswitch.remain(), now(), msg1, msg2);
 				sprintf(msg2, " Start Timeout[%s]", msg1);
 				strcat(_out2MQTTmsg, msg2);
 			}
 			else if (TOswitch.remain() > 0 && current_power > 0.0)
 			{
-				TOswitch.convert_epoch2clock(now() + TOswitch.remain(), now(),
-											 msg1, msg2);
-				sprintf(msg2, " Resume Timeout[%s]", msg1);
+				TOswitch.convert_epoch2clock(now() + TOswitch.remain(), now(), msg1, msg2);
+				sprintf(msg2, " Timeout[%s]", msg1);
 				strcat(_out2MQTTmsg, msg2);
 			}
 		}
@@ -1899,7 +1939,7 @@ void mySwitch::_TOlooper(int det_reset)
 {
 	if (det_reset != 2)
 	{
-		if (_check_recoverReset && badBoot)
+		if (_check_recoverReset)
 		{
 			_recoverReset(det_reset);
 			_check_recoverReset = false;

@@ -66,7 +66,7 @@ private:
     int _Bot_mtbs = 1000; //mean time between scan messages in sec
 #define def_time_check_M 5
 
-    long _Bot_lasttime=0; //last time messages' scan has been done
+    long _Bot_lasttime = 0; //last time messages' scan has been done
 
 private:
     void handleNewMessages(int numNewMessages);
@@ -338,7 +338,7 @@ private:
     void _recoverReset(int rebootState = -1);
 
 public:
-    const char *ver = "mySwitch_1.6";
+    const char *ver = "mySwitch_1.7";
     bool usePWM = false;
     bool useSerial = false;
     bool useInput = false;
@@ -354,7 +354,7 @@ public:
     bool is_momentery = true;
     bool last_relayState = false;
     bool trig_lastState = false;
-    bool inputState;
+    bool inputState = HIGH;
     bool _check_recoverReset = true;
 
     int inputPin = -1;
@@ -369,7 +369,6 @@ public:
 
     timeOUT TOswitch;
     hardReboot hReboot;
-    //(64);
 
 public:
     mySwitch();

@@ -1,14 +1,13 @@
 {
-    "useSerial": false,
+    "useSerial": true,
     "useWDT": true,
     "useOTA": true,
-    "useResetKeeper": true,
     "useFailNTP": true,
-    "useDebugLog": true,
+    "useDebugLog": false,
     "useNetworkReset":true,
     "deviceTopic": "test",
     "groupTopic": "intLights",
     "prefixTopic": "myHome",
     "debug_level":0,
-    "noNetwork_reset":1
+    "noNetwork_reset":5
 }

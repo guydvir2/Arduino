@@ -2,12 +2,12 @@
 #include "internet_param.h"
 #include <Arduino.h>
 #include <myDisplay.h>
+#include <Ticker.h>
 
 // ********** Sketch Services  ***********
-#define VER "WEMOS_2.5"
+#define VER "WEMOS_2.6"
 #define USE_DISPLAY false
-#define USE_TELEGRAM true
-#define USE_FLOG true
+#define USE_TRAFFIC_LIGHT true
 struct MQTT_msg
 {
         char from_topic[50];
@@ -19,20 +19,24 @@ struct MQTT_msg
 #define ADD_MQTT_FUNC addiotnalMQTT
 myIOT iot;
 // ***************************
-#define flosgSize 200
-flashLOG connectionLOG("/conlog.txt");
-flashLOG disconnectionLOG("/disconlog.txt");
 
 bool internetConnected = false;
 bool mqttConnected = false;
 bool homeAssistantConnected = false;
 int alertLevel = 0;
+int connAlert = 0;
 
 const byte seconds_offline_alarm = 60; // past this time , an Alert will be sent upon reconnection
 const byte min_ping_interval = 10;     //seconds
 
 int adaptive_ping_val = min_ping_interval;
 time_t begin_monitor_clock;
+
+// ~~~~~~~~~~~~~~~~~~~ FlashLogs ~~~~~~~~~~~~~~~~~~~~
+#define flosgSize 200
+flashLOG connectionLOG("/conlog.txt");
+flashLOG disconnectionLOG("/disconlog.txt");
+
 time_t readFlog(flashLOG &LOG, int numLine)
 {
         char a[12];
@@ -41,13 +45,7 @@ time_t readFlog(flashLOG &LOG, int numLine)
         {
                 ret = atoi(a);
         }
-        if (USE_FLOG)
-        {
-                return ret;
-        }
-        else{
-                return 0;
-        }
+        return ret;
 }
 void writeFlog(flashLOG &LOG, time_t value = now())
 {
@@ -61,16 +59,45 @@ void writeFlog(flashLOG &LOG, time_t value = now())
         else
         {
                 sprintf(c, "%d", value);
-                if (USE_FLOG)
-                {
-                        LOG.write(c);
-                }
+                LOG.write(c);
         }
 }
 void deleteFlog(flashLOG &LOG)
 {
         LOG.delog();
 }
+void startFlogs()
+{
+        connectionLOG.start(flosgSize, 50);
+        disconnectionLOG.start(flosgSize, 50);
+
+        time_t t = now();
+
+        if (connectionLOG.getnumlines() > 0 && disconnectionLOG.getnumlines() > 0) // have both logs with entries
+        {
+                if (connectionLOG.getnumlines() == disconnectionLOG.getnumlines() + 1) // wakeup after it was connected
+                {
+                        writeFlog(disconnectionLOG); // adding an disconnect entry
+                        iot.pub_log("Disconnect LOG entry was added at boot");
+                }
+                else if (connectionLOG.getnumlines() - disconnectionLOG.getnumlines() > 1 || disconnectionLOG.getnumlines() > connectionLOG.getnumlines())
+                {
+                        iot.pub_log("LOGs are not balanced- consider deleting");
+                }
+        }
+        else if (connectionLOG.getnumlines() == 0 && disconnectionLOG.getnumlines() == 00)
+        {
+                writeFlog(disconnectionLOG);
+                writeFlog(connectionLOG);
+                iot.pub_log("Starting with both logs empty");
+        }
+        else if (year(t) == 1970)
+        {
+                iot.pub_log("NTP is not set. Can affect on log entries");
+        }
+}
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 void epoch2datestr(time_t t, char clockstr[50])
 {
         sprintf(clockstr, "%04d-%02d-%02d %02d:%02d:%02d", year(t), month(t), day(t), hour(t), minute(t), second(t));
@@ -109,12 +136,12 @@ void calc2(int &connectedTime, int &disconncetedTime, int &disconnectCounter, in
                 {
                         if (readFlog(disconnectionLOG, x) > now() - time_elapsed * 3600L)
                         {
-                                connectedTime += readFlog(disconnectionLOG, x) - readFlog(connectionLOG, x + 1);
-                                disconncetedTime += readFlog(connectionLOG, x) - readFlog(disconnectionLOG, x);
+                                connectedTime += readFlog(disconnectionLOG, x) - readFlog(connectionLOG, x);
+                                disconncetedTime += readFlog(connectionLOG, x + 1) - readFlog(disconnectionLOG, x);
                                 disconnectCounter++;
                         }
                 }
-                connectedTime += now() - readFlog(connectionLOG, 0);
+                connectedTime += now() - readFlog(connectionLOG, connectionLOG.getnumlines() - 1);
         }
         else
         {
@@ -125,12 +152,28 @@ void calc2(int &connectedTime, int &disconncetedTime, int &disconnectCounter, in
                                 connectedTime += readFlog(disconnectionLOG, x) - readFlog(connectionLOG, x);
                                 disconnectCounter++;
                         }
-                        if (readFlog(disconnectionLOG, x + 1) > now() - time_elapsed * 3600L)
+                        if (readFlog(connectionLOG, x + 1) > now() - time_elapsed * 3600L)
                         {
-                                disconncetedTime += readFlog(connectionLOG, x) - readFlog(disconnectionLOG, x + 1);
+                                disconncetedTime += readFlog(connectionLOG, x + 1) - readFlog(disconnectionLOG, x);
                         }
-                        disconncetedTime += now() - readFlog(disconnectionLOG, 0);
+                        disconncetedTime += now() - readFlog(disconnectionLOG, disconnectionLOG.getnumlines() - 1);
                 }
+        }
+        disconnectCounter--;
+}
+void pingAlerts()
+{
+        if (mqttConnected == false || homeAssistantConnected == false)
+        {
+                connAlert = 2;
+        }
+        else if (internetConnected == false)
+        {
+                connAlert = 1;
+        }
+        else
+        {
+                connAlert = 0;
         }
 }
 void evalute_connectivity_status()
@@ -172,27 +215,10 @@ void evalute_connectivity_status()
         }
         // ~~~~~~~~~~~~~~~~~~ End of first Test ~~~~~~~~~~~~~~~~
 
-        // ~~~~~~~~~~~ Second Test : Service Availability ~~~~~~~~~~~
-        if (mqttConnected == false || homeAssistantConnected == false)
-        {
-                alertLevel = 3;
-        }
-        if (internetConnected == false)
-        {
-                if (alertLevel < 2)
-                {
-                        alertLevel = 2;
-                }
-        }
-        // ~~~~~~~~~~~~~~~~~ End of seconds Test ~~~~~~~~~~~~~~~~~
-
         convert_epoch2clock(maxc, 0, times, days);
         sprintf(msg, "Network Status: [%s], Internet [%s] MQTTserver [%s] HomeAssist[%s] Worst State: [%s] offline [%s %s] Disconnects[%d]",
                 State_disp[alertLevel], internetConnected ? "OK" : "BAD", mqttConnected ? "OK" : "BAD", homeAssistantConnected ? "OK" : "BAD",
                 times_disp[alertLevel], days, times, maxd);
-
-        // iot.pub_msg(msg);
-        // iot.p                                                                43532ub_ext(msg);
 
         if (alertLevel == 3)
         {
@@ -209,6 +235,7 @@ void evalute_connectivity_status()
                 iot.pub_log(msg);
         }
 }
+
 void startIOTservices()
 {
         startRead_parameters();
@@ -238,18 +265,18 @@ void addiotnalMQTT(char *incoming_msg)
                 char days_char[2][20];
                 char times_char[2][20];
                 char datestr[50];
-                time_t moni = readFlog(connectionLOG, connectionLOG.getnumlines() - 1);
+                time_t moni = readFlog(connectionLOG, 0);
                 convert_epoch2clock(now(), moni, times_char[1], days_char[1]);
                 epoch2datestr(moni, datestr);
                 convert_epoch2clock(now(), begin_monitor_clock, times_char[2], days_char[2]);
-                sprintf(msg, "Status: Internet[%s] MQTTserver[%s] HomeAssistant[%s] Disconnects[%d] monitorTime [%s %s], First log[%s] onTime[%s %s]",
+                sprintf(msg, "Status: Internet[%s] MQTTserver[%s] HomeAssistant[%s] Disconnects[%d] monitoringTime [%s %s], First log[%s] onTime[%s %s]",
                         internetConnected ? "OK" : "FAIL", mqttConnected ? "OK" : "FAIL", homeAssistantConnected ? "OK" : "FAIL",
-                        disconnectionLOG.getnumlines(), days_char[1], times_char[1], datestr, days_char[2], times_char[2]);
+                        disconnectionLOG.getnumlines() - 1, days_char[1], times_char[1], datestr, days_char[2], times_char[2]);
                 iot.pub_msg(msg);
         }
         else if (strcmp(incoming_msg, "ver2") == 0)
         {
-                sprintf(msg, "ver #2: [%s], TelegramServer[%d] LCDdisplay[%d]", VER, USE_TELEGRAM, USE_DISPLAY);
+                sprintf(msg, "ver #2: [%s], LCDdisplay[%d]", VER, USE_DISPLAY);
                 iot.pub_msg(msg);
         }
         else if (strcmp(incoming_msg, "help2") == 0)
@@ -275,7 +302,8 @@ void addiotnalMQTT(char *incoming_msg)
                         for (int i = 0; i < disconnectionLOG.getnumlines(); i++)
                         {
                                 epoch2datestr(readFlog(disconnectionLOG, i), tstamp);
-                                sprintf(log, "[%d]: [%s], duration [%d]sec", i, tstamp, readFlog(connectionLOG, i) - readFlog(disconnectionLOG, i));
+                                // sprintf(log, "[%d]: [%s], duration [%d]sec", i, tstamp, readFlog(disconnectionLOG, i) -readFlog(connectionLOG, i+1));
+                                sprintf(log, "[%d]: [%s], duration [%d]sec", i, tstamp, readFlog(connectionLOG, i + 1) - readFlog(disconnectionLOG, i));
                                 iot.pub_debug(log);
                         }
                 }
@@ -284,7 +312,15 @@ void addiotnalMQTT(char *incoming_msg)
                         for (int i = 0; i < disconnectionLOG.getnumlines(); i++)
                         {
                                 epoch2datestr(readFlog(disconnectionLOG, i), tstamp);
-                                if (i == 0)
+                                // if (i == 0)
+                                // {
+                                //         sprintf(log, "[%d]: [%s], duration [%d]sec", i, tstamp, now() - readFlog(disconnectionLOG, i));
+                                // }
+                                // else
+                                // {
+                                //         sprintf(log, "[%d]: [%s], duration [%d]sec", i, tstamp, readFlog(disconnectionLOG, i) - readFlog(connectionLOG, i - 1));
+                                // }
+                                if (i == disconnectionLOG.getnumlines() - 1)
                                 {
                                         sprintf(log, "[%d]: [%s], duration [%d]sec", i, tstamp, now() - readFlog(disconnectionLOG, i));
                                 }
@@ -333,18 +369,18 @@ void addiotnalMQTT(char *incoming_msg)
                                 time_chars[1], 100.0 * (float)conTime / ((float)disconTime + (float)conTime));
                         iot.pub_msg(msg);
 
-                        int x = connectionLOG.getnumlines();
-                        int y = disconnectionLOG.getnumlines();
-                        Serial.println("ConnectionLog");
-                        for (int i = 0; i < x; i++)
-                        {
-                                Serial.printf("%d: %d\n", i, readFlog(connectionLOG, i));
-                        }
-                        Serial.println("DisConnectionLog");
-                        for (int i = 0; i < y; i++)
-                        {
-                                Serial.printf("%d: %d\n", i, readFlog(disconnectionLOG, i));
-                        }
+                        // int x = connectionLOG.getnumlines();
+                        // int y = disconnectionLOG.getnumlines();
+                        // Serial.println("ConnectionLog");
+                        // for (int i = 0; i < x; i++)
+                        // {
+                        //         Serial.printf("%d: %d\n", i, readFlog(connectionLOG, i));
+                        // }
+                        // Serial.println("DisConnectionLog");
+                        // for (int i = 0; i < y; i++)
+                        // {
+                        //         Serial.printf("%d: %d\n", i, readFlog(disconnectionLOG, i));
+                        // }
                 }
         }
 }
@@ -397,7 +433,7 @@ void generate_monitor_status()
         }
 }
 
-void testConnectivity()
+void pingServers()
 {
         byte retries = 0;
         bool internet_ping = false;
@@ -405,7 +441,7 @@ void testConnectivity()
 
         if (millis() - last_check >= adaptive_ping_val * 1000L)
         {
-                long tic = millis();
+                // long tic = millis();
                 while (internet_ping == false && retries < 3 && WiFi.status() == WL_CONNECTED)
                 {
                         internet_ping = iot.checkInternet("www.google.com", 2);
@@ -413,24 +449,25 @@ void testConnectivity()
                         homeAssistantConnected = iot.checkInternet("192.168.3.199", 2);
                         retries++;
                 }
-                if (millis() - tic > 4000)
-                {
-                        Serial.print("ping: ");
-                        Serial.println(millis() - tic);
-                }
+                // if (millis() - tic > 4000)
+                // {
+                //         Serial.print("ping: ");
+                //         Serial.println(millis() - tic);
+                // }
 
                 last_check = millis();
-                tic = millis();
-                internetMonitor(internet_ping);
-                if (millis() - tic > 10)
-                {
-                        Serial.print("monitor:  ");
-                        Serial.println(millis() - tic);
-                }
-                tic = millis();
+                // tic = millis();
+                check_internet_changeStatus(internet_ping);
+                pingAlerts();
+                // if (millis() - tic > 10)
+                // {
+                //         Serial.print("monitor:  ");
+                //         Serial.println(millis() - tic);
+                // }
+                // tic = millis();
         }
 }
-void internetMonitor(bool get_ping)
+void check_internet_changeStatus(bool get_ping)
 {
         static int same_state_counter = 0;
         static bool lastConStatus = false;
@@ -439,15 +476,9 @@ void internetMonitor(bool get_ping)
         {
                 if (get_ping == true) // internet is back on
                 {
-                        long tic = millis();
                         writeFlog(connectionLOG);
-                        Serial.print("write flog: ");
-                        Serial.println(millis() - tic);
                         internetConnected = true;
-                        tic = millis();
                         evalute_connectivity_status();
-                        Serial.print("evaluate took: ");
-                        Serial.println(millis() - tic);
 
                         if (disconnectionLOG.getnumlines() > 0) // not first boot
                         {
@@ -486,183 +517,93 @@ void internetMonitor(bool get_ping)
                 }
         }
 }
-// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-// ~~~~~~~~~~~~~~~ Use Telegram Server ~~~~~~~~~~~
-#if USE_TELEGRAM
-MQTT_msg incoming_mqtt;
-char *Telegram_Nick = "TelegramServer";
-byte time_check_messages = 10; //sec
+// ~~~~~~~~~~ TrafficLight ~~~~~~~~~~~~~
+#define GreenLedPin D3
+#define YellowLedPin D2
+#define RedLedPin D1
+#define ledON HIGH
+#define ledOFF !ledON
+#define EVAL_PERIOD 10 // minutes
 
-myTelegram teleNotify(BOT_TOKEN, CHAT_ID, time_check_messages);
-
-void telecmds(String in_msg, String from, String chat_id, char *snd_msg)
+Ticker blinker;
+void TrafficBlink()
 {
-        String command_set[] = {"whois_online", "status", "reset", "help", "whoami"};
-        byte num_commands = sizeof(command_set) / sizeof(command_set[0]);
-        String comp_command[num_commands];
-        char prefix[100], prefix2[100];
-        char t1[50], t2[50];
-
-        sprintf(snd_msg, ""); // when not meeting any conditions, has to be empty
-
-        from.toCharArray(t1, from.length() + 1);
-        in_msg.toCharArray(t2, in_msg.length() + 1);
-
-        sprintf(prefix, "/%s_", Telegram_Nick);
-        sprintf(prefix2, "from user: %s\ndevice replies: %s\ncommand: %s\n~~~~~~~~~~~~~~~~~~~~\n ", t1, Telegram_Nick, t2);
-
-        for (int i = 0; i < num_commands; i++)
+        if (connAlert == 2)
         {
-                comp_command[i] = prefix;
-                comp_command[i] += command_set[i];
+                digitalWrite(RedLedPin, !digitalRead(RedLedPin));
         }
-
-        if (in_msg == "/whois_online")
+        else if (connAlert == 1)
         {
-                sprintf(snd_msg, "%s%s", prefix2, Telegram_Nick);
-        }
-        else if (in_msg == comp_command[1])
-        {
-                // giveStatus(t1);
-                sprintf(snd_msg, "%s%s", prefix2, t1);
-        } // status
-        else if (in_msg == comp_command[2])
-        {
-                sprintf(snd_msg, "%s", prefix2);
-                iot.sendReset("Telegram");
-        } // reset
-        else if (in_msg == comp_command[3])
-        {
-                char t[50];
-                sprintf(snd_msg, "%sCommands Available:\n", prefix2, Telegram_Nick);
-                for (int i = 0; i < num_commands; i++)
-                {
-                        command_set[i].toCharArray(t, 30);
-                        sprintf(t1, "%s\n", t);
-                        strcat(snd_msg, t1);
-                }
-
-        } // all_commands
-        else if (in_msg == comp_command[4])
-        {
-                sprintf(snd_msg, "%s~%s~ is %s", prefix2, Telegram_Nick, "DEVICE_TOPIC");
-        } // whoami
-}
-bool chekcTelegram_topic(char *topic, MQTT_msg &msg)
-{
-        if (strcmp(iot.mqqt_ext_buffer[0], topic) == 0)
-        {
-                sprintf(msg.from_topic, "%s", iot.mqqt_ext_buffer[0]);
-                sprintf(msg.msg, "%s", iot.mqqt_ext_buffer[1]);
-                sprintf(msg.device_topic, "%s", iot.mqqt_ext_buffer[2]);
-                // for (int i = 0; i < 3; i++)
-                // {
-                //         Serial.println(iot.mqqt_ext_buffer[i]);
-                // }
-                return 1;
+                digitalWrite(RedLedPin, ledON);
         }
         else
         {
-                return 0;
+                digitalWrite(RedLedPin, ledOFF);
         }
-}
-void listenMQTT_forTelegram()
-{
-        if (chekcTelegram_topic(iot.extTopic, incoming_mqtt))
-        {
-                teleNotify.send_msg2(String(incoming_mqtt.msg));
-                for (int i = 0; i < 3; i++)
-                {
-                        sprintf(iot.mqqt_ext_buffer[i], "%s", "");
-                }
-        }
-}
-#endif
 
-void startFlogs()
-{
-        connectionLOG.start(flosgSize, 12);
-        disconnectionLOG.start(flosgSize, 12);
-        time_t t = now();
-
-        if (connectionLOG.getnumlines() > 0 && disconnectionLOG.getnumlines() > 0) // have both logs with entries
+        if (alertLevel == 3)
         {
-                if (connectionLOG.getnumlines() == disconnectionLOG.getnumlines() + 1) // wakeup after it was connected
-                {
-                        writeFlog(disconnectionLOG); // adding an disconnect entry
-                        iot.pub_log("Disconnect LOG entry was added at boot");
-                }
-                else if (connectionLOG.getnumlines() - disconnectionLOG.getnumlines() > 1 || disconnectionLOG.getnumlines() > connectionLOG.getnumlines())
-                {
-                        iot.pub_log("LOGs are not balanced- consider deleting");
-                }
+                digitalWrite(YellowLedPin, !digitalRead(YellowLedPin));
+                digitalWrite(GreenLedPin, ledOFF);
         }
-        else if (connectionLOG.getnumlines() == 0 && disconnectionLOG.getnumlines() == 00)
+        else if (alertLevel == 2)
         {
-                writeFlog(disconnectionLOG);
-                writeFlog(connectionLOG);
-                iot.pub_log("Starting with both logs empty");
+                digitalWrite(YellowLedPin, ledON);
+                digitalWrite(GreenLedPin, ledON);
         }
-        else if (year(t) == 1970)
+        else if (alertLevel == 1)
         {
-                iot.pub_log("NTP is not set. Can affect on log entries");
+                digitalWrite(YellowLedPin, ledOFF);
+                digitalWrite(GreenLedPin, !digitalRead(GreenLedPin));
+        }
+        else if (alertLevel == 0 && connAlert ==0)
+        {
+                digitalWrite(YellowLedPin, ledOFF);
+                digitalWrite(GreenLedPin, ledON);
         }
 }
+void startTrafficLight()
+{
+        pinMode(GreenLedPin, OUTPUT);
+        pinMode(YellowLedPin, OUTPUT);
+        pinMode(RedLedPin, OUTPUT);
+        blinker.attach(0.2, TrafficBlink); // Start WatchDog
+}
+void TrafficLight_looper()
+{
+        static long lastCheck = 0;
+        if (millis() - lastCheck > 1000 * 60L * EVAL_PERIOD)
+        {
+                evalute_connectivity_status();
+                lastCheck = millis();
+        }
+}
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 void setup()
 {
-        long tic = millis();
         startIOTservices();
         startFlogs();
+        startTrafficLight();
         begin_monitor_clock = now() - (int)(millis() / 1000);
 
 #if USE_DISPLAY
         LCD.start();
 #endif
-
-#if USE_TELEGRAM
-        teleNotify.begin(telecmds);
-        iot.pub_ext("Boot");
-
-#endif
-        Serial.print("setup started: ");
-        Serial.println(tic);
-        Serial.print("ended setup: ");
-        Serial.println(millis() - tic);
 }
-
-void loop()                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    
+void loop()
 {
-        static long tic = 0;
-        static long tic2 = 0;
         iot.looper();
-        if (millis() > tic + 150)
-        {
-                Serial.print("iot: ");
-                Serial.println(millis() - tic);
-        }
-        testConnectivity();
+        disconnectionLOG.looper();
+        connectionLOG.looper();
+
+        pingServers();
+        TrafficLight_looper();
 
 #if USE_DISPLAY
         gen_report_LCD();
 #endif
-        tic2 = millis();
-        
-
-#if USE_TELEGRAM
-        teleNotify.looper();
-        listenMQTT_forTelegram();
-#endif
-        if (millis() - tic2 > 3500){
-                Serial.print("telegram: ");
-                Serial.println(millis() - tic2);
-        }
-
-                if (millis() - tic > 5500)
-                {
-                        Serial.print("loop: ");
-                        Serial.println(millis() - tic);
-                }
-        tic = millis();
         delay(100);
 }

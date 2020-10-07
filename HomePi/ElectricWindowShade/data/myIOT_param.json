@@ -2,13 +2,12 @@
     "useSerial": true,
     "useWDT": true,
     "useOTA": true,
-    "useResetKeeper": false,
     "useFailNTP": true,
-    "useDebugLog": false,
+    "useDebugLog": true,
     "useNetworkReset":true,
     "deviceTopic": "parentsRoom",
     "groupTopic": "Windows",
     "prefixTopic": "myHome",
-    "debug_level":2,
+    "debug_level":0,
     "noNetwork_reset":5
 }

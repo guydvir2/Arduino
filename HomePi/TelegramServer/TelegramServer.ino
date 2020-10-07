@@ -144,20 +144,34 @@ void listenMQTT_forTelegram()
         }
 }
 
-
+int PIRpin = 2;
+bool lastSenseState = false;
 void setup()
 {
         startRead_parameters();
         startIOTservices();
         endRead_parameters();
 
+        pinMode(PIRpin, INPUT);
+
         teleNotify.begin(telecmds);
         iot.pub_ext("Boot");
 }
 void loop()
+
 {
         iot.looper();
         teleNotify.looper();
         listenMQTT_forTelegram();
+
+        if (digitalRead(PIRpin) == HIGH && lastSenseState == false)
+        {
+                iot.pub_ext("Detection");
+                lastSenseState = true;
+        }
+        else if (digitalRead(PIRpin) == LOW && lastSenseState == true)
+        {
+                lastSenseState = false;
+        }
         delay(100);
 }

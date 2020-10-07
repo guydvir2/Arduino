@@ -1,22 +1,25 @@
 {
     "useOnatBoot": true,
+    "useResetKeeper":true,
+    "usetimeOUT":true,
     "usequickBoot": true,
     "usedailyTO": true,
     "useSafteyOff": true,
     "useEEPROM_resetCounter": false,
-    "usePWM": true,
-    "useInput": false,
-    "useExtTrig": true,
+    "usePWM": false,
+    "useInput": true,
+    "useExtTrig": false,
     "momentryButtorn": false,
     "useDisplay":false,
     "numSW": 1,
     "safetyOffDuration": 400,
+    "inputState":true,
     "inputPin": [
-        14,
+        12,
         1
     ],
     "outputPin": [
-        0,
+        2,
         4
     ],
     "extTrigPin": 2,
