@@ -20,7 +20,7 @@ mySwitch *TOswitches[maxSW] = {};
 int outputPin[maxSW];
 int inputPin[maxSW];
 int extTrigPin;
-int hRebbots[maxSW];    // <--- Need to fix usage
+int hRebbots[maxSW]; // <--- Need to fix usage
 char SW_Names[maxSW][30];
 
 //~~ extTrig functions
@@ -134,7 +134,7 @@ void startIOTservices()
 	iot.useSerial = paramJSON["useSerial"];
 	iot.useWDT = paramJSON["useWDT"];
 	iot.useOTA = paramJSON["useOTA"];
-	iot.useResetKeeper = sketchJSON["useResetKeeper"]; // Attention <--- definition 
+	iot.useResetKeeper = sketchJSON["useResetKeeper"]; // Attention <--- definition
 	iot.resetFailNTP = paramJSON["useFailNTP"];
 	iot.useDebug = paramJSON["useDebugLog"];
 	iot.debug_level = paramJSON["debug_level"];
@@ -204,7 +204,9 @@ void addiotnalMQTT(char *incoming_msg)
 	}
 	else if (strcmp(incoming_msg, "ver2") == 0)
 	{
-		sprintf(msg, "ver #2: [%s], useSafeyOff[%d], safetyDuration[%d], NumSwitches[%d]", VER, TOswitches[0]->usesafetyOff, TOswitches[0]->set_safetyoff, numSW);
+		sprintf(msg, "ver #2: [%s], useSafeyOff[%d], safetyDuration[%d], NumSwitches[%d], UseHReboot[%d], useResetKeeper[%d], useDailyTO[%d],usequickBoot[%d],usetimeOUT[%d]",
+				VER, TOswitches[0]->usesafetyOff, TOswitches[0]->set_safetyoff, numSW, TOswitches[0]->useHardReboot, TOswitches[0]->badBoot, TOswitches[0]->useDailyTO,
+				TOswitches[0]->usequickON, TOswitches[0]->usetimeOUT);
 		iot.pub_msg(msg);
 	}
 	else if (strcmp(incoming_msg, "help2") == 0)
@@ -268,6 +270,7 @@ void addiotnalMQTT(char *incoming_msg)
 
 void setup()
 {
+	Serial.begin(9600);
 	startRead_parameters();
 	TOswitch_init();
 	startIOTservices();

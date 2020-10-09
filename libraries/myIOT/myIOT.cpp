@@ -1373,12 +1373,13 @@ void mySwitch::config(int switchPin, int timeout_val, char *name)
 	pinMode(_switchPin, OUTPUT); // defined here for hReboot purposes
 	if (useHardReboot)
 	{
-		hReboot.check_boot(1);
+		hReboot.check_boot(2);
 	}
 	if (usequickON)
 	{
 		quickPwrON();
 	}
+
 	if (usetimeOUT)
 	{
 		TOswitch.set_fvars(timeout_val);
@@ -1466,12 +1467,11 @@ void mySwitch::quickPwrON()
 		digitalWrite(_switchPin, !RelayOn);
 	}
 }
-void mySwitch::_recoverReset(int rebootState)
+void mySwitch::_afterBoot_behaviour(int rebootState)
 {
 	if (hReboot.resetFlag && useHardReboot)
 	{
 		// using HardReboot
-		Serial.println("B");
 		if (usePWM)
 		{
 			switchIt("onAtBoot", def_power);
@@ -1606,12 +1606,10 @@ void mySwitch::switchIt(char *txt1, float state, bool ignoreTO)
 		}
 		else
 		{
-			// if (state != current_power)
 			// {
 			digitalWrite(_switchPin, state);
 			current_power = state;
 			sprintf(_out2MQTTmsg, "%s: [%s] Switched [%s]", txt1, _switchName, (int)current_power ? "On" : "Off");
-			// }
 		}
 
 		if (usetimeOUT && ignoreTO == false)
@@ -1939,10 +1937,10 @@ void mySwitch::_TOlooper(int det_reset)
 {
 	if (det_reset != 2)
 	{
-		if (_check_recoverReset)
+		if (_check_afterBoot)
 		{
-			_recoverReset(det_reset);
-			_check_recoverReset = false;
+			_afterBoot_behaviour(det_reset);
+			_check_afterBoot = false;
 		}
 
 		bool relayState = TOswitch.looper(); // TO in on/off state ?

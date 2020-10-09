@@ -57,7 +57,7 @@ void startRead_parameters()
                         \"hReboots\" : [1,2],\"start_dTO\" : [[19,0, 0],[20,30,0]],\"end_dTO\" : [[23,30,0],[22,0,0]],\
                         \"timeOUTS\" : [120,120],\"SW_Names\" : [\"LED1\",\"LED2\"],\"defPWM\":0.7}";
 
-  String myIOT_defs = "{\"useSerial\":true,\"useWDT\":false,\"useOTA\":true,\
+  String myIOT_defs = "{\"useSerial\":false,\"useWDT\":false,\"useOTA\":true,\
                         \"useFailNTP\" : true,\"useDebugLog\" : true,\"useNetworkReset\":false, \"deviceTopic\" : \"mySwitch\",\
                         \"groupTopic\" : \"group\",\"prefixTopic\" : \"myHome\",\"debug_level\":0,\"noNetwork_reset\":1}";
 
@@ -66,6 +66,8 @@ void startRead_parameters()
     readfile_ok = true;
   }
   // serializeJsonPretty(sketchJSON, Serial);
+  // serializeJsonPretty(paramJSON, Serial);
+  Serial.flush();
   update_vars(sketchJSON);
 }
 void endRead_parameters()

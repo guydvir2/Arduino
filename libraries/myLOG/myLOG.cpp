@@ -39,7 +39,6 @@ void flashLOG::_write2file()
     int num_lines = getnumlines();
     if (num_lines > 0 && num_lines + _buff_i > _logsize)
     {
-        // Serial.printf("delteing %d lines \n", (num_lines + _buff_i) - _logsize);
         _del_lines((num_lines + _buff_i) - _logsize);
     }
 
@@ -58,6 +57,9 @@ void flashLOG::_write2file()
     file1.close();
     _buff_i = 0;
     lastUpdate = 0;
+}
+void flashLOG::writeNow(){
+    _write2file();
 }
 void flashLOG::_del_lines(byte line_index)
 {

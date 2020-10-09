@@ -7,19 +7,19 @@
     "useSafteyOff": true,
     "useEEPROM_resetCounter": false,
     "usePWM": false,
-    "useInput": true,
+    "useInput": false,
     "useExtTrig": false,
     "momentryButtorn": false,
     "useDisplay":false,
     "numSW": 1,
-    "safetyOffDuration": 400,
+    "safetyOffDuration": 720,
     "inputState":true,
     "inputPin": [
         12,
         1
     ],
     "outputPin": [
-        2,
+        12,
         4
     ],
     "extTrigPin": 2,
@@ -29,8 +29,8 @@
     ],
     "start_dTO": [
         [
-            19,
-            30,
+            17,
+            0,
             0
         ],
         [
@@ -42,7 +42,7 @@
     "end_dTO": [
         [
             0,
-            0,
+            30,
             0
         ],
         [
@@ -52,11 +52,11 @@
         ]
     ],
     "timeOUTS": [
-        10,
+        600,
         120
     ],
     "SW_Names": [
-        "sinkLEDs",
+        "greenLights",
         "LED2"
     ],
     "defPWM":0.6

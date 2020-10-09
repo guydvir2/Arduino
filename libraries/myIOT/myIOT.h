@@ -335,10 +335,10 @@ private:
     void _start_dailyTO();
     void _extTrig_looper();
     void _safetyOff();
-    void _recoverReset(int rebootState = -1);
+    void _afterBoot_behaviour(int rebootState = -1);
 
 public:
-    const char *ver = "mySwitch_1.7";
+    const char *ver = "mySwitch_1.8";
     bool usePWM = false;
     bool useSerial = false;
     bool useInput = false;
@@ -355,7 +355,7 @@ public:
     bool last_relayState = false;
     bool trig_lastState = false;
     bool inputState = HIGH;
-    bool _check_recoverReset = true;
+    bool _check_afterBoot = true;
 
     int inputPin = -1;
     float step_power = 0.2;
