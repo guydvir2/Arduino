@@ -1,11 +1,11 @@
 {
-    "useSerial": true,
+    "useSerial": false,
     "useWDT": true,
     "useOTA": true,
     "useFailNTP": true,
     "useDebugLog": true,
     "useNetworkReset":true,
-    "deviceTopic": "parentsRoom",
+    "deviceTopic": "kidsRoom",
     "groupTopic": "Windows",
     "prefixTopic": "myHome",
     "debug_level":0,

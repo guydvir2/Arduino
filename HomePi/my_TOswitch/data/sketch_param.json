@@ -1,5 +1,5 @@
 {
-    "useOnatBoot": true,
+    "useOnatBoot": false,
     "useResetKeeper":true,
     "usetimeOUT":true,
     "usequickBoot": true,
@@ -7,15 +7,15 @@
     "useSafteyOff": true,
     "useEEPROM_resetCounter": false,
     "usePWM": false,
-    "useInput": false,
+    "useInput": true,
     "useExtTrig": false,
     "momentryButtorn": false,
     "useDisplay":false,
     "numSW": 1,
-    "safetyOffDuration": 720,
+    "safetyOffDuration": 900,
     "inputState":true,
     "inputPin": [
-        12,
+        14,
         1
     ],
     "outputPin": [
@@ -41,7 +41,7 @@
     ],
     "end_dTO": [
         [
-            0,
+            6,
             30,
             0
         ],
@@ -52,11 +52,11 @@
         ]
     ],
     "timeOUTS": [
-        600,
+        120,
         120
     ],
     "SW_Names": [
-        "greenLights",
+        "Bulb",
         "LED2"
     ],
     "defPWM":0.6

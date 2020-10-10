@@ -44,11 +44,12 @@ bool homeAssistantConnected = false;
 int preformanceLevel = 0;
 int serviceAlertlevel = 0;
 
+char aa[200];
+#define EVAL_PERIOD 10                 // minutes
 const byte seconds_offline_alarm = 60; // past this time , an Alert will be sent upon reconnection
 const byte min_ping_interval = 10;     //seconds
 
 int adaptive_ping_val = min_ping_interval;
-time_t begin_monitor_clock;
 
 // ~~~~~~~~~~~~~~~~~~~ FlashLogs ~~~~~~~~~~~~~~~~~~~~
 #define flosgSize 200
@@ -95,15 +96,15 @@ void startFlogs()
         disconnectionLOG.start(flosgSize, 50);
 
         time_t t = now();
+        // After reboot when connected
         if (connectionLOG.getnumlines() == disconnectionLOG.getnumlines())
         {
                 writeFlog(disconnectionLOG);
-                iot.pub_log("Add disconnect ");
         }
+        // After reboot when non-connected
         else if (disconnectionLOG.getnumlines() == connectionLOG.getnumlines() + 1)
         {
                 writeFlog(connectionLOG);
-                iot.pub_log("Add connect after disconnect&Boot ");
         }
         else
         {
@@ -116,6 +117,10 @@ void startFlogs()
         {
                 iot.pub_log("NTP is not set. Can affect on log entries");
         }
+}
+void loopFlogs(){
+        disconnectionLOG.looper();
+        connectionLOG.looper();
 }
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -161,7 +166,6 @@ void calc2(int &connectedTime, int &disconncetedTime, int &disconnectCounter, in
                                 {
                                         connectedTime += (int)(readFlog(disconnectionLOG, x) - readFlog(connectionLOG, x - 1));
                                 }
-
                                 disconncetedTime += readFlog(connectionLOG, x) - readFlog(disconnectionLOG, x);
                                 disconnectCounter++;
                         }
@@ -181,9 +185,9 @@ void calc2(int &connectedTime, int &disconncetedTime, int &disconnectCounter, in
                 }
                 disconncetedTime += now() - readFlog(disconnectionLOG, connectionLOG.getnumlines());
         }
-
-        // disconnectCounter--;
 }
+
+// ~~~~~~~~~~~Update Alert Levels ~~~~~~~~~~~
 void updateServices_Alerts()
 {
         if (mqttConnected == false || homeAssistantConnected == false)
@@ -247,23 +251,36 @@ void updatePreformance()
                         State_disp[preformanceLevel], internetConnected ? "OK" : "BAD", mqttConnected ? "OK" : "BAD", homeAssistantConnected ? "OK" : "BAD",
                         times_disp[preformanceLevel], days, times, maxd);
 
-                if (preformanceLevel == 3)
-                {
-                        iot.pub_ext(msg);
-                        iot.pub_msg(msg);
-                }
-                else if (preformanceLevel == 2)
-                {
-                        iot.pub_msg(msg);
-                        iot.pub_log(msg);
-                }
-                else if (preformanceLevel == 1)
-                {
-                        iot.pub_log(msg);
-                }
+                preformance_alert(msg);
+        }
+}
+void preformance_alert(char *msg){
+        if (preformanceLevel == 3)
+        {
+                iot.pub_ext(msg);
+                iot.pub_msg(msg);
+        }
+        else if (preformanceLevel == 2)
+        {
+                iot.pub_msg(msg);
+                iot.pub_log(msg);
+        }
+        else if (preformanceLevel == 1)
+        {
+                iot.pub_log(msg);
+        }
+}
+void prefomance_looper()
+{
+        static long lastCheck = 0;
+        if (millis() - lastCheck > 1000 * 60L * EVAL_PERIOD)
+        {
+                updatePreformance();
+                lastCheck = millis();
         }
 }
 
+// ~~~~~~~~~~~~~~ myIOT ~~~~~~~~~~~~~~
 void startIOTservices()
 {
         iot.useSerial = USE_SERIAL;
@@ -293,7 +310,7 @@ void addiotnalMQTT(char *incoming_msg)
                 time_t moni = readFlog(connectionLOG, 0);
                 convert_epoch2clock(now(), moni, times_char[1], days_char[1]);
                 epoch2datestr(moni, datestr);
-                convert_epoch2clock(now(), begin_monitor_clock, times_char[2], days_char[2]);
+                convert_epoch2clock(now(), readFlog(disconnectionLOG, disconnectionLOG.getnumlines() - 1), times_char[2], days_char[2]);
                 sprintf(msg, "Status: Internet[%s] MQTTserver[%s] HomeAssistant[%s] Disconnects[%d] monitoringTime [%s %s], First log[%s] onTime[%s %s]",
                         internetConnected ? "OK" : "FAIL", mqttConnected ? "OK" : "FAIL", homeAssistantConnected ? "OK" : "FAIL",
                         disconnectionLOG.getnumlines() - 1, days_char[1], times_char[1], datestr, days_char[2], times_char[2]);
@@ -394,6 +411,8 @@ void addiotnalMQTT(char *incoming_msg)
                 }
         }
 }
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 
 // ~~~~~~~~~~~ LCD Display ~~~~~~~~~~~
 #if USE_DISPLAY
@@ -430,7 +449,7 @@ void generate_monitor_status()
         else
         {
                 iot.get_timeStamp(now());
-                convert_epoch2clock(now(), begin_monitor_clock, cloc, days);
+                convert_epoch2clock(now(), readFlog(disconnectionLOG, disconnectionLOG.getnumlines() - 1), cloc, days);
 
                 sprintf(line1, ">>Network  Monitor<<");
                 sprintf(line2, iot.timeStamp);
@@ -443,7 +462,9 @@ void generate_monitor_status()
         }
 }
 
-void pingServers()
+
+// ~~~~~ LOW-Level inspections ~~~~~~~~~
+void pingServices()
 {
         byte retries = 0;
         bool internet_ping = false;
@@ -460,11 +481,11 @@ void pingServers()
                 }
 
                 last_check = millis();
-                check_internet_changeStatus(internet_ping);
+                checknLOG_internet(internet_ping);
                 updateServices_Alerts();
         }
 }
-void check_internet_changeStatus(bool get_ping)
+void checknLOG_internet(bool get_ping)
 {
         static int same_state_counter = 0;
         static bool lastConStatus = false;
@@ -479,16 +500,17 @@ void check_internet_changeStatus(bool get_ping)
 
                         if (disconnectionLOG.getnumlines() > 1) // not first boot
                         {
-                                if (readFlog(connectionLOG, 0) - readFlog(disconnectionLOG, 0) > seconds_offline_alarm)
+                                int offline_duration = readFlog(connectionLOG, connectionLOG.getnumlines() - 1) - readFlog(disconnectionLOG, disconnectionLOG.getnumlines() - 1);
+                                if (offline_duration > seconds_offline_alarm)
                                 {
                                         char tempmsg[50];
-                                        sprintf(tempmsg, "Internet back ON after [%d sec]", readFlog(connectionLOG, 0) - readFlog(disconnectionLOG, 0));
+                                        sprintf(tempmsg, "Internet back ON after [%d sec]", offline_duration);
                                         iot.pub_log(tempmsg);
                                 }
                         }
                         else
                         {
-                                Serial.println("First time connection");
+                                // Serial.println("First time connection");
                         }
                 }
                 else // is now disconnected
@@ -519,6 +541,7 @@ void check_internet_changeStatus(bool get_ping)
 }
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+
 // ~~~~~~~~~~ TrafficLight ~~~~~~~~~~~~~
 #if USE_TRAFFIC_LIGHT
 #define GreenLedPin D3
@@ -526,7 +549,6 @@ void check_internet_changeStatus(bool get_ping)
 #define RedLedPin D1
 #define ledON HIGH
 #define ledOFF !ledON
-#define EVAL_PERIOD 10 // minutes
 
 Ticker blinker;
 void TrafficBlink()
@@ -572,15 +594,7 @@ void startTrafficLight()
         pinMode(RedLedPin, OUTPUT);
         blinker.attach(0.2, TrafficBlink); // Start WatchDog
 }
-void TrafficLight_looper()
-{
-        static long lastCheck = 0;
-        if (millis() - lastCheck > 1000 * 60L * EVAL_PERIOD)
-        {
-                updatePreformance();
-                lastCheck = millis();
-        }
-}
+
 #endif
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -591,7 +605,6 @@ void setup()
 #if USE_TRAFFIC_LIGHT
         startTrafficLight();
 #endif
-        begin_monitor_clock = now() - (int)(millis() / 1000);
 
 #if USE_DISPLAY
         LCD.start();
@@ -600,12 +613,11 @@ void setup()
 void loop()
 {
         iot.looper();
-        disconnectionLOG.looper();
-        connectionLOG.looper();
+        loopFlogs();
 
-        pingServers();
+        pingServices();
 #if USE_TRAFFIC_LIGHT
-        TrafficLight_looper();
+        prefomance_looper();
 #endif
 
 #if USE_DISPLAY

@@ -5,7 +5,7 @@
     "useFailNTP": true,
     "useDebugLog": true,
     "useNetworkReset":true,
-    "deviceTopic": "LivingRoom",
+    "deviceTopic": "Stove",
     "groupTopic": "intLights",
     "prefixTopic": "myHome",
     "debug_level":0,

@@ -95,7 +95,7 @@ public:
     void get_timeStamp(time_t t = 0);
     void return_clock(char ret_tuple[20]);
     void return_date(char ret_tuple[20]);
-    bool checkInternet(char *externalSite, byte pings = 1);
+    bool checkInternet(char *externalSite="www.google.com", byte pings = 1);
 
     void sendReset(char *header);
     void notifyOnline();
