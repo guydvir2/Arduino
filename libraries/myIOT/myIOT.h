@@ -2,7 +2,7 @@
 #define myIOT_h
 
 #include <Arduino.h>
-#include "/home/guy/Documents/git/Arduino/libraries/myIOT/secrets.h"
+#include "secretsIOT8266.h"
 #include <myJSON.h>
 #include <myLOG.h>
 #include <EEPROM.h>
