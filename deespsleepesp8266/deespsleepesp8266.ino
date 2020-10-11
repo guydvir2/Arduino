@@ -58,10 +58,8 @@ void addiotnalMQTT(char *incoming_msg)
 }
 
 // ~~~~~~~~~~~~~~~ Read Battery Voltage ~~~~~~~~
-const float v_div_ratio = 0.591304348;
+const float v_div_ratio = 0.591304348; 
 const float v_logic = 3.3;
-const float non_linear_factor = 0.075;
-const float non_linearity_margin = 0.05;
 const int adc_res = 1023;
 
 float vbat = 0;
@@ -78,15 +76,7 @@ void measure_bat_v(int x = 10)
         delay(50);
     }
     analog_val /= (float)x;
-    Serial.print("analog: ");
-    Serial.println(analog_val);
 
-    // ~~~~ non-linear behaviour ~~~
-    // if (analog_val > non_linearity_margin || analog_val <= 1 - non_linearity_margin)
-    // {
-    //     analog_val *= (1 - non_linear_factor);
-    // }
-    // ~~~~~~ END ~~~~~~~~
 
     vbat = (v_logic / (float)adc_res) * (analog_val / v_div_ratio);
     Serial.printf("Battery voltage: %.2f[v]\n", vbat);
@@ -169,6 +159,7 @@ void calc_time()
 {
     time_t t = now();
     correct_next_sleep = time2Sleep - (minute(t) * 60 + second(t)) % (time2Sleep);
+    correct_next_sleep *= 1.033; // drift factor 1 min every 30 minutes
     Serial.print("Next_time_duration is: ");
     Serial.println(correct_next_sleep);
 }
