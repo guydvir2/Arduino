@@ -1385,7 +1385,6 @@ void mySwitch::config(int switchPin, int timeout_val, char *name)
 		TOswitch.set_fvars(timeout_val);
 	}
 }
-int mySwitch::_counter = 0;
 void mySwitch::begin()
 {
 	if (useSerial)
@@ -1433,7 +1432,7 @@ void mySwitch::looper(int det_reset)
 		_safetyOff();
 	}
 }
-
+int mySwitch::_counter = 0;
 //~~ onBoot Services ~~
 void mySwitch::quickPwrON()
 {
@@ -1571,8 +1570,33 @@ void mySwitch::changePower(float val)
 		{
 			val = min_power;
 		}
+
+		byte fade_dealy = 15;
+		if (val < 0.01)
+		{
+			for (int i = (int)(current_power * 100); i >= 0; i--)
+			{
+				analogWrite(_switchPin, i * PWM_RES * 0.01);
+				delay(fade_dealy);
+			}
+		}
+		else if (current_power < val)
+		{
+			for (int i = (int)(current_power * 100); i <= (int)(val * 100); i++)
+			{
+				analogWrite(_switchPin, i * PWM_RES * 0.01);
+				delay(fade_dealy);
+			}
+		}
+		else
+		{
+			for (int i = (int)(val * 100); i >= (int)(current_power * 100); i--)
+			{
+				analogWrite(_switchPin, i * PWM_RES * 0.01);
+				delay(fade_dealy);
+			}
+		}
 		current_power = val;
-		analogWrite(_switchPin, val * PWM_RES);
 	}
 }
 void mySwitch::switchIt(char *txt1, float state, bool ignoreTO)
@@ -1587,21 +1611,18 @@ void mySwitch::switchIt(char *txt1, float state, bool ignoreTO)
 			{
 				// turning off
 				changePower(state);
-				sprintf(_outMQTTmsg, "%s: [%s] Switched [Off]", txt1,
-						_switchName);
+				sprintf(_outMQTTmsg, "%s: [%s] Switched [Off]", txt1, _switchName);
 			}
 			else if (current_power == 0.0 && state > 0)
 			{
 				// turning on
 				changePower(state);
-				sprintf(_out2MQTTmsg, "%s: [%s] Switched [On] [%.1f%%] power",
-						txt1, _switchName, current_power * 100);
+				sprintf(_out2MQTTmsg, "%s: [%s] Switched [On] [%.1f%%] power", txt1, _switchName, current_power * 100);
 			}
 			else
 			{
 				changePower(state);
-				sprintf(_out2MQTTmsg, "%s: [%s] Switched to [%.1f%%] power",
-						txt1, _switchName, current_power * 100);
+				sprintf(_out2MQTTmsg, "%s: [%s] Switched to [%.1f%%] power", txt1, _switchName, current_power * 100);
 			}
 		}
 		else

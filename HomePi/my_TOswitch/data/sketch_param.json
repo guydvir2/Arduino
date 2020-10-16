@@ -6,20 +6,19 @@
     "usedailyTO": true,
     "useSafteyOff": true,
     "useEEPROM_resetCounter": false,
-    "usePWM": false,
+    "usePWM": true,
     "useInput": true,
     "useExtTrig": false,
-    "momentryButtorn": false,
-    "useDisplay":false,
+    "momentryButtorn": true,
     "numSW": 1,
     "safetyOffDuration": 900,
     "inputState":true,
     "inputPin": [
-        14,
+        13,
         1
     ],
     "outputPin": [
-        12,
+        0,
         4
     ],
     "extTrigPin": 2,
@@ -29,7 +28,7 @@
     ],
     "start_dTO": [
         [
-            17,
+            15,
             0,
             0
         ],
@@ -52,11 +51,11 @@
         ]
     ],
     "timeOUTS": [
-        120,
+        180,
         120
     ],
     "SW_Names": [
-        "Bulb",
+        "Table",
         "LED2"
     ],
     "defPWM":0.6

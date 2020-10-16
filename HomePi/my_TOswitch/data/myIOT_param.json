@@ -1,11 +1,11 @@
 {
-    "useSerial": false,
+    "useSerial": true,
     "useWDT": true,
     "useOTA": true,
     "useFailNTP": true,
     "useDebugLog": true,
     "useNetworkReset":true,
-    "deviceTopic": "Stove",
+    "deviceTopic": "familyRoomLEDs",
     "groupTopic": "intLights",
     "prefixTopic": "myHome",
     "debug_level":0,

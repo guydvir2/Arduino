@@ -50,7 +50,7 @@ void update_vars(JsonDocument &DOC)
 
 void startRead_parameters()
 {
-  String sketch_defs = "{\"useDisplay\":false,\"useOnatBoot\" : false,\"usequickBoot\" : false,\"usedailyTO\" : true,\
+  String sketch_defs = "{\"useOnatBoot\" : false,\"usequickBoot\" : false,\"usedailyTO\" : true,\
                         \"useSafteyOff\" : true,\"useResetKeeper\":false,\"usetimeOUT\":false,\"useEEPROM_resetCounter\" : false,\
                         \"usePWM\" : true,\"useInput\" : false,\"useExtTrig\" : false,\"momentryButtorn\" : true,\"inputState\":true,\
                         \"numSW\" : 1, \"safetyOffDuration\" : 60,\"inputPin\" : [0, 2],\"outputPin\":[12,5],\"extTrigPin\" : 5,\
@@ -67,7 +67,7 @@ void startRead_parameters()
   }
   // serializeJsonPretty(sketchJSON, Serial);
   // serializeJsonPretty(paramJSON, Serial);
-  Serial.flush();
+  // Serial.flush();
   update_vars(sketchJSON);
 }
 void endRead_parameters()

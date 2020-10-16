@@ -338,7 +338,7 @@ private:
     void _afterBoot_behaviour(int rebootState = -1);
 
 public:
-    const char *ver = "mySwitch_1.8";
+    const char *ver = "mySwitch_1.9";
     bool usePWM = false;
     bool useSerial = false;
     bool useInput = false;
