@@ -1395,6 +1395,7 @@ void mySwitch::begin()
 	if (useInput && inputPin != -1)
 	{
 		pinMode(inputPin, INPUT_PULLUP);
+		inputState = digitalRead(inputPin); // to avoid On after reset
 	}
 
 	current_power = 0;
@@ -1433,6 +1434,7 @@ void mySwitch::looper(int det_reset)
 	}
 }
 int mySwitch::_counter = 0;
+
 //~~ onBoot Services ~~
 void mySwitch::quickPwrON()
 {
