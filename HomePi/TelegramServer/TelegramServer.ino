@@ -1,6 +1,8 @@
+#include <Arduino.h>
 #include <myIOT.h>
 #include "telegram_param.h"
-#include <Arduino.h>
+
+#include <EMailSender.h>
 
 // ********** Sketch Services  ***********
 #define VER "ESP8266_0.1"
@@ -146,16 +148,32 @@ void listenMQTT_forTelegram()
 
 int PIRpin = 2;
 bool lastSenseState = false;
+
+// ~~~~~~~~~~ Email Service ~~~~~~~~~~
+EMailSender emailSend("guydvir.tech@gmail.com", "GdSd13100301");
+
+void sendEmail(char *msg, char *TO, char *subject){
+        EMailSender::EMailMessage message;
+        message.subject = subject;
+        message.message = msg;
+
+        EMailSender::Response resp = emailSend.send(TO, message);
+
+        Serial.println("Sending status: ");
+
+        Serial.println(resp.status);
+        Serial.println(resp.code);
+        Serial.println(resp.desc);
+}
 void setup()
 {
         startRead_parameters();
         startIOTservices();
         endRead_parameters();
 
-        pinMode(PIRpin, INPUT);
-
         teleNotify.begin(telecmds);
         iot.pub_ext("Boot");
+        sendEmail("Hi- i'm fine", "guydvir2@gmail.com", "Testing123");
 }
 void loop()
 
@@ -163,15 +181,5 @@ void loop()
         iot.looper();
         teleNotify.looper();
         listenMQTT_forTelegram();
-
-        if (digitalRead(PIRpin) == HIGH && lastSenseState == false)
-        {
-                iot.pub_ext("Detection");
-                lastSenseState = true;
-        }
-        else if (digitalRead(PIRpin) == LOW && lastSenseState == true)
-        {
-                lastSenseState = false;
-        }
         delay(100);
 }

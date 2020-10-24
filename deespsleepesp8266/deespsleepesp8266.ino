@@ -1,13 +1,19 @@
 #include <myIOT.h>
 #include <Arduino.h>
 #include <EEPROM.h>
+#include <ArduinoJson.h>
+#include <Adafruit_ADS1015.h>
+#include "esp8266Sleep.h"
 
 // ********** Sketch Services  ***********
-#define VER "WEMOS_1.1"
+#define VER "WEMOS_1.3"
+#define SLEEP_MINUTES 30
+#define FORCE_WAKE_SECONDS 15
+#define USE_BAT false
 
 // ********** myIOT Class ***********
 //~~~~~ Services ~~~~~~~~~~~
-#define USE_SERIAL true       // Serial Monitor
+#define USE_SERIAL false       // Serial Monitor
 #define USE_WDT true          // watchDog resets
 #define USE_OTA true          // OTA updates
 #define USE_RESETKEEPER false // detect quick reboot and real reboots
@@ -15,13 +21,13 @@
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 // ~~~~~~~ MQTT Topics ~~~~~~
-#define DEVICE_TOPIC "ESP8266_deepSleep"
+#define DEVICE_TOPIC "ESP8266_BAT_6V"
 #define MQTT_PREFIX "myHome"
-#define MQTT_GROUP "test"
+#define MQTT_GROUP "SolarPower"
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 #define ADD_MQTT_FUNC addiotnalMQTT
-myIOT iot;
+extern myIOT iot;
 // ***************************
 
 void startIOTservices()
@@ -34,6 +40,7 @@ void startIOTservices()
     strcpy(iot.deviceTopic, DEVICE_TOPIC);
     strcpy(iot.prefixTopic, MQTT_PREFIX);
     strcpy(iot.addGroupTopic, MQTT_GROUP);
+
     iot.start_services(ADD_MQTT_FUNC);
 }
 void addiotnalMQTT(char *incoming_msg)
@@ -58,16 +65,14 @@ void addiotnalMQTT(char *incoming_msg)
 }
 
 // ~~~~~~~~~~~~~~~ Read Battery Voltage ~~~~~~~~
-const float v_div_ratio = 0.591304348;
 const float v_logic = 3.3;
-const float non_linear_factor = 0.075;
-const float non_linearity_margin = 0.05;
 const int adc_res = 1023;
+const float v_div_ratio = 0.591304348;
+const float min_batVoltage = 3.0;
+const float max_batVoltage = 4.2;
 
 float vbat = 0;
 float batRemain = 0;
-const float min_batVoltage = 3.0;
-const float max_batVoltage = 4.2;
 
 void measure_bat_v(int x = 10)
 {
@@ -78,76 +83,57 @@ void measure_bat_v(int x = 10)
         delay(50);
     }
     analog_val /= (float)x;
-    Serial.print("analog: ");
-    Serial.println(analog_val);
-
-    // ~~~~ non-linear behaviour ~~~
-    // if (analog_val > non_linearity_margin || analog_val <= 1 - non_linearity_margin)
-    // {
-    //     analog_val *= (1 - non_linear_factor);
-    // }
-    // ~~~~~~ END ~~~~~~~~
 
     vbat = (v_logic / (float)adc_res) * (analog_val / v_div_ratio);
     Serial.printf("Battery voltage: %.2f[v]\n", vbat);
 }
 void start_adc()
 {
-    char a[50];
     pinMode(A0, INPUT);
     measure_bat_v(10);
 }
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 // ~~~~~~~~~~~~~~~~ DeepSleep ~~~~~~~~~~~~
-
-#define microsec2sec 1000000ULL /* Conversion micro seconds to seconds */
 #define MINUTES 60
-#define forceWake_sec 15
-#define time2Sleep 30*MINUTES //seconds
-FVars FVAR_lastboot("lastBoot");
+#define microsec2sec 1000000ULL /* Conversion micro seconds to seconds */
+
+const float driftFactor = 1.06; /* ESP8266 error correction for wake time - adds time to nominal sleep time*/
+const int sleepTime = SLEEP_MINUTES * MINUTES;
+FVars FVAR_bootClock("currentBoot");
 FVars FVAR_bootCounter("bootCounter");
+FVars FVAR_nextWakeClock("nextWake");
 
 bool NTPconnect = false;
-bool internetConnect = false;
 bool wifiConnect = false;
 bool mqttConnect = false;
+bool internetConnect = false;
+
+int drift = 0;
+int bootCount = 0;
+int totalSleepTime = 0;
+int nextsleep_duration = 0;
 
 time_t wakeClock = 0;
-int drift = 0;
-int correct_next_sleep = 0;
 
+// Wake functions
 void onWake_cb()
 {
     char a[100];
     int bc = 0;
 
     FVAR_bootCounter.getValue(bc);
-    sprintf(a, "BootCounter: [#%d], sleepCycle: [%d sec], drift: [%d sec], Battery Voltage: [%.2fv]", bc, time2Sleep, drift, vbat);
+    sprintf(a, "BootCounter: [#%d], sleepCycle: [%d sec], drift: [%d sec], Battery Voltage: [%.2fv]", bc, sleepTime, drift, vbat);
     Serial.println(a);
     iot.pub_msg(a);
 }
-void gotoSleep(int seconds2sleep = 10)
+void updateVars_afterWake()
 {
-    Serial.printf("Going to sleep for %d [sec]", seconds2sleep);
-    Serial.flush();
-    delay(200);
-    ESP.deepSleep(microsec2sec * seconds2sleep);
-}
-void calc_lastSleep_drift()
-{
-    long lastwake = 0;
-    int bootCounter = 0;
-    long curwake = now();
 
-    FVAR_bootCounter.getValue(bootCounter);
-    FVAR_bootCounter.setValue(++bootCounter);
-    FVAR_lastboot.getValue(lastwake);
-    FVAR_lastboot.setValue(curwake);
-
-    int tdelta = curwake - lastwake;
-    drift = tdelta - (time2Sleep + forceWake_sec);
-    // Serial.printf("Last sleep was: %d, now is: %d, timedelta = %d [sec] drift is: %d [sec]\n", lastwake, curwake, tdelta, );
+    // Update Flash variables
+    FVAR_bootCounter.getValue(bootCount);
+    FVAR_bootCounter.setValue(++bootCount);
+    FVAR_bootClock.setValue(wakeClock);
 }
 bool onWake_checkups()
 {
@@ -165,32 +151,151 @@ bool onWake_checkups()
         return 0;
     }
 }
-void calc_time()
+void wakeup_summary()
+{
+    wakeClock = now();
+    time_t lastBoot = 0;
+    time_t last_wakeClock = 0;
+
+    FVAR_bootClock.getValue(lastBoot);
+    FVAR_nextWakeClock.getValue(last_wakeClock);
+    updateVars_afterWake();
+
+    totalSleepTime = wakeClock - lastBoot - FORCE_WAKE_SECONDS;
+    drift = wakeClock - last_wakeClock -(int)(millis()/1000);
+}
+
+// prepare to sleep~~~~
+void nextSleepCalculation()
 {
     time_t t = now();
-    correct_next_sleep = time2Sleep - (minute(t) * 60 + second(t)) % (time2Sleep);
-    Serial.print("Next_time_duration is: ");
-    Serial.println(correct_next_sleep);
+
+    nextsleep_duration = sleepTime - (minute(t) * 60 + second(t)) % (sleepTime);
+    nextsleep_duration = nextsleep_duration;
+    FVAR_nextWakeClock.setValue(t + nextsleep_duration);
+
+    // Serial.print("Next_time_duration is: ");
+    // Serial.println(nextsleep_duration);
+    // Serial.print("wake clock: ");
+    // Serial.println(t + nextsleep_duration);
 }
+void gotoSleep(int seconds2sleep = 10)
+{
+    Serial.printf("Going to sleep for %d [sec]", seconds2sleep);
+    Serial.flush();
+    delay(200);
+    ESP.deepSleep(microsec2sec * seconds2sleep);
+}
+void wait2Sleep()
+{
+    if (drift < 0 && drift > -30) /* wake up up to 30 sec earlier */
+    {
+        if (millis() > (FORCE_WAKE_SECONDS + abs(drift)) * 1000)
+        {
+            nextSleepCalculation();
+            Serial.print("missed wake up by: ");
+            Serial.println(drift);
+
+            Serial.print("drift correction is: ");
+            Serial.println((float)nextsleep_duration * (driftFactor));
+            Serial.flush();
+
+            gotoSleep(nextsleep_duration * driftFactor);
+        }
+    }
+    else if (drift < -30) /* wake up more than 30 sec earlier */
+    {
+        Serial.print("missed wake up by: ");
+        Serial.println(drift);
+        Serial.println("going to sleep early");
+        Serial.flush();
+
+        gotoSleep(abs(drift));
+    }
+    else /* wake up after time - which is OK... sort of */
+    {
+        if (millis() > FORCE_WAKE_SECONDS * 1000)
+        {
+            nextSleepCalculation();
+            Serial.print("missed wake up by: ");
+            Serial.println(drift);
+
+            Serial.print("drift correction is: ");
+            Serial.println((float)nextsleep_duration * (driftFactor));
+            Serial.flush();
+
+            gotoSleep(nextsleep_duration * driftFactor);
+        }
+    }
+
+
+    
+
+}
+
+String create_wakeStatus()
+{
+    StaticJsonDocument<300> doc;
+    // Constansts
+    doc["deviceName"] = DEVICE_TOPIC;
+    doc["bootCount"] = bootCount;
+    doc["forcedAwake"] = FORCE_WAKE_SECONDS;
+    doc["NominalSleep"] = sleepTime;
+
+    doc["totalSleep"] = totalSleepTime;
+    doc["WakeErr"] = drift;
+
+    // doc["WakeClock"] = wakeClock;
+    doc["internet"] = internetConnect;
+    doc["mqtt"] = mqttConnect;
+    doc["NTP"] = NTPconnect;
+
+    String output;
+    serializeJson(doc, output);
+    Serial.println(output);
+    return output;
+}
+void sendSleepMQTT(char *msg)
+{
+    iot.mqttClient.publish("topic", msg, true);
+}
+
+// ~~~~~~~~~~~~~~ ADS 1115 ~~~~~~~~~~~~~~~
+Adafruit_ADS1115 ads;
+
+int16_t adc0, adc1;
+const float ADC_convFactor = 0.1875;
+const float solarVoltageDiv = 0.66;
+
+void measureADS()
+{
+    adc0 = ads.readADC_SingleEnded(0);
+    adc1 = ads.readADC_SingleEnded(1);
+}
+
+
 void setup()
 {
+    ads.begin();
+    measureADS();
+
     startIOTservices();
-    if (onWake_checkups())
-    {
-        Serial.println("ALL_GOOF");
-    }
-    wakeClock = now();
-    calc_lastSleep_drift();
+#if USE_BAT
     start_adc();
+#endif
+    wakeup_summary();
+    onWake_checkups();
     onWake_cb();
+    create_wakeStatus();
+    
+    char b[80];
+    
+    sprintf(b, "Batt[%.2fv]; Solar[%.2fv]", adc0 * ADC_convFactor / 1000.0, (adc1 * ADC_convFactor / 1000.0) / solarVoltageDiv);
+    iot.pub_msg(b);
 }
 void loop()
 {
     iot.looper();
-    if (millis() > forceWake_sec * 1000)
-    {
-        calc_time();
-        gotoSleep(correct_next_sleep);
-    }
+    wait2Sleep();
     delay(100);
 }

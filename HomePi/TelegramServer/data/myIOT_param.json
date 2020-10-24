@@ -1,8 +1,8 @@
 {
-    "useSerial": true,
+    "useSerial": false,
     "useWDT": true,
     "useOTA": true,
-    "useResetKeeper": true,
+    "useResetKeeper": false,
     "useFailNTP": true,
     "useDebugLog": false,
     "useNetworkReset":true,
@@ -12,5 +12,5 @@
     "prefixTopic": "myHome",
     "extTopic": "myHome/Telegram",
     "debug_level":0,
-    "noNetwork_reset":1
+    "noNetwork_reset":10
 }

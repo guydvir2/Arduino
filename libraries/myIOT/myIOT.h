@@ -103,7 +103,7 @@ public:
     void pub_state(char *inmsg, byte i = 0);
     void pub_msg(char *inmsg);
     void pub_log(char *inmsg);
-    void pub_ext(char *inmsg, char *name = "");
+    void pub_ext(char *inmsg, char *name = "", bool retain= false);
     void pub_debug(char *inmsg);
     int inline_read(char *inputstr);
 
@@ -130,7 +130,7 @@ public:
     bool alternativeMQTTserver = false;
     bool NTP_OK = false;
     byte mqtt_detect_reset = 2;
-    int noNetwork_reset = 10; // minutes
+    int noNetwork_reset = 30; // minutes
 
     static const int MaxTopicLength = 64; //topics
     char prefixTopic[MaxTopicLength];
@@ -139,7 +139,7 @@ public:
     char extTopic[MaxTopicLength];
     char mqqt_ext_buffer[3][150];
 
-    const char *ver = "iot_8.71";
+    const char *ver = "iot_8.8";
     char timeStamp[20];
     char *myIOT_paramfile = "/myIOT_param.json";
 
@@ -338,7 +338,7 @@ private:
     void _afterBoot_behaviour(int rebootState = -1);
 
 public:
-    const char *ver = "mySwitch_1.8";
+    const char *ver = "mySwitch_2.0";
     bool usePWM = false;
     bool useSerial = false;
     bool useInput = false;

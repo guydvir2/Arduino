@@ -363,10 +363,10 @@ bool myIOT::subscribeMQTT()
 					{
 						mqttClient.subscribe(topicArry[i]);
 					}
-					if (useextTopic)
-					{
-						mqttClient.subscribe(extTopic);
-					}
+				}
+				if (useextTopic)
+				{
+					mqttClient.subscribe(extTopic);
 				}
 				if (useSerial)
 				{
@@ -598,12 +598,12 @@ void myIOT::_pub_generic(char *topic, char *inmsg, bool retain, char *devname)
 	if (strlen(tmpmsg) + mqtt_overhead_size > mqtt_defsize)
 	{
 		mqttClient.setBufferSize(strlen(tmpmsg) + mqtt_overhead_size);
-		mqttClient.publish(topic, tmpmsg);
+		mqttClient.publish(topic, tmpmsg,retain);
 		mqttClient.setBufferSize(mqtt_defsize);
 	}
 	else
 	{
-		mqttClient.publish(topic, tmpmsg);
+		mqttClient.publish(topic, tmpmsg, retain);
 	}
 }
 void myIOT::pub_msg(char *inmsg)
@@ -631,9 +631,9 @@ void myIOT::pub_log(char *inmsg)
 	_pub_generic(_logTopic, inmsg);
 	write_log(inmsg, 1);
 }
-void myIOT::pub_ext(char *inmsg, char *name)
+void myIOT::pub_ext(char *inmsg, char *name, bool retain)
 {
-	_pub_generic(extTopic, inmsg, false, name);
+	_pub_generic(extTopic, inmsg, retain, name);
 	write_log(inmsg, 0);
 }
 void myIOT::pub_debug(char *inmsg)
@@ -641,7 +641,7 @@ void myIOT::pub_debug(char *inmsg)
 	if (strlen(inmsg) + 23 > mqttClient.getBufferSize())
 	{
 		const int mqtt_defsize = mqttClient.getBufferSize();
-		mqttClient.setBufferSize(mqttClient.getBufferSize() + 23);
+		mqttClient.setBufferSize(strlen(inmsg) + 23);
 		mqttClient.publish(_debugTopic, inmsg);
 		mqttClient.setBufferSize(mqtt_defsize);
 	}
@@ -887,11 +887,9 @@ char *myIOT::export_fPars(char *filename, JsonDocument &DOC, int JSIZE)
 	{
 		if (param_on_flash.readJSON_file(DOC))
 		{
-			char ret[300];
+			int arraySize = 500;
+			char ret[arraySize];
 			strcpy(ret, param_on_flash.retAllJSON());
-			// Serial.println("this");
-			// Serial.println(ret);
-			// Serial.println("end");
 			return ret;
 		}
 	}
@@ -1385,7 +1383,6 @@ void mySwitch::config(int switchPin, int timeout_val, char *name)
 		TOswitch.set_fvars(timeout_val);
 	}
 }
-int mySwitch::_counter = 0;
 void mySwitch::begin()
 {
 	if (useSerial)
@@ -1396,6 +1393,7 @@ void mySwitch::begin()
 	if (useInput && inputPin != -1)
 	{
 		pinMode(inputPin, INPUT_PULLUP);
+		inputState = digitalRead(inputPin); // to avoid On after reset
 	}
 
 	current_power = 0;
@@ -1433,6 +1431,7 @@ void mySwitch::looper(int det_reset)
 		_safetyOff();
 	}
 }
+int mySwitch::_counter = 0;
 
 //~~ onBoot Services ~~
 void mySwitch::quickPwrON()
@@ -1484,6 +1483,7 @@ void mySwitch::_afterBoot_behaviour(int rebootState)
 	}
 	else if (badBoot)
 	{
+		Serial.println("Im in BADBOTT");
 		if (rebootState == 0)
 		{
 			// regular boot
@@ -1523,6 +1523,8 @@ void mySwitch::_afterBoot_behaviour(int rebootState)
 	else if (!badBoot)
 	{
 		// regular boot
+		Serial.println("Im not in BADBOTT");
+
 		if (onAt_boot)
 		{
 			if (TOswitch.looper() > 0)
@@ -1537,8 +1539,7 @@ void mySwitch::_afterBoot_behaviour(int rebootState)
 			{
 				switchIt("onAtBoot", RelayOn);
 			}
-			sprintf(_outMQTTlog, "%s",
-					"--> NormalBoot & On-at-Boot. Restarting TimeOUT");
+			sprintf(_outMQTTlog, "%s", "--> NormalBoot & On-at-Boot. Restarting TimeOUT");
 		}
 		else if (usequickON == false || onAt_boot == false)
 		{
@@ -1571,8 +1572,33 @@ void mySwitch::changePower(float val)
 		{
 			val = min_power;
 		}
+
+		byte fade_dealy = 15;
+		if (val < 0.01)
+		{
+			for (int i = (int)(current_power * 100); i >= 0; i--)
+			{
+				analogWrite(_switchPin, i * PWM_RES * 0.01);
+				delay(fade_dealy);
+			}
+		}
+		else if (current_power < val)
+		{
+			for (int i = (int)(current_power * 100); i <= (int)(val * 100); i++)
+			{
+				analogWrite(_switchPin, i * PWM_RES * 0.01);
+				delay(fade_dealy);
+			}
+		}
+		else
+		{
+			for (int i = (int)(val * 100); i >= (int)(current_power * 100); i--)
+			{
+				analogWrite(_switchPin, i * PWM_RES * 0.01);
+				delay(fade_dealy);
+			}
+		}
 		current_power = val;
-		analogWrite(_switchPin, val * PWM_RES);
 	}
 }
 void mySwitch::switchIt(char *txt1, float state, bool ignoreTO)
@@ -1587,21 +1613,18 @@ void mySwitch::switchIt(char *txt1, float state, bool ignoreTO)
 			{
 				// turning off
 				changePower(state);
-				sprintf(_outMQTTmsg, "%s: [%s] Switched [Off]", txt1,
-						_switchName);
+				sprintf(_outMQTTmsg, "%s: [%s] Switched [Off]", txt1, _switchName);
 			}
 			else if (current_power == 0.0 && state > 0)
 			{
 				// turning on
 				changePower(state);
-				sprintf(_out2MQTTmsg, "%s: [%s] Switched [On] [%.1f%%] power",
-						txt1, _switchName, current_power * 100);
+				sprintf(_out2MQTTmsg, "%s: [%s] Switched [On] [%.1f%%] power", txt1, _switchName, current_power * 100);
 			}
 			else
 			{
 				changePower(state);
-				sprintf(_out2MQTTmsg, "%s: [%s] Switched to [%.1f%%] power",
-						txt1, _switchName, current_power * 100);
+				sprintf(_out2MQTTmsg, "%s: [%s] Switched to [%.1f%%] power", txt1, _switchName, current_power * 100);
 			}
 		}
 		else

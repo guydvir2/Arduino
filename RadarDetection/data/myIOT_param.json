@@ -1,0 +1,14 @@
+{
+    "useSerial": true,
+    "useWDT": true,
+    "useOTA": true,
+    "useResetKeeper": false,
+    "useFailNTP": true,
+    "useDebugLog": false,
+    "useNetworkReset":true,
+    "deviceTopic": "RadarDetection",
+    "groupTopic": "",
+    "prefixTopic": "myHome",
+    "debug_level":0,
+    "noNetwork_reset":5
+}

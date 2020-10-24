@@ -6,8 +6,6 @@
 #include <FS.h>
 #include <LittleFS.h>
 
-// #define DOC_SIZE 400
-
 class myJSON
 {
     #define _def_dsize 400
@@ -18,7 +16,7 @@ private:
     char _filename[30];
 
 public:
-    char *ver = "myJSON_v1.9";
+    char *ver = "myJSON_v1.91";
     int DOC_SIZE;
     myJSON(char *filename, bool useserial = false, int doc_size = _def_dsize);
 
@@ -27,7 +25,7 @@ public:
     bool file_remove();
     bool format();
     bool FS_ok();
-    
+
     char *retAllJSON();
 
     bool getValue(const char *key, char *value);

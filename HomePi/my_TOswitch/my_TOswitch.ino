@@ -4,7 +4,7 @@
 #include <Arduino.h>
 
 // ********** Sketch Services  ***********
-#define VER "mySWITCH_V2.6"
+#define VER "mySWITCH_V2.7"
 bool usePWM;
 bool useExtTrig;
 int numSW = 2; // changes after reading JSON param
@@ -218,7 +218,7 @@ void addiotnalMQTT(char *incoming_msg)
 				"Help: Commands #4 - [off_dailyTO, on_dailyTO, flag_dailyTO, useflash_dailyTO, status_dailyTO]");
 		iot.pub_msg(msg);
 		sprintf(msg,
-				"Help: Commands #5 - [on, off, change_pwm, all_off, flash, format, gpios]");
+				"Help: Commands #5 - [on, off, change_pwm, all_off, flash, format, gpios, show_flash_param]");
 		iot.pub_msg(msg);
 	}
 	else if (strcmp(incoming_msg, "flash") == 0)
@@ -255,6 +255,26 @@ void addiotnalMQTT(char *incoming_msg)
 		sprintf(totals, "GPIO's used: %s %s %s", TOswitches[0]->useInput ? ins : "", outs, TOswitches[0]->useEXTtrigger ? trig : "");
 		iot.pub_msg(totals);
 	}
+	else if (strcmp(incoming_msg, "show_flash_param") == 0)
+	{
+		String temp3, temp;
+		char *a[] = {iot.myIOT_paramfile, sketch_paramfile};
+		iot.pub_debug("~~~Start~~~");
+		for (int e = 0; e < sizeof(a) / sizeof(a[0]); e++)
+		{
+			temp3 = "";
+			temp = "";
+			iot.export_fPars(a[e], sketchJSON, JSON_SIZE_SKETCH);
+			serializeJson(sketchJSON, temp);
+			temp3 = String(a[e]) + ":" + temp;
+			char char_array[temp3.length()+1];
+			temp3.toCharArray(char_array, temp3.length() + 1);
+			iot.pub_debug(char_array);
+			sketchJSON.clear();
+		}
+		iot.pub_debug("~~~End~~~");
+	}
+
 
 	// ±±±±±±±±±± MQTT MSGS from mySwitch Library ±±±±±±±±±±±±
 	else
@@ -270,7 +290,6 @@ void addiotnalMQTT(char *incoming_msg)
 
 void setup()
 {
-	Serial.begin(9600);
 	startRead_parameters();
 	TOswitch_init();
 	startIOTservices();

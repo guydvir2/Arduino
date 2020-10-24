@@ -5,7 +5,7 @@
     "useFailNTP": true,
     "useDebugLog": true,
     "useNetworkReset":true,
-    "deviceTopic": "kidsRoom",
+    "deviceTopic": "saloonExit",
     "groupTopic": "Windows",
     "prefixTopic": "myHome",
     "debug_level":0,

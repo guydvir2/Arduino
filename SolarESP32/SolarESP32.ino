@@ -1,12 +1,16 @@
 #include <myIOTesp32.h>
 #include <myESP32sleep.h>
+#include <Adafruit_ADS1015.h>
+#include "soc/soc.h"
+#include "soc/rtc_cntl_reg.h"
 
 
-#define VER "ESP32_v1.2"
+#define VER "ESP32_v1.3"
 #define USE_VMEASURE true
 #define USE_SLEEP true
+#define USE_ADS true
 // ~~~~~~~ myIOT32 ~~~~~~~~
-#define DEVICE_TOPIC "ESP32_6v_SmallBAT"
+#define DEVICE_TOPIC "ESP32_6v_1"
 #define MQTT_PREFIX "myHome"
 #define MQTT_GROUP "solarPower"
 #define MQTT_TELEGRAM "myHome/Telegram"
@@ -39,7 +43,7 @@ void startIOT_services()
 
 // ~~~~~~~ Sleep ~~~~~~~~~~~
 #define SLEEP_TIME 30
-#define FORCE_AWAKE_TIME 20
+#define FORCE_AWAKE_TIME 10
 #define NO_SLEEP_TIME 4
 #define DEV_NAME DEVICE_TOPIC
 bool no_sleep_flag = false;
@@ -63,7 +67,7 @@ const int bat_voltagePin = 35;
 const int solar_voltagePin = 36;
 const int ADC_res = 4095;
 const float vcc = 3.3;
-const float v_div_bat = 4.0;//1.5;//1.33;// for 6v panel :1.5; 
+const float v_div_bat = 4.0;   //1.5;//1.33;// for 6v panel :1.5;
 const float v_div_solar = 4.0; // for 6v panel: 2.0; // // 5.0
 float bat_volt = 0.0;
 float solar_volt = 0.0;
@@ -247,10 +251,26 @@ void makeIFTTTRequest(T1 val1, T2 val2, T3 val3)
 }
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+// ~~~~~~~~~~~~~~ ADS 1115 ~~~~~~~~~~~~~~~
+Adafruit_ADS1115 ads;
+
+int16_t adc_bat, adc_solar;
+const float ADC_convFactor = 0.1875;
+const float solarVoltageDiv = 0.66;
+
+void measureADS()
+{
+  adc_bat = ads.readADC_SingleEnded(0);
+  adc_solar = ads.readADC_SingleEnded(1);
+}
 
 void setup()
 {
+  WRITE_PERI_REG(RTC_CNTL_BROWN_OUT_REG, 0); //disable brownout detector
+
   startIOT_services();
+  ads.begin();
+
   char a[50];
   char b[80];
 
@@ -260,13 +280,15 @@ void setup()
 #endif
 
 #if USE_VMEASURE
-  start_voltageMeasure();
-  sprintf(b, "Batt[%.2fv]; Solar[%.2fv]", bat_volt, solar_volt);
+  // start_voltageMeasure();
+  measureADS();
+  // sprintf(b, "Batt[%.2fv]; Solar[%.2fv]", bat_volt, solar_volt);
+  sprintf(b, "Wake: ADC_bat[%.2fv]; ADC_Solar[%.2fv]", adc_bat * ADC_convFactor / 1000.0, (adc_solar * ADC_convFactor / 1000.0)/solarVoltageDiv);
 #endif
-  sprintf(a, "%s %s", a, b);
-  iot.pub_msg(a);
+  // sprintf(a, "%s %s", a, b);
+  iot.pub_log(b);
 
-  makeIFTTTRequest(go2sleep.WakeStatus.name, a, b);
+  // makeIFTTTRequest(go2sleep.WakeStatus.name, a, b);
 }
 
 void loop()

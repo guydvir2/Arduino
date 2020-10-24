@@ -5,9 +5,9 @@
     "useFailNTP": true,
     "useDebugLog": true,
     "useNetworkReset":true,
-    "deviceTopic": "Stove",
+    "deviceTopic": "parentsBedLEDs",
     "groupTopic": "intLights",
     "prefixTopic": "myHome",
-    "debug_level":0,
-    "noNetwork_reset":5
+    "debug_level":2,
+    "noNetwork_reset":30
 }
