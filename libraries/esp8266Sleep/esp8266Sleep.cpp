@@ -2,7 +2,9 @@
 #include "esp8266Sleep.h"
 
 // ~~~~~~~~ Start ~~~~~~~~~
-esp8266Sleep::esp8266Sleep() : FVAR_bootClock("currentBoot"), FVAR_bootCounter("bootCounter"), FVAR_nextWakeClock("nextWake")
+esp8266Sleep::esp8266Sleep() : FVAR_bootClock("currentBoot"),
+                               FVAR_bootCounter("bootCounter"),
+                               FVAR_nextWakeClock("nextWake")
 {
 }
 void esp8266Sleep::start(int deepsleep, int forcedwake, char *devname, cb_func ext_cb)

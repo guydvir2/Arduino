@@ -15,7 +15,7 @@
 #define MQTT_PREFIX "myHome"
 #define MQTT_GROUP "SolarPower"
 #define MQTT_EXT_TOPIC MQTT_PREFIX "/" MQTT_GROUP "/" DEVICE_TOPIC "/" \
-                                   "dbug"
+                                   "debug"
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 // ***************************
@@ -30,7 +30,7 @@ void addiotnalMQTT(char *incoming_msg)
     if (strcmp(incoming_msg, "status") == 0)
     {
         // sprintf(msg, "Status: Time [%s], Date [%s]", timeStamp, dateStamp);
-        iot.pub_msg("I'm Fine, thank you");
+        iot.pub_msg("I'm awake");
     }
     else if (strcmp(incoming_msg, "ver") == 0)
     {

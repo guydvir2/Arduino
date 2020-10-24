@@ -1,25 +1,26 @@
 {
     "useOnatBoot": false,
-    "useResetKeeper":true,
-    "usetimeOUT":true,
+    "useResetKeeper": true,
+    "usetimeOUT": true,
     "usequickBoot": true,
     "usedailyTO": true,
     "useSafteyOff": true,
-    "useEEPROM_resetCounter": true,
-    "usePWM": false                                                                                   ,
-    "useInput": false,
+    "useEEPROM_resetCounter": false,
+    "usePWM": false,
+    "useInput": true,
     "useExtTrig": false,
     "momentryButtorn": true,
-    "numSW": 1,
+    "numSW": 2,
     "safetyOffDuration": 500,
-    "inputState":true,
+    "inputState": true,
     "inputPin": [
-        13,
-        1
+        14,
+        13
+        
     ],
     "outputPin": [
-        12,
-        5
+        5,
+        0
     ],
     "extTrigPin": 2,
     "hReboots": [
@@ -28,19 +29,19 @@
     ],
     "start_dTO": [
         [
-            18,
+            17,
             0,
             0
         ],
         [
-            21,
+            19,
             30,
             0
         ]
     ],
     "end_dTO": [
         [
-            23,
+            0,
             30,
             0
         ],
@@ -51,12 +52,12 @@
         ]
     ],
     "timeOUTS": [
-        180,
+        60,
         60
     ],
     "SW_Names": [
-        "Bulbs",
-        "LEDstrips"
+        "Bed",
+        "Mirror"
     ],
-    "defPWM":0.6
+    "defPWM": 0.4
 }

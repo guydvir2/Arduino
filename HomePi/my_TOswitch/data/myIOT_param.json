@@ -5,9 +5,9 @@
     "useFailNTP": true,
     "useDebugLog": true,
     "useNetworkReset":true,
-    "deviceTopic": "frontDoor",
-    "groupTopic": "extLights",
+    "deviceTopic": "parentsBedLEDs",
+    "groupTopic": "intLights",
     "prefixTopic": "myHome",
     "debug_level":2,
-    "noNetwork_reset":10
+    "noNetwork_reset":30
 }

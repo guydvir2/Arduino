@@ -39,6 +39,7 @@ esp8266Sleep espSleep;
 void onWake_cb()
 {
   char a[100];
+  StaticJsonDocument<500> DOC;
   measureADS();
   sprintf(a, "Wake Summary: Boot [#%d], bat[%.3f v], solar[%.2f v], SleptTime [%d sec], drift [%d sec]",
           espSleep.bootCount, ADC_bat, ADC_solarPanel, espSleep.totalSleepTime, espSleep.drift);
@@ -49,7 +50,6 @@ void wait4OTA(){
   
   espSleep.init_OTA();
   sprintf(a, "OTA: Start. Wake for[%d sec]", espSleep.sec_waitOTA);
-  Serial.println(a);
   iot.pub_log(a);
   iot.pub_ext("OTA_TimeOUT", "", true);
 }
@@ -60,7 +60,7 @@ void setup()
 {
   startADS();
   startIOTservices();
-  espSleep.start(SleepDuration, forceWake, "test", onWake_cb);
+  espSleep.start(SleepDuration, forceWake, DEVICE_TOPIC, onWake_cb);
   espSleep.onWake_cb();
 }
 

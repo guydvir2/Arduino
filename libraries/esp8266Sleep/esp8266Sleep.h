@@ -9,7 +9,6 @@ class esp8266Sleep
 {
 #define VER "ESPSleep_v0.2"
 #define MINUTES 60
-#define FORCE_WAKE_SECONDS 15
 #define microsec2sec 1000000ULL /* Conversion micro seconds to seconds */
   typedef void (*cb_func)();
 
