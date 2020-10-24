@@ -2,6 +2,7 @@
 #include <Arduino.h>
 #include <myDisplay.h>
 #include <Ticker.h>
+#include "internet_param.h"
 
 // ********** Sketch Services  ***********
 #define VER "WEMOS_2.7"
@@ -118,7 +119,8 @@ void startFlogs()
                 iot.pub_log("NTP is not set. Can affect on log entries");
         }
 }
-void loopFlogs(){
+void loopFlogs()
+{
         disconnectionLOG.looper();
         connectionLOG.looper();
 }
@@ -254,7 +256,8 @@ void updatePreformance()
                 preformance_alert(msg);
         }
 }
-void preformance_alert(char *msg){
+void preformance_alert(char *msg)
+{
         if (preformanceLevel == 3)
         {
                 iot.pub_ext(msg);
@@ -413,7 +416,6 @@ void addiotnalMQTT(char *incoming_msg)
 }
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-
 // ~~~~~~~~~~~ LCD Display ~~~~~~~~~~~
 #if USE_DISPLAY
 myLCD LCD(20, 4);
@@ -461,7 +463,6 @@ void generate_monitor_status()
 #endif
         }
 }
-
 
 // ~~~~~ LOW-Level inspections ~~~~~~~~~
 void pingServices()
@@ -541,7 +542,6 @@ void checknLOG_internet(bool get_ping)
 }
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-
 // ~~~~~~~~~~ TrafficLight ~~~~~~~~~~~~~
 #if USE_TRAFFIC_LIGHT
 #define GreenLedPin D3
@@ -587,11 +587,34 @@ void TrafficBlink()
                 digitalWrite(GreenLedPin, ledON);
         }
 }
+void powerONbit()
+{
+        int x = 0;
+        while (x < 3)
+        {
+                digitalWrite(GreenLedPin, ledON);
+                delay(200);
+                digitalWrite(YellowLedPin, ledON);
+                delay(200);
+                digitalWrite(RedLedPin, ledON);
+                delay(1000);
+
+                digitalWrite(GreenLedPin, ledOFF);
+                delay(200);
+                digitalWrite(YellowLedPin, ledOFF);
+                delay(200);
+                digitalWrite(RedLedPin, ledOFF);
+                delay(1000);
+                x++;
+        }
+}
 void startTrafficLight()
 {
         pinMode(GreenLedPin, OUTPUT);
         pinMode(YellowLedPin, OUTPUT);
         pinMode(RedLedPin, OUTPUT);
+
+        powerONbit();
         blinker.attach(0.2, TrafficBlink); // Start WatchDog
 }
 
@@ -600,7 +623,9 @@ void startTrafficLight()
 
 void setup()
 {
+        startRead_parameters();
         startIOTservices();
+        endRead_parameters();
         startFlogs();
 #if USE_TRAFFIC_LIGHT
         startTrafficLight();

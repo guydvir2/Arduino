@@ -5,21 +5,21 @@
     "usequickBoot": true,
     "usedailyTO": true,
     "useSafteyOff": true,
-    "useEEPROM_resetCounter": false,
-    "usePWM": false,
-    "useInput": true,
+    "useEEPROM_resetCounter": true,
+    "usePWM": false                                                                                   ,
+    "useInput": false,
     "useExtTrig": false,
-    "momentryButtorn": false,
+    "momentryButtorn": true,
     "numSW": 1,
-    "safetyOffDuration": 900,
+    "safetyOffDuration": 500,
     "inputState":true,
     "inputPin": [
         13,
         1
     ],
     "outputPin": [
-        0,
-        4
+        12,
+        5
     ],
     "extTrigPin": 2,
     "hReboots": [
@@ -28,35 +28,35 @@
     ],
     "start_dTO": [
         [
-            15,
+            18,
             0,
             0
         ],
         [
-            0,
+            21,
             30,
             0
         ]
     ],
     "end_dTO": [
         [
-            6,
+            23,
             30,
             0
         ],
         [
-            17,
-            40,
+            22,
+            30,
             0
         ]
     ],
     "timeOUTS": [
         180,
-        120
+        60
     ],
     "SW_Names": [
-        "Table",
-        "LED2"
+        "Bulbs",
+        "LEDstrips"
     ],
     "defPWM":0.6
 }

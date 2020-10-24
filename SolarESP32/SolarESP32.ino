@@ -10,7 +10,7 @@
 #define USE_SLEEP true
 #define USE_ADS true
 // ~~~~~~~ myIOT32 ~~~~~~~~
-#define DEVICE_TOPIC "ESP32_6v_ADC"
+#define DEVICE_TOPIC "ESP32_6v_1"
 #define MQTT_PREFIX "myHome"
 #define MQTT_GROUP "solarPower"
 #define MQTT_TELEGRAM "myHome/Telegram"
@@ -254,14 +254,14 @@ void makeIFTTTRequest(T1 val1, T2 val2, T3 val3)
 // ~~~~~~~~~~~~~~ ADS 1115 ~~~~~~~~~~~~~~~
 Adafruit_ADS1115 ads;
 
-int16_t adc0, adc1;
+int16_t adc_bat, adc_solar;
 const float ADC_convFactor = 0.1875;
 const float solarVoltageDiv = 0.66;
 
 void measureADS()
 {
-  adc0 = ads.readADC_SingleEnded(0);
-  adc1 = ads.readADC_SingleEnded(1);
+  adc_bat = ads.readADC_SingleEnded(0);
+  adc_solar = ads.readADC_SingleEnded(1);
 }
 
 void setup()
@@ -280,15 +280,15 @@ void setup()
 #endif
 
 #if USE_VMEASURE
-  start_voltageMeasure();
+  // start_voltageMeasure();
   measureADS();
   // sprintf(b, "Batt[%.2fv]; Solar[%.2fv]", bat_volt, solar_volt);
-  sprintf(b, "Batt[%.2fv]; Solar[%.2fv]", adc0 * ADC_convFactor / 1000.0, (adc1 * ADC_convFactor / 1000.0)/solarVoltageDiv);
+  sprintf(b, "Wake: ADC_bat[%.2fv]; ADC_Solar[%.2fv]", adc_bat * ADC_convFactor / 1000.0, (adc_solar * ADC_convFactor / 1000.0)/solarVoltageDiv);
 #endif
-  sprintf(a, "%s %s", a, b);
-  iot.pub_msg(a);
+  // sprintf(a, "%s %s", a, b);
+  iot.pub_log(b);
 
-  makeIFTTTRequest(go2sleep.WakeStatus.name, a, b);
+  // makeIFTTTRequest(go2sleep.WakeStatus.name, a, b);
 }
 
 void loop()

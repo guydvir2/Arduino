@@ -13,7 +13,7 @@ void update_vars()
 }
 void startRead_parameters()
 {
-  String myIOT_defs = "{\"useSerial\":true,\"useWDT\":false,\"useOTA\":true,\"useResetKeeper\" : false,\
+  String myIOT_defs = "{\"useSerial\":false,\"useWDT\":false,\"useOTA\":true,\"useResetKeeper\" : false,\
                         \"useFailNTP\" : true,\"useDebugLog\" : true,\"useNetworkReset\":false, \"deviceTopic\" : \"internetmonitor\",\
                         \"groupTopic\" : \"\",\"prefixTopic\" : \"myHome\",\"extTopic\":\"myHome/Telegram\",\"debug_level\":2,\"noNetwork_reset\":1}";
 

@@ -2,12 +2,14 @@
 #include <Arduino.h>
 #include <EEPROM.h>
 #include <ArduinoJson.h>
+#include <Adafruit_ADS1015.h>
+#include "esp8266Sleep.h"
 
 // ********** Sketch Services  ***********
 #define VER "WEMOS_1.3"
 #define SLEEP_MINUTES 30
 #define FORCE_WAKE_SECONDS 15
-#define USE_BAT true
+#define USE_BAT false
 
 // ********** myIOT Class ***********
 //~~~~~ Services ~~~~~~~~~~~
@@ -25,7 +27,7 @@
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 #define ADD_MQTT_FUNC addiotnalMQTT
-myIOT iot;
+extern myIOT iot;
 // ***************************
 
 void startIOTservices()
@@ -257,8 +259,26 @@ void sendSleepMQTT(char *msg)
 {
     iot.mqttClient.publish("topic", msg, true);
 }
+
+// ~~~~~~~~~~~~~~ ADS 1115 ~~~~~~~~~~~~~~~
+Adafruit_ADS1115 ads;
+
+int16_t adc0, adc1;
+const float ADC_convFactor = 0.1875;
+const float solarVoltageDiv = 0.66;
+
+void measureADS()
+{
+    adc0 = ads.readADC_SingleEnded(0);
+    adc1 = ads.readADC_SingleEnded(1);
+}
+
+
 void setup()
 {
+    ads.begin();
+    measureADS();
+
     startIOTservices();
 #if USE_BAT
     start_adc();
@@ -267,6 +287,11 @@ void setup()
     onWake_checkups();
     onWake_cb();
     create_wakeStatus();
+    
+    char b[80];
+    
+    sprintf(b, "Batt[%.2fv]; Solar[%.2fv]", adc0 * ADC_convFactor / 1000.0, (adc1 * ADC_convFactor / 1000.0) / solarVoltageDiv);
+    iot.pub_msg(b);
 }
 void loop()
 {

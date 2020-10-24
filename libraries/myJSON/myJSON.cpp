@@ -115,13 +115,17 @@ void myJSON::PrettyprintJSON(JsonDocument &_doc)
 // ~~~ User Functions : JSON + file saving ~~~~~~~~~~~
 char* myJSON::retAllJSON()
 {
-        char value[250];
+        const int x = 500;
+        char value[x];
         DynamicJsonDocument tempJDOC(DOC_SIZE);
         readJSON_file(tempJDOC);
         serializeJson(tempJDOC, value);
+        // Serial.println(strlen(value));
+        // serializeJson(tempJDOC, Serial);
+
         return value;
 }
-    bool myJSON::getValue(const char *key, char *value)
+bool myJSON::getValue(const char *key, char *value)
 {
         DynamicJsonDocument tempJDOC(DOC_SIZE);
         readJSON_file(tempJDOC);

@@ -363,10 +363,10 @@ bool myIOT::subscribeMQTT()
 					{
 						mqttClient.subscribe(topicArry[i]);
 					}
-					if (useextTopic)
-					{
-						mqttClient.subscribe(extTopic);
-					}
+				}
+				if (useextTopic)
+				{
+					mqttClient.subscribe(extTopic);
 				}
 				if (useSerial)
 				{
@@ -598,12 +598,12 @@ void myIOT::_pub_generic(char *topic, char *inmsg, bool retain, char *devname)
 	if (strlen(tmpmsg) + mqtt_overhead_size > mqtt_defsize)
 	{
 		mqttClient.setBufferSize(strlen(tmpmsg) + mqtt_overhead_size);
-		mqttClient.publish(topic, tmpmsg);
+		mqttClient.publish(topic, tmpmsg,retain);
 		mqttClient.setBufferSize(mqtt_defsize);
 	}
 	else
 	{
-		mqttClient.publish(topic, tmpmsg);
+		mqttClient.publish(topic, tmpmsg, retain);
 	}
 }
 void myIOT::pub_msg(char *inmsg)
@@ -631,9 +631,9 @@ void myIOT::pub_log(char *inmsg)
 	_pub_generic(_logTopic, inmsg);
 	write_log(inmsg, 1);
 }
-void myIOT::pub_ext(char *inmsg, char *name)
+void myIOT::pub_ext(char *inmsg, char *name, bool retain)
 {
-	_pub_generic(extTopic, inmsg, false, name);
+	_pub_generic(extTopic, inmsg, retain, name);
 	write_log(inmsg, 0);
 }
 void myIOT::pub_debug(char *inmsg)
@@ -641,7 +641,7 @@ void myIOT::pub_debug(char *inmsg)
 	if (strlen(inmsg) + 23 > mqttClient.getBufferSize())
 	{
 		const int mqtt_defsize = mqttClient.getBufferSize();
-		mqttClient.setBufferSize(mqttClient.getBufferSize() + 23);
+		mqttClient.setBufferSize(strlen(inmsg) + 23);
 		mqttClient.publish(_debugTopic, inmsg);
 		mqttClient.setBufferSize(mqtt_defsize);
 	}
@@ -887,11 +887,9 @@ char *myIOT::export_fPars(char *filename, JsonDocument &DOC, int JSIZE)
 	{
 		if (param_on_flash.readJSON_file(DOC))
 		{
-			char ret[300];
+			int arraySize = 500;
+			char ret[arraySize];
 			strcpy(ret, param_on_flash.retAllJSON());
-			// Serial.println("this");
-			// Serial.println(ret);
-			// Serial.println("end");
 			return ret;
 		}
 	}
@@ -1485,6 +1483,7 @@ void mySwitch::_afterBoot_behaviour(int rebootState)
 	}
 	else if (badBoot)
 	{
+		Serial.println("Im in BADBOTT");
 		if (rebootState == 0)
 		{
 			// regular boot
@@ -1524,6 +1523,8 @@ void mySwitch::_afterBoot_behaviour(int rebootState)
 	else if (!badBoot)
 	{
 		// regular boot
+		Serial.println("Im not in BADBOTT");
+
 		if (onAt_boot)
 		{
 			if (TOswitch.looper() > 0)
@@ -1538,8 +1539,7 @@ void mySwitch::_afterBoot_behaviour(int rebootState)
 			{
 				switchIt("onAtBoot", RelayOn);
 			}
-			sprintf(_outMQTTlog, "%s",
-					"--> NormalBoot & On-at-Boot. Restarting TimeOUT");
+			sprintf(_outMQTTlog, "%s", "--> NormalBoot & On-at-Boot. Restarting TimeOUT");
 		}
 		else if (usequickON == false || onAt_boot == false)
 		{

@@ -3,7 +3,7 @@
 #include <ArduinoJson.h>
 
 #define JSON_SIZE_IOT 400
-#define JSON_SIZE_SKETCH 1300
+#define JSON_SIZE_SKETCH 1100
 char *sketch_paramfile = "/sketch_param.json";
 static const int maxSW = 2;
 

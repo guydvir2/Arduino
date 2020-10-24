@@ -1,13 +1,13 @@
 {
-    "useSerial": true,
+    "useSerial": false,
     "useWDT": true,
     "useOTA": true,
     "useFailNTP": true,
     "useDebugLog": true,
     "useNetworkReset":true,
-    "deviceTopic": "test",
-    "groupTopic": "intLights",
+    "deviceTopic": "frontDoor",
+    "groupTopic": "extLights",
     "prefixTopic": "myHome",
-    "debug_level":0,
-    "noNetwork_reset":5
+    "debug_level":2,
+    "noNetwork_reset":10
 }
