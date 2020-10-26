@@ -16,10 +16,6 @@
 #define MQTT_GROUP "SolarPower"
 #define MQTT_EXT_TOPIC MQTT_PREFIX "/" MQTT_GROUP "/" DEVICE_TOPIC "/" \
                                    "debug"
-// ~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-// ***************************
-
 myIOT iot;
 extern void wait4OTA();
 

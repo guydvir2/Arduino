@@ -593,17 +593,27 @@ void myIOT::_pub_generic(char *topic, char *inmsg, bool retain, char *devname)
 	int lenhdr = strlen(header);
 	int lenmsg = strlen(inmsg);
 
+	Serial.print("Header: ");
+	Serial.println(header);
+	Serial.print("lenhdr: ");
+	Serial.println(lenhdr);
+	Serial.print("lenmsg: ");
+	Serial.println(lenmsg);
+
 	char tmpmsg[lenmsg + lenhdr + 5];
 	sprintf(tmpmsg, "%s %s", header, inmsg);
-	if (strlen(tmpmsg) + mqtt_overhead_size > mqtt_defsize)
+	Serial.println(tmpmsg);
+	if (strlen(tmpmsg) + mqtt_overhead_size +strlen(topic) > mqtt_defsize)
 	{
-		mqttClient.setBufferSize(strlen(tmpmsg) + mqtt_overhead_size);
+		mqttClient.setBufferSize(strlen(tmpmsg) + mqtt_overhead_size+ strlen(topic));
 		mqttClient.publish(topic, tmpmsg,retain);
 		mqttClient.setBufferSize(mqtt_defsize);
+		Serial.println("A");
 	}
 	else
 	{
 		mqttClient.publish(topic, tmpmsg, retain);
+		Serial.println("B");
 	}
 }
 void myIOT::pub_msg(char *inmsg)

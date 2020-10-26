@@ -36,7 +36,7 @@ void esp8266Sleep::gotoSleep(int seconds2sleep)
     delay(200);
     ESP.deepSleep(microsec2sec * seconds2sleep);
 }
-void esp8266Sleep::wait2Sleep()
+bool esp8266Sleep::wait2Sleep()
 {
     if (_start_ota == false)
     {
@@ -46,41 +46,78 @@ void esp8266Sleep::wait2Sleep()
             {
                 if (millis() > (_forcedWake + abs(drift)) * 1000)
                 {
-                    nextSleepCalculation();
-                    Serial.print("missed wake up by: ");
-                    Serial.println(drift);
+                    if (_ready2Sleep == false)
+                    {
+                        _ready2Sleep = true;
+                        nextSleepCalculation();
+                    }
+                    else
+                    {
+                        Serial.print("missed wake up by: ");
+                        Serial.println(drift);
 
-                    Serial.print("drift correction is: ");
-                    Serial.println((float)nextsleep_duration * (driftFactor));
-                    Serial.flush();
+                        Serial.print("drift correction is: ");
+                        Serial.println((float)nextsleep_duration * (driftFactor));
+                        Serial.flush();
 
-                    gotoSleep(nextsleep_duration * driftFactor);
+                        gotoSleep(nextsleep_duration * driftFactor);
+                    }
+                    return 1;
+                }
+                else
+                {
+                    return 0;
                 }
             }
             else if (drift < -1 * _sec_to_ignore_wake_before_time) /* wake up more than 30 sec earlier */
             {
                 if (millis() > _sec_to_wait_big_drift * 1000)
                 {
-                    Serial.print("missed wake up by: ");
-                    Serial.println(drift);
-                    Serial.println("going to sleep early");
-                    Serial.flush();
-                    gotoSleep(abs(drift - _sec_to_wait_big_drift));
+                    if (_ready2Sleep == false)
+                    {
+                        _ready2Sleep = true;
+                        nextsleep_duration = abs(drift - _sec_to_wait_big_drift);
+                    }
+                    else
+                    {
+                        Serial.print("missed wake up by: ");
+                        Serial.println(drift);
+                        Serial.println("going to sleep early");
+                        Serial.flush();
+                        gotoSleep(nextsleep_duration);
+                    }
+                    return 1;
+                }
+                else
+                {
+                    return 0;
                 }
             }
             else /* wake up after time - which is OK... sort of */
             {
                 if (millis() > _forcedWake * 1000)
                 {
-                    nextSleepCalculation();
-                    Serial.print("missed wake up by: ");
-                    Serial.println(drift);
+                    if (_ready2Sleep == false)
+                    {
+                        _ready2Sleep = true;
+                        nextSleepCalculation();
+                    }
+                    else
+                    {
+                        Serial.print("missed wake up by: ");
+                        Serial.println(drift);
 
-                    Serial.print("drift correction is: ");
-                    Serial.println((float)nextsleep_duration * (driftFactor));
-                    Serial.flush();
+                        Serial.print("drift correction is: ");
+                        Serial.println((float)nextsleep_duration * (driftFactor));
+                        Serial.flush();
 
-                    gotoSleep(nextsleep_duration * driftFactor);
+                        gotoSleep(nextsleep_duration * driftFactor);
+                    }
+                    return 1;
+                }
+                else
+                {
+                    return 0;
                 }
             }
         }
@@ -88,9 +125,21 @@ void esp8266Sleep::wait2Sleep()
         {
             if (millis() > _forcedWake * 1000)
             {
-                Serial.println("NO_NTP");
-                Serial.flush();
-                gotoSleep(_deepsleep * MINUTES * driftFactor);
+                if (_ready2Sleep == false)
+                {
+                    _ready2Sleep = true;
+                }
+                else
+                {
+                    Serial.println("NO_NTP");
+                    Serial.flush();
+                    gotoSleep(_deepsleep * MINUTES * driftFactor);
+                }
+                return 1;
+            }
+            else
+            {
+                return 0;
             }
         }
     }
@@ -116,6 +165,10 @@ void esp8266Sleep::wait2Sleep()
                 Serial.flush();
                 gotoSleep(_deepsleep * MINUTES * driftFactor);
             }
+            return 1;
+        }
+        else{
+            return 0;
         }
     }
 }

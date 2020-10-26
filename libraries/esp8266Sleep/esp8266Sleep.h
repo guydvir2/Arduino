@@ -21,6 +21,7 @@ private:
   int _sec_to_wait_big_drift = 13;
   int _sec_to_ignore_wake_before_time = 30;
   bool _start_ota = false;
+  bool _ready2Sleep = false;
   unsigned long _ota_counter = 0;
 
   time_t wakeClock = 0;
@@ -41,7 +42,7 @@ public:
 public:
   esp8266Sleep();
   void start(int deepsleep, int forcedwake, char *devname, cb_func ext_cb);
-  void wait2Sleep();
+  bool wait2Sleep();
   void onWake_cb();
   bool after_wakeup_clockupdates();
   void init_OTA();
