@@ -13,7 +13,7 @@ class esp8266Sleep
   typedef void (*cb_func)();
 
 private:
-  const float driftFactor = 1.06; /* ESP8266 error correction for wake time - adds time to nominal sleep time*/
+  const float driftFactor = 1.048; /* ESP8266 error correction for wake time - adds time to nominal sleep time*/
 
   char _devname[30];
   int _deepsleep = 0;
@@ -25,7 +25,8 @@ private:
   unsigned long _ota_counter = 0;
 
   time_t wakeClock = 0;
-  cb_func _ext_cb;
+  cb_func _wake_cb;
+  cb_func _sleep_cb;
 
   FVars FVAR_bootClock;
   FVars FVAR_bootCounter;
@@ -41,7 +42,7 @@ public:
 
 public:
   esp8266Sleep();
-  void start(int deepsleep, int forcedwake, char *devname, cb_func ext_cb);
+  void start(int deepsleep, int forcedwake, char *devname, cb_func ext_cb, cb_func wake_cb=nullptr);
   bool wait2Sleep();
   void onWake_cb();
   bool after_wakeup_clockupdates();

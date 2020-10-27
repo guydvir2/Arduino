@@ -91,7 +91,7 @@ void setup()
 {
   startADS();
   startIOTservices();
-  espSleep.start(SleepDuration, forceWake, DEVICE_TOPIC, onWake_cb);
+  espSleep.start(SleepDuration, forceWake, DEVICE_TOPIC, onWake_cb,send_sleep_status);
   espSleep.onWake_cb();
 }
 
@@ -101,7 +101,7 @@ void loop()
   getEXTtopicMqtt("m");
   if (espSleep.wait2Sleep())
   {
-    send_sleep_status();
+    // send_sleep_status();
   }
 
   delay(100);

@@ -7,9 +7,10 @@ esp8266Sleep::esp8266Sleep() : FVAR_bootClock("currentBoot"),
                                FVAR_nextWakeClock("nextWake")
 {
 }
-void esp8266Sleep::start(int deepsleep, int forcedwake, char *devname, cb_func ext_cb)
+void esp8266Sleep::start(int deepsleep, int forcedwake, char *devname, cb_func ext_cb, cb_func wake_cb)
 {
-    _ext_cb = ext_cb;
+    _wake_cb = ext_cb;
+    _sleep_cb = wake_cb;
     _deepsleep = deepsleep;
     _forcedWake = forcedwake;
     sprintf(_devname, "%s", devname);
@@ -59,7 +60,10 @@ bool esp8266Sleep::wait2Sleep()
                         Serial.print("drift correction is: ");
                         Serial.println((float)nextsleep_duration * (driftFactor));
                         Serial.flush();
-
+                        if (_sleep_cb != nullptr)
+                        {
+                            _sleep_cb();
+                        }
                         gotoSleep(nextsleep_duration * driftFactor);
                     }
                     return 1;
@@ -84,6 +88,10 @@ bool esp8266Sleep::wait2Sleep()
                         Serial.println(drift);
                         Serial.println("going to sleep early");
                         Serial.flush();
+                        if (_sleep_cb != nullptr)
+                        {
+                            _sleep_cb();
+                        }
                         gotoSleep(nextsleep_duration);
                     }
                     return 1;
@@ -110,7 +118,10 @@ bool esp8266Sleep::wait2Sleep()
                         Serial.print("drift correction is: ");
                         Serial.println((float)nextsleep_duration * (driftFactor));
                         Serial.flush();
-
+                        if (_sleep_cb != nullptr)
+                        {
+                            _sleep_cb();
+                        }
                         gotoSleep(nextsleep_duration * driftFactor);
                     }
                     return 1;
@@ -133,6 +144,10 @@ bool esp8266Sleep::wait2Sleep()
                 {
                     Serial.println("NO_NTP");
                     Serial.flush();
+                    if (_sleep_cb != nullptr)
+                    {
+                        _sleep_cb();
+                    }
                     gotoSleep(_deepsleep * MINUTES * driftFactor);
                 }
                 return 1;
@@ -156,6 +171,10 @@ bool esp8266Sleep::wait2Sleep()
                 Serial.print("drift correction is: ");
                 Serial.println((float)nextsleep_duration * (driftFactor));
                 Serial.flush();
+                if (_sleep_cb != nullptr)
+                {
+                    _sleep_cb();
+                }
 
                 gotoSleep(nextsleep_duration * driftFactor);
             }
@@ -163,11 +182,16 @@ bool esp8266Sleep::wait2Sleep()
             {
                 Serial.println("NO_NTP");
                 Serial.flush();
+                if (_sleep_cb != nullptr)
+                {
+                    _sleep_cb();
+                }
                 gotoSleep(_deepsleep * MINUTES * driftFactor);
             }
             return 1;
         }
-        else{
+        else
+        {
             return 0;
         }
     }
@@ -175,7 +199,7 @@ bool esp8266Sleep::wait2Sleep()
 // Wake functions
 void esp8266Sleep::onWake_cb()
 {
-    _ext_cb();
+    _wake_cb();
 }
 bool esp8266Sleep::after_wakeup_clockupdates()
 {
