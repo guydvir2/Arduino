@@ -16,11 +16,8 @@
 #define MQTT_GROUP "SolarPower"
 #define MQTT_EXT_TOPIC MQTT_PREFIX "/" MQTT_GROUP "/" DEVICE_TOPIC "/" \
                                    "debug"
-// ~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-// ***************************
-
 myIOT iot;
+extern esp8266Sleep espSleep;
 extern void wait4OTA();
 
 void addiotnalMQTT(char *incoming_msg)
@@ -42,6 +39,28 @@ void addiotnalMQTT(char *incoming_msg)
         sprintf(msg, "Help: Commands #1 - [status, boot, reset, ip, ota, ver, help]");
         iot.pub_msg(msg);
     }
+    else if (strcmp(iot.mqqt_ext_buffer[1], "") != 0 && strcmp(iot.mqqt_ext_buffer[1], "m") == 0)
+    {
+        for (int i = 0; i < 3; i++)
+        {
+            strcpy(iot.mqqt_ext_buffer[i], "");
+        }
+        wait4OTA();
+    }
+    else
+    {
+        int num_parameters = iot.inline_read(incoming_msg);
+        if (strcmp(iot.inline_param[0], "delay"))
+        {
+            espSleep.delay_sleep(atoi(iot.inline_param[1]));
+        }
+        for (int n = 0; n <= num_parameters - 1; n++)
+        {
+            sprintf(iot.inline_param[n], "");
+        }
+        sprintf(msg, "Delay Sleep: Changed to [%s sec]", iot.inline_param[1]);
+        iot.pub_msg(msg);
+    }
 }
 void startIOTservices()
 {
@@ -57,15 +76,4 @@ void startIOTservices()
     strcpy(iot.extTopic, MQTT_EXT_TOPIC);
 
     iot.start_services(addiotnalMQTT);
-}
-void getEXTtopicMqtt(char *msg)
-{
-    if (strcmp(iot.mqqt_ext_buffer[1], "") != 0 && strcmp(iot.mqqt_ext_buffer[1], msg) == 0)
-    {
-        for (int i = 0; i < 3; i++)
-        {
-            strcpy(iot.mqqt_ext_buffer[i], "");
-        }
-        wait4OTA();
-    }
 }

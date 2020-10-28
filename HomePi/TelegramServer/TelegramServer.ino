@@ -171,15 +171,15 @@ void setup()
         startIOTservices();
         endRead_parameters();
 
-        teleNotify.begin(telecmds);
-        iot.pub_ext("Boot");
+        // teleNotify.begin(telecmds);
+        // iot.pub_ext("Boot");
         sendEmail("Hi- i'm fine", "guydvir2@gmail.com", "Testing123");
 }
 void loop()
 
 {
         iot.looper();
-        teleNotify.looper();
-        listenMQTT_forTelegram();
+        // teleNotify.looper();
+        // listenMQTT_forTelegram();
         delay(100);
 }
