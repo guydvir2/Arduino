@@ -33,7 +33,7 @@ void measureADS()
 }
 
 // ~~~~~~~~~~ Sleep&Wake ~~~~~~~~~~~~
-#define SleepDuration 30 /* Minutes */
+#define SleepDuration 60 /* Minutes */
 #define forceWake 30    /* Seconds */
 esp8266Sleep espSleep;
 
@@ -51,9 +51,8 @@ void onWake_cb()
 void wait4OTA()
 {
   char a[100];
-
-  espSleep.init_OTA();
-  sprintf(a, "OTA: Start. Wake for[%d sec]", espSleep.sec_waitOTA);
+  espSleep.delay_sleep(180);
+  sprintf(a, "OTA: Start. Wake for[%d sec]", espSleep.sec_wait);
   iot.pub_log(a);
   iot.pub_ext("OTA_TimeOUT", "", true);
 }
@@ -72,12 +71,12 @@ String create_beforeSleep_status()
   String retVal;
 
   DOC["Name"] = DEVICE_TOPIC;
-  DOC["nominalSleep"] = SleepDuration;
-  DOC["forceWake"] = forceWake;
+  DOC["nominalSleep_minutes"] = SleepDuration;
+  DOC["forceWake_seconds"] = forceWake;
   DOC["BootCount"] = espSleep.bootCount;
-  DOC["lastSleep"] = espSleep.totalSleepTime;
-  DOC["nextSleep"] = espSleep.nextsleep_duration;
-  DOC["Drift"] = espSleep.drift;
+  DOC["lastSleep_seconds"] = espSleep.totalSleepTime;
+  DOC["nextSleep_seconds"] = espSleep.nextsleep_duration;
+  DOC["Drift_seconds"] = espSleep.drift;
   DOC["getClock"] = espSleep.clock_update_success;
   DOC["batVolt"] = ADC_bat;
   DOC["solarVolt"] = ADC_solarPanel;
@@ -92,17 +91,11 @@ void setup()
   startADS();
   startIOTservices();
   espSleep.start(SleepDuration, forceWake, DEVICE_TOPIC, onWake_cb,send_sleep_status);
-  espSleep.onWake_cb();
 }
 
 void loop()
 {
   iot.looper();
-  getEXTtopicMqtt("m");
-  if (espSleep.wait2Sleep())
-  {
-    // send_sleep_status();
-  }
-
+  espSleep.wait2Sleep();
   delay(100);
 }
