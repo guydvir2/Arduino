@@ -1,0 +1,11 @@
+{
+    "sleep_duration":30,
+    "forceWake":30,
+    "measure_voltage":true,
+    "ads_batPin": 0,
+    "ads_solarPin": 1,
+    "solarPanel_v": 14.0,
+    "ADC_convFactor": 0.1875,
+    "solarVoltageDiv": 0.2,
+    "boardType": "Wemos_BatteryShield"
+}

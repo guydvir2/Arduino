@@ -10,6 +10,7 @@ class esp8266Sleep
 #define VER "ESPSleep_v0.3"
 #define MINUTES 60
 #define microsec2sec 1000000ULL /* Conversion micro seconds to seconds */
+
   typedef void (*cb_func)();
 
 private:
@@ -39,6 +40,7 @@ public:
   int totalSleepTime = 0;
   int nextsleep_duration = 0;
   bool clock_update_success = false;
+  bool isESP32 = false;
 
 public:
   esp8266Sleep();
