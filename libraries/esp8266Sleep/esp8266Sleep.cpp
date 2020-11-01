@@ -28,15 +28,16 @@ void esp8266Sleep::nextSleepCalculation()
     time_t t = now();
 
     nextsleep_duration = _deepsleep * MINUTES - (minute(t) * 60 + second(t)) % (_deepsleep * MINUTES);
-    // nextsleep_duration = nextsleep_duration;
     FVAR_nextWakeClock.setValue(t + nextsleep_duration);
 }
 void esp8266Sleep::gotoSleep(int seconds2sleep)
 {
+    if(!isESP32){
     Serial.printf("Going to sleep for %d [sec]", seconds2sleep);
     Serial.flush();
     delay(200);
     ESP.deepSleep(microsec2sec * seconds2sleep);
+    }
 }
 void esp8266Sleep::wait2Sleep()
 {
@@ -48,7 +49,6 @@ void esp8266Sleep::wait2Sleep()
             {
                 if (millis() > (_forcedWake + abs(drift)) * 1000)
                 {
-
                     nextSleepCalculation();
                     Serial.print("missed wake up by: ");
                     Serial.println(drift);
@@ -83,11 +83,11 @@ void esp8266Sleep::wait2Sleep()
             {
                 if (millis() > _forcedWake * 1000)
                 {
-                    Serial.print("missed wake up by: ");
-                    Serial.println(drift);
-                    Serial.print("drift correction is: ");
-                    Serial.println((float)nextsleep_duration * (driftFactor));
-                    Serial.flush();
+                //     Serial.print("missed wake up by: ");
+                //     Serial.println(drift);
+                //     Serial.print("drift correction is: ");
+                //     Serial.println((float)nextsleep_duration * (driftFactor));
+                //     Serial.flush();
 
                     nextSleepCalculation();
                     if (_sleep_cb != nullptr)
@@ -102,8 +102,6 @@ void esp8266Sleep::wait2Sleep()
         {
             if (millis() > _forcedWake * 1000)
             {
-                Serial.println("NO_NTP");
-                Serial.flush();
                 if (_sleep_cb != nullptr)
                 {
                     _sleep_cb();
