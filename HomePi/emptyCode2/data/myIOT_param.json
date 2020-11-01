@@ -2,13 +2,13 @@
     "useSerial": true,
     "useWDT": true,
     "useOTA": true,
-    "useResetKeeper": false,
+    "useResetKeeper": true,
     "useFailNTP": true,
-    "useDebugLog": false,
+    "useDebugLog": true,
     "useNetworkReset":true,
-    "deviceTopic": "RadarDetection",
+    "deviceTopic": "Empty",
     "groupTopic": "",
     "prefixTopic": "myHome",
     "debug_level":0,
-    "noNetwork_reset":5
+    "noNetwork_reset":1
 }

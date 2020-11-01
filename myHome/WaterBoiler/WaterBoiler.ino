@@ -235,7 +235,6 @@ void startIOTservices()
         strcpy(iot.prefixTopic, MQTT_PREFIX);
         strcpy(iot.addGroupTopic, MQTT_GROUP);
         iot.start_services(ADD_MQTT_FUNC);
-        // iot.start_services(ADD_MQTT_FUNC, "Xiaomi_D6C8", "guyd5161", "guy", "kupelu9e", "192.168.3.128");
 }
 void startGPIOs()
 {
