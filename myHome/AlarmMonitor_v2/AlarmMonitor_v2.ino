@@ -13,6 +13,11 @@
 // UPDATE 15/06/2020 - removeing Telegram Nitofocation from code. update iot - 7.11
 // Previous version 2.1, iot1.43
 
+/*Update 11/2020
+1.Update iot Services
+2. know bug when arm_home using code, it arm_away.
+*/
+
 /*
 
                 +==========+=============+============+============+===============+

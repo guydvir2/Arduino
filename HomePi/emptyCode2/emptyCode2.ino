@@ -13,8 +13,8 @@ void scanRadar()
         static bool det_notif = false;
         static unsigned long last_det_clock = 0;
         static unsigned long det_clock = 0;
-        const int reTrigger = 15;         //seconds to wait until next detection
-        const int verifyDetectPeriod = 3; /*seconds to be in detection mode - to avoid quick false alarms*/
+        const int reTrigger = 30;         //seconds to wait until next detection
+        const int verifyDetectPeriod = 8; /*seconds to be in detection mode - to avoid quick false alarms*/
         const int remainTriggered = 3;    /*seconds until declaring "end Detection" */
         static int det_counter = 0;
 
@@ -36,7 +36,7 @@ void scanRadar()
                         det_clock = millis();
                 }
         }
-        else if (state == false && det_clock>0 && millis() > det_clock + 1000 * verifyDetectPeriod && det_notif == false)
+        else if (state == false && det_clock>0 &&  det_notif == false)
         {
                 det_clock = 0;
                 Serial.println("clearing false alarm");

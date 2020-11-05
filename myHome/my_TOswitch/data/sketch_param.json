@@ -10,16 +10,16 @@
     "useInput": true,
     "useExtTrig": false,
     "momentryButtorn": true,
-    "numSW": 2,
-    "safetyOffDuration": 500,
+    "numSW": 1,
+    "safetyOffDuration": 720,
     "inputState": true,
     "inputPin": [
-        14,
+        5,
         13
         
     ],
     "outputPin": [
-        5,
+        4,
         0
     ],
     "extTrigPin": 2,
@@ -41,7 +41,7 @@
     ],
     "end_dTO": [
         [
-            0,
+            7,
             30,
             0
         ],
@@ -52,11 +52,11 @@
         ]
     ],
     "timeOUTS": [
-        60,
+        180,
         60
     ],
     "SW_Names": [
-        "Bed",
+        "LEDstrip",
         "Mirror"
     ],
     "defPWM": 0.4

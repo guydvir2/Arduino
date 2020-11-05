@@ -5,9 +5,9 @@
     "useFailNTP": true,
     "useDebugLog": true,
     "useNetworkReset":true,
-    "deviceTopic": "parentsBedLEDs",
+    "deviceTopic": "KitchenLEDs",
     "groupTopic": "intLights",
     "prefixTopic": "myHome",
-    "debug_level":2,
+    "debug_level":1,
     "noNetwork_reset":30
 }
