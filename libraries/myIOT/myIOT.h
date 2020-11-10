@@ -139,7 +139,7 @@ public:
     char extTopic[MaxTopicLength];
     char mqqt_ext_buffer[3][150];
 
-    const char *ver = "iot_8.8";
+    const char *ver = "iot_8.9";
     char timeStamp[20];
     char *myIOT_paramfile = "/myIOT_param.json";
 

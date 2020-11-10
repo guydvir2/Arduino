@@ -72,39 +72,7 @@
 
 
 */
-
-#include <myIOT.h>
-#include <Arduino.h>
-
-// ********** Names + Strings  ***********
-#define Telegram_Nick "Alarm" // belongs to TELEGRAM
-
-// ~~~~~~~ MQTT Topics ~~~~~~                        // belonga rto myIOT
-#define DEVICE_TOPIC "alarmMonitor"
-#define MQTT_PREFIX "myHome"
-#define MQTT_GROUP ""
-// ~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-// ********** Sketch Services  ***********
-#define VER "NodeMCU_3.51"
-#define USE_NOTIFY_TELE false
-
-// ********** myIOT Class ***********
-//~~~~~ Services ~~~~~~~~~~~
-#define USE_SERIAL false      // Serial Monitor
-#define USE_WDT true          // watchDog resets
-#define USE_OTA true          // OTA updates
-#define USE_RESETKEEPER false // detect quick reboot and real reboots
-#define USE_FAILNTP true      // saves amoount of fail clock updates
-// ~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-// ~~~~~~~ MQTT ~~~~~~
-#define ADD_MQTT_FUNC addiotnalMQTT
-myIOT iot(DEVICE_TOPIC);
-// ***************************
-
 // ~~~~ HW Pins and States ~~~~
-// GPIO Pins for ESP8266
 #define INPUT1 D3  //  Indication system is Armed
 #define INPUT2 D4  //  Indication system is Alarmed
 #define OUTPUT1 D6 //   (Set system)  armed_Home
@@ -112,6 +80,11 @@ myIOT iot(DEVICE_TOPIC);
 
 #define RelayOn HIGH
 #define SwitchOn LOW
+#define VER "NodeMCU_3.6"
+
+#include <myIOT.h>
+#include "myIOT_settings.h"
+#include <Arduino.h>
 
 byte relays[] = {OUTPUT1, OUTPUT2};
 byte inputs[] = {INPUT1, INPUT2};
@@ -124,22 +97,6 @@ bool indication_ALARMED_lastState;
 const int systemPause = 2000; // milli-seconds, delay to system react
 const int deBounceInt = 50;
 
-// #################################  END CORE #################################
-
-
-//  ############################## STRART CORE #################################
-
-void startIOTservices()
-{
-        iot.useSerial = USE_SERIAL;
-        iot.useWDT = USE_WDT;
-        iot.useOTA = USE_OTA;
-        iot.useResetKeeper = USE_RESETKEEPER;
-        iot.resetFailNTP = USE_FAILNTP;
-        strcpy(iot.prefixTopic, MQTT_PREFIX);
-        strcpy(iot.addGroupTopic, MQTT_GROUP);
-        iot.start_services(ADD_MQTT_FUNC);
-}
 void startGPIOs()
 {
         for (int i = 0; i < 2; i++)
@@ -151,97 +108,6 @@ void startGPIOs()
         indication_ALARMED_lastState = digitalRead(inputs[1]);
 }
 
-// ~~~~ MQTT Commands ~~~~~
-void addiotnalMQTT(char *incoming_msg)
-{
-        char msg[100];
-
-        if (strcmp(incoming_msg, "status") == 0)
-        {
-                giveStatus(msg);
-                iot.pub_msg(msg);
-        }
-        else if (strcmp(incoming_msg, "armed_home") == 0 || strcmp(incoming_msg, "armed_away") == 0 || strcmp(incoming_msg, "disarmed") == 0)
-        {
-                switchIt("MQTT", incoming_msg);
-        }
-        else if (strcmp(incoming_msg, "ver") == 0)
-        {
-                sprintf(msg, "ver:[%s], lib:[%s], WDT:[%d], OTA:[%d], SERIAL:[%d]", VER, iot.ver, USE_WDT, USE_OTA, USE_SERIAL);
-                iot.pub_msg(msg);
-        }
-        else if (strcmp(incoming_msg, "pins") == 0)
-        {
-                sprintf(msg, "Switch: input1[%d] input2[%d], Relay: output_home[%d] output_full[%d]", INPUT1, INPUT2, OUTPUT1, OUTPUT2);
-                iot.pub_msg(msg);
-        }
-        else if (strcmp(incoming_msg, "reset") == 0)
-        {
-                allReset();
-                iot.sendReset("Reset via MQTT");
-        }
-        else if (strcmp(incoming_msg, "all_off") == 0)
-        {
-                all_off("MQTT");
-        }
-        else if (strcmp(incoming_msg, "help") == 0)
-        {
-                sprintf(msg, "Help: Commands #1 - [status, boot, reset, ip, ota, ver, help, pins]");
-                iot.pub_msg(msg);
-                sprintf(msg, "Help: Commands #2 - [armed_home, armed_away, disarmed, reset, all_off, debug]");
-                iot.pub_msg(msg);
-        }
-        else if (strcmp(incoming_msg, "debug") == 0)
-        {
-                sprintf(msg, "INPUT1 is [%d], INPUT2 is [%d], OUTPUT1 is [%d], OUTPUT2 is [%d]", digitalRead(INPUT1), digitalRead(INPUT2), digitalRead(OUTPUT1), digitalRead(OUTPUT2));
-                iot.pub_msg(msg);
-        }
-}
-void giveStatus(char *state)
-{
-        char t3[50];
-
-        sprintf(t3, "");
-        // relays state
-        if (digitalRead(OUTPUT1) == RelayOn && digitalRead(OUTPUT2) == RelayOn)
-        {
-                strcat(t3, "Status: invalid [Armed] and [Away] State");
-        }
-        else if (digitalRead(OUTPUT1) == !RelayOn && digitalRead(OUTPUT2) == !RelayOn && digitalRead(INPUT1) == SwitchOn)
-        {
-                strcat(t3, "Status: Manual [Armed]");
-        }
-        else if (digitalRead(OUTPUT1) == RelayOn && digitalRead(OUTPUT2) == !RelayOn && digitalRead(INPUT1) == SwitchOn)
-        {
-                strcat(t3, "Status: [Code] [Home Armed]");
-        }
-        else if (digitalRead(OUTPUT1) == !RelayOn && digitalRead(OUTPUT2) == RelayOn && digitalRead(INPUT1) == SwitchOn)
-        {
-                strcat(t3, "Status: [Code] [Armed Away]");
-        }
-        else if (digitalRead(INPUT1) == SwitchOn && digitalRead(INPUT2) == SwitchOn)
-        {
-                strcat(t3, "Status: [Alarm]");
-        }
-        else if (digitalRead(INPUT1) == !SwitchOn && digitalRead(OUTPUT1) == !RelayOn && digitalRead(OUTPUT2) == !RelayOn)
-        {
-                strcat(t3, "Status: [disarmed]");
-        }
-        else
-        {
-                strcat(t3, "Status: [notDefined]");
-        }
-        sprintf(state, "%s", t3);
-}
-void all_off(char *from)
-{
-        char t[50];
-        allOff();
-        sprintf(t, "All OFF: Received from %s", from);
-        iot.pub_msg(t);
-}
-
-// ~~~~ maintability ~~~~~~
 void allOff()
 {
         for (int i = 0; i < 2; i++)
@@ -250,115 +116,102 @@ void allOff()
         }
         delay(systemPause);
 }
-void allReset()
+void arm_home()
 {
-        for (int i = 0; i < 2; i++)
-        {
-                digitalWrite(relays[i], RelayOn);
+        if (digitalRead(OUTPUT1) == !RelayOn)
+        { // verify it is not in desired state already
+                if (digitalRead(OUTPUT2) == RelayOn)
+                { // in armed away state
+                        digitalWrite(OUTPUT2, !RelayOn);
+                        iot.pub_msg("System change: [Disarmed] [Away] using [Code]");
+                        delay(systemPause);
+                }
+
+                digitalWrite(OUTPUT1, RelayOn); // Now switch to armed_home
                 delay(systemPause);
-                digitalWrite(relays[i], !RelayOn);
+
+                if (digitalRead(INPUT1) == SwitchOn)
+                {
+                        iot.pub_msg("System change: [Armed] [Home] using [Code]");
+                        iot.pub_state("armed_home");
+                }
+                else
+                {
+                        allOff();
+                        iot.pub_msg("System change: failed to [Armed] [Home]");
+                }
+        }
+        else
+        {
+                iot.pub_msg("System change: already in [Armed] [Home]");
         }
 }
-
-// ~~~~~~~~~ GPIO switching ~~~~~~~~~~~~~
-void switchIt(char *type, char *dir)
+void arm_away()
 {
-        char mqttmsg[50];
+        if (digitalRead(OUTPUT2) == !RelayOn)
+        {
+                if (digitalRead(OUTPUT1) == RelayOn)
+                { // armed home
+                        digitalWrite(OUTPUT1, !RelayOn);
+                        iot.pub_msg("System change: [Disarmed] [Home] using [Code]");
+                        delay(systemPause);
+                }
+
+                digitalWrite(OUTPUT2, RelayOn); // now switch to Away
+                delay(systemPause);
+
+                if (digitalRead(INPUT1) == SwitchOn)
+                {
+                        iot.pub_msg("System change: [Armed] [Away] using [Code]");
+                        iot.pub_state("armed_away");
+                }
+                else
+                {
+                        allOff();
+                        iot.pub_msg("System change: failed to [Armed] [Away]");
+                }
+        }
+        else
+        {
+                iot.pub_msg("System change: already in [Armed] [Away]");
+        }
+}
+void disarmed()
+{
         bool armed_code;
+        char mqttmsg[50];
 
-        if (strcmp(dir, "armed_home") == 0)
-        {
-                if (digitalRead(OUTPUT1) == !RelayOn)
-                { // verify it is not in desired state already
-                        if (digitalRead(OUTPUT2) == RelayOn)
-                        { // in armed away state
-                                digitalWrite(OUTPUT2, !RelayOn);
-                                iot.pub_msg("System change: [Disarmed] [Away] using [Code]");
-                                delay(systemPause);
-                        }
-
-                        digitalWrite(OUTPUT1, RelayOn); // Now switch to armed_home
+        if (indication_ARMED_lastState == SwitchOn)
+        { // indicatio n system is armed
+                if (digitalRead(OUTPUT2) == RelayOn || digitalRead(OUTPUT1) == RelayOn)
+                { // case A: armed using code
+                        allOff();
+                        armed_code = true;
                         delay(systemPause);
-
-                        if (digitalRead(INPUT1) == SwitchOn)
-                        {
-                                iot.pub_msg("System change: [Armed] [Home] using [Code]");
-                                iot.pub_state("armed_home");
-                        }
-                        else
-                        {
-                                allOff();
-                                iot.pub_msg("System change: failed to [Armed] [Home]");
-                        }
+                }
+                else
+                { // case B: armed using keyPad
+                        // initiate any arm state in order to disarm
+                        digitalWrite(OUTPUT1, RelayOn);
+                        delay(systemPause / 2); // Time for system to react to fake state change
+                        allOff();
+                        armed_code = false;
+                        delay(systemPause / 2);
+                }
+                if (digitalRead(INPUT1) != SwitchOn)
+                { //&& digitalRead(OUTPUT2) != RelayOn && digitalRead(OUTPUT1) != RelayOn) {
+                        sprintf(mqttmsg, "System change: [Disarmed] using [Code]. Was [Armed] using [%s]", armed_code ? "Code" : "KeyPad");
+                        iot.pub_msg(mqttmsg);
+                        iot.pub_state("disarmed");
                 }
                 else
                 {
-                        iot.pub_msg("System change: already in [Armed] [Home]");
-                }
-        }
-        else if (strcmp(dir, "armed_away") == 0)
-        {
-                if (digitalRead(OUTPUT2) == !RelayOn)
-                {
-                        if (digitalRead(OUTPUT1) == RelayOn)
-                        { // armed home
-                                digitalWrite(OUTPUT1, !RelayOn);
-                                iot.pub_msg("System change: [Disarmed] [Home] using [Code]");
-                                delay(systemPause);
-                        }
-
-                        digitalWrite(OUTPUT2, RelayOn); // now switch to Away
-                        delay(systemPause);
-
-                        if (digitalRead(INPUT1) == SwitchOn)
-                        {
-                                iot.pub_msg("System change: [Armed] [Away] using [Code]");
-                                iot.pub_state("armed_away");
-                        }
-                        else
-                        {
-                                allOff();
-                                iot.pub_msg("System change: failed to [Armed] [Away]");
-                        }
-                }
-                else
-                {
-                        iot.pub_msg("System change: already in [Armed] [Away]");
-                }
-        }
-        else if (strcmp(dir, "disarmed") == 0)
-        {
-                if (indication_ARMED_lastState == SwitchOn)
-                { // indicatio n system is armed
-                        if (digitalRead(OUTPUT2) == RelayOn || digitalRead(OUTPUT1) == RelayOn)
-                        { // case A: armed using code
-                                allOff();
-                                armed_code = true;
-                                delay(systemPause);
-                        }
-                        else
-                        { // case B: armed using keyPad
-                                // initiate any arm state in order to disarm
-                                digitalWrite(OUTPUT1, RelayOn);
-                                delay(systemPause / 2); // Time for system to react to fake state change
-                                allOff();
-                                armed_code = false;
-                                delay(systemPause / 2);
-                        }
-                        if (digitalRead(INPUT1) != SwitchOn)
-                        { //&& digitalRead(OUTPUT2) != RelayOn && digitalRead(OUTPUT1) != RelayOn) {
-                                sprintf(mqttmsg, "System change: [Disarmed] using [Code]. Was [Armed] using [%s]", armed_code ? "Code" : "KeyPad");
-                                iot.pub_msg(mqttmsg);
-                                iot.pub_state("disarmed");
-                        }
-                        else
-                        {
-                                sprintf(mqttmsg, "INPUT1 is [%d], INPUT2 is [%d], OUTPUT1 is [%d], OUTPUT2 is [%d]", digitalRead(INPUT1), digitalRead(INPUT2), digitalRead(OUTPUT1), digitalRead(OUTPUT2));
-                                iot.pub_msg(mqttmsg);
-                        }
+                        sprintf(mqttmsg, "INPUT1 is [%d], INPUT2 is [%d], OUTPUT1 is [%d], OUTPUT2 is [%d]", digitalRead(INPUT1), digitalRead(INPUT2), digitalRead(OUTPUT1), digitalRead(OUTPUT2));
+                        iot.pub_msg(mqttmsg);
                 }
         }
 }
+
 void check_systemState_armed()
 { // System OUTPUT 1: arm_state
         if (digitalRead(INPUT1) != indication_ARMED_lastState)
