@@ -24,7 +24,7 @@ void TOswitch_init()
     TOswitch.set_safetyoff = safetyOff;
     TOswitch.usequickON = false;
     TOswitch.onAt_boot = false;
-    TOswitch.usetimeOUT = true;
+    TOswitch.usetimeOUT = false;
     TOswitch.inputState = HIGH;
     TOswitch.inputPin = INPUT1;
 

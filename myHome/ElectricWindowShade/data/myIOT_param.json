@@ -5,7 +5,7 @@
     "useFailNTP": true,
     "useDebugLog": true,
     "useNetworkReset":true,
-    "deviceTopic": "saloonExit",
+    "deviceTopic": "saloonSingle",
     "groupTopic": "Windows",
     "prefixTopic": "myHome",
     "debug_level":0,

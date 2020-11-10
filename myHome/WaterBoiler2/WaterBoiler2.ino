@@ -199,26 +199,25 @@ void OLEDlooper()
         // }
 }
 
-void press_cases(int &pressedTime, int &max_time_pressed)
+void switchOff(char *txt)
 {
-        // CASE of it is first press and Relay was off - switch it ON, no timer.
-        if (pressedTime >= max_time_pressed - 500)
+        if (TOswitch.TOswitch.remain() > 0) // in TO mode
         {
-                if (TOswitch.TOswitch.remain() > 0) // in TO mode
-                {
-                        TOswitch.TOswitch.endNow();
-                }
-                else // ON but not in TO mode
-                {
-                        display_totalOnTime();
-                        // switchIt("Button", i, 0, "", false);
-                        TOswitch.TOswitch.updateStart(0);
-                }
-                timeInc_counter = 0;
+                TOswitch.TOswitch.endNow();
         }
-        else if (timeInc_counter == 0 && last_relState == !RelayOn)
+        else // ON but not in TO mode
+        {
+                display_totalOnTime();
+                TOswitch.switchIt("txt", (float)0);
+                TOswitch.TOswitch.updateStart(0);
+        }
+        timeInc_counter = 0;
+}
+void switchOn(char *txt)
+{
+        if (timeInc_counter == 0 && last_relState == !RelayOn)
         { // first press turns on - still not in TO mode
-                // switchIt("Button", i, 1, "", false);
+                TOswitch.switchIt(txt, (float)1);
                 TOswitch.TOswitch.updateStart(now()); // register when started in FS
                 timeInc_counter += 1;
         }
@@ -227,13 +226,25 @@ void press_cases(int &pressedTime, int &max_time_pressed)
         {
                 char msg[50];
                 char tempstr[20];
-                // additional presses update timer countdown
+
                 int newTO = TOswitch.TOswitch.remain() + 1 * timeIncrements * 60; // add a timeQoute to on going TO
                 TOswitch.TOswitch.setNewTimeout(newTO, false);
-                sec2clock((timeInc_counter)*timeIncrements * 60, "Added Timeout: +", msg);
+                sec2clock((timeInc_counter)*timeIncrements * 60, "Button: Added Timeout: +", msg);
                 timeInc_counter += 1; // Adding time Qouta
-                // sprintf(tempstr, "Button: Switch[#%d] %s", i, msg);
+                sprintf(tempstr, "%s: %s", txt, msg);
                 iot.pub_msg(tempstr);
+        }
+}
+void press_cases(int &pressedTime, int &max_time_pressed)
+{
+        // CASE of it is first press and Relay was off - switch it ON, no timer.
+        if (pressedTime >= max_time_pressed - 500)
+        {
+                switchOff("Button");
+        }
+        else
+        {
+                switchOn("Button");
         }
 }
 void checkSwitch_Pressed()
