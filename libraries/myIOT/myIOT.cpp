@@ -595,10 +595,10 @@ void myIOT::_pub_generic(char *topic, char *inmsg, bool retain, char *devname)
 
 	char tmpmsg[lenmsg + lenhdr + 5];
 	sprintf(tmpmsg, "%s %s", header, inmsg);
-	if (strlen(tmpmsg) + mqtt_overhead_size +strlen(topic) > mqtt_defsize)
+	if (strlen(tmpmsg) + mqtt_overhead_size + strlen(topic) > mqtt_defsize)
 	{
-		mqttClient.setBufferSize(strlen(tmpmsg) + mqtt_overhead_size+ strlen(topic));
-		mqttClient.publish(topic, tmpmsg,retain);
+		mqttClient.setBufferSize(strlen(tmpmsg) + mqtt_overhead_size + strlen(topic));
+		mqttClient.publish(topic, tmpmsg, retain);
 		mqttClient.setBufferSize(mqtt_defsize);
 	}
 	else
@@ -1009,13 +1009,6 @@ int timeOUT::_ins_counter = 0;
 bool timeOUT::looper()
 {
 	dailyTO_looper(dailyTO);
-
-	// Serial.print("calc_endTO: ");
-	// Serial.println(_calc_endTO);
-
-	// Serial.print("now is: ");
-	// Serial.println(now());
-
 	if (_calc_endTO > now())
 	{
 		return 1;
@@ -1803,8 +1796,7 @@ void mySwitch::getMQTT(char *parm1, int p2, int p3, int p4)
 	{
 		if (TOswitch.remain() > 0)
 		{
-			TOswitch.convert_epoch2clock(now() + TOswitch.remain(), now(), msg2,
-										 _outMQTTmsg);
+			TOswitch.convert_epoch2clock(now() + TOswitch.remain(), now(), msg2, _outMQTTmsg);
 			sprintf(_outMQTTmsg, "TimeOut: [%s] Remain [%s]", _switchName,
 					msg2);
 		}
