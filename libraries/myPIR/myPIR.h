@@ -85,12 +85,14 @@ public:
     int def_brightness = 3;
     bool useButton = false;
     bool usePWM = false;
+    bool useTimeout = false;
     bool RelayON_def = true;
     bool ButtonPressed_def = LOW;
     bool SensorDetection_def = LOW;
+    bool SensorCurrentState = false;
 
 public:
-    SensorSwitch(byte sensorPin, byte switchPin, int timeout_mins = 10, byte extPin = 0);
+    SensorSwitch(byte sensorPin, byte switchPin=0, int timeout_mins = 10, byte extPin = 0);
     void turnOff();
     void turnOn(int TO = 0);
     void start();

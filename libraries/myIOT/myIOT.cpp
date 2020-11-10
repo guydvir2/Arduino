@@ -501,8 +501,8 @@ void myIOT::callback(char *topic, byte *payload, unsigned int length)
 	}
 	else if (strcmp(incoming_msg, "ver") == 0)
 	{
-		sprintf(msg, "ver: IOTlib: [%s], WDT: [%d], OTA: [%d], SERIAL: [%d], ResetKeeper[%d], FailNTP[%d], useDebugLog[%d] debugLog_VER[%s]",
-				ver, useWDT, useOTA, useSerial, useResetKeeper, resetFailNTP, useDebug, flog.VeR);
+		sprintf(msg, "ver: IOTlib: [%s], WDT: [%d], OTA: [%d], SERIAL: [%d], ResetKeeper[%d], FailNTP[%d], useDebugLog[%d] debugLog_VER[%s], no-networkReset[%d]",
+				ver, useWDT, useOTA, useSerial, useResetKeeper, resetFailNTP, useDebug, flog.VeR, useNetworkReset);
 		pub_msg(msg);
 	}
 	else if (strcmp(incoming_msg, "help") == 0)

@@ -590,7 +590,7 @@ void TrafficBlink()
 void powerONbit()
 {
         int x = 0;
-        while (x < 3)
+        while (x < 4)
         {
                 digitalWrite(GreenLedPin, ledON);
                 delay(200);
@@ -615,7 +615,7 @@ void startTrafficLight()
         pinMode(RedLedPin, OUTPUT);
 
         powerONbit();
-        blinker.attach(0.2, TrafficBlink); // Start WatchDog
+        blinker.attach(0.2, TrafficBlink); 
 }
 
 #endif

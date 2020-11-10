@@ -238,21 +238,11 @@ void myIOT32::subscribeMQTT()
     if (strcmp(topicArry[i], "") != 0)
     {
       mqttClient.subscribe(topicArry[i]);
-      // if (useSerial)
-      // {
-      //   Serial.print("Topic subsribed: ");
-      //   Serial.println(topicArry[i]);
-      // }
     }
   }
   if (useExtTopic)
   {
     mqttClient.subscribe(extTopic);
-    // if (useSerial)
-    // {
-    //   Serial.print("Topic subsribed: ");
-    //   Serial.println(extTopic);
-    // }
   }
 }
 bool myIOT32::startMQTT()

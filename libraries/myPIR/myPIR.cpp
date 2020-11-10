@@ -151,6 +151,7 @@ void SensorSwitch::turnOff()
   }
   swState = 0.0;
   _ONclock = 0;
+  SensorCurrentState = false;
 }
 void SensorSwitch::turnOn(int TO)
 {
@@ -184,10 +185,18 @@ void SensorSwitch::turnOn(int TO)
     _timeout_mins = _stored_timeout;
   }
   _ONclock = millis();
+  SensorCurrentState = true;
 }
 void SensorSwitch::start()
 {
-  pinMode(_sensorPin, INPUT_PULLUP);
+  if (SensorDetection_def == LOW)
+  {
+    pinMode(_sensorPin, INPUT_PULLUP);
+  }
+  else
+  {
+    pinMode(_sensorPin, INPUT_PULLUP);
+  }
   pinMode(_switchPin, OUTPUT);
 
   if (useButton)
@@ -248,14 +257,17 @@ void SensorSwitch::looper()
 
 void SensorSwitch::offBy_timeout()
 {
-  if (_timeout_mins * 1000ul * 60ul > 0 && _ONclock != 0)
-  { // user setup TO ?
-    if (millis() - _ONclock >= _timeout_mins * 1000ul * 60ul)
-    { //TO ended
-      turnOff();
-      timeoutRem = 0;
+  if (useTimeout)
+  {
+    if (_timeout_mins * 1000ul * 60ul > 0 && _ONclock != 0)
+    { // user setup TO ?
+      if (millis() - _ONclock >= _timeout_mins * 1000ul * 60ul)
+      { //TO ended
+        turnOff();
+        timeoutRem = 0;
+      }
+      timeoutRem = (int)((_ONclock + _timeout_mins * 1000ul * 60ul - millis()) / 1000);
     }
-    timeoutRem = (int)((_ONclock + _timeout_mins * 1000ul * 60ul - millis()) / 1000);
   }
 }
 void SensorSwitch::checkSensor()
@@ -265,6 +277,7 @@ void SensorSwitch::checkSensor()
   { // enter on change only
     if (millis() - _lastDetect_clock > 100)
     { // ms of debounce
+      Serial.println("OK");
       if (_sensorsState == SensorDetection_def)
       {
         if (_bright_level < max_brightness)
