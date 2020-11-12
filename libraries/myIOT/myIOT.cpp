@@ -1360,6 +1360,7 @@ void mySwitch::config(int switchPin, int timeout_val, char *name)
 {
 	_switchPin = switchPin;
 	strcpy(_switchName, name);
+
 	pinMode(_switchPin, OUTPUT); // defined here for hReboot purposes
 	if (useHardReboot)
 	{
@@ -1473,9 +1474,8 @@ void mySwitch::_afterBoot_behaviour(int rebootState)
 		}
 		sprintf(_outMQTTlog, "--> ForcedBoot. Restarting TimeOUT");
 	}
-	else if (badBoot)
+	else if (badBoot) /* AKA resetKeeper*/
 	{
-		Serial.println("Im in BADBOTT");
 		if (rebootState == 0)
 		{
 			// regular boot
@@ -1515,8 +1515,6 @@ void mySwitch::_afterBoot_behaviour(int rebootState)
 	else if (!badBoot)
 	{
 		// regular boot
-		Serial.println("Im not in BADBOTT");
-
 		if (onAt_boot)
 		{
 			if (TOswitch.looper() > 0)
@@ -2000,14 +1998,17 @@ void mySwitch::all_off(char *from)
 {
 	if (TOswitch.remain() > 0 && current_power > 0)
 	{
+		/* ON in TO mode */
 		TOswitch.endNow();
 	}
 	else if (TOswitch.remain() == 0 && current_power > 0)
 	{
+		/* ON, but not in TO */
 		switchIt(from, 0);
 	}
 	else if (TOswitch.remain() > 0 && current_power == 0)
 	{
+		/* Error state - TO but OFF*/
 		TOswitch.endNow();
 	}
 	sprintf(_outMQTTmsg, "All OFF: [%s] Received from %s", _switchName, from);

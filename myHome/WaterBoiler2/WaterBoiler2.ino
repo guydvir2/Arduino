@@ -1,41 +1,17 @@
+#include <Arduino.h>
 #include <Wire.h>
 #include <SPI.h>
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
-#include <Arduino.h>
-
-// ~~~~ HW Pins and Statdes ~~~~
-#define RELAY1 D4
-#define INPUT1 D6
-#define indic_LEDpin D7
-
-// ~~~~~~~~ state Vars ~~~~~~~~~~~
-#define RelayOn HIGH
-#define SwitchOn LOW
-#define ledON HIGH
-bool last_relState;
-
+#include "genrel_settings.h"
 #include <myIOT.h>
 #include "myIOT_settings.h"
 #include "TO_settings.h"
 
-// ~~~~~~~TimeOut Constants ~~~~~~
-const int maxTO = 150;         //minutes to timeout even in ON state
-const int timeIncrements = 15; //minutes each button press
-const int deBounceInt = 50;
-const int time_NOref_OLED = 5; // seconds to stop refresh OLED
-int timeInc_counter = 0;       // counts number of presses to TO increments
+int timeInc_counter = 0; // counts number of presses to TO increments
 unsigned long clock_noref = 0;
 
-// ~~~~~~~~~~~~ OLED ~~~~~~~~~~~~~~~~~~~
-#define SCREEN_WIDTH 128
-#define SCREEN_HEIGHT 64 // double screen size
-#define OLED_RESET LED_BUILTIN
-long swapLines_counter = 0;
-long on_clock = 0;
-char timeStamp[50];
-char dateStamp[50];
-
+// ~~~~~~~~~~~~~~ OLED display ~~~~~~~~~~~~~~~~~
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 
 void startOLED()
@@ -131,8 +107,10 @@ void display_totalOnTime()
 {
         char msg[150];
         int totalONtime = now() - TOswitch.TOswitch.getStart_to();
+        Serial.print("TOTAL TIME: ");
+        Serial.println(totalONtime);
         sec2clock(totalONtime, "", msg);
-        clock_noref = millis();
+        clock_noref = millis(); // start clock to Frozen msg
         OLED_CenterTXT(2, "ON time:", "", msg);
 }
 void display_ON_clock()
@@ -155,6 +133,10 @@ void display_ON_clock()
 }
 void display_OFF_clock()
 {
+        char timeStamp[50];
+        char dateStamp[50];
+        static long swapLines_counter = 0;
+
         iot.return_clock(timeStamp);
         iot.return_date(dateStamp);
 
@@ -179,42 +161,54 @@ void display_OFF_clock()
 }
 void OLEDlooper()
 {
-        // if (clock_noref == 0)
-        // { // freeze OLED display - to display
-        if (digitalRead(RELAY1) == RelayOn)
+        if (clock_noref == 0) // OLED is not Frozen with a static msg
         {
-                display_ON_clock();
-        }
-        else
-        { // OFF state - clock only
-                display_OFF_clock();
+                if (digitalRead(RELAY1) == RelayOn)
+                {
+                        display_ON_clock();
+                }
+                else
+                { // OFF state - clock only
+                        display_OFF_clock();
+                }
         }
 
-        // else
-        // {
-        //         if (millis() - clock_noref > time_NOref_OLED * 1000)
-        //         { // time in millis without screen refresh
-        //                 clock_noref = 0;
-        //         }
-        // }
+        else /* Display Frozen msg*/
+        {
+                if (millis() - clock_noref > time_NOref_OLED * 1000)
+                {                        // time in millis without screen refresh
+                        clock_noref = 0; /* stop Frozen display */
+                }
+        }
 }
 
+// ~~~~~~~~~~~~~~ Switching ~~~~~~~~~~~~~~~~~
 void switchOff(char *txt)
 {
-        if (TOswitch.TOswitch.remain() > 0) // in TO mode
-        {
-                TOswitch.TOswitch.endNow();
-        }
-        else // ON but not in TO mode
+        if (TOswitch.last_relayState)
         {
                 display_totalOnTime();
-                TOswitch.switchIt("txt", (float)0);
+                TOswitch.all_off(txt);
                 TOswitch.TOswitch.updateStart(0);
+                timeInc_counter = 0;
         }
-        timeInc_counter = 0;
+        // if (TOswitch.TOswitch.remain() > 0) // in TO mode
+        // {
+        //         TOswitch.TOswitch.endNow();
+        // }
+        // else // ON but not in TO mode
+        // {
+        //         display_totalOnTime();
+        //         TOswitch.switchIt("txt", (float)0);
+        //         TOswitch.TOswitch.updateStart(0);
+        // }
+
+        // timeInc_counter = 0;
 }
 void switchOn(char *txt)
 {
+        static bool last_relState = false;
+
         if (timeInc_counter == 0 && last_relState == !RelayOn)
         { // first press turns on - still not in TO mode
                 TOswitch.switchIt(txt, (float)1);
@@ -229,10 +223,10 @@ void switchOn(char *txt)
 
                 int newTO = TOswitch.TOswitch.remain() + 1 * timeIncrements * 60; // add a timeQoute to on going TO
                 TOswitch.TOswitch.setNewTimeout(newTO, false);
-                sec2clock((timeInc_counter)*timeIncrements * 60, "Button: Added Timeout: +", msg);
+                sec2clock((timeInc_counter)*timeIncrements * 60, "Added Timeout: +", msg);
                 timeInc_counter += 1; // Adding time Qouta
-                sprintf(tempstr, "%s: %s", txt, msg);
-                iot.pub_msg(tempstr);
+                // sprintf(tempstr, "%s: %s", txt, msg);
+                iot.pub_msg(msg);
         }
 }
 void press_cases(int &pressedTime, int &max_time_pressed)
@@ -280,14 +274,16 @@ void checkSwitch_Pressed()
                 still_pressed = false;
         }
 }
-
+void startGPIO(){
+        pinMode(INPUT1, INPUT);
+        digitalWrite(RELAY1,!RelayOn);
+}
 void setup()
 {
         TOswitch_init();
         startIOTservices();
         startOLED();
-        startdTO();
-        pinMode(INPUT1, INPUT);
+        TOswitch_begin();
 }
 void loop()
 {

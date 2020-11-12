@@ -8,36 +8,36 @@ mySwitch TOswitch;
 const int START_dailyTO[] = {18, 0, 0};
 const int END_dailyTO[] = {18, 30, 0};
 const int safetyOff = 180;
-const int TimeOut = 90 ; 
+const int TimeOut = 15;
 const char *clockAlias = "Daily TimeOut";
 
 void TOswitch_init()
 {
-    TOswitch.useSerial = true;
-    TOswitch.useInput = false;
+    TOswitch.useSerial = USE_SERIAL;
+    TOswitch.useInput = false; /* using input not from mySwitch*/
     TOswitch.useEXTtrigger = false;
     TOswitch.useHardReboot = false;
-    TOswitch.is_momentery = true;
-    TOswitch.badBoot = true;
-    TOswitch.useDailyTO = true;
+    TOswitch.badBoot = USE_RESETKEEPER; /* ResetKeeper */
+    TOswitch.useDailyTO = false;        /* will be used from HomeAsistant */
     TOswitch.usesafetyOff = true;
     TOswitch.set_safetyoff = safetyOff;
     TOswitch.usequickON = false;
     TOswitch.onAt_boot = false;
-    TOswitch.usetimeOUT = false;
-    TOswitch.inputState = HIGH;
-    TOswitch.inputPin = INPUT1;
+    TOswitch.usetimeOUT = true;   /* although defined - most cases uses ad-hoc timeouts*/
+    TOswitch.is_momentery = true; /* using input not from mySwitch*/
+    TOswitch.inputState = HIGH;   /* using input not from mySwitch*/
+    TOswitch.inputPin = INPUT1;   /* using input not from mySwitch*/
 
-    TOswitch.config(RELAY1, TimeOut, "Boiler");
+    TOswitch.config(RELAY1, TimeOut, "myBoiler");
 }
-void startdTO()
+void TOswitch_begin()
 {
-    // After Wifi is On
+    // Start Services after After Wifi is On and have a valid clock
     if (TOswitch.useDailyTO)
     {
         TOswitch.setdailyTO(START_dailyTO, END_dailyTO);
     }
-    TOswitch.begin();
+    TOswitch.begin(); 
 }
 void TOswitch_looper()
 {
@@ -61,7 +61,3 @@ void TOswitch_looper()
         }
     }
 }
-
-// ***********************************
-
-
