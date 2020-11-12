@@ -41,13 +41,13 @@ void addiotnalMQTT(char *income_msg)
     }
     else if (strcmp(income_msg, "help2") == 0)
     {
-        sprintf(msg_MQTT, "Help: Commands #1 - [on, off, flash, format]");
+        sprintf(msg_MQTT, "Help2: Commands #1 - [on, off, flash, format]");
         iot.pub_msg(msg_MQTT);
-        sprintf(msg_MQTT, "Help: Commands #2 - [remain; restartTO; timeout,x; updateTO,x; restoreTO, statusTO]");
+        sprintf(msg_MQTT, "Help2: Commands #2 - [remain; restartTO; timeout,x; updateTO,x; restoreTO, statusTO]");
         iot.pub_msg(msg_MQTT);
-        sprintf(msg_MQTT, "Help: Commands #3 - [status, boot, reset, ip, ota, ver, help]");
+        sprintf(msg_MQTT, "Help2: Commands #3 - [status, boot, reset, ip, ota, ver, help]");
         iot.pub_msg(msg_MQTT);
-        sprintf(msg_MQTT, "Help: Commands #4 - [off_dailyTO, on_dailyTO, flag_dailyTO, useflash_dailyTO, status_dailyTO]");
+        sprintf(msg_MQTT, "Help2: Commands #4 - [off_dailyTO, on_dailyTO, flag_dailyTO, useflash_dailyTO, status_dailyTO]");
         iot.pub_msg(msg_MQTT);
     }
     else if (strcmp(income_msg, "flash") == 0)

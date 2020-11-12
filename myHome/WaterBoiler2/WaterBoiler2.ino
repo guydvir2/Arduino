@@ -1,6 +1,6 @@
-#include <Arduino.h>
-#include <Wire.h>
 #include <SPI.h>
+#include <Wire.h>
+#include <Arduino.h>
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
 #include "genrel_settings.h"
@@ -107,11 +107,9 @@ void display_totalOnTime()
 {
         char msg[150];
         int totalONtime = now() - TOswitch.TOswitch.getStart_to();
-        Serial.print("TOTAL TIME: ");
-        Serial.println(totalONtime);
         sec2clock(totalONtime, "", msg);
         clock_noref = millis(); // start clock to Frozen msg
-        OLED_CenterTXT(2, "ON time:", "", msg);
+        OLED_CenterTXT(2, "Total", "ON time:", msg);
 }
 void display_ON_clock()
 {
@@ -192,18 +190,6 @@ void switchOff(char *txt)
                 TOswitch.TOswitch.updateStart(0);
                 timeInc_counter = 0;
         }
-        // if (TOswitch.TOswitch.remain() > 0) // in TO mode
-        // {
-        //         TOswitch.TOswitch.endNow();
-        // }
-        // else // ON but not in TO mode
-        // {
-        //         display_totalOnTime();
-        //         TOswitch.switchIt("txt", (float)0);
-        //         TOswitch.TOswitch.updateStart(0);
-        // }
-
-        // timeInc_counter = 0;
 }
 void switchOn(char *txt)
 {
@@ -225,14 +211,12 @@ void switchOn(char *txt)
                 TOswitch.TOswitch.setNewTimeout(newTO, false);
                 sec2clock((timeInc_counter)*timeIncrements * 60, "Added Timeout: +", msg);
                 timeInc_counter += 1; // Adding time Qouta
-                // sprintf(tempstr, "%s: %s", txt, msg);
                 iot.pub_msg(msg);
         }
 }
-void press_cases(int &pressedTime, int &max_time_pressed)
+void press_cases(int &pressedTime, const int &max_time_pressed)
 {
-        // CASE of it is first press and Relay was off - switch it ON, no timer.
-        if (pressedTime >= max_time_pressed - 500)
+        if (abs(pressedTime - max_time_pressed) < 300)
         {
                 switchOff("Button");
         }
@@ -245,7 +229,7 @@ void checkSwitch_Pressed()
 {
         long timeCouter = 0;
         int pressedTime = 0;
-        int max_time_pressed = 1500;
+        const int max_time_pressed = 1500;
         static bool still_pressed = false;
 
         if (digitalRead(INPUT1) == SwitchOn)
@@ -273,13 +257,19 @@ void checkSwitch_Pressed()
         {
                 still_pressed = false;
         }
+
+        digitalWrite(indic_LEDpin, digitalRead(RELAY1));
 }
-void startGPIO(){
-        pinMode(INPUT1, INPUT);
-        digitalWrite(RELAY1,!RelayOn);
+
+void startGPIO()
+{
+        pinMode(INPUT1, INPUT_PULLUP); // not defined in mySwitch, but here. Locally.
+        pinMode(indic_LEDpin, OUTPUT);
+        digitalWrite(RELAY1, !RelayOn);
 }
 void setup()
 {
+        startGPIO();
         TOswitch_init();
         startIOTservices();
         startOLED();
@@ -291,6 +281,5 @@ void loop()
         OLEDlooper();
         TOswitch_looper();
         checkSwitch_Pressed();
-        digitalWrite(indic_LEDpin, digitalRead(RELAY1));
         delay(100);
 }

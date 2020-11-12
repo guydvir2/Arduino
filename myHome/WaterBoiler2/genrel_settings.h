@@ -1,6 +1,6 @@
 // ~~~~ HW Pins and Statdes ~~~~
-#define RELAY1 D4
-#define INPUT1 D3
+#define RELAY1 D5
+#define INPUT1 D6
 #define indic_LEDpin D7
 
 // ~~~~~~~~ state Vars ~~~~~~~~~~~
@@ -24,13 +24,13 @@
 
 
 // ~~~~~~~ MQTT Topics ~~~~~~
-#define DEVICE_TOPIC "WaterBoiler2"
+#define DEVICE_TOPIC "WaterBoiler"
 #define MQTT_PREFIX "myHome"
 #define MQTT_GROUP ""
 
 // ********** myIOT Class ***********
 //~~~~~ Services ~~~~~~~~~~~
-#define USE_SERIAL true     // Serial Monitor
+#define USE_SERIAL false     // Serial Monitor
 #define USE_WDT true         // watchDog resets
 #define USE_OTA true         // OTA updates
 #define USE_RESETKEEPER true // detect quick reboot and real reboots
