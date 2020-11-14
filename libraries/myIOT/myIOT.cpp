@@ -1375,6 +1375,7 @@ void mySwitch::config(int switchPin, int timeout_val, char *name)
 	{
 		TOswitch.set_fvars(timeout_val);
 	}
+	TOswitch.dailyTO.flag = useDailyTO;
 }
 void mySwitch::begin()
 {
