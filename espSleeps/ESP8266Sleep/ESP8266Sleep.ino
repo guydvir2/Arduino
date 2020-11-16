@@ -1,23 +1,26 @@
 #include <Arduino.h>
 #include <esp8266Sleep.h>
+#include "general_settings.h"
 #include "esp8266Sleep_param.h"
 #include "myIOT_settings.h"
-#include "adc_measures.h"
+#include "v_measures.h"
+
+const char *espVer = "sleepSketch_v0.2";
 
 // ~~~~~~~~~~ Sleep&Wake ~~~~~~~~~~~~
-const char *espVer = "sleepSketch_v0.1";
-char *boardType = "esp8266_builtin_battery";
-int SleepDuration = 5; /* Minutes */
-int forceWake = 30;    /* Seconds */
 esp8266Sleep espSleep;
 
 void onWake_cb()
 {
   char a[100];
+  char b[50];
 
-  measureADS();
-  sprintf(a, "Wake Summary: batLevel[%.2f%%], solarLevel[%.1f%%], sleepeCycle [%.2f%%], drift [%.2f%%]",
-          100.0 * ADC_bat / MAX_BAT, 100.0 * ADC_solarPanel / MAX_SOLAR,
+  bool got_v = get_voltage_measures();
+  if (got_v)
+  {
+    sprintf(b, "bat[%.2fv], solarpannel[%.1fv] ", vbat, vsolarpannel);
+  }
+  sprintf(a, "Wake Summary: %ssleepeCycle [%.2f%%], drift [%.2f%%]", got_v ? b : "",
           100.0 * (float)espSleep.totalSleepTime / ((MINUTES * (float)SleepDuration) + forceWake),
           100.0 * (float)espSleep.drift / (MINUTES * (float)SleepDuration));
   iot.pub_log(a);
@@ -50,8 +53,8 @@ String create_beforeSleep_status()
   DOC["nextSleep_seconds"] = espSleep.nextsleep_duration;
   DOC["Drift_seconds"] = espSleep.drift;
   DOC["getClock"] = espSleep.clock_update_success;
-  DOC["batVolt"] = ADC_bat;
-  DOC["solarVolt"] = ADC_solarPanel;
+  DOC["batVolt"] = vbat;
+  DOC["solarVolt"] = vsolarpannel;
 
   serializeJson(DOC, retVal);
   return retVal;
@@ -61,15 +64,20 @@ String create_beforeSleep_status()
 void setup()
 {
   startRead_parameters();
-  startADS();
+  espSleep.isESP32 = isESP32;
+
+#if !isESP32
   startIOTservices();
+#endif
   espSleep.start(SleepDuration, forceWake, iot.deviceTopic, onWake_cb, send_sleep_status);
   endRead_parameters();
 }
 
 void loop()
 {
+#if !isESP32
   iot.looper();
+#endif
   espSleep.wait2Sleep();
   delay(100);
 }

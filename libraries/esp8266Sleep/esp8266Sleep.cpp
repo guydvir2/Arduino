@@ -2,10 +2,9 @@
 #include "esp8266Sleep.h"
 
 // ~~~~~~~~ Start ~~~~~~~~~
-esp8266Sleep::esp8266Sleep() : FVAR_bootClock("currentBoot"),
-                               FVAR_bootCounter("bootCounter"),
-                               FVAR_nextWakeClock("nextWake")
+esp8266Sleep::esp8266Sleep()
 {
+    EEPROM.begin(16);
 }
 void esp8266Sleep::start(int deepsleep, int forcedwake, char *devname, cb_func wake_cb, cb_func sleep_cb)
 {
@@ -26,18 +25,22 @@ void esp8266Sleep::delay_sleep(int sec_delay)
 void esp8266Sleep::nextSleepCalculation()
 {
     time_t t = now();
-
     nextsleep_duration = _deepsleep * MINUTES - (minute(t) * 60 + second(t)) % (_deepsleep * MINUTES);
-    FVAR_nextWakeClock.setValue(t + nextsleep_duration);
+    EEPROMWritelong(_nextWake_clock_addr, t + nextsleep_duration);
 }
 void esp8266Sleep::gotoSleep(int seconds2sleep)
 {
-    if(!isESP32){
+#if !isESP32
+
     Serial.printf("Going to sleep for %d [sec]", seconds2sleep);
     Serial.flush();
     delay(200);
     ESP.deepSleep(microsec2sec * seconds2sleep);
-    }
+
+#else
+    esp_sleep_enable_timer_wakeup(sec2sleep * uS_TO_S_FACTOR);
+    esp_deep_sleep_start();
+#endif
 }
 void esp8266Sleep::wait2Sleep()
 {
@@ -83,11 +86,11 @@ void esp8266Sleep::wait2Sleep()
             {
                 if (millis() > _forcedWake * 1000)
                 {
-                //     Serial.print("missed wake up by: ");
-                //     Serial.println(drift);
-                //     Serial.print("drift correction is: ");
-                //     Serial.println((float)nextsleep_duration * (driftFactor));
-                //     Serial.flush();
+                    //     Serial.print("missed wake up by: ");
+                    //     Serial.println(drift);
+                    //     Serial.print("drift correction is: ");
+                    //     Serial.println((float)nextsleep_duration * (driftFactor));
+                    //     Serial.flush();
 
                     nextSleepCalculation();
                     if (_sleep_cb != nullptr)
@@ -155,14 +158,15 @@ bool esp8266Sleep::after_wakeup_clockupdates()
     time_t last_wakeClock = 0;
     wakeClock = now();
 
-    FVAR_bootClock.getValue(lastBoot);
-    FVAR_nextWakeClock.getValue(last_wakeClock);
-    FVAR_bootCounter.getValue(bootCount);
-    FVAR_bootCounter.setValue(++bootCount);
+    lastBoot = EEPROMReadlong(_bootClock_addr);
+    last_wakeClock = EEPROMReadlong(_nextWake_clock_addr);
+    bootCount = EEPROMReadlong(_bootCounter_addr);
+    bootCount++;
+    EEPROMWritelong(_bootCounter_addr, bootCount);
 
     if (year(wakeClock) != 1970)
     {
-        FVAR_bootClock.setValue(wakeClock);
+        EEPROMWritelong(_bootClock_addr, wakeClock);
         totalSleepTime = wakeClock - lastBoot - _forcedWake;
         drift = wakeClock - last_wakeClock - (int)(millis() / 1000);
         return 1;
@@ -171,4 +175,26 @@ bool esp8266Sleep::after_wakeup_clockupdates()
     {
         return 0;
     }
+}
+void esp8266Sleep::EEPROMWritelong(int address, long value)
+{
+    byte four = (value & 0xFF);
+    byte three = ((value >> 8) & 0xFF);
+    byte two = ((value >> 16) & 0xFF);
+    byte one = ((value >> 24) & 0xFF);
+
+    EEPROM.write(address, four);
+    EEPROM.write(address + 1, three);
+    EEPROM.write(address + 2, two);
+    EEPROM.write(address + 3, one);
+    EEPROM.commit();
+}
+long esp8266Sleep::EEPROMReadlong(long address)
+{
+    long four = EEPROM.read(address);
+    long three = EEPROM.read(address + 1);
+    long two = EEPROM.read(address + 2);
+    long one = EEPROM.read(address + 3);
+
+    return ((four << 0) & 0xFF) + ((three << 8) & 0xFFFF) + ((two << 16) & 0xFFFFFF) + ((one << 24) & 0xFFFFFFFF);
 }

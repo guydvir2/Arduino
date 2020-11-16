@@ -1,9 +1,9 @@
 #ifndef esp8266sleep_h
 #define esp8266sleep_h
 
-#include "Arduino.h"
-#include <ArduinoJson.h>
-#include <myIOT.h>
+#include <Arduino.h>
+#include <EEPROM.h>
+#include <TimeLib.h>
 
 class esp8266Sleep
 {
@@ -24,14 +24,13 @@ private:
   bool _start_delay = false;
   bool _ready2Sleep = false;
   unsigned long _delay_counter = 0;
+  const byte _bootClock_addr = 0;
+  const byte _bootCounter_addr = 4;
+  const byte _nextWake_clock_addr = 8;
 
   time_t wakeClock = 0;
   cb_func _wake_cb;
   cb_func _sleep_cb;
-
-  FVars FVAR_bootClock;
-  FVars FVAR_bootCounter;
-  FVars FVAR_nextWakeClock;
 
 public:
   int drift = 0;
@@ -53,6 +52,8 @@ private:
   void onWake_cb();
   void nextSleepCalculation();
   void gotoSleep(int seconds2sleep = 10);
+  void EEPROMWritelong(int address, long value);
+  long EEPROMReadlong(long address);
 };
 
 #endif

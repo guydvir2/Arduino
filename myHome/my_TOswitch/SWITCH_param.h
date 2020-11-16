@@ -4,33 +4,14 @@
 
 #define JSON_SIZE_IOT 400
 #define JSON_SIZE_SKETCH 1100
-char *sketch_paramfile = "/sketch_param.json";
-static const int maxSW = 2;
-
-bool readfile_ok = false;
-StaticJsonDocument<JSON_SIZE_IOT> paramJSON;
-StaticJsonDocument<JSON_SIZE_SKETCH> sketchJSON;
 
 extern myIOT iot;
-extern int numSW;
-extern int outputPin[maxSW];     // = {12, 5}; // D3 for most PWM boards
-extern int inputPin[maxSW];      // = {0, 2};	 // input is not for extTrig
-extern int extTrigPin;           // = 5;
-extern int hRebbots[maxSW];      // = {1, 2};
-extern char SW_Names[maxSW][30]; // = {"LEDstrip", "Ledstrip"};
-extern bool usePWM;
-extern bool useExtTrig;
 
-/*
- ~~~~~ SONOFF HARDWARE ~~~~~
- #define RELAY1 12
- #define RELAY2 5
- #define INPUT1 0  // 0 for onBoard Button
- #define INPUT2 14 // 14 for extButton
- #define indic_LEDpin 13
- */
+char *sketch_paramfile = "/sketch_param.json";
+bool readfile_ok = false;
 
-// ~~~~~~~~~~~~~~~~~~~~~~~
+StaticJsonDocument<JSON_SIZE_IOT> paramJSON;
+StaticJsonDocument<JSON_SIZE_SKETCH> sketchJSON;
 
 void update_vars(JsonDocument &DOC)
 {

@@ -3,26 +3,25 @@
     "useResetKeeper": true,
     "usetimeOUT": true,
     "usequickBoot": true,
-    "usedailyTO": true,
+    "usedailyTO": false,
     "useSafteyOff": true,
     "useEEPROM_resetCounter": false,
     "usePWM": false,
-    "useInput": true,
-    "useExtTrig": false,
+    "useInput": false,
+    "useExtTrig": true,
     "momentryButtorn": true,
     "numSW": 1,
     "safetyOffDuration": 720,
     "inputState": true,
     "inputPin": [
-        5,
-        13
-        
+        2,
+        13   
     ],
     "outputPin": [
-        4,
+        0,
         0
     ],
-    "extTrigPin": 2,
+    "extTrigPin": 5,
     "hReboots": [
         1,
         2
@@ -52,11 +51,11 @@
         ]
     ],
     "timeOUTS": [
-        180,
+        5,
         60
     ],
     "SW_Names": [
-        "LEDstrip",
+        "LED",
         "Mirror"
     ],
     "defPWM": 0.4

@@ -2035,7 +2035,7 @@ void mySwitch::extTrig_cb(bool det, bool retrig, char *trig_name)
 }
 void mySwitch::_extTrig_looper()
 {
-	if (ext_trig_signal != trig_lastState)
+	if (ext_trig_signal != trig_lastState) // ext_trig_signal is read from main code and pushed here
 	{
 		if (ext_trig_signal == _ext_det && TOswitch.dailyTO.onNow == false) //trig is ON according defined by det and Not disturbing dTO when it is ON
 		{

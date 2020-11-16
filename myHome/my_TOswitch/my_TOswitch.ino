@@ -1,29 +1,12 @@
-
 #include <myIOT.h>
+#include "general_settings.h"
 #include "SWITCH_param.h"
 #include <Arduino.h>
 
-// ********** Sketch Services  ***********
-#define VER "mySWITCH_V2.7"
-bool usePWM;
-bool useExtTrig;
-int numSW = 2; // changes after reading JSON param
-
-// ********** myIOT Class ***********
-#define ADD_MQTT_FUNC addiotnalMQTT
 myIOT iot;
-
-// ~~~~ TO & dailyTO ~~~~~~
 mySwitch *TOswitches[maxSW] = {};
 
-// ~~~~~~ Hardware ~~~~~~~
-int outputPin[maxSW];
-int inputPin[maxSW];
-int extTrigPin;
-int hRebbots[maxSW]; // <--- Need to fix usage
-char SW_Names[maxSW][30];
-
-//~~ extTrig functions
+// ~~~ extTrig functions ~~~~~~~~~
 void startExtTrig()
 {
 	pinMode(extTrigPin, INPUT);
@@ -33,6 +16,7 @@ void readExtTrig_looper(int a = 0)
 	TOswitches[a]->ext_trig_signal = digitalRead(extTrigPin);
 }
 
+// ~~~ mySwitch functions ~~~~~~~~
 void TOswitch_init()
 {
 	static mySwitch myTOsw0;
@@ -128,7 +112,7 @@ void TOswitch_looper()
 	}
 }
 
-// ***********************************
+// ~~~ myIOT Services ~~~~~~~~~~~~
 void startIOTservices()
 {
 	iot.useSerial = paramJSON["useSerial"];
@@ -143,7 +127,7 @@ void startIOTservices()
 	strcpy(iot.deviceTopic, paramJSON["deviceTopic"]);
 	strcpy(iot.prefixTopic, paramJSON["prefixTopic"]);
 	strcpy(iot.addGroupTopic, paramJSON["groupTopic"]);
-	iot.start_services(ADD_MQTT_FUNC);
+	iot.start_services(addiotnalMQTT);
 }
 void giveStatus(char *outputmsg)
 {
