@@ -4,8 +4,6 @@
 myIOT iot;
 extern esp8266Sleep espSleep;
 extern void wait4OTA();
-extern char *boardType;
-extern const char *espVer;
 
 void addiotnalMQTT(char *incoming_msg)
 {
@@ -18,7 +16,7 @@ void addiotnalMQTT(char *incoming_msg)
     }
     else if (strcmp(incoming_msg, "ver2") == 0)
     {
-        sprintf(msg, "ver #2: [%s], lib: [%s], boardType[%s]", espVer, VER, boardType);
+       // sprintf(msg, "ver #2: [%s], lib: [%s], boardType[%s]", espVer, VER, boardType);
         iot.pub_msg(msg);
     }
     else if (strcmp(incoming_msg, "help2") == 0)

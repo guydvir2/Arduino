@@ -1,6 +1,7 @@
 #include <Arduino.h>
-#include <myIOT.h>
+// #include <myIOT.h>
 #include <ArduinoJson.h>
+#include <EEPROM.h>
 
 #define JSON_SIZE_IOT 400
 #define JSON_SIZE_SKETCH 400
@@ -15,27 +16,31 @@ extern int SleepDuration;
 extern int forceWake;
 extern int ads_batPin;
 extern int ads_solarPin;
-extern bool VoltageMeasures;
-extern float ADC_solarPanel;
+extern bool ADS_vmeasure;
+extern bool analog_vmeasure;
 extern float MAX_SOLAR;
 extern float ADC_convFactor;
 extern float solarVoltageDiv;
+extern const char *boardType;
 
 void update_vars(JsonDocument &DOC)
 {
   SleepDuration = DOC["sleep_duration"];
   forceWake = DOC["forceWake"];
-  VoltageMeasures = DOC["measure_voltage"];
+  analog_vmeasure = DOC["analog_vmeasure"];
+  ADS_vmeasure = DOC["ADS_measure"];
   ads_batPin = DOC["ads_batPin"];
   ads_solarPin = DOC["ads_solarPin"];
   MAX_SOLAR = DOC["solarPanel_v"];
   ADC_convFactor = DOC["ADC_convFactor"];
   solarVoltageDiv = DOC["solarVoltageDiv"];
+  vbat_vdiv = DOC["vbat_vdiv"];
+  const char *boardType = DOC["boardType"];
 }
 void startRead_parameters()
 {
-  String sketch_defs = "{\"sleep_duration\":5,\"forceWake\":60,\"measure_voltage\":true,\"ads_batPin\":1,\
-                        \"ads_solarPin\":2,\"solarPanel_v\":6.0,\"ADC_convFactor\":0.1875,\"solarVoltageDiv\":0.66,\
+  String sketch_defs = "{\"sleep_duration\":1,\"forceWake\":60,\"analog_vmeasure\":false,\"ADS_vmeasure\":false,\"ads_batPin\":1,\
+                        \"ads_solarPin\":2,\"solarPanel_v\":6.0,\"ADC_convFactor\":0.1875,\"solarVoltageDiv\":0.66,\"vbat_vdiv\":5.0,\
                         \"boardType\":\"esp8266\"}";
 
   String myIOT_defs = "{\"useSerial\":true,\"useWDT\":false,\"useOTA\":true,\"useextTopic\":true,\

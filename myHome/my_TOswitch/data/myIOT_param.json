@@ -1,12 +1,12 @@
 {
-    "useSerial": false,
+    "useSerial": true,
     "useWDT": true,
     "useOTA": true,
     "useFailNTP": true,
     "useDebugLog": true,
     "useNetworkReset":true,
-    "deviceTopic": "KitchenLEDs",
-    "groupTopic": "intLights",
+    "deviceTopic": "frontDoorLEDs",
+    "groupTopic": "extLights",
     "prefixTopic": "myHome",
     "debug_level":1,
     "noNetwork_reset":30

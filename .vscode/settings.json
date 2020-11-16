@@ -10,5 +10,6 @@
         "string_view": "cpp",
         "*.tcc": "cpp",
         "system_error": "cpp"
-    }
+    },
+    "C_Cpp.errorSquiggles": "Disabled"
 }

@@ -7,7 +7,7 @@
     "useNetworkReset":false,
     "useResetKeeper":false,
     "useextTopic":true,
-    "deviceTopic": "esp8266_Wemos",
+    "deviceTopic": "esp8266_MCU",
     "groupTopic": "SolarPower",
     "prefixTopic": "myHome",
     "debug_level":2,
