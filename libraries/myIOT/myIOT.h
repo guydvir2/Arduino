@@ -95,7 +95,7 @@ public:
     void get_timeStamp(time_t t = 0);
     void return_clock(char ret_tuple[20]);
     void return_date(char ret_tuple[20]);
-    bool checkInternet(char *externalSite="www.google.com", byte pings = 1);
+    bool checkInternet(char *externalSite = "www.google.com", byte pings = 1);
 
     void sendReset(char *header);
     void notifyOnline();
@@ -103,7 +103,7 @@ public:
     void pub_state(char *inmsg, byte i = 0);
     void pub_msg(char *inmsg);
     void pub_log(char *inmsg);
-    void pub_ext(char *inmsg, char *name = "", bool retain= false);
+    void pub_ext(char *inmsg, char *name = "", bool retain = false);
     void pub_debug(char *inmsg);
     int inline_read(char *inputstr);
 
@@ -315,6 +315,8 @@ class mySwitch
 #define SwitchOn LOW
 #define RelayOn HIGH
 
+    typedef void (*cb_func)();
+
 private:
     static int _counter;
     int _switchPin;
@@ -336,6 +338,8 @@ private:
     void _extTrig_looper();
     void _safetyOff();
     void _afterBoot_behaviour(int rebootState = -1);
+    cb_func _swOn;
+    cb_func _swOff;
 
 public:
     const char *ver = "mySwitch_2.0";
@@ -384,6 +388,8 @@ public:
     void getMQTT(char *parm1, int p2, int p3, int p4);
     void all_off(char *from);
     void quickPwrON();
+    void on_cb(cb_func On_cb = nullptr);
+    void off_cb(cb_func Off_cb = nullptr);
 };
 
 #endif

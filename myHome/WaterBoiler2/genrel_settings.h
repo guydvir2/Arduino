@@ -24,7 +24,7 @@
 
 
 // ~~~~~~~ MQTT Topics ~~~~~~
-#define DEVICE_TOPIC "WaterBoiler"
+#define DEVICE_TOPIC "WaterBoiler2"
 #define MQTT_PREFIX "myHome"
 #define MQTT_GROUP ""
 

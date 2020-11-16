@@ -260,6 +260,9 @@ void checkSwitch_Pressed()
 
         digitalWrite(indic_LEDpin, digitalRead(RELAY1));
 }
+void out_cb(){
+        iot.pum_msg("NYE");
+}
 
 void startGPIO()
 {
@@ -274,6 +277,8 @@ void setup()
         startIOTservices();
         startOLED();
         TOswitch_begin();
+        TOswitch.on_cb(out_cb);
+
 }
 void loop()
 {

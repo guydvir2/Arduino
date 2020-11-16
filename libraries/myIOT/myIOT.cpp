@@ -1620,7 +1620,6 @@ void mySwitch::switchIt(char *txt1, float state, bool ignoreTO)
 		}
 		else
 		{
-			// {
 			digitalWrite(_switchPin, state);
 			current_power = state;
 			sprintf(_out2MQTTmsg, "%s: [%s] Switched [%s]", txt1, _switchName, (int)current_power ? "On" : "Off");
@@ -1963,6 +1962,10 @@ void mySwitch::_TOlooper(int det_reset)
 			if (relayState == 0 && current_power > 0)
 			{
 				switchIt("TimeOut", relayState);
+				if (_swOff != nullptr)
+				{
+					_swOff();
+				}
 			}
 			else if (relayState == 1 && current_power == 0)
 			{
@@ -1973,6 +1976,10 @@ void mySwitch::_TOlooper(int det_reset)
 				else
 				{
 					switchIt("TimeOut", relayState);
+					if (_swOn != nullptr)
+					{
+						_swOn();
+					}
 				}
 			}
 			last_relayState = relayState;
@@ -2054,7 +2061,14 @@ void mySwitch::_extTrig_looper()
 	}
 	trig_lastState = ext_trig_signal;
 }
-
+void mySwitch::on_cb(cb_func On_cb)
+{
+	_swOn = On_cb;
+}
+void mySwitch::off_cb(cb_func Off_cb)
+{
+	_swOff = Off_cb;
+}
 //~~~~~~~~~~~~~~~~~~ HardReboot EEPROM Class ~~~~~~~~~~~
 hardReboot::hardReboot(int romsize)
 {
