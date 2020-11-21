@@ -1431,7 +1431,7 @@ void mySwitch::looper(int det_reset)
 	}
 	if (useIndicationLED)
 	{
-		_indicLED(indicPin, indicState);
+		_indicLED();
 	}
 }
 int mySwitch::_counter = 0;
@@ -1769,15 +1769,15 @@ void mySwitch::_safetyOff()
 		_safetyOff_clock = 0;
 	}
 }
-void mySwitch::_indicLED(int ledPin, bool Onis)
+void mySwitch::_indicLED()
 {
 	if (digitalRead(outputPin) == RelayOn)
 	{
-		digitalWrite(ledPin, Onis);
+		digitalWrite(indicPin, indicState);
 	}
 	else
 	{
-		digitalWrite(ledPin, !Onis);
+		digitalWrite(indicPin, !indicState);
 	}
 }
 //~~ MQTT function ~~

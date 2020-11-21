@@ -8,12 +8,13 @@
     "useEEPROM_resetCounter": false,
     "usePWM": false,
     "useInput": true,
-    "useExtTrig": true,
+    "useExtTrig": false,
     "useIndicationLED": true,
     "momentryButtorn": true,
     "numSW": 1,
     "safetyOffDuration": 720,
     "inputState": true,
+    "indicState": true,
     "inputPin": [
         0,
         13
@@ -25,7 +26,7 @@
     "extTrigPin": 5,
     "indicPin": [
         13,
-        13
+        4
     ],
     "hReboots": [
         1,

@@ -337,12 +337,12 @@ private:
     void _extTrig_looper();
     void _safetyOff();
     void _afterBoot_behaviour(int rebootState = -1);
-    void _indicLED(int ledPin, bool Onis = HIGH);
+    void _indicLED();
     cb_func _swOn;
     cb_func _swOff;
 
 public:
-    const char *ver = "mySwitch_2.0";
+    const char *ver = "mySwitchlib_v2.1";
     bool usePWM = false;
     bool useSerial = false;
     bool useInput = false;

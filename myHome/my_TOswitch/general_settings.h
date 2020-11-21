@@ -1,16 +1,11 @@
 // ********** Sketch Services  ***********
-#define VER "mySWITCH_V2.8"
-static const int maxSW = 2;
+#define VER "mySWITCH_V2.9"
 
-// bool usePWM;
-// bool useExtTrig;
 int numSW;
-// int outputPin[maxSW];
-// int inputPin[maxSW];
-// int indicPin[maxSW];
 int extTrigPin;
 int hRebbots[maxSW];
 char SW_Names[maxSW][30];
+static const int maxSW = 2;
 
 /*
  ~~~~~ SONOFF HARDWARE ~~~~~
