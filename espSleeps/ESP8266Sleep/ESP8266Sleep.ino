@@ -72,6 +72,6 @@ void setup()
 void loop()
 {
   iot.looper();
-  espSleep.wait2Sleep();
+  // espSleep.wait2Sleep();
   delay(100);
 }
