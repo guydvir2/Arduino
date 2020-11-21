@@ -181,23 +181,24 @@ void OLEDlooper()
 }
 
 // ~~~~~~~~~~~~~~ Switching ~~~~~~~~~~~~~~~~~
-void switchOff(char *txt)
+void switchOff(char *txt = "Button")
 {
         if (TOswitch.last_relayState)
         {
+                // TOswitch.all_off(txt);
+                // TOswitch.switchIt(txt,0);
                 display_totalOnTime();
-                TOswitch.all_off(txt);
                 TOswitch.TOswitch.updateStart(0);
                 timeInc_counter = 0;
         }
 }
-void switchOn(char *txt)
+void switchOn(char *txt = "Button")
 {
         static bool last_relState = false;
 
         if (timeInc_counter == 0 && last_relState == !RelayOn)
         { // first press turns on - still not in TO mode
-                TOswitch.switchIt(txt, (float)1);
+                TOswitch.switchIt(txt, 1);
                 TOswitch.TOswitch.updateStart(now()); // register when started in FS
                 timeInc_counter += 1;
         }
@@ -216,13 +217,15 @@ void switchOn(char *txt)
 }
 void press_cases(int &pressedTime, const int &max_time_pressed)
 {
-        if (abs(pressedTime - max_time_pressed) < 300)
+        if (pressedTime > max_time_pressed-500)
         {
-                switchOff("Button");
+                TOswitch.switchIt("Button",0);
+                // switchOff();
         }
         else
         {
-                switchOn("Button");
+                // TOswitch.switchIt("Button",1);
+                switchOn();
         }
 }
 void checkSwitch_Pressed()
@@ -243,7 +246,7 @@ void checkSwitch_Pressed()
                                 {
                                         timeCouter = millis();
                                 }
-                                if (millis() - timeCouter >= max_time_pressed)
+                                else if (millis() - timeCouter >= max_time_pressed)
                                 {
                                         still_pressed = true;
                                         break;
@@ -260,15 +263,19 @@ void checkSwitch_Pressed()
 
         digitalWrite(indic_LEDpin, digitalRead(RELAY1));
 }
-void out_cb(){
-        iot.pum_msg("NYE");
-}
-
 void startGPIO()
 {
         pinMode(INPUT1, INPUT_PULLUP); // not defined in mySwitch, but here. Locally.
         pinMode(indic_LEDpin, OUTPUT);
         digitalWrite(RELAY1, !RelayOn);
+}
+void a()
+{
+        switchOn();
+}
+void b()
+{
+        switchOff();
 }
 void setup()
 {
@@ -277,8 +284,8 @@ void setup()
         startIOTservices();
         startOLED();
         TOswitch_begin();
-        TOswitch.on_cb(out_cb);
-
+        TOswitch.on_cb(a);
+        TOswitch.off_cb(b);
 }
 void loop()
 {

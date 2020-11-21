@@ -14,11 +14,44 @@ myJSON::myJSON(char *filename, bool useserial, int doc_size)
         {
                 Serial.begin(9600);
         }
-        if (!SPIFFS.begin())
+        // #if isESP32
+        //         bool a = !SPIFFS.begin(true);
+        // #elif isESP8266
+        //         bool a = !SPIFFS.begin();
+        // #endif
+        //         if (a)
+        //         {
+        //                 if (_useSerial)
+        //                 {
+        //                         Serial.println("Failed to mount file system");
+        //                 }
+        //         }
+        //         else
+        //         {
+        //                 if (SPIFFS.exists(_filename))
+        //                 {
+        //                         _openOK = true;
+        //                 }
+        //         }
+}
+void myJSON::start()
+{
+#if isESP32
+        bool a = !SPIFFS.begin(true);
+#elif isESP8266
+        bool a = !SPIFFS.begin();
+#endif
+        if (a)
         {
                 if (_useSerial)
                 {
                         Serial.println("Failed to mount file system");
+                        Serial.flush();
+                }
+                else
+                {
+                        Serial.println("file system mount OK");
+                        Serial.flush();
                 }
         }
         else
@@ -33,10 +66,7 @@ myJSON::myJSON(char *filename, bool useserial, int doc_size)
 // ~~~~~~~~~~~~~~ File Functions ~~~~~~~~~~~
 bool myJSON::file_exists()
 {
-        if (SPIFFS.begin())
-        {
-                return SPIFFS.exists(_filename);
-        }
+        return SPIFFS.exists(_filename);
 }
 bool myJSON::file_remove()
 {
@@ -79,7 +109,7 @@ void myJSON::saveJSON2file(JsonDocument &_doc)
 {
         File writeFile = SPIFFS.open(_filename, "w");
         serializeJson(_doc, writeFile);
-        delay(50);
+        // delay(50);
         // Serial.println("JSON file saved OK");
         // myJSON::PrettyprintJSON(_doc);
 }
@@ -113,7 +143,7 @@ void myJSON::PrettyprintJSON(JsonDocument &_doc)
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 // ~~~ User Functions : JSON + file saving ~~~~~~~~~~~
-char* myJSON::retAllJSON()
+char *myJSON::retAllJSON()
 {
         const int x = 500;
         char value[x];
@@ -197,7 +227,7 @@ void myJSON::setValue(const char *key, char *value)
 void myJSON::setValue(const char *key, int value)
 {
         DynamicJsonDocument tempJDOC(DOC_SIZE);
-        readJSON_file(tempJDOC);
+        // readJSON_file(tempJDOC);
         tempJDOC[key] = value;
         saveJSON2file(tempJDOC);
 }

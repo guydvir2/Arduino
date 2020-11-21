@@ -319,7 +319,6 @@ class mySwitch
 
 private:
     static int _counter;
-    int _switchPin;
     char _switchName[20];
     char _outMQTTmsg[150];
     char _out2MQTTmsg[150];
@@ -338,6 +337,7 @@ private:
     void _extTrig_looper();
     void _safetyOff();
     void _afterBoot_behaviour(int rebootState = -1);
+    void _indicLED(int ledPin, bool Onis = HIGH);
     cb_func _swOn;
     cb_func _swOff;
 
@@ -353,15 +353,19 @@ public:
     bool usesafetyOff = false;
     bool usequickON = false;
     bool useHardReboot = false;
+    bool useIndicationLED = false;
     bool onAt_boot = true;
     bool ext_trig_signal;
     bool is_momentery = true;
     bool last_relayState = false;
     bool trig_lastState = false;
     bool inputState = HIGH;
+    bool indicState = HIGH;
     bool _check_afterBoot = true;
 
     int inputPin = -1;
+    int indicPin = -1;
+    int outputPin = -1;
     float step_power = 0.2;
     float max_power = 1.0;
     float min_power = step_power;
@@ -390,6 +394,6 @@ public:
     void quickPwrON();
     void on_cb(cb_func On_cb = nullptr);
     void off_cb(cb_func Off_cb = nullptr);
-};
+    };
 
 #endif

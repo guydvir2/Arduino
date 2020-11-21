@@ -30,7 +30,7 @@ void TOswitch_init()
 
 	for (int i = 0; i < numSW; i++)
 	{
-		TOswitches[i]->usePWM = usePWM;
+		TOswitches[i]->usePWM = sketchJSON["usePWM"];
 		TOswitches[i]->useSerial = sketchJSON["useSerial"];
 		TOswitches[i]->useInput = sketchJSON["useInput"];
 		TOswitches[i]->useEXTtrigger = sketchJSON["useExtTrig"];
@@ -45,9 +45,12 @@ void TOswitch_init()
 		TOswitches[i]->def_power = sketchJSON["defPWM"];
 		TOswitches[i]->usetimeOUT = sketchJSON["usetimeOUT"];
 		TOswitches[i]->inputState = sketchJSON["inputState"];
-		TOswitches[i]->inputPin = inputPin[i];
+		TOswitches[i]->inputPin = sketchJSON["inputPin"][i];
+		TOswitches[i]->outputPin = sketchJSON["outputPin"][i];
+		TOswitches[i]->indicPin = sketchJSON["indicPin"][i];
+		TOswitches[i]->useIndicationLED = sketchJSON["useIndicationLED"];
 
-		TOswitches[i]->config(outputPin[i], sketchJSON["timeOUTS"][i], SW_Names[i]);
+		TOswitches[i]->config(TOswitches[i]->outputPin, sketchJSON["timeOUTS"][i], SW_Names[i]);
 	}
 }
 void startdTO()
@@ -77,7 +80,7 @@ void startdTO()
 		}
 		TOswitches[i]->begin();
 	}
-	if (useExtTrig)
+	if (TOswitches[0]->useEXTtrigger)
 	{
 		startExtTrig();
 	}
@@ -106,7 +109,7 @@ void TOswitch_looper()
 			}
 		}
 	}
-	if (useExtTrig)
+	if (TOswitches[0]->useEXTtrigger)
 	{
 		readExtTrig_looper();
 	}
@@ -148,7 +151,7 @@ void giveStatus(char *outputmsg)
 		{
 			sprintf(t1, "");
 		}
-		if (usePWM)
+		if (TOswitches[i]->usePWM)
 		{
 			if (TOswitches[i]->current_power == 0)
 			{
@@ -226,14 +229,14 @@ void addiotnalMQTT(char *incoming_msg)
 
 		if (numSW == 1)
 		{
-			sprintf(ins, "Input Pins:[%d]", inputPin[0]);
-			sprintf(outs, "Output Pins:[%d]", outputPin[0]);
+			sprintf(ins, "Input Pins:[%d]", TOswitches[0]->inputPin);
+			sprintf(outs, "Output Pins:[%d]", TOswitches[0]->outputPin);
 			sprintf(trig, "Trig Pins:[%d]", extTrigPin);
 		}
 		else if (numSW == 2)
 		{
-			sprintf(ins, "Input Pins:[%d, %d]", inputPin[0], inputPin[1]);
-			sprintf(outs, "Output Pins:[%d, %d]", outputPin[0], outputPin[1]);
+			sprintf(ins, "Input Pins:[%d, %d]", TOswitches[0]->inputPin, TOswitches[1]->inputPin);
+			sprintf(outs, "Output Pins:[%d, %d]", TOswitches[0]->outputPin, TOswitches[0]->outputPin);
 			sprintf(trig, "Trig Pins:[%d]", extTrigPin);
 		}
 		sprintf(totals, "GPIO's used: %s %s %s", TOswitches[0]->useInput ? ins : "", outs, TOswitches[0]->useEXTtrigger ? trig : "");
@@ -251,14 +254,13 @@ void addiotnalMQTT(char *incoming_msg)
 			iot.export_fPars(a[e], sketchJSON, JSON_SIZE_SKETCH);
 			serializeJson(sketchJSON, temp);
 			temp3 = String(a[e]) + ":" + temp;
-			char char_array[temp3.length()+1];
+			char char_array[temp3.length() + 1];
 			temp3.toCharArray(char_array, temp3.length() + 1);
 			iot.pub_debug(char_array);
 			sketchJSON.clear();
 		}
 		iot.pub_debug("~~~End~~~");
 	}
-
 
 	// ±±±±±±±±±± MQTT MSGS from mySwitch Library ±±±±±±±±±±±±
 	else

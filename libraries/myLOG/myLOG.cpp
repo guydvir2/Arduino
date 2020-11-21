@@ -6,7 +6,13 @@ flashLOG::flashLOG(char *filename)
 }
 void flashLOG::start(int max_entries, int max_entry_len, bool delyedSave)
 {
-    if (!SPIFFS.begin())
+#if isESP32
+    bool a = !SPIFFS.begin(true);
+#elif isESP8266
+    bool a = !SPIFFS.begin();
+#endif
+
+    if (a)
     {
         Serial.println("SPIFFS mount failed");
     }
@@ -26,11 +32,13 @@ void flashLOG::write(const char *message)
     char b[_log_length + 3];
     strncpy(b, message, _log_length);
     sprintf(_logBuffer[_buff_i], "%s%c", b, _EOL);
-    if(_useDelayedSave){
-    lastUpdate = millis();
-    _buff_i++;
+    if (_useDelayedSave)
+    {
+        lastUpdate = millis();
+        _buff_i++;
     }
-    else{
+    else
+    {
         _write2file();
     }
 }
@@ -58,7 +66,8 @@ void flashLOG::_write2file()
     _buff_i = 0;
     lastUpdate = 0;
 }
-void flashLOG::writeNow(){
+void flashLOG::writeNow()
+{
     _write2file();
 }
 void flashLOG::_del_lines(byte line_index)

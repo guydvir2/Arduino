@@ -2,8 +2,6 @@
 All Parameters in this file will be changed while reading parameters from JSON file.
 */
 
-#define isESP32 true
-
 float MAX_BAT = 4.1;
 float MAX_SOLAR = 6.0;
 

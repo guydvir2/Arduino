@@ -60,11 +60,13 @@ void addiotnalMQTT(char *income_msg)
     }
     else if (strcmp(income_msg, "on") == 0)
     {
-        switchOn("MQTT");
+        // switchOn("MQTT");
+        TOswitch.switchIt("MQTT", 1);
     }
     else if (strcmp(income_msg, "off") == 0)
     {
-        switchOff("MQTT");
+        // switchOff("MQTT");
+        TOswitch.switchIt("MQTT", 0);
     }
     else
     {

@@ -1,13 +1,22 @@
+#define swPin 0
+#define relayPin 12
+#define ledPin 13
+#define relayON LOW
+#define swON LOW
+#define ledON LOW
+
+bool relayState = !relayON;
+bool ledState = !ledON;
+
 // ********** Sketch Services  ***********
-#define VER "mySWITCH_V2.8"
+#define VER "powerPlug_V0.1"
 static const int maxSW = 2;
 
-// bool usePWM;
-// bool useExtTrig;
+bool usePWM;
+bool useExtTrig;
 int numSW;
-// int outputPin[maxSW];
-// int inputPin[maxSW];
-// int indicPin[maxSW];
+int outputPin[maxSW];
+int inputPin[maxSW];
 int extTrigPin;
 int hRebbots[maxSW];
 char SW_Names[maxSW][30];

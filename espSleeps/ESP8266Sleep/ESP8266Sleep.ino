@@ -1,8 +1,8 @@
 #include <Arduino.h>
 #include <esp8266Sleep.h>
 #include "general_settings.h"
-#include "esp8266Sleep_param.h"
 #include "myIOT_settings.h"
+#include "esp8266Sleep_param.h"
 #include "v_measures.h"
 
 const char *espVer = "sleepSketch_v0.2";
@@ -63,21 +63,15 @@ String create_beforeSleep_status()
 
 void setup()
 {
-  startRead_parameters();
-  espSleep.isESP32 = isESP32;
-
-#if !isESP32
+  // startRead_parameters();
   startIOTservices();
-#endif
   espSleep.start(SleepDuration, forceWake, iot.deviceTopic, onWake_cb, send_sleep_status);
-  endRead_parameters();
+  // endRead_parameters();
 }
 
 void loop()
 {
-#if !isESP32
   iot.looper();
-#endif
   espSleep.wait2Sleep();
   delay(100);
 }

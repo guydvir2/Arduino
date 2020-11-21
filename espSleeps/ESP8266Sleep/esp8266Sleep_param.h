@@ -1,6 +1,6 @@
 #include <Arduino.h>
-// #include <myIOT.h>
 #include <ArduinoJson.h>
+#include <myJSON.h>
 #include <EEPROM.h>
 
 #define JSON_SIZE_IOT 400
@@ -11,7 +11,7 @@ bool readfile_ok = false;
 StaticJsonDocument<JSON_SIZE_IOT> paramJSON;
 StaticJsonDocument<JSON_SIZE_SKETCH> sketchJSON;
 
-extern myIOT iot;
+extern myIOT2 iot;
 extern int SleepDuration;
 extern int forceWake;
 extern int ads_batPin;
@@ -47,21 +47,21 @@ void startRead_parameters()
                         \"useFailNTP\" : true,\"useDebugLog\" : false,\"useNetworkReset\":false, \"deviceTopic\" : \"esp8266\",\
                         \"groupTopic\" : \"SolarPower\",\"prefixTopic\" : \"myHome\",\"debug_level\":0,\"noNetwork_reset\":1}";
 
-  bool a = iot.read_fPars(sketch_paramfile, sketch_defs, sketchJSON);
-  bool b = iot.read_fPars(iot.myIOT_paramfile, myIOT_defs, paramJSON);
-  readfile_ok = a && b;
+//   bool a = iot.read_fPars(sketch_paramfile, sketch_defs, sketchJSON);
+//   bool b = iot.read_fPars(iot.myIOT_paramfile, myIOT_defs, paramJSON);
+//   readfile_ok = a && b;
 
-  // serializeJsonPretty(sketchJSON, Serial);
-  // serializeJsonPretty(paramJSON, Serial);
-  // Serial.flush();
+//   // serializeJsonPretty(sketchJSON, Serial);
+//   // serializeJsonPretty(paramJSON, Serial);
+//   // Serial.flush();
   update_vars(sketchJSON);
 }
 void endRead_parameters()
 {
-  if (!readfile_ok)
-  {
-    iot.pub_log("Error read Parameters from file. Defaults values loaded.");
-  }
+  // if (!readfile_ok)
+  // {
+  //   iot.pub_log("Error read Parameters from file. Defaults values loaded.");
+  // }
   paramJSON.clear();
   sketchJSON.clear();
 }

@@ -24,13 +24,13 @@
 
 
 // ~~~~~~~ MQTT Topics ~~~~~~
-#define DEVICE_TOPIC "WaterBoiler2"
+#define DEVICE_TOPIC "WaterBoiler"
 #define MQTT_PREFIX "myHome"
 #define MQTT_GROUP ""
 
 // ********** myIOT Class ***********
 //~~~~~ Services ~~~~~~~~~~~
-#define USE_SERIAL false     // Serial Monitor
+#define USE_SERIAL true     // Serial Monitor
 #define USE_WDT true         // watchDog resets
 #define USE_OTA true         // OTA updates
 #define USE_RESETKEEPER true // detect quick reboot and real reboots

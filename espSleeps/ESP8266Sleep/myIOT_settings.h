@@ -1,7 +1,7 @@
-#include <myIOT.h>
+#include <myIOT2.h>
 #define DEBUG_TOPIC "debug"
 
-myIOT iot;
+myIOT2 iot;
 extern esp8266Sleep espSleep;
 extern void wait4OTA();
 
@@ -51,19 +51,19 @@ void addiotnalMQTT(char *incoming_msg)
 }
 void startIOTservices()
 {
-    iot.useSerial = paramJSON["useSerial"];
-    iot.useWDT = paramJSON["useWDT"];
-    iot.useOTA = paramJSON["useOTA"];
-    iot.useResetKeeper = paramJSON["useResetKeeper"];
-    iot.resetFailNTP = paramJSON["useFailNTP"];
-    iot.useDebug = paramJSON["useDebugLog"];
-    iot.debug_level = paramJSON["debug_level"];
-    iot.useNetworkReset = paramJSON["useNetworkReset"];
-    iot.noNetwork_reset = paramJSON["noNetwork_reset"];
-    iot.useextTopic = paramJSON["useextTopic"];
-    strcpy(iot.deviceTopic, paramJSON["deviceTopic"]);
-    strcpy(iot.prefixTopic, paramJSON["prefixTopic"]);
-    strcpy(iot.addGroupTopic, paramJSON["groupTopic"]);
+    // iot.useSerial = paramJSON["useSerial"];
+    // iot.useWDT = paramJSON["useWDT"];
+    // iot.useOTA = paramJSON["useOTA"];
+    // iot.useResetKeeper = paramJSON["useResetKeeper"];
+    // iot.resetFailNTP = paramJSON["useFailNTP"];
+    // iot.useDebug = paramJSON["useDebugLog"];
+    // iot.debug_level = paramJSON["debug_level"];
+    // iot.useNetworkReset = paramJSON["useNetworkReset"];
+    // iot.noNetwork_reset = paramJSON["noNetwork_reset"];
+    // iot.useextTopic = paramJSON["useextTopic"];
+    // strcpy(iot.deviceTopic, paramJSON["deviceTopic"]);
+    // strcpy(iot.prefixTopic, paramJSON["prefixTopic"]);
+    // strcpy(iot.addGroupTopic, paramJSON["groupTopic"]);
 
     char a[50];
     sprintf(a, "%s/%s/%s/%s", iot.prefixTopic, iot.addGroupTopic, iot.deviceTopic, DEBUG_TOPIC);

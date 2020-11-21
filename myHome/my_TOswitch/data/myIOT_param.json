@@ -5,8 +5,8 @@
     "useFailNTP": true,
     "useDebugLog": true,
     "useNetworkReset":true,
-    "deviceTopic": "frontDoorLEDs",
-    "groupTopic": "extLights",
+    "deviceTopic": "test",
+    "groupTopic": "powerPlug",
     "prefixTopic": "myHome",
     "debug_level":1,
     "noNetwork_reset":30

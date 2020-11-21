@@ -859,7 +859,8 @@ void myIOT::startWDT()
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 bool myIOT::read_fPars(char *filename, String &defs, JsonDocument &DOC, int JSIZE)
 {
-	myJSON param_on_flash(filename, false, JSIZE);
+	myJSON param_on_flash(filename, true, JSIZE);
+	param_on_flash.start();
 
 	if (param_on_flash.file_exists())
 	{
@@ -900,8 +901,9 @@ char *myIOT::export_fPars(char *filename, JsonDocument &DOC, int JSIZE)
 }
 
 // ############################### FVars CLASS #################################
-FVars::FVars(char *key, char *fname, bool counter) : json(fname, true)
+FVars::FVars(char *key, char *fname, bool counter) : json(fname, false)
 {
+	json.start();
 	if (counter)
 	{
 		_counter++;
@@ -1358,10 +1360,10 @@ mySwitch::mySwitch()
 }
 void mySwitch::config(int switchPin, int timeout_val, char *name)
 {
-	_switchPin = switchPin;
 	strcpy(_switchName, name);
 
-	pinMode(_switchPin, OUTPUT); // defined here for hReboot purposes
+	outputPin = switchPin;
+	pinMode(outputPin, OUTPUT); // defined here for hReboot purposes
 	if (useHardReboot)
 	{
 		hReboot.check_boot(2);
@@ -1389,15 +1391,18 @@ void mySwitch::begin()
 		pinMode(inputPin, INPUT_PULLUP);
 		inputState = digitalRead(inputPin); // to avoid On after reset
 	}
+	if(useIndicationLED){
+		pinMode(indicPin, OUTPUT);
+	}
 
 	current_power = 0;
 	if (usePWM)
 	{
-		analogWrite(_switchPin, current_power);
+		analogWrite(outputPin, current_power);
 	}
 	else
 	{
-		digitalWrite(_switchPin, current_power);
+		digitalWrite(outputPin, current_power);
 	}
 
 	if (usetimeOUT)
@@ -1424,6 +1429,10 @@ void mySwitch::looper(int det_reset)
 	{
 		_safetyOff();
 	}
+	if (useIndicationLED)
+	{
+		_indicLED(indicPin, indicState);
+	}
 }
 int mySwitch::_counter = 0;
 
@@ -1447,17 +1456,17 @@ void mySwitch::quickPwrON()
 	{
 		if (usePWM)
 		{
-			analogWrite(_switchPin, def_power * PWM_RES);
+			analogWrite(outputPin, def_power * PWM_RES);
 		}
 		else
 		{
-			digitalWrite(_switchPin, 1);
+			digitalWrite(outputPin, 1);
 		}
 	}
 	else
 	{
-		analogWrite(_switchPin, 0);
-		digitalWrite(_switchPin, !RelayOn);
+		analogWrite(outputPin, 0);
+		digitalWrite(outputPin, !RelayOn);
 	}
 }
 void mySwitch::_afterBoot_behaviour(int rebootState)
@@ -1569,7 +1578,7 @@ void mySwitch::changePower(float val)
 		{
 			for (int i = (int)(current_power * 100); i >= 0; i--)
 			{
-				analogWrite(_switchPin, i * PWM_RES * 0.01);
+				analogWrite(outputPin, i * PWM_RES * 0.01);
 				delay(fade_dealy);
 			}
 		}
@@ -1577,7 +1586,7 @@ void mySwitch::changePower(float val)
 		{
 			for (int i = (int)(current_power * 100); i <= (int)(val * 100); i++)
 			{
-				analogWrite(_switchPin, i * PWM_RES * 0.01);
+				analogWrite(outputPin, i * PWM_RES * 0.01);
 				delay(fade_dealy);
 			}
 		}
@@ -1585,7 +1594,7 @@ void mySwitch::changePower(float val)
 		{
 			for (int i = (int)(val * 100); i >= (int)(current_power * 100); i--)
 			{
-				analogWrite(_switchPin, i * PWM_RES * 0.01);
+				analogWrite(outputPin, i * PWM_RES * 0.01);
 				delay(fade_dealy);
 			}
 		}
@@ -1620,9 +1629,25 @@ void mySwitch::switchIt(char *txt1, float state, bool ignoreTO)
 		}
 		else
 		{
-			digitalWrite(_switchPin, state);
+			digitalWrite(outputPin, state);
 			current_power = state;
 			sprintf(_out2MQTTmsg, "%s: [%s] Switched [%s]", txt1, _switchName, (int)current_power ? "On" : "Off");
+
+			/* For externnal function execuation */
+			if ((int)state == 1)
+			{
+				if (_swOn != nullptr)
+				{
+					_swOn();
+				}
+			}
+			else
+			{
+				if (_swOff != nullptr)
+				{
+					_swOff();
+				}
+			}
 		}
 
 		if (usetimeOUT && ignoreTO == false)
@@ -1716,7 +1741,7 @@ void mySwitch::_checkSwitch_Pressed(int swPin, bool momentary)
 			if (digitalRead(swPin) != inputState)
 			{
 				inputState = digitalRead(swPin);
-				if (inputState == SwitchOn && digitalRead(_switchPin) != RelayOn)
+				if (inputState == SwitchOn && digitalRead(outputPin) != RelayOn)
 				{ // turn in TO
 					TOswitch.restart_to();
 				}
@@ -1726,7 +1751,7 @@ void mySwitch::_checkSwitch_Pressed(int swPin, bool momentary)
 					{ // turn off when in TO
 						TOswitch.endNow();
 					}
-					else if (digitalRead(_switchPin) == RelayOn && TOswitch.remain() == 0)
+					else if (digitalRead(outputPin) == RelayOn && TOswitch.remain() == 0)
 					{ // turn off when only ON
 						switchIt("Button:", 0);
 					}
@@ -1744,7 +1769,17 @@ void mySwitch::_safetyOff()
 		_safetyOff_clock = 0;
 	}
 }
-
+void mySwitch::_indicLED(int ledPin, bool Onis)
+{
+	if (digitalRead(outputPin) == RelayOn)
+	{
+		digitalWrite(ledPin, Onis);
+	}
+	else
+	{
+		digitalWrite(ledPin, !Onis);
+	}
+}
 //~~ MQTT function ~~
 void mySwitch::getMQTT(char *parm1, int p2, int p3, int p4)
 {
@@ -1962,10 +1997,10 @@ void mySwitch::_TOlooper(int det_reset)
 			if (relayState == 0 && current_power > 0)
 			{
 				switchIt("TimeOut", relayState);
-				if (_swOff != nullptr)
-				{
-					_swOff();
-				}
+				// if (_swOff != nullptr)
+				// {
+				// 	_swOff();
+				// }
 			}
 			else if (relayState == 1 && current_power == 0)
 			{
@@ -1976,10 +2011,10 @@ void mySwitch::_TOlooper(int det_reset)
 				else
 				{
 					switchIt("TimeOut", relayState);
-					if (_swOn != nullptr)
-					{
-						_swOn();
-					}
+					// if (_swOn != nullptr)
+					// {
+					// 	_swOn();
+					// }
 				}
 			}
 			last_relayState = relayState;
@@ -2069,6 +2104,7 @@ void mySwitch::off_cb(cb_func Off_cb)
 {
 	_swOff = Off_cb;
 }
+
 //~~~~~~~~~~~~~~~~~~ HardReboot EEPROM Class ~~~~~~~~~~~
 hardReboot::hardReboot(int romsize)
 {

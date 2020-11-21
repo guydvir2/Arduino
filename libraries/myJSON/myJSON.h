@@ -3,10 +3,18 @@
 
 #include "Arduino.h"
 #include <ArduinoJson.h>
-#include <FS.h>
-#include <LittleFS.h>
 
-class myJSON
+#if defined(ESP32)
+#include <SPIFFS.h>
+#define isESP32 true
+#define isESP8266 false
+#elif defined(ARDUINO_ARCH_ESP8266)
+#include <LittleFS.h>
+#define isESP32 false
+#define isESP8266 true
+#endif
+
+    class myJSON
 {
     #define _def_dsize 400
 
@@ -19,6 +27,7 @@ public:
     char *ver = "myJSON_v1.91";
     int DOC_SIZE;
     myJSON(char *filename, bool useserial = false, int doc_size = _def_dsize);
+    void start();
 
     bool readJSON_file(JsonDocument &_doc);
     bool file_exists();

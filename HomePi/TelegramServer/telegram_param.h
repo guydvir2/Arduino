@@ -1,8 +1,7 @@
 #include <Arduino.h>
 #include <ArduinoJson.h>
-#include <myJSON.h>
 
-#define JSON_SIZE_IOT 400
+#define JSON_SIZE_IOT 500
 // #define JSON_SIZE_SKETCH 200
 
 // char *sketch_paramfile = "/sketch_param.json";
@@ -12,8 +11,6 @@ bool readfile_ok = false;
 StaticJsonDocument<JSON_SIZE_IOT> paramJSON;
 // StaticJsonDocument<JSON_SIZE_SKETCH> sketchJSON;
 
-char paramA[20];
-int paramB = 0;
 extern myIOT iot;
 
 void update_vars(JsonDocument &DOC)
@@ -24,8 +21,9 @@ void update_vars(JsonDocument &DOC)
 void startRead_parameters()
 {
   String myIOT_defs = "{\"useSerial\":true,\"useWDT\":false,\"useOTA\":true,\"useResetKeeper\" : false,\
-                        \"useFailNTP\" : true,\"useDebugLog\" : true,\"useNetworkReset\":true, \"deviceTopic\" : \"devTopic\",\
-                        \"groupTopic\" : \"group\",\"prefixTopic\" : \"myHome\",\"debug_level\":0,\"noNetwork_reset\":5}";
+                        \"useFailNTP\" : true,\"useDebugLog\" : true,\"useNetworkReset\":true, \"useextTopic\":true,\
+                        \"extTopic\": \"extopic\",\"deviceTopic\" : \"devTopic\",\"groupTopic\" : \"group\",\
+                        \"prefixTopic\" : \"myHome\",\"debug_level\":0,\"noNetwork_reset\":5}";
 
   if (iot.read_fPars(iot.myIOT_paramfile, myIOT_defs, paramJSON))
   {

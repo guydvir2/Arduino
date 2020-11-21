@@ -2,11 +2,10 @@
 #include <myIOT.h>
 #include "telegram_param.h"
 
-#include <EMailSender.h>
-
 // ********** Sketch Services  ***********
 #define VER "ESP8266_0.1"
-#define ADD_MQTT_FUNC addiotnalMQTT
+// #define ADD_MQTT_FUNC addiotnalMQTT
+#define USE_EMAIL false
 
 struct MQTT_msg
 {
@@ -34,7 +33,7 @@ void startIOTservices()
         strcpy(iot.addGroupTopic, paramJSON["groupTopic"]);
         strcpy(iot.extTopic, paramJSON["extTopic"]);
 
-        iot.start_services(ADD_MQTT_FUNC);
+        iot.start_services(addiotnalMQTT);
 }
 void addiotnalMQTT(char *incoming_msg)
 {
@@ -150,6 +149,8 @@ int PIRpin = 2;
 bool lastSenseState = false;
 
 // ~~~~~~~~~~ Email Service ~~~~~~~~~~
+#if USE_EMAIL
+#include <EMailSender.h>
 EMailSender emailSend("guydvir.tech@gmail.com", "GdSd13100301");
 
 void sendEmail(char *msg, char *TO, char *subject){
@@ -165,21 +166,25 @@ void sendEmail(char *msg, char *TO, char *subject){
         Serial.println(resp.code);
         Serial.println(resp.desc);
 }
+#endif
+
 void setup()
 {
         startRead_parameters();
         startIOTservices();
         endRead_parameters();
 
-        // teleNotify.begin(telecmds);
-        // iot.pub_ext("Boot");
+        teleNotify.begin(telecmds);
+        iot.pub_ext("Boot");
+        #if USE_EMAIL
         sendEmail("Hi- i'm fine", "guydvir2@gmail.com", "Testing123");
+        #endif
 }
 void loop()
 
 {
         iot.looper();
-        // teleNotify.looper();
-        // listenMQTT_forTelegram();
+        teleNotify.looper();
+        listenMQTT_forTelegram();
         delay(100);
 }

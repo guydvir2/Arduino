@@ -1,6 +1,15 @@
 #ifndef myLOG_h
 #define myLOG_h
 #include <FS.h>
+#if defined(ESP32)
+#include <SPIFFS.h>
+#define isESP32 true
+#define isESP8266 false
+#elif defined(ARDUINO_ARCH_ESP8266)
+#define isESP32 false
+#define isESP8266 true
+
+#endif
 
 class flashLOG
 {
@@ -21,7 +30,7 @@ private:
     void _write2file();
 
 public:
-    char *VeR = "flashLOG v0.5";
+    char *VeR = "flashLOG v0.6";
     long lastUpdate = 0;
     flashLOG(char *filename = "/logfile.txt"); //, int log_size = LOG_SIZE, int log_length = LOG_LEN);
     void start(int max_entries = 10, int max_entry_len = 100, bool delyedSave = true);
