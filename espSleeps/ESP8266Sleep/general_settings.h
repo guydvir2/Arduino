@@ -2,7 +2,8 @@
 All Parameters in this file will be changed while reading parameters from JSON file.
 */
 
-float MAX_BAT = 4.1;
+float MAX_BAT = 4.2;
+float MIN_BAT = 4.2;
 float MAX_SOLAR = 6.0;
 
 // ~~~~~~~~~~~~~~ ADS 1115 ~~~~~~~~~~~~~~~

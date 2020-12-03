@@ -1,13 +1,13 @@
 {
-    "sleep_duration": 30,
-    "forceWake": 30,
+    "sleep_duration": 60,
+    "forceWake": 20,
     "ADS_vmeasure": false,
-    "analog_vmeasure": true,
+    "analog_vmeasure": false,
     "ads_batPin": 0,
     "ads_solarPin": 1,
     "solarPanel_v": 14.0,
     "ADC_convFactor": 0.1875,
     "solarVoltageDiv": 0.2,
     "vbat_vdiv": 5.0,
-    "boardType": "NodeMCU"
+    "boardType": "ESP32"
 }

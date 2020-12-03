@@ -230,6 +230,8 @@ void myIOT2::start_clock()
 #elif isESP32
 	startNTP_32();
 	getTimeStamp_32(bootTime);
+	// _failNTP = false;
+
 #endif
 }
 bool myIOT2::startNTP()
@@ -268,7 +270,6 @@ void myIOT2::get_timeStamp(time_t t)
 		t = now();
 	}
 	sprintf(timeStamp, "%02d-%02d-%02d %02d:%02d:%02d", year(t), month(t), day(t), hour(t), minute(t), second(t));
-
 #elif isESP32
 	getTimeStamp_32(timeStamp);
 #endif
@@ -294,7 +295,7 @@ bool myIOT2::checkInternet(char *externalSite, byte pings)
 void myIOT2::startNTP_32(const int gmtOffset_sec, const int daylightOffset_sec, const char *ntpServer)
 {
 #if isESP32
-	configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);
+	configTime(gmtOffset_sec, daylightOffset_sec, ntpServer); //configuring time offset and an NTP server
 #endif
 }
 void myIOT2::getTime_32()
@@ -311,6 +312,7 @@ void myIOT2::getTime_32()
 						   // }
 						   // a++;
 	}
+	
 #endif
 }
 void myIOT2::getTimeStamp_32(char ret_timeStamp[25])
@@ -334,7 +336,7 @@ void myIOT2::startMQTT()
 	bool stat = false;
 	createTopics();
 	// Select MQTT server
-	if (Ping.ping(_mqtt_server))
+	if (Ping.ping(_mqtt_server, 2))
 	{
 		mqttClient.setServer(_mqtt_server, 1883);
 		stat = true;
@@ -345,7 +347,7 @@ void myIOT2::startMQTT()
 			Serial.println(_mqtt_server);
 		}
 	}
-	else if (Ping.ping(_mqtt_server2))
+	else if (Ping.ping(_mqtt_server2), 5)
 	{
 		mqttClient.setServer(_mqtt_server2, 1883);
 		if (useSerial)
@@ -370,9 +372,7 @@ void myIOT2::startMQTT()
 	// Set callback function
 	if (stat)
 	{
-		mqttClient.setCallback(
-			std::bind(&myIOT2::callback, this, std::placeholders::_1,
-					  std::placeholders::_2, std::placeholders::_3));
+		mqttClient.setCallback(std::bind(&myIOT2::callback, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
 		subscribeMQTT();
 	}
 	else
@@ -392,7 +392,7 @@ bool myIOT2::subscribeMQTT()
 		{
 			return 0;
 		}
-		else if (now - lastReconnectAttempt > 5000)
+		else if (now - lastReconnectAttempt > 2000)
 		{
 			lastReconnectAttempt = now;
 			if (useSerial)
@@ -738,7 +738,6 @@ void myIOT2::pub_email(String *inmsg, char *name)
 	_pub_generic(_emailTopic, b, false, name);
 	write_log(b, 0);
 }
-
 void myIOT2::msgSplitter(const char *msg_in, int max_msgSize, char *prefix, char *split_msg)
 {
 	char tmp[280];
@@ -813,6 +812,8 @@ void myIOT2::firstRun_ResetKeeper(char *msg)
 	firstRun = false;
 	notifyOnline();
 }
+
+// ~~~~~~~~~~ Data Storage ~~~~~~~~~
 void myIOT2::write_log(char *inmsg, int x)
 {
 	char a[strlen(inmsg) + 100];
@@ -822,6 +823,50 @@ void myIOT2::write_log(char *inmsg, int x)
 		get_timeStamp();
 		sprintf(a, ">>%s<< [%s] %s", timeStamp, _deviceName, inmsg);
 		flog.write(a);
+	}
+}
+bool myIOT2::read_fPars(char *filename, String &defs, JsonDocument &DOC, int JSIZE)
+{
+	myJSON param_on_flash(filename, true, JSIZE);
+	param_on_flash.start();
+
+	if (param_on_flash.file_exists())
+	{
+		if (param_on_flash.readJSON_file(DOC))
+		{
+			return 1;
+		}
+		else
+		{
+			return 0;
+		}
+	}
+	else
+	{
+		Serial.printf("\nfile %s not found", filename);
+		deserializeJson(DOC, defs);
+		return 0;
+	}
+}
+char *myIOT2::export_fPars(char *filename, JsonDocument &DOC, int JSIZE)
+{
+	myJSON param_on_flash(filename, false, JSIZE);
+	param_on_flash.start();
+
+	if (param_on_flash.file_exists())
+	{
+		if (param_on_flash.readJSON_file(DOC))
+		{
+			int arraySize = 500;
+			char ret[arraySize];
+			strcpy(ret, param_on_flash.retAllJSON());
+			return ret;
+		}
+	}
+	else
+	{
+		Serial.printf("\nfile %s read NOT-OK", filename);
+		return 0;
 	}
 }
 

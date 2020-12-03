@@ -2,10 +2,10 @@
 #define VER "mySWITCH_V2.9"
 
 int numSW;
+const int maxSW = 2;
 int extTrigPin;
 int hRebbots[maxSW];
 char SW_Names[maxSW][30];
-static const int maxSW = 2;
 
 /*
  ~~~~~ SONOFF HARDWARE ~~~~~

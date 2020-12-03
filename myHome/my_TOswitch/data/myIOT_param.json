@@ -6,7 +6,7 @@
     "useDebugLog": true,
     "useNetworkReset":true,
     "deviceTopic": "test",
-    "groupTopic": "powerPlug",
+    "groupTopic": "esp8266Relay",
     "prefixTopic": "myHome",
     "debug_level":1,
     "noNetwork_reset":30

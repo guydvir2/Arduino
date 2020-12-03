@@ -4,7 +4,7 @@ myIOT2 iot;
 void startIOTservices()
 {
   iot.useSerial = true;
-  iot.useWDT = true;
+  iot.useWDT = false;
   iot.useOTA = true;
   iot.useResetKeeper = true;
   iot.resetFailNTP = true;
@@ -41,11 +41,12 @@ void addiotnalMQTT(char *incoming_msg)
 
 
 void setup() {
-  // put your setup code here, to run once:
   startIOTservices();
-  String x = "dghfgfhgfgh";
-  iot.pub_email(&x);
+
   //  struct tm tt;
+  // iot.getTime_32();
+  // Serial.print("year: ");
+  // Serial.println(iot.timeinfo.tm_year);
   //  getLocalTime(&tt);
   //  Serial.print("THIS IS: ");
   //  Serial.println(&tt);
@@ -54,7 +55,4 @@ void setup() {
 void loop() {
   // put your main code here, to run repeatedly:
   iot.looper();
-//  time_t epo;
-//
-//  Serial.println(time(&epo));
 }

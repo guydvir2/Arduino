@@ -883,6 +883,7 @@ bool myIOT::read_fPars(char *filename, String &defs, JsonDocument &DOC, int JSIZ
 char *myIOT::export_fPars(char *filename, JsonDocument &DOC, int JSIZE)
 {
 	myJSON param_on_flash(filename, false, JSIZE);
+	param_on_flash.start();
 	if (param_on_flash.file_exists())
 	{
 		if (param_on_flash.readJSON_file(DOC))

@@ -10,8 +10,8 @@
 #include <WiFiUdp.h>
 #include <ArduinoOTA.h>
 #include <myLOG.h>
-
-// #include <ArduinoJson.h>
+#include <myJSON.h>
+#include <ArduinoJson.h>
 
 #if defined(ARDUINO_ARCH_ESP8266)
 #include <ESP8266WiFi.h>
@@ -36,19 +36,19 @@
 #error Architecture unrecognized by this code.
 #endif
 
-// define generic functiobs
+// ~~~~define generic cb function~~~~
 typedef void (*cb_func)(char msg1[50]);
-// typedef void (*cb_func2)(String msg1, String msg2, String msg3, char *msg4);
-
 
 class myIOT2
 {
-    const char *ver = "iot_v0.1";
+    const char *ver = "iot_v0.2";
 
 public:
     WiFiClient espClient;
     PubSubClient mqttClient;
+    #if isESP8266
     Ticker wdt;
+    #endif
     flashLOG flog;
 
     myIOT2();
@@ -56,6 +56,7 @@ public:
     void looper();
     void startOTA();
     void get_timeStamp(time_t t = 0);
+    void getTime_32();
     void return_clock(char ret_tuple[20]);
     void return_date(char ret_tuple[20]);
     bool checkInternet(char *externalSite = "www.google.com", byte pings = 1);
@@ -72,7 +73,8 @@ public:
     void pub_email(String *inmsg, char *name="");
     int inline_read(char *inputstr);
     void feedTheDog();
-
+    bool read_fPars(char *filename, String &defs, JsonDocument &DOC, int JSIZE=500);
+    char *export_fPars(char *filename, JsonDocument &DOC, int JSIZE=500);
 
     // ~~~~~~ Services ~~~~~~~~~
     bool useSerial = false;
@@ -172,7 +174,7 @@ private:
     bool network_looper();
     void start_network_services();
 
-    void getTime_32();
+    
     struct tm *convEpoch_32(time_t in_time);
     void getTimeStamp_32(char ret_timeStamp[25]);
     void createDateStamp_32(struct tm *t, char retChar[30]);

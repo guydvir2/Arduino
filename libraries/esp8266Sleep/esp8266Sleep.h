@@ -5,16 +5,28 @@
 #include <EEPROM.h>
 #include <TimeLib.h>
 
+#if defined(ARDUINO_ARCH_ESP8266)
+#define isESP32 false
+#define isESP8266 true
+#elif defined(ESP32)
+#define isESP32 true
+#define isESP8266 false
+#endif
+
 class esp8266Sleep
 {
-#define VER "ESPSleep_v0.3"
+#define VER "ESPSleep_v0.5"
 #define MINUTES 60
 #define microsec2sec 1000000ULL /* Conversion micro seconds to seconds */
 
   typedef void (*cb_func)();
 
 private:
-  const float driftFactor = 1.048; /* ESP8266 error correction for wake time - adds time to nominal sleep time*/
+#if isESP8266
+  const float driftFactor = 1.0435; /* ESP8266 error correction for wake time - adds time to nominal sleep time*/
+#elif isESP32
+  const float driftFactor = 1.006; /* ESP32 error correction for wake time - adds time to nominal sleep time*/
+#endif
 
   char _devname[30];
   int _deepsleep = 0;
@@ -39,14 +51,13 @@ public:
   int totalSleepTime = 0;
   int nextsleep_duration = 0;
   bool clock_update_success = false;
-  bool isESP32 = false;
 
 public:
   esp8266Sleep();
   void start(int deepsleep, int forcedwake, char *devname, cb_func wake_cb = nullptr, cb_func sleep_cb = nullptr);
   void wait2Sleep();
   bool after_wakeup_clockupdates();
-  void delay_sleep(int sec_delay=120);
+  void delay_sleep(int sec_delay = 120);
 
 private:
   void onWake_cb();

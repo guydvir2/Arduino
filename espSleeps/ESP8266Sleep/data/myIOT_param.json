@@ -1,5 +1,5 @@
 {
-    "useSerial": false,
+    "useSerial": true,
     "useWDT": true,
     "useOTA": true,
     "useFailNTP": true,
@@ -7,7 +7,7 @@
     "useNetworkReset":false,
     "useResetKeeper":false,
     "useextTopic":true,
-    "deviceTopic": "esp8266_MCU",
+    "deviceTopic": "ESP8266",
     "groupTopic": "SolarPower",
     "prefixTopic": "myHome",
     "debug_level":2,

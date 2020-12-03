@@ -9,8 +9,11 @@ Adafruit_ADS1115 ads;
 
 void startADS()
 {
+  if (ADS_vmeasure)
+  {
     ads.begin();
     // ads.setGain(GAIN_TWOTHIRDS); // 0.1875mV (default)
+  }
 }
 float get_vmeasure_ADS(const byte x = 0)
 {
@@ -39,7 +42,7 @@ float get_vmeasure_analog(const int x = 5, const int del = 20)
   float v_measure = 0;
   for (int i = 0; i < x; i++)
   {
-    v_measure += (analogRead(A0)); 
+    v_measure += (analogRead(A0));
     delay(del);
   }
   v_measure /= x;
