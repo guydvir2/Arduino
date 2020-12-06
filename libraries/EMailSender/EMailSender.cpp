@@ -80,7 +80,17 @@ const char* encode64_f(char* input, uint8_t len) {
 
 // END BASE64 ---------------------------------------------------------
 
-EMailSender::EMailSender(const char* email_login, const char* email_password, const char* email_from, // @suppress("Class members should be properly initialized")
+EMailSender::EMailSender(const char* email_login, const char* email_password, const char* email_from, const char* name_from ,
+		const char* smtp_server, uint16_t smtp_port) {
+	this->setEMailLogin(email_login);
+	this->setEMailFrom(email_from);
+	this->setEMailPassword(email_password);
+	this->setSMTPServer(smtp_server);
+	this->setSMTPPort(smtp_port);
+	this->setNameFrom(name_from);
+//	this->isSecure = isSecure;
+}
+EMailSender::EMailSender(const char* email_login, const char* email_password, const char* email_from,
 		const char* smtp_server, uint16_t smtp_port) {
 	this->setEMailLogin(email_login);
 	this->setEMailFrom(email_from);
@@ -91,7 +101,16 @@ EMailSender::EMailSender(const char* email_login, const char* email_password, co
 //	this->isSecure = isSecure;
 }
 
-EMailSender::EMailSender(const char* email_login, const char* email_password, const char* email_from) { // @suppress("Class members should be properly initialized")
+EMailSender::EMailSender(const char* email_login, const char* email_password, const char* email_from, const char* name_from ) {
+	this->setEMailLogin(email_login);
+	this->setEMailFrom(email_from);
+	this->setEMailPassword(email_password);
+	this->setNameFrom(name_from);
+	this->setNameFrom(name_from);
+
+//	this->isSecure = isSecure;
+}
+EMailSender::EMailSender(const char* email_login, const char* email_password, const char* email_from) {
 	this->setEMailLogin(email_login);
 	this->setEMailFrom(email_from);
 	this->setEMailPassword(email_password);
@@ -99,7 +118,7 @@ EMailSender::EMailSender(const char* email_login, const char* email_password, co
 //	this->isSecure = isSecure;
 }
 
-EMailSender::EMailSender(const char* email_login, const char* email_password){ // @suppress("Class members should be properly initialized")
+EMailSender::EMailSender(const char* email_login, const char* email_password){
 	this->setEMailLogin(email_login);
 	this->setEMailFrom(email_login);
 	this->setEMailPassword(email_password);
@@ -125,6 +144,11 @@ void EMailSender::setEMailFrom(const char* email_from){
 	delete [] this->email_from;
 	this->email_from = new char[strlen(email_from)+1];
 	strcpy(this->email_from, email_from);
+};
+void EMailSender::setNameFrom(const char* name_from){
+	delete [] this->name_from;
+	this->name_from = new char[strlen(name_from)+1];
+	strcpy(this->name_from, name_from);
 };
 void EMailSender::setEMailPassword(const char* email_password){
 	delete [] this->email_password;
@@ -222,6 +246,57 @@ void encode(File *file, EMAIL_NETWORK_CLASS *client) {
   }
 }
 #endif
+
+const char** toCharArray(String arr[], int num) {
+    // If we ever alloc with new with have to delete
+    const char** buffer = new const char*[num];
+
+    for(int i = 0; i < num; i++) {
+        buffer[i] = arr[i].c_str();
+    }
+
+    return buffer;
+}
+const char** toCharArray(char* arr[], int num) {
+    // If we ever alloc with new with have to delete
+    const char** buffer = new const char*[num];
+
+    for(int i = 0; i < num; i++) {
+        buffer[i] = arr[i];
+    }
+
+    return buffer;
+}
+
+EMailSender::Response EMailSender::send(char* tos[], byte sizeOfTo, EMailMessage &email, Attachments attachments) {
+	return send(toCharArray(tos, sizeOfTo), sizeOfTo, 0, 0, email, attachments);
+}
+EMailSender::Response EMailSender::send(char* tos[], byte sizeOfTo,  byte sizeOfCc,  EMailMessage &email, Attachments attachments) {
+	return send(toCharArray(tos, sizeOfTo+sizeOfCc), sizeOfTo, sizeOfCc, 0, email, attachments);
+}
+EMailSender::Response EMailSender::send(char* tos[], byte sizeOfTo,  byte sizeOfCc,byte sizeOfCCn, EMailMessage &email, Attachments attachments){
+	return send(toCharArray(tos, sizeOfTo+sizeOfCc+sizeOfCCn), sizeOfTo, sizeOfCc, sizeOfCCn, email, attachments);
+}
+
+
+EMailSender::Response EMailSender::send(String to, EMailMessage &email, Attachments attachments){
+	  DEBUG_PRINT(F("ONLY ONE RECIPIENT"));
+
+	const char* arrEmail[] =  {to.c_str()};
+	return send(arrEmail, 1, email, attachments);
+}
+
+EMailSender::Response EMailSender::send(String tos[], byte sizeOfTo, EMailMessage &email, Attachments attachments) {
+	return send(toCharArray(tos, sizeOfTo), sizeOfTo, 0, 0, email, attachments);
+}
+
+EMailSender::Response EMailSender::send(String tos[], byte sizeOfTo,  byte sizeOfCc,  EMailMessage &email, Attachments attachments) {
+	return send(toCharArray(tos, sizeOfTo+sizeOfCc), sizeOfTo, sizeOfCc, 0, email, attachments);
+}
+
+EMailSender::Response EMailSender::send(String tos[], byte sizeOfTo,  byte sizeOfCc,byte sizeOfCCn, EMailMessage &email, Attachments attachments){
+	return send(toCharArray(tos, sizeOfTo+sizeOfCc+sizeOfCCn), sizeOfTo, sizeOfCc, sizeOfCCn, email, attachments);
+}
 
 EMailSender::Response EMailSender::send(const char* to, EMailMessage &email, Attachments attachments){
 	  DEBUG_PRINT(F("ONLY ONE RECIPIENT"));
@@ -332,7 +407,11 @@ EMailSender::Response EMailSender::send(const char* to[], byte sizeOfTo,  byte s
 
 //  client.println("From: <" + String(this->email_from) + '>');
 
-  client.print(F("From: <"));
+  client.print(F("From: "));
+  if (this->name_from){
+	  client.print(this->name_from);
+  }
+  client.print(F(" <"));
   client.print(this->email_from);
   client.println(F(">"));
 
@@ -439,15 +518,18 @@ EMailSender::Response EMailSender::send(const char* to[], byte sizeOfTo,  byte s
 #ifdef STORAGE_SPIFFS_ENABLED
 			if (attachments.fileDescriptor[i].storageType==EMAIL_STORAGE_TYPE_SPIFFS){
 #ifdef OPEN_CLOSE_SPIFFS
-				if(!SPIFFS.begin()){
+				if (!SPIFFS.exists(attachments.fileDescriptor[i].url)){
+					if(!SPIFFS.begin()){
 						  EMailSender::Response response;
 						  response.code = F("500");
 						  response.desc = F("Error on startup SPIFFS filesystem!");
 						  response.status = false;
 						  return response;
-				    }
+					}
 
-				    spiffsActive = true;
+					spiffsActive = true;
+					DEBUG_PRINTLN("SPIFFS BEGIN, ACTIVE");
+				}
 #endif
 
 				fs::File myFile = SPIFFS.open(attachments.fileDescriptor[i].url, "r");
@@ -493,13 +575,15 @@ EMailSender::Response EMailSender::send(const char* to[], byte sizeOfTo,  byte s
 //				  }
 #ifdef OPEN_CLOSE_SD
 				 DEBUG_PRINTLN(F("SD Check"));
-			    if(!SD.begin(4)){
-					  response.code = F("500");
-					  response.desc = F("Error on startup SD filesystem!");
-					  response.status = false;
-					  return response;
-			    }
-			    sdActive = true;
+				 if (!SD.exists(attachments.fileDescriptor[i].url.c_str())){
+					if(!SD.begin(4)){
+						  response.code = F("500");
+						  response.desc = F("Error on startup SD filesystem!");
+						  response.status = false;
+						  return response;
+					}
+					sdActive = true;
+				 }
 #endif
 
 			    DEBUG_PRINTLN(F("Open file: "));
@@ -550,6 +634,7 @@ EMailSender::Response EMailSender::send(const char* to[], byte sizeOfTo,  byte s
 	#ifdef OPEN_CLOSE_SPIFFS
 		  if (spiffsActive){
 			  SPIFFS.end();
+			  DEBUG_PRINTLN(F("SPIFFS END"));
 		  }
 	#endif
 #endif

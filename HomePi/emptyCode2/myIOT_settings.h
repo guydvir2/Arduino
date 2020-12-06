@@ -1,12 +1,12 @@
-#include <myIOT.h>
+#include <myIOT2.h>
 
-myIOT iot;
+myIOT2 iot;
 
 
 #define DEV_TOPIC "multiSensor"
 #define GROUP_TOPIC ""
 #define PREFIX_TOPIC "myHome"
-
+extern int PIRpin;
 
 void addiotnalMQTT(char *incoming_msg)
 {
@@ -14,8 +14,8 @@ void addiotnalMQTT(char *incoming_msg)
     char msg2[20];
     if (strcmp(incoming_msg, "status") == 0)
     {
-        // sprintf(msg, "Status: Time [%s], Date [%s]", timeStamp, dateStamp);
-        iot.pub_msg("NOT Sleeping");
+        sprintf(msg, "Status: Sensor is [%s]", digitalRead(PIRpin) ? "Idle":"Detection");
+        iot.pub_msg(msg);
     }
     // else if (strcmp(incoming_msg, "ver2") == 0)
     // {

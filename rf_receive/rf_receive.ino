@@ -14,17 +14,24 @@ const char *RF_NAME = "Port";
 char Ack_msg[32];
 
 RF24 radio(CE_PIN, CSN_PIN);
+struct RFmsg
+{
+  byte msg_num;
+  byte tot_msgs;
+  char payload[30];
+};
+RFmsg payload;
 
 void startRF24(const byte &w_addr, const byte &r_addr)
 {
   radio.begin();
-  radio.enableAckPayload(); // Allow optional ack payloads
+  // radio.enableAckPayload(); // Allow optional ack payloads
   radio.enableDynamicPayloads();
   radio.openWritingPipe(addresses[w_addr]);    // 00001
   radio.openReadingPipe(1, addresses[r_addr]); // 00002
   radio.setPALevel(RF24_PA_MIN);
   strcpy(Ack_msg, "SHIIIT");
-  radio.writeAckPayload(1, &Ack_msg, sizeof(Ack_msg));
+  // radio.writeAckPayload(1, &Ack_msg, sizeof(Ack_msg));
   radio.startListening();
 }
 
@@ -68,34 +75,34 @@ void loopNRF24()
   }
   // sendRFmsg("timeStamp");
 }
-void ack_loop()
-{
-  byte pipeNo;
-  // radio.startListening();
-  while (radio.available(&pipeNo)) //&pipeNo
-  {
-    char outmsg[32];
-    char t[32] = "take2";
+// void ack_loop()
+// {
+//   byte pipeNo;
+//   // radio.startListening();
+//   while (radio.available(&pipeNo)) //&pipeNo
+//   {
+//     char outmsg[32];
+//     char t[32] = "take2";
 
-    readRFmsg("msg", outmsg);
-    if (strcmp(outmsg, "clk"))
-    {
-      Serial.println("Yes- it is clk");
-      // iot.get_timeStamp();
-      // radio.writeAckPayload(1, &iot.timeStamp, sizeof(iot.timeStamp));
-      sendRFmsg("GOOOOD");
-    }
+//     readRFmsg("msg", outmsg);
+//     if (strcmp(outmsg, "clk"))
+//     {
+//       Serial.println("Yes- it is clk");
+//       // iot.get_timeStamp();
+//       // radio.writeAckPayload(1, &iot.timeStamp, sizeof(iot.timeStamp));
+//       sendRFmsg("GOOOOD");
+//     }
 
-    // iot.get_timeStamp();
-    // radio.stopListening();
-    // sendRFmsg("OK");
-    // delay(10);
-    // radio.startListening();
-    // radio.writeAckPayload(1, &t, sizeof(t));
-  }
-  // iot.looper();
-  delay(100);
-}
+//     // iot.get_timeStamp();
+//     // radio.stopListening();
+//     // sendRFmsg("OK");
+//     // delay(10);
+//     // radio.startListening();
+//     // radio.writeAckPayload(1, &t, sizeof(t));
+//   }
+//   // iot.looper();
+//   delay(100);
+// }
 
 bool RFwrite(const char *msg, const char *key = "msg")
 {
@@ -139,44 +146,37 @@ bool RFread(char out[] = nullptr, const char *key = nullptr, unsigned long fail_
   {
     char inmsg[32];
     radio.read(&inmsg, sizeof(inmsg));
-    if (key != nullptr)
-    {
-      StaticJsonDocument<80> DOC;
-      deserializeJson(DOC, inmsg);
-      if (DOC.containsKey(key))
-      {
-        const char *outmsg = DOC[key];
-        if (out != nullptr)
-        {
-          strcpy(out, outmsg);
-          return true;
-        }
-      }
-      else
-      {
-        strcpy(out, inmsg); // if key not present, return all message
-        return 0;
-      }
-    }
-    else
-    {
-      strcpy(out, inmsg); // if key not present, return all message
-      return 0;
-    }
+    Serial.println(inmsg);
+    // if (key != nullptr)
+    // {
+    //   StaticJsonDocument<80> DOC;
+    //   deserializeJson(DOC, inmsg);
+    //   if (DOC.containsKey(key))
+    //   {
+    //     const char *outmsg = DOC[key];
+    //     if (out != nullptr)
+    //     {
+    //       strcpy(out, outmsg);
+    //       return true;
+    //     }
+    //   }
+    //   else
+    //   {
+    //     strcpy(out, inmsg); // if key not present, return all message
+    //     return 0;
+    //   }
+    // }
+    // else
+    // {
+    //   strcpy(out, inmsg); // if key not present, return all message
+    //   return 0;
+    // }
+
+    return 0;
   }
 }
-
-void setup()
+void RFans()
 {
-  // startIOTservices();
-  Serial.begin(9600);
-  startRF24(w_address, r_address);
-}
-
-void loop()
-{
-  // if (radio.available())
-  // {
   char outmsg[32];
   if (RFread(outmsg, "Q"))
   {
@@ -190,5 +190,41 @@ void loop()
       }
     }
   }
-  delay(100);
+}
+
+void setup()
+{
+  // startIOTservices();
+  Serial.begin(9600);
+  startRF24(w_address, r_address);
+}
+
+void loop()
+{
+  if (radio.available())
+  {
+    char a[32];
+    radio.read(&a, sizeof(a));
+    Serial.println()
+    // if (payload.msg_num == 0)
+    // {
+    //   Serial.print("total packets: ");
+    //   Serial.println(payload.tot_msgs);
+    //   while (payload.msg_num < payload.tot_msgs )
+    //   {
+    //     Serial.print("msg #");
+    //     Serial.print(payload.msg_num);
+    //     Serial.print("/");
+    //     Serial.print(payload.tot_msgs);
+    //     Serial.print(": ");
+    //     Serial.println(payload.payload);
+    //     radio.read(&payload, sizeof(payload));
+    //   }
+    // }
+    // else{
+    //   Serial.println("pre-mature");
+    // }
+  }
+  delay(5);
+  // Serial.println("loop");
 }

@@ -14,7 +14,7 @@ StaticJsonDocument<JSON_SIZE_SKETCH> sketchJSON;
 
 char paramA[20];
 int paramB = 0;
-extern myIOT iot;
+extern myIOT2 iot;
 
 void update_vars(JsonDocument &DOC)
 {
@@ -34,7 +34,7 @@ void startRead_parameters()
   {
     readfile_ok = true;
   }
-  // update_var/s(sketchJSON);
+  // update_vars(sketchJSON);
 }
 void endRead_parameters()
 {

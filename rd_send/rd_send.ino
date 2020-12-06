@@ -13,16 +13,22 @@ const char *RF_NAME = "sens1";
 char Ack_msg[32];
 
 RF24 radio(CE_PIN, CSN_PIN);
-
+struct RFmsg
+{
+  byte msg_num;
+  byte tot_msgs;
+  char payload[30];
+};
+RFmsg payload;
 void startRF24(const byte &w_addr, const byte &r_addr)
 {
   radio.begin();
-  radio.enableAckPayload();
+  // radio.enableAckPayload();
   radio.enableDynamicPayloads();
   radio.openWritingPipe(addresses[w_addr]);    // 00001
   radio.openReadingPipe(1, addresses[r_addr]); // 00002
   radio.setPALevel(RF24_PA_MIN);
-  radio.writeAckPayload(0, &Ack_msg, sizeof(Ack_msg));
+  // radio.writeAckPayload(0, &Ack_msg, sizeof(Ack_msg));
   radio.startListening();
 }
 
@@ -64,6 +70,7 @@ bool RFwrite(const char *msg, const char *key = "msg")
   DOC["id"] = RF_NAME;
   DOC[key] = msg;
   serializeJson(DOC, _msg);
+
   if (!radio.write(&_msg, sizeof(_msg)))
   {
     return 0;
@@ -122,8 +129,9 @@ bool RFread(char out[] = nullptr, const char *key = nullptr, unsigned long fail_
     }
   }
 }
-bool RFask(const char *q, char ans[]){
-  if (RFwrite(q,"Q"))
+bool RFask(const char *q, char ans[])
+{
+  if (RFwrite(q, "Q"))
   {
     if (RFread(ans, q))
     {
@@ -147,18 +155,61 @@ bool RFask(const char *q, char ans[]){
     return 0;
   }
 }
-bool RFshare(const char *key, char value[], int ret =3, int delay_micros=1000){
+bool RFshare(const char *key, char value[], int ret = 3, int delay_micros = 1000)
+{
   int retries = 0;
-  while (retries<ret){
-    if(RFwrite(key,value)){
+  while (retries < ret)
+  {
+    if (RFwrite(key, value))
+    {
       break;
     }
-    else{
+    else
+    {
       retries++;
     }
   }
 }
- void setup()
+void splitMSG(const char *msg, const int arraySize, const int len)
+{
+  Serial.println("\n~~~~~~~~~~ New ~~~~~~~~~");
+  Serial.print("msg legth: ");
+  Serial.println(arraySize);
+  byte numPackets = (int)(arraySize / len);
+  byte P_iterator = 0;
+  if (arraySize % len > 0)
+  {
+    numPackets++;
+  }
+  payload.tot_msgs = numPackets;
+
+  while (P_iterator < numPackets)
+  {
+    char t[len];
+    char *ptr1 = msg + P_iterator * (len);
+    strncpy(payload.payload, ptr1, len);
+    payload.payload[len] = '\0';
+    payload.msg_num = P_iterator;
+    if (radio.write(&payload, sizeof(payload)))
+    {
+      char a[50];
+      sprintf(a, "msg #%d sent OK: %s", P_iterator, payload.payload);
+      Serial.println(a);
+      // delay(5);
+      // radio.flush_tx();
+      // radio.write(&payload, sizeof(payload));
+      // Serial.println("err");
+    }
+    else
+    {
+      char a[50];
+      sprintf(a, "msg #%d failed: %s", P_iterator, payload.payload);
+    }
+    P_iterator++;
+  }
+}
+
+void setup()
 {
   Serial.begin(9600);
   startRF24(w_address, r_address);
@@ -188,8 +239,13 @@ void loop()
   //   Serial.println("message failed to send");
   // }
   // ~~~~~~~~~~~ Wait to response ~~~~~~~~~~~~~
-  char q[] = "clk";
-  char answer[32];
-  RFask(q, answer);
+  // char q[] = "clk";
+  // char answer[32];
+  // RFask(q, answer);
+  radio.stopListening();
+
+  char send_msg[] = "1234567890ABCDEFGHIJKLMNOPQRSTUVWXYZ_1234567890ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+  splitMSG(send_msg, sizeof(send_msg), 25);
   delay(5000);
+  // Serial.println("±±±±±±±±");
 }

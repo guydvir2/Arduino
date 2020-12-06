@@ -6,7 +6,7 @@
     "useFailNTP": true,
     "useDebugLog": true,
     "useNetworkReset":true,
-    "deviceTopic": "Empty",
+    "deviceTopic": "TestPIR",
     "groupTopic": "",
     "prefixTopic": "myHome",
     "debug_level":0,

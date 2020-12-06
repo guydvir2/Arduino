@@ -14,7 +14,8 @@
         "*.md": "cpp",
         "*.properties": "cpp",
         "*.ini": "cpp",
-        "random": "cpp"
+        "random": "cpp",
+        "cstddef": "cpp"
     },
     "C_Cpp.errorSquiggles": "Disabled"
 }
