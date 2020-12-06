@@ -6,13 +6,13 @@ myRF24::myRF24(int CE_PIN, int CSN_PIN) : radio(CE_PIN, CSN_PIN)
 void myRF24::startRF24(const byte &w_addr, const byte &r_addr, const char *devname)
 {
   radio.begin();
-  radio.enableAckPayload(); // Allow optional ack payloads
-  radio.setAutoAck(1);
-  radio.enableDynamicPayloads();
+  // radio.enableAckPayload(); // Allow optional ack payloads
+  // radio.setAutoAck(1);
+  // radio.enableDynamicPayloads();
   radio.openWritingPipe(addresses[w_addr]);    // 00001
   radio.openReadingPipe(1, addresses[r_addr]); // 00002
   radio.setPALevel(RF24_PA_MIN);
-  radio.setRetries(15, 15);
+  radio.setRetries(0, 15);
   strcpy(_devname, devname);
   radio.startListening();
 }
@@ -88,126 +88,59 @@ bool myRF24::RFread(char out[], const char *key, unsigned long fail_micros)
 }
 void myRF24::splitMSG(const char *msg, const int arraySize, const int len)
 {
-  radio.stopListening();
-
-  // Serial.print("\nmsg legth: ");
-  // Serial.println(arraySize);
-
   RFmsg payload;
   byte P_iterator = 0;
-  byte pipNo;
-
   byte numPackets = (int)(arraySize / len);
 
+  radio.stopListening();
   if (arraySize % len > 0)
   {
     numPackets++;
   }
   payload.tot_msgs = numPackets;
-  int answers = 0;
-
   while (P_iterator < numPackets)
   {
     const char *ptr1 = msg + P_iterator * (len);
     strncpy(payload.payload, ptr1, len);
     payload.payload[len] = '\0';
     payload.msg_num = P_iterator;
-    // Serial.println(payload.payload);
     radio.write(&payload, sizeof(payload));
-    while (radio.available())
-    {
-      char t[15];
-      radio.read(&t, sizeof(t));
-      Serial.println(t);
-    }
-    // if (radio.write(&payload, sizeof(payload)))
-    // {
-    //   // char a[50];
-    //   // sprintf(a, "msg #%d sent OK: %s", P_iterator, payload.payload);
-    //   // Serial.println(a);
-    //   // byte g;
-    //   // chat a[] = "fail";
-    //   // radio.writeAckPayload(1, &a, size0f(a));
-    //   // delay(5);
-    //   // radio.flush_tx();
-    //   // radio.write(&payload, sizeof(payload));
-    //   // Serial.println("err");
-    //   // char t[15];
-    //   // radio.startListening();
-    //   // while(!radio.available())
-    //   //   ;
-    //   // radio.read(&t, sizeof(t));
-    //   // Serial.println(t);
-    //   // radio.stopListening();
-    //   // Serial.flush();
-    //   answers++;
-    // }
-    // else
-    // {
-    //   char a[50];
-    //   sprintf(a, "msg #%d failed: %s", P_iterator, payload.payload);
-    // }
     P_iterator++;
   }
-  Serial.print("success: ");
-  Serial.println(answers);
-  delay(2000);
+  delay(200);
 }
 bool myRF24::readsplit()
 {
   radio.startListening();
   char combined[200];
-  byte pipeNo;
-  if (radio.available(&pipeNo))
+  // byte pipeNo;
+  if (radio.available())
   {
     RFmsg payload;
     bool timeout = false;
     unsigned long started_waiting_at = micros();
-    while (!radio.available()) // While nothing is received
-    {
-      if (micros() - started_waiting_at > 200000) // If waited longer than 200ms, indicate timeout and exit while loop
-      {
-        timeout = true;
-        break;
-      }
-      else
-      {
-        return 0;
-      }
-    }
-    radio.read(&payload, sizeof(payload));
-    char t[15];
-    sprintf(t, "got msg #%d", payload.msg_num);
-    // radio.writeAckPayload(pipeNo, &t, sizeof(t));
-    Serial.println(payload.payload);
-    //   sprintf(combined, "%s", payload.payload);
-    //   if (payload.msg_num == 0)
+    // while (!radio.available()) // While nothing is received
+    // {
+    //   if (micros() - started_waiting_at > 200000) // If waited longer than 200ms, indicate timeout and exit while loop
     //   {
-    //     // Serial.print("total packets: ");
-    //     // Serial.println(payload.tot_msgs);
-    //     while (payload.msg_num < payload.tot_msgs)
-    //     {
-    //       // Serial.print("msg #");
-    //       // Serial.print(payload.msg_num);
-    //       // Serial.print("/");
-    //       // Serial.print(payload.tot_msgs);
-    //       // Serial.print(": ");
-    //       // Serial.println(payload.payload);
-    //       // strcat(combined, payload.payload);
-
-    //       radio.read(&payload, sizeof(payload));
-    //       strcat(combined, payload.payload);
-
-    //       // Serial.println(payload.payload);
-    //       // Serial.flush();
-    //     }
+    //     timeout = true;
+    //     break;
     //   }
     //   else
     //   {
-    //     Serial.println("pre-mature");
+    //     return 0;
     //   }
-    //   Serial.println(combined);
-    //   Serial.flush();
+    // }
+    radio.read(&payload, sizeof(payload));
+    if (payload.msg_num == 0)
+    {
+      Serial.println("Start");
+    }
+    else
+    {
+      Serial.println(payload.msg_num);
+    }
+
   }
   return 1;
 }

@@ -1,7 +1,7 @@
 #include <myRF24.h>
 
 // ~~~~~~~~~~~~ myRF24 lib ~~~~~~~~~~~~
-#define ROLE 0 // 0:Reciever 1: Sender
+#define ROLE 1// 0:Reciever 1: Sender
 #if ROLE == 1 // sender
 const byte w_address = 1;
 const byte r_address = 0;
@@ -50,7 +50,7 @@ void splitmsgs_send_recv(){
   else if (ROLE == 1)
   {
     char send_long_msg[] = "THIS_IS_A_VERY_LONG_MESSAGE_1234567890ABCDEFGHIJKLMNOP_BLABLABLA_KKK";
-    radio.splitMSG(send_long_msg, sizeof(send_long_msg), 12);
+    radio.splitMSG(send_long_msg, sizeof(send_long_msg), 4);
   }
 }
 
