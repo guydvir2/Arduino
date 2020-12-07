@@ -5,21 +5,21 @@ myRF24::myRF24(int CE_PIN, int CSN_PIN) : radio(CE_PIN, CSN_PIN)
 }
 void myRF24::startRF24(const byte &w_addr, const byte &r_addr, const char *devname)
 {
+  strcpy(_devname, devname);
   radio.begin();
   // radio.enableAckPayload(); // Allow optional ack payloads
   // radio.setAutoAck(1);
   // radio.enableDynamicPayloads();
-  radio.openWritingPipe(addresses[w_addr]);    // 00001
-  radio.openReadingPipe(1, addresses[r_addr]); // 00002
+  radio.openWritingPipe(addresses[w_addr]);
+  radio.openReadingPipe(1, addresses[r_addr]);
   radio.setPALevel(RF24_PA_MIN);
   radio.setRetries(0, 15);
-  strcpy(_devname, devname);
   radio.startListening();
 }
 bool myRF24::RFwrite(const char *msg, const char *key)
 {
   char _msg[32];
-  radio.stopListening(); // First, stop listening so we can talk.
+  radio.stopListening();
   strcpy(_msg, msg);
   if (key != nullptr)
   {
@@ -39,10 +39,11 @@ bool myRF24::RFwrite(const char *msg, const char *key)
 }
 bool myRF24::RFread(char out[], const char *key, unsigned long fail_micros)
 {
-  bool timeout = false;                        // Set up a variable to indicate if a response was received or not
-  unsigned long started_waiting_at = micros(); // Set up a timeout period, get the current microseconds
+  radio.startListening();
 
-  radio.startListening();    // Now, continue listening
+  bool timeout = false;                        
+  unsigned long started_waiting_at = micros();
+
   while (!radio.available()) // While nothing is received
   {
     if (micros() - started_waiting_at > fail_micros) // If waited longer than 200ms, indicate timeout and exit while loop
@@ -51,7 +52,7 @@ bool myRF24::RFread(char out[], const char *key, unsigned long fail_micros)
       break;
     }
   }
-  if (timeout) // Describe the results
+  if (timeout)
   {
     return 0;
   }
@@ -91,6 +92,8 @@ void myRF24::splitMSG(const char *msg, const int arraySize, const int len)
   RFmsg payload;
   byte P_iterator = 0;
   byte numPackets = (int)(arraySize / len);
+  payload.tot_len = arraySize - 1;
+  strcpy(payload.dev_name, _devname);
 
   radio.stopListening();
   if (arraySize % len > 0)
@@ -107,42 +110,58 @@ void myRF24::splitMSG(const char *msg, const int arraySize, const int len)
     radio.write(&payload, sizeof(payload));
     P_iterator++;
   }
-  delay(200);
+  Serial.print("Sent ");
+  Serial.print(arraySize);
+  Serial.print(" bytes");
+  Serial.print(" as ");
+  Serial.print(numPackets);
+  Serial.print("/");
+  Serial.print(P_iterator);
+  Serial.println(" packets.");
+  delay(5000);
 }
-bool myRF24::readsplit()
+bool myRF24::readsplit(char recvMessage[])
 {
   radio.startListening();
-  char combined[200];
-  // byte pipeNo;
+  char packets[20][25];
   if (radio.available())
   {
     RFmsg payload;
-    bool timeout = false;
-    unsigned long started_waiting_at = micros();
-    // while (!radio.available()) // While nothing is received
-    // {
-    //   if (micros() - started_waiting_at > 200000) // If waited longer than 200ms, indicate timeout and exit while loop
-    //   {
-    //     timeout = true;
-    //     break;
-    //   }
-    //   else
-    //   {
-    //     return 0;
-    //   }
-    // }
     radio.read(&payload, sizeof(payload));
-    if (payload.msg_num == 0)
-    {
-      Serial.println("Start");
-    }
-    else
-    {
-      Serial.println(payload.msg_num);
-    }
+    strcpy(packets[payload.msg_num], payload.payload);
 
+    if (payload.msg_num == payload.tot_msgs - 1)
+    {
+      int recv_msg_len = 0;
+      byte recv_packets = 0;
+
+      for (int i = 0; i < payload.tot_msgs; i++)
+      {
+        // Serial.print(packets[i]);
+        recv_msg_len += strlen(packets[i]);
+        recv_packets++;
+        if (i == 0)
+        {
+          strcpy(recvMessage, packets[i]);
+        }
+        else
+        {
+          strcat(recvMessage, packets[i]);
+        }
+      }
+
+      if (payload.tot_len == recv_msg_len && recv_packets == payload.tot_msgs)
+      {
+        Serial.println("Message received OK");
+        return 1;
+      }
+      else
+      {
+        Serial.println("Message failed receiving");
+        return 0;
+      }
+    }
   }
-  return 1;
 }
 void myRF24::RFans()
 {
@@ -158,5 +177,25 @@ void myRF24::RFans()
         Serial.println("reply sent");
       }
     }
+  }
+}
+bool myRF24::_wait4Rx(int timeFrame){
+  bool timeout = false;
+  unsigned long started_waiting_at = micros();
+  while (!radio.available()) // While nothing is received
+  {
+    if (micros() - started_waiting_at > timeFrame*1000UL) // If waited longer than 200ms, indicate timeout and exit while loop
+    {
+      timeout = true;
+      break;
+    }
+  }
+  if (timeout)
+  {
+    return 0;
+  }
+  else
+  {
+    return 1;
   }
 }
