@@ -1,7 +1,7 @@
 #include <myRF24.h>
 
 // ~~~~~~~~~~~~ myRF24 lib ~~~~~~~~~~~~
-#define ROLE 0 // 0:Reciever 1: Sender
+#define ROLE 1 // 0:Reciever 1: Sender
 #if ROLE == 1  // sender
 const byte w_address = 1;
 const byte r_address = 0;
@@ -45,18 +45,23 @@ void simple_send_recv()
 }
 void splitmsgs_send_recv()
 {
+  static long lastrun = 0;
   if (ROLE == 0)
   {
     char inmsg[250];
-    if (radio.readsplit(inmsg))
+    if (radio.RFread2(inmsg))
     {
-      // Serial.println(inmsg);
+      Serial.println(inmsg);
     }
   }
   else if (ROLE == 1)
   {
-    char send_long_msg[] = "THIS_IS_A_VERY_LONG_MESSAGE_1234567890ABCDEFGHIJKLMNOP_BLABLABLA_KKK";
-    radio.splitMSG(send_long_msg, sizeof(send_long_msg), 20);
+    while (millis() - lastrun > 10000)
+    {
+      char send_long_msg[] = "ZXCVBNM<>ASDFGHHJKL:|QWERTYUIOP{}THIS_IS_A_VERY_LONG_MESSAGE_1234567890ABCDEFGHIJKLMNOP_BLABLABLA_KKK!@#$%^&*()";
+      radio.RFwrite(send_long_msg, sizeof(send_long_msg));
+      lastrun = millis();
+    }
   }
 }
 

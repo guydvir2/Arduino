@@ -10,32 +10,35 @@
 
 class myRF24
 {
-    private:
-        char _devname[32];
-        struct RFmsg
-        {
-            byte msg_num;
-            byte tot_msgs;
-            byte tot_len;
-            char payload[22];
-            char dev_name[6];
-        };
-        RFmsg payload;
-        const byte addresses[4][6] = {"00001", "00002", "00003", "00004"};
+#define VER "myRF24_v0.1"
+private:
+    struct RFmsg
+    {
+        byte msg_num;
+        byte tot_msgs;
+        byte tot_len;
+        char payload[22];
+        char dev_name[6];
+    };
+    RFmsg payload;
+    char _devname[32];
+    const byte addresses[4][6] = {"00001", "00002", "00003", "00004"};
 
-        RF24 radio;
+    RF24 radio;
 
-    public:
-        myRF24(int CE_PIN, int CSN_PIN);
-        void startRF24(const byte &w_addr, const byte &r_addr, const char *devname);
-        bool RFwrite(const char *msg, const char *key = nullptr);
-        bool RFread(char out[] = nullptr, const char *key = nullptr, unsigned long fail_micros = 200000);
-        void splitMSG(const char *msg, const int arraySize, const int len);
-        bool readsplit(char recvMessage[]);
-        void RFans();
+public:
+    myRF24(int CE_PIN, int CSN_PIN);
+    void startRF24(const byte &w_addr, const byte &r_addr, const char *devname);
+    bool RFwrite(const char *msg);                                          /*plain sending*/
+    bool RFwrite(const char *msg, const char *key);                         /* JSON format */
+    bool RFwrite(const char *msg, const int arraySize, const int len = 20); /* long & splitted messages */
+    bool RFread(char out[], int fail_micros = 200);                         /*plain read*/
+    bool RFread(char out[], const char *key, int fail_micros = 200);        /*JSON format */
+    bool RFread2(char outmsg[]);
+    void RFans();
 
-    private:
-        bool _wait4Rx(int timeFrame = 200);
+private:
+    bool _wait4Rx(int timeFrame = 200);
 };
 
 #endif

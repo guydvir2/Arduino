@@ -5,7 +5,7 @@
  * \brief Main header file for the MD_MAX72xx library
  */
 
-#ifdef __MBED__
+#if defined(__MBED__) && !defined(ARDUINO)
 #include "mbed.h"
 #define delay   ThisThread::sleep_for
 #ifndef PROGMEM
@@ -89,6 +89,9 @@ License along with this library; if not, write to the Free Software
 Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
 
 \page pageRevisionHistory Revision History
+Dec 2020 version 3.2.5
+- Fixed issue with MBED and ARDUINO compatibility eeposed by Nano BLE33 (issue #38, PR #39)
+
 Nov 2020 version 3.2.4
 - Fixed TSLR bug reported in transform() function
 
@@ -994,7 +997,7 @@ private:
   bool    _wrapAround;    // when shifting, wrap left to right and vice versa (circular buffer)
 
   // SPI interface data
-#ifdef __MBED__
+#if defined(__MBED__) && !defined(ARDUINO)
   SPI   _spi;           // Mbed SPI object
   DigitalOut _cs;
 #endif

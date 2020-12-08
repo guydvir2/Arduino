@@ -16,18 +16,11 @@ void myRF24::startRF24(const byte &w_addr, const byte &r_addr, const char *devna
   radio.setRetries(0, 15);
   radio.startListening();
 }
-bool myRF24::RFwrite(const char *msg, const char *key)
+bool myRF24::RFwrite(const char *msg)
 {
   char _msg[32];
   radio.stopListening();
   strcpy(_msg, msg);
-  if (key != nullptr)
-  {
-    StaticJsonDocument<80> DOC;
-    DOC["id"] = _devname;
-    DOC[key] = msg;
-    serializeJson(DOC, _msg);
-  }
   if (!radio.write(&_msg, sizeof(_msg)))
   {
     return 0;
@@ -37,70 +30,40 @@ bool myRF24::RFwrite(const char *msg, const char *key)
     return 1;
   }
 }
-bool myRF24::RFread(char out[], const char *key, unsigned long fail_micros)
+bool myRF24::RFwrite(const char *msg, const char *key)
 {
-  radio.startListening();
+  char _msg[32];
+  radio.stopListening();
+  StaticJsonDocument<80> DOC;
 
-  bool timeout = false;                        
-  unsigned long started_waiting_at = micros();
-
-  while (!radio.available()) // While nothing is received
-  {
-    if (micros() - started_waiting_at > fail_micros) // If waited longer than 200ms, indicate timeout and exit while loop
-    {
-      timeout = true;
-      break;
-    }
-  }
-  if (timeout)
+  strcpy(_msg, msg);
+  DOC[key] = msg;
+  DOC["id"] = _devname;
+  serializeJson(DOC, _msg);
+  if (!radio.write(&_msg, sizeof(_msg)))
   {
     return 0;
   }
   else
   {
-    char _readmsg[32];
-    radio.read(&_readmsg, sizeof(_readmsg));
-
-    if (key != nullptr)
-    {
-      StaticJsonDocument<80> DOC;
-      deserializeJson(DOC, (const char *)_readmsg);
-      if (DOC.containsKey(key))
-      {
-        const char *outmsg = DOC[key];
-        if (out != nullptr)
-        {
-          strcpy(out, outmsg);
-          return true;
-        }
-      }
-      else
-      {
-        strcpy(out, _readmsg); // if key not present, return all message
-        return 0;
-      }
-    }
-    else
-    {
-      strcpy(out, _readmsg); // if key not present, return all message
-      return 1;
-    }
+    return 1;
   }
 }
-void myRF24::splitMSG(const char *msg, const int arraySize, const int len)
+bool myRF24::RFwrite(const char *msg, const int arraySize, const int len)
 {
   RFmsg payload;
   byte P_iterator = 0;
-  byte numPackets = (int)(arraySize / len);
-  payload.tot_len = arraySize - 1;
-  strcpy(payload.dev_name, _devname);
-
   radio.stopListening();
+
+  byte numPackets = (int)(arraySize / len);
   if (arraySize % len > 0)
   {
     numPackets++;
   }
   payload.tot_msgs = numPackets;
+  payload.tot_len = arraySize - 1;
+  strcpy(payload.dev_name, _devname); /* who is sending the message */
+
   while (P_iterator < numPackets)
   {
     const char *ptr1 = msg + P_iterator * (len);
@@ -118,41 +81,80 @@ void myRF24::splitMSG(const char *msg, const int arraySize, const int len)
   Serial.print("/");
   Serial.print(P_iterator);
   Serial.println(" packets.");
-  delay(5000);
 }
-bool myRF24::readsplit(char recvMessage[])
+bool myRF24::RFread(char out[], int fail_micros)
 {
   radio.startListening();
-  char packets[20][25];
+
+  if (!_wait4Rx(fail_micros)) /* wait 200ms for incoming message */
+  {
+    return 0;
+  }
+  else
+  {
+    char _readmsg[32];
+    radio.read(&_readmsg, sizeof(_readmsg));
+    strcpy(out, _readmsg); /* now using JSON, return all message */
+    return 1;
+  }
+}
+bool myRF24::RFread(char out[], const char *key, int fail_micros)
+{
+  radio.startListening();
+  StaticJsonDocument<80> DOC;
+
+  if (!_wait4Rx(fail_micros)) /* wait 200ms for incoming message */
+  {
+    return 0;
+  }
+  else
+  {
+    char _readmsg[32];
+
+    radio.read(&_readmsg, sizeof(_readmsg));
+    deserializeJson(DOC, (const char *)_readmsg);
+    if (DOC.containsKey(key))
+    {
+      const char *outmsg = DOC[key];
+      strcpy(out, outmsg);
+      return 1;
+    }
+    else
+    {
+      strcpy(out, _readmsg); // if key not present, return all message
+      return 0;
+    }
+  }
+}
+
+bool myRF24::RFread2(char out[])
+{
+  radio.startListening();
+  const int MAX_PACKETS = 20;
+  const int MAX_PACKET_LEN = 25;
+  char packets[MAX_PACKETS][MAX_PACKET_LEN];
+
   if (radio.available())
   {
     RFmsg payload;
     radio.read(&payload, sizeof(payload));
     strcpy(packets[payload.msg_num], payload.payload);
 
-    if (payload.msg_num == payload.tot_msgs - 1)
+    if (payload.msg_num == payload.tot_msgs - 1) /* reaching last message */
     {
       int recv_msg_len = 0;
       byte recv_packets = 0;
-
+      strcpy(out, "");
       for (int i = 0; i < payload.tot_msgs; i++)
       {
-        // Serial.print(packets[i]);
-        recv_msg_len += strlen(packets[i]);
         recv_packets++;
-        if (i == 0)
-        {
-          strcpy(recvMessage, packets[i]);
-        }
-        else
-        {
-          strcat(recvMessage, packets[i]);
-        }
+        recv_msg_len += strlen(packets[i]);
+        strcat(out, packets[i]);
       }
 
       if (payload.tot_len == recv_msg_len && recv_packets == payload.tot_msgs)
       {
-        Serial.println("Message received OK");
+        // Serial.println("Message received OK");
         return 1;
       }
       else
@@ -160,6 +162,9 @@ bool myRF24::readsplit(char recvMessage[])
         Serial.println("Message failed receiving");
         return 0;
       }
+    }
+    else{
+      return 0;
     }
   }
 }
@@ -179,12 +184,13 @@ void myRF24::RFans()
     }
   }
 }
-bool myRF24::_wait4Rx(int timeFrame){
+bool myRF24::_wait4Rx(int timeFrame)
+{
   bool timeout = false;
   unsigned long started_waiting_at = micros();
   while (!radio.available()) // While nothing is received
   {
-    if (micros() - started_waiting_at > timeFrame*1000UL) // If waited longer than 200ms, indicate timeout and exit while loop
+    if (micros() - started_waiting_at > timeFrame * 1000UL) // If waited longer than 200ms, indicate timeout and exit while loop
     {
       timeout = true;
       break;
