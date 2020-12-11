@@ -25,6 +25,8 @@ private:
     const byte addresses[4][6] = {"00001", "00002", "00003", "00004"};
 
     RF24 radio;
+public:
+    bool debug_mode = false;
 
 public:
     myRF24(int CE_PIN, int CSN_PIN);
@@ -35,7 +37,7 @@ public:
     bool RFread(char out[], int fail_micros = 200);                         /*plain read*/
     bool RFread(char out[], const char *key, int fail_micros = 200);        /*JSON format */
     bool RFread2(char outmsg[]);
-    void RFans();
+    void genJSONmsg(char a[], const char *msg_t, const char *key, const char *value);
 
 private:
     bool _wait4Rx(int timeFrame = 200);

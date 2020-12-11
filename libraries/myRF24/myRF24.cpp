@@ -15,6 +15,11 @@ void myRF24::startRF24(const byte &w_addr, const byte &r_addr, const char *devna
   radio.setPALevel(RF24_PA_MIN);
   radio.setRetries(0, 15);
   radio.startListening();
+
+  if (debug_mode)
+  {
+    Serial.begin(9600);
+  }
 }
 bool myRF24::RFwrite(const char *msg)
 {
@@ -61,7 +66,7 @@ bool myRF24::RFwrite(const char *msg, const int arraySize, const int len)
     numPackets++;
   }
   payload.tot_msgs = numPackets;
-  payload.tot_len = arraySize - 1;
+  payload.tot_len = arraySize;
   strcpy(payload.dev_name, _devname); /* who is sending the message */
 
   while (P_iterator < numPackets)
@@ -70,17 +75,27 @@ bool myRF24::RFwrite(const char *msg, const int arraySize, const int len)
     strncpy(payload.payload, ptr1, len);
     payload.payload[len] = '\0';
     payload.msg_num = P_iterator;
-    radio.write(&payload, sizeof(payload));
-    P_iterator++;
+    if (radio.write(&payload, sizeof(payload)))
+    {
+      P_iterator++;
+    }
+    else
+    {
+      return 0;
+    }
   }
-  Serial.print("Sent ");
-  Serial.print(arraySize);
-  Serial.print(" bytes");
-  Serial.print(" as ");
-  Serial.print(numPackets);
-  Serial.print("/");
-  Serial.print(P_iterator);
-  Serial.println(" packets.");
+  if (debug_mode)
+  {
+    Serial.print("Sent ");
+    Serial.print(arraySize);
+    Serial.print(" bytes");
+    Serial.print(" as ");
+    Serial.print(numPackets);
+    Serial.print("/");
+    Serial.print(P_iterator);
+    Serial.println(" packets.");
+  }
+  return 1;
 }
 bool myRF24::RFread(char out[], int fail_micros)
 {
@@ -110,7 +125,6 @@ bool myRF24::RFread(char out[], const char *key, int fail_micros)
   else
   {
     char _readmsg[32];
-
     radio.read(&_readmsg, sizeof(_readmsg));
     deserializeJson(DOC, (const char *)_readmsg);
     if (DOC.containsKey(key))
@@ -134,12 +148,24 @@ bool myRF24::RFread2(char out[])
   const int MAX_PACKET_LEN = 25;
   char packets[MAX_PACKETS][MAX_PACKET_LEN];
 
-  if (radio.available())
+  if (_wait4Rx()) //radio.available())
   {
     RFmsg payload;
+    // if (_wait4Rx())
+    // {
     radio.read(&payload, sizeof(payload));
+    if (payload.tot_len > MAX_PACKET_LEN * MAX_PACKETS - 1)
+    {
+      if (debug_mode)
+      {
+        char t[100];
+        sprintf(t, "Error. %d bytes. allowed %d bytes", payload.tot_len, MAX_PACKET_LEN * MAX_PACKETS - 1);
+        Serial.println(t);
+      }
+      return 0;
+    }
     strcpy(packets[payload.msg_num], payload.payload);
-
+    // Serial.println(payload.payload);
     if (payload.msg_num == payload.tot_msgs - 1) /* reaching last message */
     {
       int recv_msg_len = 0;
@@ -150,38 +176,57 @@ bool myRF24::RFread2(char out[])
         recv_packets++;
         recv_msg_len += strlen(packets[i]);
         strcat(out, packets[i]);
+        if (debug_mode)
+        {
+          Serial.println(packets[i]);
+        }
       }
 
       if (payload.tot_len == recv_msg_len && recv_packets == payload.tot_msgs)
       {
-        // Serial.println("Message received OK");
+        if (debug_mode)
+        {
+          Serial.println(payload.tot_len);
+          Serial.print("recv_msg_len: ");
+          Serial.println("Message received OK");
+          Serial.println(out);
+        }
         return 1;
       }
       else
       {
-        Serial.println("Message failed receiving");
+        if (debug_mode)
+        {
+          Serial.println("Message failed receiving");
+          Serial.print("payload.tot_len: ");
+          Serial.println(payload.tot_len);
+          Serial.print("recv_msg_len: ");
+          Serial.println(recv_msg_len);
+          Serial.print("recv_packets: ");
+          Serial.println(recv_packets);
+          Serial.print("payload.tot_msgs: ");
+          Serial.println(payload.tot_msgs);
+          Serial.println(out);
+        }
         return 0;
       }
     }
-    else{
+    else
+    {
       return 0;
     }
   }
+  // }
 }
-void myRF24::RFans()
+void myRF24::genJSONmsg(char a[], const char *msg_t, const char *key, const char *value)
 {
-  char outmsg[32];
-  if (RFread(outmsg, "Q"))
+  sprintf(a, "{\"sender\":\"%s\",\"msg_type\":\"%s\",\"payload0\":\"%s\",\"payload1\":\"%s\"}", _devname, msg_t, key, value);
+  if (debug_mode)
   {
-    Serial.print("got msg: ");
-    Serial.println(outmsg);
-    if (strcmp("Q", "clk"))
-    {
-      if (RFwrite("1234", "clk"))
-      {
-        Serial.println("reply sent");
-      }
-    }
+    Serial.println(a);
+    // StaticJsonDocument<450> DOC;
+    // deserializeJson(DOC, (const char *)a);
+    // serializeJsonPretty(DOC, Serial);
   }
 }
 bool myRF24::_wait4Rx(int timeFrame)
