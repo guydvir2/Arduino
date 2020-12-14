@@ -2,7 +2,7 @@
 #include <ArduinoJson.h>
 
 // ~~~~~~~~~~~~ myRF24 lib ~~~~~~~~~~~~
-#define ROLE 1 // 0:Reciever 1: Sender
+#define ROLE 0 // 0:Reciever 1: Sender
 #if ROLE == 1  // sender
 const byte w_address = 1;
 const byte r_address = 0;
@@ -25,14 +25,6 @@ myRF24 radio(CE_PIN, CSN_PIN);
 // myIOT2 iot;
 // #endif
 
-/****************** User Config ***************************/
-/***      Set this radio as radio number 0 or 1         ***/
-// bool radioNumber = ROLE;
-// byte addresses[][6] = {"1Node", "2Node"};
-// RF24 radio(CE_PIN, CSN_PIN);
-
-
-/**********************************************************/
 void simple_send_recv()
 {
   if (ROLE == 0)
@@ -97,19 +89,21 @@ void ask_asnwer()
       Serial.println(income_msg);
 
       char temp_ans[250];
-      sprintf(temp_ans, "recv_time: %.2f", (float)millis() / 1000);
-      // radio.genJSONmsg(temp_ans, "a", "clk", "?");
-      // delay(150);
-      Serial.println("sending ans:");
-      if (radio.RFwrite(temp_ans, strlen(temp_ans))) /* sending an answer */
-      {
-        Serial.print("Sending answer: ");
-        Serial.println(temp_ans);
-      }
-      else
-      {
-        Serial.println("Error sending");
-      }
+      char ans2[100];
+      sprintf(temp_ans, "guy1234567890abCDEFG123QAZWSXEDCRFVTGBYHNUJMIK<");
+      //cdefgh ");
+      //ijklmnopqrstuvwxyz ");
+      sprintf(ans2, "%.2f", (float)millis() / 1000);
+      radio.genJSONmsg(temp_ans, "a", "recv", ans2);
+      // if (radio.RFwrite(temp_ans, strlen(temp_ans))) /* sending an answer */
+      // {
+      //   Serial.print("Sending answer: ");
+      //   Serial.println(temp_ans);
+      // }
+      // else
+      // {
+      //   Serial.println("Error sending");
+      // }
     }
   }
   else if (ROLE == 1) /* asking a question */
@@ -118,7 +112,7 @@ void ask_asnwer()
     {
       Serial.println("ֿ\n§§§§§§§§§§§§ Start Sending ±±±±±±±±±±±±");
       char outmsg[250];
-      radio.debug_mode = false;
+      radio.debug_mode = true;
       lastrun = millis();
       static int ask = 0;
 
@@ -127,23 +121,25 @@ void ask_asnwer()
       ask++;
 
       radio.genJSONmsg(outmsg, "q", "clk", carray);
-      Serial.print("Sending question:");
-      Serial.println(outmsg);
       if (radio.RFwrite(outmsg, strlen(outmsg))) /*sending question*/
       {
+        Serial.print("Question sent:");
+        Serial.println(outmsg);
         char get_ans[200];
         strcpy(get_ans, "");
-        // delay(100);
-        Serial.println("waiting for ans:");
-        if (radio.RFread2(get_ans))
-        {
-          Serial.print("got asnwer: ");
-          Serial.println(get_ans);
-        }
-        else
-        {
-          Serial.println("no answer");
-        }
+        // if (radio.RFread2(get_ans))
+        // {
+        //   Serial.print("got asnwer: ");
+        //   Serial.println(get_ans);
+        // }
+        // else
+        // {
+        //   Serial.println("no answer received");
+        // }
+      }
+      else
+      {
+        Serial.println(F("fail sending msg"));
       }
     }
   }
@@ -151,14 +147,10 @@ void ask_asnwer()
 void setup()
 {
   Serial.begin(9600);
-  // radio.openWritingPipe(addresses[w_address]);
-  // radio.openReadingPipe(1, addresses[r_address]);
   radio.startRF24(w_address, r_address, dev_name);
 }
 
 void loop()
 {
-  // simple_send_recv();
-  // splitmsgs_send_recv();
   ask_asnwer();
 }
