@@ -2,19 +2,19 @@
 #include <ArduinoJson.h>
 
 // ~~~~~~~~~~~~ myRF24 lib ~~~~~~~~~~~~
-#define ROLE 1 // 0:Reciever 1: Sender
+#define ROLE 0 // 0:Reciever 1: Sender
 #if ROLE == 1  // sender
 const byte w_address = 1;
 const byte r_address = 0;
 const byte CE_PIN = 7;
 const byte CSN_PIN = 8;
-const char *dev_name = "send";
+const char *dev_name = "send_PRO"; /* 8 letters max*/
 #elif ROLE == 0 /* Receiver*/
 const byte w_address = 0;
 const byte r_address = 1;
 const byte CE_PIN = D4;
 const byte CSN_PIN = D2;
-const char *dev_name = "Recv";
+const char *dev_name = "Recv_ESP";
 #endif
 
 myRF24 radio(CE_PIN, CSN_PIN);
@@ -91,7 +91,7 @@ void ask_asnwer()
       char temp_ans[250];
       char ans2[100];
 
-      sprintf(ans2, "%.4f", (float)millis() / 1000);
+      sprintf(ans2, "%.4f [seconds]", (float)millis() / 1000);
       radio.genJSONmsg(temp_ans, "a", "recv", ans2);
       if (radio.RFwrite(temp_ans, strlen(temp_ans))) /* sending an answer */
       {

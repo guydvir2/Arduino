@@ -17,8 +17,8 @@ private:
         byte msg_num;
         byte tot_msgs;
         byte tot_len;
-        char payload[22];
-        char dev_name[6];
+        char payload[20];
+        char dev_name[9];
     };
     char _devname[32];
     const byte addresses[4][6] = {"00001", "00002", "00003", "00004"};
@@ -27,6 +27,7 @@ private:
 
 public:
     bool debug_mode = false;
+    bool use_ack = false;
 
 public:
     myRF24(int CE_PIN, int CSN_PIN);

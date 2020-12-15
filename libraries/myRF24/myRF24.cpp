@@ -7,19 +7,17 @@ void myRF24::startRF24(const byte &w_addr, const byte &r_addr, const char *devna
 {
   strcpy(_devname, devname);
   radio.begin();
-  // radio.enableAckPayload(); // Allow optional ack payloads
-  // radio.setAutoAck(1);
-  // radio.enableDynamicPayloads();
+  if (use_ack)
+  {
+    radio.enableAckPayload(); // Allow optional ack payloads
+    radio.setAutoAck(1);
+    radio.enableDynamicPayloads();
+  }
   radio.openWritingPipe(addresses[w_addr]);
   radio.openReadingPipe(1, addresses[r_addr]);
   radio.setPALevel(RF24_PA_MIN);
   radio.setRetries(0, 15);
   radio.startListening();
-
-  if (debug_mode)
-  {
-    Serial.begin(9600);
-  }
 }
 bool myRF24::RFwrite(const char *msg)
 {
@@ -65,7 +63,7 @@ bool myRF24::RFwrite(const char *msg, const int arraySize, const int len)
   {
     numPackets++;
   }
-  
+
   payload.tot_msgs = numPackets;
   payload.tot_len = arraySize;
   strcpy(payload.dev_name, _devname); /* who is sending the message */
@@ -91,18 +89,25 @@ bool myRF24::RFwrite(const char *msg, const int arraySize, const int len)
       return 0;
     }
   }
-  if (debug_mode)
+  if (payload.msg_num == numPackets - 1 && payload.tot_len == strlen(msg))
   {
-    Serial.print("Sent ");
-    Serial.print(arraySize);
-    Serial.print(" bytes");
-    Serial.print(" as ");
-    Serial.print(numPackets);
-    Serial.print("/");
-    Serial.print(P_iterator);
-    Serial.println(" packets.");
+    if (debug_mode)
+    {
+      Serial.print("Sent ");
+      Serial.print(arraySize);
+      Serial.print(" bytes");
+      Serial.print(" as ");
+      Serial.print(numPackets);
+      Serial.print("/");
+      Serial.print(P_iterator);
+      Serial.println(" packets.");
+    }
+    return 1;
   }
-  return 1;
+  else
+  {
+    return 0;
+  }
 }
 bool myRF24::RFread(char out[], int fail_micros)
 {
@@ -179,7 +184,7 @@ bool myRF24::RFread2(char out[])
 }
 void myRF24::genJSONmsg(char a[], const char *msg_t, const char *key, const char *value)
 {
-  sprintf(a, "{\"sender\":\"%s\",\"msg_type\":\"%s\",\"payload0\":\"%s\",\"payload1\":\"%s\"}", _devname, msg_t, key, value);
+  sprintf(a, "{\"from\":\"%s\",\"msg_type\":\"%s\",\"payload0\":\"%s\",\"payload1\":\"%s\"}", _devname, msg_t, key, value);
   if (debug_mode)
   {
     Serial.println(a);
@@ -222,51 +227,3 @@ void myRF24::_printStruct(RFmsg &msg)
   Serial.print("dev_name: ");
   Serial.println(msg.dev_name);
 }
-// bool myRF24::_verifyRx(char out[], char packets[][])
-// {
-//   // if (payload.msg_num == payload.tot_msgs - 1) /* reaching last message */
-//   // {
-//   //   int recv_msg_len = 0;
-//   //   byte recv_packets = 0;
-//   //   strcpy(out, "");
-//   //   for (int i = 0; i < payload.tot_msgs; i++)
-//   //   {
-//   //     recv_packets++;
-//   //     recv_msg_len += strlen(packets[i]);
-//   //     strcat(out, packets[i]);
-//   //     if (debug_mode)
-//   //     {
-//   //       Serial.println(packets[i]);
-//   //     }
-//   //   }
-//   // }
-
-//   // if (payload.tot_len == recv_msg_len && recv_packets == payload.tot_msgs)
-//   // {
-//   //   if (debug_mode)
-//   //   {
-//   //     Serial.println(payload.tot_len);
-//   //     Serial.print("recv_msg_len: ");
-//   //     Serial.println("Message received OK");
-//   //     Serial.println(out);
-//   //   }
-//   //   return 1;
-//   // }
-//   // else
-//   // {
-//   //   if (debug_mode)
-//   //   {
-//   //     Serial.println("Message failed receiving");
-//   //     Serial.print("payload.tot_len: ");
-//   //     Serial.println(payload.tot_len);
-//   //     Serial.print("recv_msg_len: ");
-//   //     Serial.println(recv_msg_len);
-//   //     Serial.print("recv_packets: ");
-//   //     Serial.println(recv_packets);
-//   //     Serial.print("payload.tot_msgs: ");
-//   //     Serial.println(payload.tot_msgs);
-//   //     Serial.println(out);
-//   //   }
-//   //   return 0;
-//   // }
-// }
