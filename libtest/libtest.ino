@@ -2,32 +2,35 @@
 #include <ArduinoJson.h>
 
 // ~~~~~~~~~~~~ myRF24 lib ~~~~~~~~~~~~
-#define ROLE 0 // 0:Reciever 1: Sender
-#if ROLE == 1  // sender
+#define ROLE 1 // 0:Reciever ( ESP8266 also connected to WiFi) 1: Sender ( Pro-Micro with RF24 long range anttenna)
+
+#if ROLE == 1 /*sender*/
 const byte w_address = 1;
 const byte r_address = 0;
 const byte CE_PIN = 7;
 const byte CSN_PIN = 8;
-const char *dev_name = "send_PRO"; /* 8 letters max*/
-#elif ROLE == 0                    /* Receiver*/
+const char *dev_name = "send_PRO"; /*8 letters max*/
+#elif ROLE == 0                    /*Receiver*/
 const byte w_address = 0;
 const byte r_address = 1;
 const byte CE_PIN = D4;
 const byte CSN_PIN = D2;
-const char *dev_name = "Recv_ESP";
+const char *dev_name = "Recv_ESP"; /*8 letters max*/
 #endif
 
 myRF24 radio(CE_PIN, CSN_PIN);
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 #if ROLE == 0
+
+#include <myIOT2.h>
 #define DEV_TOPIC "RF24_PORT"
 #define PREFIX_TOPIC "myHome"
 #define GROUP_TOPIC ""
-#include <myIOT2.h>
+#define ADD_MQTT_FUNC addiotnalMQTT
+
 myIOT2 iot;
 
-#define ADD_MQTT_FUNC addiotnalMQTT
 void startIOTservices()
 {
   iot.useSerial = true;
@@ -45,7 +48,6 @@ void startIOTservices()
   strcpy(iot.addGroupTopic, GROUP_TOPIC);
   iot.start_services(addiotnalMQTT);
 }
-
 void addiotnalMQTT(char *incoming_msg)
 {
   char msg[150];
@@ -122,70 +124,97 @@ void ask_asnwer()
 {
   static long lastrun = 0;
 
-  if (ROLE == 0) /*receiver*/
+#if ROLE == 0 /*receiver*/
+
+  radio.debug_mode = false;
+  char income_msg[250];
+  if (radio.RFread2(income_msg)) /* get question */
   {
+    Serial.println("ֿ\n§§§§§§§§§§§§ Start ±±±±±±±±±±±±");
+    Serial.print("got question: ");
+    Serial.println(income_msg);
+
+    char temp_ans[150];
+    char pload0[50];
+    char pload1[20];
+    char msgtype[10];
+    StaticJsonDocument<300> DOC;
+    deserializeJson(DOC, income_msg);
+
+    if (strcmp(DOC["msg_type"], "q") == 0)
+    { /* this is question msg */
+      strcpy(msgtype, "ans");
+      if (strcmp(DOC["payload0"], "clk") == 0)
+      {
+        iot.get_timeStamp();
+        strcpy(pload1, iot.timeStamp);
+        strcpy(pload0, "clk");
+      }
+      else
+      {
+        strcpy(pload0, "boot");
+        sprintf(pload1, "%.4f [seconds]", (float)millis() / 1000);
+      }
+    }
+
+    radio.genJSONmsg(temp_ans, msgtype, pload0, pload1);
+    if (radio.RFwrite(temp_ans, strlen(temp_ans))) /* sending an answer */
+    {
+      Serial.print("Sending answer: ");
+      Serial.println(temp_ans);
+    }
+    else
+    {
+      Serial.println("Error sending answer");
+    }
+  }
+
+#elif ROLE == 1 /* asking a question */
+
+  while (millis() - lastrun > 5000)
+  {
+    Serial.println("ֿ\n§§§§§§§§§§§§ Start Sending ±±±±±±±±±±±±");
+    char outmsg[250];
     radio.debug_mode = false;
-    char income_msg[250];
-    if (radio.RFread2(income_msg)) /* get question */
+    lastrun = millis();
+    static int ask = 0;
+
+    char carray[15];
+    sprintf(carray, "#%d", ask);
+    ask++;
+    if (ask % 2 == 0)
     {
-      Serial.println("ֿ\n§§§§§§§§§§§§ Start ±±±±±±±±±±±±");
-      Serial.print("got question: ");
-      Serial.println(income_msg);
-
-      char temp_ans[250];
-      char ans2[100];
-
-      sprintf(ans2, "%.4f [seconds]", (float)millis() / 1000);
-      radio.genJSONmsg(temp_ans, "a", "recv", ans2);
-      if (radio.RFwrite(temp_ans, strlen(temp_ans))) /* sending an answer */
-      {
-        Serial.print("Sending answer: ");
-        Serial.println(temp_ans);
-      }
-      else
-      {
-        Serial.println("Error sending answer");
-      }
-    }
-  }
-  else if (ROLE == 1) /* asking a question */
-  {
-    while (millis() - lastrun > 5000)
-    {
-      Serial.println("ֿ\n§§§§§§§§§§§§ Start Sending ±±±±±±±±±±±±");
-      char outmsg[250];
-      radio.debug_mode = false;
-      lastrun = millis();
-      static int ask = 0;
-
-      char carray[15];
-      sprintf(carray, "#%d", ask);
-      ask++;
-
       radio.genJSONmsg(outmsg, "q", "clk", carray);
-      if (radio.RFwrite(outmsg, strlen(outmsg))) /*sending question*/
-      {
-        Serial.print("Question sent:");
-        Serial.println(outmsg);
-        char get_ans[200];
-        strcpy(get_ans, "");
-        while (!radio.RFread2(get_ans))
-          ;
+    }
+    else
+    {
+      radio.genJSONmsg(outmsg, "q", "boot", carray);
+    }
 
-        Serial.print("got asnwer: ");
-        Serial.println(get_ans);
+    // radio.genJSONmsg(outmsg, "q", "clk", carray);
+    if (radio.RFwrite(outmsg, strlen(outmsg))) /*sending question*/
+    {
+      Serial.print("Question sent:");
+      Serial.println(outmsg);
+      char get_ans[200];
+      strcpy(get_ans, "");
+      while (!radio.RFread2(get_ans))
+        ;
 
-        // else
-        // {
-        //   Serial.println("no answer received");
-        // }
-      }
-      else
-      {
-        Serial.println(F("fail sending msg"));
-      }
+      Serial.print("got asnwer: ");
+      Serial.println(get_ans);
+
+      // else
+      // {
+      //   Serial.println("no answer received");
+      // }
+    }
+    else
+    {
+      Serial.println(F("fail sending msg"));
     }
   }
+#endif
 }
 void setup()
 {
