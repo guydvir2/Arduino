@@ -3,7 +3,7 @@
 myRF24::myRF24(int CE_PIN, int CSN_PIN) : radio(CE_PIN, CSN_PIN)
 {
 }
-void myRF24::startRF24(const byte &w_addr, const byte &r_addr, const char *devname)
+void myRF24::startRF24(const byte &w_addr, const byte &r_addr, const char *devname, rf24_pa_dbm_e PA_level, rf24_datarate_e Data_rate)
 {
   strcpy(_devname, devname);
   radio.begin();
@@ -15,7 +15,8 @@ void myRF24::startRF24(const byte &w_addr, const byte &r_addr, const char *devna
   }
   radio.openWritingPipe(addresses[w_addr]);
   radio.openReadingPipe(1, addresses[r_addr]);
-  radio.setPALevel(RF24_PA_MIN);
+  // radio.setPALevel(PA_level);
+  // radio.setDataRate(Data_rate);
   radio.setRetries(0, 15);
   radio.startListening();
 }
@@ -24,25 +25,6 @@ bool myRF24::RFwrite(const char *msg)
   char _msg[32];
   radio.stopListening();
   strcpy(_msg, msg);
-  if (!radio.write(&_msg, sizeof(_msg)))
-  {
-    return 0;
-  }
-  else
-  {
-    return 1;
-  }
-}
-bool myRF24::RFwrite(const char *msg, const char *key)
-{
-  char _msg[32];
-  radio.stopListening();
-  StaticJsonDocument<80> DOC;
-
-  strcpy(_msg, msg);
-  DOC[key] = msg;
-  DOC["id"] = _devname;
-  serializeJson(DOC, _msg);
   if (!radio.write(&_msg, sizeof(_msg)))
   {
     return 0;

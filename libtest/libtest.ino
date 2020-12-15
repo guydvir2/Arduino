@@ -9,7 +9,7 @@ const byte r_address = 0;
 const byte CE_PIN = 7;
 const byte CSN_PIN = 8;
 const char *dev_name = "send_PRO"; /* 8 letters max*/
-#elif ROLE == 0 /* Receiver*/
+#elif ROLE == 0                    /* Receiver*/
 const byte w_address = 0;
 const byte r_address = 1;
 const byte CE_PIN = D4;
@@ -20,10 +20,54 @@ const char *dev_name = "Recv_ESP";
 myRF24 radio(CE_PIN, CSN_PIN);
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-// #if ROLE==0
-// #include <myIOT2.h>
-// myIOT2 iot;
-// #endif
+#if ROLE == 0
+#define DEV_TOPIC "RF24_PORT"
+#define PREFIX_TOPIC "myHome"
+#define GROUP_TOPIC ""
+#include <myIOT2.h>
+myIOT2 iot;
+
+#define ADD_MQTT_FUNC addiotnalMQTT
+void startIOTservices()
+{
+  iot.useSerial = true;
+  iot.useWDT = true;
+  iot.useOTA = true;
+  iot.useResetKeeper = false;
+  iot.useextTopic = false;
+  iot.resetFailNTP = true;
+  iot.useDebug = false;
+  iot.debug_level = 0;
+  iot.useNetworkReset = true;
+  iot.noNetwork_reset = 2;
+  strcpy(iot.deviceTopic, DEV_TOPIC);
+  strcpy(iot.prefixTopic, PREFIX_TOPIC);
+  strcpy(iot.addGroupTopic, GROUP_TOPIC);
+  iot.start_services(addiotnalMQTT);
+}
+
+void addiotnalMQTT(char *incoming_msg)
+{
+  char msg[150];
+  char msg2[20];
+  if (strcmp(incoming_msg, "status") == 0)
+  {
+    sprintf(msg, "Status: OK");
+    iot.pub_msg(msg);
+  }
+  else if (strcmp(incoming_msg, "help2") == 0)
+  {
+    sprintf(msg, "Help: Commands #3 - [NEW]");
+    iot.pub_msg(msg);
+  }
+  else if (strcmp(incoming_msg, "ver2") == 0)
+  {
+    sprintf(msg, "Ver: Ver:%s", VER);
+    iot.pub_msg(msg);
+  }
+}
+
+#endif
 
 void simple_send_recv()
 {
@@ -128,9 +172,9 @@ void ask_asnwer()
         while (!radio.RFread2(get_ans))
           ;
 
-          Serial.print("got asnwer: ");
-          Serial.println(get_ans);
-        
+        Serial.print("got asnwer: ");
+        Serial.println(get_ans);
+
         // else
         // {
         //   Serial.println("no answer received");
@@ -145,11 +189,19 @@ void ask_asnwer()
 }
 void setup()
 {
+#if ROLE == 0
+  startIOTservices();
+#else
   Serial.begin(9600);
+#endif
   radio.startRF24(w_address, r_address, dev_name);
 }
 
 void loop()
 {
+#if ROLE == 0
+  iot.looper();
+#endif
+
   ask_asnwer();
 }
