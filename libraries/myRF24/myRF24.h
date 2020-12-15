@@ -20,7 +20,6 @@ private:
         char payload[22];
         char dev_name[6];
     };
-    // RFmsg payload;
     char _devname[32];
     const byte addresses[4][6] = {"00001", "00002", "00003", "00004"};
 
@@ -42,7 +41,6 @@ public:
 
 private:
     bool _wait4Rx(int timeFrame = 200);
-    // bool _verifyRx(char out[], char packets[][]);
     void _printStruct(RFmsg &msg);
 };
 

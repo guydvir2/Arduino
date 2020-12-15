@@ -56,7 +56,6 @@ bool myRF24::RFwrite(const char *msg, const char *key)
 }
 bool myRF24::RFwrite(const char *msg, const int arraySize, const int len)
 {
-  Serial.println("write");
   RFmsg payload;
   byte P_iterator = 0;
   radio.stopListening();
@@ -66,29 +65,29 @@ bool myRF24::RFwrite(const char *msg, const int arraySize, const int len)
   {
     numPackets++;
   }
+  
   payload.tot_msgs = numPackets;
   payload.tot_len = arraySize;
   strcpy(payload.dev_name, _devname); /* who is sending the message */
-  // _printStruct(payload);
-
-  // Serial.print("numPackets: ");
-  // Serial.println(numPackets);
   while (P_iterator < numPackets)
   {
     const char *ptr1 = msg + P_iterator * (len);
     strncpy(payload.payload, ptr1, len);
     payload.payload[len] = '\0';
     payload.msg_num = P_iterator;
-
-    Serial.print("iteration: ");
-    Serial.println(P_iterator);
     if (radio.write(&payload, sizeof(payload)))
     {
       P_iterator++;
     }
     else
     {
-      Serial.println("Error");
+      if (debug_mode)
+      {
+        Serial.print("Error sending packet #");
+        Serial.print(payload.msg_num);
+        Serial.print("/");
+        Serial.println(payload.tot_msgs - 1);
+      }
       return 0;
     }
   }
@@ -152,71 +151,31 @@ bool myRF24::RFread(char out[], const char *key, int fail_micros)
 bool myRF24::RFread2(char out[])
 {
   radio.startListening();
-  const int MAX_PACKETS = 20;
-  const int MAX_PACKET_LEN = 25;
-  char packets[MAX_PACKETS][MAX_PACKET_LEN];
 
   if (radio.available())
   {
-    if (_wait4Rx()) //radio.available())
+    RFmsg payload;
+    strcpy(out, "");
+    while (_wait4Rx(50))
     {
-      RFmsg payload;
-  //     radio.read(&payload, sizeof(payload));
-  //     if (payload.msg_num == 0) /* first msg in */
-  //     {
-  //       /* check to see not exceeding max length */
-  //       if (payload.tot_len > MAX_PACKET_LEN * MAX_PACKETS - 1)
-  //       {
-  //         if (debug_mode)
-  //         {
-  //           char t[100];
-  //           sprintf(t, "Error. %d bytes. allowed %d bytes", payload.tot_len, MAX_PACKET_LEN * MAX_PACKETS - 1);
-  //           Serial.println(t);
-  //         }
-  //         return 0;
-  //       } /* End */
+      radio.read(&payload, sizeof(payload));
+      strcat(out, payload.payload);
+    }
 
-  //       strcpy(packets[payload.msg_num], payload.payload);
-  //     }
-  //     else /* next msgs */
-  //     {
-  //       while (_wait4Rx() && payload.msg_num < payload.tot_msgs - 1)
-  //       {
-  //         radio.read(&payload, sizeof(payload));
-  //         strcpy(packets[payload.msg_num], payload.payload);
-  //         _printStruct(payload);
-  //         Serial.println("D");
-  //       }
-  //       if (payload.msg_num == payload.tot_msgs - 1) /* reaching last message */
-  //       {
-  //         int recv_msg_len = 0;
-  //         byte recv_packets = 0;
-  //         strcpy(out, "");
-  //         for (int i = 0; i < payload.tot_msgs; i++)
-  //         {
-  //           recv_packets++;
-  //           recv_msg_len += strlen(packets[i]);
-  //           strcat(out, packets[i]);
-  //           if (debug_mode)
-  //           {
-  //             Serial.println(packets[i]);
-  //           }
-  //         }
-  //         return 1;
-  //       }
-  //       else
-  //       {
-  //         Serial.println("BAD PACKETS");
-  //         return 0;
-  //       }
-  //     }
-  //   }
-  //   else
-  //   {
-  //     Serial.println("BBBBAAAA");
-  //     return 0;
-  //   }
-  // }
+    if (payload.tot_len == strlen(out))
+    {
+      return 1;
+    }
+    else
+    {
+      Serial.println("BAD LEN");
+      return 0;
+    }
+  }
+  else
+  {
+    return 0;
+  }
 }
 void myRF24::genJSONmsg(char a[], const char *msg_t, const char *key, const char *value)
 {
