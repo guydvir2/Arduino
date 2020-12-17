@@ -4,26 +4,52 @@
 // ~~~~~~~~~~~~ myRF24 lib ~~~~~~~~~~~~
 #define ROLE 0 // 0:Reciever ( ESP8266 also connected to WiFi) 1: Sender ( Pro-Micro with RF24 log range anttenna)
 
-#if ROLE == 1 /*sender*/
+#if ROLE == 1     /*sender*/
+#define USE_IOT 0 /*For devices NOT connected to WiFi*/
 const byte w_address = 1;
 const byte r_address = 0;
 const byte CE_PIN = 7;
 const byte CSN_PIN = 8;
-const char *dev_name = "send_PRO"; /*8 letters max*/
+const char *dev_name = "ProMicro"; /*8 letters max*/
 
-#elif ROLE == 0 /*Receiver*/
+#elif ROLE == 0   /*Receiver*/
+#define USE_IOT 1 /*For device connected to WiFi*/
 const byte w_address = 0;
 const byte r_address = 1;
-const byte CE_PIN = D4;
+const byte CE_PIN = D4; /* ESP8266*/
 const byte CSN_PIN = D2;
-const char *dev_name = "Recv_ESP"; /*8 letters max*/
+const char *dev_name = "iot_port"; /*8 letters max*/
 #endif
 
 myRF24 radio(CE_PIN, CSN_PIN);
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-#if ROLE == 0
+// ~~~~~~~~~~~~~~ Cmds and Questions ~~~~~~~~~
+char *cmds[] = {"reset", "MQTT"};
+char *infos[] = {"wakeTime", "defs"};
+char *questions[] = {"clk"};
 
+void convert_sec2Clock(long timedelta, char ret_str[])
+{
+  byte days = 0;
+  byte hours = 0;
+  byte minutes = 0;
+  byte seconds = 0;
+
+  int sec2minutes = 60;
+  int sec2hours = (sec2minutes * 60);
+  int sec2days = (sec2hours * 24);
+  int sec2years = (sec2days * 365);
+
+  days = (int)(timedelta / sec2days);
+  hours = (int)((timedelta - days * sec2days) / sec2hours);
+  minutes = (int)((timedelta - days * sec2days - hours * sec2hours) / sec2minutes);
+  seconds = (int)(timedelta - days * sec2days - hours * sec2hours - minutes * sec2minutes);
+
+  sprintf(ret_str, "%dd %02d:%02d:%02d", days, hours, minutes, seconds);
+}
+// ~~~~~~~~~~~~~~ IOT ~~~~~~~~~~~~~
+#if USE_IOT == 1
 #include <myIOT2.h>
 #define DEV_TOPIC "RF24_PORT"
 #define PREFIX_TOPIC "myHome"
@@ -69,7 +95,6 @@ void addiotnalMQTT(char *incoming_msg)
     iot.pub_msg(msg);
   }
 }
-
 #endif
 
 void ask_asnwer()
@@ -186,20 +211,19 @@ bool send(const char *mst_t, const char *p0, const char *p1)
 }
 void setup()
 {
-#if ROLE == 0
+#if USE_IOT == 1
   startIOTservices();
 #else
   Serial.begin(9600);
 #endif
-  radio.startRF24(w_address, r_address, dev_name);
+  radio.startRF24(w_address, r_address, dev_name,RF24_PA_MIN,RF24_1MBPS,1);
 }
-
 void loop()
 {
   static unsigned long question_clock = 0;
   static unsigned long question_clock2 = 0;
 
-#if ROLE == 0
+#if USE_IOT == 1
   iot.looper();
 #endif
 
@@ -209,8 +233,8 @@ void loop()
   char inmsg[200];
   if (radio.RFread2(inmsg))
   {
-    Serial.print("IN: ");
-    Serial.println(inmsg);
+    // Serial.print("got msg: ");
+    // Serial.println(inmsg);
 
     char pload1[50];
     StaticJsonDocument<300> DOC;
@@ -218,28 +242,41 @@ void loop()
 
     if (strcmp(DOC["msg_type"], "q") == 0)
     {
-      if (strcmp(DOC["payload0"], "boot") == 0)
+      if (strcmp(DOC["payload0"], questions[0]) == 0) /*time_stamp - IOT only*/
       {
-        sprintf(pload1, "%d [sec]", (int)millis() / 1000);
-        send("ans", "boot", pload1);
+#if USE_IOT == 1
+        iot.get_timeStamp();
+        send("ans", questions[0], iot.timeStamp);
+#endif
       }
     }
     else if (strcmp(DOC["msg_type"], "ans") == 0)
     {
-      Serial.print("got Answer: ");
+      Serial.print("Answer: ");
       Serial.println(inmsg);
     }
     else if (strcmp(DOC["msg_type"], "info") == 0)
     {
+      if (strcmp(DOC["payload0"], infos[0]) == 0) /*wake time*/
+      {
+        convert_sec2Clock((int)millis() / 1000, pload1);
+        send("ans", infos[0], pload1);
+      }
     }
-    else if (strcmp(DOC["msg_type"], "alert") == 0)
+    else if (strcmp(DOC["msg_type"], "cmd") == 0)
     {
-      if (strcmp(DOC["payload0"], "MQTT") == 0)
+      if (strcmp(DOC["payload0"], cmds[0]) == 0) /* commence RESET*/
+      {
+#if USE_IOT == 1
+        iot.sendReset("RF24cmd");
+#endif
+        send("ans", cmds[0], "executed");
+      }
+      else if (strcmp(DOC["payload0"], cmds[1]) == 0) /* send MQTT msg*/
       {
 #if ROLE == 0
-        const char *t = DOC["payload1"];
         char p[100];
-        strcpy(p, DOC["payload1"]);
+        strcpy(p, DOC["payload1"].as<const char *>());
         iot.pub_msg(p);
 #endif
       }
@@ -267,16 +304,26 @@ void loop()
   }
   else if (ROLE == 1)
   {
-    if (millis() - question_clock > 15000)
+    // if (millis() - question_clock > 25000)
+    // {
+    //   send("cmd", cmds[0], "BYE!");
+    // }
+    // if (millis() - question_clock > 20000)
+    // {
+    //   send("cmd", cmds[1], "YOU SHIT");
+    //     question_clock = millis();
+    // }
+    // if (millis() - question_clock > 15000)
+    // {
+    //   send("info", infos[0], "");
+    //   question_clock = millis();
+    // }
+    if (millis() - question_clock > 10000)
     {
-      char a[20];
-      static int q = 0;
-      sprintf(a, "#%d", q);
-      send("q", "boot", a);
+      send("q", questions[0], "timeStamp");
       question_clock = millis();
-      q++;
     }
-    else if (millis() - question_clock2 > 60000*15UL)
+    else if (millis() - question_clock2 > 60000 * 15UL)
     {
       char a[20];
       static int q = 0;
@@ -286,33 +333,4 @@ void loop()
       q++;
     }
   }
-
-  // if (ROLE == 0)
-  // {
-  //   char inmsg[200];
-  //   radio.debug_mode = true;
-  //   if (radio.RFread2(inmsg))
-  //   {
-  //     Serial.print("IN: ");
-  //     Serial.println(inmsg);
-  //   }
-  // }
-  // else if (ROLE == 1)
-  // {
-  //   // radio.debug_mode = true;
-  //   if (millis() - question_clock > 2000)
-  //   {
-  //     char outmsg[200];
-  //     strcpy(outmsg, "123");
-  //     if (radio.RFwrite(outmsg, strlen(outmsg)))
-  //     {
-  //       Serial.println("SENT");
-  //     }
-  //     else
-  //     {
-  //       Serial.println("NOT-SENT");
-  //     }
-  //     question_clock = millis();
-  //   }
-  // }
 }

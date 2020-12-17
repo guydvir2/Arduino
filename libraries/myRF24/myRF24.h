@@ -31,7 +31,7 @@ public:
 
 public:
     myRF24(int CE_PIN, int CSN_PIN);
-    void startRF24(const byte &w_addr, const byte &r_addr, const char *devname, rf24_pa_dbm_e PA_level = RF24_PA_MIN, rf24_datarate_e Data_rate = RF24_250KBPS);
+    void startRF24(const byte &w_addr, const byte &r_addr, const char *devname, uint8_t PA_level = RF24_PA_MIN, rf24_datarate_e Data_rate = RF24_2MBPS, int ch=1);
     bool RFwrite(const char *msg, const int arraySize, const int len = 20); /* long & splitted messages */
     bool RFread(char out[], int fail_micros = 200);                         /*plain read*/
     bool RFread(char out[], const char *key, int fail_micros = 200);        /*JSON format */
