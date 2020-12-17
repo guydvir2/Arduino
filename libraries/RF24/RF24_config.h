@@ -18,13 +18,22 @@
 #ifndef __RF24_CONFIG_H__
 #define __RF24_CONFIG_H__
 
-/*** USER DEFINES:    ***/    
+/*** USER DEFINES:    ***/
 #define FAILURE_HANDLING
 //#define SERIAL_DEBUG
 //#define MINIMAL
 //#define SPI_UART    // Requires library from https://github.com/TMRh20/Sketches/tree/master/SPI_UART
 //#define SOFTSPI     // Requires library from https://github.com/greiman/DigitalIO
-    
+ 
+/**
+ * User access to internally used delay time (in microseconds) during RF24::powerUp()
+ * @warning This default value compensates for all supported hardware. Only adjust this if you
+ * know your radio's hardware is, in fact, genuine and reliable.
+ */
+#if !defined(RF24_POWERUP_DELAY)
+#define RF24_POWERUP_DELAY	5000
+#endif
+
 /**********************/
 #define rf24_max(a,b) (a>b?a:b)
 #define rf24_min(a,b) (a<b?a:b)
@@ -144,7 +153,9 @@
             typedef char const char;
 
         #else // Fill in pgm_read_byte that is used, but missing from DUE
-          #include <avr/pgmspace.h>
+          #ifdef ARDUINO_ARCH_AVR
+            #include <avr/pgmspace.h>
+          #endif
           #ifndef pgm_read_byte
             #define pgm_read_byte(addr) (*(const unsigned char *)(addr))
           #endif  
@@ -168,7 +179,7 @@
         #ifndef pgm_read_word
           #define pgm_read_word(p) (*(p))
         #endif
-        #ifndef pgm_read_ptr
+        #if !defined pgm_read_ptr || defined ARDUINO_ARCH_MBED
           #define pgm_read_ptr(p) (*(p))
         #endif
         #ifndef PRIPSTR

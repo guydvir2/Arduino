@@ -2,7 +2,7 @@
 #include <ArduinoJson.h>
 
 // ~~~~~~~~~~~~ myRF24 lib ~~~~~~~~~~~~
-#define ROLE 1 // 0:Reciever ( ESP8266 also connected to WiFi) 1: Sender ( Pro-Micro with RF24 log range anttenna)
+#define ROLE 0 // 0:Reciever ( ESP8266 also connected to WiFi) 1: Sender ( Pro-Micro with RF24 log range anttenna)
 
 #if ROLE == 1 /*sender*/
 const byte w_address = 1;
