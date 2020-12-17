@@ -22,55 +22,55 @@ const char *dev_name = "Recv_ESP"; /*8 letters max*/
 myRF24 radio(CE_PIN, CSN_PIN);
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-// #if ROLE == 0
+#if ROLE == 0
 
-// #include <myIOT2.h>
-// #define DEV_TOPIC "RF24_PORT"
-// #define PREFIX_TOPIC "myHome"
-// #define GROUP_TOPIC ""
-// #define ADD_MQTT_FUNC addiotnalMQTT
+#include <myIOT2.h>
+#define DEV_TOPIC "RF24_PORT"
+#define PREFIX_TOPIC "myHome"
+#define GROUP_TOPIC ""
+#define ADD_MQTT_FUNC addiotnalMQTT
 
-// myIOT2 iot;
+myIOT2 iot;
 
-// void startIOTservices()
-// {
-//   iot.useSerial = true;
-//   iot.useWDT = true;
-//   iot.useOTA = true;
-//   iot.useResetKeeper = false;
-//   iot.useextTopic = false;
-//   iot.resetFailNTP = true;
-//   iot.useDebug = false;
-//   iot.debug_level = 0;
-//   iot.useNetworkReset = true;
-//   iot.noNetwork_reset = 2;
-//   strcpy(iot.deviceTopic, DEV_TOPIC);
-//   strcpy(iot.prefixTopic, PREFIX_TOPIC);
-//   strcpy(iot.addGroupTopic, GROUP_TOPIC);
-//   iot.start_services(addiotnalMQTT);
-// }
-// void addiotnalMQTT(char *incoming_msg)
-// {
-//   char msg[150];
-//   char msg2[20];
-//   if (strcmp(incoming_msg, "status") == 0)
-//   {
-//     sprintf(msg, "Status: OK");
-//     iot.pub_msg(msg);
-//   }
-//   else if (strcmp(incoming_msg, "help2") == 0)
-//   {
-//     sprintf(msg, "Help: Commands #3 - [NEW]");
-//     iot.pub_msg(msg);
-//   }
-//   else if (strcmp(incoming_msg, "ver2") == 0)
-//   {
-//     sprintf(msg, "Ver: Ver:%s", VER);
-//     iot.pub_msg(msg);
-//   }
-// }
+void startIOTservices()
+{
+  iot.useSerial = true;
+  iot.useWDT = true;
+  iot.useOTA = true;
+  iot.useResetKeeper = false;
+  iot.useextTopic = false;
+  iot.resetFailNTP = true;
+  iot.useDebug = false;
+  iot.debug_level = 0;
+  iot.useNetworkReset = true;
+  iot.noNetwork_reset = 2;
+  strcpy(iot.deviceTopic, DEV_TOPIC);
+  strcpy(iot.prefixTopic, PREFIX_TOPIC);
+  strcpy(iot.addGroupTopic, GROUP_TOPIC);
+  iot.start_services(addiotnalMQTT);
+}
+void addiotnalMQTT(char *incoming_msg)
+{
+  char msg[150];
+  char msg2[20];
+  if (strcmp(incoming_msg, "status") == 0)
+  {
+    sprintf(msg, "Status: OK");
+    iot.pub_msg(msg);
+  }
+  else if (strcmp(incoming_msg, "help2") == 0)
+  {
+    sprintf(msg, "Help: Commands #3 - [NEW]");
+    iot.pub_msg(msg);
+  }
+  else if (strcmp(incoming_msg, "ver2") == 0)
+  {
+    sprintf(msg, "Ver: Ver:%s", VER);
+    iot.pub_msg(msg);
+  }
+}
 
-// #endif
+#endif
 
 void ask_asnwer()
 {
@@ -186,114 +186,133 @@ bool send(const char *mst_t, const char *p0, const char *p1)
 }
 void setup()
 {
-  // #if ROLE == 0
-  //   startIOTservices();
-  // #else
+#if ROLE == 0
+  startIOTservices();
+#else
   Serial.begin(9600);
-  // #endif
+#endif
   radio.startRF24(w_address, r_address, dev_name);
 }
 
 void loop()
 {
   static unsigned long question_clock = 0;
-  // #if ROLE == 0
-  //   iot.looper();
-  // #endif
+  static unsigned long question_clock2 = 0;
+
+#if ROLE == 0
+  iot.looper();
+#endif
 
   // ask_asnwer();
 
   // // ~~~~~~~~~ Wait for Questions ~~~~~~~~~~~~
-  // char inmsg[200];
-  // if (radio.RFread2(inmsg))
-  // {
-  //   Serial.print("IN: ");
-  //   Serial.println(inmsg);
+  char inmsg[200];
+  if (radio.RFread2(inmsg))
+  {
+    Serial.print("IN: ");
+    Serial.println(inmsg);
 
-  //   // char pload1[50];
-  //   // StaticJsonDocument<300> DOC;
-  //   // deserializeJson(DOC, (const char *)inmsg);
+    char pload1[50];
+    StaticJsonDocument<300> DOC;
+    deserializeJson(DOC, (const char *)inmsg);
 
-  //   // if (strcmp(DOC["msg_type"], "q") == 0)
-  //   // {
-  //   //   if (strcmp(DOC["payload0"], "boot") == 0)
-  //   //   {
-  //   //     // sprintf(pload1, "%d [sec]", (int)millis()/1000);
-  //   //     // Serial.println(pload1);
-  //   //     send("ans", "boot", "pload1");
-  //   //   }
-  //   // }
-  //   // else if (strcmp(DOC["msg_type"], "ans") == 0)
-  //   // {
-  //   //   Serial.print("got Answer: ");
-  //   //   Serial.println(inmsg);
-  //   // }
-  //   // else if (strcmp(DOC["msg_type"], "info") == 0)
-  //   // {
-  //   // }
-  //   // else if (strcmp(DOC["msg_type"], "alert") == 0)
-  //   // {
-  //   // }
-  //   // else
-  //   // {
-  //   //   Serial.print("some error: ");
-  //   //   Serial.println(inmsg);
-  //   // }
-  // }
-  // // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    if (strcmp(DOC["msg_type"], "q") == 0)
+    {
+      if (strcmp(DOC["payload0"], "boot") == 0)
+      {
+        sprintf(pload1, "%d [sec]", (int)millis() / 1000);
+        send("ans", "boot", pload1);
+      }
+    }
+    else if (strcmp(DOC["msg_type"], "ans") == 0)
+    {
+      Serial.print("got Answer: ");
+      Serial.println(inmsg);
+    }
+    else if (strcmp(DOC["msg_type"], "info") == 0)
+    {
+    }
+    else if (strcmp(DOC["msg_type"], "alert") == 0)
+    {
+      if (strcmp(DOC["payload0"], "MQTT") == 0)
+      {
+#if ROLE == 0
+        const char *t = DOC["payload1"];
+        char p[100];
+        strcpy(p, DOC["payload1"]);
+        iot.pub_msg(p);
+#endif
+      }
+    }
+    else
+    {
+      Serial.print("some error: ");
+      Serial.println(inmsg);
+    }
+  }
+  // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-  // // ~~~~~~~ Sending Questions ~~~~~~~~
-  // // if (ROLE == 0)
-  // // {
-  // //   if (millis() - question_clock > 5234)
-  // //   {
-  // //     char a[20];
-  // //     static int q = 0;
-  // //     sprintf(a, "#%d", q);
-  // //     send("q", "boot", a);
-  // //     question_clock = millis();
-  // //     q++;
-  // //   }
-  // // }
-  // else if (ROLE == 1)
-  // {
-  //   if (millis() - question_clock > 5000)
-  //   {
-  //     char a[20];
-  //     static int q = 0;
-  //     sprintf(a, "#%d", q);
-  //     send("q", "boot", a);
-  //     question_clock = millis();
-  //     q++;
-  //   }
-  // }
-
+  // ~~~~~~~ Sending Questions ~~~~~~~~
   if (ROLE == 0)
   {
-    char inmsg[200];
-    radio.debug_mode = true;
-    if (radio.RFread2(inmsg))
+    if (millis() - question_clock > 5234)
     {
-      Serial.print("IN: ");
-      Serial.println(inmsg);
+      char a[20];
+      static int q = 0;
+      sprintf(a, "#%d", q);
+      send("q", "boot", a);
+      question_clock = millis();
+      q++;
     }
   }
   else if (ROLE == 1)
   {
-    // radio.debug_mode = true;
-    if (millis() - question_clock > 2000)
+    if (millis() - question_clock > 15000)
     {
-      char outmsg[200];
-      strcpy(outmsg, "123");
-      if (radio.RFwrite(outmsg, strlen(outmsg)))
-      {
-        Serial.println("SENT");
-      }
-      else
-      {
-        Serial.println("NOT-SENT");
-      }
+      char a[20];
+      static int q = 0;
+      sprintf(a, "#%d", q);
+      send("q", "boot", a);
       question_clock = millis();
+      q++;
+    }
+    else if (millis() - question_clock2 > 60000*15UL)
+    {
+      char a[20];
+      static int q = 0;
+      sprintf(a, "%s: Alert #%d", dev_name, q);
+      send("alert", "MQTT", a);
+      question_clock2 = millis();
+      q++;
     }
   }
+
+  // if (ROLE == 0)
+  // {
+  //   char inmsg[200];
+  //   radio.debug_mode = true;
+  //   if (radio.RFread2(inmsg))
+  //   {
+  //     Serial.print("IN: ");
+  //     Serial.println(inmsg);
+  //   }
+  // }
+  // else if (ROLE == 1)
+  // {
+  //   // radio.debug_mode = true;
+  //   if (millis() - question_clock > 2000)
+  //   {
+  //     char outmsg[200];
+  //     strcpy(outmsg, "123");
+  //     if (radio.RFwrite(outmsg, strlen(outmsg)))
+  //     {
+  //       Serial.println("SENT");
+  //     }
+  //     else
+  //     {
+  //       Serial.println("NOT-SENT");
+  //     }
+  //     question_clock = millis();
+  //   }
+  // }
 }
