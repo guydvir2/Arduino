@@ -15,12 +15,12 @@ void myRF24::startRF24(const byte &w_addr, const byte &r_addr, const char *devna
   }
   radio.openWritingPipe(addresses[w_addr]);
   radio.openReadingPipe(1, addresses[r_addr]);
-  // radio.setPALevel(PA_level);
+  radio.setPALevel(RF24_PA_MIN);
   // radio.setDataRate(Data_rate);
   radio.setRetries(0, 15);
   radio.startListening();
 }
-bool myRF24::RFwrite(const char *msg)
+bool myRF24::_RFwrite_nosplit(const char *msg)
 {
   char _msg[32];
   radio.stopListening();
@@ -135,7 +135,7 @@ bool myRF24::RFread(char out[], const char *key, int fail_micros)
   }
 }
 
-bool myRF24::RFread2(char out[])
+bool myRF24::RFread2(char out[], int del)
 {
   radio.startListening();
 
@@ -143,10 +143,11 @@ bool myRF24::RFread2(char out[])
   {
     RFmsg payload;
     strcpy(out, "");
-    while (_wait4Rx(50))
+    while (radio.available())
     {
       radio.read(&payload, sizeof(payload));
       strcat(out, payload.payload);
+      delay(2); // <---- Change. withouy delay, it fails.
     }
 
     if (payload.tot_len == strlen(out))
@@ -155,7 +156,15 @@ bool myRF24::RFread2(char out[])
     }
     else
     {
-      Serial.println("BAD LEN");
+      if (debug_mode)
+      {
+        Serial.println(out);
+        Serial.print("payload.tot_len: ");
+        Serial.println(payload.tot_len);
+        Serial.print("strlen(out): ");
+        Serial.println(strlen(out));
+        Serial.println("Error re-construct message");
+      }
       return 0;
     }
   }
@@ -179,21 +188,32 @@ bool myRF24::_wait4Rx(int timeFrame)
 {
   bool timeout = false;
   unsigned long started_waiting_at = micros();
-  while (!radio.available()) // While nothing is received
+  if (radio.available())
   {
-    if (micros() - started_waiting_at > timeFrame * 1000UL) // If waited longer than 200ms, indicate timeout and exit while loop
-    {
-      timeout = true;
-      break;
-    }
-  }
-  if (timeout)
-  {
-    return 0;
+    return 1;
   }
   else
   {
-    return 1;
+    while (!radio.available()) // While nothing is received
+    {
+      if (micros() - started_waiting_at > timeFrame * 1000UL) // If waited longer than 200ms, indicate timeout and exit while loop
+      {
+        timeout = true;
+        break;
+      }
+    }
+    if (timeout)
+    {
+      Serial.print("reach time-out");
+      Serial.println(micros() - started_waiting_at);
+      return 0;
+    }
+    else
+    {
+      Serial.print("not reach time-out");
+      Serial.println(micros() - started_waiting_at);
+      return 1;
+    }
   }
 }
 void myRF24::_printStruct(RFmsg &msg)
