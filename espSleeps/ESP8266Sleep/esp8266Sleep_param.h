@@ -5,19 +5,18 @@
 
 #define JSON_SIZE_IOT 400
 #define JSON_SIZE_SKETCH 400
-char *sketch_paramfile = "/sketch_param.json";
 
 bool readfile_ok = false;
 StaticJsonDocument<JSON_SIZE_IOT> paramJSON;
 StaticJsonDocument<JSON_SIZE_SKETCH> sketchJSON;
+char *sketch_paramfile = "/sketch_param.json";
 
 extern myIOT2 iot;
 extern int SleepDuration;
 extern int forceWake;
 extern int ads_batPin;
 extern int ads_solarPin;
-extern bool ADS_vmeasure;
-extern bool analog_vmeasure;
+extern int vmeasure_type;
 extern float MAX_SOLAR;
 extern float ADC_convFactor;
 extern float solarVoltageDiv;
@@ -27,8 +26,7 @@ void update_vars(JsonDocument &DOC)
 {
   SleepDuration = DOC["sleep_duration"];
   forceWake = DOC["forceWake"];
-  analog_vmeasure = DOC["analog_vmeasure"];
-  ADS_vmeasure = DOC["ADS_measure"];
+  vmeasure_type = DOC["vmeasure_type"];
   ads_batPin = DOC["ads_batPin"];
   ads_solarPin = DOC["ads_solarPin"];
   MAX_SOLAR = DOC["solarPanel_v"];
@@ -39,7 +37,7 @@ void update_vars(JsonDocument &DOC)
 }
 void startRead_parameters()
 {
-  String sketch_defs = "{\"sleep_duration\":1,\"forceWake\":60,\"analog_vmeasure\":false,\"ADS_vmeasure\":false,\"ads_batPin\":1,\
+  String sketch_defs = "{\"sleep_duration\":1,\"forceWake\":60,\"vmeasure_type\":0,\"ads_batPin\":1,\
                         \"ads_solarPin\":2,\"solarPanel_v\":6.0,\"ADC_convFactor\":0.1875,\"solarVoltageDiv\":0.66,\"vbat_vdiv\":5.0,\
                         \"boardType\":\"esp8266\"}";
 
@@ -50,11 +48,11 @@ void startRead_parameters()
   bool a = iot.read_fPars(sketch_paramfile, sketch_defs, sketchJSON);
   bool b = iot.read_fPars(iot.myIOT_paramfile, myIOT_defs, paramJSON);
   readfile_ok = a && b;
+  update_vars(sketchJSON);
 
   // serializeJsonPretty(sketchJSON, Serial);
   // serializeJsonPretty(paramJSON, Serial);
   // Serial.flush();
-  update_vars(sketchJSON);
 }
 void endRead_parameters()
 {

@@ -25,33 +25,34 @@ void esp8266Sleep::delay_sleep(int sec_delay)
 }
 void esp8266Sleep::nextSleepCalculation()
 {
+    int mins = 0;
+    int secs = 0;
+    time_t t;
+
 #if isESP8266
-    time_t t = now();
-    nextsleep_duration = _deepsleep * MINUTES - (minute(t) * 60 + second(t)) % (_deepsleep * MINUTES);
-    EEPROMWritelong(_nextWake_clock_addr, t + nextsleep_duration);
+    t = now();
+    mins = minute(t);
+    secs = second(t);
 #elif isESP32
     struct tm timeinfo;
     getLocalTime(&timeinfo);
-    time_t t;
     time(&t);
-    nextsleep_duration = _deepsleep * MINUTES - (timeinfo.tm_min * 60 + timeinfo.tm_sec) % (_deepsleep * MINUTES);
-    EEPROMWritelong(_nextWake_clock_addr, t + nextsleep_duration);
-
+    mins = timeinfo.tm_min;
+    secs = timeinfo.tm_sec;
+    // nextsleep_duration = _deepsleep * MINUTES - (timeinfo.tm_min * 60 + timeinfo.tm_sec) % (_deepsleep * MINUTES);
 #endif
+    nextsleep_duration = _deepsleep * MINUTES - (mins * 60 + secs) % (_deepsleep * MINUTES);
+    EEPROMWritelong(_nextWake_clock_addr, t + nextsleep_duration);
 }
 void esp8266Sleep::gotoSleep(int seconds2sleep)
 {
-#if isESP8266
-    Serial.printf("Going to sleep for %d [sec]", seconds2sleep);
-    Serial.flush();
-    delay(200);
-    ESP.deepSleep(microsec2sec * seconds2sleep);
-#elif isESP32
     Serial.printf("Going to sleep for %d [sec]", seconds2sleep);
     Serial.printf("affectively sleep for %d [sec]", nextsleep_duration);
-
     Serial.flush();
     delay(200);
+#if isESP8266
+    ESP.deepSleep(microsec2sec * seconds2sleep);
+#elif isESP32
     esp_sleep_enable_timer_wakeup(seconds2sleep * microsec2sec);
     esp_deep_sleep_start();
 #endif
@@ -198,6 +199,10 @@ bool esp8266Sleep::after_wakeup_clockupdates()
         return 0;
     }
 #endif
+}
+void esp8266Sleep::update_sleep_duration(int sleep_time)
+{
+    _deepsleep = sleep_time;
 }
 void esp8266Sleep::EEPROMWritelong(int address, long value)
 {

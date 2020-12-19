@@ -1,13 +1,12 @@
 {
     "sleep_duration": 60,
     "forceWake": 20,
-    "ADS_vmeasure": false,
-    "analog_vmeasure": false,
+    "vmeasure_type": 1,
     "ads_batPin": 0,
     "ads_solarPin": 1,
-    "solarPanel_v": 14.0,
+    "solarPanel_v": 12.0,
     "ADC_convFactor": 0.1875,
     "solarVoltageDiv": 0.2,
-    "vbat_vdiv": 5.0,
-    "boardType": "ESP32"
+    "vbat_vdiv": 0.40875,
+    "MCU": "ESP8266- NodeMCU"
 }

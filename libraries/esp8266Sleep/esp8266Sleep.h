@@ -15,7 +15,7 @@
 
 class esp8266Sleep
 {
-#define VER "ESPSleep_v0.5"
+#define VER "ESPSleep_v0.6"
 #define MINUTES 60
 #define microsec2sec 1000000ULL /* Conversion micro seconds to seconds */
 
@@ -58,6 +58,7 @@ public:
   void wait2Sleep();
   bool after_wakeup_clockupdates();
   void delay_sleep(int sec_delay = 120);
+  void update_sleep_duration(int sleep_time);
 
 private:
   void onWake_cb();

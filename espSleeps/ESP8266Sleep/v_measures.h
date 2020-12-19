@@ -9,7 +9,7 @@ Adafruit_ADS1115 ads;
 
 void startADS()
 {
-  if (ADS_vmeasure)
+  if (vmeasure_type == 1)
   {
     ads.begin();
     // ads.setGain(GAIN_TWOTHIRDS); // 0.1875mV (default)
@@ -19,19 +19,15 @@ float get_vmeasure_ADS(const byte x = 0)
 {
   if (x == 0)
   {
-    int a = ads.readADC_SingleEnded(ads_batPin) * ADC_convFactor * 0.001;
+    float a = ads.readADC_SingleEnded(ads_batPin) * ADC_convFactor * 0.001/vbat_vdiv;
     return a;
   }
   else if (x == 1)
   {
-    int a = ads.readADC_SingleEnded(ads_solarPin) * ADC_convFactor * 0.001 / solarVoltageDiv;
+    float a = ads.readADC_SingleEnded(ads_solarPin) * ADC_convFactor * 0.001 / solarVoltageDiv;
     return a;
   }
 }
-
-// ~~~~~~~~~~~~~~ voltageDivider ~~~~~~~~~~~~~~~
-const float vlogic = 3.3;
-const int ADC_BIT = 1023;
 
 void startGPIO()
 {
@@ -52,13 +48,13 @@ float get_vmeasure_analog(const int x = 5, const int del = 20)
 
 bool get_voltage_measures()
 {
-  if (analog_vmeasure)
+  if (vmeasure_type == 2)
   {
     startGPIO();
     vbat = get_vmeasure_analog();
     return 1;
   }
-  else if (ADS_vmeasure)
+  else if (vmeasure_type == 1)
   {
     startADS();
     vbat = get_vmeasure_ADS(0);

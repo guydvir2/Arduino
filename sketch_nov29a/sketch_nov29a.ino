@@ -1,14 +1,23 @@
-int buttonPin = 7;
-int redLed = 5;
-int orangeLed = 6;
-int greenLed = 4;
+const byte buttonPin = 4;
+const byte redLed = 8;
+const byte orangeLed = 9;
+const byte greenLed = 10;
+const byte buzzerPin = 3;
 const bool ledON = HIGH;
-int numPress = 0;
 
+byte numPress = 0;
+
+void beep(int f = 200, int dur = 50)
+{
+  analogWrite(buzzerPin, f);
+  delay(dur);
+  analogWrite(buzzerPin, 0);
+}
 void blinkAll(int x = 3, int del = 1000)
 {
   for (int i = 0; i < x; i++)
   {
+    beep(100, 20);
     digitalWrite(redLed, ledON);
     digitalWrite(orangeLed, ledON);
     digitalWrite(greenLed, ledON);
@@ -21,11 +30,6 @@ void blinkAll(int x = 3, int del = 1000)
 }
 void blinkOneColor(int &color, int condition, int pressCount)
 {
-  Serial.print("color: ");
-  Serial.println(color);
-  Serial.print("pressCount: ");
-  Serial.println(pressCount);
-
   if (pressCount >= condition)
   {
     digitalWrite(color, !digitalRead(color));
@@ -43,18 +47,23 @@ void setup()
   pinMode(redLed, OUTPUT);
   pinMode(orangeLed, OUTPUT);
   pinMode(greenLed, OUTPUT);
+  pinMode(buzzerPin, OUTPUT);
+
+  analogWrite(buzzerPin, 200);
+  delay(10);
+  analogWrite(buzzerPin, 0);
 
   blinkAll(5, 200);
 }
 
 void loop()
 {
-  // put your main code here, to run repeatedly:
   if (digitalRead(buttonPin) == 0)
   {
     delay(50);
     if (digitalRead(buttonPin) == 0)
     {
+      beep(100, 50);
       if (numPress < 5)
       {
         numPress++;
@@ -101,33 +110,5 @@ void loop()
     // default:
     //   break;
   }
-  // blinkOneColor(redLed, 1, numPress);
-  // blinkOneColor(orangeLed, 2, numPress);
-  // blinkOneColor(greenLed, 3, numPress);
-
-  // if (numPress == 0)
-  // {
-  //   digitalWrite(redLed, !ledON);
-  //   digitalWrite(orangeLed, !ledON);
-  //   digitalWrite(greenLed, !ledON);
-  // }
-  // else if (numPress == 1)
-  // {
-  //   digitalWrite(redLed, ledON);
-  //   digitalWrite(orangeLed, !ledON);
-  //   digitalWrite(greenLed, !ledON);
-  // }
-  // else if (numPress == 2)
-  // {
-  //   digitalWrite(redLed, ledON);
-  //   digitalWrite(orangeLed, ledON);
-  //   digitalWrite(greenLed, !ledON);
-  // }
-  // else if (numPress == 3)
-  // {
-  //   digitalWrite(redLed, ledON);
-  //   digitalWrite(orangeLed, ledON);
-  //   digitalWrite(greenLed, ledON);
-  // }
-  delay(200);
+  delay(100);
 }

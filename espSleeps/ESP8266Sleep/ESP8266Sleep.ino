@@ -6,7 +6,7 @@
 
 #include "v_measures.h"
 
-const char *espVer = "sleepSketch_v0.2";
+const char *espVer = "sleepSketch_v0.4";
 
 // ~~~~~~~~~~ Sleep&Wake ~~~~~~~~~~~~
 esp8266Sleep espSleep;
@@ -16,12 +16,12 @@ void onWake_cb()
   char a[100];
   char b[50];
 
-  bool got_v = get_voltage_measures();
-  if (got_v)
+  if (vmeasure_type > 0)
   {
+    get_voltage_measures();
     sprintf(b, "bat[%.2fv], solarpannel[%.1fv] ", vbat, vsolarpannel);
   }
-  sprintf(a, "Wake Summary: %ssleepeCycle [%.2f%%], drift [%.2f%%]", got_v ? b : "",
+  sprintf(a, "Wake Summary: %ssleepeCycle [%.2f%%], drift [%.2f%%]", vmeasure_type > 0 ? b : "",
           100.0 * (float)espSleep.totalSleepTime / ((MINUTES * (float)SleepDuration) + forceWake),
           100.0 * (float)espSleep.drift / (MINUTES * (float)SleepDuration));
   iot.pub_log(a);
@@ -47,15 +47,15 @@ String create_beforeSleep_status()
   String retVal;
 
   DOC["Name"] = iot.deviceTopic;
-  DOC["nominalSleep_minutes"] = SleepDuration;
-  DOC["forceWake_seconds"] = forceWake;
+  DOC["nominalSleep[min]"] = SleepDuration;
+  DOC["forceWake[sec]"] = forceWake;
   DOC["BootCount"] = espSleep.bootCount;
-  DOC["lastSleep_seconds"] = espSleep.totalSleepTime;
-  DOC["nextSleep_seconds"] = espSleep.nextsleep_duration;
-  DOC["Drift_seconds"] = espSleep.drift;
+  DOC["lastSleep[sec]"] = espSleep.totalSleepTime;
+  DOC["nextSleep[sec]"] = espSleep.nextsleep_duration;
+  DOC["Drift[sec]"] = espSleep.drift;
   DOC["getClock"] = espSleep.clock_update_success;
-  DOC["batVolt"] = vbat;
-  DOC["solarVolt"] = vsolarpannel;
+  DOC["bat[v]"] = vbat;
+  DOC["solar[v]"] = vsolarpannel;
 
   serializeJson(DOC, retVal);
   return retVal;
