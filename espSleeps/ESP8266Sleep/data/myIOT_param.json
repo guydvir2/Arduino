@@ -7,7 +7,7 @@
     "useNetworkReset":false,
     "useResetKeeper":false,
     "useextTopic":true,
-    "deviceTopic": "ESP8266_newBoard",
+    "deviceTopic": "esp8266_BAT",
     "groupTopic": "SolarPower",
     "prefixTopic": "myHome",
     "debug_level":2,

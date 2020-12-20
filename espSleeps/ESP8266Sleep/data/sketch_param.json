@@ -1,5 +1,5 @@
 {
-    "sleep_duration": 60,
+    "sleep_duration": 2,
     "forceWake": 20,
     "vmeasure_type": 1,
     "ads_batPin": 0,

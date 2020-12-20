@@ -688,15 +688,6 @@ void myIOT2::pub_state(char *inmsg, byte i)
 	char *st[] = {_stateTopic, _stateTopic2};
 	mqttClient.publish(st[i], inmsg, true);
 	write_log(inmsg, 2);
-
-	// if (i == 0)
-	// {
-	// 	mqttClient.publish(_stateTopic, inmsg, true);
-	// }
-	// else if (i == 1)
-	// {
-	// 	mqttClient.publish(_stateTopic2, inmsg, true);
-	// }
 }
 void myIOT2::pub_log(char *inmsg)
 {

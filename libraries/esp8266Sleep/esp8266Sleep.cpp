@@ -39,7 +39,6 @@ void esp8266Sleep::nextSleepCalculation()
     time(&t);
     mins = timeinfo.tm_min;
     secs = timeinfo.tm_sec;
-    // nextsleep_duration = _deepsleep * MINUTES - (timeinfo.tm_min * 60 + timeinfo.tm_sec) % (_deepsleep * MINUTES);
 #endif
     nextsleep_duration = _deepsleep * MINUTES - (mins * 60 + secs) % (_deepsleep * MINUTES);
     EEPROMWritelong(_nextWake_clock_addr, t + nextsleep_duration);

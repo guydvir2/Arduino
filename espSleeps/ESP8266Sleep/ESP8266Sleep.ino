@@ -6,7 +6,7 @@
 
 #include "v_measures.h"
 
-const char *espVer = "sleepSketch_v0.4";
+const char *espVer = "sleepSketch_v0.5";
 
 // ~~~~~~~~~~ Sleep&Wake ~~~~~~~~~~~~
 esp8266Sleep espSleep;
