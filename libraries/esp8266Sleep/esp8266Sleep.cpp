@@ -4,6 +4,9 @@
 // ~~~~~~~~ Start ~~~~~~~~~
 esp8266Sleep::esp8266Sleep()
 {
+#if isESP32
+    WRITE_PERI_REG(RTC_CNTL_BROWN_OUT_REG, 0); //disable brownout detector
+#endif
     yield;
 }
 void esp8266Sleep::start(int deepsleep, int forcedwake, char *devname, cb_func wake_cb, cb_func sleep_cb)
@@ -150,7 +153,7 @@ void esp8266Sleep::wait2Sleep()
         }
     }
 }
-void esp8266Sleep::onWake_cb()
+void esp8266Sleep::onWake_cb()                                                                                                                                                                      
 {
     if (_wake_cb != nullptr)
     {

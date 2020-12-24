@@ -1,10 +1,11 @@
 #ifndef myJSON_h
 #define myJSON_h
-
 #include "Arduino.h"
 #include <ArduinoJson.h>
 
+
 #if defined(ESP32)
+#include <FS.h>
 #include <SPIFFS.h>
 #define isESP32 true
 #define isESP8266 false
@@ -14,9 +15,9 @@
 #define isESP8266 true
 #endif
 
-    class myJSON
+class myJSON
 {
-    #define _def_dsize 400
+#define _def_dsize 400
 
 private:
     bool _useSerial = false;
@@ -24,9 +25,9 @@ private:
     char _filename[30];
 
 public:
-    char *ver = "myJSON_v1.91";
+    const char *ver = "myJSON_v1.92";
     int DOC_SIZE;
-    myJSON(char *filename, bool useserial = false, int doc_size = _def_dsize);
+    myJSON(char *filename="/jfile.json", bool useserial = false, int doc_size = _def_dsize);
     void start();
 
     bool readJSON_file(JsonDocument &_doc);
@@ -35,7 +36,7 @@ public:
     bool format();
     bool FS_ok();
 
-    char *retAllJSON();
+    void retAllJSON(char value[]);
 
     bool getValue(const char *key, char *value);
     bool getValue(const char *key, int &retval);
@@ -71,6 +72,5 @@ private:
     void printJSON(JsonDocument &_doc);
     void PrettyprintJSON(JsonDocument &_doc);
 };
-
 
 #endif

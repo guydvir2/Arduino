@@ -11,11 +11,13 @@
 #elif defined(ESP32)
 #define isESP32 true
 #define isESP8266 false
+#include "soc/soc.h"
+#include "soc/rtc_cntl_reg.h"
 #endif
 
 class esp8266Sleep
 {
-#define VER "ESPSleep_v0.6"
+#define VER "ESPSleep_v0.7"
 #define MINUTES 60
 #define microsec2sec 1000000ULL /* Conversion micro seconds to seconds */
 

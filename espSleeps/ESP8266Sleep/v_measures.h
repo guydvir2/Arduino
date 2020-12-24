@@ -19,7 +19,7 @@ float get_vmeasure_ADS(const byte x = 0)
 {
   if (x == 0)
   {
-    float a = ads.readADC_SingleEnded(ads_batPin) * ADC_convFactor * 0.001/vbat_vdiv;
+    float a = ads.readADC_SingleEnded(ads_batPin) * ADC_convFactor * 0.001 / vbat_vdiv;
     return a;
   }
   else if (x == 1)
@@ -42,7 +42,7 @@ float get_vmeasure_analog(const int x = 5, const int del = 20)
     delay(del);
   }
   v_measure /= x;
-  v_measure = v_measure / (float)ADC_BIT * vlogic * vbat_vdiv;
+  v_measure = v_measure / (float)ADC_BIT * vlogic / vbat_vdiv;
   return v_measure;
 }
 

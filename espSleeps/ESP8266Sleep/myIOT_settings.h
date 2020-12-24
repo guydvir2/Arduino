@@ -16,7 +16,7 @@ void addiotnalMQTT(char *incoming_msg)
     }
     else if (strcmp(incoming_msg, "ver2") == 0)
     {
-       // sprintf(msg, "ver #2: [%s], lib: [%s], boardType[%s]", espVer, VER, boardType);
+        //    sprintf(msg, "ver #2: [%s], lib: [%s], boardType[%s]", espVer, VER, boardType);
         iot.pub_msg(msg);
     }
     else if (strcmp(incoming_msg, "help2") == 0)
@@ -26,18 +26,19 @@ void addiotnalMQTT(char *incoming_msg)
     }
     else if (strcmp(incoming_msg, "show_flash_param") == 0)
     {
-        char temp[300];
+        char temp[500];
         char temp3[350];
         char *a[] = {iot.myIOT_paramfile, sketch_paramfile};
         iot.pub_debug("~~~Start~~~");
         for (int e = 0; e < sizeof(a) / sizeof(a[0]); e++)
         {
             strcpy(temp, iot.export_fPars(a[e], paramJSON));
-            sprintf(temp3, "%s: %s", a[e], temp);
+            sprintf(temp3, ">> %s: %s", a[e], temp);
             iot.pub_debug(temp3);
             paramJSON.clear();
         }
         iot.pub_debug("~~~End~~~");
+        iot.pub_msg("flash parameters sent to debug topic");
     }
     else if (strcmp(iot.mqqt_ext_buffer[1], "") != 0) /* message to debug topic*/
     {
@@ -83,8 +84,8 @@ void startIOTservices()
     char a[50];
     sprintf(a, "%s/%s/%s/%s", iot.prefixTopic, iot.addGroupTopic, iot.deviceTopic, DEBUG_TOPIC);
     strcpy(iot.extTopic, a);
-    
-    // iot.useSerial = true;
+
+    // iot.useSerial = false;
     // iot.useWDT = false;
     // iot.useOTA = true;
     // iot.useResetKeeper = true;

@@ -312,7 +312,7 @@ void myIOT2::getTime_32()
 						   // }
 						   // a++;
 	}
-	
+
 #endif
 }
 void myIOT2::getTimeStamp_32(char ret_timeStamp[25])
@@ -841,23 +841,28 @@ bool myIOT2::read_fPars(char *filename, String &defs, JsonDocument &DOC, int JSI
 }
 char *myIOT2::export_fPars(char *filename, JsonDocument &DOC, int JSIZE)
 {
-	myJSON param_on_flash(filename, false, JSIZE);
+	int arraySize = 500;
+	char *ret = new char[arraySize];
+	myJSON param_on_flash(filename, false, JSIZE); /* read stored JSON from file */
 	param_on_flash.start();
 
 	if (param_on_flash.file_exists())
 	{
 		if (param_on_flash.readJSON_file(DOC))
 		{
-			int arraySize = 500;
-			char ret[arraySize];
-			strcpy(ret, param_on_flash.retAllJSON());
+			param_on_flash.retAllJSON(ret);
+			return ret;
+		}
+		else
+		{
+			strcpy(ret, "error retrieve file");
 			return ret;
 		}
 	}
 	else
 	{
 		Serial.printf("\nfile %s read NOT-OK", filename);
-		return 0;
+		return ret;
 	}
 }
 
@@ -994,8 +999,6 @@ void myIOT2::startWDT()
 	// wdt.attach(1,feedTheDog); // Start WatchDog
 #endif
 }
-
-// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 // ~~~~~~  EEPROM ~~~~~~
 void myIOT2::EEPROMWritelong(int address, long value)

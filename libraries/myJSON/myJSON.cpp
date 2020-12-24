@@ -1,6 +1,5 @@
 #include "Arduino.h"
 #include "myJSON.h"
-#include "FS.h"
 #include <ArduinoJson.h>
 
 #define LOG_LENGTH 4
@@ -10,55 +9,29 @@ myJSON::myJSON(char *filename, bool useserial, int doc_size)
         _useSerial = useserial;
         DOC_SIZE = doc_size;
         sprintf(_filename, "%s", filename);
-        if (_useSerial)
-        {
-                Serial.begin(9600);
-        }
-        // #if isESP32
-        //         bool a = !SPIFFS.begin(true);
-        // #elif isESP8266
-        //         bool a = !SPIFFS.begin();
-        // #endif
-        //         if (a)
-        //         {
-        //                 if (_useSerial)
-        //                 {
-        //                         Serial.println("Failed to mount file system");
-        //                 }
-        //         }
-        //         else
-        //         {
-        //                 if (SPIFFS.exists(_filename))
-        //                 {
-        //                         _openOK = true;
-        //                 }
-        //         }
 }
 void myJSON::start()
 {
 #if isESP32
-        bool a = !SPIFFS.begin(true);
+        bool a = SPIFFS.begin(true);
 #elif isESP8266
-        bool a = !SPIFFS.begin();
+        bool a = SPIFFS.begin();
 #endif
         if (a)
         {
                 if (_useSerial)
                 {
-                        Serial.println("Failed to mount file system");
-                        Serial.flush();
-                }
-                else
-                {
                         Serial.println("file system mount OK");
                         Serial.flush();
                 }
+                _openOK = true;
         }
         else
         {
-                if (SPIFFS.exists(_filename))
+                if (_useSerial)
                 {
-                        _openOK = true;
+                        Serial.println("Failed to mount file system");
+                        Serial.flush();
                 }
         }
 }
@@ -143,17 +116,13 @@ void myJSON::PrettyprintJSON(JsonDocument &_doc)
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 // ~~~ User Functions : JSON + file saving ~~~~~~~~~~~
-char *myJSON::retAllJSON()
+void myJSON::retAllJSON(char value[])
 {
-        const int x = 500;
-        char value[x];
+        char value2[500];
         DynamicJsonDocument tempJDOC(DOC_SIZE);
         readJSON_file(tempJDOC);
-        serializeJson(tempJDOC, value);
-        // Serial.println(strlen(value));
-        // serializeJson(tempJDOC, Serial);
-
-        return value;
+        serializeJson(tempJDOC, value2);
+        strcpy(value, value2);
 }
 bool myJSON::getValue(const char *key, char *value)
 {
@@ -227,7 +196,7 @@ void myJSON::setValue(const char *key, char *value)
 void myJSON::setValue(const char *key, int value)
 {
         DynamicJsonDocument tempJDOC(DOC_SIZE);
-        // readJSON_file(tempJDOC);
+        readJSON_file(tempJDOC);
         tempJDOC[key] = value;
         saveJSON2file(tempJDOC);
 }

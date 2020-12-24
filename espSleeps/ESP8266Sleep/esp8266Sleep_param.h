@@ -3,8 +3,8 @@
 #include <myJSON.h>
 #include <myIOT2.h>
 
-#define JSON_SIZE_IOT 400
-#define JSON_SIZE_SKETCH 400
+#define JSON_SIZE_IOT 512
+#define JSON_SIZE_SKETCH 512
 
 bool readfile_ok = false;
 StaticJsonDocument<JSON_SIZE_IOT> paramJSON;

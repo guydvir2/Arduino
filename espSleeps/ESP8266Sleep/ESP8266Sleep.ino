@@ -5,8 +5,7 @@
 #include "myIOT_settings.h"
 
 #include "v_measures.h"
-
-const char *espVer = "sleepSketch_v0.5";
+const char *espVer = "sleepSketch_v0.6";
 
 // ~~~~~~~~~~ Sleep&Wake ~~~~~~~~~~~~
 esp8266Sleep espSleep;

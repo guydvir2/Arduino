@@ -41,7 +41,7 @@ typedef void (*cb_func)(char msg1[50]);
 
 class myIOT2
 {
-    const char *ver = "iot_v0.2";
+    const char *ver = "iot_v0.3";
 
 public:
     WiFiClient espClient;
