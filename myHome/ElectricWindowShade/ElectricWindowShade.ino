@@ -22,6 +22,7 @@ int inputDownExtPin;
 //~~~~Internal Switch ~~~~~~
 bool inputUp_lastState;
 bool inputDown_lastState;
+
 //~~~~External Input ~~~~~~~
 bool inputUpExt_lastState;
 bool inputDownExt_lastState;
@@ -177,6 +178,7 @@ void checkTimeout_AutoRelay_Off(int timeout_off)
                 autoOff_clock = 0;
         }
 }
+
 // ~~~~~~~~~ GPIO switching ~~~~~~~~~~~~~
 void switchIt(char *type, char *dir)
 {

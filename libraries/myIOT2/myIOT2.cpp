@@ -721,13 +721,18 @@ void myIOT2::pub_sms(String *inmsg, char *name)
 	_pub_generic(_smsTopic, b, false, name);
 	write_log(b, 0);
 }
-void myIOT2::pub_email(String *inmsg, char *name)
+void myIOT2::pub_email(char *inmsg, char *name, char *subj)
 {
-	int slen = inmsg->length();
 	char b[250];
-	inmsg->toCharArray(b, slen + 1);
+	DynamicJsonDocument email(400);
+	email["sub"] = subj;
+	email["body"] = inmsg;
+	email["from"] = name;
+	serializeJson(email, b);
+	// inmsg->toCharArray(b, slen + 1);
+	Serial.println(b);
 	_pub_generic(_emailTopic, b, false, name);
-	write_log(b, 0);
+	// write_log(b, 0);
 }
 void myIOT2::msgSplitter(const char *msg_in, int max_msgSize, char *prefix, char *split_msg)
 {

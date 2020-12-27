@@ -12,35 +12,17 @@ esp8266Sleep espSleep;
 
 void onWake_cb()
 {
-  char a[100];
-  char b[50];
+  Serial.println("awake");
+}
 
-  if (vmeasure_type > 0)
-  {
-    get_voltage_measures();
-    sprintf(b, "bat[%.2fv], solarpannel[%.1fv] ", vbat, vsolarpannel);
-  }
-  sprintf(a, "Wake Summary: %ssleepeCycle [%.2f%%], drift [%.2f%%]", vmeasure_type > 0 ? b : "",
-          100.0 * (float)espSleep.totalSleepTime / ((MINUTES * (float)SleepDuration) + forceWake),
-          100.0 * (float)espSleep.drift / (MINUTES * (float)SleepDuration));
-  iot.pub_log(a);
-}
-void wait4OTA()
+void onSleep_cb()
 {
-  char a[100];
-  espSleep.delay_sleep(180);
-  sprintf(a, "OTA: Time to OTA :[%d sec]", espSleep.sec_wait);
-  iot.pub_log(a);
+  char A[150];
+  sprintf(A, "lastSleep: %s, nextSleep: %s, Voltages: %s", create_lastsleep_status(), create_nextsleep_status(), create_vmeasures());
+  iot.pub_log(A);
+  pub_debug_status();
 }
-void send_sleep_status()
-{
-  String a = create_beforeSleep_status();
-  int i = a.length() + 1;
-  char b[i];
-  a.toCharArray(b, i);
-  iot.pub_ext(b, "", true);
-}
-String create_beforeSleep_status()
+void pub_debug_status()
 {
   StaticJsonDocument<500> DOC;
   String retVal;
@@ -57,7 +39,46 @@ String create_beforeSleep_status()
   DOC["solar[v]"] = vsolarpannel;
 
   serializeJson(DOC, retVal);
-  return retVal;
+  int i = retVal.length() + 1;
+  char b[i];
+  retVal.toCharArray(b, i);
+  iot.pub_ext(b, "", true);
+}
+char *create_vmeasures()
+{
+  char *b = new char[50];
+
+  if (vmeasure_type > 0)
+  {
+    get_voltage_measures();
+    sprintf(b, "bat[%.2fv], solarpannel[%.1fv] ", vbat, vsolarpannel);
+  }
+  return b;
+}
+char *create_lastsleep_status()
+{
+  char clk[12];
+  char d[5];
+  espSleep.convert_epoch2clock(espSleep.totalSleepTime, 0, clk, d);
+  char *b = new char[100];
+  sprintf(b, "duration[%s], drift[%d sec]", clk, espSleep.drift);
+  return b;
+}
+char *create_nextsleep_status()
+{
+  char clk[12];
+  char d[5];
+  espSleep.convert_epoch2clock(espSleep.nextsleep_duration, 0, clk, d);
+  char *b = new char[100];
+  sprintf(b, "duration[%s]", clk);
+  return b;
+}
+void wait4OTA()
+{
+  char a[100];
+  espSleep.delay_sleep(180);
+  sprintf(a, "OTA: Time to OTA :[%d sec]", espSleep.sec_wait);
+  iot.pub_log(a);
 }
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -65,7 +86,7 @@ void setup()
 {
   startRead_parameters();
   startIOTservices();
-  espSleep.start(SleepDuration, forceWake, iot.deviceTopic, onWake_cb, send_sleep_status);
+  espSleep.start(SleepDuration, forceWake, iot.deviceTopic, onWake_cb, onSleep_cb);
   endRead_parameters();
 }
 void loop()

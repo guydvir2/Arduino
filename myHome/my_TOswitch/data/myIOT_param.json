@@ -1,12 +1,12 @@
 {
-    "useSerial": true,
+    "useSerial": false,
     "useWDT": true,
     "useOTA": true,
     "useFailNTP": true,
     "useDebugLog": true,
     "useNetworkReset":true,
-    "deviceTopic": "test",
-    "groupTopic": "esp8266Relay",
+    "deviceTopic": "familyRoomLEDs",
+    "groupTopic": "intLights",
     "prefixTopic": "myHome",
     "debug_level":1,
     "noNetwork_reset":30

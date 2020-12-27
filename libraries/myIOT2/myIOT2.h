@@ -70,7 +70,7 @@ public:
     void pub_ext(char *inmsg, char *name = "", bool retain = false);
     void pub_debug(char *inmsg);
     void pub_sms(String *inmsg, char *name="");
-    void pub_email(String *inmsg, char *name="");
+    void pub_email(char *inmsg, char *name = "", char *subj="subject");
     int inline_read(char *inputstr);
     void feedTheDog();
     bool read_fPars(char *filename, String &defs, JsonDocument &DOC, int JSIZE=500);

@@ -89,7 +89,7 @@ void esp8266Sleep::wait2Sleep()
                     {
                         _sleep_cb();
                     }
-                    nextsleep_duration = abs(drift - _sec_to_wait_big_drift);
+                    nextsleep_duration = abs(drift - _sec_to_wait_big_drift); /* short sleep */
                     gotoSleep(nextsleep_duration);
                 }
             }
@@ -227,4 +227,26 @@ long esp8266Sleep::EEPROMReadlong(long address)
     long one = EEPROM.read(address + 3);
 
     return ((four << 0) & 0xFF) + ((three << 8) & 0xFFFF) + ((two << 16) & 0xFFFFFF) + ((one << 24) & 0xFFFFFFFF);
+}
+void esp8266Sleep::convert_epoch2clock(long t1, long t2, char *time_str, char *days_str)
+{
+    byte days = 0;
+    byte hours = 0;
+    byte minutes = 0;
+    byte seconds = 0;
+
+    int sec2minutes = 60;
+    int sec2hours = (sec2minutes * 60);
+    int sec2days = (sec2hours * 24);
+    int sec2years = (sec2days * 365);
+
+    long time_delta = t1 - t2;
+
+    days = (int)(time_delta / sec2days);
+    hours = (int)((time_delta - days * sec2days) / sec2hours);
+    minutes = (int)((time_delta - days * sec2days - hours * sec2hours) / sec2minutes);
+    seconds = (int)(time_delta - days * sec2days - hours * sec2hours - minutes * sec2minutes);
+
+    sprintf(days_str, "%02d days", days);
+    sprintf(time_str, "%02d:%02d:%02d", hours, minutes, seconds);
 }

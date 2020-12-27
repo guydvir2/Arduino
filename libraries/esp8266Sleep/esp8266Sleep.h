@@ -61,6 +61,7 @@ public:
   bool after_wakeup_clockupdates();
   void delay_sleep(int sec_delay = 120);
   void update_sleep_duration(int sleep_time);
+  void convert_epoch2clock(long t1, long t2, char *time_str, char *days_str);
 
 private:
   void onWake_cb();

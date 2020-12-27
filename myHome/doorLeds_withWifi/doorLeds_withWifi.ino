@@ -1,4 +1,4 @@
-#include <myIOT.h>
+#include <myIOT2.h>
 #include <myPIR.h>
 #include <Arduino.h>
 
@@ -11,8 +11,8 @@
 // ********** Sketch Services  ***********
 #define VER "ESP-01_1.5"
 
-#define Pin_Sensor_0 D1
-#define Pin_Switch_0 0
+#define Pin_Sensor_0 4
+#define Pin_Switch_0 2
 #define Pin_extbut_0 13 // fake
 #define SwitchTimeOUT_0 60 //minutes
 
@@ -42,13 +42,14 @@
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 // ~~~~~~~ MQTT Topics ~~~~~~
-#define DEVICE_TOPIC "ToiletLEDs"
+#define DEVICE_TOPIC "test"
 #define MQTT_PREFIX "myHome"
-#define MQTT_GROUP "intLights"
+#define MQTT_GROUP ""
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 #define ADD_MQTT_FUNC addiotnalMQTT
-myIOT iot(DEVICE_TOPIC);
+myIOT2 iot;
+//(DEVICE_TOPIC);
 // ***************************
 
 // ±±±±±±±±±±±±±± mySwitch ±±±±±±±±±±±±±±±
@@ -73,6 +74,7 @@ void startIOTservices() {
 	iot.debug_level = DEBUG_LEVEL;
 	strcpy(iot.prefixTopic, MQTT_PREFIX);
 	strcpy(iot.addGroupTopic, MQTT_GROUP);
+	strcpy(iot.deviceTopic, DEVICE_TOPIC);
 	iot.start_services(ADD_MQTT_FUNC);
 }
 

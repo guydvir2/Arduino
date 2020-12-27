@@ -6,7 +6,7 @@
     "usedailyTO": true,
     "useSafteyOff": true,
     "useEEPROM_resetCounter": false,
-    "usePWM": false,
+    "usePWM": true,
     "useInput": false,
     "useExtTrig": false,
     "useIndicationLED": false,
@@ -20,7 +20,7 @@
         13
     ],
     "outputPin": [
-        0,
+        2,
         0
     ],
     "extTrigPin": 5,
@@ -34,8 +34,8 @@
     ],
     "start_dTO": [
         [
-            10,
-            43,
+            15,
+            00,
             0
         ],
         [
@@ -46,8 +46,8 @@
     ],
     "end_dTO": [
         [
-            10,
-            50,
+            0,
+            30,
             0
         ],
         [

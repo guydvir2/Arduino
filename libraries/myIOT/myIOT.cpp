@@ -882,22 +882,28 @@ bool myIOT::read_fPars(char *filename, String &defs, JsonDocument &DOC, int JSIZ
 }
 char *myIOT::export_fPars(char *filename, JsonDocument &DOC, int JSIZE)
 {
-	myJSON param_on_flash(filename, false, JSIZE);
+	int arraySize = 500;
+	char *ret = new char[arraySize];
+	myJSON param_on_flash(filename, false, JSIZE); /* read stored JSON from file */
 	param_on_flash.start();
+
 	if (param_on_flash.file_exists())
 	{
 		if (param_on_flash.readJSON_file(DOC))
 		{
-			int arraySize = 500;
-			char ret[arraySize];
-			strcpy(ret, param_on_flash.retAllJSON());
+			param_on_flash.retAllJSON(ret);
+			return ret;
+		}
+		else
+		{
+			strcpy(ret, "error retrieve file");
 			return ret;
 		}
 	}
 	else
 	{
 		Serial.printf("\nfile %s read NOT-OK", filename);
-		return 0;
+		return ret;
 	}
 }
 
