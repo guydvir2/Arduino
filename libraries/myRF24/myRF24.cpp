@@ -176,15 +176,22 @@ bool myRF24::RFread2(char out[], int del)
 }
 void myRF24::genJSONmsg(char a[], const char *msg_t, const char *key, const char *value)
 {
-  sprintf(a, "{\"from\":\"%s\",\"msg_type\":\"%s\",\"payload0\":\"%s\",\"payload1\":\"%s\"}", _devname, msg_t, key, value);
+  sprintf(a, "{\"from\":\"%s\",\"msg_type\":\"%s\",\"key_0\":\"%s\",\"key_1\":\"%s\"}", _devname, msg_t, key, value);
   if (debug_mode)
   {
     Serial.println(a);
-    // StaticJsonDocument<450> DOC;
-    // deserializeJson(DOC, (const char *)a);
-    // serializeJsonPretty(DOC, Serial);
   }
 }
+void myRF24::genJSONmsg(char a[], const char *msg_t, const char *key, const char *value, const char *key2, const char *value2)
+{
+  sprintf(a, "{\"from\":\"%s\",\"msg_type\":\"%s\",\"key_0\":\"%s\",\"key_1\":\"%s\",\"key_2\":\"%s\",\"key_3\":\"%s\"}",
+          _devname, msg_t, key, value, key2, value2);
+  if (debug_mode)
+  {
+    Serial.println(a);
+  }
+}
+
 bool myRF24::_wait4Rx(int timeFrame)
 {
   bool timeout = false;
