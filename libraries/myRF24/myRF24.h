@@ -10,7 +10,7 @@
 
 class myRF24
 {
-#define VER "myRF24_v0.2"
+#define VER "myRF24_v0.3"
 private:
     struct RFmsg
     {

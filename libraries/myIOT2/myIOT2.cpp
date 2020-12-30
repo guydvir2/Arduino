@@ -647,26 +647,34 @@ void myIOT2::callback(char *topic, byte *payload, unsigned int length)
 		}
 	}
 }
-void myIOT2::_pub_generic(char *topic, char *inmsg, bool retain, char *devname)
+void myIOT2::_pub_generic(char *topic, char *inmsg, bool retain, char *devname, bool bare)
 {
 	char header[100];
+	int lenhdr = 0;
+	int lenmsg = strlen(inmsg);
 	const int mqtt_defsize = mqttClient.getBufferSize();
 	const byte mqtt_overhead_size = 23;
 
-	get_timeStamp();
-	if (strcmp(devname, "") == 0)
+	if (!bare)
 	{
-		sprintf(header, "[%s] [%s]", timeStamp, _deviceName);
+		get_timeStamp();
+		if (strcmp(devname, "") == 0)
+		{
+			sprintf(header, "[%s] [%s] ", timeStamp, _deviceName);
+		}
+		else
+		{
+			sprintf(header, "[%s] [%s] ", timeStamp, devname);
+		}
+		lenhdr = strlen(header);
 	}
 	else
 	{
-		sprintf(header, "[%s] [%s]", timeStamp, devname);
+		sprintf(header, "");
 	}
-	int lenhdr = strlen(header);
-	int lenmsg = strlen(inmsg);
-
 	char tmpmsg[lenmsg + lenhdr + 5];
-	sprintf(tmpmsg, "%s %s", header, inmsg);
+	sprintf(tmpmsg, "%s%s", header, inmsg);
+
 	if (strlen(tmpmsg) + mqtt_overhead_size + strlen(topic) > mqtt_defsize)
 	{
 		mqttClient.setBufferSize(strlen(tmpmsg) + mqtt_overhead_size + strlen(topic));
@@ -723,16 +731,19 @@ void myIOT2::pub_sms(String *inmsg, char *name)
 }
 void myIOT2::pub_email(char *inmsg, char *name, char *subj)
 {
-	char b[250];
-	DynamicJsonDocument email(400);
+	char clk[25];
+	char email_char[250];
+	DynamicJsonDocument email(1000);
+
+	getTimeStamp_32(clk);
 	email["sub"] = subj;
 	email["body"] = inmsg;
 	email["from"] = name;
-	serializeJson(email, b);
-	// inmsg->toCharArray(b, slen + 1);
-	Serial.println(b);
-	_pub_generic(_emailTopic, b, false, name);
-	// write_log(b, 0);
+	email["time"] = clk;
+	
+	serializeJson(email, email_char);
+	_pub_generic(_emailTopic, email_char, false, name, true);
+	write_log(email_char, 0);
 }
 void myIOT2::msgSplitter(const char *msg_in, int max_msgSize, char *prefix, char *split_msg)
 {

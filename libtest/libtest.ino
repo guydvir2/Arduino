@@ -15,7 +15,7 @@ Commands - send an execution command ( either side )
 */
 char *cmds[] = {"reset", "MQTT"};
 char *infos[] = {"defs"};
-char *questions[] = {"clk", "wakeTime"};
+char *questions[] = {"clk", "wakeTime", "tst"};
 int q_counter = 0;
 int a_counter = 0;
 int info_counter = 0;
@@ -69,38 +69,40 @@ bool send(const char *msg_t, const char *p0, const char *p1, const char *counter
   char outmsg[250];
   if (strcmp(msg_t, "ans") != 0)
   {
-    // const char *a = create_msg_id(msg_t);
     radio.genJSONmsg(outmsg, msg_t, p0, p1, "msg_id", create_msg_id(msg_t));
   }
   else
   {
-    radio.genJSONmsg(outmsg, msg_t, p0, p1, "msg_id", counter);
+    radio.genJSONmsg(outmsg, msg_t, p0, p1, "msg_id", counter); /* gets q_id from q/info/cmd */
   }
 
   if (radio.RFwrite(outmsg, strlen(outmsg)))
   {
-    if (strcmp(msg_t, "q") == 0)
-    {
-      Serial.print("Q sent:");
-    }
-    else if (strcmp(msg_t, "ans") == 0)
-    {
-      Serial.print("Ans sent: ");
-    }
-    else if (strcmp(msg_t, "info") == 0)
-    {
-      Serial.print("info sent: ");
-    }
-    else
-    {
-      Serial.print("not-clear msg_type: ");
-    }
+    // if (strcmp(msg_t, "q") == 0)
+    // {
+    //   Serial.print("Q sent:");
+    // }
+    // else if (strcmp(msg_t, "ans") == 0)
+    // {
+    //   Serial.print("Ans sent: ");
+    // }
+    // else if (strcmp(msg_t, "info") == 0)
+    // {
+    //   Serial.print("info sent: ");
+    // }
+    // else
+    // {
+    //   Serial.print("not-clear msg_type: ");
+    // }
+    Serial.print(msg_t);
+    Serial.print(" sent >>");
     Serial.println(outmsg);
     return 1;
   }
   else
   {
-    Serial.print("Q send fail: ");
+    Serial.print(msg_t);
+    Serial.print(" failed >>");
     Serial.println(outmsg);
     return 0;
   }
@@ -114,6 +116,10 @@ void qna(char *inmsg)
   StaticJsonDocument<300> DOC;
   deserializeJson(DOC, (const char *)inmsg);
 
+  Serial.print(DOC["msg_type"].as<const char *>());
+  Serial.print(" <<");
+  Serial.println(inmsg);
+
   if (strcmp(DOC["msg_type"], "q") == 0) /* got a question */
   {
     if (strcmp(DOC["key_0"], questions[0]) == 0) /*time_stamp - IOT only*/
@@ -121,13 +127,20 @@ void qna(char *inmsg)
 #if USE_IOT == 1
       iot.get_timeStamp();
       send("ans", questions[0], iot.timeStamp, DOC["key_3"]);
+#else
+      convert_sec2Clock((long)millis() / 1000, pload1);
+      send("ans", questions[0], pload1, DOC["key_3"]);
 #endif
+    }
+    else if (strcmp(DOC["key_0"], questions[2]) == 0) /*time_stamp - IOT only*/
+    {
+      send("ans", questions[2], "got_it", DOC["key_3"]);
     }
   }
   else if (strcmp(DOC["msg_type"], "ans") == 0) /* got a reply */
   {
-    Serial.print("got Answer: ");
-    Serial.println(inmsg);
+    // Serial.print("got Answer: ");
+    // Serial.println(inmsg);
   }
   else if (strcmp(DOC["msg_type"], "info") == 0) /* ask for information */
   {
@@ -151,7 +164,9 @@ void qna(char *inmsg)
 #if ROLE == 0
       char p[100];
       strcpy(p, DOC["key_1"].as<const char *>());
+#if USE_IOT == 1
       iot.pub_msg(p);
+#endif
 #endif
     }
   }
@@ -187,7 +202,7 @@ void loop()
 
   // ~~~~~~~~~ Listen for Questions ~~~~~~~~~~~~
   char inmsg[200];
-  if (radio.RFread2(inmsg))
+  if (radio.RFread2(inmsg, 20))
   {
     qna(inmsg);
   }
@@ -197,10 +212,10 @@ void loop()
   // ~~~~~~~ Sending Questions ~~~~~~~~
   if (ROLE == 0)
   {
-    // a_timely_q(17321, "info", infos[0], "bootUp");
+    a_timely_q(500, "q", questions[2], "Na");
   }
   else if (ROLE == 1)
   {
-    a_timely_q(20000, "q", questions[0], "timeStamp");
+    // a_timely_q(20000, "q", questions[0], "timeStamp");
   }
 }

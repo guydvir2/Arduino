@@ -140,7 +140,7 @@ bool myRF24::RFread2(char out[], int del)
 {
   radio.startListening();
 
-  if (radio.available())
+  if (_wait4Rx(del)) //radio.available())
   {
     RFmsg payload;
     strcpy(out, "");
@@ -196,32 +196,47 @@ bool myRF24::_wait4Rx(int timeFrame)
 {
   bool timeout = false;
   unsigned long started_waiting_at = micros();
-  if (radio.available())
+  // if (radio.available())
+  // {
+  //   return 1;
+  // }
+  // else
+  // {
+  //   while (!radio.available()) // While nothing is received
+  //   {
+  //     if (micros() - started_waiting_at > timeFrame * 1000UL) // If waited longer than 200ms, indicate timeout and exit while loop
+  //     {
+  //       timeout = true;
+  //       break;
+  //     }
+  //   }
+  //   if (timeout)
+  //   {
+  //     // Serial.print("reach time-out");
+  //     // Serial.println(micros() - started_waiting_at);
+  //     return 0;
+  //   }
+  //   else
+  //   {
+  //     // Serial.print("not reach time-out");
+  //     // Serial.println(micros() - started_waiting_at);
+  //     return 1;
+  //   }
+  // }
+  while (!radio.available() && !timeout)
   {
-    return 1;
+    if (micros() - started_waiting_at > timeFrame * 1000UL)
+    {
+      timeout = true;
+    }
+  }
+  if (timeout)
+  {
+    return 0;
   }
   else
   {
-    while (!radio.available()) // While nothing is received
-    {
-      if (micros() - started_waiting_at > timeFrame * 1000UL) // If waited longer than 200ms, indicate timeout and exit while loop
-      {
-        timeout = true;
-        break;
-      }
-    }
-    if (timeout)
-    {
-      Serial.print("reach time-out");
-      Serial.println(micros() - started_waiting_at);
-      return 0;
-    }
-    else
-    {
-      Serial.print("not reach time-out");
-      Serial.println(micros() - started_waiting_at);
-      return 1;
-    }
+    return 1;
   }
 }
 void myRF24::_printStruct(RFmsg &msg)

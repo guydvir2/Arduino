@@ -41,14 +41,14 @@ typedef void (*cb_func)(char msg1[50]);
 
 class myIOT2
 {
-    const char *ver = "iot_v0.3";
+    const char *ver = "iot_v0.4";
 
 public:
     WiFiClient espClient;
     PubSubClient mqttClient;
-    #if isESP8266
+#if isESP8266
     Ticker wdt;
-    #endif
+#endif
     flashLOG flog;
 
     myIOT2();
@@ -69,12 +69,12 @@ public:
     void pub_log(char *inmsg);
     void pub_ext(char *inmsg, char *name = "", bool retain = false);
     void pub_debug(char *inmsg);
-    void pub_sms(String *inmsg, char *name="");
-    void pub_email(char *inmsg, char *name = "", char *subj="subject");
+    void pub_sms(String *inmsg, char *name = "");
+    void pub_email(char *inmsg, char *name = "", char *subj = "subject");
     int inline_read(char *inputstr);
     void feedTheDog();
-    bool read_fPars(char *filename, String &defs, JsonDocument &DOC, int JSIZE=500);
-    char *export_fPars(char *filename, JsonDocument &DOC, int JSIZE=500);
+    bool read_fPars(char *filename, String &defs, JsonDocument &DOC, int JSIZE = 500);
+    char *export_fPars(char *filename, JsonDocument &DOC, int JSIZE = 500);
 
     // ~~~~~~ Services ~~~~~~~~~
     bool useSerial = false;
@@ -160,7 +160,6 @@ private:
     char *topicArry[4] = {_deviceName, _groupTopic, _availTopic, addGroupTopic};
     // ##############################################
 
-
     // holds informamtion
     char bootTime[50];
     bool firstRun = true;
@@ -174,7 +173,6 @@ private:
     bool network_looper();
     void start_network_services();
 
-    
     struct tm *convEpoch_32(time_t in_time);
     void getTimeStamp_32(char ret_timeStamp[25]);
     void createDateStamp_32(struct tm *t, char retChar[30]);
@@ -188,7 +186,7 @@ private:
     void msgSplitter(const char *msg_in, int max_msgSize, char *prefix, char *split_msg);
     void firstRun_ResetKeeper(char *msg);
     void write_log(char *inmsg, int x);
-    void _pub_generic(char *topic, char *inmsg, bool retain = false, char *devname = "");
+    void _pub_generic(char *topic, char *inmsg, bool retain = false, char *devname = "", bool bare = false);
 
     // ~~~~~~~ Services  ~~~~~~~~~~~~~~~~~~~~~~~~
     void startWDT();

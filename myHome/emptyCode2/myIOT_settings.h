@@ -28,20 +28,21 @@ void addiotnalMQTT(char *incoming_msg)
 }
 void startIOTservices()
 {
-    // iot.useSerial = true;
-    // iot.useWDT = true;
-    // iot.useOTA = true;
-    // iot.useResetKeeper = false;
-    // iot.useextTopic = false;
-    // iot.resetFailNTP = true;
-    // iot.useDebug = false;
-    // iot.debug_level = 0;
-    // iot.useNetworkReset = true;
-    // iot.noNetwork_reset = 2;
-    // strcpy(iot.deviceTopic, DEV_TOPIC);
-    // strcpy(iot.prefixTopic, PREFIX_TOPIC);
-    // strcpy(iot.addGroupTopic, GROUP_TOPIC);
-    // iot.start_services(addiotnalMQTT);
+#if USE_SIMPLE_IOT == 1
+    iot.useSerial = true;
+    iot.useWDT = true;
+    iot.useOTA = true;
+    iot.useResetKeeper = false;
+    iot.useextTopic = false;
+    iot.resetFailNTP = true;
+    iot.useDebug = false;
+    iot.debug_level = 0;
+    iot.useNetworkReset = true;
+    iot.noNetwork_reset = 2;
+    strcpy(iot.deviceTopic, DEV_TOPIC);
+    strcpy(iot.prefixTopic, PREFIX_TOPIC);
+    strcpy(iot.addGroupTopic, GROUP_TOPIC);
+#elif USE_SIMPLE_IOT == 0
 
     iot.useSerial = paramJSON["useSerial"];
     iot.useWDT = paramJSON["useWDT"];
@@ -56,6 +57,7 @@ void startIOTservices()
     strcpy(iot.deviceTopic, paramJSON["deviceTopic"]);
     strcpy(iot.prefixTopic, paramJSON["prefixTopic"]);
     strcpy(iot.addGroupTopic, paramJSON["groupTopic"]);
+#endif
 
     // char a[50];
     // sprintf(a, "%s/%s/%s/%s", iot.prefixTopic, iot.addGroupTopic, iot.deviceTopic, DEBUG_TOPIC);

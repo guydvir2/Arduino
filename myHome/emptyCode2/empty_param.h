@@ -9,6 +9,7 @@ char *sketch_paramfile = "/sketch_param.json";
 bool readfile_ok = false;
 
 StaticJsonDocument<JSON_SIZE_SKETCH> sketchJSON;
+StaticJsonDocument<JSON_SIZE_IOT> paramJSON;
 
 char paramA[20];
 int paramB = 0;
