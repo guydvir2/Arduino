@@ -41,8 +41,6 @@ typedef void (*cb_func)(char msg1[50]);
 
 class myIOT2
 {
-    const char *ver = "iot_v0.4";
-
 public:
     WiFiClient espClient;
     PubSubClient mqttClient;
@@ -66,11 +64,16 @@ public:
     void notifyOffline();
     void pub_state(char *inmsg, byte i = 0);
     void pub_msg(char *inmsg);
+    void pub_noTopic(char *inmsg, char *Topic);
     void pub_log(char *inmsg);
     void pub_ext(char *inmsg, char *name = "", bool retain = false);
     void pub_debug(char *inmsg);
-    void pub_sms(String *inmsg, char *name = "");
-    void pub_email(char *inmsg, char *name = "", char *subj = "subject");
+    void pub_sms(String &inmsg, char *name = "");
+    void pub_sms(JsonDocument &sms);
+    void pub_email(String &inmsg, char *name = "", char *subj = "subject");
+    void pub_email(JsonDocument &email);
+    void clear_ExtTopicbuff();
+
     int inline_read(char *inputstr);
     void feedTheDog();
     bool read_fPars(char *filename, String &defs, JsonDocument &DOC, int JSIZE = 500);
@@ -90,8 +93,16 @@ public:
     byte debug_level = 0; // 0- All, 1- system states; 2- log only
     // ~~~~~~~~~~~~~~~~~~~~~~~~~
 
+    const char *ver = "iot_v0.5";
     static const byte num_param = 6;
-    char inline_param[num_param][100]; //values from user
+    char inline_param[num_param][20]; //values from user
+    struct MQTT_msg
+    {
+        char from_topic[50];
+        char msg[500];
+        char device_topic[50];
+    };
+    MQTT_msg extTopic_msg;
 
     // ~~~Clock ESP32~~~
     struct tm timeinfo;
@@ -109,6 +120,7 @@ public:
     char extTopic[MaxTopicLength];
 
     char mqqt_ext_buffer[3][150];
+    int max_mqtt_msg = 200;
 
     char timeStamp[20];
     char *myIOT_paramfile = "/myIOT_param.json";

@@ -3,7 +3,7 @@
 
 #define USE_SIMPLE_IOT 1
 
-#if USE_SIMMPLE_IOT == 0
+#if USE_SIMPLE_IOT == 0
 #include "empty_param.h"
 #endif
 #include "myIOT_settings.h"
@@ -17,7 +17,8 @@ void setup()
         startIOTservices();
         endRead_parameters();
 #endif
-        iot.pub_email("g", "fhfhfjh", "yybyyb");
+        String A = "gsf;bgiosdfbksjdhfbskljdfbsldkjfbhsldkjfbhsdlkfjbadlfkbjadflbkjsdfkbjsdflbjksdnflbkjsdfbkljsdnbskldfjbnsdklfbjsdnflkbjsdnfbkljsnv kasjncdvaslkdjvnarfvjaksdfnvlkasjdvnalksdjvngsf;bgiosdfbksjdhfbskljdfbsldkjfbhsldkjfbhsdlkfjbadlfkbjadflbkjsdfkbjsdflbjksdnflbkjsdfbkljsdnbskldfjbnsdklfbjsdnflkbjsdnfbkljsnv kasjncdvaslkdjvnarfvjaksdfnvlkasjdvnalksdjvn";
+        iot.pub_email(A, "fhfhfjh", "yybyyb");
 }
 void loop()
 {

@@ -11,5 +11,8 @@
 #define BOT_TOKEN_3 "1238925698:AAGWARuQ2eyx2i0ui2sCp_mM7xInTsKgUuM" //guyd_test2bot
 #define CHAT_ID  "596123373"
 
+#define GMAIL_USER "guydvir.tech@gmail.com"
+#define GMAIL_P "GdSd13100301"
+
 #define IFTTT_KEY "cFLymB4JT9tlODsKLFn9TA"
 

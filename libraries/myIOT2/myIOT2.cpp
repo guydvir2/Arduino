@@ -22,7 +22,7 @@ void myIOT2::start_services(cb_func funct, char *ssid, char *password, char *mqt
 
 	if (useSerial)
 	{
-		Serial.begin(9600);
+		Serial.begin(115200);
 		delay(10);
 	}
 	if (useDebug)
@@ -499,7 +499,7 @@ void myIOT2::createTopics()
 }
 void myIOT2::callback(char *topic, byte *payload, unsigned int length)
 {
-	char incoming_msg[150];
+	char incoming_msg[max_mqtt_msg];
 	char msg[100];
 
 	if (useSerial)
@@ -524,9 +524,13 @@ void myIOT2::callback(char *topic, byte *payload, unsigned int length)
 	}
 	if (useextTopic && strcmp(topic, extTopic) == 0)
 	{
-		sprintf(mqqt_ext_buffer[0], "%s", topic);
-		sprintf(mqqt_ext_buffer[1], "%s", incoming_msg);
-		sprintf(mqqt_ext_buffer[2], "%s", deviceTopic); // not full path
+		strcpy(extTopic_msg.msg, incoming_msg);
+		strcpy(extTopic_msg.device_topic, deviceTopic);
+		strcpy(extTopic_msg.from_topic, topic);
+
+		// sprintf(mqqt_ext_buffer[0], "%s", topic);
+		// sprintf(mqqt_ext_buffer[1], "%s", incoming_msg);
+		// sprintf(mqqt_ext_buffer[2], "%s", deviceTopic); // not full path
 	}
 	if (strcmp(topic, _availTopic) == 0 && useResetKeeper && firstRun)
 	{
@@ -691,6 +695,11 @@ void myIOT2::pub_msg(char *inmsg)
 	_pub_generic(_msgTopic, inmsg);
 	write_log(inmsg, 0);
 }
+void myIOT2::pub_noTopic(char *inmsg, char *Topic)
+{
+	_pub_generic(Topic, inmsg,false,"",true);
+	write_log(inmsg, 0);
+}
 void myIOT2::pub_state(char *inmsg, byte i)
 {
 	char *st[] = {_stateTopic, _stateTopic2};
@@ -721,28 +730,54 @@ void myIOT2::pub_debug(char *inmsg)
 		mqttClient.publish(_debugTopic, inmsg);
 	}
 }
-void myIOT2::pub_sms(String *inmsg, char *name)
+void myIOT2::pub_sms(String &inmsg, char *name)
 {
-	int slen = inmsg->length();
-	char b[250];
-	inmsg->toCharArray(b, slen + 1);
-	_pub_generic(_smsTopic, b, false, name);
-	write_log(b, 0);
+	int len = inmsg.length() + 1;
+	char sms_char[len];
+	inmsg.toCharArray(sms_char, len);
+	_pub_generic(_smsTopic, sms_char, false, name, true);
+	write_log(sms_char, 0);
 }
-void myIOT2::pub_email(char *inmsg, char *name, char *subj)
+void myIOT2::pub_sms(JsonDocument &sms)
 {
-	char clk[25];
-	char email_char[250];
+	String output;
+	get_timeStamp();
+	serializeJson(sms, output);
+	int len = output.length() + 1;
+	char sms_char[len];
+	output.toCharArray(sms_char, len);
+
+	_pub_generic(_smsTopic, sms_char, false, "", true);
+	// write_log(sms_char, 0);
+}
+void myIOT2::pub_email(String &inmsg, char *name, char *subj)
+{
+	String output;
 	DynamicJsonDocument email(1000);
 
-	getTimeStamp_32(clk);
+	get_timeStamp();
 	email["sub"] = subj;
 	email["body"] = inmsg;
 	email["from"] = name;
-	email["time"] = clk;
-	
-	serializeJson(email, email_char);
+	email["time"] = timeStamp;
+	serializeJson(email, output);
+	int len = output.length() + 1;
+	char email_char[len];
+	output.toCharArray(email_char, len);
+
 	_pub_generic(_emailTopic, email_char, false, name, true);
+	write_log(email_char, 0);
+}
+void myIOT2::pub_email(JsonDocument &email)
+{
+	String output;
+	get_timeStamp();
+	serializeJson(email, output);
+	int len = output.length() + 1;
+	char email_char[len];
+	output.toCharArray(email_char, len);
+
+	_pub_generic(_emailTopic, email_char, false, "", true);
 	write_log(email_char, 0);
 }
 void myIOT2::msgSplitter(const char *msg_in, int max_msgSize, char *prefix, char *split_msg)
@@ -819,7 +854,12 @@ void myIOT2::firstRun_ResetKeeper(char *msg)
 	firstRun = false;
 	notifyOnline();
 }
-
+void myIOT2::clear_ExtTopicbuff()
+{
+	strcpy(extTopic_msg.msg, "");
+	strcpy(extTopic_msg.device_topic, "");
+	strcpy(extTopic_msg.from_topic, "");
+}
 // ~~~~~~~~~~ Data Storage ~~~~~~~~~
 void myIOT2::write_log(char *inmsg, int x)
 {

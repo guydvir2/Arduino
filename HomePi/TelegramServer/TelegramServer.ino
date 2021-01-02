@@ -1,18 +1,10 @@
 #include <Arduino.h>
-#include <myIOT.h>
+#include <myIOT2.h>
 #include "telegram_param.h"
 
 // ********** Sketch Services  ***********
-#define VER "ESP8266_0.1"
-// #define ADD_MQTT_FUNC addiotnalMQTT
-#define USE_EMAIL false
+#define VER "telegramSever_v0.1"
 
-struct MQTT_msg
-{
-        char from_topic[50];
-        char msg[150];
-        char device_topic[50];
-};
 
 myIOT iot;
 
@@ -148,25 +140,7 @@ void listenMQTT_forTelegram()
 int PIRpin = 2;
 bool lastSenseState = false;
 
-// ~~~~~~~~~~ Email Service ~~~~~~~~~~
-#if USE_EMAIL
-#include <EMailSender.h>
-EMailSender emailSend("guydvir.tech@gmail.com", "GdSd13100301");
 
-void sendEmail(char *msg, char *TO, char *subject){
-        EMailSender::EMailMessage message;
-        message.subject = subject;
-        message.message = msg;
-
-        EMailSender::Response resp = emailSend.send(TO, message);
-
-        Serial.println("Sending status: ");
-
-        Serial.println(resp.status);
-        Serial.println(resp.code);
-        Serial.println(resp.desc);
-}
-#endif
 
 void setup()
 {

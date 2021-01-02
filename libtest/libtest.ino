@@ -78,24 +78,8 @@ bool send(const char *msg_t, const char *p0, const char *p1, const char *counter
 
   if (radio.RFwrite(outmsg, strlen(outmsg)))
   {
-    // if (strcmp(msg_t, "q") == 0)
-    // {
-    //   Serial.print("Q sent:");
-    // }
-    // else if (strcmp(msg_t, "ans") == 0)
-    // {
-    //   Serial.print("Ans sent: ");
-    // }
-    // else if (strcmp(msg_t, "info") == 0)
-    // {
-    //   Serial.print("info sent: ");
-    // }
-    // else
-    // {
-    //   Serial.print("not-clear msg_type: ");
-    // }
     Serial.print(msg_t);
-    Serial.print(" sent >>");
+    Serial.print(" >>");
     Serial.println(outmsg);
     return 1;
   }
@@ -190,7 +174,7 @@ void setup()
 #if USE_IOT == 1
   startIOTservices();
 #else
-  Serial.begin(9600);
+  Serial.begin(115200);
 #endif
   radio.startRF24(w_address, r_address, dev_name, RF24_PA_MIN, RF24_1MBPS, 1);
 }
@@ -201,8 +185,8 @@ void loop()
 #endif
 
   // ~~~~~~~~~ Listen for Questions ~~~~~~~~~~~~
-  char inmsg[200];
-  if (radio.RFread2(inmsg, 20))
+  char inmsg[250];
+  if (radio.RFread2(inmsg, 200))
   {
     qna(inmsg);
   }
@@ -212,10 +196,11 @@ void loop()
   // ~~~~~~~ Sending Questions ~~~~~~~~
   if (ROLE == 0)
   {
-    a_timely_q(500, "q", questions[2], "Na");
+    // a_timely_q(10510, "q", questions[2], "Na");
   }
   else if (ROLE == 1)
   {
-    // a_timely_q(20000, "q", questions[0], "timeStamp");
+    //    a_timely_q(7321, "q", questions[0], "timeStamp");
+    a_timely_q(10510, "q", questions[2], "Na");
   }
 }
