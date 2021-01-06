@@ -5,19 +5,35 @@
 WiFiClientSecure client;
 UniversalTelegramBot bot(BOT_TOKEN, client);
 
-extern void sendFormatted_msg_tele(const char *from, const char *subj, const char *msg);
+extern void formatted_SMS(const char *from, const char *subj, const char *msg, const char *time, char Msg[]);
 
 void startTelegram()
 {
     client.setInsecure();
 }
-void sendMsg(char *msg)
+bool send_SMS(char *msg)
 {
-    bot.sendMessage(CHAT_ID, msg, "");
+    if (bot.sendMessage(CHAT_ID, msg, ""))
+    {
+        Serial.println("Telegram Message sent OK");
+        return 1;
+    }
+    else
+    {
+        return 0;
+    }
 }
-void sendMsg(String &msg)
+bool send_SMS(String &msg)
 {
-    bot.sendMessage(CHAT_ID, msg, "");
+    if (bot.sendMessage(CHAT_ID, msg, ""))
+    {
+        Serial.println("Telegram Message sent OK");
+        return 1;
+    }
+    else
+    {
+        return 0;
+    }
 }
 
 void getTelecmd(String &inmsg, String &from, String &id)
@@ -28,34 +44,34 @@ void getTelecmd(String &inmsg, String &from, String &id)
     if (inmsg == command_set[0])
     {
         iot.pub_noTopic("disarmed", "myHome/alarmMonitor");
-        strcpy(t,"Alarm : Off");
+        strcpy(t, "Alarm : Off");
     }
     else if (inmsg == command_set[1])
     {
         iot.pub_noTopic("armed_away", "myHome/alarmMonitor");
-        strcpy(t,"Alarm : Armed away");
+        strcpy(t, "Alarm : Armed away");
     }
-    else if(inmsg == command_set[2])
+    else if (inmsg == command_set[2])
     {
         iot.pub_noTopic("timeout, 90", "myHome/WaterBoiler");
-        strcpy(t,"Boiler: Timeout 1:30:00");
+        strcpy(t, "Boiler: Timeout 1:30:00");
     }
     else if (inmsg == command_set[3])
     {
         iot.pub_noTopic("off", "myHome/WaterBoiler");
-        strcpy(t,"Boiler: Off");
+        strcpy(t, "Boiler: Off");
     }
-    else if(inmsg == command_set[4])
+    else if (inmsg == command_set[4])
     {
         iot.pub_noTopic("up", "myHome/Windows/saloonExit");
-        strcpy(t,"salootExit Windows: UP");
+        strcpy(t, "salootExit Windows: UP");
     }
     else if (inmsg == command_set[5])
     {
         iot.pub_noTopic("down", "myHome/Windows/saloonExit");
-        strcpy(t,"salootExit Windows: DOWN");
+        strcpy(t, "salootExit Windows: DOWN");
     }
-    else if(inmsg == command_set[6])
+    else if (inmsg == command_set[6])
     {
         strcpy(t, "");
         for (int i = 0; i < num_commands; i++)
@@ -70,11 +86,14 @@ void getTelecmd(String &inmsg, String &from, String &id)
         iot.get_timeStamp();
         sprintf(t, "status: On from %s", iot.timeStamp);
     }
-    sendFormatted_msg_tele(DEV_TOPIC, "Commands", t);
+    char Msg[300];
+    iot.get_timeStamp();
+    formatted_SMS(from.c_str(), "Commands", t, iot.timeStamp, Msg);
+    send_SMS(Msg);
 }
 void handleNewMessages(int numNewMessages)
 {
-    char sendmsg[500];
+    char sens_SMS[500];
 
     for (int i = 0; i < numNewMessages; i++)
     {
@@ -86,11 +105,10 @@ void handleNewMessages(int numNewMessages)
             from_name = "Guest";
         }
         getTelecmd(text, from_name, chat_id);
-        // _ext_func(text, from_name, chat_id, sendmsg);
 
-        // if (strcmp(sendmsg, "") != 0)
+        // if (strcmp(sens_SMS, "") != 0)
         // {
-        //     bot.sendMessage(chat_id, sendmsg, "");
+        //     bot.sendMessage(chat_id, sens_SMS, "");
         // }
         Serial.println(text);
     }
@@ -111,4 +129,10 @@ void check_telegramServer()
         }
         _Bot_lasttime = millis();
     }
+}
+
+void formatted_SMS(const char *from, const char *subj, const char *msg, const char *time, char Msg[])
+{
+    iot.get_timeStamp();
+    sprintf(Msg, ">> From: @%s\n>> Subject: %s\n>> Message: %s\n>> Time: %s \n\n~~ sent: @%s %s", from, subj, msg, time, DEV_TOPIC, mserver_ver);
 }

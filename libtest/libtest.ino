@@ -1,7 +1,7 @@
 #include <myRF24.h>
 #include <ArduinoJson.h>
 
-#define ROLE 0 /* 0:Reciever ( ESP8266 also connected to WiFi) 1: Sender ( Pro-Micro with RF24 log range anttenna)*/
+#define ROLE 1 /* 0:Reciever ( ESP8266 also connected to WiFi) 1: Sender ( Pro-Micro with RF24 log range anttenna)*/
 #include "rf24_defs.h"
 #include "myIOT_def.h"
 
@@ -196,11 +196,17 @@ void loop()
   // ~~~~~~~ Sending Questions ~~~~~~~~
   if (ROLE == 0)
   {
-    // a_timely_q(10510, "q", questions[2], "Na");
+    a_timely_q(13679, "q", questions[2], "Na");
   }
   else if (ROLE == 1)
   {
+    static unsigned long t = 0;
+    if (millis() - t > 12495)
+    {
+      send("q", questions[1], "baaa");
+      t = millis();
+    }
     //    a_timely_q(7321, "q", questions[0], "timeStamp");
-    a_timely_q(10510, "q", questions[2], "Na");
+    // a_timely_q(10510, "q", questions[2], "Na");
   }
 }

@@ -1,8 +1,8 @@
 {
-    "ext_inputs": true,
+    "ext_inputs": false,
     "auto_relay_off": true,
     "auto_relay_off_timeout": 90,
-    "inputUpPin": 4,
+    "inputUpPin": 13,
     "inputDownPin": 5,
     "outputUpPin": 14,
     "outputDownPin": 12,

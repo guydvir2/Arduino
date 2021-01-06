@@ -6,6 +6,7 @@ myIOT2 iot;
 #define GROUP_TOPIC "none"
 #define PREFIX_TOPIC "myHome"
 
+
 void addiotnalMQTT(char *incoming_msg)
 {
     char msg[150];
@@ -42,6 +43,8 @@ void startIOTservices()
     strcpy(iot.deviceTopic, DEV_TOPIC);
     strcpy(iot.prefixTopic, PREFIX_TOPIC);
     strcpy(iot.addGroupTopic, GROUP_TOPIC);
+
+
 #elif USE_SIMPLE_IOT == 0
 
     iot.useSerial = paramJSON["useSerial"];

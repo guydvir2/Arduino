@@ -1,5 +1,5 @@
 #include "EMailSender.h"
-
+#include<stdio.h>
 //#include <SPIFFS.h>
 //#include <LittleFS.h>
 
@@ -351,25 +351,68 @@ EMailSender::Response EMailSender::send(const char* to[], byte sizeOfTo,  byte s
   response = awaitSMTPResponse(client, "220", "Connection Error");
   if (!response.status) return response;
 
-  String helo = "HELO "+String(publicIPDescriptor)+": ";
+  String commandHELO = "HELO";
+  if (this->useEHLO == true) {
+	  commandHELO = "EHLO";
+  }
+  String helo = commandHELO + " "+String(publicIPDescriptor)+": ";
   DEBUG_PRINTLN(helo);
   client.println(helo);
 
   response = awaitSMTPResponse(client, "250", "Identification error");
   if (!response.status) return response;
 
+  if (this->useEHLO == true) {
+	  for (int i = 0; i<=6; i++) awaitSMTPResponse(client);
+  }
+
   if (useAuth){
-	  DEBUG_PRINTLN(F("AUTH LOGIN:"));
-	  client.println(F("AUTH LOGIN"));
-	  awaitSMTPResponse(client);
+	  if (this->isSASLLogin == true){
 
-	  DEBUG_PRINTLN(encode64(this->email_login));
-	  client.println(encode64(this->email_login));
-	  awaitSMTPResponse(client);
+		  int size = 1 + strlen(this->email_login)+ strlen(this->email_password)+2;
+	      char * logPass = (char *) malloc(size);
 
-	  DEBUG_PRINTLN(encode64(this->email_password));
-	  client.println(encode64(this->email_password));
+//	      strcpy(logPass, " ");
+//	      strcat(logPass, this->email_login);
+//	      strcat(logPass, " ");
+//	      strcat(logPass, this->email_password);
 
+//		  String logPass;
+	      int maincont = 0;
+
+	      logPass[maincont++] = ' ';
+	      logPass[maincont++] = (char) 0;
+
+	      for (int i = 0;i<strlen(this->email_login);i++){
+	    	  logPass[maincont++] = this->email_login[i];
+	      }
+	      logPass[maincont++] = (char) 0;
+	      for (int i = 0;i<strlen(this->email_password);i++){
+	    	  logPass[maincont++] = this->email_password[i];
+	      }
+
+
+//	      strcpy(logPass, "\0");
+//	      strcat(logPass, this->email_login);
+//	      strcat(logPass, "\0");
+//	      strcat(logPass, this->email_password);
+
+		  String auth = "AUTH PLAIN "+String(encode64_f(logPass, size));
+//		  String auth = "AUTH PLAIN "+String(encode64(logPass));
+		  DEBUG_PRINTLN(auth);
+		  client.println(auth);
+	  }else{
+		  DEBUG_PRINTLN(F("AUTH LOGIN:"));
+		  client.println(F("AUTH LOGIN"));
+		  awaitSMTPResponse(client);
+
+		  DEBUG_PRINTLN(encode64(this->email_login));
+		  client.println(encode64(this->email_login));
+		  awaitSMTPResponse(client);
+
+		  DEBUG_PRINTLN(encode64(this->email_password));
+		  client.println(encode64(this->email_password));
+	  }
 	  response = awaitSMTPResponse(client, "235", "SMTP AUTH error");
 	  if (!response.status) return response;
   }

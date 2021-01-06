@@ -140,7 +140,7 @@ bool myRF24::RFread2(char out[], int del)
 {
   radio.startListening();
 
-  if (_wait4Rx(del)) //radio.available())
+  if (radio.available()) //_wait4Rx(del))
   {
     RFmsg payload;
     strcpy(out, "");

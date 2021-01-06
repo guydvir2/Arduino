@@ -66,11 +66,12 @@ public:
     void pub_msg(char *inmsg);
     void pub_noTopic(char *inmsg, char *Topic);
     void pub_log(char *inmsg);
-    void pub_ext(char *inmsg, char *name = "", bool retain = false);
+    void pub_ext(char *inmsg, char *name = "", bool retain = false, byte i = 0);
     void pub_debug(char *inmsg);
     void pub_sms(String &inmsg, char *name = "");
+    void pub_sms(char *inmsg, char *name="");
     void pub_sms(JsonDocument &sms);
-    void pub_email(String &inmsg, char *name = "", char *subj = "subject");
+    void pub_email(String &inmsg, char *name="");
     void pub_email(JsonDocument &email);
     void clear_ExtTopicbuff();
 
@@ -96,6 +97,7 @@ public:
     const char *ver = "iot_v0.5";
     static const byte num_param = 6;
     char inline_param[num_param][20]; //values from user
+    
     struct MQTT_msg
     {
         char from_topic[50];
@@ -117,7 +119,8 @@ public:
     char prefixTopic[MaxTopicLength];
     char deviceTopic[MaxTopicLength];
     char addGroupTopic[MaxTopicLength];
-    char extTopic[MaxTopicLength];
+    // char extTopic[MaxTopicLength];
+    char *extTopic[2]={nullptr, nullptr};
 
     char mqqt_ext_buffer[3][150];
     int max_mqtt_msg = 200;
