@@ -6,7 +6,7 @@
 
 EMailSender emailSend(GMAIL_USER, GMAIL_P, GMAIL_USER, GMAIL_FROM);
 
-bool sendEmail(const char *subj, const char *outmsg, const char *sendto = SEND_TO)
+bool sendEmail(const char *subj, const char *outmsg, const char *sendto )
 {
     EMailSender::EMailMessage message;
     message.subject = subj;

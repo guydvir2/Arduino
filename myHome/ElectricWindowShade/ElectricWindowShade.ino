@@ -1,71 +1,83 @@
-#include <myIOT.h>
+#include <myIOT2.h>
+#include "variables.h"
+#include "myIOT_settings.h"
 #include "win_param.h"
 #include <Arduino.h>
 
-// ********** Sketch Services  ***********
-#define VER "NodeMCU_6.4"
-#define USE_BOUNCE_DEBUG false
-
-bool auto_relay_off;
-int auto_relay_off_timeout;
-
-//~~~~Internal Switch ~~~~~~
-int inputUpPin;
-int inputDownPin;
-int outputUpPin;
-int outputDownPin;
-//~~~~External Input ~~~~~~~~~
-int inputUpExtPin;
-int inputDownExtPin;
-
-// GPIO status flags
-//~~~~Internal Switch ~~~~~~
-bool inputUp_lastState;
-bool inputDown_lastState;
-
-//~~~~External Input ~~~~~~~
-bool inputUpExt_lastState;
-bool inputDownExt_lastState;
-
-// state definitions & constatns
-#define RelayOn LOW
-#define SwitchOn LOW
-const int deBounceInt = 50;
-
-// ~~ myIOT definitions ~~
-#define ADD_MQTT_FUNC addiotnalMQTT
-bool ext_inputs;
-myIOT iot;
-// ~~~~~~~~~~~~~~~~~~~~~~~
-
-void startIOTservices()
+bool services_chk()
 {
-        iot.useSerial = paramJSON["useSerial"];
-        iot.useWDT = paramJSON["useWDT"];
-        iot.useOTA = paramJSON["useOTA"];
-        iot.useResetKeeper = paramJSON["useResetKeeper"];
-        iot.resetFailNTP = paramJSON["useFailNTP"];
-        iot.useDebug = paramJSON["useDebugLog"];
-        iot.debug_level = paramJSON["debug_level"]; //All operations are monitored
-        strcpy(iot.deviceTopic, paramJSON["deviceTopic"]);
-        strcpy(iot.prefixTopic, paramJSON["prefixTopic"]);
-        strcpy(iot.addGroupTopic, paramJSON["groupTopic"]);
-        iot.start_services(ADD_MQTT_FUNC); //, SSID_ID, PASS_WIFI, MQTT_USER, MQTT_PASS, "192.168.3.201");
+        bool ntp = iot.NTP_OK;
+        bool wifi = WiFi.isConnected();
+        bool mqtt = iot.mqttClient.connected();
+
+        if (!(wifi && mqtt && ntp))
+        {
+                char a[50];
+                sprintf(a, "Services error: WiFi[%s] MQTT[%s] NTP[%s]", wifi ? "OK" : "FAIL", mqtt ? "OK" : "FAIL", ntp ? "OK" : "FAIL");
+                iot.pub_log(a);
+                return 0;
+        }
+        else
+        {
+                return 1;
+        }
 }
-void setup()
+void check_bootclockLOG()
 {
-        startRead_parameters();
-        startGPIOs();
-        startIOTservices();
-        endRead_parameters();
+        char a[100];
+        char clk[20];
+        char dat[20];
+        const byte MIN_HRS_BETWEEN_RESET = 24;                                                                           /* 1 day between 2 consq. resets */
+        const byte MAX_HRS_ALL_RESETS = 24 * 7;                                                                          /* 1 week between all resets archived ( default is 3 stores ) */
+        unsigned long first_to_last = iot.get_bootclockLOG(0) / 3600 - iot.get_bootclockLOG(iot.bootlog_len - 1) / 3600; // hours
+        unsigned long first_to_second = iot.get_bootclockLOG(0) / 3600 - iot.get_bootclockLOG(1) / 3600;                 //hours
+        unsigned int rem_a = iot.get_bootclockLOG(0) % 3600 - iot.get_bootclockLOG(iot.bootlog_len - 1) % 3600;
+        unsigned int rem_b = iot.get_bootclockLOG(0) % 3600 - iot.get_bootclockLOG(1) % 3600;
+
+        if (first_to_last < MAX_HRS_ALL_RESETS)
+        {
+                iot.convert_epoch2clock(first_to_last * 3600 + rem_a, 0, clk, dat);
+                sprintf(a, "Reset Errors: got [%d] resets in [%s]. Limit is [%d]hrs", iot.bootlog_len, clk, MAX_HRS_ALL_RESETS);
+                iot.pub_log(a);
+        }
+        if (first_to_second < MIN_HRS_BETWEEN_RESET)
+        {
+                iot.convert_epoch2clock(first_to_second * 3600 + rem_b, 0, clk, dat);
+                sprintf(a, "Reset Errors: got [%d] resets in [%s]. Limit is [%d]hrs", 2, clk, MIN_HRS_BETWEEN_RESET);
+                iot.pub_log(a);
+        }
+        Serial.print("max: ");
+        Serial.println(first_to_last);
+        Serial.print("min: ");
+        Serial.println(first_to_second);
+}
+void check_reboot_reason()
+{
+        static bool checkAgain = true;
+        if (checkAgain)
+        {
+                if (iot.mqtt_detect_reset != 2)
+                {
+                        char a[30];
+                        checkAgain = false;
+                        if (iot.mqtt_detect_reset == 0)
+                        {
+                                sprintf(a, "Boot Type: [%s]", "Boot");
+                        }
+                        else if (iot.mqtt_detect_reset == 1)
+                        {
+                                sprintf(a, "Boot Type: [%s]", "Quick-Reset");
+                        }
+                        iot.pub_log(a);
+                }
+        }
 }
 
-// ~~~~~~~~~ StartUp ~~~~~~~~~~~~
 void startGPIOs()
 {
         pinMode(inputUpPin, INPUT_PULLUP);
         pinMode(inputDownPin, INPUT_PULLUP);
-        if (ext_inputs)
+        if (useExtInput)
         {
                 pinMode(inputUpExtPin, INPUT_PULLUP);
                 pinMode(inputDownExtPin, INPUT_PULLUP);
@@ -76,110 +88,18 @@ void startGPIOs()
 
         allOff();
 }
-void addiotnalMQTT(char *incoming_msg)
-{
-        char state[5];
-        char state2[5];
-        char msg[100];
-        char msg2[100];
-
-        if (strcmp(incoming_msg, "status") == 0)
-        {
-                // relays state
-                if (digitalRead(outputUpPin) == RelayOn && digitalRead(outputDownPin) == RelayOn)
-                {
-                        sprintf(state, "invalid Relay State");
-                }
-                else if (digitalRead(outputUpPin) == !RelayOn && digitalRead(outputDownPin) == RelayOn)
-                {
-                        sprintf(state, "DOWN");
-                }
-                else if (digitalRead(outputUpPin) == RelayOn && digitalRead(outputDownPin) == !RelayOn)
-                {
-                        sprintf(state, "UP");
-                }
-                else
-                {
-                        sprintf(state, "OFF");
-                }
-
-                // switch state
-                if (inputUp_lastState == !RelayOn && inputDown_lastState == !RelayOn)
-                {
-                        sprintf(state2, "OFF");
-                }
-                else if (inputUp_lastState == RelayOn && inputDown_lastState == !RelayOn)
-                {
-                        sprintf(state2, "UP");
-                }
-                else if (inputUp_lastState == !RelayOn && inputDown_lastState == RelayOn)
-                {
-                        sprintf(state2, "DOWN");
-                }
-                sprintf(msg, "Status: Relay:[%s], Switch:[%s]", state, state2);
-                iot.pub_msg(msg);
-        }
-        else if (strcmp(incoming_msg, "up") == 0 || strcmp(incoming_msg, "down") == 0 || strcmp(incoming_msg, "off") == 0)
-        {
-                switchIt("MQTT", incoming_msg);
-        }
-        else if (strcmp(incoming_msg, "ver2") == 0)
-        {
-                sprintf(msg, "ver2:[%s], AutoOFF[%d], AutoOFFduration[%d sec]", VER, auto_relay_off, auto_relay_off_timeout);
-                iot.pub_msg(msg);
-        }
-        else if (strcmp(incoming_msg, "show_flash_param") == 0)
-        {
-                char temp[300];
-                char temp3[350];
-                char *a[] = {iot.myIOT_paramfile, sketch_paramfile};
-                iot.pub_debug("~~~Start~~~");
-                for (int e = 0; e < sizeof(a) / sizeof(a[0]); e++)
-                {
-                        strcpy(temp, iot.export_fPars(a[e], paramJSON));
-                        sprintf(temp3, "%s: %s", a[e], temp);
-                        iot.pub_debug(temp3);
-                        paramJSON.clear();
-                }
-                iot.pub_debug("~~~End~~~");
-        }
-        else if (strcmp(incoming_msg, "help2") == 0)
-        {
-                sprintf(msg, "Help: Commands #3 - [up, down, off, gpios, show_flash_param]");
-                iot.pub_msg(msg);
-        }
-        else if (strcmp(incoming_msg, "gpios") == 0)
-        {
-                sprintf(msg, "GPIO pins: inputUP[%d], inputDown[%d], outputUP[%d], outputDown[%d], useExtPins[%d], extUp[%d], extDown[%d]",
-                        inputUpPin, inputDownPin, outputUpPin, outputDownPin, ext_inputs, inputUpExtPin, inputDownExtPin);
-                iot.pub_msg(msg);
-        }
-}
-// ~~~~ maintability ~~~~~~
 void allOff()
 {
         digitalWrite(outputUpPin, !RelayOn);
         digitalWrite(outputDownPin, !RelayOn);
         inputUp_lastState = digitalRead(inputUpPin);
         inputDown_lastState = digitalRead(inputDownPin);
-        if (ext_inputs)
+        if (useExtInput)
         {
                 inputUpExt_lastState = digitalRead(inputUpExtPin);
                 inputDownExt_lastState = digitalRead(inputDownExtPin);
         }
 }
-
-unsigned long autoOff_clock = 0;
-void checkTimeout_AutoRelay_Off(int timeout_off)
-{
-        if (autoOff_clock != 0 && millis() - autoOff_clock > timeout_off * 1000)
-        {
-                switchIt("timeout", "off");
-                autoOff_clock = 0;
-        }
-}
-
-// ~~~~~~~~~ GPIO switching ~~~~~~~~~~~~~
 void switchIt(char *type, char *dir)
 {
         char mqttmsg[50];
@@ -222,7 +142,7 @@ void switchIt(char *type, char *dir)
         sprintf(mqttmsg, "%s: Switched [%s]", type, dir);
         iot.pub_msg(mqttmsg);
 
-        if (auto_relay_off)
+        if (useAutoRelayOFF)
         {
                 if (digitalRead(outputDownPin) == RelayOn || digitalRead(outputUpPin) == RelayOn)
                 {
@@ -261,6 +181,14 @@ void checkSwitch_looper(const int &pin, char *dir, bool &lastState, char *type =
                 }
         }
 }
+void checkTimeout_AutoRelay_Off(int timeout_off)
+{
+        if (autoOff_clock != 0 && millis() - autoOff_clock > timeout_off * 1000)
+        {
+                switchIt("timeout", "off");
+                autoOff_clock = 0;
+        }
+}
 void verifyNotHazardState()
 {
         if (digitalRead(outputUpPin) == RelayOn && digitalRead(outputDownPin) == RelayOn)
@@ -270,6 +198,16 @@ void verifyNotHazardState()
         }
 }
 
+void setup()
+{
+        startRead_parameters();
+        startGPIOs();
+        startIOTservices();
+        endRead_parameters();
+
+        services_chk();
+        check_bootclockLOG();
+}
 void loop()
 {
         iot.looper();
@@ -277,15 +215,15 @@ void loop()
 
         checkSwitch_looper(inputUpPin, "up", inputUp_lastState, "inButton");
         checkSwitch_looper(inputDownPin, "down", inputDown_lastState, "inButton");
-        if (ext_inputs)
+        if (useExtInput)
         {
                 checkSwitch_looper(inputUpExtPin, "up", inputUpExt_lastState, "extButton");
                 checkSwitch_looper(inputDownExtPin, "down", inputDownExt_lastState, "extButton");
         }
-        if (auto_relay_off)
+        if (useAutoRelayOFF)
         {
-                checkTimeout_AutoRelay_Off(auto_relay_off_timeout);
+                checkTimeout_AutoRelay_Off(AutoRelayOff_timeout);
         }
+        check_reboot_reason();
         delay(100);
 }
-

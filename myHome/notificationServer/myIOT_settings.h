@@ -6,11 +6,15 @@
 #define NOTIF_MQTT_TOPIC PREFIX_TOPIC "/sms"
 #define SEND_TO "guy.ipaq@gmail.com"
 
-
 myIOT2 iot;
 extern const char *mserver_ver;
+extern const char *EMAIL_PREFIX;
+extern const char *SMS_PREFIX;
+extern bool send_SMS(char *msg);
+extern bool send_SMS(String *msg);
 extern void formatted_email(const char *from, const char *subj, const char *msg, const char *time, JsonDocument &DOC);
-// extern bool sendEmail(const char *subj, const char *outmsg, const char *sendto = SEND_TO);
+extern void formatted_SMS(const char *from, const char *subj, const char *msg, const char *time, char Msg[]);
+extern bool sendEmail(const char *subj, const char *outmsg, const char *sendto = SEND_TO);
 
 void addiotnalMQTT(char *incoming_msg)
 {
@@ -35,7 +39,7 @@ void addiotnalMQTT(char *incoming_msg)
     {
         int num_parameters = iot.inline_read(incoming_msg);
 
-        if (strcmp(iot.inline_param[0], "email") == 0)
+        if (strcmp(iot.inline_param[0], EMAIL_PREFIX) == 0)
         {
             DynamicJsonDocument DOC(500);
             iot.get_timeStamp();
@@ -44,7 +48,18 @@ void addiotnalMQTT(char *incoming_msg)
                             iot.inline_param[1], // msg
                             iot.timeStamp,       // time  <--- not entered by user
                             DOC);
-            // sendEmail(DOC["sub"], DOC["body"]);
+            sendEmail(DOC["sub"], DOC["body"]);
+        }
+        else if (strcmp(iot.inline_param[0], SMS_PREFIX) == 0)
+        {
+            char Msg[200];
+            iot.get_timeStamp();
+            formatted_SMS(iot.inline_param[3], // from
+                           iot.inline_param[2], // subj
+                           iot.inline_param[1], // msg
+                           iot.timeStamp,       // time  <--- not entered by user
+                           Msg);
+            send_SMS(Msg);
         }
         for (int i = 0; i < iot.num_param; i++)
         {

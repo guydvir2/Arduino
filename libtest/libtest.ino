@@ -1,9 +1,11 @@
 #include <myRF24.h>
 #include <ArduinoJson.h>
 
-#define ROLE 1 /* 0:Reciever ( ESP8266 also connected to WiFi) 1: Sender ( Pro-Micro with RF24 log range anttenna)*/
+#define ROLE 0 /* 0:Reciever ( ESP8266 also connected to WiFi) 1: Sender ( Pro-Micro with RF24 log range anttenna)*/
 #include "rf24_defs.h"
+#if ROLE==0
 #include "myIOT_def.h"
+#endif
 
 // ~~~~~~~~~~~~~~ Cmds and Questions ~~~~~~~~~
 /*
@@ -69,11 +71,11 @@ bool send(const char *msg_t, const char *p0, const char *p1, const char *counter
   char outmsg[250];
   if (strcmp(msg_t, "ans") != 0)
   {
-    radio.genJSONmsg(outmsg, msg_t, p0, p1, "msg_id", create_msg_id(msg_t));
+    radio.genJSONmsg(outmsg, msg_t, p0, p1);//, "msg_id", create_msg_id(msg_t));
   }
   else
   {
-    radio.genJSONmsg(outmsg, msg_t, p0, p1, "msg_id", counter); /* gets q_id from q/info/cmd */
+    radio.genJSONmsg(outmsg, msg_t, p0, p1); //, "msg_id", counter); /* gets q_id from q/info/cmd */
   }
 
   if (radio.RFwrite(outmsg, strlen(outmsg)))
@@ -110,10 +112,10 @@ void qna(char *inmsg)
     {
 #if USE_IOT == 1
       iot.get_timeStamp();
-      send("ans", questions[0], iot.timeStamp, DOC["key_3"]);
+      send("ans", questions[0], iot.timeStamp);//, DOC["key_3"]);
 #else
       convert_sec2Clock((long)millis() / 1000, pload1);
-      send("ans", questions[0], pload1, DOC["key_3"]);
+      send("ans", questions[0], pload1);//, DOC["key_3"]);
 #endif
     }
     else if (strcmp(DOC["key_0"], questions[2]) == 0) /*time_stamp - IOT only*/
@@ -123,42 +125,42 @@ void qna(char *inmsg)
   }
   else if (strcmp(DOC["msg_type"], "ans") == 0) /* got a reply */
   {
-    // Serial.print("got Answer: ");
-    // Serial.println(inmsg);
-  }
-  else if (strcmp(DOC["msg_type"], "info") == 0) /* ask for information */
-  {
-    if (strcmp(DOC["key_0"], infos[0]) == 0) /*wake time*/
-    {
-      convert_sec2Clock((long)millis() / 1000, pload1);
-      send("info", infos[0], pload1, DOC["key_3"]);
-    }
-  }
-  else if (strcmp(DOC["msg_type"], "cmd") == 0) /* ask for execute command */
-  {
-    if (strcmp(DOC["key_0"], cmds[0]) == 0) /* commence RESET*/
-    {
-#if USE_IOT == 1
-      iot.sendReset("RF24cmd");
-#endif
-      send("ans", cmds[0], "executed", DOC["key_3"]);
-    }
-    else if (strcmp(DOC["key_0"], cmds[1]) == 0) /* send MQTT msg*/
-    {
-#if ROLE == 0
-      char p[100];
-      strcpy(p, DOC["key_1"].as<const char *>());
-#if USE_IOT == 1
-      iot.pub_msg(p);
-#endif
-#endif
-    }
-  }
-  else
-  {
-    Serial.print("some error: ");
+    Serial.print("got Answer: ");
     Serial.println(inmsg);
   }
+//   else if (strcmp(DOC["msg_type"], "info") == 0) /* ask for information */
+//   {
+//     if (strcmp(DOC["key_0"], infos[0]) == 0) /*wake time*/
+//     {
+//       convert_sec2Clock((long)millis() / 1000, pload1);
+//       send("info", infos[0], pload1, DOC["key_3"]);
+//     }
+//   }
+//   else if (strcmp(DOC["msg_type"], "cmd") == 0) /* ask for execute command */
+//   {
+//     if (strcmp(DOC["key_0"], cmds[0]) == 0) /* commence RESET*/
+//     {
+// #if USE_IOT == 1
+//       iot.sendReset("RF24cmd");
+// #endif
+//       send("ans", cmds[0], "executed", DOC["key_3"]);
+//     }
+//     else if (strcmp(DOC["key_0"], cmds[1]) == 0) /* send MQTT msg*/
+//     {
+// #if ROLE == 0
+//       char p[100];
+//       strcpy(p, DOC["key_1"].as<const char *>());
+// #if USE_IOT == 1
+//       iot.pub_msg(p);
+// #endif
+// #endif
+//     }
+//   }
+//   else
+//   {
+//     Serial.print("some error: ");
+//     Serial.println(inmsg);
+//   }
 }
 void a_timely_q(long tint, const char *msg_t, char *p0, char *p1)
 {
@@ -186,7 +188,7 @@ void loop()
 
   // ~~~~~~~~~ Listen for Questions ~~~~~~~~~~~~
   char inmsg[250];
-  if (radio.RFread2(inmsg, 200))
+  if (radio.RFread2(inmsg, sizeof(inmsg)))
   {
     qna(inmsg);
   }

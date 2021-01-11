@@ -1,29 +1,13 @@
 #include <Arduino.h>
-#include <myIOT.h>
+#include <myIOT2.h>
 #include <ArduinoJson.h>
 
-#define JSON_SIZE_IOT 400
-#define JSON_SIZE_SKETCH 300
-char *sketch_paramfile = "/sketch_param.json";
-
 bool readfile_ok = false;
+char *sketch_paramfile = "/sketch_param.json";
 StaticJsonDocument<JSON_SIZE_IOT> paramJSON;
 StaticJsonDocument<JSON_SIZE_SKETCH> sketchJSON;
 
-extern myIOT iot;
-//~~~~Internal Switch ~~~~~~
-extern int inputUpPin;    // = D2;   // main is D2 // D3 only for saloonSingle
-extern int inputDownPin;  // = D1; // main is D1 // D3 only for laundryRoom
-extern int outputUpPin;   // = 14; D5
-extern int outputDownPin; // = 12; D6
-//~~~~External Input ~~~~~~~~~
-extern int inputUpExtPin;   // = 0;
-extern int inputDownExtPin; // = 2;
-
-extern bool ext_inputs;
-extern bool auto_relay_off;
-extern int auto_relay_off_timeout;
-//############################
+extern myIOT2 iot;
 
 void update_vars(JsonDocument &DOC)
 {
@@ -33,17 +17,14 @@ void update_vars(JsonDocument &DOC)
   outputDownPin = DOC["outputDownPin"];
   inputUpExtPin = DOC["inputUpExtPin"];
   inputDownExtPin = DOC["inputDownExtPin"];
-
-  ext_inputs = DOC["ext_inputs"];
-  auto_relay_off = DOC["auto_relay_off"];
-  auto_relay_off_timeout = DOC["auto_relay_off_timeout"];
-
-  
+  useExtInput = DOC["useExtInput"];
+  useAutoRelayOFF = DOC["useAutoRelayOFF"];
+  AutoRelayOff_timeout = DOC["AutoRelayOff_timeout"];
 }
 void startRead_parameters()
 {
-  String sketch_defs = "{\"ext_inputs\":false,\"auto_relay_off\":false,\"inputUpPin\":4,\"inputDownPin\":5,\
-                        \"outputUpPin\":14,\"outputDownPin\":12,\"inputUpExtPin\":0,\"inputDownExtPin\":2,\"auto_relay_off_timeout\":60}";
+  String sketch_defs = "{\"useExtInput\":false,\"useAutoRelayOFF\":false,\"inputUpPin\":4,\"inputDownPin\":5,\
+                        \"outputUpPin\":14,\"outputDownPin\":12,\"inputUpExtPin\":0,\"inputDownExtPin\":2,\"AutoRelayOff_timeout\":60}";
 
   String myIOT_defs = "{\"useSerial\":true,\"useWDT\":false,\"useOTA\":true,\"useResetKeeper\" : false,\
                         \"useFailNTP\" : true,\"useDebugLog\" : true,\"useNetworkReset\":false, \"deviceTopic\" : \"myWindow\",\

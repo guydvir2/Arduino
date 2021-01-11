@@ -17,7 +17,6 @@
 #include <ESP8266WiFi.h>
 #include <NtpClientLib.h>
 #include <ESP8266mDNS.h> // OTA libraries
-// #include <ESP8266Ping.h>
 
 #define isESP8266 true
 #define isESP32 false
@@ -69,11 +68,13 @@ public:
     void pub_ext(char *inmsg, char *name = "", bool retain = false, byte i = 0);
     void pub_debug(char *inmsg);
     void pub_sms(String &inmsg, char *name = "");
-    void pub_sms(char *inmsg, char *name="");
+    void pub_sms(char *inmsg, char *name = "");
     void pub_sms(JsonDocument &sms);
-    void pub_email(String &inmsg, char *name="");
+    void pub_email(String &inmsg, char *name = "");
     void pub_email(JsonDocument &email);
     void clear_ExtTopicbuff();
+    long get_bootclockLOG(int x);
+    void convert_epoch2clock(long t1, long t2, char *time_str, char *days_str);
 
     int inline_read(char *inputstr);
     void feedTheDog();
@@ -91,13 +92,15 @@ public:
     bool useNetworkReset = true; // allow reset due to no-network timeout
     bool useAltermqttServer = false;
     bool useDebug = false;
+    bool useBootClockLog = false;
     byte debug_level = 0; // 0- All, 1- system states; 2- log only
+    static const byte bootlog_len = 3; // nubmer of boot clock records
     // ~~~~~~~~~~~~~~~~~~~~~~~~~
 
-    const char *ver = "iot_v0.5";
+    const char *ver = "iot_v0.6";
     static const byte num_param = 6;
     char inline_param[num_param][20]; //values from user
-    
+
     struct MQTT_msg
     {
         char from_topic[50];
@@ -119,8 +122,7 @@ public:
     char prefixTopic[MaxTopicLength];
     char deviceTopic[MaxTopicLength];
     char addGroupTopic[MaxTopicLength];
-    // char extTopic[MaxTopicLength];
-    char *extTopic[2]={nullptr, nullptr};
+    char *extTopic[2] = {nullptr, nullptr};
 
     char mqqt_ext_buffer[3][150];
     int max_mqtt_msg = 200;
@@ -178,8 +180,9 @@ private:
     // holds informamtion
     char bootTime[50];
     bool firstRun = true;
-    bool _failNTP = false;
-    int8_t NTP_eADR = 100;
+    byte _start_eADR = 100;
+    int8_t NTP_eADR;
+    int8_t _prevBootclock_eADR[bootlog_len];
 
     // ~~~~~~~~~~~~~~WIFI ~~~~~~~~~~~~~~~~~~~~~
     bool startWifi(char *ssid, char *password);
@@ -206,6 +209,8 @@ private:
     // ~~~~~~~ Services  ~~~~~~~~~~~~~~~~~~~~~~~~
     void startWDT();
     void acceptOTA();
+    void start_EEPROM_eADR();
+    void update_bootclockLOG();
 
     // ~~~~~~~ EEPROM  ~~~~~~~~~~~~~~~~~~~~~~~~
     void EEPROMWritelong(int address, long value);

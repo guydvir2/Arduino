@@ -7,8 +7,8 @@
 #define USE_SMS_NOTIF 1
 /* ~~~~~~~~~~~~~~~ */
 
-#define SMS_PREFIX "sms"
-#define EMAIL_PREFIX "email"
+const char *SMS_PREFIX = "sms";
+const char *EMAIL_PREFIX = "email";
 #define LED_ON HIGH
 #define LED_OFF !LED_ON
 
@@ -52,6 +52,13 @@ bool extTopics_looper()
                     iot.clear_ExtTopicbuff();
                     return 1;
                 }
+                else
+                {
+                    Serial.println("Email sent failed");
+                    iot.pub_log("[eMail]: failed sent");
+                    iot.clear_ExtTopicbuff();
+                    return 0;
+                }
 #endif
             }
             else if (strcmp(DOC["type"], SMS_PREFIX) == 0)
@@ -63,8 +70,12 @@ bool extTopics_looper()
                 {
                     iot.pub_log("[SMS]: sent successfully");
                     iot.clear_ExtTopicbuff();
-
                     return 1;
+                }
+                else{
+                    iot.pub_log("[SMS]: sent failed");
+                    iot.clear_ExtTopicbuff();
+                    return 0;
                 }
 #endif
             }
@@ -95,7 +106,7 @@ void startIO()
     pinMode(ledPin, OUTPUT);
     digitalWrite(ledPin, LED_ON);
 }
-void liveBlink(int X = 5000, byte y = 3)
+void liveBlink(int X = 5000, byte y = 3, byte led_del=50)
 {
     static unsigned long lastBlink_clk = 0;
 
@@ -105,9 +116,9 @@ void liveBlink(int X = 5000, byte y = 3)
         while (i < y)
         {
             digitalWrite(ledPin, LED_OFF);
-            delay(20);
+            delay(led_del);
             digitalWrite(ledPin, LED_ON);
-            delay(20);
+            delay(led_del);
             i++;
         }
         lastBlink_clk = millis();
