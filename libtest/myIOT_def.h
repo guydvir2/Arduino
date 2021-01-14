@@ -6,14 +6,13 @@
 #define GROUP_TOPIC ""
 
 myIOT2 iot;
-extern int q_counter;
-extern int a_counter;
-extern bool send(const char *msg_t, const char *p0, const char *p1, const char *counter);
+extern bool send(const char *msg_t, const char *p0, const char *p1, const char *counter, const char *key[]);
 
 void addiotnalMQTT(char *incoming_msg)
 {
     char msg[150];
     char msg2[20];
+
     if (strcmp(incoming_msg, "status") == 0)
     {
         sprintf(msg, "Status: OK");
@@ -34,10 +33,7 @@ void addiotnalMQTT(char *incoming_msg)
         int num_parameters = iot.inline_read(incoming_msg);
         if (strcmp(iot.inline_param[0], "q") == 0)
         {
-            q_counter++;
             char a[10];
-            sprintf(a, "#%d", q_counter);
-            send("q", iot.inline_param[1], a,"");
         }
         Serial.println(iot.inline_param[0]);
         Serial.println(iot.inline_param[1]);

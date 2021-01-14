@@ -10,7 +10,7 @@
 
 class myRF24
 {
-#define VER "myRF24_v0.3"
+#define VER "myRF24_v0.4"
 private:
     struct RFmsg
     {
@@ -36,8 +36,8 @@ public:
     bool RFread(char out[], int fail_micros = 200);                         /*plain read*/
     bool RFread(char out[], const char *key, int fail_micros = 200);        /*JSON format */
     bool RFread2(char outmsg[], int del=100);
-    void genJSONmsg(char a[], const char *msg_t, const char *key, const char *value);
-    void genJSONmsg(char a[], const char *msg_t, const char *key, const char *value, const char *key2, const char *value2);
+    // void genJSONmsg(char a[], const char *msg_t, const char *key, const char *value);
+    // void genJSONmsg(char a[], const char *msg_t, const char *key, const char *value, const char *key2, const char *value2);
 
 private:
     bool _RFwrite_nosplit(const char *msg); /*plain sending*/
