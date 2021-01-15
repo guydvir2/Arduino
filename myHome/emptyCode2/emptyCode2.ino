@@ -17,11 +17,11 @@ void setup()
         startIOTservices();
         endRead_parameters();
 #endif
-        String A = "gsf;bgiosdfbksjdhfbskljdfbsldkjfbhsldkjfbhsdlkfjbadlfkbjadflbkjsdfkbjsdflbjksdnflbkjsdfbkljsdnbskldfjbnsdklfbjsdnflkbjsdnfbkljsnv kasjncdvaslkdjvnarfvjaksdfnvlkasjdvnalksdjvngsf;bgiosdfbksjdhfbskljdfbsldkjfbhsldkjfbhsdlkfjbadlfkbjadflbkjsdfkbjsdflbjksdnflbkjsdfbkljsdnbskldfjbnsdklfbjsdnflkbjsdnfbkljsnv kasjncdvaslkdjvnarfvjaksdfnvlkasjdvnalksdjvn";
-        iot.pub_email(A, "fhfhfjh", "yybyyb");
+        pinMode(13, OUTPUT);
 }
 void loop()
 {
         iot.looper();
+        digitalWrite(13, !digitalRead(13));
         delay(100);
 }
