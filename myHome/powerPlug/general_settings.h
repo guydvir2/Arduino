@@ -1,9 +1,9 @@
 #define swPin 0
 #define relayPin 12
 #define ledPin 13
-#define relayON LOW
-#define swON LOW
-#define ledON LOW
+#define relayON HIGH /* Relay contacts . Red Led turns on ( in hardware ) */
+#define swON LOW     /* Press Button */
+#define ledON LOW    /* green led will be on when Relay is off */
 
 bool relayState = !relayON;
 bool ledState = !ledON;

@@ -1,3 +1,4 @@
+// to be removed
 #include "IRremote.h"
 
 //==============================================================================
@@ -9,7 +10,9 @@
 //==============================================================================
 
 // I think this is a Sanyo decoder:  Serial = SA 8650B
-// Looks like Sony except for timings, 48 chars of data and time/space different
+// Looks like Sony except for timings
+// See https://github.com/Arduino-IRremote/Arduino-IRremote/issues/521#issuecomment-331186455
+// see: https://www.sbprojects.net/knowledge/ir/sirc.php
 
 #define SANYO_BITS                   12
 #define SANYO_HEADER_MARK	       3500  // seen range 3500
@@ -20,7 +23,6 @@
 #define SANYO_DOUBLE_SPACE_USECS    800  // usually see 713 - not using ticks as get number wrap around
 
 //+=============================================================================
-#if DECODE_SANYO
 bool IRrecv::decodeSanyo() {
     long data = 0;
     unsigned int offset = 0;  // Don't skip first space, check its size
@@ -42,8 +44,8 @@ bool IRrecv::decodeSanyo() {
         //Serial.print("IR Gap found: ");
         results.bits = 0;
         results.value = REPEAT;
-        results.isRepeat = true;
-        results.decode_type = SANYO;
+        decodedIRData.flags = IRDATA_FLAGS_IS_OLD_DECODER | IRDATA_FLAGS_IS_REPEAT;
+        decodedIRData.protocol = SANYO;
         return true;
     }
     offset++;
@@ -60,7 +62,7 @@ bool IRrecv::decodeSanyo() {
     }
     offset++;
 
-    while (offset + 1 < irparams.rawlen) {
+    while (offset + 1 < results.rawlen) {
         if (!MATCH_SPACE(results.rawbuf[offset], SANYO_HEADER_SPACE)) {
             break;
         }
@@ -84,7 +86,8 @@ bool IRrecv::decodeSanyo() {
     }
 
     results.value = data;
-    results.decode_type = SANYO;
+    decodedIRData.protocol = SANYO;
+    decodedIRData.flags = IRDATA_FLAGS_IS_OLD_DECODER;
     return true;
 }
 bool IRrecv::decodeSanyo(decode_results *aResults) {
@@ -92,4 +95,3 @@ bool IRrecv::decodeSanyo(decode_results *aResults) {
     *aResults = results;
     return aReturnValue;
 }
-#endif

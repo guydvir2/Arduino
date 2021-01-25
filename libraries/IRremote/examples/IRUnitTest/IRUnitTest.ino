@@ -19,13 +19,13 @@ IRrecv IrReceiver(0);
 void dump() {
     int count = IrReceiver.results.rawlen;
 
-    if (IrReceiver.results.decode_type == UNKNOWN) {
+    if (IrReceiver.decodedIRData.protocol == UNKNOWN) {
         Serial.println("Could not decode message");
     } else {
-        IrReceiver.printResultShort(&Serial);
+        IrReceiver.printIRResultShort(&Serial);
 
         Serial.print(" (");
-        Serial.print(IrReceiver.results.bits, DEC);
+        Serial.print(IrReceiver.decodedIRData.numberOfBits, DEC);
         Serial.println(" bits)");
     }
     Serial.print("Raw (");
@@ -99,12 +99,12 @@ public:
 
 IRsendDummy irsenddummy;
 
-void verify(unsigned long val, int bits, int type) {
+void verify(unsigned long val, unsigned int bits, unsigned int type) {
     irsenddummy.useDummyBuf();
     IrReceiver.decode();
     Serial.print("Testing ");
     Serial.print(val, HEX);
-    if (IrReceiver.results.value == val && IrReceiver.results.bits == bits && IrReceiver.results.decode_type == type) {
+    if (IrReceiver.results.value == val && IrReceiver.decodedIRData.numberOfBits == bits && IrReceiver.decodedIRData.protocol == type) {
         Serial.println(": OK");
     } else {
         Serial.println(": Error");

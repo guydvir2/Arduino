@@ -134,6 +134,12 @@ void qna(char *inmsg)
   {
     handle_INanswer(DOC);
   }
+
+  /* got cmd */
+  else if (strcmp(DOC[keys[1]], m_types[2]) == 0)
+  {
+    handle_INcmd(DOC);
+  }
 }
 void handle_INquestion(JsonDocument &DOC)
 {
@@ -153,12 +159,22 @@ void handle_INquestion(JsonDocument &DOC)
 void handle_INanswer(JsonDocument &DOC)
 {
   inmsg_counter[1]++;
-  if (strcmp(DOC[keys[2]], questions[0]) == 0) /* p0 is clk - ask for time_stamp - IOT only*/
+  if (strcmp(DOC[keys[2]], questions[0]) == 0) /* p0 is clk - ans for time_stamp*/
   {
     // Serial.println("Yes not I know what time it is");
     yield;
   }
 }
+void handle_INcmd(JsonDocument &DOC)
+{
+  inmsg_counter[1]++;
+  if (strcmp(DOC[keys[2]], cmds[0]) == 0) /* mqtt*/
+  {
+    // Serial.println("Yes not I know what time it is");
+    yield;
+  }
+}
+
 void a_timely_q(long tint, const char *msg_t, char *p0, char *p1 = "")
 {
   static long question_clock = 0;

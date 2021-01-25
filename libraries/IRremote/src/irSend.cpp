@@ -1,32 +1,90 @@
+/*
+ * irSend.cpp
+ *
+ *  Contains common functions for sending
+ *
+ *  This file is part of Arduino-IRremote https://github.com/z3t0/Arduino-IRremote.
+ *
+ ************************************************************************************
+ * MIT License
+ *
+ * Copyright (c) 2009-2021 Ken Shirriff, Rafi Khan, Armin Joachimsmeyer
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is furnished
+ * to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+ * INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
+ * PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+ * HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
+ * CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE
+ * OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ *
+ ************************************************************************************
+ */
+//#define DEBUG
 #include "IRremote.h"
 
 #ifdef SENDING_SUPPORTED // from IRremoteBoardDefs.h
 //+=============================================================================
-void IRsend::sendRaw(const unsigned int buf[], unsigned int len, unsigned int hz) {
+void IRsend::sendRaw(const uint16_t aBufferWithMicroseconds[], uint8_t aLengthOfBuffer, uint8_t aIRFrequencyKilohertz) {
     // Set IR carrier frequency
-    enableIROut(hz);
+    enableIROut(aIRFrequencyKilohertz);
 
-    for (unsigned int i = 0; i < len; i++) {
+    /*
+     * Raw data starts with a mark.
+     */
+    for (uint8_t i = 0; i < aLengthOfBuffer; i++) {
         if (i & 1) {
-            space(buf[i]);
+            // Odd
+            space(aBufferWithMicroseconds[i]);
         } else {
-            mark(buf[i]);
+            mark(aBufferWithMicroseconds[i]);
         }
     }
 
     space(0);  // Always end with the LED off
 }
 
-void IRsend::sendRaw_P(const unsigned int buf[], unsigned int len, unsigned int hz) {
+/*
+ * New function using an 8 byte buffer
+ * Raw data starts with a Mark. No leading space any more.
+ */
+void IRsend::sendRaw(const uint8_t aBufferWithTicks[], uint8_t aLengthOfBuffer, uint8_t aIRFrequencyKilohertz) {
+    // Set IR carrier frequency
+    enableIROut(aIRFrequencyKilohertz);
+
+    for (uint8_t i = 0; i < aLengthOfBuffer; i++) {
+        if (i & 1) {
+            // Odd
+            space(aBufferWithTicks[i] * MICROS_PER_TICK);
+        } else {
+            mark(aBufferWithTicks[i] * MICROS_PER_TICK);
+        }
+    }
+    space(0);  // Always end with the LED off
+}
+
+void IRsend::sendRaw_P(const uint16_t aBufferWithMicroseconds[], uint8_t aLengthOfBuffer, uint8_t aIRFrequencyKilohertz) {
 #if !defined(__AVR__)
-    sendRaw(buf,len,hz); // Let the function work for non AVR platforms
+    sendRaw(aBufferWithMicroseconds, aLengthOfBuffer, aIRFrequencyKilohertz); // Let the function work for non AVR platforms
 #else
     // Set IR carrier frequency
-    enableIROut(hz);
-
-    for (unsigned int i = 0; i < len; i++) {
-        uint16_t duration = pgm_read_word_near(buf + sizeof(uint16_t) * i);
+    enableIROut(aIRFrequencyKilohertz);
+    /*
+     * Raw data starts with a mark
+     */
+    for (uint8_t i = 0; i < aLengthOfBuffer; i++) {
+        uint16_t duration = pgm_read_word(&aBufferWithMicroseconds[i]);
         if (i & 1) {
+            // Odd
             space(duration);
         } else {
             mark(duration);
@@ -34,7 +92,30 @@ void IRsend::sendRaw_P(const unsigned int buf[], unsigned int len, unsigned int 
     }
     space(0);  // Always end with the LED off
 #endif
+}
 
+/*
+ * New function using an 8 byte buffer
+ * Raw data starts with a Mark. No leading space any more.
+ */
+void IRsend::sendRaw_P(const uint8_t aBufferWithTicks[], uint8_t aLengthOfBuffer, uint8_t aIRFrequencyKilohertz) {
+#if !defined(__AVR__)
+    sendRaw(aBufferWithTicks, aLengthOfBuffer, aIRFrequencyKilohertz); // Let the function work for non AVR platforms
+#else
+    // Set IR carrier frequency
+    enableIROut(aIRFrequencyKilohertz);
+
+    for (uint8_t i = 0; i < aLengthOfBuffer; i++) {
+        uint16_t duration = pgm_read_byte(&aBufferWithTicks[i]) * (uint16_t) MICROS_PER_TICK;
+        if (i & 1) {
+            // Odd
+            space(duration);
+        } else {
+            mark(duration);
+        }
+    }
+    space(0);  // Always end with the LED off
+#endif
 }
 
 #ifdef USE_SOFT_SEND_PWM
@@ -62,48 +143,89 @@ void inline IRsend::sleepUntilMicros(unsigned long targetTime) {
 #endif // USE_SOFT_SEND_PWM
 
 //+=============================================================================
-// Sends PulseDistance data from MSB to LSB
+// Sends PulseDistance data
 //
 void IRsend::sendPulseDistanceWidthData(unsigned int aOneMarkMicros, unsigned int aOneSpaceMicros, unsigned int aZeroMarkMicros,
-        unsigned int aZeroSpaceMicros, unsigned long aData, uint8_t aNumberOfBits, bool aMSBfirst) {
+        unsigned int aZeroSpaceMicros, uint32_t aData, uint8_t aNumberOfBits, bool aMSBfirst, bool aSendStopBit) {
 
     if (aMSBfirst) {  // Send the MSB first.
         // send data from MSB to LSB until mask bit is shifted out
-        for (unsigned long mask = 1UL << (aNumberOfBits - 1); mask; mask >>= 1) {
-            if (aData & mask) {
-                DBG_PRINT("1");
+        for (uint32_t tMask = 1UL << (aNumberOfBits - 1); tMask; tMask >>= 1) {
+            if (aData & tMask) {
+                TRACE_PRINT('1');
                 mark(aOneMarkMicros);
                 space(aOneSpaceMicros);
             } else {
-                DBG_PRINT("0");
+                TRACE_PRINT('0');
                 mark(aZeroMarkMicros);
                 space(aZeroSpaceMicros);
             }
         }
-        DBG_PRINTLN("");
-    }
-#if defined(LSB_FIRST_REQUIRED)
-    else {  // Send the Least Significant Bit (LSB) first / MSB last.
-        for (uint16_t bit = 0; bit < aNumberOfBits; bit++, aData >>= 1)
+    } else {  // Send the Least Significant Bit (LSB) first / MSB last.
+        for (uint8_t bit = 0; bit < aNumberOfBits; bit++, aData >>= 1)
             if (aData & 1) {  // Send a 1
-                DBG_PRINT("1");
+                TRACE_PRINT('1');
                 mark(aOneMarkMicros);
                 space(aOneSpaceMicros);
             } else {  // Send a 0
-                DBG_PRINT("0");
+                TRACE_PRINT('0');
                 mark(aZeroMarkMicros);
                 space(aZeroSpaceMicros);
             }
-        DBG_PRINTLN("");
     }
+    if (aSendStopBit) {
+        TRACE_PRINT('S');
+        mark(aZeroMarkMicros); // seems like this is used for stop bits
+        space(0);  // Always end with the LED off
+    }
+    TRACE_PRINTLN("");
+}
+
+/*
+ * Always send start bit, do not send the trailing space of the start bit
+ * 0 -> mark+space
+ * 1 -> space+mark
+ */
+void IRsend::sendBiphaseData(unsigned int aBiphaseTimeUnit, uint32_t aData, uint8_t aNumberOfBits) {
+
+    // do not send the trailing space of the start bit
+    mark(aBiphaseTimeUnit);
+
+    TRACE_PRINT('S');
+    uint8_t tLastBitValue = 1; // Start bit is a 1
+
+    // Data - Biphase code MSB first
+    for (uint32_t tMask = 1UL << (aNumberOfBits - 1); tMask; tMask >>= 1) {
+        if (aData & tMask) {
+            TRACE_PRINT('1');
+            space(aBiphaseTimeUnit);
+            mark(aBiphaseTimeUnit);
+            tLastBitValue = 1;
+
+        } else {
+            TRACE_PRINT('0');
+#ifdef USE_SOFT_SEND_PWM
+            mark(aBiphaseTimeUnit);
+#else
+            if (tLastBitValue) {
+                // Extend the current mark in order to generate a continuous signal without short breaks
+                delayMicroseconds(aBiphaseTimeUnit);
+            } else {
+                mark(aBiphaseTimeUnit);
+            }
 #endif
+            space(aBiphaseTimeUnit);
+            tLastBitValue = 0;
+        }
+    }
+    space(0);  // Always end with the LED off
+    TRACE_PRINTLN("");
 }
 
 //+=============================================================================
 // Sends an IR mark for the specified number of microseconds.
 // The mark output is modulated at the PWM frequency.
 //
-
 void IRsend::mark(uint16_t timeMicros) {
 #ifdef USE_SOFT_SEND_PWM
     unsigned long start = micros();
@@ -126,22 +248,27 @@ void IRsend::mark(uint16_t timeMicros) {
 #elif defined(USE_NO_SEND_PWM)
     digitalWrite(sendPin, LOW); // Set output to active low.
 #else
-    TIMER_ENABLE_SEND_PWM; // Enable pin 3 PWM output
-#endif
-    if (timeMicros > 0) {
+    TIMER_ENABLE_SEND_PWM
+    ; // Enable pin 3 PWM output
+
+    // Arduino core does not implement delayMicroseconds() for 4 MHz :-(
+#  if F_CPU == 4000000L && defined(__AVR__)
+    // busy wait
+    __asm__ __volatile__ (
+        "1: sbiw %0,1" "\n\t" // 2 cycles
+        "brne 1b" : "=w" (timeMicros) : "0" (timeMicros) // 2 cycles
+    );
+#  else
+    if (timeMicros >= 0x4000) {
+        // The implementation of Arduino delayMicroseconds() overflows at 0x4000 / 16.384 @16MHz (wiring.c line 175)
+        // But for sendRaw() and external protocols values between 16.384 and 65.535 might be required
+        // Use delay(), this in calls yield which is required on some platforms to work properly
+        delay(timeMicros / 1000);
+    } else {
         delayMicroseconds(timeMicros);
     }
-}
-
-void IRsend::mark_long(uint32_t timeMicros) {
-#if defined(USE_NO_SEND_PWM)
-    digitalWrite(sendPin, LOW); // Set output to active low.
-#else
-    TIMER_ENABLE_SEND_PWM; // Enable pin 3 PWM output
-#endif
-    if (timeMicros > 0) {
-        custom_delay_usec(timeMicros);
-    }
+#  endif // F_CPU == 4000000L && defined(__AVR__)
+#endif //  USE_SOFT_SEND_PWM
 }
 
 //+=============================================================================
@@ -154,25 +281,25 @@ void IRsend::space(uint16_t timeMicros) {
     digitalWrite(sendPin, HIGH); // Set output to inactive high.
 #else
     TIMER_DISABLE_SEND_PWM; // Disable PWM output
-#endif
-    if (timeMicros > 0) {
+#endif // defined(USE_NO_SEND_PWM)
+
+    // Arduino core does not implement delayMicroseconds() for 4 MHz :-(
+#if F_CPU == 4000000L && defined(__AVR__)
+    // busy wait
+    __asm__ __volatile__ (
+        "1: sbiw %0,1" "\n\t" // 2 cycles
+        "brne 1b" : "=w" (timeMicros) : "0" (timeMicros) // 2 cycles
+    );
+#else
+    if (timeMicros >= 0x4000) {
+        // The implementation of Arduino delayMicroseconds() overflows at 0x4000 / 16.384 @16MHz (wiring.c line 175)
+        // But for sendRaw() and external protocols values between 16.384 and 65.535 might be required
+        // Use delay(), this in calls yield which is required on some platforms to work properly
+        delay(timeMicros / 1000);
+    } else {
         delayMicroseconds(timeMicros);
     }
-}
-
-/*
- * used e.g. by LEGO
- */
-void IRsend::space_long(uint32_t timeMicros) {
-#if defined(USE_NO_SEND_PWM)
-    digitalWrite(sendPin, HIGH); // Set output to inactive high.
-#else
-    TIMER_DISABLE_SEND_PWM; // Disable PWM output
-#endif
-    if (timeMicros > 0) {
-        // custom delay does not work on an ATtiny85 with 1 MHz. It results in a delay of 760 us instead of the requested 560 us
-        custom_delay_usec(timeMicros);
-    }
+#endif // F_CPU == 4000000L && defined(__AVR__)
 }
 
 #ifdef USE_DEFAULT_ENABLE_IR_OUT
@@ -206,25 +333,8 @@ void IRsend::enableIROut(int khz) {
     SENDPIN_OFF(sendPin); // When not sending, we want it low
 
     timerConfigForSend(khz);
-#endif
+#endif // defined(USE_NO_SEND_PWM)
 }
-#endif
-
-//+=============================================================================
-// Custom delay function that circumvents Arduino's delayMicroseconds 16 bit limit
-// It does not work on an ATtiny85 with 1 MHz. It results in a delay of 760 us instead of the requested 560 us
-
-void IRsend::custom_delay_usec(unsigned long uSecs) {
-    if (uSecs > 4) {
-        unsigned long start = micros();
-        unsigned long endMicros = start + uSecs - 4;
-        if (endMicros < start) { // Check if overflow
-            while (micros() > start) {
-            } // wait until overflow
-        }
-        while (micros() < endMicros) {
-        } // normal wait
-    }
-}
+#endif // USE_DEFAULT_ENABLE_IR_OUT
 
 #endif // SENDING_SUPPORTED

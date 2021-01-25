@@ -3,7 +3,7 @@
 #include <myJSON.h>
 
 #define JSON_SIZE_IOT 400
-#define JSON_SIZE_SKETCH 200
+#define JSON_SIZE_SKETCH 1200
 
 char *sketch_paramfile = "/sketch_param.json";
 bool readfile_ok = false;
@@ -31,15 +31,16 @@ void startRead_parameters()
                         \"hReboots\" : [1,2],\"start_dTO\" : [[19,0, 0],[20,30,0]],\"end_dTO\" : [[23,30,0],[22,0,0]],\
                         \"timeOUTS\" : [120,120],\"SW_Names\" : [\"powerPlug\",\"LED2\"],\"defPWM\":0.7}";
 
-  // deserializeJson(paramJSON, myIOT_defs);
-  if (iot.read_fPars(iot.myIOT_paramfile, myIOT_defs, paramJSON)) // && iot.read_fPars(sketch_paramfile, sketch_defs, sketchJSON))
-  {
-    readfile_ok = true;
-  }
-  // Serial.begin(9600);
+
+  bool a = iot.read_fPars(sketch_paramfile, sketch_defs, sketchJSON);
+  bool b = iot.read_fPars(iot.myIOT_paramfile, myIOT_defs, paramJSON);
+  readfile_ok = a && b;
+
+  // serializeJsonPretty(sketchJSON, Serial);
+  // serializeJsonPretty(paramJSON, Serial);
+  // Serial.flush();
   // update_vars(sketchJSON);
-  // paramJSON["Guy"] = "dvir";
-  serializeJsonPretty(paramJSON, Serial);
+
 }
 void endRead_parameters()
 {
@@ -48,5 +49,5 @@ void endRead_parameters()
     iot.pub_log("Error read Parameters from file. Defaults values loaded.");
   }
   paramJSON.clear();
-  // sketchJSON.clear();
+  sketchJSON.clear();
 }

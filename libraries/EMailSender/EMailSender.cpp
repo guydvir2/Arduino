@@ -1,3 +1,37 @@
+/*
+ * EMail Sender Arduino, esp8266 and esp32 library to send email
+ *
+ * AUTHOR:  Renzo Mischianti
+ * VERSION: 2.2.0
+ *
+ * https://www.mischianti.org/
+ *
+ * The MIT License (MIT)
+ *
+ * Copyright (c) 2017 Renzo Mischianti www.mischianti.org All right reserved.
+ *
+ * You may copy, alter and reuse this code in any way you like, but please leave
+ * reference to www.mischianti.org in your comments if you redistribute this code.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
+ */
+
 #include "EMailSender.h"
 #include<stdio.h>
 //#include <SPIFFS.h>
@@ -193,58 +227,60 @@ void encodeblock(unsigned char in[3],unsigned char out[4],int len) {
  out[3]=(unsigned char) (len>2 ? cb64[in[2]&0x3F] : '=');
 }
 
-#if (defined(STORAGE_SPIFFS_ENABLED) && defined(FS_NO_GLOBALS))
-		void encode(fs::File *file, EMAIL_NETWORK_CLASS *client) {
-		 unsigned char in[3],out[4];
-		 int i,len,blocksout=0;
+#ifdef ENABLE_ATTACHMENTS
+	#if (defined(STORAGE_SPIFFS_ENABLED) && defined(FS_NO_GLOBALS))
+			void encode(fs::File *file, EMAIL_NETWORK_CLASS *client) {
+			 unsigned char in[3],out[4];
+			 int i,len,blocksout=0;
 
-		 while (file->available()!=0) {
-		   len=0;
-			 for (i=0;i<3;i++){
-				   in[i]=(unsigned char) file->read();
-					   if (file->available()!=0) len++;
-							 else in[i]=0;
-			 }
-			 if (len){
-				 encodeblock(in,out,len);
-		//         for(i=0;i<4;i++) client->write(out[i]);
-				 client->write(out, 4);
-				 blocksout++; }
-			 if (blocksout>=19||file->available()==0){
-				 if (blocksout) {
-					 client->print("\r\n");
+			 while (file->available()!=0) {
+			   len=0;
+				 for (i=0;i<3;i++){
+					   in[i]=(unsigned char) file->read();
+						   if (file->available()!=0) len++;
+								 else in[i]=0;
 				 }
-				 blocksout=0;
+				 if (len){
+					 encodeblock(in,out,len);
+			//         for(i=0;i<4;i++) client->write(out[i]);
+					 client->write(out, 4);
+					 blocksout++; }
+				 if (blocksout>=19||file->available()==0){
+					 if (blocksout) {
+						 client->print("\r\n");
+					 }
+					 blocksout=0;
+				 }
+			  }
+			}
+	#endif
+
+	#if (defined(STORAGE_SD_ENABLED) || (defined(STORAGE_SPIFFS_ENABLED) && !defined(FS_NO_GLOBALS)))
+	void encode(File *file, EMAIL_NETWORK_CLASS *client) {
+	 unsigned char in[3],out[4];
+	 int i,len,blocksout=0;
+
+	 while (file->available()!=0) {
+	   len=0;
+		 for (i=0;i<3;i++){
+			   in[i]=(unsigned char) file->read();
+				   if (file->available()!=0) len++;
+						 else in[i]=0;
+		 }
+		 if (len){
+			 encodeblock(in,out,len);
+	//         for(i=0;i<4;i++) client->write(out[i]);
+			 client->write(out, 4);
+			 blocksout++; }
+		 if (blocksout>=19||file->available()==0){
+			 if (blocksout) {
+				 client->print("\r\n");
 			 }
-		  }
-		}
-#endif
-
-#if (defined(STORAGE_SD_ENABLED) || (defined(STORAGE_SPIFFS_ENABLED) && !defined(FS_NO_GLOBALS)))
-void encode(File *file, EMAIL_NETWORK_CLASS *client) {
- unsigned char in[3],out[4];
- int i,len,blocksout=0;
-
- while (file->available()!=0) {
-   len=0;
-     for (i=0;i<3;i++){
-           in[i]=(unsigned char) file->read();
-               if (file->available()!=0) len++;
-                     else in[i]=0;
-     }
-     if (len){
-         encodeblock(in,out,len);
-//         for(i=0;i<4;i++) client->write(out[i]);
-         client->write(out, 4);
-         blocksout++; }
-     if (blocksout>=19||file->available()==0){
-         if (blocksout) {
-        	 client->print("\r\n");
-         }
-         blocksout=0;
-     }
-  }
-}
+			 blocksout=0;
+		 }
+	  }
+	}
+	#endif
 #endif
 
 const char** toCharArray(String arr[], int num) {
@@ -306,6 +342,7 @@ EMailSender::Response EMailSender::send(const char* to, EMailMessage &email, Att
 }
 
 EMailSender::Response EMailSender::send(const char* to[], byte sizeOfTo, EMailMessage &email, Attachments attachments) {
+	DEBUG_PRINTLN(F("miltiple destination and attachments"));
 	return send(to, sizeOfTo, 0, email, attachments);
 }
 
@@ -383,11 +420,11 @@ EMailSender::Response EMailSender::send(const char* to[], byte sizeOfTo,  byte s
 	      logPass[maincont++] = ' ';
 	      logPass[maincont++] = (char) 0;
 
-	      for (int i = 0;i<strlen(this->email_login);i++){
+	      for (unsigned int i = 0;i<strlen(this->email_login);i++){
 	    	  logPass[maincont++] = this->email_login[i];
 	      }
 	      logPass[maincont++] = (char) 0;
-	      for (int i = 0;i<strlen(this->email_password);i++){
+	      for (unsigned int i = 0;i<strlen(this->email_password);i++){
 	    	  logPass[maincont++] = this->email_password[i];
 	      }
 
@@ -619,7 +656,7 @@ EMailSender::Response EMailSender::send(const char* to[], byte sizeOfTo,  byte s
 #ifdef OPEN_CLOSE_SD
 				 DEBUG_PRINTLN(F("SD Check"));
 				 if (!SD.exists(attachments.fileDescriptor[i].url.c_str())){
-					if(!SD.begin(4)){
+					if(!SD.begin(SD_CS_PIN)){
 						  response.code = F("500");
 						  response.desc = F("Error on startup SD filesystem!");
 						  response.status = false;
