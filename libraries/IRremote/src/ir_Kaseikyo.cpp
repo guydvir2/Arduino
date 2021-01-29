@@ -95,7 +95,7 @@ void IRsend::sendKaseikyo(uint16_t aAddress, uint8_t aCommand, uint8_t aNumberOf
 
         // Vendor ID
         sendPulseDistanceWidthData(KASEIKYO_BIT_MARK, KASEIKYO_ONE_SPACE, KASEIKYO_BIT_MARK, KASEIKYO_ZERO_SPACE, aVendorCode,
-        KASEIKYO_VENDOR_ID_BITS, false);
+        KASEIKYO_VENDOR_ID_BITS, LSB_FIRST);
 
         // Vendor Parity
         uint8_t tVendorParity = aVendorCode ^ (aVendorCode >> 8);
@@ -109,7 +109,7 @@ void IRsend::sendKaseikyo(uint16_t aAddress, uint8_t aCommand, uint8_t aNumberOf
 
         // Send address (device and subdevice) + command + parity + Stop bit
         sendPulseDistanceWidthData(KASEIKYO_BIT_MARK, KASEIKYO_ONE_SPACE, KASEIKYO_BIT_MARK, KASEIKYO_ZERO_SPACE, tSendValue.ULong,
-        KASEIKYO_ADDRESS_BITS + KASEIKYO_VENDOR_ID_PARITY_BITS + KASEIKYO_COMMAND_BITS + KASEIKYO_PARITY_BITS, false, true);
+        KASEIKYO_ADDRESS_BITS + KASEIKYO_VENDOR_ID_PARITY_BITS + KASEIKYO_COMMAND_BITS + KASEIKYO_PARITY_BITS, LSB_FIRST, SEND_STOP_BIT);
 
         interrupts();
 
@@ -133,17 +133,17 @@ bool IRrecv::decodeKaseikyo() {
 
     decode_type_t tProtocol;
     // Check we have enough data (100)- +4 for initial gap, start bit mark and space + stop bit mark
-    if (results.rawlen != ((2 * KASEIKYO_BITS) + 4)) {
+    if (decodedIRData.rawDataPtr->rawlen != ((2 * KASEIKYO_BITS) + 4)) {
         return false;
     }
 
-    if (!MATCH_MARK(results.rawbuf[1], KASEIKYO_HEADER_MARK)) {
+    if (!MATCH_MARK(decodedIRData.rawDataPtr->rawbuf[1], KASEIKYO_HEADER_MARK)) {
         DBG_PRINT("Kaseikyo: ");
         DBG_PRINTLN("Header mark length is wrong");
         return false;
     }
 
-    if (!MATCH_MARK(results.rawbuf[2], KASEIKYO_HEADER_SPACE)) {
+    if (!MATCH_MARK(decodedIRData.rawDataPtr->rawbuf[2], KASEIKYO_HEADER_SPACE)) {
         DBG_PRINT("Kaseikyo: ");
         DBG_PRINTLN("Header space length is wrong");
         return false;
@@ -156,16 +156,16 @@ bool IRrecv::decodeKaseikyo() {
         return false;
     }
 
-    uint16_t tVendorId = results.value;
-    if (results.value == PANASONIC_VENDOR_ID_CODE) {
+    uint16_t tVendorId = decodedIRData.decodedRawData;
+    if (tVendorId == PANASONIC_VENDOR_ID_CODE) {
         tProtocol = PANASONIC;
-    } else if (results.value == SHARP_VENDOR_ID_CODE) {
+    } else if (tVendorId == SHARP_VENDOR_ID_CODE) {
         tProtocol = KASEIKYO_SHARP;
-    } else if (results.value == DENON_VENDOR_ID_CODE) {
+    } else if (tVendorId == DENON_VENDOR_ID_CODE) {
         tProtocol = KASEIKYO_DENON;
-    } else if (results.value == JVC_VENDOR_ID_CODE) {
+    } else if (tVendorId == JVC_VENDOR_ID_CODE) {
         tProtocol = KASEIKYO_JVC;
-    } else if (results.value == MITSUBISHI_VENDOR_ID_CODE) {
+    } else if (tVendorId == MITSUBISHI_VENDOR_ID_CODE) {
         tProtocol = KASEIKYO_MITSUBISHI;
     } else {
         tProtocol = KASEIKYO;
@@ -184,8 +184,11 @@ bool IRrecv::decodeKaseikyo() {
         DBG_PRINTLN("Address, command + parity decode failed");
         return false;
     }
+
+    // Success
+//    decodedIRData.flags = IRDATA_FLAGS_IS_LSB_FIRST; // Not required, since this is the start value
     LongUnion tValue;
-    tValue.ULong = results.value;
+    tValue.ULong = decodedIRData.decodedRawData;
     decodedIRData.address = (tValue.UWord.LowWord >> KASEIKYO_VENDOR_ID_PARITY_BITS); // remove vendor parity
     decodedIRData.command = tValue.UByte.MidHighByte;
     uint8_t tParity = tValue.UByte.LowByte ^ tValue.UByte.MidLowByte ^ tValue.UByte.MidHighByte;
@@ -195,10 +198,10 @@ bool IRrecv::decodeKaseikyo() {
         DBG_PRINT("4 bit VendorID Parity is not correct. expected=0x");
         DBG_PRINT(tVendorParity, HEX);
         DBG_PRINT(" received=0x");
-        DBG_PRINT(results.value, HEX);
+        DBG_PRINT(decodedIRData.decodedRawData, HEX);
         DBG_PRINT(" VendorID=0x");
         DBG_PRINTLN(tVendorId, HEX);
-        decodedIRData.flags = IRDATA_FLAGS_PARITY_FAILED;
+        decodedIRData.flags = IRDATA_FLAGS_PARITY_FAILED | IRDATA_FLAGS_IS_LSB_FIRST;
     }
 
     if (tProtocol == KASEIKYO) {
@@ -214,16 +217,16 @@ bool IRrecv::decodeKaseikyo() {
         DBG_PRINT("8 bit Parity is not correct. expected=0x");
         DBG_PRINT(tParity, HEX);
         DBG_PRINT(" received=0x");
-        DBG_PRINT(results.value >> KASEIKYO_COMMAND_BITS, HEX);
+        DBG_PRINT(decodedIRData.decodedRawData >> KASEIKYO_COMMAND_BITS, HEX);
         DBG_PRINT(" address=0x");
         DBG_PRINT(decodedIRData.address, HEX);
         DBG_PRINT(" command=0x");
         DBG_PRINTLN(decodedIRData.command, HEX);
-        decodedIRData.flags = IRDATA_FLAGS_PARITY_FAILED;
+        decodedIRData.flags |= IRDATA_FLAGS_PARITY_FAILED;
     }
 
     // check for repeat
-    if (results.rawbuf[0] < (KASEIKYO_REPEAT_PERIOD / MICROS_PER_TICK)) {
+    if (decodedIRData.rawDataPtr->rawbuf[0] < (KASEIKYO_REPEAT_PERIOD / MICROS_PER_TICK)) {
         decodedIRData.flags |= IRDATA_FLAGS_IS_REPEAT;
     }
 
@@ -265,13 +268,9 @@ bool IRrecv::decodePanasonic() {
     return true;
 }
 
-bool IRrecv::decodePanasonic(decode_results *aResults) {
-    bool aReturnValue = decodePanasonic();
-    *aResults = results;
-    return aReturnValue;
-}
 #endif
 
+// Old version with MSB first Data
 void IRsend::sendPanasonic(uint16_t aAddress, uint32_t aData) {
     // Set IR carrier frequency
     enableIROut(37); // 36.7kHz is the correct frequency
@@ -280,13 +279,13 @@ void IRsend::sendPanasonic(uint16_t aAddress, uint32_t aData) {
     mark(KASEIKYO_HEADER_MARK);
     space(KASEIKYO_HEADER_SPACE);
 
-    // Address
+    // Old version with MSB first Data Address
     sendPulseDistanceWidthData(KASEIKYO_BIT_MARK, KASEIKYO_ONE_SPACE, KASEIKYO_BIT_MARK, KASEIKYO_ZERO_SPACE, aAddress,
-    KASEIKYO_ADDRESS_BITS);
+    KASEIKYO_ADDRESS_BITS, MSB_FIRST);
 
-    // Data + stop bit
+    // Old version with MSB first Data Data + stop bit
     sendPulseDistanceWidthData(KASEIKYO_BIT_MARK, KASEIKYO_ONE_SPACE, KASEIKYO_BIT_MARK, KASEIKYO_ZERO_SPACE, aData,
-    KASEIKYO_DATA_BITS);
+    KASEIKYO_DATA_BITS, MSB_FIRST);
 
 }
 

@@ -79,13 +79,14 @@ void IRsend::sendSony(uint16_t aAddress, uint8_t aCommand, uint8_t aNumberOfRepe
         space(SONY_SPACE);
 
         // send 7 command bits LSB first
-        sendPulseDistanceWidthData(SONY_ONE_MARK, SONY_SPACE, SONY_ZERO_MARK, SONY_SPACE, aCommand, SONY_COMMAND_BITS, false);
+        sendPulseDistanceWidthData(SONY_ONE_MARK, SONY_SPACE, SONY_ZERO_MARK, SONY_SPACE, aCommand, SONY_COMMAND_BITS, LSB_FIRST);
         // Address 16 bit LSB first
         if (numberOfBits == SIRCS_20_PROTOCOL) {
             sendPulseDistanceWidthData(SONY_ONE_MARK, SONY_SPACE, SONY_ZERO_MARK, SONY_SPACE, aAddress,
-                    (SONY_ADDRESS_BITS + SONY_EXTRA_BITS), false);
+                    (SONY_ADDRESS_BITS + SONY_EXTRA_BITS), LSB_FIRST);
         } else {
-            sendPulseDistanceWidthData(SONY_ONE_MARK, SONY_SPACE, SONY_ZERO_MARK, SONY_SPACE, aAddress, SONY_ADDRESS_BITS, false);
+            sendPulseDistanceWidthData(SONY_ONE_MARK, SONY_SPACE, SONY_ZERO_MARK, SONY_SPACE, aAddress, SONY_ADDRESS_BITS,
+            LSB_FIRST);
         }
         interrupts();
 
@@ -104,46 +105,47 @@ void IRsend::sendSony(uint16_t aAddress, uint8_t aCommand, uint8_t aNumberOfRepe
 bool IRrecv::decodeSony() {
 
     // Check header "mark"
-    if (!MATCH_MARK(results.rawbuf[1], SONY_HEADER_MARK)) {
+    if (!MATCH_MARK(decodedIRData.rawDataPtr->rawbuf[1], SONY_HEADER_MARK)) {
         return false;
     }
 
     // Check we have enough data. +2 for initial gap and start bit mark and space minus the last/MSB space. NO stop bit!
-    if (results.rawlen != (2 * SONY_BITS_MIN) + 2 && results.rawlen != (2 * SONY_BITS_MAX) + 2
-            && results.rawlen != (2 * SONY_BITS_15) + 2) {
+    if (decodedIRData.rawDataPtr->rawlen != (2 * SONY_BITS_MIN) + 2 && decodedIRData.rawDataPtr->rawlen != (2 * SONY_BITS_MAX) + 2
+            && decodedIRData.rawDataPtr->rawlen != (2 * SONY_BITS_15) + 2) {
         // TRACE_PRINT since I saw this too often
         TRACE_PRINT("Sony: ");
         TRACE_PRINT("Data length=");
-        TRACE_PRINT(results.rawlen);
+        TRACE_PRINT(decodedIRData.rawDataPtr->rawlen);
         TRACE_PRINTLN(" is not 12, 15 or 20");
         return false;
     }
     // Check header "space"
-    if (!MATCH_SPACE(results.rawbuf[2], SONY_SPACE)) {
+    if (!MATCH_SPACE(decodedIRData.rawDataPtr->rawbuf[2], SONY_SPACE)) {
         DBG_PRINT("Sony: ");
         DBG_PRINTLN("Header space length is wrong");
         return false;
     }
 
-    if (!decodePulseWidthData((results.rawlen - 1) / 2, 3, SONY_ONE_MARK, SONY_ZERO_MARK, SONY_SPACE, false)) {
+    if (!decodePulseWidthData((decodedIRData.rawDataPtr->rawlen - 1) / 2, 3, SONY_ONE_MARK, SONY_ZERO_MARK, SONY_SPACE, false)) {
         DBG_PRINT("Sony: ");
         DBG_PRINTLN("Decode failed");
         return false;
     }
 
     // Success
-    uint8_t tCommand = results.value & 0x7F;  // first 7 bits
-    uint8_t tAddress = results.value >> 7;    // next 5 or 8 bits
+//    decodedIRData.flags = IRDATA_FLAGS_IS_LSB_FIRST; // Not required, since this is the start value
+    uint8_t tCommand = decodedIRData.decodedRawData & 0x7F;  // first 7 bits
+    uint8_t tAddress = decodedIRData.decodedRawData >> 7;    // next 5 or 8 bits
 
     /*
      *  Check for repeat
      */
-    if (results.rawbuf[0] < (SONY_REPEAT_PERIOD / MICROS_PER_TICK)) {
-        decodedIRData.flags = IRDATA_FLAGS_IS_REPEAT;
+    if (decodedIRData.rawDataPtr->rawbuf[0] < (SONY_REPEAT_PERIOD / MICROS_PER_TICK)) {
+        decodedIRData.flags = IRDATA_FLAGS_IS_REPEAT | IRDATA_FLAGS_IS_LSB_FIRST;
     }
     decodedIRData.command = tCommand;
     decodedIRData.address = tAddress;
-    decodedIRData.numberOfBits = (results.rawlen - 1) / 2;
+    decodedIRData.numberOfBits = (decodedIRData.rawDataPtr->rawlen - 1) / 2;
     decodedIRData.protocol = SONY;
 
     return true;
@@ -153,7 +155,7 @@ bool IRrecv::decodeSony() {
 
 #define SONY_DOUBLE_SPACE_USECS    500 // usually see 713 - not using ticks as get number wrap around
 
-#warning "Old decoder functions decodeSony() and decodeSony(decode_results *aResults) are enabled. Enable USE_STANDARD_DECODE on line 34 of IRremote.h to enable new version of decodeSony() instead."
+#warning "Old decoder function decodeSony() is enabled. Enable USE_STANDARD_DECODE on line 34 of IRremote.h to enable new version of decodeSony() instead."
 
 bool IRrecv::decodeSony() {
     long data = 0;
@@ -212,15 +214,10 @@ bool IRrecv::decodeSony() {
     return true;
 }
 
-bool IRrecv::decodeSony(decode_results *aResults) {
-    bool aReturnValue = decodeSony();
-    *aResults = results;
-    return aReturnValue;
-}
-
 #endif
 
 //+=============================================================================
+//  Old version with MSB first Data
 void IRsend::sendSony(unsigned long data, int nbits) {
     // Set IR carrier frequency
     enableIROut(40);
@@ -229,18 +226,6 @@ void IRsend::sendSony(unsigned long data, int nbits) {
     mark(SONY_HEADER_MARK);
     space(SONY_SPACE);
 
-    sendPulseDistanceWidthData(SONY_ONE_MARK, SONY_SPACE, SONY_ZERO_MARK, SONY_SPACE, data, nbits, true, false);
-    /*
-     * Pulse width coding, the short version.
-     * Use this if you need to save program space and only require this protocol.
-     */
-//    for (unsigned long mask = 1UL << (nbits - 1); mask; mask >>= 1) {
-//        if (data & mask) {
-//            mark(SONY_ONE_MARK);
-//            space(SONY_SPACE);
-//        } else {
-//            mark(SONY_ZERO_MARK);
-//            space(SONY_SPACE);
-//        }
-//    }
+    // Old version with MSB first Data
+    sendPulseDistanceWidthData(SONY_ONE_MARK, SONY_SPACE, SONY_ZERO_MARK, SONY_SPACE, data, nbits, MSB_FIRST);
 }

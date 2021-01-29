@@ -72,11 +72,18 @@
 
 // for old decoder
 #define DENON_HEADER_MARK       DENON_UNIT // The length of the Header:Mark
-#define DENON_HEADER_SPACE      (3 * DENON_UNIT) // 780 // The lenght of the Header:Space
+#define DENON_HEADER_SPACE      (3 * DENON_UNIT) // 780 // The length of the Header:Space
 
 //+=============================================================================
 void IRsend::sendSharp(uint8_t aAddress, uint8_t aCommand, uint8_t aNumberOfRepeats) {
     sendDenon(aAddress, aCommand, aNumberOfRepeats, true);
+}
+
+/*
+ * Only for backwards compatibility
+ */
+void IRsend::sendDenonRaw(uint16_t aRawData, uint8_t aNumberOfRepeats) {
+    sendDenon(aRawData >> (DENON_COMMAND_BITS + DENON_FRAME_BITS), aRawData & 0xFF, aNumberOfRepeats);
 }
 
 //+=============================================================================
@@ -98,15 +105,15 @@ void IRsend::sendDenon(uint8_t aAddress, uint8_t aCommand, uint8_t aNumberOfRepe
         noInterrupts();
 
         // Data
-        sendPulseDistanceWidthData(DENON_BIT_MARK, DENON_ONE_SPACE, DENON_BIT_MARK, DENON_ZERO_SPACE, tData, DENON_BITS, true,
-                true);
+        sendPulseDistanceWidthData(DENON_BIT_MARK, DENON_ONE_SPACE, DENON_BIT_MARK, DENON_ZERO_SPACE, tData, DENON_BITS, MSB_FIRST,
+        SEND_STOP_BIT);
 
         // Inverted autorepeat frame
         interrupts();
         delay(DENON_AUTO_REPEAT_SPACE / 1000);
         noInterrupts();
         sendPulseDistanceWidthData(DENON_BIT_MARK, DENON_ONE_SPACE, DENON_BIT_MARK, DENON_ZERO_SPACE, tInvertedData, DENON_BITS,
-                true, true);
+        MSB_FIRST, SEND_STOP_BIT);
 
         interrupts();
 
@@ -135,33 +142,34 @@ bool IRrecv::decodeDenon() {
     }
 
     // Read the bits in
-    if (!decodePulseDistanceData(DENON_BITS, 1, DENON_BIT_MARK, DENON_ONE_SPACE, DENON_ZERO_SPACE)) {
+    if (!decodePulseDistanceData(DENON_BITS, 1, DENON_BIT_MARK, DENON_ONE_SPACE, DENON_ZERO_SPACE, MSB_FIRST)) {
         DBG_PRINT("Denon: ");
         DBG_PRINTLN("Decode failed");
         return false;
     }
 
     // Check for stop mark
-    if (!MATCH_MARK(results.rawbuf[(2 * DENON_BITS) + 1], DENON_HEADER_MARK)) {
+    if (!MATCH_MARK(decodedIRData.rawDataPtr->rawbuf[(2 * DENON_BITS) + 1], DENON_HEADER_MARK)) {
         DBG_PRINT("Denon: ");
         DBG_PRINTLN(F("Stop bit mark length is wrong"));
         return false;
     }
 
     // Success
-    uint8_t tFrameBits = results.value & 0x03;
-    decodedIRData.command = results.value >> DENON_FRAME_BITS;
+    decodedIRData.flags = IRDATA_FLAGS_IS_MSB_FIRST;
+    uint8_t tFrameBits = decodedIRData.decodedRawData & 0x03;
+    decodedIRData.command = decodedIRData.decodedRawData >> DENON_FRAME_BITS;
     decodedIRData.address = decodedIRData.command >> DENON_COMMAND_BITS;
     uint8_t tCommand = decodedIRData.command & 0xFF;
     decodedIRData.command = tCommand;
 
     // check for autorepeated inverted command
-    if (results.rawbuf[0] < ((DENON_AUTO_REPEAT_SPACE + (DENON_AUTO_REPEAT_SPACE / 4)) / MICROS_PER_TICK)) {
+    if (decodedIRData.rawDataPtr->rawbuf[0] < ((DENON_AUTO_REPEAT_SPACE + (DENON_AUTO_REPEAT_SPACE / 4)) / MICROS_PER_TICK)) {
         repeatCount++;
         if (tFrameBits == 0x3 || tFrameBits == 0x1) {
             // We are in the auto repeated frame with the inverted command
-            decodedIRData.flags = IRDATA_FLAGS_IS_AUTO_REPEAT;
-            // check parity
+            decodedIRData.flags = IRDATA_FLAGS_IS_AUTO_REPEAT | IRDATA_FLAGS_IS_MSB_FIRST;
+            // Check parity of consecutive received commands. There is no parity in one data set.
             uint8_t tLastCommand = lastDecodedCommand;
             if (tLastCommand != (uint8_t) (~tCommand)) {
                 decodedIRData.flags |= IRDATA_FLAGS_PARITY_FAILED;
@@ -186,7 +194,7 @@ bool IRrecv::decodeDenon() {
 }
 #else
 
-#warning "Old decoder functions decodeDenon() and decodeDenon(decode_results *aResults) are enabled. Enable USE_STANDARD_DECODE on line 34 of IRremote.h to enable new version of decodeDenon() instead."
+#warning "Old decoder function decodeDenon() is enabled. Enable USE_STANDARD_DECODE on line 34 of IRremote.h to enable new version of decodeDenon() instead."
 
 bool IRrecv::decodeDenon() {
     unsigned int offset = 1;  // Skip the gap reading
@@ -219,23 +227,21 @@ bool IRrecv::decodeDenon() {
     return true;
 }
 
-bool IRrecv::decodeDenon(decode_results *aResults) {
-    bool aReturnValue = decodeDenon();
-    *aResults = results;
-    return aReturnValue;
-}
 #endif
 
 void IRsend::sendDenon(unsigned long data, int nbits) {
     // Set IR carrier frequency
     enableIROut(38);
+    Serial.println(
+            "The function sendDenon(data, nbits) is deprecated and may not work as expected! Use sendDenonRaw(data, NumberOfRepeats) or better sendDenon(Address, Command, NumberOfRepeats).");
 
     // Header
     mark(DENON_HEADER_MARK);
     space(DENON_HEADER_SPACE);
 
     // Data
-    sendPulseDistanceWidthData(DENON_BIT_MARK, DENON_ONE_SPACE, DENON_BIT_MARK, DENON_ZERO_SPACE, data, nbits, true, true);
+    sendPulseDistanceWidthData(DENON_BIT_MARK, DENON_ONE_SPACE, DENON_BIT_MARK, DENON_ZERO_SPACE, data, nbits, MSB_FIRST,
+    SEND_STOP_BIT);
 
 }
 

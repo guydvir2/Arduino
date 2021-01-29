@@ -1,6 +1,5 @@
 //******************************************************************************
 // IRremoteint.h
-// IRremote
 // Version 2.0.1 June, 2015
 // Initially coded 2009 Ken Shirriff http://www.righto.com
 //
@@ -21,7 +20,6 @@
  * Activate this line if your receiver has an external output driver transistor / "inverted" output
  */
 //#define IR_INPUT_IS_ACTIVE_HIGH
-
 //------------------------------------------------------------------------------
 // Include the Arduino header
 //
@@ -33,9 +31,6 @@
 //------------------------------------------------------------------------------
 // Information for the Interrupt Service Routine
 //
-#if ! defined(RAW_BUFFER_LENGTH)
-#define RAW_BUFFER_LENGTH  101  ///< Maximum length of raw duration buffer. Must be odd. Supports 16 + 32 bit codings.
-#endif
 
 // ISR State-Machine : Receiver States
 #define IR_REC_STATE_IDLE      0
@@ -44,17 +39,21 @@
 #define IR_REC_STATE_STOP      3
 
 /**
- * This struct is used for the ISR (interrupt service routine)
- * and is copied once only in state STATE_STOP, so only rcvstate needs to be volatile.
+ * This struct contains the data and control used for static functions and the ISR (interrupt service routine)
+ * Only rcvstate needs to be volatile. All the other fields are not written by ISR during decoding in loop.
  */
 struct irparams_struct {
     // The fields are ordered to reduce memory over caused by struct-padding
     volatile uint8_t rcvstate;      ///< State Machine state
     uint8_t recvpin;                ///< Pin connected to IR data from detector
-    uint8_t blinkpin;
-    uint8_t blinkflag;              ///< true -> enable blinking of pin on IR processing
-    uint16_t rawlen;                ///< counter of entries in rawbuf
-    uint16_t timer;                 ///< State timer, counts 50uS ticks.
+    uint8_t blinkpin;               ///< 0 means not valid pin
+    bool blinkflag;                 ///< true -> enable blinking of pin on IR processing
+#if RAW_BUFFER_LENGTH <= 255        // saves around 75 bytes program space and speeds up ISR
+    uint8_t rawlen;                 ///< counter of entries in rawbuf
+#else
+    unsigned int rawlen;            ///< counter of entries in rawbuf
+#endif
+    uint16_t timer;                 ///< State timer, counts 50uS ticks. The value is copied into the rawbuf array on every transition.
     uint16_t rawbuf[RAW_BUFFER_LENGTH]; ///< raw data / tick counts per mark/space, first entry is the length of the gap between previous and current command
     uint8_t overflow;               ///< Raw buffer overflow occurred
 };
@@ -78,7 +77,6 @@ extern struct irparams_struct irparams;
 // Pulse parameters in uSec
 //
 
-
 /** Relative tolerance (in percent) for some comparisons on measured data. */
 #define TOLERANCE       25
 
@@ -90,7 +88,7 @@ extern struct irparams_struct irparams;
 #define UTOL            (100 + TOLERANCE)
 
 /** Minimum gap between IR transmissions, in microseconds */
-#define RECORD_GAP_MICROS   5000 // Nec header space is 4500
+#define RECORD_GAP_MICROS   5000 // NEC header space is 4500
 
 /** Minimum gap between IR transmissions, in MICROS_PER_TICK */
 #define RECORD_GAP_TICKS    (RECORD_GAP_MICROS / MICROS_PER_TICK)

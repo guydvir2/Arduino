@@ -1,6 +1,6 @@
 #include <myIOT2.h>
 
-#define DEV_TOPIC "notifServer"
+#define DEV_TOPIC "notifServer2"
 #define GROUP_TOPIC ""
 #define PREFIX_TOPIC "myHome"
 #define NOTIF_MQTT_TOPIC PREFIX_TOPIC "/sms"

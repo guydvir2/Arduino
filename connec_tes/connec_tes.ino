@@ -7,11 +7,11 @@
 #define USE_TRAFFIC_LIGHT false
 #define SCAN_PREFOMANCE_INTERVAL 1 // minutes
 
-bool internetConnected = false;
 bool mqttConnected = false;
+bool internetConnected = false;
 bool homeAssistantConnected = false;
-byte preformanceLevel = 0;
 byte serviceAlertlevel = 0;
+byte preformanceLevel = 0;
 
 const byte log_entries = 50;
 unsigned long connLOG[log_entries];
@@ -22,42 +22,6 @@ const byte seconds_offline_alarm = 60; // past this time , an Alert will be sent
 const byte min_ping_interval = 10;     //seconds
 
 int adaptive_ping_val = min_ping_interval;
-void calc2(int &connectedTime, int &disconncetedTime, int &disconnectCounter, int time_elapsed)
-{
-        connectedTime = 0;
-        disconncetedTime = 0;
-        disconnectCounter = 0;
-
-        // if (internetConnected)
-        // {
-        //         for (int x = 0; x < disconnectionLOG.getnumlines(); x++)
-        //         {
-        //                 if (readFlog(disconnectionLOG, x) > now() - time_elapsed * 3600L)
-        //                 {
-        //                         if (x > 0)
-        //                         {
-        //                                 connectedTime += (int)(readFlog(disconnectionLOG, x) - readFlog(connectionLOG, x - 1));
-        //                         }
-        //                         disconncetedTime += readFlog(connectionLOG, x) - readFlog(disconnectionLOG, x);
-        //                         disconnectCounter++;
-        //                 }
-        //         }
-        //         connectedTime += now() - readFlog(connectionLOG, connectionLOG.getnumlines() - 1);
-        // }
-        // else
-        // {
-        //         for (int x = 0; x < connectionLOG.getnumlines(); x++)
-        //         {
-        //                 if (x > 0)
-        //                 {
-        //                         connectedTime += readFlog(disconnectionLOG, x) - readFlog(connectionLOG, x - 1);
-        //                 }
-        //                 disconncetedTime += readFlog(connectionLOG, x) - readFlog(disconnectionLOG, x);
-        //                 disconnectCounter++;
-        //         }
-        //         disconncetedTime += now() - readFlog(disconnectionLOG, connectionLOG.getnumlines());
-        // }
-}
 
 // ~~~~~~~~~~~Update Alert Levels ~~~~~~~~~~~
 void updateServices_Alerts()
@@ -259,55 +223,6 @@ void fixLOG()
                 }
         }
 }
-
-int calc_discon_time(int x = 0)
-{
-        int c = getLOG_entries(connLOG);
-        int calc = -1;
-        if (x > 0 && x < c)
-        {
-                if (verifyLOG())
-                {
-                        calc = connLOG[x] - disconnLOG[x - 1];
-                }
-                else
-                {
-                        Serial.println("log error");
-                        calc = 0;
-                }
-        }
-        else
-        {
-                Serial.println("out bound disconn log");
-        }
-
-        return calc;
-}
-int calc_con_time(int x = 0)
-{
-        int c = getLOG_entries(connLOG);
-        int d = getLOG_entries(disconnLOG);
-        int calc = -1;
-        if (x < d)
-        {
-                if (verifyLOG())
-                {
-                        calc = disconnLOG[x] - connLOG[x];
-                }
-                else
-                {
-                        Serial.println("log error");
-                        calc = 0;
-                }
-        }
-        else if (x == c - 1)
-        {
-                calc = now() - connLOG[c - 1];
-        }
-
-        return calc;
-}
-
 void updateLOG(unsigned long LOG[], unsigned long now = now())
 {
 
@@ -374,6 +289,53 @@ bool driftLOG(unsigned long LOG[])
         return 0;
 }
 
+int calc_discon_time(int x = 0)
+{
+        int c = getLOG_entries(connLOG);
+        int calc = -1;
+        if (x > 0 && x < c)
+        {
+                if (verifyLOG())
+                {
+                        calc = connLOG[x] - disconnLOG[x - 1];
+                }
+                else
+                {
+                        Serial.println("log error");
+                        calc = 0;
+                }
+        }
+        else
+        {
+                Serial.println("out bound disconn log");
+        }
+
+        return calc;
+}
+int calc_con_time(int x = 0)
+{
+        int c = getLOG_entries(connLOG);
+        int d = getLOG_entries(disconnLOG);
+        int calc = -1;
+        if (x < d)
+        {
+                if (verifyLOG())
+                {
+                        calc = disconnLOG[x] - connLOG[x];
+                }
+                else
+                {
+                        Serial.println("log error");
+                        calc = 0;
+                }
+        }
+        else if (x == c - 1)
+        {
+                calc = now() - connLOG[c - 1];
+        }
+
+        return calc;
+}
 void calc_total_time(unsigned long &total_time)
 {
         if (verifyLOG)
@@ -391,89 +353,115 @@ void calc_connection(unsigned long &cum_conTime, unsigned long &cum_disconTime, 
         int con = getLOG_entries(connLOG);
         calc_total_time(total_time);
         unsigned long crit = now() - int(timePeriod * 3600UL);
-
-        if (internetConnected)
+        for (int i = 1; i < con; i++)
         {
-                Serial.print("\n~~~~~~~~~~~~~~~");
-                Serial.print(timePeriod);
-                Serial.print("_hrs");
-                Serial.println("~~~~~~~~~~~~~~~");
-                Serial.print("criteria_");
-                Serial.print(timePeriod);
-                Serial.print("hrs: \t\t");
-                show_clk(crit);
-
-                for (int i = 1; i < con; i++)
+                if (disconnLOG[i - 1] > crit)
                 {
-                        if (disconnLOG[i-1] > crit)
-                        {
-                                cum_disconTime += calc_discon_time(i); /* Summing offline times */
-                                disconnects_counter++;
-                        }
+                        cum_disconTime += calc_discon_time(i); /* Summing offline times */
+                        disconnects_counter++;
                 }
         }
-        else
-        {
-                // need to handle this later
-        }
 }
-void run_connection_report()
+void display_services_status()
+{
+        char msg[50];
+        Serial.println("\n~~~~~~ Services Connection Status ~~~~~");
+        sprintf(msg, ">> Internet :\t\t\t[%s]", internetConnected ? "Connected" : "Disconnected");
+        Serial.println(msg);
+        sprintf(msg, ">> MQTT :\t\t\t[%s]", mqttConnected ? "Connected" : "Disconnected");
+        Serial.println(msg);
+        sprintf(msg, ">> HomeAssistant :\t\t[%s]", homeAssistantConnected ? "Connected" : "Disconnected");
+        Serial.println(msg);
+}
+void display_totals()
 {
         char msg[40];
         char clk[20];
         char days[10];
+        unsigned long total_time = 0;
+
+        calc_total_time(total_time);
+        Serial.println("\n~~~~~~~~~~~~~~~ Totals ~~~~~~~~~~~~~~~");
+        iot.convert_epoch2clock(total_time, 0, clk, days);
+        sprintf(msg, "Total monitoring time:\t\t%s %s", days, clk);
+        Serial.println(msg);
+        sprintf(msg, "Total disonnects:\t\t%d", getLOG_entries(disconnLOG));
+        Serial.println(msg);
+}
+void run_connection_report(bool show_results = true)
+{
+        char msg[40];
+        char clk[20];
+        char days[10];
+        int disconnects_counter = 0;
+        unsigned long total_time = 0;
         unsigned long cum_conTime = 0;
         unsigned long cum_disconTime = 0;
-        unsigned long total_time = 0;
-        int disconnects_counter = 0;
+        const byte PERIOD_0 = 1;
+        const byte PERIOD_1 = 12;
+        const byte PERIOD_2 = 24;
+        const byte PERIOD_3 = 24 * 7;
+        const byte ERR_COEFF = 20; //sec
 
-        float check_times[] = {0.5, 3};                            //, 12//};                                                      //, 24, 24 * 7}; // report for those times, in hrs
-        int disconnect_fail_criteria[][2] = {{1, 2}, {2, 4}};      //, { 2, 4 }}; //, {3, 6}, {10, 20}};
-        int disconTime_fail_criteria[][2] = {{30, 60}, {60, 120}}; //, { 60, 120 }};
-        int score[2];
+        float check_times[] = {PERIOD_0, PERIOD_1, PERIOD_2, PERIOD_3};
+        int score[4];
+
+        int disconnect_fail_criteria[][4] = {{PERIOD_0, 2},
+                                             {PERIOD_1, 1.5 * PERIOD_1},
+                                             {PERIOD_2, 1.5 * PERIOD_2},
+                                             {PERIOD_3, 1.5 * PERIOD_3}};
+        int disconTime_fail_criteria[][4] = {{ERR_COEFF * PERIOD_0, 1.5 * ERR_COEFF * PERIOD_0},
+                                             {ERR_COEFF * PERIOD_1, 1.5 * ERR_COEFF * PERIOD_1},
+                                             {ERR_COEFF * PERIOD_2, 1.5 * ERR_COEFF * PERIOD_2},
+                                             {ERR_COEFF * PERIOD_3, 1.5 * ERR_COEFF * PERIOD_3}};
+        if (show_results)
+        {
+                display_services_status();
+                display_totals();
+        }
 
         for (int i = 0; i < sizeof(check_times) / sizeof(check_times[0]); i++)
         {
                 calc_connection(cum_conTime, cum_disconTime, total_time, disconnects_counter, check_times[i]);
 
-                if (disconnects_counter > disconnect_fail_criteria[i][1] || cum_disconTime > disconTime_fail_criteria[i][1])
+                if (disconnects_counter >= disconnect_fail_criteria[i][1] || cum_disconTime >= disconTime_fail_criteria[i][1])
                 {
                         score[i] = 2;
                 }
-                else if (disconnects_counter > disconnect_fail_criteria[i][0] && disconnects_counter <= disconnect_fail_criteria[i][1])
+                else if (disconnects_counter >= disconnect_fail_criteria[i][0] && disconnects_counter < disconnect_fail_criteria[i][1] || cum_disconTime >= disconTime_fail_criteria[i][0 && cum_disconTime < disconTime_fail_criteria[i][1]])
                 {
                         score[i] = 1;
                 }
-                else if (cum_disconTime > disconTime_fail_criteria[i][0] && cum_disconTime <= disconTime_fail_criteria[i][1])
-                {
-                        score[i] = 1;
-                }
-                else
+                else if (cum_disconTime < disconTime_fail_criteria[i][0] || cum_disconTime < disconTime_fail_criteria[i][0])
                 {
                         score[i] = 0;
                 }
+                else
+                {
+                        // score[i] = 0;
+                        Serial.println("LEVEL_ERR");
+                }
+                if (show_results)
+                {
+                        Serial.print("\n~~~~~~~~~~~~~~~");
+                        Serial.print(check_times[i]);
+                        Serial.print("_hrs");
+                        Serial.println("~~~~~~~~~~~~~~~");
 
-                iot.convert_epoch2clock(total_time, 0, clk, days);
-                sprintf(msg, "Total time:\t\t\t%s %s", days, clk);
-                Serial.println(msg);
+                        // iot.convert_epoch2clock(cum_conTime, 0, clk, days);
+                        // sprintf(msg, "Connected in %.2f_hrs:\t%s %s", check_times[i], days, clk);
+                        // Serial.println(msg);
 
-                sprintf(msg, "Total disonnects:\t\t%d", getLOG_entries(disconnLOG));
-                Serial.println(msg);
+                        iot.convert_epoch2clock(cum_disconTime, 0, clk, days);
+                        sprintf(msg, "Disonnected in %.2f_hrs:\t%s %s", check_times[i], days, clk);
+                        Serial.println(msg);
 
-                // iot.convert_epoch2clock(cum_conTime, 0, clk, days);
-                // sprintf(msg, "Connected in %.2f_hrs:\t%s %s", check_times[i], days, clk);
-                // Serial.println(msg);
+                        sprintf(msg, "Disconnects in %.2f_hrs:\t%d", check_times[i], disconnects_counter);
+                        Serial.println(msg);
 
-                iot.convert_epoch2clock(cum_disconTime, 0, clk, days);
-                sprintf(msg, "Disonnected in %.2f_hrs:\t%s %s", check_times[i], days, clk);
-                Serial.println(msg);
-
-                sprintf(msg, "Disconnects in %.2f_hrs:\t%d", check_times[i], disconnects_counter);
-                Serial.println(msg);
-
-                sprintf(msg, "Score in %.2f_hrs:\t\t%d", check_times[i], score[i]);
-                Serial.println(msg);
-
+                        sprintf(msg, "Score in %.2f_hrs:\t\t%d", check_times[i], score[i]);
+                        Serial.println(msg);
+                }
                 disconnects_counter = 0;
                 cum_conTime = 0;
                 cum_disconTime = 0;
@@ -520,6 +508,7 @@ void display_logs()
                 }
         }
 }
+
 // ~~~~~ LOW-Level inspections ~~~~~~~~~
 void pingServices()
 {
@@ -555,17 +544,16 @@ void pingServices()
                 checknLOG_internet(internet_ping);
                 if (internet_ping == 0)
                 {
-                        Serial.println("BAD INTERNET");
+                        Serial.println(">> BAD INTERNET");
                 }
                 if (mqttConnected == 0)
                 {
-                        Serial.println("BAD MQTT");
+                        Serial.println(">> BAD MQTT");
                 }
                 if (homeAssistantConnected == 0)
                 {
-                        Serial.println("BAD HASS");
+                        Serial.println(">> BAD HASS");
                 }
-                // updateServices_Alerts();
         }
 }
 void checknLOG_internet(bool &get_ping)
@@ -577,34 +565,35 @@ void checknLOG_internet(bool &get_ping)
         {
                 if (get_ping == true) /* internet is back on */
                 {
-                        Serial.print("Reconnect: ");
-                        show_clk();
+                        // Serial.print("\n>>Reconnect: ");
+                        // show_clk();
                         updateLOG(connLOG);
                         internetConnected = true;
                         int x = getLOG_entries(connLOG);
                         if (x > 1)
                         { /* not first boot */
-                                Serial.print("offline time: ");
+                                Serial.print("\n>>Offline time: ");
                                 Serial.print(calc_discon_time(x - 1));
                                 Serial.println("[sec]");
                         }
-                        else
-                        {
-                                Serial.print("First boot: ");
-                                show_clk();
-                        }
+                        // else
+                        // {
+                        //         Serial.print("\n>>First boot: ");
+                        //         show_clk();
+                        // }
                 }
                 else /* is now disconnected */
                 {
                         internetConnected = false;
                         updateLOG(disconnLOG);
-                        Serial.print("Disconnect: ");
+                        Serial.print("\n>>Disconnect: ");
                         show_clk();
-                        printLOG(connLOG, "Disconnect");
                 }
                 lastConStatus = get_ping;
                 same_state_counter = 0;
                 adaptive_ping_val = min_ping_interval;
+                printLOG(connLOG, "CONNECT");
+                printLOG(disconnLOG, "DISCONNECT");
         }
         else
         {
@@ -726,6 +715,7 @@ void simulate_disconnects(int errs = 6)
         // updateLOG(connLOG, now() - 140);
         // updateLOG(disconnLOG, now() - 10);
 
+        onBoot_clk();
         if (verifyLOG())
         {
                 Serial.println("LOG check OK at boot");
@@ -734,15 +724,15 @@ void simulate_disconnects(int errs = 6)
         {
                 Serial.println("LOG check fail at boot");
         }
-
-        printLOG(connLOG, "CONNECT");
-        printLOG(disconnLOG, "DISCONNECT");
+}
+void onBoot_clk()
+{
+        Serial.print("boot: ");
+        show_clk();
 }
 void setup()
 {
         startIOTservices();
-        Serial.print("boot: ");
-        show_clk();
         simulate_disconnects();
 }
 
@@ -750,12 +740,11 @@ void loop()
 {
         iot.looper();
         pingServices();
-        static unsigned long last = 0;
-        if (millis() - last > 30000)
-        {
-                last = millis();
-                run_connection_report();
-        }
-
+        // static unsigned long last = 0;
+        // if (millis() - last > 30000)
+        // {
+        //         last = millis();
+        //         run_connection_report();
+        // }
         delay(100);
 }

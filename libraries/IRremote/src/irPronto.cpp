@@ -235,14 +235,14 @@ static void compensateAndDumpSequence(Print *aSerial, const volatile uint16_t *d
  * @param frequency Modulation frequency in Hz. Often 38000Hz.
  */
 void IRrecv::compensateAndPrintIRResultAsPronto(Print *aSerial, unsigned int frequency) {
-    aSerial->println("Pronto Hex as string");
-    aSerial->print("char ProntoData[] = \"");
+    aSerial->println(F("Pronto Hex as string"));
+    aSerial->print(F("char ProntoData[] = \""));
     dumpNumber(aSerial, frequency > 0 ? learnedToken : learnedNonModulatedToken);
     dumpNumber(aSerial, toFrequencyCode(frequency));
-    dumpNumber(aSerial, (results.rawlen + 1) / 2);
+    dumpNumber(aSerial, (decodedIRData.rawDataPtr->rawlen + 1) / 2);
     dumpNumber(aSerial, 0);
     unsigned int timebase = toTimebase(frequency);
-    compensateAndDumpSequence(aSerial, &results.rawbuf[1], results.rawlen - 1, timebase); // skip leading space
+    compensateAndDumpSequence(aSerial, &decodedIRData.rawDataPtr->rawbuf[1], decodedIRData.rawDataPtr->rawlen - 1, timebase); // skip leading space
     aSerial->println("\"");
 }
 
@@ -307,9 +307,9 @@ size_t IRrecv::compensateAndStorePronto(String *aString, unsigned int frequency)
 
     size += dumpNumber(aString, frequency > 0 ? learnedToken : learnedNonModulatedToken);
     size += dumpNumber(aString, toFrequencyCode(frequency));
-    size += dumpNumber(aString, (results.rawlen + 1) / 2);
+    size += dumpNumber(aString, (decodedIRData.rawDataPtr->rawlen + 1) / 2);
     size += dumpNumber(aString, 0);
-    size += compensateAndDumpSequence(aString, &results.rawbuf[1], results.rawlen - 1, timebase); // skip leading space
+    size += compensateAndDumpSequence(aString, &decodedIRData.rawDataPtr->rawbuf[1], decodedIRData.rawDataPtr->rawlen - 1, timebase); // skip leading space
 
     return size;
 }

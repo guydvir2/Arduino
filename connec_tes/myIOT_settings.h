@@ -1,6 +1,6 @@
 #include <myIOT2.h>
 
-#define DEV_TOPIC "internetMonitor"
+#define DEV_TOPIC "networkMonitor"
 #define GROUP_TOPIC ""
 #define PREFIX_TOPIC "myHome"
 

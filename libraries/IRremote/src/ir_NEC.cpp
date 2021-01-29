@@ -84,6 +84,24 @@ void IRsend::sendNECRepeat() {
  * @param aIsRepeat if true, send only one repeat frame without leading and trailing space
  */
 void IRsend::sendNEC(uint16_t aAddress, uint8_t aCommand, uint8_t aNumberOfRepeats, bool aIsRepeat) {
+
+    LongUnion tRawData;
+
+    // Address 16 bit LSB first
+    if ((aAddress & 0xFF00) == 0) {
+        // assume 8 bit address -> send 8 address bits and then 8 inverted address bits LSB first
+        tRawData.UByte.LowByte = aAddress;
+        tRawData.UByte.MidLowByte = ~tRawData.UByte.LowByte;
+    }
+
+    // send 8 command bits and then 8 inverted command bits LSB first
+    tRawData.UByte.MidHighByte = aCommand;
+    tRawData.UByte.HighByte = ~aCommand;
+
+    sendNECRaw(tRawData.ULong, aNumberOfRepeats, aIsRepeat);
+}
+
+void IRsend::sendNECRaw(uint32_t aRawData, uint8_t aNumberOfRepeats, bool aIsRepeat) {
     if (aIsRepeat) {
         sendNECRepeat();
         return;
@@ -95,18 +113,10 @@ void IRsend::sendNEC(uint16_t aAddress, uint8_t aCommand, uint8_t aNumberOfRepea
     // Header
     mark(NEC_HEADER_MARK);
     space(NEC_HEADER_SPACE);
-    // Address 16 bit LSB first
-    if ((aAddress & 0xFF00) == 0) {
-        // assume 8 bit address -> send 8 address bits and then 8 inverted address bits LSB first
-        aAddress = aAddress & 0xFF;
-        aAddress = ((~aAddress) << 8) | aAddress;
-    }
-    sendPulseDistanceWidthData(NEC_BIT_MARK, NEC_ONE_SPACE, NEC_BIT_MARK, NEC_ZERO_SPACE, aAddress, NEC_ADDRESS_BITS, false);
 
-    // send 8 command bits and then 8 inverted command bits LSB first
-    uint16_t tCommand = ((~aCommand) << 8) | aCommand;
-    // Command 16 bit LSB first
-    sendPulseDistanceWidthData(NEC_BIT_MARK, NEC_ONE_SPACE, NEC_BIT_MARK, NEC_ZERO_SPACE, tCommand, NEC_COMMAND_BITS, false, true);
+    // LSB first + stop bit
+    sendPulseDistanceWidthData(NEC_BIT_MARK, NEC_ONE_SPACE, NEC_BIT_MARK, NEC_ZERO_SPACE, aRawData, NEC_BITS, LSB_FIRST,
+    SEND_STOP_BIT);
 
     interrupts();
 
@@ -135,23 +145,39 @@ void IRsend::sendNEC(uint16_t aAddress, uint8_t aCommand, uint8_t aNumberOfRepea
 bool IRrecv::decodeNEC() {
 
     // Check we have the right amount of data (68). The +4 is for initial gap, start bit mark and space + stop bit mark.
-    if (results.rawlen != ((2 * NEC_BITS) + 4) && (results.rawlen != 4)) {
+    if (decodedIRData.rawDataPtr->rawlen != ((2 * NEC_BITS) + 4) && (decodedIRData.rawDataPtr->rawlen != 4)) {
         // no debug output, since this check is mainly to determine the received protocol
         return false;
     }
 
-    // Check header "mark" and "space", this must be done for repeat and data
-    if (!MATCH_MARK(results.rawbuf[1], NEC_HEADER_MARK) || !MATCH_SPACE(results.rawbuf[2], NEC_HEADER_SPACE)) {
-        // TRACE_PRINT since I saw this too often
-        TRACE_PRINT(F("NEC: "));
-        TRACE_PRINTLN(F("Header mark or space length is wrong"));
+    // Check header "mark" this must be done for repeat and data
+    if (!MATCH_MARK(decodedIRData.rawDataPtr->rawbuf[1], NEC_HEADER_MARK)) {
+        return false;
+    }
+
+    // Check for repeat - here we have another header space length
+    if (decodedIRData.rawDataPtr->rawlen == 4) {
+        if (MATCH_SPACE(decodedIRData.rawDataPtr->rawbuf[2], NEC_REPEAT_HEADER_SPACE)
+                && MATCH_MARK(decodedIRData.rawDataPtr->rawbuf[3], NEC_BIT_MARK)) {
+            decodedIRData.flags = IRDATA_FLAGS_IS_REPEAT | IRDATA_FLAGS_IS_LSB_FIRST;
+            decodedIRData.address = lastDecodedAddress;
+            decodedIRData.command = lastDecodedCommand;
+            return true;
+        }
+        return false;
+    }
+
+    // Check command header space
+    if (!MATCH_SPACE(decodedIRData.rawDataPtr->rawbuf[2], NEC_HEADER_SPACE)) {
+        DBG_PRINT(F("NEC: "));
+        DBG_PRINTLN(F("Header space length is wrong"));
         return false;
     }
 
     // Check for repeat
-    if (results.rawlen == 4) {
-        if (MATCH_MARK(results.rawbuf[3], NEC_BIT_MARK)) {
-            decodedIRData.flags = IRDATA_FLAGS_IS_REPEAT;
+    if (decodedIRData.rawDataPtr->rawlen == 4) {
+        if (MATCH_MARK(decodedIRData.rawDataPtr->rawbuf[3], NEC_BIT_MARK)) {
+            decodedIRData.flags = IRDATA_FLAGS_IS_REPEAT | IRDATA_FLAGS_IS_LSB_FIRST;
             decodedIRData.address = lastDecodedAddress;
             decodedIRData.command = lastDecodedCommand;
             return true;
@@ -166,15 +192,16 @@ bool IRrecv::decodeNEC() {
     }
 
     // Stop bit
-    if (!MATCH_MARK(results.rawbuf[3 + (2 * NEC_BITS)], NEC_BIT_MARK)) {
+    if (!MATCH_MARK(decodedIRData.rawDataPtr->rawbuf[3 + (2 * NEC_BITS)], NEC_BIT_MARK)) {
         DBG_PRINT(F("NEC: "));
         DBG_PRINTLN(F("Stop bit mark length is wrong"));
         return false;
     }
 
     // Success
+//    decodedIRData.flags = IRDATA_FLAGS_IS_LSB_FIRST; // Not required, since this is the start value
     LongUnion tValue;
-    tValue.ULong = results.value;
+    tValue.ULong = decodedIRData.decodedRawData;
     decodedIRData.command = tValue.UByte.MidHighByte;
     // plausi check for command
     if (tValue.UByte.MidHighByte != (uint8_t) (~tValue.UByte.HighByte)) {
@@ -184,7 +211,6 @@ bool IRrecv::decodeNEC() {
     }
     decodedIRData.protocol = NEC;
     decodedIRData.numberOfBits = NEC_BITS;
-
     if (tValue.UByte.LowByte == (uint8_t) (~tValue.UByte.MidLowByte)) {
         // standard 8 bit address NEC protocol
         decodedIRData.address = tValue.UByte.LowByte; // first 8 bit
@@ -197,7 +223,7 @@ bool IRrecv::decodeNEC() {
 }
 #else
 
-#warning "Old decoder functions decodeNEC() and decodeNEC(decode_results *aResults) are enabled. Enable USE_STANDARD_DECODE on line 34 of IRremote.h to enable new version of decodeNEC() instead."
+#warning "Old decoder function decodeNEC() is enabled. Enable USE_STANDARD_DECODE on line 34 of IRremote.h to enable new version of decodeNEC() instead."
 bool IRrecv::decodeNEC() {
     unsigned int offset = 1;  // Index in to results; Skip first space.
 
@@ -252,21 +278,15 @@ bool IRrecv::decodeNEC() {
 
     return true;
 }
-
-bool IRrecv::decodeNEC(decode_results *aResults) {
-    bool aReturnValue = decodeNEC();
-    *aResults = results;
-    return aReturnValue;
-}
 #endif
 
 /*
- * Repeat commands should be sent in a 110 ms raster.
- * https://www.sbprojects.net/knowledge/ir/nec.php
+ * Old version with MSB first Data
  */
 void IRsend::sendNEC(uint32_t data, uint8_t nbits, bool repeat) {
     // Set IR carrier frequency
     enableIROut(38);
+    Serial.println("The function sendNEC(data, nbits) is deprecated and may not work as expected! Use sendNECRaw(data, NumberOfRepeats) or better sendNEC(Address, Command, NumberOfRepeats).");
 
     if (data == REPEAT || repeat) {
         sendNECRepeat();
@@ -277,7 +297,7 @@ void IRsend::sendNEC(uint32_t data, uint8_t nbits, bool repeat) {
     mark(NEC_HEADER_MARK);
     space(NEC_HEADER_SPACE);
 
-    // Data + stop bit
-    sendPulseDistanceWidthData(NEC_BIT_MARK, NEC_ONE_SPACE, NEC_BIT_MARK, NEC_ZERO_SPACE, data, nbits, true, true);
+    // Old version with MSB first Data + stop bit
+    sendPulseDistanceWidthData(NEC_BIT_MARK, NEC_ONE_SPACE, NEC_BIT_MARK, NEC_ZERO_SPACE, data, nbits, MSB_FIRST, SEND_STOP_BIT);
 
 }

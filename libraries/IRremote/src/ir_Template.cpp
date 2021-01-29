@@ -32,7 +32,7 @@
  Now you must do a few things to add it to the IRremote system:
 
  1. Open IRremote.h and make the following changes:
- REMEMEBER to change occurrences of "SHUZU" with the name of your protocol
+ REMEMBER to change occurrences of "SHUZU" with the name of your protocol
 
  A. At the top, in the section "Supported Protocols", add:
  #define DECODE_SHUZU  1
@@ -148,7 +148,7 @@
 #define SHUZU_UNIT              560
 
 #define SHUZU_HEADER_MARK       (16 * SHUZU_UNIT) // The length of the Header:Mark
-#define SHUZU_HEADER_SPACE      (8 * SHUZU_UNIT)  // The lenght of the Header:Space
+#define SHUZU_HEADER_SPACE      (8 * SHUZU_UNIT)  // The length of the Header:Space
 
 #define SHUZU_BIT_MARK          SHUZU_UNIT        // The length of a Bit:Mark
 #define SHUZU_ONE_SPACE         (3 * SHUZU_UNIT)  // The length of a Bit:Space for 1's
@@ -177,11 +177,11 @@ void IRsend::sendShuzu(uint16_t aAddress, uint8_t aCommand, uint8_t aNumberOfRep
 
         // Address (device and subdevice)
         sendPulseDistanceWidthData(SHUZU_BIT_MARK, SHUZU_ONE_SPACE, SHUZU_BIT_MARK, SHUZU_ZERO_SPACE, aAddress,
-        SHUZU_ADDRESS_BITS, false); // false -> LSB first
+        SHUZU_ADDRESS_BITS, LSB_FIRST); // false -> LSB first
 
         // Command + stop bit
         sendPulseDistanceWidthData(SHUZU_BIT_MARK, SHUZU_ONE_SPACE, SHUZU_BIT_MARK, SHUZU_ZERO_SPACE, aCommand,
-        SHUZU_COMMAND_BITS, false, true); // false, true -> LSB first, stop bit
+        SHUZU_COMMAND_BITS, LSB_FIRST, SEND_STOP_BIT); // false, true -> LSB first, stop bit
 
         interrupts();
 
@@ -205,13 +205,13 @@ void IRsend::sendShuzu(uint16_t aAddress, uint8_t aCommand, uint8_t aNumberOfRep
 bool IRrecv::decodeShuzu() {
 
     // Check we have the right amount of data (28). The +4 is for initial gap, start bit mark and space + stop bit mark
-    if (results.rawlen != (2 * SHUZU_BITS) + 4) {
+    if (decodedIRData.rawDataPtr->rawlen != (2 * SHUZU_BITS) + 4) {
         // no debug output, since this check is mainly to determine the received protocol
         return false;
     }
 
     // Check header "space"
-    if (!MATCH_MARK(results.rawbuf[1], SHUZU_HEADER_MARK) || !MATCH_SPACE(results.rawbuf[2], SHUZU_HEADER_SPACE)) {
+    if (!MATCH_MARK(decodedIRData.rawDataPtr->rawbuf[1], SHUZU_HEADER_MARK) || !MATCH_SPACE(decodedIRData.rawDataPtr->rawbuf[2], SHUZU_HEADER_SPACE)) {
         DBG_PRINT("Shuzu: ");
         DBG_PRINTLN("Header mark or space length is wrong");
         return false;
@@ -225,21 +225,22 @@ bool IRrecv::decodeShuzu() {
     }
 
     // Stop bit
-    if (!MATCH_MARK(results.rawbuf[3 + (2 * SHUZU_BITS)], SHUZU_BIT_MARK)) {
+    if (!MATCH_MARK(decodedIRData.rawDataPtr->rawbuf[3 + (2 * SHUZU_BITS)], SHUZU_BIT_MARK)) {
         DBG_PRINT(F("Shuzu: "));
         DBG_PRINTLN(F("Stop bit mark length is wrong"));
         return false;
     }
 
     // Success
-    uint8_t tCommand = results.value >> SHUZU_ADDRESS_BITS;  // upper 8 bits of LSB first value
-    uint8_t tAddress = results.value & 0xFFFF;    // lowest 16 bit of LSB first value
+//    decodedIRData.flags = IRDATA_FLAGS_IS_LSB_FIRST; // Not required, since this is the start value
+    uint8_t tCommand = decodedIRData.decodedRawData >> SHUZU_ADDRESS_BITS;  // upper 8 bits of LSB first value
+    uint8_t tAddress = decodedIRData.decodedRawData & 0xFFFF;    // lowest 16 bit of LSB first value
 
     /*
      *  Check for repeat
      */
-    if (results.rawbuf[0] < ((SHUZU_REPEAT_SPACE + (SHUZU_REPEAT_SPACE / 2)) / MICROS_PER_TICK)) {
-        decodedIRData.flags = IRDATA_FLAGS_IS_REPEAT;
+    if (decodedIRData.rawDataPtr->rawbuf[0] < ((SHUZU_REPEAT_SPACE + (SHUZU_REPEAT_SPACE / 2)) / MICROS_PER_TICK)) {
+        decodedIRData.flags = IRDATA_FLAGS_IS_REPEAT | IRDATA_FLAGS_IS_LSB_FIRST;
     }
     decodedIRData.command = tCommand;
     decodedIRData.address = tAddress;

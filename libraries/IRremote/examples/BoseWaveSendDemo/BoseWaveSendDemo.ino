@@ -38,8 +38,6 @@
 #define BOSE_CMD_PRESET_4   0x10
 #define BOSE_CMD_PRESET_5   0x11
 
-IRsend IrSender;
-
 // On the Zero and others we switch explicitly to SerialUSB
 #if defined(ARDUINO_ARCH_SAMD)
 #define Serial SerialUSB
@@ -52,11 +50,13 @@ void setup() {
     pinMode(LED_BUILTIN, OUTPUT);
 
     Serial.begin(115200);
-#if defined(__AVR_ATmega32U4__) || defined(SERIAL_USB) || defined(SERIAL_PORT_USBVIRTUAL)
-    delay(2000); // To be able to connect Serial monitor after reset and before first printout
+#if defined(__AVR_ATmega32U4__) || defined(SERIAL_USB) || defined(SERIAL_PORT_USBVIRTUAL) || defined(ARDUINO_attiny3217)
+    delay(2000); // To be able to connect Serial monitor after reset or power up and before first printout
 #endif
     // Just to know which program is running on my Arduino
     Serial.println(F("START " __FILE__ " from " __DATE__ "\r\nUsing library version " VERSION_IRREMOTE));
+
+    IrSender.begin(true); // Enable feedback LED,
 
     prompt = true;
 }

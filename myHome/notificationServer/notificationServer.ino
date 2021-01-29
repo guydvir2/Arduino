@@ -135,6 +135,7 @@ void setup()
     iot.get_timeStamp();
     pub_MSG(SMS_PREFIX, DEV_TOPIC, "בדיקה", "Boot!", iot.timeStamp);
     pub_MSG(EMAIL_PREFIX, "FROM", "SUBJECT", "MSG", iot.timeStamp);
+    Users.start(10, 10);
 }
 void loop()
 {
@@ -143,6 +144,8 @@ void loop()
 #if USE_SMS_NOTIF
     check_telegramServer();
 #endif
-    liveBlink();
+    // liveBlink();
+    Users.looper(20);
     delay(100);
+
 }

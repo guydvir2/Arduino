@@ -1,8 +1,8 @@
 #include "IRremote.h"
 
+// MagiQuest added by E. Stuart Hicks
 // Based off the Magiquest fork of Arduino-IRremote by mpflaga
 // https://github.com/mpflaga/Arduino-IRremote/
-
 //==============================================================================
 //
 //
@@ -59,13 +59,13 @@ void IRsend::sendMagiQuest(uint32_t wand_id, uint16_t magnitude) {
     noInterrupts();
 
     // 2 start bits
-    sendPulseDistanceWidthData(MAGIQUEST_ONE_MARK, MAGIQUEST_ONE_SPACE, MAGIQUEST_ZERO_MARK, MAGIQUEST_ZERO_SPACE, 0, 2, true);
+    sendPulseDistanceWidthData(MAGIQUEST_ONE_MARK, MAGIQUEST_ONE_SPACE, MAGIQUEST_ZERO_MARK, MAGIQUEST_ZERO_SPACE, 0, 2, MSB_FIRST);
 
     // Data
     sendPulseDistanceWidthData(MAGIQUEST_ONE_MARK, MAGIQUEST_ONE_SPACE, MAGIQUEST_ZERO_MARK, MAGIQUEST_ZERO_SPACE, wand_id,
-    MAGIQUEST_WAND_ID_BITS, true);
+    MAGIQUEST_WAND_ID_BITS, MSB_FIRST);
     sendPulseDistanceWidthData(MAGIQUEST_ONE_MARK, MAGIQUEST_ONE_SPACE, MAGIQUEST_ZERO_MARK, MAGIQUEST_ZERO_SPACE, magnitude,
-    MAGIQUEST_MAGNITUDE_BITS, true, true);
+    MAGIQUEST_MAGNITUDE_BITS, MSB_FIRST, SEND_STOP_BIT);
 
 //    for (unsigned long long mask = MAGIQUEST_MASK; mask > 0; mask >>= 1) {
 //        if (data.llword & mask) {
@@ -80,6 +80,7 @@ void IRsend::sendMagiQuest(uint32_t wand_id, uint16_t magnitude) {
     interrupts();
 }
 
+#if DECODE_MAGIQUEST
 //+=============================================================================
 //
 /*
@@ -99,15 +100,15 @@ bool IRrecv::decodeMagiQuest() {
 #endif
 
     // Check we have enough data (102), + 6 for 2 start and 1 stop bit
-    if (results.rawlen != (2 * MAGIQUEST_BITS) + 6) {
+    if (decodedIRData.rawDataPtr->rawlen != (2 * MAGIQUEST_BITS) + 6) {
         return false;
     }
 
     // Read the bits in
     data.llword = 0;
-    while (offset + 1 < results.rawlen) {
-        mark_ = results.rawbuf[offset++];
-        space_ = results.rawbuf[offset++];
+    while (offset + 1 < decodedIRData.rawDataPtr->rawlen) {
+        mark_ = decodedIRData.rawDataPtr->rawbuf[offset++];
+        space_ = decodedIRData.rawDataPtr->rawbuf[offset++];
         ratio_ = space_ / mark_;
 
         DBG_PRINT("MagiQuest: ");
@@ -146,13 +147,8 @@ bool IRrecv::decodeMagiQuest() {
     decodedIRData.numberOfBits = offset / 2;
     decodedIRData.flags = IRDATA_FLAGS_EXTRA_INFO;
     decodedIRData.extra = data.cmd.magnitude;
-    results.magnitude = data.cmd.magnitude;
-    results.value = data.cmd.wand_id;
+    decodedIRData.decodedRawData = data.cmd.wand_id;
 
     return true;
 }
-bool IRrecv::decodeMagiQuest(decode_results *aResults) {
-    bool aReturnValue = decodeMagiQuest();
-    *aResults = results;
-    return aReturnValue;
-}
+#endif // DECODE_MAGIQUEST
