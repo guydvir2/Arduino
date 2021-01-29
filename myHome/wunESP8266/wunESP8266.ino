@@ -77,12 +77,19 @@ void startGPIOs()
 {
         pinMode(outputUpPin, OUTPUT);
         pinMode(outputDownPin, OUTPUT);
+        pinMode(relayDownPin, INPUT);
+        pinMode(relayUpPin, INPUT);
         allOff();
 }
 void allOff()
 {
         digitalWrite(outputUpPin, !RelayOn);
         digitalWrite(outputDownPin, !RelayOn);
+}
+void rel_state(int &inPin, int &outPin)
+{
+
+        digitalWrite(outPin, digitalRead(inPin));
 }
 void switchIt(char *type, char *dir)
 {
@@ -149,7 +156,18 @@ void setup()
 void loop()
 {
         iot.looper();
+        rel_state(relayUpPin, outputUpPin);
+        rel_state(relayDownPin, outputDownPin);
         // verifyNotHazardState(); // both up and down are ---> OFF
         // check_reboot_reason();
+        static unsigned long looper = 0;
+        if (millis() - looper > 1000)
+        {
+                looper = millis();
+                char t[150];
+                sprintf(t, "relay_up[%d]; relay_down[%d]; out_up[%d]; out_down[%d];",
+                        digitalRead(relayUpPin), digitalRead(relayDownPin), digitalRead(outputUpPin), digitalRead(outputDownPin));
+                Serial.println(t);
+        }
         delay(100);
 }

@@ -1,6 +1,6 @@
 {
-    "inputUpPin": 14,
-    "inputDownPin": 12,
+    "relayUpPin": 14,
+    "relayDownPin": 12,
     "outputUpPin": 5,
     "outputDownPin": 4
 }

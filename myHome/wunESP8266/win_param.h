@@ -13,10 +13,12 @@ void update_vars(JsonDocument &DOC)
 {
   outputUpPin = DOC["outputUpPin"];
   outputDownPin = DOC["outputDownPin"];
+  relayUpPin = DOC["relayUpPin"];
+  relayDownPin = DOC["relayDownPin"];
 }
 void startRead_parameters()
 {
-  String sketch_defs = "{\"outputUpPin\":14,\"outputDownPin\":12}";
+  String sketch_defs = "{\"outputUpPin\":14,\"outputDownPin\":12,\"relayUpPin\":4,\"relayDownPin\":5}";
 
   String myIOT_defs = "{\"useSerial\":true,\"useWDT\":false,\"useOTA\":true,\"useResetKeeper\" : false,\
                         \"useFailNTP\" : true,\"useDebugLog\" : true,\"useNetworkReset\":false, \"deviceTopic\" : \"myWindow\",\

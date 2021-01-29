@@ -13,3 +13,5 @@ const int deBounceInt = 50;
 //~~~~ Switches IOs~~~~~~
 int outputUpPin;
 int outputDownPin;
+int relayUpPin;
+int relayDownPin;
