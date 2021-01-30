@@ -16,13 +16,16 @@ const byte WIN_STOP = 0;
 const byte WIN_UP = 1;
 const byte WIN_DOWN = 2;
 const byte change_dir_delay = 20; //ms
-const byte debounce_delay = 20; //ms
-const byte loop_delay = 10; //ms
+const byte debounce_delay = 20;   //ms
+const byte loop_delay = 10;       //ms
 
 bool swUp_lastState = false;
 bool swDown_lastState = false;
 bool espUp_lastState = false;
 bool espDown_lastState = false;
+
+unsigned long AutoOff_startclk = 0;
+const int AutoOff_time = 120; //seconds
 
 void start_gpio()
 {
@@ -125,19 +128,20 @@ void allOff()
   digitalWrite(REL_UP_TO_ESP, !RELAY_ON);
   digitalWrite(REL_DOWN_TO_ESP, !RELAY_ON);
   delay(change_dir_delay);
-  Serial.println("All Off");
 }
 void makeSwitch(byte state)
 {
   if (state == WIN_STOP) /* Stop */
   {
     allOff();
+    AutoOff_startclk = 0;
   }
   else if (state == WIN_UP) /* Up */
   {
     allOff();
     digitalWrite(REL_UP, RELAY_ON);
     digitalWrite(REL_UP_TO_ESP, RELAY_ON);
+    AutoOff_startclk = millis();
     Serial.println("Switch Up");
   }
   else if (state == WIN_DOWN) /* DOWN */
@@ -145,39 +149,21 @@ void makeSwitch(byte state)
     allOff();
     digitalWrite(REL_DOWN, RELAY_ON);
     digitalWrite(REL_DOWN_TO_ESP, RELAY_ON);
+    AutoOff_startclk = millis();
     Serial.println("Switch Down");
   }
   else
   {
     allOff();
+    AutoOff_startclk = 0;
     Serial.println("off due error");
   }
 }
 void autoOff(int offtime)
 {
-  static bool relUP_state = !RELAY_ON;
-  static bool relDOWN_state = !RELAY_ON;
-  static unsigned long relUP_clk = 0;
-  static unsigned long relDOWN_clk = 0;
-
-  bool up = digitalRead(REL_UP);
-  bool down = digitalRead(REL_DOWN);
-
-  Serial.print("down is: ");
-  Serial.println(down);
-
-  if (down == RELAY_ON && down != relDOWN_state)
+  if (AutoOff_startclk != 0 && millis() > offtime * 1000L + AutoOff_startclk)
   {
-    Serial.println("auto off detect change");
-    relDOWN_state = down;
-    relDOWN_clk = millis();
-  }
-  if (relDOWN_clk != 0 && relDOWN_clk >= offtime * 1000L)
-  {
-    relDOWN_clk = 0;
-    makeSwitch(0);
-    relDOWN_state = down;
-    Serial.println("auto off");
+    makeSwitch(WIN_STOP);
   }
 }
 void errorProtection()
@@ -196,7 +182,8 @@ void errorProtection()
     Serial.println("Protection error - ESP");
   }
 }
-void read_allInputs(){
+void read_allInputs()
+{
   readInput(SW_UP, REL_UP, swUp_lastState);
   readInput(SW_DOWN, REL_DOWN, swDown_lastState);
   readInput(ESP_UP, REL_UP, espUp_lastState);
@@ -212,18 +199,7 @@ void setup()
 void loop()
 {
   read_allInputs();
-  static unsigned long looper = 0;
-  if (millis() - looper > 1000)
-  {
-    looper = millis();
-    char t[150];
-    sprintf(t, "relay_up[%d]; relay_down[%d]; switch_up[%d]; switch_down[%d]; ESP_up[%d];ESP_down[%d]; rel2ESP_up[%d]; re2ESP_down[%d]",
-            digitalRead(REL_UP), digitalRead(REL_DOWN), digitalRead(SW_UP), digitalRead(SW_DOWN), digitalRead(ESP_UP), digitalRead(ESP_DOWN),
-            digitalRead(REL_UP_TO_ESP), digitalRead(REL_DOWN_TO_ESP));
-    Serial.println(t);
-  }
-
-  // autoOff(5);
+  autoOff(AutoOff_time);
   errorProtection();
   delay(loop_delay);
 }
