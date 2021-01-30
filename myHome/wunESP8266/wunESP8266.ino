@@ -1,9 +1,10 @@
 #include <myIOT2.h>
-#include "variables.h"
+#include "vars.h"
 #include "myIOT_settings.h"
 #include "win_param.h"
 #include <Arduino.h>
 
+// ~~~~~~~ Additional Services ~~~~~~~~
 bool services_chk()
 {
         bool ntp = iot.NTP_OK;
@@ -77,97 +78,118 @@ void startGPIOs()
 {
         pinMode(outputUpPin, OUTPUT);
         pinMode(outputDownPin, OUTPUT);
-        pinMode(relayDownPin, INPUT);
-        pinMode(relayUpPin, INPUT);
+        pinMode(relayDownPin, INPUT_PULLUP);
+        pinMode(relayUpPin, INPUT_PULLUP);
         allOff();
 }
 void allOff()
 {
         digitalWrite(outputUpPin, !RelayOn);
         digitalWrite(outputDownPin, !RelayOn);
+        delay(delay_switch);
+        Serial.println("offcMmd");
 }
-void rel_state(int &inPin, int &outPin)
+void post_relay_change()
 {
+        bool relup = digitalRead(relayUpPin);
+        bool reldown = digitalRead(relayDownPin);
 
-        digitalWrite(outPin, digitalRead(inPin));
+        if (relup != relayUP_lastState || reldown != relayDOWN_lastState) /* Change in one or more relays*/
+        {
+                char a[5];
+                char t[50];
+                byte swstate = check_current_relState();
+                relayUP_lastState = relup;
+                relayDOWN_lastState = reldown;
+
+                switch (swstate)
+                {
+                case WIN_STOP:
+                        strcpy(a, "Off");
+                        break;
+                case WIN_UP:
+                        strcpy(a, "Up");
+                        break;
+                case WIN_DOWN:
+                        strcpy(a, "Down");
+                        break;
+                }
+                sprintf(t, "Button: Switched [%s]", a);
+                iot.pub_msg(t);
+        }
 }
-void switchIt(char *type, char *dir)
+byte check_current_relState()
 {
-        char mqttmsg[50];
-        bool states[2];
+        bool relup = digitalRead(relayUpPin);
+        bool reldown = digitalRead(relayDownPin);
 
-        if (strcmp(dir, "up") == 0)
+        if (relup && reldown == !RelayOn)
         {
-                states[0] = RelayOn;
-                states[1] = !RelayOn;
+                return WIN_STOP;
         }
-        else if (strcmp(dir, "down") == 0)
+        else if (relup == RelayOn)
         {
-                states[0] = !RelayOn;
-                states[1] = RelayOn;
+                return WIN_UP;
         }
-        else if (strcmp(dir, "off") == 0)
+        else
         {
-                states[0] = !RelayOn;
-                states[1] = !RelayOn;
+                return WIN_DOWN;
         }
-
-        bool Up_read = digitalRead(outputUpPin);
-        bool Down_read = digitalRead(outputDownPin);
-
-        // Case that both realys need to change state ( Up --> Down or Down --> Up )
-        if (Up_read != states[0] && Down_read != states[1])
-        {
-                allOff();
-                delay(deBounceInt * 2);
-                digitalWrite(outputUpPin, states[0]);
-                digitalWrite(outputDownPin, states[1]);
-        }
-        // Case that one relay changes from/to off --> on
-        else if (Up_read != states[0] || Down_read != states[1])
-        {
-                digitalWrite(outputUpPin, states[0]);
-                digitalWrite(outputDownPin, states[1]);
-        }
-        iot.pub_state(dir);
-        sprintf(mqttmsg, "%s: Switched [%s]", type, dir);
-        iot.pub_msg(mqttmsg);
 }
-void verifyNotHazardState()
+void makeSwitch(byte state)
 {
-        if (digitalRead(outputUpPin) == RelayOn && digitalRead(outputDownPin) == RelayOn)
+        byte restate = check_current_relState(); /* check current relays state */
+        // Serial.print("relay state is: ");
+        // Serial.println(restate);
+        // char t[150];
+        // sprintf(t, "[before]: relay_up[%d]; relay_down[%d]; out_up[%d]; out_down[%d];",
+        //         digitalRead(relayUpPin), digitalRead(relayDownPin), digitalRead(outputUpPin), digitalRead(outputDownPin));
+        // Serial.println(t);
+        if (restate != state)
         {
-                switchIt("Button", "off");
-                iot.sendReset("HazradState");
+                digitalWrite(outputUpPin, digitalRead(relayUpPin));
+                digitalWrite(outputDownPin, digitalRead(relayDownPin));
+
+                delay(delay_switch);
+                if (state == WIN_STOP) /* Stop */
+                {
+                        allOff();
+                }
+                else if (state == WIN_UP) /* Up */
+                {
+                        allOff();
+                        digitalWrite(outputUpPin, RelayOn);
+                        Serial.println("Switch Up");
+                }
+                else if (state == WIN_DOWN) /* DOWN */
+                {
+                        allOff();
+                        digitalWrite(outputDownPin, RelayOn);
+                        Serial.println("Switch Down");
+                }
+                else
+                {
+                        allOff();
+                        Serial.println("off due error");
+                }
         }
 }
 
 void setup()
 {
-        Serial.begin(115200);
+        // Serial.begin(115200);
         startRead_parameters();
         startGPIOs();
         startIOTservices();
         endRead_parameters();
 
-        // services_chk();
-        // check_bootclockLOG();
+        services_chk();
+        check_bootclockLOG();
 }
 void loop()
 {
         iot.looper();
-        rel_state(relayUpPin, outputUpPin);
-        rel_state(relayDownPin, outputDownPin);
-        // verifyNotHazardState(); // both up and down are ---> OFF
+        post_relay_change();
         // check_reboot_reason();
-        static unsigned long looper = 0;
-        if (millis() - looper > 1000)
-        {
-                looper = millis();
-                char t[150];
-                sprintf(t, "relay_up[%d]; relay_down[%d]; out_up[%d]; out_down[%d];",
-                        digitalRead(relayUpPin), digitalRead(relayDownPin), digitalRead(outputUpPin), digitalRead(outputDownPin));
-                Serial.println(t);
-        }
-        delay(100);
+        delay(delay_loop);
 }

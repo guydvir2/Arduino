@@ -10,10 +10,14 @@
 #define SW_PRESSED LOW
 #define RELAY_ON LOW
 
+#define VER "ProMini_v0.1"
+
 const byte WIN_STOP = 0;
 const byte WIN_UP = 1;
 const byte WIN_DOWN = 2;
-const byte change_dir_delay = 10; //milli-sec
+const byte change_dir_delay = 20; //ms
+const byte debounce_delay = 20; //ms
+const byte loop_delay = 10; //ms
 
 bool swUp_lastState = false;
 bool swDown_lastState = false;
@@ -201,7 +205,6 @@ void read_allInputs(){
 void setup()
 {
   start_gpio();
-
   Serial.begin(115200);
   Serial.println("BEGIN!");
 }
@@ -221,6 +224,6 @@ void loop()
   }
 
   // autoOff(5);
-  // errorProtection();
-  delay(50);
+  errorProtection();
+  delay(loop_delay);
 }

@@ -1,6 +1,6 @@
-#include <Arduino.h>
 #include <myIOT2.h>
 #include <ArduinoJson.h>
+
 
 bool readfile_ok = false;
 char *sketch_paramfile = "/sketch_param.json";
@@ -20,7 +20,7 @@ void startRead_parameters()
 {
   String sketch_defs = "{\"outputUpPin\":14,\"outputDownPin\":12,\"relayUpPin\":4,\"relayDownPin\":5}";
 
-  String myIOT_defs = "{\"useSerial\":true,\"useWDT\":false,\"useOTA\":true,\"useResetKeeper\" : false,\
+  String myIOT_defs = "{\"useSerial\":true,\"useWDT\":false,\"useOTA\":true,\"useResetKeeper\" : false,\"useBootClockLog\" : false,\
                         \"useFailNTP\" : true,\"useDebugLog\" : true,\"useNetworkReset\":false, \"deviceTopic\" : \"myWindow\",\
                         \"groupTopic\" : \"Windows\",\"prefixTopic\" : \"myHome\",\"debug_level\":0,\"noNetwork_reset\":1}";
 

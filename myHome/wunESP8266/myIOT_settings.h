@@ -2,7 +2,8 @@
 
 myIOT2 iot;
 extern char *sketch_paramfile;
-extern void switchIt(char *type, char *dir);
+extern byte check_current_relState();
+extern void makeSwitch(byte state);
 extern StaticJsonDocument<JSON_SIZE_IOT> paramJSON;
 extern StaticJsonDocument<JSON_SIZE_SKETCH> sketchJSON;
 
@@ -15,29 +16,41 @@ void addiotnalMQTT(char *incoming_msg)
     if (strcmp(incoming_msg, "status") == 0)
     {
         // relays state
-        if (digitalRead(outputUpPin) == RelayOn && digitalRead(outputDownPin) == RelayOn)
+        char a[5];
+        byte relcheck = check_current_relState();
+        switch (relcheck)
         {
-            sprintf(state, "invalid Relay State");
+        case WIN_STOP:
+            strcpy(a, "Off");
+            break;
+        case WIN_UP:
+            strcpy(a, "Up");
+            break;
+        case WIN_DOWN:
+            strcpy(a, "Down");
+            break;
+        default:
+            strcpy(a, "Error");
+            break;
         }
-        else if (digitalRead(outputUpPin) == !RelayOn && digitalRead(outputDownPin) == RelayOn)
-        {
-            sprintf(state, "DOWN");
-        }
-        else if (digitalRead(outputUpPin) == RelayOn && digitalRead(outputDownPin) == !RelayOn)
-        {
-            sprintf(state, "UP");
-        }
-        else
-        {
-            sprintf(state, "OFF");
-        }
-
-        sprintf(msg, "Status: output:[%s]", state);
+        sprintf(msg, "Status: Window\'s relay state [%s]", a);
         iot.pub_msg(msg);
     }
-    else if (strcmp(incoming_msg, "up") == 0 || strcmp(incoming_msg, "down") == 0 || strcmp(incoming_msg, "off") == 0)
+    else if (strcmp(incoming_msg, "up") == 0)
     {
-        switchIt("MQTT", incoming_msg);
+        makeSwitch(WIN_UP);
+        iot.pub_msg("MQTT: Switch [up]");
+        
+    }
+    else if (strcmp(incoming_msg, "down") == 0)
+    {
+        makeSwitch(WIN_DOWN);
+        iot.pub_msg("MQTT: Switch [down]");
+    }
+    else if (strcmp(incoming_msg, "off") == 0)
+    {
+        makeSwitch(WIN_STOP);
+        iot.pub_msg("MQTT: Switch [off]");
     }
     else if (strcmp(incoming_msg, "ver2") == 0)
     {
@@ -66,7 +79,7 @@ void addiotnalMQTT(char *incoming_msg)
     }
     else if (strcmp(incoming_msg, "gpios") == 0)
     {
-        sprintf(msg, "GPIO pins: outputUP[%d], outputDown[%d]", outputUpPin, outputDownPin);
+        sprintf(msg, "GPIO pins: outputUP[%d], outputDown[%d], relayUPindic[%d], relayDownindic[%d]", outputUpPin, outputDownPin, relayUpPin, relayDownPin);
         iot.pub_msg(msg);
     }
 }
@@ -78,10 +91,10 @@ void startIOTservices()
     iot.useResetKeeper = paramJSON["useResetKeeper"];
     iot.resetFailNTP = paramJSON["useFailNTP"];
     iot.useDebug = paramJSON["useDebugLog"];
-    iot.debug_level = paramJSON["debug_level"]; //All operations are monitored
-    iot.useBootClockLog = false;
+    iot.debug_level = paramJSON["debug_level"]; 
+    iot.useBootClockLog = paramJSON["useBootClockLog"];
     strcpy(iot.deviceTopic, paramJSON["deviceTopic"]);
     strcpy(iot.prefixTopic, paramJSON["prefixTopic"]);
     strcpy(iot.addGroupTopic, paramJSON["groupTopic"]);
-    iot.start_services(addiotnalMQTT); //, SSID_ID, PASS_WIFI, MQTT_USER, MQTT_PASS, "192.168.3.201");
+    iot.start_services(addiotnalMQTT); 
 }
