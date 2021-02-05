@@ -10,7 +10,8 @@
                 "/Users/guydvir/Library/Arduino15/packages/esp8266/tools/**",
                 "/Users/guydvir/Library/Arduino15/packages/esp8266/hardware/esp8266/2.7.4/**",
                 "libraries/**",
-                "/home/guy/Documents/git/Arduino/libraries/**"
+                "/home/guy/Documents/git/Arduino/libraries/**",
+                "/home/guy/arduino-1.8.13/libraries/**"
             ],
             "defines": [
                 "USBCON"

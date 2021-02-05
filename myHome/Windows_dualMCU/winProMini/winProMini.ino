@@ -1,20 +1,21 @@
-#define REL_DOWN 2
-#define REL_UP 3
-#define SW_UP 4
-#define SW_DOWN 5
-#define ESP_UP 11
-#define ESP_DOWN 12
-#define REL_UP_TO_ESP 13
-#define REL_DOWN_TO_ESP 10
+#define REL_DOWN 2         /* OUTUPT to relay device */
+#define REL_UP 3           /* OUTUPT to relay device */
+#define SW_UP 4            /* Switch INPUT to ProMini */
+#define SW_DOWN 5          /* Switch INPUT to ProMini */
+#define ESP_UP 11          /* ESP INPUT to ProMini */
+#define ESP_DOWN 12        /* ESP INPUT to ProMini */
+#define REL_UP_TO_ESP 13   /* OUTPUT to ESP - Relay state*/
+#define REL_DOWN_TO_ESP 10 /* OUTPUT to ESP - Relay state*/
 
 #define SW_PRESSED LOW
 #define RELAY_ON LOW
 
-#define VER "ProMini_v0.1"
+#define VER "ProMini_v0.2"
 
 const byte WIN_STOP = 0;
 const byte WIN_UP = 1;
 const byte WIN_DOWN = 2;
+
 const byte change_dir_delay = 20; //ms
 const byte debounce_delay = 20;   //ms
 const byte loop_delay = 10;       //ms
@@ -23,9 +24,6 @@ bool swUp_lastState = false;
 bool swDown_lastState = false;
 bool espUp_lastState = false;
 bool espDown_lastState = false;
-
-unsigned long AutoOff_startclk = 0;
-const int AutoOff_time = 120; //seconds
 
 void start_gpio()
 {
@@ -64,7 +62,7 @@ void readInput(int inPin, int outPin, bool &lastState)
   bool state = digitalRead(inPin);
   if (state != lastState)
   {
-    delay(50);
+    delay(debounce_delay);
     if (digitalRead(inPin) == state)
     {
       byte relays_state = check_current_relState();
@@ -134,14 +132,12 @@ void makeSwitch(byte state)
   if (state == WIN_STOP) /* Stop */
   {
     allOff();
-    AutoOff_startclk = 0;
   }
   else if (state == WIN_UP) /* Up */
   {
     allOff();
     digitalWrite(REL_UP, RELAY_ON);
     digitalWrite(REL_UP_TO_ESP, RELAY_ON);
-    AutoOff_startclk = millis();
     Serial.println("Switch Up");
   }
   else if (state == WIN_DOWN) /* DOWN */
@@ -149,21 +145,12 @@ void makeSwitch(byte state)
     allOff();
     digitalWrite(REL_DOWN, RELAY_ON);
     digitalWrite(REL_DOWN_TO_ESP, RELAY_ON);
-    AutoOff_startclk = millis();
     Serial.println("Switch Down");
   }
   else
   {
     allOff();
-    AutoOff_startclk = 0;
     Serial.println("off due error");
-  }
-}
-void autoOff(int offtime)
-{
-  if (AutoOff_startclk != 0 && millis() > offtime * 1000L + AutoOff_startclk)
-  {
-    makeSwitch(WIN_STOP);
   }
 }
 void errorProtection()
@@ -193,13 +180,11 @@ void setup()
 {
   start_gpio();
   Serial.begin(115200);
-  Serial.println("BEGIN!");
 }
 
 void loop()
 {
   read_allInputs();
-  autoOff(AutoOff_time);
   errorProtection();
   delay(loop_delay);
 }

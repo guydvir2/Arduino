@@ -1,121 +1,37 @@
 #include <Arduino.h>
-#include <Ticker.h>
 #include "myIOT_settings.h"
+#include "OLEDdisplay.h"
 
 // ********** Sketch Services  ***********
 #define VER "WEMOS_3.1"
-#define USE_TRAFFIC_LIGHT false
-#define SCAN_PREFOMANCE_INTERVAL 1 // minutes
 
 bool mqttConnected = false;
 bool internetConnected = false;
 bool homeAssistantConnected = false;
-byte serviceAlertlevel = 0;
-byte preformanceLevel = 0;
 
 const byte log_entries = 50;
 unsigned long connLOG[log_entries];
 unsigned long disconnLOG[log_entries];
 
-#define EVAL_PERIOD 10                 // minutes
-const byte seconds_offline_alarm = 60; // past this time , an Alert will be sent upon reconnection
-const byte min_ping_interval = 10;     //seconds
+const byte min_ping_interval = 10; //seconds
+const byte UPDATE_REPORT_PERIOD = 30;
+byte adaptive_ping_val = min_ping_interval;
 
-int adaptive_ping_val = min_ping_interval;
+const byte NUM_PERIODS = 4;
+const byte PERIOD_0 = 1;
+const byte PERIOD_1 = 12;
+const byte PERIOD_2 = 24;
+const byte PERIOD_3 = 24 * 7;
+const float check_times[NUM_PERIODS] = {PERIOD_0, PERIOD_1, PERIOD_2, PERIOD_3};
 
-// ~~~~~~~~~~~Update Alert Levels ~~~~~~~~~~~
-void updateServices_Alerts()
-{
-        if (mqttConnected == false || homeAssistantConnected == false)
-        {
-                serviceAlertlevel = 2;
-        }
-        else if (internetConnected == false)
-        {
-                serviceAlertlevel = 1;
-        }
-        else
-        {
-                serviceAlertlevel = 0;
-        }
-}
-void updatePreformance()
-{
-        static int lastPref = -1;
-        // ~~~~~~~ First Test : Disconnections over Time ~~~~~~~~~~~~
-        int conTime = 0;
-        int disconTime = 0;
-        int disconnects = 0;
-        int maxd = 0;
-        int maxc = 0;
-        int imax = 0;
+int totDisconnects = 0;
+unsigned long bootclk = 0;
+unsigned long totCon_time = 0;
+unsigned long period_disc_cumTime[NUM_PERIODS];
+int period_disconnects[NUM_PERIODS];
+int alertLevel[NUM_PERIODS];
 
-        char msg[200];
-        char days[20];
-        char times[20];
-
-        int timeFrames[] = {7 * 24, 24, 12, 1};
-        char *times_disp[4] = {"Week", "Day", "12Hours", "1Hour"};
-        char *State_disp[4] = {"Excellent", "Good", "notGood", "VeryBad"};
-
-        int alLevels[] = {3, 2, 1, 0};
-
-        // for (int i = 0; i < sizeof(timeFrames) / sizeof(timeFrames[0]); i++)
-        // {
-        //         for (int x = 0; x < sizeof(alLevels) / sizeof(alLevels[0]); x++)
-        //         {
-        //                 calc2(conTime, disconTime, disconnects, timeFrames[i]);
-        //                 if (disconnects > alLevels[x] * timeFrames[i] || disconTime > alLevels[x] * 60 * timeFrames[i])
-        //                 {
-        //                         if (preformanceLevel < alLevels[x])
-        //                         {
-        //                                 preformanceLevel = alLevels[x];
-        //                                 maxd = disconnects;
-        //                                 maxc = disconTime;
-        //                                 imax = i;
-        //                         }
-        //                 }
-        //                 // ~~~~~~~~~~~~~~~~~~ End of first Test ~~~~~~~~~~~~~~~~
-        //         }
-        // }
-        // if (lastPref != preformanceLevel)
-        // {
-        //         lastPref = preformanceLevel;
-
-        //         iot.convert_epoch2clock(maxc, 0, times, days);
-        //         sprintf(msg, "Network Status: [%s], Internet [%s] MQTTserver [%s] HomeAssist[%s] Worst State: [%s] offline [%s %s] Disconnects[%d]",
-        //                 State_disp[preformanceLevel], internetConnected ? "OK" : "BAD", mqttConnected ? "OK" : "BAD", homeAssistantConnected ? "OK" : "BAD",
-        //                 times_disp[preformanceLevel], days, times, maxd);
-
-        //         preformance_alert(msg);
-        // }
-}
-void preformance_alert(char *msg)
-{
-        if (preformanceLevel == 3)
-        {
-                iot.pub_ext(msg);
-                iot.pub_msg(msg);
-        }
-        else if (preformanceLevel == 2)
-        {
-                iot.pub_msg(msg);
-                iot.pub_log(msg);
-        }
-        else if (preformanceLevel == 1)
-        {
-                iot.pub_log(msg);
-        }
-}
-void prefomance_looper()
-{
-        static long lastCheck = 0;
-        if (millis() - lastCheck > 1000 * 60L * EVAL_PERIOD)
-        {
-                // updatePreformance();
-                lastCheck = millis();
-        }
-}
+int buttonPin = D3;
 
 void show_clk(time_t t = now())
 {
@@ -126,6 +42,8 @@ void show_clk(time_t t = now())
         sprintf(msg, "%d, clock:%s", t, iot.timeStamp);
         Serial.println(msg);
 }
+
+// ±±±±±±±±±± LOG functions ±±±±±±±±±±±±±±
 bool verifyLOG()
 {
         int c = getLOG_entries(connLOG);
@@ -289,6 +207,7 @@ bool driftLOG(unsigned long LOG[])
         return 0;
 }
 
+// ±±±±±±±±±±± Connect + Disconnect calcs ±±±±±±±±±±±±±
 int calc_discon_time(int x = 0)
 {
         int c = getLOG_entries(connLOG);
@@ -348,10 +267,11 @@ void calc_total_time(unsigned long &total_time)
                 Serial.println("error total time");
         }
 }
-void calc_connection(unsigned long &cum_conTime, unsigned long &cum_disconTime, unsigned long &total_time, int &disconnects_counter, float timePeriod = 24)
+void calc_connection(unsigned long &cum_disconTime, int &disconnects_counter, float timePeriod = 24)
 {
         int con = getLOG_entries(connLOG);
-        calc_total_time(total_time);
+        cum_disconTime = 0;
+        disconnects_counter = 0;
         unsigned long crit = now() - int(timePeriod * 3600UL);
         for (int i = 1; i < con; i++)
         {
@@ -362,6 +282,68 @@ void calc_connection(unsigned long &cum_conTime, unsigned long &cum_disconTime, 
                 }
         }
 }
+void run_connection_report(bool show_results = true)
+{
+        char msg[40];
+        char clk[20];
+        char days[10];
+        const byte ERR_COEFF = 20; //sec
+
+        int disconnect_fail_criteria[][4] = {{PERIOD_0, 2},
+                                             {PERIOD_1, 1.5 * PERIOD_1},
+                                             {PERIOD_2, 1.5 * PERIOD_2},
+                                             {PERIOD_3, 1.5 * PERIOD_3}};
+        int disconTime_fail_criteria[][4] = {{ERR_COEFF * PERIOD_0, 1.5 * ERR_COEFF * PERIOD_0},
+                                             {ERR_COEFF * PERIOD_1, 1.5 * ERR_COEFF * PERIOD_1},
+                                             {ERR_COEFF * PERIOD_2, 1.5 * ERR_COEFF * PERIOD_2},
+                                             {ERR_COEFF * PERIOD_3, 1.5 * ERR_COEFF * PERIOD_3}};
+        if (show_results)
+        {
+                display_services_status();
+                display_totals();
+        }
+
+        for (int i = 0; i < NUM_PERIODS; i++)
+        {
+                calc_connection(period_disc_cumTime[i], period_disconnects[i], check_times[i]);
+
+                if (period_disconnects[i] >= disconnect_fail_criteria[i][1] || period_disc_cumTime[i] >= disconTime_fail_criteria[i][1])
+                {
+                        alertLevel[i] = 2;
+                }
+                else if (period_disconnects[i] >= disconnect_fail_criteria[i][0] && period_disconnects[i] < disconnect_fail_criteria[i][1] || period_disc_cumTime[i] >= disconTime_fail_criteria[i][0 && period_disc_cumTime[i] < disconTime_fail_criteria[i][1]])
+                {
+                        alertLevel[i] = 1;
+                }
+                else if (period_disc_cumTime[i] < disconTime_fail_criteria[i][0] || period_disc_cumTime[i] < disconTime_fail_criteria[i][0])
+                {
+                        alertLevel[i] = 0;
+                }
+                else
+                {
+                        Serial.println("LEVEL_ERR");
+                }
+                if (show_results)
+                {
+                        Serial.print("\n~~~~~~~~~~~~~~~");
+                        Serial.print(check_times[i]);
+                        Serial.print("_hrs");
+                        Serial.println("~~~~~~~~~~~~~~~");
+
+                        iot.convert_epoch2clock(period_disc_cumTime[i], 0, clk, days);
+                        sprintf(msg, "Disonnected in %.2f_hrs:\t%s %s", check_times[i], days, clk);
+                        Serial.println(msg);
+
+                        sprintf(msg, "Disconnects in %.2f_hrs:\t%d", check_times[i], period_disconnects[i]);
+                        Serial.println(msg);
+
+                        sprintf(msg, "alertLevel in %.2f_hrs:\t\t%d", check_times[i], alertLevel[i]);
+                        Serial.println(msg);
+                }
+        }
+}
+
+// ±±±±±±±±±±±±± Display results on Serial ±±±±±±±±±±±±±
 void display_services_status()
 {
         char msg[50];
@@ -378,94 +360,16 @@ void display_totals()
         char msg[40];
         char clk[20];
         char days[10];
-        unsigned long total_time = 0;
 
-        calc_total_time(total_time);
+        calc_total_time(totCon_time);
+        totDisconnects = getLOG_entries(disconnLOG);
+
         Serial.println("\n~~~~~~~~~~~~~~~ Totals ~~~~~~~~~~~~~~~");
-        iot.convert_epoch2clock(total_time, 0, clk, days);
+        iot.convert_epoch2clock(totCon_time, 0, clk, days);
         sprintf(msg, "Total monitoring time:\t\t%s %s", days, clk);
         Serial.println(msg);
-        sprintf(msg, "Total disonnects:\t\t%d", getLOG_entries(disconnLOG));
+        sprintf(msg, "Total disonnects:\t\t%d", totDisconnects);
         Serial.println(msg);
-}
-void run_connection_report(bool show_results = true)
-{
-        char msg[40];
-        char clk[20];
-        char days[10];
-        int disconnects_counter = 0;
-        unsigned long total_time = 0;
-        unsigned long cum_conTime = 0;
-        unsigned long cum_disconTime = 0;
-        const byte PERIOD_0 = 1;
-        const byte PERIOD_1 = 12;
-        const byte PERIOD_2 = 24;
-        const byte PERIOD_3 = 24 * 7;
-        const byte ERR_COEFF = 20; //sec
-
-        float check_times[] = {PERIOD_0, PERIOD_1, PERIOD_2, PERIOD_3};
-        int score[4];
-
-        int disconnect_fail_criteria[][4] = {{PERIOD_0, 2},
-                                             {PERIOD_1, 1.5 * PERIOD_1},
-                                             {PERIOD_2, 1.5 * PERIOD_2},
-                                             {PERIOD_3, 1.5 * PERIOD_3}};
-        int disconTime_fail_criteria[][4] = {{ERR_COEFF * PERIOD_0, 1.5 * ERR_COEFF * PERIOD_0},
-                                             {ERR_COEFF * PERIOD_1, 1.5 * ERR_COEFF * PERIOD_1},
-                                             {ERR_COEFF * PERIOD_2, 1.5 * ERR_COEFF * PERIOD_2},
-                                             {ERR_COEFF * PERIOD_3, 1.5 * ERR_COEFF * PERIOD_3}};
-        if (show_results)
-        {
-                display_services_status();
-                display_totals();
-        }
-
-        for (int i = 0; i < sizeof(check_times) / sizeof(check_times[0]); i++)
-        {
-                calc_connection(cum_conTime, cum_disconTime, total_time, disconnects_counter, check_times[i]);
-
-                if (disconnects_counter >= disconnect_fail_criteria[i][1] || cum_disconTime >= disconTime_fail_criteria[i][1])
-                {
-                        score[i] = 2;
-                }
-                else if (disconnects_counter >= disconnect_fail_criteria[i][0] && disconnects_counter < disconnect_fail_criteria[i][1] || cum_disconTime >= disconTime_fail_criteria[i][0 && cum_disconTime < disconTime_fail_criteria[i][1]])
-                {
-                        score[i] = 1;
-                }
-                else if (cum_disconTime < disconTime_fail_criteria[i][0] || cum_disconTime < disconTime_fail_criteria[i][0])
-                {
-                        score[i] = 0;
-                }
-                else
-                {
-                        // score[i] = 0;
-                        Serial.println("LEVEL_ERR");
-                }
-                if (show_results)
-                {
-                        Serial.print("\n~~~~~~~~~~~~~~~");
-                        Serial.print(check_times[i]);
-                        Serial.print("_hrs");
-                        Serial.println("~~~~~~~~~~~~~~~");
-
-                        // iot.convert_epoch2clock(cum_conTime, 0, clk, days);
-                        // sprintf(msg, "Connected in %.2f_hrs:\t%s %s", check_times[i], days, clk);
-                        // Serial.println(msg);
-
-                        iot.convert_epoch2clock(cum_disconTime, 0, clk, days);
-                        sprintf(msg, "Disonnected in %.2f_hrs:\t%s %s", check_times[i], days, clk);
-                        Serial.println(msg);
-
-                        sprintf(msg, "Disconnects in %.2f_hrs:\t%d", check_times[i], disconnects_counter);
-                        Serial.println(msg);
-
-                        sprintf(msg, "Score in %.2f_hrs:\t\t%d", check_times[i], score[i]);
-                        Serial.println(msg);
-                }
-                disconnects_counter = 0;
-                cum_conTime = 0;
-                cum_disconTime = 0;
-        }
 }
 void display_logs()
 {
@@ -556,6 +460,15 @@ void pingServices()
                 }
         }
 }
+void update_ConnectionReport(byte check_int = 30)
+{
+        static unsigned long last = 0;
+        if (millis() - last > check_int * 1000UL)
+        {
+                last = millis();
+                run_connection_report();
+        }
+}
 void checknLOG_internet(bool &get_ping)
 {
         static int same_state_counter = 0;
@@ -616,84 +529,6 @@ void checknLOG_internet(bool &get_ping)
         }
 }
 
-// ~~~~~~~~~~ TrafficLight ~~~~~~~~~~~~~
-#if USE_TRAFFIC_LIGHT
-#define GreenLedPin D3
-#define YellowLedPin D2
-#define RedLedPin D1
-#define ledON HIGH
-#define ledOFF !ledON
-
-Ticker blinker;
-void TrafficBlink()
-{
-        if (serviceAlertlevel == 2)
-        {
-                digitalWrite(RedLedPin, !digitalRead(RedLedPin));
-        }
-        else if (serviceAlertlevel == 1)
-        {
-                digitalWrite(RedLedPin, ledON);
-        }
-        else
-        {
-                digitalWrite(RedLedPin, ledOFF);
-        }
-
-        if (preformanceLevel == 3)
-        {
-                digitalWrite(YellowLedPin, !digitalRead(YellowLedPin));
-                digitalWrite(GreenLedPin, ledOFF);
-        }
-        else if (preformanceLevel == 2)
-        {
-                digitalWrite(YellowLedPin, ledON);
-                digitalWrite(GreenLedPin, ledON);
-        }
-        else if (preformanceLevel == 1)
-        {
-                digitalWrite(YellowLedPin, ledOFF);
-                digitalWrite(GreenLedPin, !digitalRead(GreenLedPin));
-        }
-        else if (preformanceLevel == 0 && serviceAlertlevel == 0)
-        {
-                digitalWrite(YellowLedPin, ledOFF);
-                digitalWrite(GreenLedPin, ledON);
-        }
-}
-void powerONbit()
-{
-        int x = 0;
-        while (x < 4)
-        {
-                digitalWrite(GreenLedPin, ledON);
-                delay(200);
-                digitalWrite(YellowLedPin, ledON);
-                delay(200);
-                digitalWrite(RedLedPin, ledON);
-                delay(1000);
-
-                digitalWrite(GreenLedPin, ledOFF);
-                delay(200);
-                digitalWrite(YellowLedPin, ledOFF);
-                delay(200);
-                digitalWrite(RedLedPin, ledOFF);
-                delay(1000);
-                x++;
-        }
-}
-void startTrafficLight()
-{
-        pinMode(GreenLedPin, OUTPUT);
-        pinMode(YellowLedPin, OUTPUT);
-        pinMode(RedLedPin, OUTPUT);
-
-        powerONbit();
-        blinker.attach(0.2, TrafficBlink);
-}
-
-#endif
-// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 void simulate_disconnects(int errs = 6)
 {
         int init_time_drift = errs * 1200; // sec
@@ -715,7 +550,7 @@ void simulate_disconnects(int errs = 6)
         // updateLOG(connLOG, now() - 140);
         // updateLOG(disconnLOG, now() - 10);
 
-        onBoot_clk();
+        // onBoot_clk();
         if (verifyLOG())
         {
                 Serial.println("LOG check OK at boot");
@@ -725,26 +560,20 @@ void simulate_disconnects(int errs = 6)
                 Serial.println("LOG check fail at boot");
         }
 }
-void onBoot_clk()
-{
-        Serial.print("boot: ");
-        show_clk();
-}
+
 void setup()
 {
+        pinMode(buttonPin, INPUT_PULLUP);
         startIOTservices();
-        simulate_disconnects();
+        bootclk = now();
+        // simulate_disconnects();
+        OLED.start();
 }
-
 void loop()
 {
         iot.looper();
         pingServices();
-        // static unsigned long last = 0;
-        // if (millis() - last > 30000)
-        // {
-        //         last = millis();
-        //         run_connection_report();
-        // }
+        update_ConnectionReport(UPDATE_REPORT_PERIOD);
+        displays_looper();
         delay(100);
 }

@@ -2,7 +2,7 @@
 
 myIOT2 iot;
 extern char *sketch_paramfile;
-extern byte check_current_relState();
+extern byte get_relayState();
 extern void makeSwitch(byte state);
 extern StaticJsonDocument<JSON_SIZE_IOT> paramJSON;
 extern StaticJsonDocument<JSON_SIZE_SKETCH> sketchJSON;
@@ -17,7 +17,7 @@ void addiotnalMQTT(char *incoming_msg)
     {
         // relays state
         char a[5];
-        byte relcheck = check_current_relState();
+        byte relcheck = get_relayState();
         switch (relcheck)
         {
         case WIN_STOP:
@@ -40,7 +40,6 @@ void addiotnalMQTT(char *incoming_msg)
     {
         makeSwitch(WIN_UP);
         iot.pub_msg("MQTT: Switch [up]");
-        
     }
     else if (strcmp(incoming_msg, "down") == 0)
     {
@@ -82,6 +81,12 @@ void addiotnalMQTT(char *incoming_msg)
         sprintf(msg, "GPIO pins: outputUP[%d], outputDown[%d], relayUPindic[%d], relayDownindic[%d]", outputUpPin, outputDownPin, relayUpPin, relayDownPin);
         iot.pub_msg(msg);
     }
+    // else
+    // {
+    //     if(strcmp(incoming_msg,"offlin"))
+    //     sprintf(msg, "Error: \"%s\" no valid command", incoming_msg);
+    //     iot.pub_msg(msg);
+    // }
 }
 void startIOTservices()
 {
@@ -91,10 +96,10 @@ void startIOTservices()
     iot.useResetKeeper = paramJSON["useResetKeeper"];
     iot.resetFailNTP = paramJSON["useFailNTP"];
     iot.useDebug = paramJSON["useDebugLog"];
-    iot.debug_level = paramJSON["debug_level"]; 
+    iot.debug_level = paramJSON["debug_level"];
     iot.useBootClockLog = paramJSON["useBootClockLog"];
     strcpy(iot.deviceTopic, paramJSON["deviceTopic"]);
     strcpy(iot.prefixTopic, paramJSON["prefixTopic"]);
     strcpy(iot.addGroupTopic, paramJSON["groupTopic"]);
-    iot.start_services(addiotnalMQTT); 
+    iot.start_services(addiotnalMQTT);
 }

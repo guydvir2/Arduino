@@ -45,7 +45,7 @@ void myIOT2::start_services(cb_func funct, char *ssid, char *password, char *mqt
 
 	if (useBootClockLog && WiFi.isConnected())
 	{
-		get_bootclockLOG(0);
+		// get_bootclockLOG(0);
 		update_bootclockLOG();
 	}
 }
@@ -320,7 +320,7 @@ void myIOT2::convert_epoch2clock(long t1, long t2, char *time_str, char *days_st
 	minutes = (int)((time_delta - days * sec2days - hours * sec2hours) / sec2minutes);
 	seconds = (int)(time_delta - days * sec2days - hours * sec2hours - minutes * sec2minutes);
 
-	sprintf(days_str, "%02d days", days);
+	sprintf(days_str, "%01dd", days);
 	sprintf(time_str, "%02d:%02d:%02d", hours, minutes, seconds);
 }
 // ~~~~~~~ NTP & Clock ESP32 ~~~~~~~~
@@ -1000,6 +1000,7 @@ long myIOT2::get_bootclockLOG(int x)
 {
 	return EEPROMReadlong(_prevBootclock_eADR[x]);
 }
+
 // ~~~~~~ Reset and maintability ~~~~~~
 void myIOT2::sendReset(char *header)
 {

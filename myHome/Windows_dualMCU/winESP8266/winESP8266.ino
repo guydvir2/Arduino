@@ -7,14 +7,11 @@
 // ~~~~~~~ Additional Services ~~~~~~~~
 bool services_chk()
 {
-        bool ntp = iot.NTP_OK;
-        bool wifi = WiFi.isConnected();
-        bool mqtt = iot.mqttClient.connected();
-
-        if (!(wifi && mqtt && ntp))
+        if (!(WiFi.isConnected() && iot.mqttClient.connected() && iot.NTP_OK))
         {
                 char a[50];
-                sprintf(a, "Services error: WiFi[%s] MQTT[%s] NTP[%s]", wifi ? "OK" : "FAIL", mqtt ? "OK" : "FAIL", ntp ? "OK" : "FAIL");
+                sprintf(a, "Services error: WiFi[%s] MQTT[%s] NTP[%s]",
+                        WiFi.isConnected() ? "OK" : "FAIL", iot.mqttClient.connected() ? "OK" : "FAIL", iot.NTP_OK ? "OK" : "FAIL");
                 iot.pub_log(a);
                 return 0;
         }
@@ -87,38 +84,66 @@ void allOff()
         digitalWrite(outputUpPin, !RelayOn);
         digitalWrite(outputDownPin, !RelayOn);
         delay(delay_switch);
-        Serial.println("offcMmd");
+}
+void autoOff_clkUpdate()
+{
+        if (get_relayState() == WIN_STOP)
+        {
+                autoOff_clk = 0;
+        }
+        else
+        {
+                autoOff_clk = millis();
+        }
+}
+void autoOff_looper(int duration = autoOff_time)
+{
+        if (useAutoOff)
+        {
+                if (autoOff_clk != 0 && millis() > duration * 1000UL + autoOff_clk)
+                {
+                        makeSwitch(WIN_STOP);
+                }
+        }
 }
 void post_relay_change()
+{
+        char a[5];
+        char t[50];
+        byte swstate = get_relayState();
+
+        switch (swstate)
+        {
+        case WIN_STOP:
+                strcpy(a, "Off");
+                break;
+        case WIN_UP:
+                strcpy(a, "Up");
+                break;
+        case WIN_DOWN:
+                strcpy(a, "Down");
+                break;
+        }
+        sprintf(t, "Button: Switched [%s]", a);
+        iot.pub_msg(t);
+}
+bool det_relay_change()
 {
         bool relup = digitalRead(relayUpPin);
         bool reldown = digitalRead(relayDownPin);
 
         if (relup != relayUP_lastState || reldown != relayDOWN_lastState) /* Change in one or more relays*/
         {
-                char a[5];
-                char t[50];
-                byte swstate = check_current_relState();
                 relayUP_lastState = relup;
                 relayDOWN_lastState = reldown;
-
-                switch (swstate)
+                if (useAutoOff)
                 {
-                case WIN_STOP:
-                        strcpy(a, "Off");
-                        break;
-                case WIN_UP:
-                        strcpy(a, "Up");
-                        break;
-                case WIN_DOWN:
-                        strcpy(a, "Down");
-                        break;
+                        autoOff_clkUpdate();
                 }
-                sprintf(t, "Button: Switched [%s]", a);
-                iot.pub_msg(t);
+                post_relay_change();
         }
 }
-byte check_current_relState()
+byte get_relayState()
 {
         bool relup = digitalRead(relayUpPin);
         bool reldown = digitalRead(relayDownPin);
@@ -138,46 +163,39 @@ byte check_current_relState()
 }
 void makeSwitch(byte state)
 {
-        byte restate = check_current_relState(); /* check current relays state */
-        // Serial.print("relay state is: ");
-        // Serial.println(restate);
-        // char t[150];
-        // sprintf(t, "[before]: relay_up[%d]; relay_down[%d]; out_up[%d]; out_down[%d];",
-        //         digitalRead(relayUpPin), digitalRead(relayDownPin), digitalRead(outputUpPin), digitalRead(outputDownPin));
-        // Serial.println(t);
+        byte restate = get_relayState(); /* check current relays state */
+
         if (restate != state)
         {
                 digitalWrite(outputUpPin, digitalRead(relayUpPin));
                 digitalWrite(outputDownPin, digitalRead(relayDownPin));
+                delay(delay_switch); /* important delay - for other MCU process change*/
 
-                delay(delay_switch);
-                if (state == WIN_STOP) /* Stop */
+                switch (state)
                 {
+                case WIN_STOP:
                         allOff();
-                }
-                else if (state == WIN_UP) /* Up */
-                {
+                        break;
+                case WIN_UP:
                         allOff();
                         digitalWrite(outputUpPin, RelayOn);
                         Serial.println("Switch Up");
-                }
-                else if (state == WIN_DOWN) /* DOWN */
-                {
+                        break;
+                case WIN_DOWN:
                         allOff();
                         digitalWrite(outputDownPin, RelayOn);
                         Serial.println("Switch Down");
-                }
-                else
-                {
+                        break;
+                default:
                         allOff();
                         Serial.println("off due error");
+                        break;
                 }
         }
 }
 
 void setup()
 {
-        // Serial.begin(115200);
         startRead_parameters();
         startGPIOs();
         startIOTservices();
@@ -189,7 +207,7 @@ void setup()
 void loop()
 {
         iot.looper();
-        post_relay_change();
-        // check_reboot_reason();
+        det_relay_change();
+        autoOff_looper();
         delay(delay_loop);
 }

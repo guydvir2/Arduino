@@ -16,9 +16,10 @@ public:
 
 private:
 #define OLED_RESET LED_BUILTIN
-  Adafruit_SSD1306 display;
 
 public:
+  Adafruit_SSD1306 display;
+
   myOLED(int height = 32, int width = 128);
   void start();
   void CenterTXT(char *line1 = "", char *line2 = "", char *line3 = "", char *line4 = "", byte x_shift = 0, byte y_shift = 0);
