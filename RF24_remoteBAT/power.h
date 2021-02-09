@@ -3,7 +3,7 @@ volatile int sleep_counter = 0;
 
 extern void exec_after_wakeup();
 
-void sleepit_10sec(byte x)
+void sleepit_10sec(int x)
 {
   if (sleep_counter < (x / 10))
   {
@@ -11,7 +11,7 @@ void sleepit_10sec(byte x)
     LowPower.powerDown(SLEEP_8S, ADC_OFF, BOD_OFF);
     LowPower.powerDown(SLEEP_2S, ADC_OFF, BOD_OFF);
 #else
-    delay(x * 1000);
+    delay(10000);
 #endif
     sleep_counter++;
   }

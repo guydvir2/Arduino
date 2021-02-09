@@ -1,7 +1,7 @@
 #include <myRF24.h>
 #include <ArduinoJson.h>
 
-#define ROLE 0 /* 0:Reciever ( ESP8266 also connected to WiFi) 1: Sender ( Pro-Micro with RF24 log range anttenna)*/
+#define ROLE 1 /* 0:Reciever ( ESP8266 also connected to WiFi) 1: Sender ( Pro-Micro with RF24 log range anttenna)*/
 #define PRINT_MESSAGES true
 #define PRINT_REPORT true
 #define REPORT_SEC 60

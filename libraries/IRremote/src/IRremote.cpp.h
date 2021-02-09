@@ -1,5 +1,5 @@
 //******************************************************************************
-// IRremote.cpp
+// IRremote.cpp.h
 //
 //  Contains all IRreceiver static functions
 //
@@ -36,7 +36,7 @@
  *
  ************************************************************************************
  */
-#include "IRremote.h"
+#include "IRremoteInt.h"
 
 struct irparams_struct irparams; // the irparams instance
 
@@ -53,7 +53,7 @@ struct irparams_struct irparams; // the irparams instance
 //   in a hope of finding out what is going on, but for now they will remain as
 //   functions even in non-DEBUG mode
 //
-bool MATCH(unsigned int measured, unsigned int desired) {
+bool MATCH(uint16_t measured, uint16_t desired) {
 #ifdef TRACE
     Serial.print(F("Testing: "));
     Serial.print(TICKS_LOW(desired), DEC);
@@ -73,10 +73,15 @@ bool MATCH(unsigned int measured, unsigned int desired) {
     return passed;
 }
 
+// used for ir_Pronto
+int getMarkExcessMicros(){
+    return MARK_EXCESS_MICROS;
+}
+
 //+========================================================
 // Due to sensor lag, when received, Marks tend to be MARK_EXCESS_MICROS us too long
 //
-bool MATCH_MARK(uint16_t measured_ticks, unsigned int desired_us) {
+bool MATCH_MARK(uint16_t measured_ticks, uint16_t desired_us) {
 #ifdef TRACE
     Serial.print(F("Testing mark (actual vs desired): "));
     Serial.print(measured_ticks * MICROS_PER_TICK, DEC);
@@ -105,7 +110,7 @@ bool MATCH_MARK(uint16_t measured_ticks, unsigned int desired_us) {
 //+========================================================
 // Due to sensor lag, when received, Spaces tend to be MARK_EXCESS_MICROS us too short
 //
-bool MATCH_SPACE(uint16_t measured_ticks, unsigned int desired_us) {
+bool MATCH_SPACE(uint16_t measured_ticks, uint16_t desired_us) {
 #ifdef TRACE
     Serial.print(F("Testing space (actual vs desired): "));
     Serial.print(measured_ticks * MICROS_PER_TICK, DEC);
