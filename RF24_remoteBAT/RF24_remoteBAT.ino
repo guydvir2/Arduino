@@ -42,7 +42,6 @@ const char *m_types[] = {"q", "ans", "cmd", "info", "act"};
 /* ~~~~~~~~ Message buffers and Counters ~~~~~~~~~ */
 const int JSON_SIZE = 400;
 const byte delay_read = 200;
-char inmsg_buff[250];
 int inmsg_counter[5];     /* counts incoming messages only - which are all successes*/
 int outmsg_counter[2][5]; /* row 0 counts fails, row 1 counts success sendings*/
 /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
@@ -128,17 +127,17 @@ bool send(const char *msg_type, const char *p0, const char *p1 = nullptr, const 
   sprintf(p3, "#%d/%d", outmsg_counter[1][i], outmsg_counter[0][i] + outmsg_counter[1][i]);
 
   /* Sending the message */
-  power_periferials(true);
+  // power_periferials(true);
   if (gen_send(key[0], dev_name, key[1], msg_type, key[2], p0, key[3], p1, key[4], p2))
   {
     outMSG_counter(msg_type, i, 1);
-    power_periferials(LOW);
+    // power_periferials(LOW);
     return 1;
   }
   else
   {
     outMSG_counter(msg_type, i, 0);
-    power_periferials(LOW);
+    // power_periferials(LOW);
     return 0;
   }
 }
@@ -150,10 +149,20 @@ bool ask4Clk()
     const byte max_retries = 3;
     while (x < max_retries && !send(m_types[0], questions[0]))
     {
-      delay(50);
+      x++;
+      delay(10);
+      Serial.println("fail");
     }
-    Serial.println("CLK_FAIL");
-    return 0;
+    if (x >= max_retries)
+    {
+      Serial.println("CLK_REQ_FAIL");
+      return 0;
+    }
+    else
+    {
+      Serial.println("CLK_REQ_OK");
+      return 1;
+    }
   }
   else
   {
@@ -164,6 +173,7 @@ bool ask4Clk()
 /* ~~~~~~~~~~ Incoming Messages ~~~~~~~~~ */
 void intercept_incoming()
 {
+  char inmsg_buff[250];
   if (radio.RFread2(inmsg_buff, delay_read))
   {
     answer_incoming(inmsg_buff);
@@ -173,6 +183,8 @@ void answer_incoming(char *inmsg)
 {
   StaticJsonDocument<JSON_SIZE> DOC;
   deserializeJson(DOC, (const char *)inmsg);
+
+  // serializeJsonPretty(DOC, Serial);
 
   /* got a question to answer.
      gKeys[1]  - is msg type
@@ -223,23 +235,28 @@ void handle_INinfo(JsonDocument &DOC)
 void handle_INquestion(JsonDocument &DOC)
 {
   inmsg_counter[0]++;
-  if (strcmp(DOC[gKeys[2]], questions[2]) == 0)
+  if (strcmp(DOC[gKeys[2]], questions[2]) == 0) /* Who is on line */
   {
     send(m_types[1], questions[2], ":)");
   }
 #if ROLE == 0
-  char t[20];
-  sprintf(t, "%d", now());
-  send(m_types[1], questions[0], t);
+  if (strcmp(DOC[gKeys[2]], questions[0]) == 0) /* send answer clk */
+  {
+    char t[20];
+    sprintf(t, "%d", now());
+    send(m_types[1], questions[0], t);
+  }
 #endif
 }
 void handle_INanswer(JsonDocument &DOC)
 {
   inmsg_counter[1]++;
-  if (strcmp(DOC[gKeys[2]], questions[0]) == 0)
+  if (strcmp(DOC[gKeys[2]], questions[0]) == 0) /* get clk answer*/
   {
     const char *a = DOC[gKeys[3]];
     setTime(atol(a));
+    Serial.print("clk update: ");
+    Serial.println(retClk());
   }
 }
 
@@ -292,7 +309,6 @@ const byte mosfetPin = 6;
 
 void power_periferials(bool state)
 {
-
   if (state)
   {
     radio.radio.powerUp();
@@ -312,15 +328,15 @@ void sender_setup()
 {
 #if ROLE == 1
   Serial.begin(115200);
-  pinMode(mosfetPin, OUTPUT);
-  power_periferials(HIGH);
-  send(m_types[3], "boot");
+  // pinMode(mosfetPin, OUTPUT);
+  // power_periferials(HIGH);
+  // send(m_types[3], "boot");
 #endif
 }
 void reciever_setup()
 {
 #if ROLE == 0
-  radio.startRF24(w_address, r_address, dev_name, RF24_PA_MIN, RF24_1MBPS, 1);
+  // radio.startRF24(w_address, r_address, dev_name, RF24_PA_MIN, RF24_1MBPS, 1);
 #if USE_IOT == 1
   startIOTservices();
 #else
@@ -330,27 +346,56 @@ void reciever_setup()
 }
 void setup()
 {
+  radio.startRF24(w_address, r_address, dev_name, RF24_PA_MIN, RF24_1MBPS, 1);
+  delay(50);
   sender_setup();
   reciever_setup();
   send(m_types[0], questions[2]); /* Ask whois on-line */
 }
 void sender_loop()
 {
-  #if ROLE == 1
-  if (ask4Clk())
+#if ROLE == 1
+  static long last = 0;
+  if (millis() - last > 3000)
   {
-    sleepit_10sec(SLEEP_TIME);
-  }
-  else
-  {
-    Serial.println("Clock_Err");
+    last = millis();
+    send(m_types[0], "bye?");
+    // if (!ask4Clk())
+    // {
+    //   // sleepit_10sec(SLEEP_TIME);
+    //   // Serial.println(retClk());
+    //   Serial.println("Clock_Err");
+    // }
+    // else
+    // {
+    //   Serial.println(retClk());
+    //   Serial.println("Goto sleep");
+    //   // sleepit_10sec(SLEEP_TIME);
+    // }
   }
 #endif
 }
 void reciever_loop()
 {
-#if ROLE == 0 && IOT == 1
+#if USE_IOT == 1 && ROLE == 0
   iot.looper();
+  static long last = 0;
+  if (millis() - last > 3000)
+  {
+    last = millis();
+    // send(m_types[0], "guy");
+    // if (!ask4Clk())
+    // {
+    //   // sleepit_10sec(SLEEP_TIME);
+    //   Serial.println(retClk());
+    //   Serial.println("Clock_Err");
+    // }
+    // else
+    // {
+    //   Serial.println("Goto sleep");
+    //   // sleepit_10sec(SLEEP_TIME);
+    // }
+  }
 #endif
 }
 void loop()

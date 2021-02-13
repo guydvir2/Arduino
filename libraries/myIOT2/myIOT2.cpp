@@ -93,6 +93,12 @@ bool myIOT2::startWifi(char *ssid, char *password)
 	WiFi.mode(WIFI_OFF); // <---- NEW
 	WiFi.mode(WIFI_STA);
 	WiFi.disconnect();
+	//  if(wm.autoConnect("dvirAP")){
+    //     Serial.println("connected...yeey :)");
+    // }
+    // else {
+    //     Serial.println("Configportal running");
+    // }
 	WiFi.begin(ssid, password);
 	WiFi.setAutoReconnect(true); // <-- BACK
 
@@ -144,6 +150,7 @@ void myIOT2::start_network_services()
 }
 bool myIOT2::network_looper()
 {
+	// wm.process();
 	if (WiFi.status() == WL_CONNECTED)
 	{ // wifi is ok
 		if (mqttClient.connected())

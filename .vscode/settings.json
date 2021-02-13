@@ -15,7 +15,8 @@
         "*.properties": "cpp",
         "*.ini": "cpp",
         "random": "cpp",
-        "cstddef": "cpp"
+        "cstddef": "cpp",
+        "regex": "cpp"
     },
     "C_Cpp.errorSquiggles": "Disabled"
 }

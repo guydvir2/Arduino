@@ -81,12 +81,6 @@ void addiotnalMQTT(char *incoming_msg)
         sprintf(msg, "GPIO pins: outputUP[%d], outputDown[%d], relayUPindic[%d], relayDownindic[%d]", outputUpPin, outputDownPin, relayUpPin, relayDownPin);
         iot.pub_msg(msg);
     }
-    // else
-    // {
-    //     if(strcmp(incoming_msg,"offlin"))
-    //     sprintf(msg, "Error: \"%s\" no valid command", incoming_msg);
-    //     iot.pub_msg(msg);
-    // }
 }
 void startIOTservices()
 {

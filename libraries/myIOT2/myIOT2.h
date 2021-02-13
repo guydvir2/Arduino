@@ -12,6 +12,7 @@
 #include <myLOG.h>
 #include <myJSON.h>
 #include <ArduinoJson.h>
+#include <WiFiManager.h>
 
 #if defined(ARDUINO_ARCH_ESP8266)
 #include <ESP8266WiFi.h>
@@ -43,6 +44,7 @@ class myIOT2
 public:
     WiFiClient espClient;
     PubSubClient mqttClient;
+    WiFiManager wm;
 #if isESP8266
     Ticker wdt;
 #endif
@@ -97,7 +99,7 @@ public:
     static const byte bootlog_len = 3; // nubmer of boot clock records
     // ~~~~~~~~~~~~~~~~~~~~~~~~~
 
-    const char *ver = "iot_v0.6";
+    const char *ver = "iot_v0.7";
     static const byte num_param = 6;
     char inline_param[num_param][20]; //values from user
 
