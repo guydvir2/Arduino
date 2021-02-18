@@ -6,7 +6,7 @@
     "useDebugLog": true,
     "useResetKeeper": false,
     "useNetworkReset": true,
-    "useBootClockLog": true,
+    "useBootClockLog": false,
     "deviceTopic": "SerialMCU",
     "groupTopic": "Windows",
     "prefixTopic": "myHome",

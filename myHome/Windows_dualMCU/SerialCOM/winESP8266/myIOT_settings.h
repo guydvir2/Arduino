@@ -9,13 +9,10 @@ extern StaticJsonDocument<JSON_SIZE_SKETCH> sketchJSON;
 
 void addiotnalMQTT(char *incoming_msg)
 {
-    char state[5];
     char msg[100];
-    char msg2[100];
 
     if (strcmp(incoming_msg, "status") == 0)
     {
-        // relays state
         char a[5];
         switch (currentRelay_state)
         {
@@ -32,27 +29,24 @@ void addiotnalMQTT(char *incoming_msg)
             strcpy(a, "Error");
             break;
         }
-        sprintf(msg, "Status: Window\'s relay state [%s]", a);
+        sprintf(msg, "Status: Window is [%s]", a);
         iot.pub_msg(msg);
     }
     else if (strcmp(incoming_msg, "up") == 0)
     {
         makeSwitch(WIN_UP);
-        iot.pub_msg("MQTT: Switch [up]");
     }
     else if (strcmp(incoming_msg, "down") == 0)
     {
         makeSwitch(WIN_DOWN);
-        iot.pub_msg("MQTT: Switch [down]");
     }
     else if (strcmp(incoming_msg, "off") == 0)
     {
         makeSwitch(WIN_STOP);
-        iot.pub_msg("MQTT: Switch [off]");
     }
     else if (strcmp(incoming_msg, "ver2") == 0)
     {
-        sprintf(msg, "ver2:[%s]", VER);
+        sprintf(msg, "ver2:[%s], [DualMCU], [Serial-Comm], AutoOff[%d], AutoOff_time[%d]", VER, useAutoOff, autoOff_time);
         iot.pub_msg(msg);
     }
     else if (strcmp(incoming_msg, "show_flash_param") == 0)
@@ -72,32 +66,29 @@ void addiotnalMQTT(char *incoming_msg)
     }
     else if (strcmp(incoming_msg, "help2") == 0)
     {
-        sprintf(msg, "Help: Commands #3 - [up, down, off, gpios, show_flash_param]");
+        sprintf(msg, "Help: Commands #3 - [up, down, off, show_flash_param, help2]");
         iot.pub_msg(msg);
     }
-    // else if (strcmp(incoming_msg, "gpios") == 0)
-    // {
-    //     // sprintf(msg, "GPIO pins: outputUP[%d], outputDown[%d], relayUPindic[%d], relayDownindic[%d]", outputUpPin, outputDownPin, relayUpPin, relayDownPin);
-    //     // iot.pub_msg(msg);
-    // }
-    //     else if (strcmp(incoming_msg, "0") == 0)
-    // {
-    //     Serial.write(WIN_STOP);
-    //     sprintf(msg,"Serial: 0");
-    //     iot.pub_msg(msg);
-    // }
-    //       else if (strcmp(incoming_msg, "1") == 0)
-    // {
-    //     Serial.write(WIN_UP);
-    //     sprintf(msg,"Serial: 1");
-    //     iot.pub_msg(msg);
-    // }
-    //       else if (strcmp(incoming_msg, "2") == 0)
-    // {
-    //     Serial.write(WIN_DOWN);
-    //     sprintf(msg,"Serial: 2");
-    //     iot.pub_msg(msg);
-    // }
+    else if (strcmp(incoming_msg, "1") == 0)
+    {
+        Serial.write(1);
+    }
+       else if (strcmp(incoming_msg, "2") == 0)
+    {
+        Serial.write(2);
+    }
+       else if (strcmp(incoming_msg, "3") == 0)
+    {
+        Serial.write(3);
+    }
+       else if (strcmp(incoming_msg, "4") == 0)
+    {
+        Serial.write(4);
+    }
+    else if (strcmp(incoming_msg, "5") == 0)
+    {
+        Serial.write(5);
+    }
 }
 void startIOTservices()
 {

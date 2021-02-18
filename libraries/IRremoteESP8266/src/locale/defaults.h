@@ -544,6 +544,9 @@
 #ifndef D_STR_DOSHISHA
 #define D_STR_DOSHISHA "DOSHISHA"
 #endif  // D_STR_DOSHISHA
+#ifndef D_STR_ECOCLIM
+#define D_STR_ECOCLIM "ECOCLIM"
+#endif  // D_STR_ECOCLIM
 #ifndef D_STR_ELECTRA_AC
 #define D_STR_ELECTRA_AC "ELECTRA_AC"
 #endif  // D_STR_ELECTRA_AC
@@ -628,6 +631,9 @@
 #ifndef D_STR_MIDEA24
 #define D_STR_MIDEA24 "MIDEA24"
 #endif  // D_STR_MIDEA24
+#ifndef D_STR_MILESTAG2
+#define D_STR_MILESTAG2 "MILESTAG2"
+#endif  // D_STR_MILESTAG2
 #ifndef D_STR_MIRAGE
 #define D_STR_MIRAGE "MIRAGE"
 #endif  // D_STR_MIRAGE

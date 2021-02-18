@@ -661,6 +661,7 @@ uint16_t IRsend::defaultBits(const decode_type_t protocol) {
     case MIDEA:
     case PANASONIC:
       return 48;
+    case ECOCLIM:
     case MAGIQUEST:
     case VESTEL_AC:
     case TECHNIBEL_AC:
@@ -712,6 +713,8 @@ uint16_t IRsend::defaultBits(const decode_type_t protocol) {
       return kHitachiAc424Bits;
     case KELVINATOR:
       return kKelvinatorBits;
+    case MILESTAG2:
+      return kMilesTag2ShotBits;
     case MIRAGE:
       return kMirageBits;
     case MITSUBISHI_AC:
@@ -819,6 +822,11 @@ bool IRsend::send(const decode_type_t type, const uint64_t data,
       sendDoshisha(data, nbits, min_repeat);
       break;
 #endif
+#if SEND_ECOCLIM
+    case ECOCLIM:
+      sendEcoclim(data, nbits, min_repeat);
+      break;
+#endif  // SEND_ECOCLIM
 #if SEND_ELITESCREENS
     case ELITESCREENS:
       sendElitescreens(data, nbits, min_repeat);
@@ -897,6 +905,11 @@ bool IRsend::send(const decode_type_t type, const uint64_t data,
       sendMidea24(data, nbits, min_repeat);
       break;
 #endif  // SEND_MIDEA24
+#if SEND_MILESTAG2
+    case MILESTAG2:
+      sendMilestag2(data, nbits, min_repeat);
+      break;
+#endif  // SEND_MILESTAG2
 #if SEND_MITSUBISHI
     case MITSUBISHI:
       sendMitsubishi(data, nbits, min_repeat);
