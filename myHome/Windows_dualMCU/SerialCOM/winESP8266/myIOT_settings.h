@@ -66,28 +66,16 @@ void addiotnalMQTT(char *incoming_msg)
     }
     else if (strcmp(incoming_msg, "help2") == 0)
     {
-        sprintf(msg, "Help: Commands #3 - [up, down, off, show_flash_param, help2]");
+        sprintf(msg, "Help: Commands #3 - [up, down, off, query, reset_arduino, show_flash_param, help2]");
         iot.pub_msg(msg);
     }
-    else if (strcmp(incoming_msg, "1") == 0)
+    else if (strcmp(incoming_msg, "query") == 0)
     {
-        Serial.write(1);
+        Serial.write(QUERY);
     }
-       else if (strcmp(incoming_msg, "2") == 0)
+    else if (strcmp(incoming_msg, "reset_arduino") == 0)
     {
-        Serial.write(2);
-    }
-       else if (strcmp(incoming_msg, "3") == 0)
-    {
-        Serial.write(3);
-    }
-       else if (strcmp(incoming_msg, "4") == 0)
-    {
-        Serial.write(4);
-    }
-    else if (strcmp(incoming_msg, "5") == 0)
-    {
-        Serial.write(5);
+        Serial.write(RESET);
     }
 }
 void startIOTservices()

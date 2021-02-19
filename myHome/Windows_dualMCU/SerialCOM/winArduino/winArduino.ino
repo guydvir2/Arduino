@@ -22,7 +22,7 @@ enum sys_states : byte
 
 const byte change_dir_delay = 20; //ms
 const byte debounce_delay = 20;   //ms
-const byte loop_delay = 10;       //ms
+const byte loop_delay = 10;       //ms - 10 time faster than ESP8266. DO NOT change
 
 bool swUp_lastState = !SW_PRESSED;
 bool swDown_lastState = !SW_PRESSED;
@@ -43,9 +43,7 @@ void allOff()
   digitalWrite(REL_DOWN, !RELAY_ON);
   delay(change_dir_delay);
 }
-void init_reset()
-{
-}
+void (*resetFunc)(void) = 0;
 void send_msg(byte &msg)
 {
   Serial.write(msg);
@@ -104,7 +102,7 @@ void errorProtection()
   }
   if (digitalRead(SW_UP) == SW_PRESSED && digitalRead(SW_DOWN) == SW_PRESSED)
   {
-    init_reset();
+    resetFunc();
   }
 }
 
@@ -161,13 +159,13 @@ void Serial_cmd_callbacks(byte &x)
   }
   else if (x == QUERY)
   {
-    Serial.write(getWin_state()+ QUERY_OFFSET); /* {40,41,42,43} */
+    Serial.write(getWin_state() + QUERY_OFFSET); /* {40,41,42,43} */
   }
   else if (x == RESET)
   {
     send_msg(x);
     delay(10);
-    init_reset();
+    resetFunc();
   }
   else
   {
