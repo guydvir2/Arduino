@@ -17,6 +17,7 @@ Question - sent and answer is expected from other side.
 info - Share information ( sensor readings, update parameters) 
 Commands - send an execution command ( either side )
 */
+
 char inmsg_buff[250];
 const byte delay_read = 200;
 

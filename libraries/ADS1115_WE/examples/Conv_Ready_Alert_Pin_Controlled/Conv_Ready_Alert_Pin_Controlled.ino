@@ -2,6 +2,7 @@
 * Example sketch for the ADS1115_WE library
 *
 * This sketch shows how you can use the alert pin as conversion ready alert pin.
+* It works in continuous mode as well as in single shot mode. 
 * Please note that you need to enable the alert pin with setAlertPinMode. Choose any 
 * parameter except ADS1115_DISABLE_ALERT.
 *  
@@ -82,7 +83,7 @@ void setup() {
    *  ADS1115_CONTINUOUS  ->  continuous mode
    *  ADS1115_SINGLE     ->  single shot mode (default)
    */
-  //adc.setMeasureMode(ADS1115_CONTINUOUS); // continuous mode does not work with conversion ready
+  //adc.setMeasureMode(ADS1115_CONTINUOUS); // the conversion ready alert pin also works in continuous mode
 
    /* Choose maximum limit or maximum and minimum alert limit (window) in volts - alert pin will 
    *  assert when measured values are beyond the maximum limit or outside the window 
@@ -117,12 +118,16 @@ void setup() {
    */
   adc.setAlertPinToConversionReady(); //needed for this sketch
 
-  Serial.println("ADS1115 Example Sketch - Single Shot, Conversion Ready Alert controlled");
+  Serial.println("ADS1115 Example Sketch - Single Shot, Conversion Ready Alert Pin controlled");
   Serial.println();
   attachInterrupt(digitalPinToInterrupt(interruptPin), convReadyAlert, FALLING);
   adc.startSingleMeasurement();
 }
 
+  /* In this example I measure 32 times before the result is output. This is only to slow down 
+   * the output rate. I want to show that the output rate is controlled by the conversion ready  
+   * signals and not by a delay.
+   */
 void loop() {
   float voltage = 0.0;
   static int counter = 0;

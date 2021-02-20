@@ -1,7 +1,7 @@
 /***************************************************************************
 * Example sketch for the ADS1115_WE library
 *
-* This sketch shows how to use the ADS1115 in continuous mode. 
+* This sketch shows how to use the Auto Range function of the AD1115_WE library.  
 *  
 * Further information can be found on:
 * https://wolles-elektronikkiste.de/ads1115 (German)
@@ -70,7 +70,7 @@ void setup() {
    *  ADS1115_475_SPS 
    *  ADS1115_860_SPS 
    */
-  // adc.setConvRate(ADS1115_8_SPS); //uncomment if you want to change the default
+   adc.setConvRate(ADS1115_64_SPS); //uncomment if you want to change the default
 
   /* Set continuous or single shot mode:
    * 
@@ -112,46 +112,76 @@ void setup() {
    */
   //adc.setAlertPinToConversionReady(); //uncomment if you want to change the default
 
-  Serial.println("ADS1115 Example Sketch - Continuous Mode");
-  Serial.println("All values in volts");
+  Serial.println("ADS1115 Example Sketch - Continuous Mode with Auto Range");
   Serial.println();
 }
 
-  /* If you change the compare channels you can immediately read values from the conversion 
-   * register, although they might belong to the former channel if no precautions are taken. 
-   * It takes about the time needed for two conversions to get the correct data. In single 
-   * shot mode you can use the isBusy() function to wait for data from the new channel. This 
-   * does not work in continuous mode. 
-   * To solve this issue the library adds a delay after change of channels if you are in contunuous
-   * mode. The length of the delay is adjusted to the conversion rate. But be aware that the output 
-   * rate will be much lower that the conversion rate if you change channels frequently. 
-   */
-
 void loop() {
   float voltage = 0.0;
-
-  Serial.print("0: ");
-  voltage = readChannel(ADS1115_COMP_0_GND);
-  Serial.print(voltage);
-
-  Serial.print(",   1: ");
-  voltage = readChannel(ADS1115_COMP_1_GND);
-  Serial.print(voltage);
   
-  Serial.print(",   2: ");
-  voltage = readChannel(ADS1115_COMP_2_GND);
-  Serial.print(voltage);
+  Serial.print("Channel 0 - ");
+  voltage = readChannel(ADS1115_COMP_0_GND);
+  Serial.println(voltage);
 
-  Serial.print(",   3: ");
+  Serial.print("Channel 1 - ");
+  voltage = readChannel(ADS1115_COMP_1_GND);
+  Serial.println(voltage);
+  
+  Serial.print("Channel 2 - ");
+  voltage = readChannel(ADS1115_COMP_2_GND);
+  Serial.println(voltage);
+
+  Serial.print("Channel 3 - ");
   voltage = readChannel(ADS1115_COMP_3_GND);
   Serial.println(voltage);
 
+  Serial.println("-------------------------------");
   delay(1000);
 }
 
 float readChannel(ADS1115_MUX channel) {
   float voltage = 0.0;
   adc.setCompareChannels(channel);
+
+  /* setAutoRange() switches to the highest range (+/- 6144 mV), measures the current 
+   * voltage and then switches to the lowest range where the current value is still 
+   * below 80% of the maximum value of the range. The function is only suitable if you 
+   * expect stable or slowly changing voltages. setAutoRange needs roughly the time you
+   * would need for three conversions. 
+   * If the ADS115 is in single shot mode, setAutoRange() will switch into continuous
+   * mode to measure a value and switch back again.
+   */
+  adc.setAutoRange();
+  printVoltageRange(); // this is just to show that the range is changing with changing voltages 
+  adc.getResult_mV();
   voltage = adc.getResult_V(); // alternative: getResult_mV for Millivolt
   return voltage;
+}
+  
+void printVoltageRange(){
+  unsigned int voltageRange = adc.getVoltageRange_mV();
+  Serial.print("Range: ");
+
+  switch(voltageRange){
+    case 6144:
+      Serial.print("+/- 6144 mV, Voltage [mV]: ");
+      break;
+    case 4096:
+      Serial.print("+/- 4096 mV, Voltage [mV]: ");
+      break;
+    case 2048:
+      Serial.print("+/- 2048 mV, Voltage [mV]: ");
+      break;
+    case 1024:
+      Serial.print("+/- 1024 mV, Voltage [mV]: ");
+      break;
+    case 512:
+      Serial.print("+/- 512 mV, Voltage [mV]: ");
+      break;
+    case 256:
+      Serial.print("+/- 256 mV, Voltage [mV]: ");
+      break;
+    default:
+      Serial.println("Something went wrong");
+  }
 }

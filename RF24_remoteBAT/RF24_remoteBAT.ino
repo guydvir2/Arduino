@@ -184,7 +184,7 @@ void answer_incoming(char *inmsg)
   StaticJsonDocument<JSON_SIZE> DOC;
   deserializeJson(DOC, (const char *)inmsg);
 
-  // serializeJsonPretty(DOC, Serial);
+  serializeJsonPretty(DOC, Serial);
 
   /* got a question to answer.
      gKeys[1]  - is msg type
@@ -196,7 +196,7 @@ void answer_incoming(char *inmsg)
       Serial.print("<<");
       Serial.println(inmsg);
     }
-
+    /* got question */
     if (strcmp(DOC[gKeys[1]], m_types[0]) == 0)
     {
       handle_INquestion(DOC);
@@ -206,7 +206,6 @@ void answer_incoming(char *inmsg)
     {
       handle_INanswer(DOC);
     }
-
     /* got cmd */
     else if (strcmp(DOC[gKeys[1]], m_types[2]) == 0)
     {
@@ -400,7 +399,7 @@ void reciever_loop()
 }
 void loop()
 {
-  intercept_incoming();
+  // intercept_incoming();
   sender_loop();
   reciever_loop();
 }
