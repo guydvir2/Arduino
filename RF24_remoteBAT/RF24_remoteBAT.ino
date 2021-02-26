@@ -3,7 +3,7 @@
 #include <Time.h>
 
 /*~~~~~~~~~~~~~~ Select ROLE ~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
-#define ROLE 1 // <----- Change this only //
+#define ROLE 0 // <----- Change this only //
 /* 0:Reciever ( ESP8266 also connected to WiFi) */
 /*1: Sender ( Pro-Micro with RF24 log range anttenna)*/
 #define PRINT_MESSAGES true
@@ -74,11 +74,11 @@ void createMSG_JSON(char a[], const char *v0, const char *v1 = nullptr, const ch
   {
     sprintf(a, "{\"%s\":\"%s\",\"%s\":\"%s\",\"%s\":\"%s\"}", key[0], v0, key[1], v1, key[2], v2);
   }
-  else if (strcmp(v1, nullptr) != 0)
+  else if (v1 != nullptr)
   {
     sprintf(a, "{\"%s\":\"%s\",\"%s\":\"%s\"}", key[0], v0, key[1], v1);
   }
-  else if (strcmp(v1, nullptr) == 0)
+  else if (v1 == nullptr)
   {
     sprintf(a, "{\"%s\":\"%s\"}", key[0], v0);
   }
@@ -399,7 +399,7 @@ void reciever_loop()
 }
 void loop()
 {
-  // intercept_incoming();
+  intercept_incoming();
   sender_loop();
   reciever_loop();
 }

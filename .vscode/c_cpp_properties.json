@@ -6,7 +6,7 @@
                 "/home/guy/.arduino15/packages/esp8266/tools/**",
                 "/home/guy/.arduino15/packages/esp8266/hardware/esp8266/2.7.4/**",
                 "${workspaceFolder}/**",
-                "/Users/guydvir/Library/Arduino15/packages/esp8266/hardware/esp8266/2.7.2/**",
+                "/Users/guydvir/Library/Arduino15/packages/esp8266/hardware/esp8266/2.7.2/**"5,
                 "/Users/guydvir/Library/Arduino15/packages/esp8266/tools/**",
                 "/Users/guydvir/Library/Arduino15/packages/esp8266/hardware/esp8266/2.7.4/**",
                 "libraries/**",
