@@ -1,11 +1,8 @@
 #include <myIOT2.h>
 #include <Arduino.h>
-#include <myDisplay.h>
 #include "vars.h"
 #include "myIOT_settings.h"
 #include "win_param.h"
-
-// myOLED OLED(64, 128);
 
 void autoOff_clkUpdate()
 {
@@ -40,11 +37,6 @@ bool update_relayState(byte &x)
         if (x1 != currentRelay_state)
         {
                 currentRelay_state = x1;
-                // char t[20];
-                // sprintf(t, "%d", x1);
-                // OLED.CenterTXT("RELAY", t);
-                // delay(500);
-
                 if (useAutoOff)
                 {
                         autoOff_clkUpdate();
@@ -57,10 +49,6 @@ void makeSwitch(byte state)
         if (currentRelay_state != state)
         {
                 Serial.write(state + MQTT_OFFSET); /* notify that originof switch is MQTT cmd*/
-                // char t[10];
-                // sprintf(t, "%d", state + MQTT_OFFSET);
-                // OLED.CenterTXT("switch", t);
-                // delay(500);
         }
 }
 void Serial_cmd_callbacks(byte &x)
@@ -85,9 +73,6 @@ void get_cmd_Serial()
         if (Serial.available() > 0)
         {
                 byte x = Serial.read();
-                // char t[20];
-                // sprintf(t, "%d", x);
-                // OLED.CenterTXT("serial", t);
                 Serial_cmd_callbacks(x);        
         }
 }
@@ -97,8 +82,6 @@ void setup()
         startRead_parameters();
         startIOTservices();
         endRead_parameters();
-        // OLED.start();
-        // OLED.CenterTXT("HI", "GUY");
 
         services_chk();
         // check_bootclockLOG();

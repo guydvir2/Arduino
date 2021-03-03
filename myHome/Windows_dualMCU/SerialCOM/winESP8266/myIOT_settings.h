@@ -13,22 +13,6 @@ void addiotnalMQTT(char *incoming_msg)
 
     if (strcmp(incoming_msg, "status") == 0)
     {
-        // char a[5];
-        // switch (currentRelay_state)
-        // {
-        // case WIN_STOP:
-        //     strcpy(a, "Off");
-        //     break;
-        // case WIN_UP:
-        //     strcpy(a, "Up");
-        //     break;
-        // case WIN_DOWN:
-        //     strcpy(a, "Down");
-        //     break;
-        // default:
-        //     strcpy(a, "Error");
-        //     break;
-        // }
         sprintf(msg, "Status: Window is [%s]", winstate[currentRelay_state]);
         iot.pub_msg(msg);
     }

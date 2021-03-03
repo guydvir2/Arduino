@@ -1,4 +1,4 @@
-#define VER "ESP8266_0.3"
+#define VER "ESP8266_0.4"
 #define JSON_SIZE_IOT 400
 #define JSON_SIZE_SKETCH 200
 #define MQTT_OFFSET 10
