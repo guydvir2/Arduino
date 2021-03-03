@@ -1,14 +1,21 @@
-#define REL_DOWN 2 /* OUTUPT to relay device */
-#define REL_UP 3   /* OUTUPT to relay device */
-#define SW_UP 4    /* Switch INPUT to Arduino */
-#define SW_DOWN 5  /* Switch INPUT to Arduino */
-
+#define RELAY_ON LOW
 #define SW_PRESSED LOW
-#define RELAY_ON HIGH
+#define REL_DOWN 3 /* OUTUPT to relay device */
+#define SW_DOWN 4  /* Switch INPUT to Arduino */
+#define REL_UP 2   /* OUTUPT to relay device */
+#define SW_UP 5    /* Switch INPUT to Arduino */
 
-#define VER "Arduino_v0.3"
+#define VER "Arduino_v0.5"
 #define MQTT_OFFSET 10  /* Actions made by ESP8266 are +10 by value */
 #define QUERY_OFFSET 40 /* Query about State are +40 by value */
+
+const byte change_dir_delay = 250; //ms
+const byte debounce_delay = 100;   //ms
+const byte loop_delay = 10;        //ms - 10 time faster than ESP8266. DO NOT change
+
+bool swUp_lastState = !SW_PRESSED;
+bool swDown_lastState = !SW_PRESSED;
+
 enum sys_states : byte
 {
   WIN_STOP,
@@ -19,13 +26,6 @@ enum sys_states : byte
   RESET,
   BOOT
 };
-
-const byte change_dir_delay = 20; //ms
-const byte debounce_delay = 20;   //ms
-const byte loop_delay = 10;       //ms - 10 time faster than ESP8266. DO NOT change
-
-bool swUp_lastState = !SW_PRESSED;
-bool swDown_lastState = !SW_PRESSED;
 
 void start_gpio()
 {
@@ -134,14 +134,6 @@ void readInput(int inPin, bool &lastState)
             lastState = state;
           }
         }
-        // else
-        // {
-        //   if (relays_state != WIN_STOP)
-        //   {
-        //     makeSwitch(WIN_STOP);
-        //     lastState = !SW_PRESSED;
-        //   }
-        // }
       }
       else
       {
@@ -153,7 +145,7 @@ void readInput(int inPin, bool &lastState)
 }
 void Serial_cmd_callbacks(byte &x)
 {
-  if ((x >= WIN_STOP && x <= WIN_DOWN) || (x >= WIN_STOP + MQTT_OFFSET && x <= WIN_DOWN + MQTT_OFFSET))
+  if ((x >= WIN_STOP && x <= WIN_DOWN) || (x >= (WIN_STOP + MQTT_OFFSET) && (x <= WIN_DOWN + MQTT_OFFSET)))
   {
     makeSwitch(x); /* x={0,1,2,10,11,12}*/
   }
@@ -167,18 +159,14 @@ void Serial_cmd_callbacks(byte &x)
     delay(10);
     resetFunc();
   }
-  else
-  {
-    Serial.write(9);
-  }
 }
-void readSerial()
+void get_cmd_Serial()
 {
-  /* avoid burst serial input*/
+  /* avoid burst Serial input*/
   static long last_msg = 0;
-  int min_time_msg = 20; //ms between messages
+  // int min_time_msg = 20; //ms between messages
 
-  if (Serial.available() > 0 && millis() - last_msg > min_time_msg)
+  if (Serial.available() > 0)// && millis() - last_msg > min_time_msg)
   {
     last_msg = millis();
     byte x = Serial.read();
@@ -189,13 +177,16 @@ void setup()
 {
   start_gpio();
   Serial.begin(9600);
+  while (!Serial)
+    ;          /*Relvant for Pro-Micro board */
+  delay(8000); /* Time to ESP8266 to get notifications */
   Serial.write(BOOT);
 }
 void loop()
 {
-  readInput(SW_UP, swUp_lastState);
-  readInput(SW_DOWN, swDown_lastState);
-  errorProtection();
-  readSerial();
+  readInput(SW_UP, swUp_lastState);      /* Read wall UP Switch */
+  readInput(SW_DOWN, swDown_lastState);  /* Read wall DOWN Switch */
+  errorProtection();                     /* Avoid Simulatnious UP&DOWN */
+  get_cmd_Serial();
   delay(loop_delay);
 }

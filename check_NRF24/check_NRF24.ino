@@ -12,7 +12,7 @@
 
 #if ROLE == 1
 #define USE_SLEEP 1
-#define SLEEP_TIME 600 // sec
+#define SLEEP_TIME 1800 // sec
 #define WAKE_TIME 2 //sec
 #include "power.h"
 const char *dev_name = "Arduino";

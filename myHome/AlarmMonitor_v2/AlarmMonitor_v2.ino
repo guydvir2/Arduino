@@ -310,6 +310,5 @@ void loop()
         iot.looper();
         check_systemState_armed();
         check_systemState_alarming();
-
         delay(100);
 }
