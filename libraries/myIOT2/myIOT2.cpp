@@ -41,11 +41,9 @@ void myIOT2::start_services(cb_func funct, char *ssid, char *password, char *mqt
 	{
 		time2Reset_noNetwork = (1000 * 60L) * noNetwork_reset;
 	}
-	start_EEPROM_eADR();
-
 	if (useBootClockLog && WiFi.isConnected())
 	{
-		// get_bootclockLOG(0);
+		start_EEPROM_eADR();
 		update_bootclockLOG();
 	}
 }
@@ -93,12 +91,6 @@ bool myIOT2::startWifi(char *ssid, char *password)
 	WiFi.mode(WIFI_OFF); // <---- NEW
 	WiFi.mode(WIFI_STA);
 	WiFi.disconnect();
-	//  if(wm.autoConnect("dvirAP")){
-    //     Serial.println("connected...yeey :)");
-    // }
-    // else {
-    //     Serial.println("Configportal running");
-    // }
 	WiFi.begin(ssid, password);
 	WiFi.setAutoReconnect(true); // <-- BACK
 
@@ -150,7 +142,6 @@ void myIOT2::start_network_services()
 }
 bool myIOT2::network_looper()
 {
-	// wm.process();
 	if (WiFi.status() == WL_CONNECTED)
 	{ // wifi is ok
 		if (mqttClient.connected())
@@ -209,18 +200,27 @@ void myIOT2::start_clock()
 	int failcount;
 #if isESP8266
 	if (startNTP())
-	{ //NTP Succeed
+	{
+		NTP_OK = true;
 		get_timeStamp();
+	}
+#elif isESP32
+	startNTP_32();
+	getTime_32();
+	if (year(epoch_time) != 1970)
+	{
+		NTP_OK = true;
+		getTimeStamp_32(bootTime);
+	}
+#endif
+	if (NTP_OK)
+	{ //NTP Succeed
 		strcpy(bootTime, timeStamp);
 		failcount = (int)EEPROMReadlong(NTP_eADR);
 		if (failcount != 0)
 		{
 			EEPROMWritelong(NTP_eADR, 0);
 		}
-		// else
-		// {
-		// 	EEPROMWritelong(NTP_eADR, 0);
-		// }
 	}
 	else
 	{
@@ -234,23 +234,9 @@ void myIOT2::start_clock()
 			else
 			{
 				EEPROMWritelong(NTP_eADR, failcount + 1);
-				NTP_OK = false;
 			}
 		}
 	}
-#elif isESP32
-	startNTP_32();
-	getTimeStamp_32(bootTime);
-	if (year(epoch_time) != 1970)
-	{
-		NTP_OK = true;
-	}
-	else
-	{
-		NTP_OK = false;
-	}
-
-#endif
 }
 bool myIOT2::startNTP()
 {
@@ -330,6 +316,7 @@ void myIOT2::convert_epoch2clock(long t1, long t2, char *time_str, char *days_st
 	sprintf(days_str, "%01dd", days);
 	sprintf(time_str, "%02d:%02d:%02d", hours, minutes, seconds);
 }
+
 // ~~~~~~~ NTP & Clock ESP32 ~~~~~~~~
 void myIOT2::startNTP_32(const int gmtOffset_sec, const int daylightOffset_sec, const char *ntpServer)
 {
@@ -341,24 +328,17 @@ void myIOT2::getTime_32()
 {
 #if isESP32
 	// getting time in ESP32 sometimes failed due to clock race. some delays were used as commented out here
-	// int a = 0;
-	// while (a < 3)
-	// {
 	if (getLocalTime(&timeinfo))
 	{
 		delay(100);
-		time(&epoch_time); // update system clock
-						   // }
-						   // a++;
+		time(&epoch_time);
 	}
 #endif
 }
 void myIOT2::getTimeStamp_32(char ret_timeStamp[25])
 {
-	getTime_32();
 	createDateStamp_32(&timeinfo, ret_timeStamp);
-}
-struct tm *myIOT2::convEpoch_32(time_t in_time)
+}struct tm *myIOT2::convEpoch_32(time_t in_time)
 {
 	struct tm *convTime = localtime(&in_time); //gmtime
 	return convTime;
@@ -973,16 +953,7 @@ char *myIOT2::export_fPars(char *filename, JsonDocument &DOC, int JSIZE)
 		return ret;
 	}
 }
-void myIOT2::start_EEPROM_eADR()
-{
-	EEPROM.begin(120);
-	NTP_eADR = _start_eADR;
 
-	for (int i = 0; i < bootlog_len; i++)
-	{
-		_prevBootclock_eADR[i] = _start_eADR + 4 * (i + 1);
-	}
-}
 void myIOT2::update_bootclockLOG()
 {
 	byte S = sizeof(_prevBootclock_eADR) / sizeof(_prevBootclock_eADR[0]);
@@ -1143,6 +1114,17 @@ void myIOT2::startWDT()
 }
 
 // ~~~~~~  EEPROM ~~~~~~
+void myIOT2::start_EEPROM_eADR()
+{
+	const int StartEEPROM_ADDRESS = 120;
+	EEPROM.begin(StartEEPROM_ADDRESS);
+	NTP_eADR = _start_eADR;
+
+	for (int i = 0; i < bootlog_len; i++)
+	{
+		_prevBootclock_eADR[i] = _start_eADR + 4 * (i + 1);
+	}
+}
 void myIOT2::EEPROMWritelong(int address, long value)
 {
 	byte four = (value & 0xFF);

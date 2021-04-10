@@ -6,7 +6,7 @@
  *  Copyright (C) 2020-2021  Armin Joachimsmeyer
  *  armin.joachimsmeyer@gmail.com
  *
- *  This file is part of Arduino-IRremote https://github.com/z3t0/Arduino-IRremote.
+ *  This file is part of Arduino-IRremote https://github.com/Arduino-IRremote/Arduino-IRremote.
  *
  *  MIT License
  */
@@ -15,11 +15,33 @@
  * Specify which protocol(s) should be used for decoding.
  * If no protocol is defined, all protocols are active.
  */
-#define DECODE_NEC 1
+//#define DECODE_DENON
+//#define DECODE_SHARP        // the same as DECODE_DENON
+//#define DECODE_JVC
+//#define DECODE_KASEIKYO
+//#define DECODE_PANASONIC    // the same as DECODE_KASEIKYO
+//#define DECODE_LG
+#define DECODE_NEC
+//#define DECODE_SAMSUNG
+//#define DECODE_SONY
+//#define DECODE_RC5
+//#define DECODE_RC6
+
+//#define DECODE_BOSEWAVE
+//#define DECODE_LEGO_PF
+//#define DECODE_MAGIQUEST
+//#define DECODE_WHYNTER
+
+//#define DECODE_HASH         // special decoder for all protocols
+
+#include <Arduino.h>
+
+/*
+ * Define macros for input and output pin etc.
+ */
+#include "PinDefinitionsAndMore.h"
 
 #include <IRremote.h>
-
-int IR_RECEIVE_PIN = 11;
 
 void setup() {
     Serial.begin(115200);

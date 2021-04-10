@@ -21,12 +21,8 @@
 #ifndef LIB_SEESAW_H
 #define LIB_SEESAW_H
 
-#if (ARDUINO >= 100)
+#include "Adafruit_I2CDevice.h"
 #include "Arduino.h"
-#else
-#include "WProgram.h"
-#endif
-
 #include <Wire.h>
 
 /*=========================================================================
@@ -155,10 +151,10 @@ enum {
  */
 enum {
   SEESAW_ENCODER_STATUS = 0x00,
-  SEESAW_ENCODER_INTENSET = 0x02,
-  SEESAW_ENCODER_INTENCLR = 0x03,
-  SEESAW_ENCODER_POSITION = 0x04,
-  SEESAW_ENCODER_DELTA = 0x05,
+  SEESAW_ENCODER_INTENSET = 0x10,
+  SEESAW_ENCODER_INTENCLR = 0x20,
+  SEESAW_ENCODER_POSITION = 0x30,
+  SEESAW_ENCODER_DELTA = 0x40,
 };
 
 #define ADC_INPUT_0_PIN 2 ///< default ADC input pin
@@ -227,7 +223,7 @@ public:
              bool reset = true);
   uint32_t getOptions();
   uint32_t getVersion();
-  void SWReset();
+  bool SWReset();
 
   void pinMode(uint8_t pin, uint8_t mode);
   void pinModeBulk(uint32_t pins, uint8_t mode);
@@ -267,32 +263,31 @@ public:
   void enableKeypadInterrupt();
   void disableKeypadInterrupt();
   uint8_t getKeypadCount();
-  void readKeypad(keyEventRaw *buf, uint8_t count);
+  bool readKeypad(keyEventRaw *buf, uint8_t count);
 
   float getTemp();
 
-  int32_t getEncoderPosition();
-  int32_t getEncoderDelta();
-  void enableEncoderInterrupt();
-  void disableEncoderInterrupt();
-  void setEncoderPosition(int32_t pos);
+  int32_t getEncoderPosition(uint8_t encoder = 0);
+  int32_t getEncoderDelta(uint8_t encoder = 0);
+  bool enableEncoderInterrupt(uint8_t encoder = 0);
+  bool disableEncoderInterrupt(uint8_t encoder = 0);
+  void setEncoderPosition(int32_t pos, uint8_t encoder = 0);
 
   virtual size_t write(uint8_t);
   virtual size_t write(const char *str);
 
 protected:
-  uint8_t _i2caddr; /*!< The I2C address used to communicate with the seesaw */
   TwoWire *_i2cbus; /*!< The I2C Bus used to communicate with the seesaw */
-  int8_t _flow;     /*!< The flow control pin to use */
+  Adafruit_I2CDevice *_i2c_dev = NULL; ///< The BusIO device for I2C control
 
-  void write8(byte regHigh, byte regLow, byte value);
+  int8_t _flow; /*!< The flow control pin to use */
+
+  bool write8(byte regHigh, byte regLow, byte value);
   uint8_t read8(byte regHigh, byte regLow, uint16_t delay = 125);
 
-  void read(uint8_t regHigh, uint8_t regLow, uint8_t *buf, uint8_t num,
+  bool read(uint8_t regHigh, uint8_t regLow, uint8_t *buf, uint8_t num,
             uint16_t delay = 125);
-  void write(uint8_t regHigh, uint8_t regLow, uint8_t *buf, uint8_t num);
-  void writeEmpty(uint8_t regHigh, uint8_t regLow);
-  void _i2c_init();
+  bool write(uint8_t regHigh, uint8_t regLow, uint8_t *buf, uint8_t num);
 
   /*=========================================================================
           REGISTER BITFIELDS

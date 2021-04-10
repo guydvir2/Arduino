@@ -1,4 +1,7 @@
-#include "IRremoteInt.h"
+#include <Arduino.h>
+
+//#define DEBUG // Activate this for lots of lovely debug output from this decoder.
+#include "IRremoteInt.h" // evaluates the DEBUG for DBG_PRINT
 
 // MagiQuest added by E. Stuart Hicks
 // Based off the Magiquest fork of Arduino-IRremote by mpflaga
@@ -11,6 +14,7 @@
 //
 //==============================================================================
 
+#if !defined (DOXYGEN)
 // MagiQuest packet is both Wand ID and magnitude of swish and flick
 union magiquest_t {
     uint64_t llword;
@@ -21,6 +25,7 @@ union magiquest_t {
         uint8_t scrap;  // just to pad the struct out to 64 bits so we can union with llword
     } cmd;
 };
+#endif // !defined (DOXYGEN)
 
 #define MAGIQUEST_MAGNITUDE_BITS   16     // The number of bits
 #define MAGIQUEST_WAND_ID_BITS     32     // The number of bits
@@ -56,8 +61,6 @@ void IRsend::sendMagiQuest(uint32_t wand_id, uint16_t magnitude) {
     // Set IR carrier frequency
     enableIROut(38);
 
-    noInterrupts();
-
     // 2 start bits
     sendPulseDistanceWidthData(MAGIQUEST_ONE_MARK, MAGIQUEST_ONE_SPACE, MAGIQUEST_ZERO_MARK, MAGIQUEST_ZERO_SPACE, 0, 2, PROTOCOL_IS_MSB_FIRST);
 
@@ -77,7 +80,6 @@ void IRsend::sendMagiQuest(uint32_t wand_id, uint16_t magnitude) {
 //        }
 //    }
 
-    interrupts();
 }
 
 //+=============================================================================
@@ -118,7 +120,7 @@ bool IRrecv::decodeMagiQuest() {
         DBG_PRINT(" ratio=");
         DBG_PRINTLN(ratio_);
 
-        if (MATCH_MARK(space_ + mark_, MAGIQUEST_PERIOD)) {
+        if (matchMark(space_ + mark_, MAGIQUEST_PERIOD)) {
             if (ratio_ > 1) {
                 // It's a 0
                 data.llword <<= 1;

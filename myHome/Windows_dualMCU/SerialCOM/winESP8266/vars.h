@@ -17,8 +17,8 @@ enum sys_states :byte
  const char *winstate[] = {"Off", "Up", "Down"};
 
 byte currentRelay_state = 0;
-const byte delay_loop = 100;           //ms
+const byte delay_loop = 100;    //ms
 
 bool useAutoOff = false;
-int autoOff_time = 300; //seconds
+int autoOff_time = 300;        //seconds
 unsigned long autoOff_clk = 0;

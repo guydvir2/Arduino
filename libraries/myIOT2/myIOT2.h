@@ -99,7 +99,7 @@ public:
     static const byte bootlog_len = 3; // nubmer of boot clock records
     // ~~~~~~~~~~~~~~~~~~~~~~~~~
 
-    const char *ver = "iot_v0.7";
+    const char *ver = "iot_v0.8";
     static const byte num_param = 6;
     char inline_param[num_param][20]; //values from user
 
@@ -141,7 +141,7 @@ private:
     const int clockUpdateInt = 60 * 60 * 5;           // seconds to update NTP
     const int WIFItimeOut = (1000 * 60) * 1 / 4;      // 30 sec try to connect WiFi
     const int OTA_upload_interval = (1000 * 60) * 10; // 10 minute to try OTA
-    const int retryConnectWiFi = (1000 * 60) * 1;     // 5 minuter between fail Wifi reconnect reties
+    const long retryConnectWiFi = (1000 * 60) * 1;     // 1 minuter between fail Wifi reconnect reties
 
     long time2Reset_noNetwork = (1000 * 60L) * noNetwork_reset; // minutues pass without any network
     volatile int wdtResetCounter = 0;

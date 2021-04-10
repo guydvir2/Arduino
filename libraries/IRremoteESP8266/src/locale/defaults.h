@@ -270,6 +270,9 @@
 #ifndef D_STR_SPECIAL
 #define D_STR_SPECIAL "Special"
 #endif  // D_STR_SPECIAL
+#ifndef D_STR_RECYCLE
+#define D_STR_RECYCLE "Recycle"
+#endif  // D_STR_RECYCLE
 
 #ifndef D_STR_AUTO
 #define D_STR_AUTO "Auto"
@@ -778,6 +781,9 @@
 #ifndef D_STR_WHYNTER
 #define D_STR_WHYNTER "WHYNTER"
 #endif  // D_STR_WHYNTER
+#ifndef D_STR_XMP
+#define D_STR_XMP "XMP"
+#endif  // D_STR_XMP
 #ifndef D_STR_ZEPEAL
 #define D_STR_ZEPEAL "ZEPEAL"
 #endif  // D_STR_ZEPEAL

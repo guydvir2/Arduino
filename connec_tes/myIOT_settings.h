@@ -142,7 +142,7 @@ void startIOTservices()
     iot.useDebug = false;
     iot.debug_level = 0;
     iot.useNetworkReset = true;
-    iot.noNetwork_reset = 2;
+    iot.noNetwork_reset = 5;
     strcpy(iot.deviceTopic, DEV_TOPIC);
     strcpy(iot.prefixTopic, PREFIX_TOPIC);
     strcpy(iot.addGroupTopic, GROUP_TOPIC);

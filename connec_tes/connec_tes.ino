@@ -4,7 +4,19 @@
 
 // ********** Sketch Services  ***********
 #define VER "WEMOS_3.1"
+#define USE_METRICS false
+#define USE_DISPLAY false
+#define USE_SPIFFS false
 
+struct serivceMonitor
+{
+        unsigned long startClock;
+        unsigned long bootClk;
+        unsigned long dClk;
+        unsigned int dCounter;
+        unsigned int dDuration;
+        bool isConnected;
+};
 bool mqttConnected = false;
 bool internetConnected = false;
 bool homeAssistantConnected = false;

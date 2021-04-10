@@ -21,7 +21,7 @@ const byte min_ping_interval = 10;     //seconds
 
 int adaptive_ping_val = min_ping_interval;
 
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 void epoch2datestr(time_t t, char clockstr[50])
 {
