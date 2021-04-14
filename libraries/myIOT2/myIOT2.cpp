@@ -338,7 +338,8 @@ void myIOT2::getTime_32()
 void myIOT2::getTimeStamp_32(char ret_timeStamp[25])
 {
 	createDateStamp_32(&timeinfo, ret_timeStamp);
-}struct tm *myIOT2::convEpoch_32(time_t in_time)
+}
+struct tm *myIOT2::convEpoch_32(time_t in_time)
 {
 	struct tm *convTime = localtime(&in_time); //gmtime
 	return convTime;
@@ -354,52 +355,61 @@ void myIOT2::startMQTT()
 	bool stat = false;
 	createTopics();
 	// Select MQTT server
-	if (Ping.ping(_mqtt_server, 2))
+	if (useAltermqttServer == false)
 	{
 		mqttClient.setServer(_mqtt_server, 1883);
-		stat = true;
-		useAltermqttServer = false;
-		if (useSerial)
-		{
-			Serial.print("MQTT SERVER: ");
-			Serial.println(_mqtt_server);
-		}
-	}
-	else if (Ping.ping(_mqtt_server2), 5)
-	{
-		mqttClient.setServer(_mqtt_server2, 1883);
-		if (useSerial)
-		{
-			Serial.println("Connected to MQTT SERVER2: ");
-			Serial.println(_mqtt_server2);
-		}
-		useAltermqttServer = true;
-		stat = true;
+		Serial.print("MQTT SERVER: ");
+		Serial.println(_mqtt_server);
 	}
 	else
 	{
-		mqttClient.setServer(MQTT_SERVER3, 1883);
-		if (useSerial)
+		if (Ping.ping(_mqtt_server, 2))
 		{
-			Serial.println("Connected to EXTERNAL MQTT SERVER: ");
-			Serial.println(MQTT_SERVER3);
+			mqttClient.setServer(_mqtt_server, 1883);
+			stat = true;
+			useAltermqttServer = false;
+			if (useSerial)
+			{
+				Serial.print("MQTT SERVER: ");
+				Serial.println(_mqtt_server);
+			}
 		}
-		useAltermqttServer = true;
-		stat = true;
+		else if (Ping.ping(_mqtt_server2), 5)
+		{
+			mqttClient.setServer(_mqtt_server2, 1883);
+			if (useSerial)
+			{
+				Serial.println("Connected to >>>>>>>>> MQTT SERVER2 <<<<<<<<<<<: ");
+				Serial.println(_mqtt_server2);
+			}
+			useAltermqttServer = true;
+			stat = true;
+		}
+		else
+		{
+			mqttClient.setServer(MQTT_SERVER3, 1883);
+			if (useSerial)
+			{
+				Serial.println("Connected to >>>>>>>>> EXTERNAL MQTT SERVER <<<<<<<<<<: ");
+				Serial.println(MQTT_SERVER3);
+			}
+			useAltermqttServer = true;
+			stat = true;
+		}
 	}
 	// Set callback function
-	if (stat)
-	{
-		mqttClient.setCallback(std::bind(&myIOT2::callback, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
-		subscribeMQTT();
-	}
-	else
-	{
-		if (useSerial)
-		{
-			Serial.println("Not connected to MQTT server");
-		}
-	}
+	// if (stat)
+	// {
+	mqttClient.setCallback(std::bind(&myIOT2::callback, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
+	subscribeMQTT();
+	// }
+	// if()
+	// {
+	// 	if (useSerial)
+	// 	{
+	// 		Serial.println("Not connected to MQTT server");
+	// 	}
+	// }
 }
 bool myIOT2::subscribeMQTT()
 {

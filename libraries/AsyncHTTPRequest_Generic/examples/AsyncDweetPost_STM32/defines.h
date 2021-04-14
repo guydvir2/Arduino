@@ -42,7 +42,7 @@
 #define ASYNC_HTTP_DEBUG_PORT           Serial
 
 // Use from 0 to 4. Higher number, more debugging messages and memory usage.
-#define _ASYNC_HTTP_LOGLEVEL_           1
+#define _ASYNC_HTTP_LOGLEVEL_           4
 
 
 #if defined(STM32F0)

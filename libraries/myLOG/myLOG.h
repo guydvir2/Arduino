@@ -33,7 +33,7 @@ public:
     char *VeR = "flashLOG v0.6";
     long lastUpdate = 0;
     flashLOG(char *filename = "/logfile.txt"); //, int log_size = LOG_SIZE, int log_length = LOG_LEN);
-    void start(int max_entries = 10, int max_entry_len = 100, bool delyedSave = true);
+    bool start(int max_entries = 10, int max_entry_len = 100, bool delyedSave = true);
     void write(const char *message);
     void delog();
     int sizelog();

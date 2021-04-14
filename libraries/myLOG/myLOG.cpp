@@ -4,7 +4,7 @@ flashLOG::flashLOG(char *filename)
 {
     _logfilename = filename;
 }
-void flashLOG::start(int max_entries, int max_entry_len, bool delyedSave)
+bool flashLOG::start(int max_entries, int max_entry_len, bool delyedSave)
 {
 #if isESP32
     bool a = !SPIFFS.begin(true);
@@ -19,6 +19,8 @@ void flashLOG::start(int max_entries, int max_entry_len, bool delyedSave)
     _logsize = max_entries;
     _log_length = max_entry_len;
     _useDelayedSave = delyedSave;
+
+    return !a;
 }
 void flashLOG::looper(int savePeriod)
 {

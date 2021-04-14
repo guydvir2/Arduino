@@ -10,31 +10,22 @@ myIOT2 iot;
 // extern void printLOG(unsigned long LOG[], char *topic);
 // extern unsigned long connLOG[];
 // extern unsigned long disconnLOG[];
+
+
 void addiotnalMQTT(char *incoming_msg)
 {
     char msg[150];
     if (strcmp(incoming_msg, "status") == 0)
     {
-        //     char days_char[2][20];
-        //     char times_char[2][20];
-        //     char datestr[50];
-        //     time_t moni = readFlog(connectionLOG, 0);
-        //     convert_epoch2clock(now(), moni, times_char[1], days_char[1]);
-        //     epoch2datestr(moni, datestr);
-        //     convert_epoch2clock(now(), readFlog(disconnectionLOG, disconnectionLOG.getnumlines() - 1), times_char[2], days_char[2]);
-        //     sprintf(msg, "Status: Internet[%s] MQTTserver[%s] HomeAssistant[%s] Disconnects[%d] monitoringTime [%s %s], First log[%s] onTime[%s %s]",
-        //             internetConnected ? "OK" : "FAIL", mqttConnected ? "OK" : "FAIL", homeAssistantConnected ? "OK" : "FAIL",
-        //             disconnectionLOG.getnumlines() - 1, days_char[1], times_char[1], datestr, days_char[2], times_char[2]);
         iot.pub_msg("All Good");
     }
     else if (strcmp(incoming_msg, "report") == 0)
     {
-        // display_logs();
+        
     }
     else if (strcmp(incoming_msg, "printLOG") == 0)
     {
-        // printLOG(connLOG, "CONNECT");
-        // printLOG(disconnLOG, "DISCONNECT");
+        
     }
     // else if (strcmp(incoming_msg, "ver2") == 0)
     // {
