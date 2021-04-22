@@ -32,7 +32,9 @@ void startRead_parameters()
   bool b = iot.read_fPars(iot.myIOT_paramfile, myIOT_defs, paramJSON);
   readfile_ok = a && b;
 
-  // update_vars(sketchJSON);
+#if USE_SIMPLE_IOT==0
+  update_vars(sketchJSON);
+#endif
 }
 void endRead_parameters()
 {

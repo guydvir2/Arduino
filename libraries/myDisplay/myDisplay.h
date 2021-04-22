@@ -20,7 +20,7 @@ private:
 public:
   Adafruit_SSD1306 display;
 
-  myOLED(int height = 32, int width = 128);
+  myOLED(int height = 64, int width = 128);
   void start();
   void CenterTXT(char *line1 = "", char *line2 = "", char *line3 = "", char *line4 = "", byte x_shift = 0, byte y_shift = 0);
   void RightTXT(char *line1 = "", char *line2 = "", char *line3 = "", char *line4 = "");

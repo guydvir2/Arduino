@@ -19,13 +19,12 @@ public:
     unsigned long bootClk = 0;
     unsigned long currentstateClk = 0;
     unsigned int dCounter = 0;
-    // unsigned int dDuration = 0;
     bool isConnected = false;
-    const char* libVer="IPmon_v0.1";
+    const char *libVer = "IPmon_v0.1";
+    char *nick;
 
 private:
     char *_IP;
-    char *_nick;
     char *_conlog_filename;
     byte _adaptive_ping_val = MINPING_TIME;
     byte _pingCounter = 0;

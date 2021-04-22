@@ -99,7 +99,7 @@ public:
     static const byte bootlog_len = 3; // nubmer of boot clock records
     // ~~~~~~~~~~~~~~~~~~~~~~~~~
 
-    const char *ver = "iot_v0.8";
+    const char *ver = "iot_v0.9";
     static const byte num_param = 6;
     char inline_param[num_param][20]; //values from user
 

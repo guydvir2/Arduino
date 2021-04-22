@@ -10,5 +10,5 @@
     "groupTopic": "test",
     "prefixTopic": "myHome",
     "debug_level":0,
-    "noNetwork_reset":1
+    "noNetwork_reset":7
 }

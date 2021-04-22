@@ -142,35 +142,40 @@ void myIOT2::start_network_services()
 }
 bool myIOT2::network_looper()
 {
-	if (WiFi.status() == WL_CONNECTED)
-	{ // wifi is ok
-		if (mqttClient.connected())
-		{ // mqtt is good
+	const byte time_retry_mqtt = 5;
+	if (WiFi.status() == WL_CONNECTED) /* wifi is ok */
+	{
+		if (mqttClient.connected()) /* MQTT is OK */
+		{
 			mqttClient.loop();
 			noNetwork_Clock = 0;
 			return 1;
 		}
-		else
-		{ // not connected mqtt
-			if (subscribeMQTT())
-			{ // succeed to reconnect
-				mqttClient.loop();
-				noNetwork_Clock = 0;
-				return 1;
-			}
-			else
-			{ // failed to reconnect
-				if (noNetwork_Clock == 0)
-				{ // first time fail MQTT
-					noNetwork_Clock = millis();
+		else /* Not connected mqtt*/
+		{
+			if (noNetwork_Clock == 0 || millis() - noNetwork_Clock > 1000 * time_retry_mqtt)
+			{
+				if (subscribeMQTT()) /* succeed to reconnect */
+				{
+					mqttClient.loop();
+					noNetwork_Clock = 0;
+					Serial.println("reconnect mqtt - succeed");
+					return 1;
 				}
-
-				return 0;
+				else
+				{
+					if (noNetwork_Clock == 0)
+					{
+						noNetwork_Clock = millis();
+						Serial.println("first_clock MQTT");
+					}
+					return 0;
+				}
 			}
 		}
 	}
-	else
-	{ // no WIFI
+	else /* No WiFi*/
+	{
 		if (millis() > noNetwork_Clock + retryConnectWiFi)
 		{
 			if (!startWifi(_ssid, _wifi_pwd))
@@ -178,12 +183,13 @@ bool myIOT2::network_looper()
 				if (noNetwork_Clock == 0)
 				{ // first time when NO NETWORK ?
 					noNetwork_Clock = millis();
-					return 0;
+					Serial.println("no-wifi, first clock");
 				}
+				return 0;
 			}
 			else
 			{ // reconnect succeeded
-				noNetwork_Clock = 0;
+				Serial.println("reconnect wifi");
 				return 1;
 			}
 		}
@@ -415,84 +421,71 @@ bool myIOT2::subscribeMQTT()
 {
 	if (!mqttClient.connected())
 	{
-		long now = millis();
-		if (noNetwork_Clock > 0 && now - noNetwork_Clock > 60000L)
+		if (useSerial)
 		{
-			return 0;
+			Serial.print("Attempting MQTT connection...");
 		}
-		else if (now - lastReconnectAttempt > 2000)
+		// Attempt to connect
+		char tempname[15];
+#if isESP8266
+		sprintf(tempname, "ESP_%s", String(ESP.getChipId()).c_str());
+#elif isESP32
+		uint64_t chipid = ESP.getEfuseMac();
+		sprintf(tempname, "ESP32_%04X", (uint16_t)(chipid >> 32));
+#endif
+		if (mqttClient.connect(tempname, _mqtt_user, _mqtt_pwd, _availTopic, 0, true, "offline"))
 		{
-			lastReconnectAttempt = now;
+			// Connecting sequence
+			for (int i = 0; i < sizeof(topicArry) / sizeof(char *); i++)
+			{
+				if (strcmp(topicArry[i], "") != 0)
+				{
+					mqttClient.subscribe(topicArry[i]);
+				}
+			}
+			if (useextTopic)
+			{
+				uint8_t x = sizeof(extTopic) / sizeof(char *);
+				for (int i = 0; i < x; i++)
+				{
+					if (extTopic[i] != nullptr)
+					{
+						mqttClient.subscribe(extTopic[i]);
+					}
+				}
+			}
 			if (useSerial)
 			{
-				Serial.println("have wifi, entering MQTT connection");
-				Serial.print("Attempting MQTT connection...");
+				Serial.println("connected");
 			}
-			// Attempt to connect
-			char tempname[15];
-#if isESP8266
-			sprintf(tempname, "ESP_%s", String(ESP.getChipId()).c_str());
-#elif isESP32
-			uint64_t chipid = ESP.getEfuseMac();
-			sprintf(tempname, "ESP32_%04X", (uint16_t)(chipid >> 32));
-#endif
-			if (mqttClient.connect(tempname, _mqtt_user, _mqtt_pwd, _availTopic, 0, true, "offline"))
+			if (firstRun)
 			{
-				// Connecting sequence
-				for (int i = 0; i < sizeof(topicArry) / sizeof(char *); i++)
+				pub_log("<< PowerON Boot >>");
+				if (!useResetKeeper)
 				{
-					if (strcmp(topicArry[i], "") != 0)
-					{
-						mqttClient.subscribe(topicArry[i]);
-					}
-				}
-				if (useextTopic)
-				{
-					uint8_t x = sizeof(extTopic) / sizeof(char *);
-					for (int i = 0; i < x; i++)
-					{
-						if (extTopic[i] != nullptr)
-						{
-							mqttClient.subscribe(extTopic[i]);
-						}
-					}
-				}
-				if (useSerial)
-				{
-					Serial.println("connected");
-				}
-				if (firstRun)
-				{
-					pub_log("<< PowerON Boot >>");
-					if (!useResetKeeper)
-					{
-						firstRun = false;
-						mqtt_detect_reset = 0;
-						notifyOnline();
-					}
-					// else
-					// { // using reset keeper
-					// 	mqttClient.publish(_availTopic, "resetKeeper", true);
-					// }
-				}
-				else
-				{ // not first run
+					firstRun = false;
+					mqtt_detect_reset = 0;
 					notifyOnline();
 				}
-				return 1;
+				// else
+				// { // using reset keeper
+				// 	mqttClient.publish(_availTopic, "resetKeeper", true);
+				// }
 			}
 			else
-			{ // fail to connect MQTT
-				if (useSerial)
-				{
-					Serial.print("failed, rc=");
-					Serial.println(mqttClient.state());
-				}
-				return 0;
+			{ // not first run
+				notifyOnline();
 			}
+			lastReconnectAttempt = 0;
+			return 1;
 		}
 		else
-		{
+		{ // fail to connect MQTT
+			if (useSerial)
+			{
+				Serial.print("failed, rc=");
+				Serial.println(mqttClient.state());
+			}
 			return 0;
 		}
 	}
@@ -791,7 +784,6 @@ void myIOT2::pub_sms(JsonDocument &sms)
 	output.toCharArray(sms_char, len);
 
 	_pub_generic(_smsTopic, sms_char, false, "", true);
-	// write_log(sms_char, 0);
 }
 void myIOT2::pub_email(String &inmsg, char *name)
 {
@@ -801,13 +793,6 @@ void myIOT2::pub_email(String &inmsg, char *name)
 	inmsg.toCharArray(email_char, len);
 	_pub_generic(_emailTopic, email_char, false, name, true);
 	write_log(email_char, 0);
-
-	// int len = output.length() + 1;
-	// char email_char[len];
-	// output.toCharArray(email_char, len);
-
-	// _pub_generic(_emailTopic, email_char, false, name, true);
-	// write_log(email_char, 0);
 }
 void myIOT2::pub_email(JsonDocument &email)
 {
@@ -825,14 +810,9 @@ void myIOT2::msgSplitter(const char *msg_in, int max_msgSize, char *prefix, char
 {
 	char tmp[280];
 
-	// if (strlen(prefix) + strlen(msg_in) > max_msgSize)
-	// {
-	Serial.println("BIG SMG");
 	int max_chunk = max_msgSize - strlen(prefix) - strlen(split_msg);
 	int num = ceil((float)strlen(msg_in) / max_chunk);
 	int pre_len;
-	Serial.print("NUM CHUNKS: ");
-	Serial.println(num);
 
 	for (int k = 0; k < num; k++)
 	{
@@ -846,18 +826,8 @@ void myIOT2::msgSplitter(const char *msg_in, int max_msgSize, char *prefix, char
 		if (mqttClient.connected() == true)
 		{
 			mqttClient.publish(_msgTopic, tmp);
-			Serial.println(tmp);
 		}
 	}
-	// }
-	// else
-	// {
-	// 	if (mqttClient.connected() == true)
-	// 	{
-	// 		sprintf(tmp, "%s %s", prefix, msg_in);
-	// 		mqttClient.publish(_msgTopic, tmp);
-	// 	}
-	// }
 }
 int myIOT2::inline_read(char *inputstr)
 {
@@ -995,7 +965,8 @@ void myIOT2::sendReset(char *header)
 	char temp[150];
 
 	sprintf(temp, "[%s] - Reset sent", header);
-
+	write_log(temp, 0);
+	flog.writeNow();
 	if (useSerial)
 	{
 		Serial.println(temp);

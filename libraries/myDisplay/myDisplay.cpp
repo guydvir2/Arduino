@@ -133,7 +133,6 @@ myLCD::myLCD(int lcdColumns, int lcdRows, int lcd_adress)
     : lcd(lcd_adress, lcdColumns, lcdRows)
 {
     _lcdcols=lcdColumns;
-
 }
 void myLCD::start()
 {

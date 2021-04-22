@@ -7,12 +7,12 @@ flashLOG::flashLOG(char *filename)
 bool flashLOG::start(int max_entries, int max_entry_len, bool delyedSave)
 {
 #if isESP32
-    bool a = !SPIFFS.begin(true);
+    bool a = SPIFFS.begin(true);
 #elif isESP8266
-    bool a = !SPIFFS.begin();
+    bool a = SPIFFS.begin();
 #endif
 
-    if (a)
+    if (!a)
     {
         Serial.println("SPIFFS mount failed");
     }
@@ -20,7 +20,7 @@ bool flashLOG::start(int max_entries, int max_entry_len, bool delyedSave)
     _log_length = max_entry_len;
     _useDelayedSave = delyedSave;
 
-    return !a;
+    return a;
 }
 void flashLOG::looper(int savePeriod)
 {
@@ -59,14 +59,21 @@ void flashLOG::_write2file()
     }
     else
     {
-        for (int x = 0; x < _buff_i; x++)
+        if (_useDelayedSave)
         {
-            file1.print(_logBuffer[x]);
+            for (int x = 0; x < _buff_i; x++)
+            {
+                file1.print(_logBuffer[x]);
+            }
+            _buff_i = 0;
+            lastUpdate = 0;
+        }
+        else
+        {
+            file1.print(_logBuffer[0]);
         }
     }
     file1.close();
-    _buff_i = 0;
-    lastUpdate = 0;
 }
 void flashLOG::writeNow()
 {
@@ -122,6 +129,65 @@ void flashLOG::_del_lines(byte line_index)
         SPIFFS.remove(_logfilename);
         SPIFFS.rename(tfile, _logfilename);
     }
+}
+bool flashLOG::del_line(byte line_index)
+{
+    int c = 0;
+    int row_counter = 0;
+    char a[_log_length + 3];
+    char *tfile = "/tempfile.txt";
+    bool line_deleted=false;
+
+    File file1 = SPIFFS.open(_logfilename, "r");
+    File file2 = SPIFFS.open(tfile, "w");
+
+    if (!file1 && !file2)
+    {
+        Serial.println("Failed to open file for appending");
+    }
+    else
+    {
+        while (file1.available())
+        {
+            char tt = file1.read();
+            if (row_counter != line_index) /* copying non-deleted lines */
+            {
+                if (tt != _EOL)
+                {
+                    a[c] = tt;
+                    c++;
+                }
+                else
+                {
+                    a[c] = _EOL;
+                    a[c + 1] = '\0';
+                    file2.print(a);
+                    sprintf(a, "");
+                    row_counter++;
+                    c = 0;
+                }
+            }
+            else                           /* ignoring line to be delted */
+            {
+                if (tt == _EOL)
+                {
+                    row_counter++;
+                    line_deleted=true;
+                }
+            }
+        }
+
+        file1.close();
+        file2.close();
+        SPIFFS.remove(_logfilename);
+        SPIFFS.rename(tfile, _logfilename);
+    }
+    return line_deleted;
+}
+bool flashLOG::del_last_record()
+{
+    int i = getnumlines();
+    return del_line(i - 1);
 }
 void flashLOG::delog()
 {
@@ -186,4 +252,36 @@ int flashLOG::sizelog()
     int f = file.size();
     file.close();
     return f;
+}
+void flashLOG::rawPrintfile()
+{
+    int row_counter = 0;
+    bool new_line = true;
+
+    File file = SPIFFS.open(_logfilename, "r");
+    if (!file)
+    {
+        Serial.println("Failed to open file for reading");
+    }
+    while (file.available())
+    {
+        if (new_line)
+        {
+            Serial.print("row #");
+            Serial.print(row_counter++);
+            Serial.print(" {");
+            new_line = false;
+        }
+        char tt = file.read();
+        if (tt == _EOL)
+        {
+            new_line = true;
+            Serial.println("}");
+        }
+        else
+        {
+            Serial.print(tt);
+        }
+    }
+    file.close();
 }

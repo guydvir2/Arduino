@@ -3,7 +3,7 @@
 #include <myLOG.h>
 
 IPmonitoring::IPmonitoring(char *IP, char *nick)
-    : _IP(IP), _nick(nick), _conlog_filename(_str_concat(nick, "_connlog.txt")), _conFlog(_conlog_filename)
+    : _IP(IP), nick(nick), _conlog_filename(_str_concat(nick, "_connlog.txt")), _conFlog(_conlog_filename)
 {
 }
 IPmonitoring::~IPmonitoring()
@@ -26,7 +26,7 @@ void IPmonitoring::start(cb_func ping)
         }
         else
         {
-                sprintf(a, "%s NOT Connected. Internet/NTP Failure", _nick);
+                sprintf(a, "%s NOT Connected. Internet/NTP Failure", nick);
                 _post_msg(a);
         }
 }
@@ -97,11 +97,6 @@ void IPmonitoring::getStatus(int h)
                                 cum_cTime += retT2 - retT1;
                                 total_boots++;
                         }
-                        else
-                        {
-                                Serial.print("Err on record #");
-                                Serial.println(i);
-                        }
                 }
         }
         _readFlog_2row(_conFlog, total_records - 1, retT1, retR1);
@@ -137,25 +132,33 @@ void IPmonitoring::_disco_service()
         currentstateClk = now();
         dCounter++;
         _LOGdisconnection();
-        sprintf(a, "%s disconnect [#%d]", _nick, dCounter);
+        sprintf(a, "%s disconnect [#%d]", nick, dCounter);
         _post_msg(a);
 }
 void IPmonitoring::_reco_service()
 {
-        if (currentstateClk != 0)
+        if (currentstateClk < MAXPING_TIME && currentstateClk != 0)
+        {
+                _conFlog.del_last_record();
+                dCounter--;
+                _post_msg("Record Deleted");
+        }
+        else if (currentstateClk >= MAXPING_TIME)
         {
                 char a[50];
                 char b[20];
-                char c[10];
-                sprintf(a, "%s reconnect [#%d] after", _nick, dCounter);
+                _conv_epoch_duration(now(), currentstateClk, b);
+                sprintf(a, "reconnect [#%d] after [%s]", dCounter, b);
                 _post_msg(a);
+                _LOGconnection();
+                currentstateClk = now();
         }
         else
         {
-                _post_msg(_nick, " connected");
+                _post_msg("connected");
+                _LOGconnection();
+                currentstateClk = now();
         }
-        _LOGconnection();
-        currentstateClk = now();
 }
 bool IPmonitoring::_ping_client()
 {
@@ -266,7 +269,7 @@ void IPmonitoring::_post_msg(char *inmsg, char *inmsg2)
         String msg;
         char Clk[20];
         _conv_epoch(now(), Clk);
-        msg = "[" + String(Clk) + "]" + "[" + String(_nick) + "] " + String(inmsg) + String(inmsg2);
+        msg = "[" + String(Clk) + "]" + "[" + String(nick) + "] " + String(inmsg) + String(inmsg2);
         Serial.println(msg);
 }
 void IPmonitoring::_reset_bootFailure()

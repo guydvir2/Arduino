@@ -23,23 +23,30 @@ private:
     int _log_length = LOG_LEN; // chars in each entry
     int _buff_i = 0;
     bool _useDelayedSave = true;
-    char _logBuffer[LOG_SIZE][LOG_LEN];
+    char _logBuffer[LOG_SIZE][LOG_LEN]; // Temp buffer for delayed write
     const char _EOL = '\r';
 
+public:
+    char *VeR = "flashLOG v0.7";
+    long lastUpdate = 0;
+
+private:
     void _del_lines(byte line_index = 0);
     void _write2file();
 
 public:
-    char *VeR = "flashLOG v0.6";
-    long lastUpdate = 0;
     flashLOG(char *filename = "/logfile.txt"); //, int log_size = LOG_SIZE, int log_length = LOG_LEN);
     bool start(int max_entries = 10, int max_entry_len = 100, bool delyedSave = true);
-    void write(const char *message);
     void delog();
+    bool del_last_record();
+    bool del_line(byte line_index);
     int sizelog();
-    bool readline(int r, char *retLog);
     int getnumlines();
-    void looper(int savePeriod= 10);
     void writeNow();
+    void write(const char *message);
+    bool readline(int r, char *retLog);
+    void looper(int savePeriod = 10);
+    void rawPrintfile();
+
 };
 #endif

@@ -1,7 +1,7 @@
 #include <myIOT2.h>
 #include <Arduino.h>
 
-#define USE_SIMPLE_IOT 1
+#define USE_SIMPLE_IOT 0
 
 #if USE_SIMPLE_IOT == 0
 #include "empty_param.h"
