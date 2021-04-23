@@ -1,3 +1,7 @@
+/* This library creates log file daved on Flash memory on ESP8266/ ESP32 */
+/* Written by guyDvir */
+/* 01/2021 */
+
 #ifndef myLOG_h
 #define myLOG_h
 #include <FS.h>
@@ -20,7 +24,7 @@ class flashLOG
 private:
     char *_logfilename = "/logfile.txt";
     int _logsize = LOG_SIZE;   // entries
-    int _log_length = LOG_LEN; // chars in each entry
+    byte _log_length = LOG_LEN; // chars in each entry
     int _buff_i = 0;
     bool _useDelayedSave = true;
     char _logBuffer[LOG_SIZE][LOG_LEN]; // Temp buffer for delayed write
@@ -47,6 +51,5 @@ public:
     bool readline(int r, char *retLog);
     void looper(int savePeriod = 10);
     void rawPrintfile();
-
 };
 #endif
