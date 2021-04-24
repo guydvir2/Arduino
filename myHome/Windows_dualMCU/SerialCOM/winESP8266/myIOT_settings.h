@@ -4,6 +4,11 @@ myIOT2 iot;
 extern char *sketch_paramfile;
 extern byte currentRelay_state;
 extern void makeSwitch(byte state);
+extern bool getWin_state();
+extern const char *winstate[];
+extern bool useAutoOff;
+extern int autoOff_time;
+
 extern StaticJsonDocument<JSON_SIZE_IOT> paramJSON;
 extern StaticJsonDocument<JSON_SIZE_SKETCH> sketchJSON;
 
@@ -13,7 +18,14 @@ void addiotnalMQTT(char *incoming_msg)
 
     if (strcmp(incoming_msg, "status") == 0)
     {
-        sprintf(msg, "Status: Window is [%s]", winstate[currentRelay_state]);
+        if (getWin_state())
+        {
+            sprintf(msg, "Status: Window is [%s]", winstate[currentRelay_state]);
+        }
+        else
+        {
+            sprintf(msg, "Serial Communication Error");
+        }
         iot.pub_msg(msg);
     }
     else if (strcmp(incoming_msg, "up") == 0)

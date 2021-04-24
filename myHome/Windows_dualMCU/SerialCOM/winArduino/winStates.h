@@ -3,7 +3,7 @@
 #define LOOP_DELAY 10
 #define QUERY_INIT 100
 
-enum sys_states :byte
+enum sys_states :const byte
 {
   WIN_STOP,
   WIN_UP,

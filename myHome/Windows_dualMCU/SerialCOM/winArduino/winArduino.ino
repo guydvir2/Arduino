@@ -21,9 +21,9 @@ bool swUp2_lastState = !SW_PRESSED;
 bool swDown2_lastState = !SW_PRESSED;
 #endif
 
-const byte change_dir_delay = 100; //ms
-const byte debounce_delay = 50;    //ms
-const byte loop_delay = LOOP_DELAY;        //ms - 10 time faster than ESP8266. DO NOT change
+const byte change_dir_delay = 100;  //ms
+const byte debounce_delay = 50;     //ms
+const byte loop_delay = LOOP_DELAY; //ms - 10 time faster than ESP8266. DO NOT change
 
 bool swUp_lastState = !SW_PRESSED;
 bool swDown_lastState = !SW_PRESSED;
@@ -162,7 +162,7 @@ void Serial_callbacks(byte &x)
 {
   if ((x >= WIN_STOP && x <= WIN_DOWN) || (x >= (WIN_STOP + MQTT_OFFSET) && (x <= WIN_DOWN + MQTT_OFFSET)))
   {
-    makeSwitch(x); /* x={0,1,2,10,11,12}*/
+    makeSwitch(x);                               /* x={0,1,2,10,11,12}*/
   }
   else if (x == QUERY)
   {
@@ -179,7 +179,8 @@ void readSerial()
 {
   if (Serial.available())
   {
-    Serial_callbacks(Serial.read());
+    byte x = Serial.read();
+    Serial_callbacks(x);
   }
 }
 void send_msg(byte &msg)
