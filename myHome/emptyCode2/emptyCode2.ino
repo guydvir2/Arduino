@@ -17,11 +17,10 @@ void setup()
         startIOTservices();
         endRead_parameters();
 #endif
-        pinMode(13, OUTPUT);
+        Serial.println("BOOT!!!!");
 }
 void loop()
 {
         iot.looper();
-        digitalWrite(13, !digitalRead(13));
         delay(100);
 }

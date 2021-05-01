@@ -27,9 +27,9 @@ void startRead_parameters()
   bool a = iot.read_fPars(sketch_paramfile, sketch_defs, sketchJSON);
   bool b = iot.read_fPars(iot.myIOT_paramfile, myIOT_defs, paramJSON);
   readfile_ok = a && b;
-  serializeJsonPretty(sketchJSON, Serial);
-  serializeJsonPretty(paramJSON, Serial);
-  Serial.flush();
+  // serializeJsonPretty(sketchJSON, Serial);
+  // serializeJsonPretty(paramJSON, Serial);
+  // Serial.flush();
   update_vars(sketchJSON);
 }
 void endRead_parameters()

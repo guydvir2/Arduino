@@ -2,10 +2,7 @@
 
 myIOT2 iot;
 extern char *sketch_paramfile;
-extern byte currentRelay_state;
-extern void makeSwitch(byte state);
-extern bool getWin_state();
-extern const char *winstate[];
+extern void sendMSG(char *msg, char *addinfo = NULL);
 extern bool useAutoOff;
 extern int autoOff_time;
 
@@ -18,27 +15,11 @@ void addiotnalMQTT(char *incoming_msg)
 
     if (strcmp(incoming_msg, "status") == 0)
     {
-        if (getWin_state())
-        {
-            sprintf(msg, "Status: Window is [%s]", winstate[currentRelay_state]);
-        }
-        else
-        {
-            sprintf(msg, "Serial Communication Error");
-        }
-        iot.pub_msg(msg);
+        sendMSG("status");
     }
-    else if (strcmp(incoming_msg, "up") == 0)
+    else if (strcmp(incoming_msg, "up") == 0 || strcmp(incoming_msg, "down") == 0 || strcmp(incoming_msg, "off") == 0)
     {
-        makeSwitch(WIN_UP);
-    }
-    else if (strcmp(incoming_msg, "down") == 0)
-    {
-        makeSwitch(WIN_DOWN);
-    }
-    else if (strcmp(incoming_msg, "off") == 0)
-    {
-        makeSwitch(WIN_STOP);
+        sendMSG(incoming_msg, "MQTT");
     }
     else if (strcmp(incoming_msg, "ver2") == 0)
     {
@@ -62,16 +43,18 @@ void addiotnalMQTT(char *incoming_msg)
     }
     else if (strcmp(incoming_msg, "help2") == 0)
     {
-        sprintf(msg, "Help: Commands #3 - [up, down, off, query, reset_arduino, show_flash_param, help2]");
+        sprintf(msg, "Help: Commands #3 - [up, down, off, query, reset_MCU, show_flash_param, help2]");
         iot.pub_msg(msg);
     }
     else if (strcmp(incoming_msg, "query") == 0)
     {
-        Serial.write(QUERY);
+        sendMSG("query");
     }
-    else if (strcmp(incoming_msg, "reset_arduino") == 0)
+    else if (strcmp(incoming_msg, "reset_MCU") == 0)
     {
-        Serial.write(RESET);
+        sprintf(msg, "Reset: sent to [%s]", NAME_0);
+        iot.pub_msg(msg);
+        sendMSG("reset_MCU");
     }
 }
 void startIOTservices()

@@ -62,22 +62,19 @@
 #define FEEDBACK_LED_ON()   (PORTC.OUTSET = _BV(6))
 #define FEEDBACK_LED_OFF()  (PORTC.OUTCLR = _BV(6))
 
-
-
 #elif defined(PARTICLE)
 #define LED_BUILTIN       D7
 #define FEEDBACK_LED_ON()  digitalWrite(LED_BUILTIN,1)
 #define FEEDBACK_LED_OFF() digitalWrite(LED_BUILTIN,0)
 
-// Arduino Zero and BluePill have an LED which is active low
-#elif defined(__STM32F1__) || defined(STM32F1xx)
+// Arduino Zero and BluePill and ESP8266 have an LED which is active low
+#elif defined(__STM32F1__) || defined(STM32F1xx) || defined(ESP8266)
 #define FEEDBACK_LED_ON()   digitalWrite(LED_BUILTIN, LOW)
 #define FEEDBACK_LED_OFF()  digitalWrite(LED_BUILTIN, HIGH)
 
-#elif defined(ESP32)
 #else
 /*
- * Default case
+ * Default case suitable for most boards
  */
 #define FEEDBACK_LED_ON()   digitalWrite(LED_BUILTIN, HIGH)
 #define FEEDBACK_LED_OFF()  digitalWrite(LED_BUILTIN, LOW)

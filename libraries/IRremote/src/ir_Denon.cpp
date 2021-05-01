@@ -64,7 +64,7 @@
 #define DENON_COMMAND_BITS      8
 #define DENON_FRAME_BITS        2 // 00/10 for 1. frame Denon/Sharp, inverted for autorepeat frame
 
-#define DENON_BITS              (DENON_ADDRESS_BITS + DENON_COMMAND_BITS + DENON_FRAME_BITS) // The number of bits in the command
+#define DENON_BITS              (DENON_ADDRESS_BITS + DENON_COMMAND_BITS + DENON_FRAME_BITS) // 15 - The number of bits in the command
 #define DENON_UNIT              260
 
 #define DENON_BIT_MARK          DENON_UNIT  // The length of a Bit:Mark
@@ -130,12 +130,15 @@ bool IRrecv::decodeSharp() {
 }
 
 //+=============================================================================
-#if !defined(USE_OLD_DECODE)
 bool IRrecv::decodeDenon() {
 
     // we have no start bit, so check for the exact amount of data bits
     // Check we have the right amount of data (32). The + 2 is for initial gap + stop bit mark
     if (decodedIRData.rawDataPtr->rawlen != (2 * DENON_BITS) + 2) {
+        DBG_PRINT(F("Denon: "));
+        DBG_PRINT("Data length=");
+        DBG_PRINT(decodedIRData.rawDataPtr->rawlen);
+        DBG_PRINTLN(" is not 32");
         return false;
     }
 
@@ -190,9 +193,9 @@ bool IRrecv::decodeDenon() {
     }
     return true;
 }
-#else
 
-bool IRrecv::decodeDenon() {
+#if !defined(NO_LEGACY_COMPATIBILITY)
+bool IRrecv::decodeDenonOld(decode_results *aResults) {
 
     // Check we have the right amount of data
     if (decodedIRData.rawDataPtr->rawlen != 1 + 2 + (2 * DENON_BITS) + 1) {
@@ -200,11 +203,11 @@ bool IRrecv::decodeDenon() {
     }
 
     // Check initial Mark+Space match
-    if (!matchMark(results.rawbuf[1], DENON_HEADER_MARK)) {
+    if (!matchMark(aResults->rawbuf[1], DENON_HEADER_MARK)) {
         return false;
     }
 
-    if (!matchSpace(results.rawbuf[2], DENON_HEADER_SPACE)) {
+    if (!matchSpace(aResults->rawbuf[2], DENON_HEADER_SPACE)) {
         return false;
     }
 
@@ -214,11 +217,12 @@ bool IRrecv::decodeDenon() {
     }
 
     // Success
-    results.bits = DENON_BITS;
+    aResults->value = decodedIRData.decodedRawData;
+    aResults->bits = DENON_BITS;
+    aResults->decode_type = DENON;
     decodedIRData.protocol = DENON;
     return true;
 }
-
 #endif
 
 void IRsend::sendDenon(unsigned long data, int nbits) {

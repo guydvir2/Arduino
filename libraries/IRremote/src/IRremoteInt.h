@@ -44,10 +44,6 @@
 #define MARK   1
 #define SPACE  0
 
-/*
- * Try to activate it, if you have legacy code to compile with version >= 3
- */
-//#define USE_OLD_DECODE // enables the old NEC and other old decoders.
 #include "IRProtocol.h"
 
 /****************************************************
@@ -71,17 +67,19 @@ struct irparams_struct {
     volatile uint8_t *IRReceivePinPortInputRegister;
     uint8_t IRReceivePinMask;
 #endif
+    uint16_t TickCounterForISR;     ///< Counts 50uS ticks. The value is copied into the rawbuf array on every transition.
+
+    bool OverflowFlag;              ///< Raw buffer OverflowFlag occurred
 #if RAW_BUFFER_LENGTH <= 255        // saves around 75 bytes program space and speeds up ISR
     uint8_t rawlen;                 ///< counter of entries in rawbuf
 #else
     unsigned int rawlen;            ///< counter of entries in rawbuf
 #endif
-    uint16_t TickCounterForISR;     ///< Counts 50uS ticks. The value is copied into the rawbuf array on every transition.
-    bool OverflowFlag;              ///< Raw buffer OverflowFlag occurred
     uint16_t rawbuf[RAW_BUFFER_LENGTH]; ///< raw data / tick counts per mark/space, first entry is the length of the gap between previous and current command
 };
 
 //#define DEBUG // Activate this for lots of lovely debug output from the IRremote core and all protocol decoders.
+//#define TRACE // Activate this for more debug output.
 /*
  * Debug directives
  */
@@ -110,12 +108,17 @@ struct irparams_struct {
 /****************************************************
  *                     RECEIVING
  ****************************************************/
+/*
+ * Activating this saves 60 bytes program space and 14 bytes RAM
+ */
+//#define NO_LEGACY_COMPATIBILITY
+#if !defined(NO_LEGACY_COMPATIBILITY)
 /**
  * Results returned from old decoders !!!deprecated!!!
  */
 struct decode_results {
     decode_type_t decode_type;  // deprecated, moved to decodedIRData.protocol ///< UNKNOWN, NEC, SONY, RC5, ...
-//    uint16_t address;         ///< Used by Panasonic & Sharp & NEC_standard [16-bits]
+    uint16_t address;           ///< Used by Panasonic & Sharp [16-bits]
     uint32_t value;             // deprecated, moved to decodedIRData.decodedRawData ///< Decoded value / command [max 32-bits]
     uint8_t bits;               // deprecated, moved to decodedIRData.numberOfBits ///< Number of bits in decoded value
     uint16_t magnitude;         // deprecated, moved to decodedIRData.extra ///< Used by MagiQuest [16-bits]
@@ -126,7 +129,7 @@ struct decode_results {
     uint16_t rawlen;            // deprecated, moved to decodedIRData.rawDataPtr->rawlen ///< Number of records in rawbuf
     bool overflow;              // deprecated, moved to decodedIRData.flags ///< true if IR raw code too long
 };
-
+#endif
 
 /*
  * Definitions for member IRData.flags
@@ -222,8 +225,8 @@ public:
     bool decodePulseWidthData(uint8_t aNumberOfBits, uint8_t aStartOffset, uint16_t aOneMarkMicros, uint16_t aZeroMarkMicros,
             uint16_t aBitSpaceMicros, bool aMSBfirst);
 
-    bool decodeBiPhaseData(uint_fast8_t aNumberOfBits, uint_fast8_t aStartOffset, uint_fast8_t aStartClockCount, uint_fast8_t aValueOfSpaceToMarkTransition,
-            uint16_t aBiphaseTimeUnit);
+    bool decodeBiPhaseData(uint_fast8_t aNumberOfBits, uint_fast8_t aStartOffset, uint_fast8_t aStartClockCount,
+            uint_fast8_t aValueOfSpaceToMarkTransition, uint16_t aBiphaseTimeUnit);
 
     void initBiphaselevel(uint8_t aRCDecodeRawbuffOffset, uint16_t aBiphaseTimeUnit);
     uint8_t getBiphaselevel();
@@ -239,7 +242,6 @@ public:
     bool decodeLG();
     bool decodeMagiQuest(); // not completely standard
     bool decodeNEC();
-    bool decodePanasonic();
     bool decodeRC5();
     bool decodeRC6();
     bool decodeSamsung();
@@ -254,10 +256,21 @@ public:
     /*
      * Old functions
      */
-    bool decode(decode_results *aResults) __attribute__ ((deprecated ("Please use decode() without a parameter."))); // deprecated
-    bool decodeWhynter();
+#if !defined(NO_LEGACY_COMPATIBILITY)
+    bool decodeDenonOld(decode_results *aResults);
+    bool decodeJVCMSB(decode_results *aResults);
+    bool decodeLGMSB(decode_results *aResults);
+    bool decodeNECMSB(decode_results *aResults);
+    bool decodePanasonicMSB(decode_results *aResults);
+    bool decodeSonyMSB(decode_results *aResults);
+    bool decodeSAMSUNG(decode_results *aResults);
+    bool decodeHashOld(decode_results *aResults);
 
-    bool decodeSAMSUNG();
+    bool decode(
+            decode_results *aResults)
+                    __attribute__ ((deprecated ("Please use IrReceiver.decode() without a parameter and IrReceiver.decodedIRData.<fieldname> ."))); // deprecated
+#endif
+    bool decodeWhynter();
 
     /*
      * Internal functions
@@ -265,9 +278,6 @@ public:
     void initDecodedIRData();
     uint8_t compare(unsigned int oldval, unsigned int newval);
 
-#if defined(USE_OLD_DECODE)
-    decode_results results;     // Only for legacy compatibility
-#endif
     IRData decodedIRData;       // New: decoded IR data for the application
 
     // Last decoded IR data for repeat detection
@@ -308,7 +318,6 @@ void disableLEDFeedback();
 void blink13(bool aEnableLEDFeedback)
         __attribute__ ((deprecated ("Please use setLEDFeedback() or enableLEDFeedback() / disableLEDFeedback."))); // deprecated
 void setBlinkPin(uint8_t aFeedbackLEDPin) __attribute__ ((deprecated ("Please use setLEDFeedback()."))); // deprecated
-
 
 /**
  * microseconds per clock interrupt tick
@@ -388,7 +397,7 @@ public:
 
     void mark(unsigned int aMarkMicros);
     void space(unsigned int aSpaceMicros);
-    void ledOff();
+    void IRLedOff();
 
 // 8 Bit array
     void sendRaw(const uint8_t aBufferWithTicks[], uint_fast8_t aLengthOfBuffer, uint_fast8_t aIRFrequencyKilohertz);
@@ -403,11 +412,9 @@ public:
      */
     void sendBoseWave(uint8_t aCommand, uint_fast8_t aNumberOfRepeats = NO_REPEATS);
     void sendDenon(uint8_t aAddress, uint8_t aCommand, uint_fast8_t aNumberOfRepeats, bool aSendSharp = false);
-    void sendDenonRaw(uint16_t aRawData, uint_fast8_t aNumberOfRepeats = 0);
-    __attribute__ ((deprecated ("Please use sendDenon(aAddress, aCommand, aNumberOfRepeats).")));
+    void sendDenonRaw(uint16_t aRawData, uint_fast8_t aNumberOfRepeats = 0)
+            __attribute__ ((deprecated ("Please use sendDenon(aAddress, aCommand, aNumberOfRepeats).")));
     void sendJVC(uint8_t aAddress, uint8_t aCommand, uint_fast8_t aNumberOfRepeats);
-    void sendJVCRaw(uint16_t aRawData, uint_fast8_t aNumberOfRepeats = 0);
-    __attribute__ ((deprecated ("Please use sendJVC(aAddress, aCommand, aNumberOfRepeats).")));
 
     void sendLGRepeat();
     void sendLG(uint8_t aAddress, uint16_t aCommand, uint_fast8_t aNumberOfRepeats, bool aIsRepeat = false);
@@ -416,7 +423,8 @@ public:
     void sendNECRepeat();
     void sendNEC(uint16_t aAddress, uint8_t aCommand, uint_fast8_t aNumberOfRepeats, bool aIsRepeat = false);
     void sendNECRaw(uint32_t aRawData, uint_fast8_t aNumberOfRepeats = 0, bool aIsRepeat = false);
-
+    // NEC variants
+    void sendOnkyo(uint16_t aAddress, uint16_t aCommand, uint_fast8_t aNumberOfRepeats, bool aIsRepeat = false);
     void sendApple(uint8_t aAddress, uint8_t aCommand, uint_fast8_t aNumberOfRepeats, bool aIsRepeat = false);
 
     void sendPanasonic(uint16_t aAddress, uint8_t aData, uint_fast8_t aNumberOfRepeats); // LSB first
@@ -451,8 +459,18 @@ public:
      */
     void sendDenon(unsigned long data, int nbits);
     void sendDISH(unsigned long data, int nbits);
+    void sendJVC(unsigned long data, int nbits, bool repeat)
+            __attribute__ ((deprecated ("This old function sends MSB first! Please use sendJVC(aAddress, aCommand, aNumberOfRepeats)."))) {
+        sendJVCMSB(data, nbits, repeat);
+    }
     void sendJVCMSB(unsigned long data, int nbits, bool repeat = false);
+
     void sendLG(unsigned long data, int nbits);
+
+    void sendNEC(uint32_t aRawData, uint8_t nbits)
+    __attribute__ ((deprecated ("This old function sends MSB first! Please use sendNEC(aAddress, aCommand, aNumberOfRepeats)."))) {
+        sendNECMSB(aRawData, nbits);
+    }
     void sendNECMSB(uint32_t data, uint8_t nbits, bool repeat = false);
     void sendPanasonic(uint16_t aAddress,
             uint32_t aData)

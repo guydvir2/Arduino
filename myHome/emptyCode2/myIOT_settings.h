@@ -6,7 +6,6 @@ myIOT2 iot;
 #define GROUP_TOPIC "none"
 #define PREFIX_TOPIC "myHome"
 
-
 void addiotnalMQTT(char *incoming_msg)
 {
     char msg[150];
@@ -44,7 +43,6 @@ void startIOTservices()
     strcpy(iot.prefixTopic, PREFIX_TOPIC);
     strcpy(iot.addGroupTopic, GROUP_TOPIC);
 
-
 #elif USE_SIMPLE_IOT == 0
 
     iot.useSerial = paramJSON["useSerial"];
@@ -66,5 +64,6 @@ void startIOTservices()
     // sprintf(a, "%s/%s/%s/%s", iot.prefixTopic, iot.addGroupTopic, iot.deviceTopic, DEBUG_TOPIC);
     // strcpy(iot.extTopic, a);
 
-    iot.start_services(addiotnalMQTT);
+    // iot.start_services(addiotnalMQTT);
+    iot.start_services(addiotnalMQTT, "dvirz_iot", "GdSd13100301", MQTT_USER, MQTT_PASS, "192.168.2.100");
 }

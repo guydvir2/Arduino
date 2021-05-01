@@ -54,7 +54,6 @@
 // 0_______ 1_______  2______ 3_______ 4_______ 5
 // 76543210 76543210 76543210 76543210 76543210 76543210
 // 00000010 00100000 Dev____  Sub Dev  Fun____  XOR( B2, B3, B4)
-
 // LSB first, start bit + 16 Vendor + 4 Parity(of vendor) + 4 Genre1 + 4 Genre2 + 10 Command + 2 ID + 8 Parity + stop bit
 // We reduce it to: start bit + 16 Vendor + 16 Address + 8 Command + 8 Parity + stop bit
 //
@@ -112,7 +111,8 @@ void IRsend::sendKaseikyo(uint16_t aAddress, uint8_t aCommand, uint_fast8_t aNum
 
         // Send address (device and subdevice) + command + parity + Stop bit
         sendPulseDistanceWidthData(KASEIKYO_BIT_MARK, KASEIKYO_ONE_SPACE, KASEIKYO_BIT_MARK, KASEIKYO_ZERO_SPACE, tSendValue.ULong,
-        KASEIKYO_ADDRESS_BITS + KASEIKYO_VENDOR_ID_PARITY_BITS + KASEIKYO_COMMAND_BITS + KASEIKYO_PARITY_BITS, PROTOCOL_IS_LSB_FIRST, SEND_STOP_BIT);
+        KASEIKYO_ADDRESS_BITS + KASEIKYO_VENDOR_ID_PARITY_BITS + KASEIKYO_COMMAND_BITS + KASEIKYO_PARITY_BITS,
+                PROTOCOL_IS_LSB_FIRST, SEND_STOP_BIT);
 
         tNumberOfCommands--;
         // skip last delay!
@@ -123,6 +123,9 @@ void IRsend::sendKaseikyo(uint16_t aAddress, uint8_t aCommand, uint_fast8_t aNum
     }
 }
 
+/**
+ * Stub using Kaseikyo with PANASONIC_VENDOR_ID_CODE
+ */
 void IRsend::sendPanasonic(uint16_t aAddress, uint8_t aCommand, uint_fast8_t aNumberOfRepeats) {
     sendKaseikyo(aAddress, aCommand, aNumberOfRepeats, PANASONIC_VENDOR_ID_CODE);
 }
@@ -135,6 +138,10 @@ bool IRrecv::decodeKaseikyo() {
     decode_type_t tProtocol;
     // Check we have enough data (100)- +4 for initial gap, start bit mark and space + stop bit mark
     if (decodedIRData.rawDataPtr->rawlen != ((2 * KASEIKYO_BITS) + 4)) {
+        DBG_PRINT(F("Kaseikyo: "));
+        DBG_PRINT("Data length=");
+        DBG_PRINT(decodedIRData.rawDataPtr->rawlen);
+        DBG_PRINTLN(" is not 100");
         return false;
     }
 
@@ -236,20 +243,22 @@ bool IRrecv::decodeKaseikyo() {
     return true;
 }
 
-//+=============================================================================
-#if defined(USE_OLD_DECODE)
-bool IRrecv::decodePanasonic() {
+#if !defined(NO_LEGACY_COMPATIBILITY)
+/**
+ * Old MSB first decoder
+ */
+bool IRrecv::decodePanasonicMSB(decode_results *aResults) {
     unsigned int offset = 1;
 
-    if (results.rawlen < (2 * KASEIKYO_BITS) + 2) {
+    if (aResults->rawlen < (2 * KASEIKYO_BITS) + 2) {
         return false;
     }
 
-    if (!matchMark(results.rawbuf[offset], KASEIKYO_HEADER_MARK)) {
+    if (!matchMark(aResults->rawbuf[offset], KASEIKYO_HEADER_MARK)) {
         return false;
     }
     offset++;
-    if (!matchMark(results.rawbuf[offset], KASEIKYO_HEADER_SPACE)) {
+    if (!matchMark(aResults->rawbuf[offset], KASEIKYO_HEADER_SPACE)) {
         return false;
     }
     offset++;
@@ -260,15 +269,19 @@ bool IRrecv::decodePanasonic() {
         return false;
     }
 
+    aResults->bits = KASEIKYO_BITS;
+    aResults->value = decodedIRData.decodedRawData;
+    aResults->address = PANASONIC_VENDOR_ID_CODE;
+    aResults->decode_type = PANASONIC;
     decodedIRData.protocol = PANASONIC;
-    decodedIRData.numberOfBits = KASEIKYO_BITS;
 
     return true;
 }
-
 #endif
 
-// Old version with MSB first Data
+/**
+ * Old version with MSB first data
+ */
 void IRsend::sendPanasonic(uint16_t aAddress, uint32_t aData) {
     // Set IR carrier frequency
     enableIROut(37); // 36.7kHz is the correct frequency
