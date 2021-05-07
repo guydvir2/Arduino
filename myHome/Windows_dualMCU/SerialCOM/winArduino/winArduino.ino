@@ -1,11 +1,19 @@
 #include <ArduinoJson.h>
-#include "winStates.h"
+#include <TimeLib.h>
 
-// ~~~~ Services ~~~~~
-#define DUAL_SW false
-#define ERR_PROTECT true
-#define VER "Arduino_v1.01"
+// ~~~~ Services update via ESP on BOOT ~~~~~
+bool DUAL_SW = false;
+bool ERR_PROTECT = true;
+bool USE_TO = true;
+byte TO_DURATION = 10;
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+#define WAIT_FOR_PARAM_DURATION 15
+#define JSON_SERIAL_SIZE 300
+
+#define VER "Arduino_v1.1"
 #define MCU_TYPE "Uno+WiFi"
+#define DEV_NAME "MCU"
 
 #define REL_DOWN_PIN 6  /* OUTUPT to relay device */
 #define REL_UP_PIN 7    /* OUTUPT to relay device */
@@ -18,14 +26,16 @@
 
 const byte change_dir_delay = 100;  //ms
 const byte debounce_delay = 50;     //ms
-const byte loop_delay = LOOP_DELAY; //ms - 10 time faster than ESP8266. DO NOT change
+const byte MIN2RESET_BAD_P = 30UL;  // Minutes 
+
+unsigned long autoOff_clock = 0;
+bool getP_OK = false;               // Flag, external parameters got OK ?
+time_t bootTime;
 
 bool swUp_lastState = !SW_PRESSED;
 bool swDown_lastState = !SW_PRESSED;
-#if DUAL_SW
 bool swUp2_lastState = !SW_PRESSED;
 bool swDown2_lastState = !SW_PRESSED;
-#endif
 
 enum sys_states : const byte
 {
@@ -34,6 +44,7 @@ enum sys_states : const byte
   WIN_DOWN,
   WIN_ERR,
 };
+
 void (*resetFunc)(void) = 0;
 
 // ~~~~~~~~~ generate Uptime ~~~~~~~~
@@ -60,10 +71,8 @@ void calc_time(long val, char *ret_clk)
 void sendMSG(char *msg, char *addinfo = NULL)
 {
   StaticJsonDocument<JSON_SERIAL_SIZE> doc;
-  // static unsigned int counter = 0;
 
-  doc["from"] = NAME_0;
-  // doc["msg_num"] = counter++;
+  doc["from"] = DEV_NAME;
   doc["act"] = msg;
   if (addinfo == NULL)
   {
@@ -80,7 +89,6 @@ void Serial_CB(JsonDocument &_doc)
   const char *FROM = _doc["from"];
   const char *ACT = _doc["act"];
   const char *INFO = _doc["info"];
-  // int msg_num = _doc["msg_num"];
 
   if (strcmp(ACT, "up") == 0)
   {
@@ -143,9 +151,20 @@ void Serial_CB(JsonDocument &_doc)
   {
     char t[200];
     char clk[25];
-    calc_time(millis()/1000, clk);
-    sprintf(t, "ver[%s], MCU[%s], upTime[%s], DualSW[%s], ErrProtect[%s]", VER, MCU_TYPE, clk, DUAL_SW ? "YES" : "NO", ERR_PROTECT ? "YES" : "NO");
+    char clk2[25];
+    calc_time(millis() / 1000, clk);
+    sprintf(clk2, "%02d-%02d-%02d %02d:%02d:%02d", year(bootTime), month(bootTime), day(bootTime), hour(bootTime), minute(bootTime), second(bootTime));
+    sprintf(t, "ver[%s], MCU[%s], upTime[%s], DualSW[%s], ErrProtect[%s], bootTime[%s]", VER, MCU_TYPE, clk, DUAL_SW ? "YES" : "NO", ERR_PROTECT ? "YES" : "NO", clk2);
     sendMSG("query", t);
+  }
+  else if (strcmp(ACT, "boot_p") == 0)
+  {
+    // ~~~ Update sketch parameters ~~~
+    ERR_PROTECT = _doc["err_p"];
+    DUAL_SW = _doc["dub_sw"];
+    USE_TO = _doc["t_out"];
+    TO_DURATION = _doc["t_out_d"];
+    bootTime = _doc["boot_t"];
   }
 }
 void readSerial()
@@ -164,6 +183,41 @@ void readSerial()
     }
   }
 }
+void getRemote_param(byte _waitDuration = 15)
+{
+  sendMSG("boot_p");
+  while (millis() < _waitDuration * 1000 && getP_OK == false)
+  {
+    if (Serial.available() > 0)
+    {
+      StaticJsonDocument<JSON_SERIAL_SIZE> doc;
+      DeserializationError error = deserializeJson(doc, Serial);
+      if (!error)
+      {
+        const char *ACT = doc["act"];
+        if (strcmp(ACT, "boot_p") == 0)
+        {
+          Serial_CB(doc);
+          getP_OK = true;
+        }
+      }
+    }
+    else
+    {
+      static byte loopCounter = 0; /* This part is needed when ESP has not completed boot process */
+      if (loopCounter > 5)
+      {
+        delay(1000);
+        sendMSG("boot_p");
+      }
+      else
+      {
+        loopCounter++;
+      }
+    }
+    delay(50);
+  }
+}
 
 // ~~~~~~ Handling Inputs & Outputs ~~~~~~~
 void start_gpio()
@@ -175,13 +229,13 @@ void start_gpio()
   swUp_lastState = digitalRead(SW_UP_PIN);
   swDown_lastState = digitalRead(SW_DOWN_PIN);
 
-#if DUAL_SW
-  pinMode(SW2_UP_PIN, INPUT_PULLUP);
-  pinMode(SW2_DOWN_PIN, INPUT_PULLUP);
-  swUp2_lastState = digitalRead(SW2_UP_PIN);
-  swDown2_lastState = digitalRead(SW2_DOWN_PIN);
-#endif
-
+  if (DUAL_SW)
+  {
+    pinMode(SW2_UP_PIN, INPUT_PULLUP);
+    pinMode(SW2_DOWN_PIN, INPUT_PULLUP);
+    swUp2_lastState = digitalRead(SW2_UP_PIN);
+    swDown2_lastState = digitalRead(SW2_DOWN_PIN);
+  }
   allOff();
 }
 void allOff()
@@ -233,6 +287,18 @@ bool makeSwitch(byte state)
       allOff();
       break;
     }
+
+    if (USE_TO)
+    {
+      if (state != WIN_STOP)
+      {
+        autoOff_clock = millis();
+      }
+      else
+      {
+        autoOff_clock = 0;
+      }
+    }
     return 1;
   }
   else
@@ -242,25 +308,29 @@ bool makeSwitch(byte state)
 }
 void errorProtection()
 {
-  if (digitalRead(REL_UP_PIN) == RELAY_ON && digitalRead(REL_DOWN_PIN) == RELAY_ON)
+  if (ERR_PROTECT)
   {
-    makeSwitch(WIN_STOP);
-    sendMSG("error", "Relays");
+    if (digitalRead(REL_UP_PIN) == RELAY_ON && digitalRead(REL_DOWN_PIN) == RELAY_ON)
+    {
+      makeSwitch(WIN_STOP);
+      sendMSG("error", "Relays");
+    }
+    if (digitalRead(SW_UP_PIN) == SW_PRESSED && digitalRead(SW_DOWN_PIN) == SW_PRESSED)
+    {
+      sendMSG("error", "Buttons");
+      delay(100);
+      resetFunc();
+    }
+    if (DUAL_SW)
+    {
+      if (digitalRead(SW2_UP_PIN) == SW_PRESSED && digitalRead(SW2_DOWN_PIN) == SW_PRESSED)
+      {
+        sendMSG("Error", "ExButtons");
+        delay(100);
+        resetFunc();
+      }
+    }
   }
-  if (digitalRead(SW_UP_PIN) == SW_PRESSED && digitalRead(SW_DOWN_PIN) == SW_PRESSED)
-  {
-    sendMSG("error", "Buttons");
-    delay(100);
-    resetFunc();
-  }
-#if DUAL_SW
-  if (digitalRead(SW2_UP_PIN) == SW_PRESSED && digitalRead(SW2_DOWN_PIN) == SW_PRESSED)
-  {
-    sendMSG("Error", "ExButtons");
-    delay(100);
-    resetFunc();
-  }
-#endif
 }
 void act_inputChange(int inPin, bool &state)
 {
@@ -335,27 +405,58 @@ void readInput(int inPin, bool &lastState)
     }
   }
 }
-
-void setup()
-{
-  start_gpio();
-  Serial.begin(9600);
-  // while (!Serial)
-  //   ;            /*Relvant for Pro-Micro board */
-  delay(13000); /* Time to ESP8266 to get connected to MQTT&WiFi */
-  sendMSG("Boot");
-}
-void loop()
+void readInputs_looper()
 {
   readInput(SW_UP_PIN, swUp_lastState);     /* Read wall UP Switch */
   readInput(SW_DOWN_PIN, swDown_lastState); /* Read wall DOWN Switch */
-#if DUAL_SW
-  readInput(SW2_UP_PIN, swUp2_lastState);     /* Read wall UP Switch */
-  readInput(SW2_DOWN_PIN, swDown2_lastState); /* Read wall DOWN Switch */
-#endif
-#if ERR_PROTECT
+  if (DUAL_SW)
+  {
+    readInput(SW2_UP_PIN, swUp2_lastState);     /* Read wall UP Switch */
+    readInput(SW2_DOWN_PIN, swDown2_lastState); /* Read wall DOWN Switch */
+  }
+}
+void autoOff_looper()
+{
+  if (USE_TO && autoOff_clock != 0)
+  {
+    if (millis() > autoOff_clock + TO_DURATION * 1000UL)
+    {
+      makeSwitch(WIN_STOP);
+      sendMSG("off", "Auto-Off");
+    }
+  }
+}
+void reset_fail_load_parameters()
+{
+  if (getP_OK == false && millis() > MIN2RESET_BAD_P * 1000 * 60)
+  {
+    sendMSG("Error", "Reset");
+    delay(1000);
+    resetFunc();
+  }
+}
+
+void setup()
+{
+  Serial.begin(9600);
+  getRemote_param(WAIT_FOR_PARAM_DURATION);
+  start_gpio();
+  sendMSG("Boot");
+  if (year(bootTime) == 1970)
+  {
+    sendMSG("Error", "NTP");
+  }
+  if (getP_OK == false)
+  {
+    sendMSG("Error", "Parameters");
+  }
+}
+void loop()
+{
+  readInputs_looper();
   errorProtection(); /* Avoid Simulatnious UP&DOWN */
-#endif
   readSerial();
-  delay(loop_delay);
+  autoOff_looper();
+  reset_fail_load_parameters();
+  delay(50);
 }

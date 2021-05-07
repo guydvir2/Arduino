@@ -3,7 +3,9 @@
 
 bool readfile_ok = false;
 bool useAutoOff = false;
-int autoOff_time = 300; 
+bool doubleSW = false;
+bool err_protect = false;
+int autoOff_time = 300;
 
 char *sketch_paramfile = "/sketch_param.json";
 StaticJsonDocument<JSON_SIZE_IOT> paramJSON;
@@ -18,7 +20,7 @@ void update_vars(JsonDocument &DOC)
 }
 void startRead_parameters()
 {
-  String sketch_defs = "{\"useAutoOff\":false,\"autoOff_time\":60}";
+  String sketch_defs = "{\"useAutoOff\":false,\"autoOff_time\":60,\"doubleSW\":false,\"err_protect\":false}";
 
   String myIOT_defs = "{\"useSerial\":true,\"useWDT\":false,\"useOTA\":true,\"useResetKeeper\" : false,\"useBootClockLog\" : false,\
                         \"useFailNTP\" : true,\"useDebugLog\" : true,\"useNetworkReset\":false, \"deviceTopic\" : \"myWindow\",\

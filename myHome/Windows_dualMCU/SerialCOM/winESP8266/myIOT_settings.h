@@ -52,7 +52,7 @@ void addiotnalMQTT(char *incoming_msg)
     }
     else if (strcmp(incoming_msg, "reset_MCU") == 0)
     {
-        sprintf(msg, "Reset: sent to [%s]", NAME_0);
+        sprintf(msg, "Reset: sent to MCU");
         iot.pub_msg(msg);
         sendMSG("reset_MCU");
     }

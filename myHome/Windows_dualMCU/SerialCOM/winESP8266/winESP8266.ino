@@ -1,23 +1,20 @@
 #include <myIOT2.h>
 #include <Arduino.h>
+
+#define DEV_NAME "ESP"
 #define JSON_SIZE_IOT 400
 #define JSON_SIZE_SKETCH 200
+#define JSON_SERIAL_SIZE 300
 #define VER "ESP8266_0.7"
 
-#include "winStates.h"
 #include "myIOT_settings.h"
 #include "win_param.h"
-
-const byte delay_loop = 10 * LOOP_DELAY;
-unsigned long autoOff_clk = 0;
 
 void sendMSG(char *msg, char *addinfo)
 {
         StaticJsonDocument<JSON_SERIAL_SIZE> doc;
-        // static int counter = 0;
 
-        doc["from"] = NAME_1;
-        // doc["msg_num"] = counter++;
+        doc["from"] = DEV_NAME;
         doc["act"] = msg;
         if (addinfo == NULL)
         {
@@ -30,26 +27,17 @@ void sendMSG(char *msg, char *addinfo)
 
         serializeJson(doc, Serial);
 }
-void autoOff_clkUpdate()
+void sendBOOT_P()
 {
-        if (useAutoOff)
-        {
-                autoOff_clk = millis();
-        }
-}
-void autoOff_looper(int duration = autoOff_time)
-{
-        if (useAutoOff)
-        {
-                if (autoOff_clk != 0)
-                {
-                        if (millis() > duration * 1000UL + autoOff_clk)
-                        {
-                                autoOff_clk = 0;
-                                sendMSG("off", "Auto-off");
-                        }
-                }
-        }
+        StaticJsonDocument<JSON_SERIAL_SIZE> doc;
+        doc["from"] = DEV_NAME;
+        doc["act"] = "boot_p";
+        doc["err_p"] = err_protect;
+        doc["dub_sw"] = doubleSW;
+        doc["t_out"] = useAutoOff;
+        doc["t_out_d"] = autoOff_time;
+        doc["boot_t"] = now();
+        serializeJson(doc, Serial);
 }
 void Serial_CB(JsonDocument &_doc)
 {
@@ -57,7 +45,6 @@ void Serial_CB(JsonDocument &_doc)
         const char *FROM = _doc["from"];
         const char *ACT = _doc["act"];
         const char *INFO = _doc["info"];
-        // int msg_num = _doc["msg_num"];
 
         if (strcmp(ACT, "up") == 0 || strcmp(ACT, "down") == 0 || strcmp(ACT, "off") == 0)
         {
@@ -65,7 +52,7 @@ void Serial_CB(JsonDocument &_doc)
                 iot.pub_msg(outmsg);
                 if (strcmp(ACT, "off") != 0)
                 {
-                        autoOff_clkUpdate();
+                        // autoOff_clkUpdate();
                 }
         }
         else if (strcmp(ACT, "query") == 0)
@@ -75,7 +62,8 @@ void Serial_CB(JsonDocument &_doc)
         }
         else if (strcmp(ACT, "Boot") == 0)
         {
-                sprintf(outmsg, "[%s]: << Power On Boot >>", NAME_0);
+                const char* FROM= _doc["from"];
+                sprintf(outmsg, "[%s]: << Power On Boot >>",FROM);
                 iot.pub_log(outmsg);
         }
         else if (strcmp(ACT, "status") == 0)
@@ -87,6 +75,10 @@ void Serial_CB(JsonDocument &_doc)
         {
                 sprintf(outmsg, "[%s]: [%s]; from[%s]", "Error", INFO, FROM);
                 iot.pub_msg(outmsg);
+        }
+        else if (strcmp(ACT, "boot_p") == 0)
+        {
+                sendBOOT_P();
         }
 }
 void readSerial()
@@ -103,11 +95,12 @@ void readSerial()
                 else
                 {
                         char aa[40];
-                        sprintf(aa, "[%s]: [%s]; from[%s]", "Error", "Recv-error", NAME_1);
+                        sprintf(aa, "[%s]: [%s]; from[%s]", "Error", "Recv-error", DEV_NAME);
                         iot.pub_msg(aa);
                 }
         }
 }
+
 void setup()
 {
         startRead_parameters();
@@ -120,7 +113,6 @@ void setup()
 void loop()
 {
         iot.looper();
-        autoOff_looper();
         readSerial();
-        delay(delay_loop);
+        delay(50);
 }

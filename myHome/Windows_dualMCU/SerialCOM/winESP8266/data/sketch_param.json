@@ -1,4 +1,6 @@
 {
     "useAutoOff": true,
-    "autoOff_time": 60
+    "autoOff_time": 20,
+    "doubleSW": false,
+    "err_protect": true
 }

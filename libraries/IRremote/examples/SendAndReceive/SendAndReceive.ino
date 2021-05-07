@@ -86,12 +86,14 @@ void setup() {
     Serial.print(F("Send signal mark duration is "));
     Serial.print(IrSender.periodOnTimeMicros);
     Serial.print(F(" us, pulse correction is "));
-    Serial.print((uint16_t) PULSE_CORRECTION_NANOS);
+    Serial.print(IrSender.getPulseCorrectionNanos());
     Serial.print(F(" ns, total period is "));
     Serial.print(IrSender.periodTimeMicros);
     Serial.println(F(" us"));
 
     // infos for receive
+    Serial.print(RECORD_GAP_MICROS);
+    Serial.println(F(" us is the (minimum) gap, after which the start of a new IR packet is assumed"));
     Serial.print(MARK_EXCESS_MICROS);
     Serial.println(F(" us are subtracted from all marks and added to all spaces for decoding"));
 #endif
