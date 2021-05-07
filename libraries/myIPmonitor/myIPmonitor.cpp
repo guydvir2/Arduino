@@ -162,7 +162,7 @@ void IPmonitoring::_reco_service()
 }
 bool IPmonitoring::_ping_client()
 {
-        byte retries = 3;
+        const byte retries = 3;
         byte retCounter = 0;
         bool pingOK = false;
 
@@ -170,7 +170,7 @@ bool IPmonitoring::_ping_client()
         {
                 if (WiFi.status() == WL_CONNECTED)
                 {
-                        pingOK = _ping_cb(_IP, 3);
+                        pingOK = _ping_cb(_IP, retries);
                 }
                 retCounter++;
         }
@@ -193,7 +193,7 @@ bool IPmonitoring::_ping_client()
 void IPmonitoring::_ping_looper()
 {
         const byte pingsOK = 3; /* number of pings the low the ping rate */
-        if (millis() >= _lastCheck + _adaptive_ping_val * 1000L)
+        if (millis() >= _lastCheck + _adaptive_ping_val * 1000UL)
         {
                 _lastCheck = millis();
                 if (_ping_client())
@@ -274,7 +274,6 @@ void IPmonitoring::_post_msg(char *inmsg, char *inmsg2)
 }
 void IPmonitoring::_reset_bootFailure()
 {
-        static long reset_delay = 0;
         if (_needRESET)
         {
                 if (reset_delay == 0)
@@ -283,7 +282,7 @@ void IPmonitoring::_reset_bootFailure()
                 }
                 else
                 {
-                        if (millis() >= 1000L * RESET_BOOT_ERR + reset_delay)
+                        if (millis() >= 1000UL * RESET_BOOT_ERR + reset_delay)
                         {
                                 _post_msg("No internet on Boot");
                                 ESP.reset();

@@ -29,6 +29,8 @@ private:
     byte _adaptive_ping_val = MINPING_TIME;
     byte _pingCounter = 0;
     bool _needRESET = true;
+    unsigned long reset_delay = 0;
+
     bool _firstPing = true;
     char _inline_param[2][12];
     unsigned long _lastCheck = 0;

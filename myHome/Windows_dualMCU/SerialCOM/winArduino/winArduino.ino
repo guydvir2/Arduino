@@ -2,17 +2,17 @@
 #include "winStates.h"
 
 // ~~~~ Services ~~~~~
-#define DUAL_SW true
+#define DUAL_SW false
 #define ERR_PROTECT true
-#define VER "Arduino_v1.0"
-#define MCU_TYPE "ProMini_3v3"
+#define VER "Arduino_v1.01"
+#define MCU_TYPE "Uno+WiFi"
 
 #define REL_DOWN_PIN 6  /* OUTUPT to relay device */
 #define REL_UP_PIN 7    /* OUTUPT to relay device */
 #define SW2_UP_PIN 10   /* Switch2 INPUT to Arduino */
 #define SW2_DOWN_PIN 11 /* Switch2 INPUT to Arduino */
-#define SW_DOWN_PIN 12  /* Switch1 INPUT to Arduino */
-#define SW_UP_PIN 13    /* Switch1 INPUT to Arduino */
+#define SW_DOWN_PIN 2   /* Switch1 INPUT to Arduino */
+#define SW_UP_PIN 3     /* Switch1 INPUT to Arduino */
 #define RELAY_ON HIGH
 #define SW_PRESSED LOW
 
@@ -27,44 +27,43 @@ bool swUp2_lastState = !SW_PRESSED;
 bool swDown2_lastState = !SW_PRESSED;
 #endif
 
-enum sys_states :const byte
+enum sys_states : const byte
 {
   WIN_STOP,
   WIN_UP,
   WIN_DOWN,
   WIN_ERR,
 };
-
-// ~~~~~~~~~  Serial Communication ~~~~~~~~
 void (*resetFunc)(void) = 0;
-void uptime(char *ret_clk)
+
+// ~~~~~~~~~ generate Uptime ~~~~~~~~
+#define SECS_PER_MIN (60UL)
+#define SECS_PER_HOUR (3600UL)
+#define SECS_PER_DAY (SECS_PER_HOUR * 24L)
+
+#define numberOfSeconds(_time_) (_time_ % SECS_PER_MIN)
+#define numberOfMinutes(_time_) ((_time_ / SECS_PER_MIN) % SECS_PER_MIN)
+#define numberOfHours(_time_) ((_time_ % SECS_PER_DAY) / SECS_PER_HOUR)
+#define elapsedDays(_time_) (_time_ / SECS_PER_DAY)
+
+void calc_time(long val, char *ret_clk)
 {
-  byte days = 0;
-  byte hours = 0;
-  byte minutes = 0;
-  byte seconds = 0;
-
-  int sec2minutes = 60;
-  int sec2hours = (sec2minutes * 60);
-  int sec2days = (sec2hours * 24);
-  int sec2years = (sec2days * 365);
-
-  unsigned long time_delta = (int)(millis() / 1000);
-
-  days = (int)(time_delta / sec2days);
-  hours = (int)((time_delta - days * sec2days) / sec2hours);
-  minutes = (int)((time_delta - days * sec2days - hours * sec2hours) / sec2minutes);
-  seconds = (int)(time_delta - days * sec2days - hours * sec2hours - minutes * sec2minutes);
+  int days = elapsedDays(val);
+  int hours = numberOfHours(val);
+  int minutes = numberOfMinutes(val);
+  int seconds = numberOfSeconds(val);
 
   sprintf(ret_clk, "%01dd %02d:%02d:%02d", days, hours, minutes, seconds);
 }
+
+// ~~~~~~~~~  Serial Communication ~~~~~~~~
 void sendMSG(char *msg, char *addinfo = NULL)
 {
   StaticJsonDocument<JSON_SERIAL_SIZE> doc;
-  static int counter = 0;
+  // static unsigned int counter = 0;
 
   doc["from"] = NAME_0;
-  doc["msg_num"] = counter++;
+  // doc["msg_num"] = counter++;
   doc["act"] = msg;
   if (addinfo == NULL)
   {
@@ -74,7 +73,6 @@ void sendMSG(char *msg, char *addinfo = NULL)
   {
     doc["info"] = addinfo;
   }
-
   serializeJson(doc, Serial);
 }
 void Serial_CB(JsonDocument &_doc)
@@ -82,13 +80,17 @@ void Serial_CB(JsonDocument &_doc)
   const char *FROM = _doc["from"];
   const char *ACT = _doc["act"];
   const char *INFO = _doc["info"];
-  int msg_num = _doc["msg_num"];
+  // int msg_num = _doc["msg_num"];
 
   if (strcmp(ACT, "up") == 0)
   {
     if (makeSwitch(WIN_UP))
     {
       sendMSG(ACT, INFO);
+    }
+    else
+    {
+      sendMSG("error", "window state");
     }
   }
   else if (strcmp(ACT, "down") == 0)
@@ -97,12 +99,20 @@ void Serial_CB(JsonDocument &_doc)
     {
       sendMSG(ACT, INFO);
     }
+    else
+    {
+      sendMSG("error", "window state");
+    }
   }
   else if (strcmp(ACT, "off") == 0)
   {
     if (makeSwitch(WIN_STOP))
     {
       sendMSG(ACT, INFO);
+    }
+    else
+    {
+      sendMSG("error", "window state");
     }
   }
   else if (strcmp(ACT, "reset_MCU") == 0)
@@ -133,7 +143,7 @@ void Serial_CB(JsonDocument &_doc)
   {
     char t[200];
     char clk[25];
-    uptime(clk);
+    calc_time(millis()/1000, clk);
     sprintf(t, "ver[%s], MCU[%s], upTime[%s], DualSW[%s], ErrProtect[%s]", VER, MCU_TYPE, clk, DUAL_SW ? "YES" : "NO", ERR_PROTECT ? "YES" : "NO");
     sendMSG("query", t);
   }
@@ -147,6 +157,10 @@ void readSerial()
     if (!error)
     {
       Serial_CB(doc);
+    }
+    else
+    {
+      sendMSG("Error", "Serial-Recv");
     }
   }
 }
@@ -231,11 +245,11 @@ void errorProtection()
   if (digitalRead(REL_UP_PIN) == RELAY_ON && digitalRead(REL_DOWN_PIN) == RELAY_ON)
   {
     makeSwitch(WIN_STOP);
-    sendMSG("Error", "Relays");
+    sendMSG("error", "Relays");
   }
   if (digitalRead(SW_UP_PIN) == SW_PRESSED && digitalRead(SW_DOWN_PIN) == SW_PRESSED)
   {
-    sendMSG("Error", "Buttons");
+    sendMSG("error", "Buttons");
     delay(100);
     resetFunc();
   }
@@ -254,9 +268,8 @@ void act_inputChange(int inPin, bool &state)
   {
     if (inPin == SW_UP_PIN || inPin == SW2_UP_PIN)
     {
-      if (getWin_state() != WIN_UP)
+      if (makeSwitch(WIN_UP))
       {
-        makeSwitch(WIN_UP);
         if (inPin == SW_UP_PIN)
         {
           sendMSG("up", "Button");
@@ -266,13 +279,16 @@ void act_inputChange(int inPin, bool &state)
           sendMSG("up", "ExButton");
         }
       }
+      else
+      {
+        sendMSG("error", "window state");
+      }
     }
     else if (inPin == SW_DOWN_PIN || inPin == SW2_DOWN_PIN)
     {
-      if (getWin_state() != WIN_DOWN)
+      if (makeSwitch(WIN_DOWN))
       {
-        makeSwitch(WIN_DOWN);
-        if (inPin == SW_UP_PIN)
+        if (inPin == SW_DOWN_PIN)
         {
           sendMSG("down", "Button");
         }
@@ -281,25 +297,34 @@ void act_inputChange(int inPin, bool &state)
           sendMSG("down", "ExButton");
         }
       }
+      else
+      {
+        sendMSG("error", "window state");
+      }
     }
   }
   else
   {
-    makeSwitch(WIN_STOP);
-    if (inPin == SW_UP_PIN)
+    if (makeSwitch(WIN_STOP))
     {
-      sendMSG("off", "Button");
+      if (inPin == SW_DOWN_PIN || inPin == SW_UP_PIN)
+      {
+        sendMSG("off", "Button");
+      }
+      else
+      {
+        sendMSG("off", "ExButton");
+      }
     }
     else
     {
-      sendMSG("off", "ExButton");
+      sendMSG("error", "window state");
     }
   }
 }
 void readInput(int inPin, bool &lastState)
 {
   bool state = digitalRead(inPin);
-
   if (state != lastState)
   {
     delay(debounce_delay);
@@ -315,9 +340,9 @@ void setup()
 {
   start_gpio();
   Serial.begin(9600);
-  while (!Serial)
-    ;            /*Relvant for Pro-Micro board */
-  delay(8000);   /* Time to ESP8266 to get connected to MQTT&WiFi */
+  // while (!Serial)
+  //   ;            /*Relvant for Pro-Micro board */
+  delay(13000); /* Time to ESP8266 to get connected to MQTT&WiFi */
   sendMSG("Boot");
 }
 void loop()
