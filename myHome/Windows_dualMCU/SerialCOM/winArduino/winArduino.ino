@@ -11,7 +11,7 @@ byte TO_DURATION = 10;
 #define WAIT_FOR_PARAM_DURATION 15
 #define JSON_SERIAL_SIZE 300
 
-#define VER "Arduino_v1.1"
+#define VER "Arduino_v1.2"
 #define MCU_TYPE "Uno+WiFi"
 #define DEV_NAME "MCU"
 
@@ -24,12 +24,12 @@ byte TO_DURATION = 10;
 #define RELAY_ON HIGH
 #define SW_PRESSED LOW
 
-const byte change_dir_delay = 100;  //ms
-const byte debounce_delay = 50;     //ms
-const byte MIN2RESET_BAD_P = 30UL;  // Minutes 
+const byte change_dir_delay = 100; //ms
+const byte debounce_delay = 50;    //ms
+const byte MIN2RESET_BAD_P = 30UL; // Minutes
 
 unsigned long autoOff_clock = 0;
-bool getP_OK = false;               // Flag, external parameters got OK ?
+bool getP_OK = false; // Flag, external parameters got OK ?
 time_t bootTime;
 
 bool swUp_lastState = !SW_PRESSED;
@@ -152,9 +152,11 @@ void Serial_CB(JsonDocument &_doc)
     char t[200];
     char clk[25];
     char clk2[25];
-    calc_time(millis() / 1000, clk);
+    // calc_time(millis() / 1000, clk);
     sprintf(clk2, "%02d-%02d-%02d %02d:%02d:%02d", year(bootTime), month(bootTime), day(bootTime), hour(bootTime), minute(bootTime), second(bootTime));
-    sprintf(t, "ver[%s], MCU[%s], upTime[%s], DualSW[%s], ErrProtect[%s], bootTime[%s]", VER, MCU_TYPE, clk, DUAL_SW ? "YES" : "NO", ERR_PROTECT ? "YES" : "NO", clk2);
+    // sprintf(t, "ver[%s], MCU[%s], upTime[%s], DualSW[%s], ErrProtect[%s], bootTime[%s]", VER, MCU_TYPE, clk, DUAL_SW ? "YES" : "NO", ERR_PROTECT ? "YES" : "NO", clk2);
+    sprintf(t, "ver[%s], MCU[%s], DualSW[%s], ErrProtect[%s], bootTime[%s],Auto-Off[%s], Auto-Off_TO[%d]",
+            VER, MCU_TYPE, DUAL_SW ? "YES" : "NO", ERR_PROTECT ? "YES" : "NO", clk2, USE_TO ? "YES" : "NO", TO_DURATION);
     sendMSG("query", t);
   }
   else if (strcmp(ACT, "boot_p") == 0)

@@ -17,6 +17,8 @@ void update_vars(JsonDocument &DOC)
 {
   useAutoOff = DOC["useAutoOff"];
   autoOff_time = DOC["autoOff_time"];
+  err_protect = DOC["err_protect"];
+  doubleSW = DOC["doubleSW"];
 }
 void startRead_parameters()
 {
