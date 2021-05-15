@@ -14,7 +14,6 @@
 #define USE_SLEEP 1
 #define SLEEP_TIME 1800 // sec
 #define WAKE_TIME 2 //sec
-#include "power.h"
 const char *dev_name = "Arduino";
 const int time_resend = 1234;
 
@@ -126,13 +125,11 @@ void setup_iot()
 void setup_sender()
 {
 #if ROLE == 1
-  start_relay();
-  pinMode(A0, INPUT);
-  power_RF(HIGH);
   Serial.begin(115200);
   send(m_types[0], questions[2]); /* whois-online*/
 #endif
 }
+
 void setup()
 {
   setup_sender();

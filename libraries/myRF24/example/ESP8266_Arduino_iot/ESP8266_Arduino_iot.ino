@@ -3,7 +3,7 @@
 
 /* 0:Reciever ( ESP8266 also connected to WiFi) */
 /* 1: Sender ( Arduino with RF24 log range anttenna)*/
-#define ROLE 1
+#define ROLE 0
 #define PRINT_MESSAGES true
 #define JSON_SIZE 300
 
