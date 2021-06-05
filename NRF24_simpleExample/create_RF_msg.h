@@ -36,6 +36,7 @@ bool gen_send(const char *key0, const char *value0, const char *key1 = nullptr, 
 {
   /* 4 pairs of key/values */
   char outmsg[250];
+  static byte failCounter = 0;
   const char *k[] = {key0, key1, key2, key3, key4};
   createMSG_JSON(outmsg, value0, value1, value2, value3, value4, k);
 
@@ -55,6 +56,15 @@ bool gen_send(const char *key0, const char *value0, const char *key1 = nullptr, 
     {
       Serial.print(">>[FAIL] ");
       Serial.println(outmsg);
+      if (failCounter < 3)
+      {
+        failCounter++;
+      }
+      else
+      {
+        failCounter = 0;
+        radio.resetRF24();
+      }
     }
     return 0;
   }

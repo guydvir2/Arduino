@@ -18,6 +18,11 @@
 2. know bug when arm_home using code, it arm_away.
 */
 
+/*Update 5/2021
+1.Update iot2 Services
+2. know bug when arm_home using code, it arm_away.
+*/
+
 /*
 
                 +==========+=============+============+============+===============+
@@ -80,9 +85,9 @@
 
 #define RelayOn HIGH
 #define SwitchOn LOW
-#define VER "NodeMCU_3.6"
+#define VER "NodeMCU_3.67"
 
-#include <myIOT.h>
+#include <myIOT2.h>
 #include "myIOT_settings.h"
 #include <Arduino.h>
 

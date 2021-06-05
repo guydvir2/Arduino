@@ -10,7 +10,7 @@
 
 class myRF24
 {
-#define VER "myRF24_v0.4"
+#define VER "myRF24_v0.5"
 private:
     struct RFmsg
     {
@@ -21,6 +21,11 @@ private:
         char dev_name[9];
     };
     char _devname[32];
+    byte _w_addr;
+    byte _r_addr;
+    uint8_t _PA_level;
+    rf24_datarate_e _Data_rate;
+    int _ch;
     const byte addresses[4][6] = {"00001", "00002", "00003", "00004"};
 
 public:
@@ -30,13 +35,16 @@ public:
 
 public:
     myRF24(int CE_PIN, int CSN_PIN);
-    void startRF24(const byte &w_addr, const byte &r_addr, const char *devname, uint8_t PA_level = RF24_PA_MIN, rf24_datarate_e Data_rate = RF24_1MBPS, int ch = 1);
+    bool startRF24(const byte &w_addr, const byte &r_addr, const char *devname, uint8_t PA_level = RF24_PA_MIN, rf24_datarate_e Data_rate = RF24_1MBPS, int ch = 1);
     bool RFwrite(const char *msg, const int arraySize, const int len = 20); /* long & splitted messages */
     bool RFread(char out[], int fail_micros = 200);                         /*plain read*/
-    bool RFread(char out[], const char *key, int fail_micros = 200);        /*JSON format */
-    bool RFread2(char outmsg[], int del = 100);
+    bool RFread2(char outmsg[], int del = 100);                             /* Split Messages */
+    void failDetect();
+    bool resetRF24();
+    void wellness_Watchdog();
 
 private:
+    bool _start();
     bool _RFwrite_nosplit(const char *msg); /*plain sending*/
     bool _wait4Rx(int timeFrame = 200);
     void _printStruct(RFmsg &msg);

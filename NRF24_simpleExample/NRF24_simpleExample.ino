@@ -1,7 +1,7 @@
 #include <myRF24.h>
 #include <ArduinoJson.h>
 
-#define ROLE 0 /* 0:Reciever ( ESP8266 also connected to WiFi) */
+#define ROLE 1 /* 0:Reciever ( ESP8266 also connected to WiFi) */
                /* 1: Sender ( Arduino with RF24 log range anttenna)*/
 #define PRINT_MESSAGES true
 
@@ -28,13 +28,13 @@ myRF24 radio(CE_PIN, CSN_PIN);
 
 #if ROLE == 1
 const char *dev_name = "Arduino";
-const int time_resend = 1234;
+const int time_resend = 751;
 
 #elif ROLE == 0   /* ESP8266*/
 #define USE_IOT 1 /*For ESP8266*/
 #include "myIOT_def.h"
 const char *dev_name = "Wemos";
-const int time_resend = 3456;
+const int time_resend = 23456;
 #endif
 
 void answer_incoming(char *inmsg)
@@ -42,8 +42,6 @@ void answer_incoming(char *inmsg)
 #define JSON_SIZE 300
   StaticJsonDocument<JSON_SIZE> DOC;
   deserializeJson(DOC, (const char *)inmsg);
-
-  // serializeJsonPretty(DOC, Serial);
 
   /* got a question to answer. gKeys[1]  - is msg type */
   if (DOC.containsKey(gKeys[1]))
@@ -117,7 +115,7 @@ void send_timely_msgs()
 void recv_msg()
 {
   char inmsg_buff[250];
-  const int delay_read = 100;
+  const byte delay_read = 100;
   if (radio.RFread2(inmsg_buff, delay_read))
   {
     answer_incoming(inmsg_buff);
@@ -125,8 +123,11 @@ void recv_msg()
 }
 void setup_iot()
 {
+  bool startOK;
 #if ROLE == 0 /* ESP8266 */
-  radio.startRF24(w_address, r_address, dev_name, RF24_PA_MAX, RF24_1MBPS, 1);
+  startOK = radio.startRF24(w_address, r_address, dev_name, RF24_PA_MAX, RF24_1MBPS, 1);
+  Serial.print("start: ");
+  Serial.println(startOK);
 #if USE_IOT == 1
   startIOTservices();
 #else
@@ -141,7 +142,9 @@ void setup_sender()
 #if ROLE == 1
   Serial.begin(115200);
   Serial.println("Im a Sender");
-  radio.startRF24(w_address, r_address, dev_name, RF24_PA_MIN, RF24_1MBPS, 1);
+  bool startOK = radio.startRF24(w_address, r_address, dev_name, RF24_PA_MIN, RF24_1MBPS, 1);
+  Serial.print("start: ");
+  Serial.println(startOK);
   send(m_types[0], questions[2]); /* whois-online*/
 #endif
 }
@@ -156,10 +159,12 @@ void setup()
 void loop()
 {
   recv_msg();
+  radio.failDetect();
 #if ROLE == 0 && USE_IOT == 1
   iot.looper();
 #endif
-// #if ROLE == 0
+  // #if ROLE == 0
   send_timely_msgs();
-// #endif
+  // #endif
+  radio.wellness_Watchdog();
 }

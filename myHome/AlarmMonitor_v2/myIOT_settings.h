@@ -1,6 +1,4 @@
-#include <myIOT.h>
-
-myIOT iot;
+myIOT2 iot;
 extern const int systemPause, deBounceInt;
 extern void allOff();
 extern void arm_home();

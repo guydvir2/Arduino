@@ -3,23 +3,15 @@
 myRF24::myRF24(int CE_PIN, int CSN_PIN) : radio(CE_PIN, CSN_PIN)
 {
 }
-void myRF24::startRF24(const byte &w_addr, const byte &r_addr, const char *devname, uint8_t PA_level, rf24_datarate_e Data_rate, int ch)
+bool myRF24::startRF24(const byte &w_addr, const byte &r_addr, const char *devname, uint8_t PA_level, rf24_datarate_e Data_rate, int ch)
 {
   strcpy(_devname, devname);
-  radio.begin();
-  if (use_ack)
-  {
-    radio.enableAckPayload(); // Allow optional ack payloads
-    radio.setAutoAck(1);
-    radio.enableDynamicPayloads();
-  }
-  radio.openWritingPipe(addresses[w_addr]);
-  radio.openReadingPipe(1, addresses[r_addr]);
-  radio.setPALevel(PA_level);
-  radio.setDataRate(Data_rate);
-  radio.setRetries(0, 15);
-  radio.setChannel(ch);
-  radio.startListening();
+  _w_addr = w_addr;
+  _r_addr = r_addr;
+  _PA_level = PA_level;
+  _Data_rate = Data_rate;
+  _ch = ch;
+  return _start();
 }
 bool myRF24::_RFwrite_nosplit(const char *msg)
 {
@@ -108,39 +100,10 @@ bool myRF24::RFread(char out[], int fail_micros)
     return 1;
   }
 }
-bool myRF24::RFread(char out[], const char *key, int fail_micros)
-{
-  radio.startListening();
-  StaticJsonDocument<80> DOC;
-
-  if (!_wait4Rx(fail_micros)) /* wait 200ms for incoming message */
-  {
-    return 0;
-  }
-  else
-  {
-    char _readmsg[32];
-    radio.read(&_readmsg, sizeof(_readmsg));
-    deserializeJson(DOC, (const char *)_readmsg);
-    if (DOC.containsKey(key))
-    {
-      const char *outmsg = DOC[key];
-      strcpy(out, outmsg);
-      return 1;
-    }
-    else
-    {
-      strcpy(out, _readmsg); // if key not present, return all message
-      return 0;
-    }
-  }
-}
-
 bool myRF24::RFread2(char out[], int del)
 {
   radio.startListening();
-
-  if (_wait4Rx(del)) //radio.available()) //
+  if (_wait4Rx(del))
   {
     RFmsg payload;
     strcpy(out, "");
@@ -174,38 +137,61 @@ bool myRF24::RFread2(char out[], int del)
     return 0;
   }
 }
-
+void myRF24::failDetect()
+{
+  if (radio.failureDetected)
+  {
+    radio.failureDetected = 0; // Reset the detection value
+    Serial.println("Rx Failure");
+    if (_start())
+    {
+      Serial.println("Rx Restored");
+    }
+    else
+    {
+      Serial.println("Rx Fail Restored");
+    }
+  }
+}
+bool myRF24::resetRF24()
+{
+  // radio.powerDown();
+  // delay(10);
+  // radio.powerUp();
+  return _start();
+}
+void myRF24::wellness_Watchdog()
+{
+  failDetect();
+  if (!radio.isChipConnected())
+  {
+    Serial.println("NOT_CONNECTED");
+    _start();
+  }
+}
+bool myRF24::_start()
+{
+  bool startOK = radio.begin();
+  if (use_ack)
+  {
+    radio.enableAckPayload(); // Allow optional ack payloads
+    radio.setAutoAck(1);
+    radio.enableDynamicPayloads();
+  }
+  radio.openWritingPipe(addresses[_w_addr]);
+  radio.openReadingPipe(1, addresses[_r_addr]);
+  radio.setPALevel(_PA_level);
+  radio.setDataRate(_Data_rate);
+  radio.setRetries(0, 15);
+  radio.setChannel(_ch);
+  radio.startListening();
+  return startOK;
+}
 bool myRF24::_wait4Rx(int timeFrame)
 {
   bool timeout = false;
   unsigned long started_waiting_at = micros();
-  // if (radio.available())
-  // {
-  //   return 1;
-  // }
-  // else
-  // {
-  //   while (!radio.available()) // While nothing is received
-  //   {
-  //     if (micros() - started_waiting_at > timeFrame * 1000UL) // If waited longer than 200ms, indicate timeout and exit while loop
-  //     {
-  //       timeout = true;
-  //       break;
-  //     }
-  //   }
-  //   if (timeout)
-  //   {
-  //     // Serial.print("reach time-out");
-  //     // Serial.println(micros() - started_waiting_at);
-  //     return 0;
-  //   }
-  //   else
-  //   {
-  //     // Serial.print("not reach time-out");
-  //     // Serial.println(micros() - started_waiting_at);
-  //     return 1;
-  //   }
-  // }
+
   while (!radio.available() && !timeout)
   {
     if (micros() - started_waiting_at > timeFrame * 1000UL)
