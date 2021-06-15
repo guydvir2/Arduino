@@ -1,9 +1,9 @@
-#include <myIOT.h>
+#include <myIOT2.h>
 #include "general_settings.h"
 #include "SWITCH_param.h"
 #include <Arduino.h>
 
-myIOT iot;
+myIOT2 iot;
 mySwitch *TOswitches[maxSW] = {};
 
 // ~~~ extTrig functions ~~~~~~~~~

@@ -4,7 +4,7 @@
 #define JSON_SIZE_IOT 400
 #define JSON_SIZE_SKETCH 1200
 
-extern myIOT iot;
+extern myIOT2 iot;
 
 char *sketch_paramfile = "/sketch_param.json";
 bool readfile_ok = false;
