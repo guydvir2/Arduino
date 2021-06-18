@@ -16,7 +16,8 @@
         "*.ini": "cpp",
         "random": "cpp",
         "cstddef": "cpp",
-        "regex": "cpp"
+        "regex": "cpp",
+        "fstream": "cpp"
     },
     "C_Cpp.errorSquiggles": "Disabled"
 }

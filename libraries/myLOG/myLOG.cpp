@@ -124,11 +124,15 @@ void flashLOG::_del_lines(byte line_index)
             }
         }
 
-        file1.close();
-        file2.close();
-        SPIFFS.remove(_logfilename);
-        SPIFFS.rename(tfile, _logfilename);
+        // file1.close();
+        // file2.close();
+        // SPIFFS.remove(_logfilename);
+        // SPIFFS.rename(tfile, _logfilename);
     }
+    file1.close();
+    file2.close();
+    SPIFFS.remove(_logfilename);
+    SPIFFS.rename(tfile, _logfilename);
 }
 bool flashLOG::del_line(byte line_index)
 {
@@ -136,7 +140,7 @@ bool flashLOG::del_line(byte line_index)
     int row_counter = 0;
     char a[_log_length + 3];
     char *tfile = "/tempfile.txt";
-    bool line_deleted=false;
+    bool line_deleted = false;
 
     File file1 = SPIFFS.open(_logfilename, "r");
     File file2 = SPIFFS.open(tfile, "w");
@@ -167,12 +171,12 @@ bool flashLOG::del_line(byte line_index)
                     c = 0;
                 }
             }
-            else                           /* ignoring line to be delted */
+            else /* ignoring line to be delted */
             {
                 if (tt == _EOL)
                 {
                     row_counter++;
-                    line_deleted=true;
+                    line_deleted = true;
                 }
             }
         }
