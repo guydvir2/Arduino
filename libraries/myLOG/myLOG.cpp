@@ -4,7 +4,7 @@ flashLOG::flashLOG(char *filename)
 {
     _logfilename = filename;
 }
-bool flashLOG::start(int max_entries, int max_entry_len, bool delyedSave)
+bool flashLOG::start(int max_entries, int max_entry_len, bool delyedSave, bool debugmode)
 {
 #if isESP32
     bool a = SPIFFS.begin(true);
@@ -19,6 +19,7 @@ bool flashLOG::start(int max_entries, int max_entry_len, bool delyedSave)
     _logSize = max_entries;
     _logLength = max_entry_len;
     _useDelayedSave = delyedSave;
+    _useDebug = debugmode;
 
     return a;
 }
@@ -29,6 +30,7 @@ void flashLOG::looper(int savePeriod)
     if (timeCondition || overSize_Condition)
     {
         _write2file();
+        _printDebug("loop_save");
     }
 }
 void flashLOG::write(const char *message, bool NOW)
@@ -42,11 +44,13 @@ void flashLOG::write(const char *message, bool NOW)
     if (!_useDelayedSave || NOW == true)
     {
         _write2file();
+        _printDebug("immediate save");
     }
 }
 void flashLOG::writeNow()
 {
     _write2file();
+    _printDebug("writeNOW");
 }
 bool flashLOG::del_line(byte line_index)
 {
@@ -205,9 +209,6 @@ void flashLOG::rawPrintfile()
 void flashLOG::_write2file()
 {
     int num_lines = getnumlines();
-    Serial.print("file: ");
-    Serial.println(_logfilename);
-    Serial.flush();
     if (num_lines > 0 && num_lines + _buff_i > _logSize)
     {
         _del_lines(num_lines + _buff_i - _logSize);
@@ -228,7 +229,11 @@ void flashLOG::_write2file()
         _buff_i = 0;
         lastUpdate = 0;
     }
-    rawPrintfile();
+    _printDebug(" -Saved");
+    // if (_useDebug)
+    // {
+    //     rawPrintfile();
+    // }
     file1.close();
 }
 void flashLOG::_del_lines(byte line_index)
@@ -280,4 +285,13 @@ void flashLOG::_del_lines(byte line_index)
     file2.close();
     SPIFFS.remove(_logfilename);
     SPIFFS.rename(tfile, _logfilename);
+}
+void flashLOG::_printDebug(char *msg)
+{
+    if (_useDebug)
+    {
+        Serial.print(_logfilename);
+        Serial.print(": ");
+        Serial.println(msg);
+    }
 }
