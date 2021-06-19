@@ -24,7 +24,7 @@ unsigned long Scheduler::getMillis() const {
   return rtcTimeUs / 1000;
 }
 
-void Scheduler::isrWatchdogExpiredStatic() {
+void IRAM_ATTR Scheduler::isrWatchdogExpiredStatic() {
 #ifdef SUPERVISION_CALLBACK
   if (supervisionCallbackRunnable != NULL) {
     // No need to supervise this call as this interrupt has a time limit.
@@ -33,8 +33,8 @@ void Scheduler::isrWatchdogExpiredStatic() {
   }
 #endif
 
-  Serial.println(F("watchdog reboot"));
-  esp_restart();
+  ets_printf("Watchdog abort by DeepSleepScheduler\n");
+  ESP_ERROR_CHECK(ESP_ERR_TIMEOUT);
 }
 
 /**

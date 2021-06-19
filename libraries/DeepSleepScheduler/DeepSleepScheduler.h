@@ -21,16 +21,12 @@
   - #define LIBCALL_DEEP_SLEEP_SCHEDULER: This h file can only be included once within a project as it also contains the implementation.
     To use it in multiple files, define LIBCALL_DEEP_SLEEP_SCHEDULER before all include statements except one.
   All following options are to be set before the include where no LIBCALL_DEEP_SLEEP_SCHEDULER is defined.
-  - #define SLEEP_MODE: Specifies the sleep mode entered when doing deep sleep. Default is SLEEP_MODE_PWR_DOWN.
   - #define SLEEP_DELAY: Prevent the CPU from entering sleep for the specified amount of milli seconds after finishing the previous task.
   - #define SUPERVISION_CALLBACK: Allows to specify a callback Runnable to be called when a task runs too long. When
     the callback returns, the CPU is restarted after 15 ms by the watchdog. The callback method is called directly
     from the watchdog interrupt. This means that e.g. delay() does not work.
-  - #define SUPERVISION_CALLBACK_TIMEOUT: Specify the timeout of the callback until the watchdog resets the CPU. Defaults to WDTO_1S.
+  - #define SUPERVISION_CALLBACK_TIMEOUT: Specify the timeout of the callback on AVR until the watchdog resets the CPU. Defaults to WDTO_1S.
   - #define AWAKE_INDICATION_PIN: Show on a LED if the CPU is active or in sleep mode. HIGH = active, LOW = sleeping.
-  - #define SLEEP_TIME_XXX_CORRECTION: When the CPU wakes up from SLEEP_MODE_PWR_DOWN, it needs some cycles to get active. This is also dependent on
-    the used CPU type. Using the constants SLEEP_TIME_15MS_CORRECTION to SLEEP_TIME_8S_CORRECTION you can define more exact values for your
-    CPU. Please report values back to me if you do some measuring, thanks.
 */
 
 #ifndef DEEP_SLEEP_SCHEDULER_H
@@ -205,6 +201,12 @@ class Scheduler {
     void setTaskTimeout(TaskTimeout taskTimeout);
 
     /**
+       Resets the task watchdog. After this call returns, the currently running
+       Task can run up to the configured TaskTimeout set by setTaskTimeout().
+    */
+    void taskWdtReset();
+
+    /**
       return: The milliseconds since startup of the device where the sleep time was added.
               This value does not consider the time when the CPU is in infinite deep sleep
               while nothing is in the queue.
@@ -218,7 +220,10 @@ class Scheduler {
     /**
       Sets the runnable to be called when the task supervision detects a task that runs too long.
       The run() method will be called from the watchdog interrupt what means, that
-      e.g. the method delay() does not work. When run() returns, the CPU will be restarted after 15ms.
+      e.g. the method delay() does not work.
+      On AVR, when run() returns, the CPU will be restarted after 15ms.
+      On ESP32, the interrupt service routine as a whole has a time limit and calls
+      abort() when returning from this method.
       See description of SUPERVISION_CALLBACK and SUPERVISION_CALLBACK_TIMEOUT.
       @param runnable: instance of Runnable where the run() method is called
     */

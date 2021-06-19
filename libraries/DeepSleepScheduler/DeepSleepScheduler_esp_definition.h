@@ -19,7 +19,7 @@ public:
 /**
     Do not call this method, it is used by the watchdog interrupt.
 */
-static void isrWatchdogExpiredStatic();
+static void IRAM_ATTR isrWatchdogExpiredStatic();
 private:
 hw_timer_t *timer = NULL;
 #elif ESP8266
@@ -30,7 +30,6 @@ public:
 private:
 void taskWdtEnable(const uint8_t value);
 void taskWdtDisable();
-void taskWdtReset();
 inline unsigned long wdtTimeoutToDurationMs(const uint8_t value);
 void sleepIfRequired();
 inline void sleep(unsigned long durationMs, bool queueEmpty);

@@ -1,6 +1,4 @@
-# ESP8266Scheduler
-
-ESP8266 Co-operative Multitasking
+![Logo](http://svg.wiersma.co.za/github/project?lang=cpp&title=ESP8266Scheduler&tag=co-operative%20multitasking)
 
 # Quick Start
 
@@ -39,12 +37,12 @@ protected:
         state = HIGH;
 
         pinMode(2, OUTPUT);
-        pinMode(2, state);
+        digitalWrite(2, state);
     }
 
     void loop() {
         state = state == HIGH ? LOW : HIGH;
-        pinMode(2, state);
+        digitalWrite(2, state);
 
         delay(1000);
     }
@@ -55,6 +53,9 @@ private:
 ```
 
 **IMPORTANT: Tasks must be declared globally on the stack (not a pointer). Failure to do so will crash your device.**
+
+Tasks can run ```yield``` and ```delay``` like they normally would. These functions yield control to the scheduler
+rather than the ESP8266.
 
 ### Advanced Task Functions
 

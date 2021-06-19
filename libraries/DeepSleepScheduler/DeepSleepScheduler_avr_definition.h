@@ -12,6 +12,10 @@
 #define SUPERVISION_CALLBACK_TIMEOUT WDTO_1S
 #endif
 
+#ifndef MIN_WAIT_TIME_FOR_SLEEP
+#define MIN_WAIT_TIME_FOR_SLEEP SLEEP_TIME_1S
+#endif
+
 #ifndef SLEEP_TIME_15MS_CORRECTION
 #define SLEEP_TIME_15MS_CORRECTION 3
 #endif
@@ -78,7 +82,6 @@ unsigned long firstRegularlyScheduledUptimeAfterSleep;
 
 void taskWdtEnable(const uint8_t value);
 inline void taskWdtDisable();
-inline void taskWdtReset();
 inline void sleepIfRequired();
 bool isWakeupByOtherInterrupt();
 

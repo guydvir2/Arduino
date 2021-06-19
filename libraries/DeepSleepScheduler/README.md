@@ -14,13 +14,6 @@ DeepSleepScheduler is a lightweight, cooperative task scheduler library with con
   - ESP8266 (no sleep support)
 - Configurable sleep with `SLEEP_MODE_PWR_DOWN` or `SLEEP_MODE_IDLE` while no task is running (on AVR)
 
-## Migration from 2.xx to 3.0.0 ##
-The following methods/defines where renamed to add support for ESP32 and ESP8266.
-- `acquireNoDeepSleepLock()` => `acquireNoSleepLock()`
-- `releaseNoDeepSleepLock()` => `releaseNoSleepLock()`
-- `doesDeepSleep()` => `doesSleep()`
-- `#define DEEP_SLEEP_DELAY` => `#define SLEEP_DELAY`
-
 ## Installation ##
 - The library can be installed directly in the [Arduino Software (IDE)](https://www.arduino.cc/en/Main/Software) as follows:
   - Menu Sketch->Include Library->Manage Libraries...
@@ -219,6 +212,7 @@ void scheduleAtFrontOfQueue(Runnable *runnable);
   @param callback: callback to check
 */
 bool isScheduled(void (*callback)()) const;
+
 /**
   Check if this runnable is scheduled at least once already.
   This method can be called in an interrupt but bear in mind, that it loops through
@@ -272,6 +266,12 @@ bool doesSleep() const;
 void setTaskTimeout(TaskTimeout taskTimeout);
 
 /**
+   Resets the task watchdog. After this call returns, the currently running
+   Task can run up to the configured TaskTimeout set by setTaskTimeout().
+*/
+void taskWdtReset();
+
+/**
   return: The milliseconds since startup of the device where the sleep time was added.
           This value does not consider the time when the CPU is in infinite deep sleep
           while nothing is in the queue.
@@ -281,7 +281,10 @@ unsigned long getMillis() const;
 /**
   Sets the runnable to be called when the task supervision detects a task that runs too long.
   The run() method will be called from the watchdog interrupt what means, that
-  e.g. the method delay() does not work. When run() returns, the CPU will be restarted after 15ms.
+  e.g. the method delay() does not work.
+  On AVR, when run() returns, the CPU will be restarted after 15ms.
+  On ESP32, the interrupt service routine as a whole has a time limit and calls
+  abort() when returning from this method.
   See description of SUPERVISION_CALLBACK and SUPERVISION_CALLBACK_TIMEOUT.
   @param runnable: instance of Runnable where the run() method is called
 */
@@ -326,6 +329,7 @@ HIGH = active, LOW = sleeping
 
 #### AVR specific options ####
 - `#define SLEEP_MODE`: Specifies the sleep mode entered when doing deep sleep. Default is `SLEEP_MODE_PWR_DOWN`.
+- `#define MIN_WAIT_TIME_FOR_SLEEP`: Specify the minimum wait time (until the next task will be executed) to put the CPU in sleep mode. Default is 1 second.
 - `#define SLEEP_TIME_XXX_CORRECTION`: Adjust the sleep time correction for the time when the CPU is in `SLEEP_MODE_PWR_DOWN` and waking up. See [Implementation Notes](#implementation-notes) and example [AdjustSleepTimeCorrections](https://github.com/PRosenb/DeepSleepScheduler/blob/master/examples/AdjustSleepTimeCorrections/AdjustSleepTimeCorrections.ino).
 
 #### ESP32 specific options ###
