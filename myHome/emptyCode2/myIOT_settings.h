@@ -39,6 +39,7 @@ void startIOTservices()
     iot.debug_level = 0;
     iot.useNetworkReset = true;
     iot.noNetwork_reset = 2;
+    iot.useBootClockLog = true;
     strcpy(iot.deviceTopic, DEV_TOPIC);
     strcpy(iot.prefixTopic, PREFIX_TOPIC);
     strcpy(iot.addGroupTopic, GROUP_TOPIC);
@@ -55,6 +56,7 @@ void startIOTservices()
     iot.useNetworkReset = paramJSON["useNetworkReset"];
     iot.noNetwork_reset = paramJSON["noNetwork_reset"];
     iot.useextTopic = paramJSON["useextTopic"];
+    iot.useBootClockLog = true;
     strcpy(iot.deviceTopic, paramJSON["deviceTopic"]);
     strcpy(iot.prefixTopic, paramJSON["prefixTopic"]);
     strcpy(iot.addGroupTopic, paramJSON["groupTopic"]);
@@ -64,6 +66,6 @@ void startIOTservices()
     // sprintf(a, "%s/%s/%s/%s", iot.prefixTopic, iot.addGroupTopic, iot.deviceTopic, DEBUG_TOPIC);
     // strcpy(iot.extTopic, a);
 
-    // iot.start_services(addiotnalMQTT);
-    iot.start_services(addiotnalMQTT, "dvirz_iot", "GdSd13100301", MQTT_USER, MQTT_PASS, "192.168.2.100");
+    iot.start_services(addiotnalMQTT);
+    // iot.start_services(addiotnalMQTT, "dvirz_iot", "GdSd13100301", MQTT_USER, MQTT_PASS, "192.168.2.100");
 }

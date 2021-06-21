@@ -1,7 +1,7 @@
 #include "Arduino.h"
 #include "myOLDservices.h"
 
-#include <ESP8266Ping.h>
+// #include <ESP8266Ping.h>
 #include <myJSON.h>
 #include <TimeLib.h>
 

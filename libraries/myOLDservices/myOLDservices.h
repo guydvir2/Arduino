@@ -7,22 +7,22 @@
 #include <myLOG.h>
 #include <EEPROM.h>
 
-#include <ESP8266WiFi.h>
+// #include <ESP8266WiFi.h>
 
 #include <PubSubClient.h> //MQTT
-#include <Ticker.h>       //WDT
-#include <NtpClientLib.h>
+// #include <Ticker.h>       //WDT
+// #include <NtpClientLib.h>
 
 // OTA libraries
-#include <ESP8266mDNS.h>
-#include <WiFiUdp.h>
-#include <ArduinoOTA.h>
+// #include <ESP8266mDNS.h>
+// #include <WiFiUdp.h>
+// #include <ArduinoOTA.h>
 
 // Telegram libraries
 #include <UniversalTelegramBot.h>
 #include <WiFiClientSecure.h>
 
-#include <TimeLib.h>
+// #include <TimeLib.h>
 
 // define generic functiobs
 typedef void (*cb_func)(char msg1[50]);
