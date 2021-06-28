@@ -116,6 +116,31 @@ void myJSON::PrettyprintJSON(JsonDocument &_doc)
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 // ~~~ User Functions : JSON + file saving ~~~~~~~~~~~
+bool myJSON::replaceValue(const char *key, char *value)
+{
+        DynamicJsonDocument tempJDOC(DOC_SIZE);
+        readJSON_file(tempJDOC);
+        bool hasKey = tempJDOC.containsKey(key);
+        if (hasKey)
+        {
+                const char *val = tempJDOC[key];
+                Serial.print("found in:");
+                Serial.println(_filename);
+                // sprintf(value, "%s", val);
+                Serial.print("OLD: ");
+                Serial.println(val);
+                Serial.print("NEW: ");
+                Serial.println(value);
+                return 1;
+        }
+        else
+        {
+                Serial.print("not found in:");
+                Serial.println(_filename);
+                return 0; // when key is not present
+        }
+}
+
 void myJSON::retAllJSON(char value[])
 {
         char value2[500];

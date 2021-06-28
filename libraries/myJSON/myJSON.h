@@ -25,7 +25,7 @@ private:
     char _filename[30];
 
 public:
-    const char *ver = "myJSON_v1.92";
+    const char *ver = "myJSON_v1.95";
     int DOC_SIZE;
     myJSON(char *filename="/jfile.json", bool useserial = false, int doc_size = _def_dsize);
     void start();
@@ -37,6 +37,7 @@ public:
     bool FS_ok();
 
     void retAllJSON(char value[]);
+    bool replaceValue(const char *key, char *value);
 
     bool getValue(const char *key, char *value);
     bool getValue(const char *key, int &retval);
