@@ -14,7 +14,10 @@ bool flashLOG::start(int max_entries, int max_entry_len, bool delyedSave, bool d
 
     if (!a)
     {
-        Serial.println("SPIFFS mount failed");
+        if (_useDebug)
+        {
+            Serial.println("SPIFFS mount failed");
+        }
     }
     _logSize = max_entries;
     _logLength = max_entry_len;
@@ -65,7 +68,10 @@ bool flashLOG::del_line(byte line_index)
 
     if (!file1 && !file2)
     {
-        Serial.println("Failed to open file for appending");
+        if (_useDebug)
+        {
+            Serial.println("Failed to open file for appending");
+        }
     }
     else
     {
@@ -122,7 +128,10 @@ bool flashLOG::readline(int r, char retLog[])
     File file = SPIFFS.open(_logfilename, "r");
     if (!file)
     {
-        Serial.println("Failed to open file for reading");
+        if (_useDebug)
+        {
+            Serial.println("Failed to open file for reading");
+        }
         return 0;
     }
     while (file.available())
@@ -182,7 +191,10 @@ void flashLOG::rawPrintfile()
     File file = SPIFFS.open(_logfilename, "r");
     if (!file)
     {
-        Serial.println("Failed to open file for reading");
+        if (_useDebug)
+        {
+            Serial.println("Failed to open file for reading");
+        }
     }
     while (file.available())
     {
@@ -217,7 +229,10 @@ void flashLOG::_write2file()
     File file1 = SPIFFS.open(_logfilename, "a");
     if (!file1)
     {
-        Serial.println("Failed to open file for appending");
+        if (_useDebug)
+        {
+            Serial.println("Failed to open file for appending");
+        }
     }
     else
     {
@@ -248,7 +263,10 @@ void flashLOG::_del_lines(byte line_index)
 
     if (!file1 && !file2)
     {
-        Serial.println("Failed to open file for appending");
+        if (_useDebug)
+        {
+            Serial.println("Failed to open file for appending");
+        }
     }
     else
     {

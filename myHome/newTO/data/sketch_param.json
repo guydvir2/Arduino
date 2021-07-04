@@ -1,4 +1,15 @@
 {
-    "paramA":"AAA",
-    "paramB":1234
+    "useInput": true,
+    "trigType": 0,
+    "def_TO_minutes": 120,
+    "maxON_minutes": 720,
+    "inputPressed": true,
+    "inputPin": 5,
+    "outputPin": 4,
+    "output_ON": true,
+    "PWM_res":1023,
+    "totPWMsteps": 3,
+    "defPWM": 2,
+    "limitPWM":80,
+    "OnatBoot": false
 }

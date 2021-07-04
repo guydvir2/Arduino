@@ -1,14 +1,17 @@
 {
-    "useSerial": true,
+    "useSerial": false,
     "useWDT": true,
     "useOTA": true,
     "useResetKeeper": true,
     "useFailNTP": true,
+    "debug_level": 0,
     "useDebugLog": true,
-    "useNetworkReset":true,
-    "deviceTopic": "test",
-    "groupTopic": "timeout",
+    "useBootClockLog": true,
+    "useNetworkReset": true,
+    "noNetwork_reset": 30,
+    "useextTopic": false,
+    "deviceTopic": "KitchenLEDs",
+    "groupTopic": "intLights",
     "prefixTopic": "myHome",
-    "debug_level":0,
-    "noNetwork_reset":7
+    "v_Pfile": 0.1
 }

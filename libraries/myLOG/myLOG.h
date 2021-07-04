@@ -32,7 +32,7 @@ private:
     const char _EOL = '\r';
 
 public:
-    char *VeR = "flashLOG v0.9";
+    char *VeR = "flashLOG v0.91";
     unsigned long lastUpdate = 0;
 
 private:

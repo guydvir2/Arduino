@@ -3,11 +3,12 @@
 
 myIOT2 iot;
 
-#define DEV_TOPIC "empty"
-#define GROUP_TOPIC "none"
+#define DEV_TOPIC "test"
+#define GROUP_TOPIC "intLights"
 #define PREFIX_TOPIC "myHome"
 
 extern timeOUTSwitch timeoutSW_0;
+extern void simplifyClock(char *days, char *clk, char retVal[25]);
 
 void addiotnalMQTT(char *incoming_msg)
 {
@@ -15,9 +16,45 @@ void addiotnalMQTT(char *incoming_msg)
     char msg2[20];
     if (strcmp(incoming_msg, "status") == 0)
     {
-        bool Q = digitalRead(OUTPUT_PIN);
-        sprintf(msg, "OUTPUT IS: %d", Q);
+        bool Q = digitalRead(outputPin);
+        // int a = (int)((millis() - timeoutSW_0.TO_start_millis) / 1000);
+        char s1[15];
+        char s2[7];
+        char clk[25];
+        if (timeoutSW_0.remTime() > 0)
+        {
+            iot.convert_epoch2clock(timeoutSW_0.remTime(), 0, s1, s2);
+            simplifyClock(s2, s1, clk);
+        }
+        else
+        {
+            sprintf(clk, "None");
+        }
+        if (timeoutSW_0.trigType != 3)
+        {
+            sprintf(msg, "Status: [%s] remain[%s]", Q == output_ON ? "ON" : "OFF", clk);
+        }
+        else
+        {
+            sprintf(msg, "Status: [%s] Power[%d%%] remain[%s]", timeoutSW_0.pwm_pCount > 0 ? "ON" : "OFF",
+                    (int)(timeoutSW_0.pwm_pCount * 100 / timeoutSW_0.totPWMsteps), clk);
+        }
         iot.pub_msg(msg);
+    }
+    else if (strcmp(incoming_msg, "show_flash_param") == 0)
+    {
+        char temp[300];
+        char temp3[350];
+        char *a[] = {iot.myIOT_paramfile, sketch_paramfile};
+        iot.pub_debug("~~~Start~~~");
+        for (int e = 0; e < sizeof(a) / sizeof(a[0]); e++)
+        {
+            strcpy(temp, iot.export_fPars(a[e], paramJSON));
+            sprintf(temp3, "%s: %s", a[e], temp);
+            iot.pub_debug(temp3);
+            paramJSON.clear();
+        }
+        iot.pub_debug("~~~End~~~");
     }
     else if (strcmp(incoming_msg, "ver2") == 0)
     {
@@ -26,7 +63,7 @@ void addiotnalMQTT(char *incoming_msg)
     }
     else if (strcmp(incoming_msg, "help2") == 0)
     {
-        sprintf(msg, "Help2: Commands #2 - [on, off,{timeout,_sec}]");
+        sprintf(msg, "Help2: Commands #2 - [on, off,{timeout,_sec}],show_flash_param");
         iot.pub_msg(msg);
     }
     else if (strcmp(incoming_msg, "on") == 0)
@@ -35,23 +72,14 @@ void addiotnalMQTT(char *incoming_msg)
     }
     else if (strcmp(incoming_msg, "off") == 0)
     {
-        int t = timeoutSW_0.remTime();
         timeoutSW_0.finish_TO("MQTT");
     }
-    // else if (strcmp(incoming_msg, "switch") == 0)
-    // {
-    //     digitalWrite(INPUT_PIN, !digitalRead(INPUT_PIN));
-    //     sprintf(msg, "INPUT IS: %d", digitalRead(INPUT_PIN));
-    //     iot.pub_msg(msg);
-    // }
-    // else if (strcmp(incoming_msg, "press") == 0)
-    // {
-    //     digitalWrite(INPUT_PIN, LOW);
-    //     delay(100);
-    //     digitalWrite(INPUT_PIN, HIGH);
-    //     sprintf(msg, "PRESS ON & OFF");
-    //     iot.pub_msg(msg);
-    // }
+    else if (strcmp(incoming_msg, "remain") == 0)
+    {
+        int t = timeoutSW_0.remTime();
+        sprintf(msg, "Remain: [%d]", t);
+        iot.pub_msg(msg);
+    }
     else
     {
         int num_parameters = iot.inline_read(incoming_msg);
@@ -59,31 +87,21 @@ void addiotnalMQTT(char *incoming_msg)
         {
             if (strcmp(iot.inline_param[0], "timeout") == 0)
             {
-                timeoutSW_0.start_TO(atoi(iot.inline_param[1]), "MQTT");
+                if (timeoutSW_0.trigType != 3)
+                {
+                    timeoutSW_0.start_TO(atoi(iot.inline_param[1]), "MQTT");
+                }
+                else
+                {
+                    timeoutSW_0.pwm_pCount = atoi(iot.inline_param[2]);
+                    timeoutSW_0.start_TO(atoi(iot.inline_param[1]), "MQTT");
+                }
             }
         }
     }
 }
 void startIOTservices()
 {
-#if USE_SIMPLE_IOT == 1
-    iot.useSerial = true;
-    iot.useWDT = true;
-    iot.useOTA = true;
-    iot.useResetKeeper = false;
-    iot.useextTopic = false;
-    iot.resetFailNTP = true;
-    iot.useDebug = false;
-    iot.debug_level = 0;
-    iot.useNetworkReset = true;
-    iot.noNetwork_reset = 2;
-    iot.useBootClockLog = true;
-    strcpy(iot.deviceTopic, DEV_TOPIC);
-    strcpy(iot.prefixTopic, PREFIX_TOPIC);
-    strcpy(iot.addGroupTopic, GROUP_TOPIC);
-
-#elif USE_SIMPLE_IOT == 0
-
     iot.useSerial = paramJSON["useSerial"];
     iot.useWDT = paramJSON["useWDT"];
     iot.useOTA = paramJSON["useOTA"];
@@ -94,16 +112,9 @@ void startIOTservices()
     iot.useNetworkReset = paramJSON["useNetworkReset"];
     iot.noNetwork_reset = paramJSON["noNetwork_reset"];
     iot.useextTopic = paramJSON["useextTopic"];
-    iot.useBootClockLog = true;
+    iot.useBootClockLog = paramJSON["useBootClockLog"];
     strcpy(iot.deviceTopic, paramJSON["deviceTopic"]);
     strcpy(iot.prefixTopic, paramJSON["prefixTopic"]);
     strcpy(iot.addGroupTopic, paramJSON["groupTopic"]);
-#endif
-
-    // char a[50];
-    // sprintf(a, "%s/%s/%s/%s", iot.prefixTopic, iot.addGroupTopic, iot.deviceTopic, DEBUG_TOPIC);
-    // strcpy(iot.extTopic, a);
-
     iot.start_services(addiotnalMQTT);
-    // iot.start_services(addiotnalMQTT, "dvirz_iot", "GdSd13100301", MQTT_USER, MQTT_PASS, "192.168.2.100");
 }

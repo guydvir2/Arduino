@@ -2,8 +2,8 @@
 #include <ArduinoJson.h>
 #include <myJSON.h>
 
-#define JSON_SIZE_IOT 400
-#define JSON_SIZE_SKETCH 200
+#define JSON_SIZE_IOT 500
+#define JSON_SIZE_SKETCH 500
 
 char *sketch_paramfile = "/sketch_param.json";
 bool readfile_ok = false;
@@ -11,14 +11,24 @@ bool readfile_ok = false;
 StaticJsonDocument<JSON_SIZE_SKETCH> sketchJSON;
 StaticJsonDocument<JSON_SIZE_IOT> paramJSON;
 
-char paramA[20];
-int paramB = 0;
 extern myIOT2 iot;
 
 void update_vars(JsonDocument &DOC)
 {
-  strcpy(paramA, DOC["paramA"]);
-  paramB = DOC["paramB"];
+  timeoutSW_0.useInput = DOC["useInput"];
+  inputPressed = DOC["inputPressed"];
+  timeoutSW_0.maxON_minutes = DOC["maxON_minutes"];
+  timeoutSW_0.def_TO_minutes = DOC["def_TO_minutes"];
+  timeoutSW_0.trigType = DOC["trigType"];
+  timeoutSW_0.totPWMsteps = DOC["totPWMsteps"];
+
+  output_ON = DOC["output_ON"];
+  OnatBoot = DOC["OnatBoot"];
+  inputPin = DOC["inputPin"];
+  outputPin = DOC["outputPin"];
+  defPWM = DOC["defPWM"];
+  limitPWM = DOC["limitPWM"];
+  PWM_res = DOC["PWM_res"];
 }
 void startRead_parameters()
 {
@@ -26,11 +36,16 @@ void startRead_parameters()
                         \"useFailNTP\" : true,\"useDebugLog\" : true,\"useNetworkReset\":true, \"deviceTopic\" : \"devTopic\",\
                         \"groupTopic\" : \"group\",\"prefixTopic\" : \"myHome\",\"debug_level\":0,\"noNetwork_reset\":1}";
 
-  String sketch_defs = "{\"paramA\":\"BBB\",\"paramB\":5555}";
+  String sketch_defs = "{\"useInput\":\"true\",\"trigType\":3, \"def_TO_minutes\":120,\"maxON_minutes\":720,\"inputPressed\":\"true\",\
+                        \"inputPin\":5, \"outputPin\":4,\"output_ON\":\"true\",\"PWM_res\":1023,\"totPWMsteps\":3, \"defPWM\":2,\
+                        \"limitPWM\":80,\"OnatBoot\":\"true\"}";
 
   bool a = iot.read_fPars(sketch_paramfile, sketch_defs, sketchJSON);
   bool b = iot.read_fPars(iot.myIOT_paramfile, myIOT_defs, paramJSON);
   readfile_ok = a && b;
+  // serializeJsonPretty(sketchJSON, Serial);
+  // serializeJsonPretty(paramJSON, Serial);
+  // Serial.flush();
 
 #if USE_SIMPLE_IOT == 0
   update_vars(sketchJSON);

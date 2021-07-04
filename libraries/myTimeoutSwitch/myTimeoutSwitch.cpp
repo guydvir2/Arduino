@@ -1,9 +1,10 @@
 #include "Arduino.h"
 #include "myTimeoutSwitch.h"
 
-timeOUTSwitch::timeOUTSwitch(bool saveCLK) : CLKstore("ClkStore.json", true)
+timeOUTSwitch::timeOUTSwitch(bool saveCLK) : CLKstore("ClkStore.json")
 {
     _useSavedCLK = saveCLK;
+    _counter++;
 }
 void timeOUTSwitch::def_funcs(func_cb startF, func_cb endF)
 {
@@ -18,39 +19,25 @@ void timeOUTSwitch::def_funcs(func_cb startF, func_cb endF)
 }
 void timeOUTSwitch::start_TO(int _TO, char *src)
 {
-    TO_duration_sec = _TO;
+    TO_duration_minutes = _TO;
     TO_start_millis = millis();
-    if (inTO == false)
+    if (inTO == false || trigType == 3)
     {
         _startf(src);
     }
-    else{
-        Serial.println("timeupdate");
-    }
     inTO = true;
-    _updateEndClk(TO_duration_sec, now());
+    _updateEndClk(TO_duration_minutes, now());
 }
 void timeOUTSwitch::finish_TO(char *src)
 {
     _endf(src); /*calling first to get remTime correct on MQTT msg */
     clearTO();
 }
-void timeOUTSwitch::restart_TO(int _TO)
-{
-    // if (_TO == 0)
-    // {
-    //     start_TO(TO_duration_sec, "Restart");
-    // }
-    // else
-    // {
-    //     start_TO(_TO, "zcz");
-    // }
-}
 void timeOUTSwitch::startIO(int _in_IO, bool _instate)
 {
     _IN_io = _in_IO;
     _inputstatOn = _instate;
-    useInput = true;
+    // useInput = true;
 
     if (_inputstatOn == LOW)
     {
@@ -93,7 +80,7 @@ void timeOUTSwitch::_TOlooper()
 {
     if (TO_start_millis != 0)
     {
-        if (millis() - TO_start_millis > +TO_duration_sec * 1000UL || millis() - TO_start_millis > maxON_minutes * 1000UL)
+        if (millis() - TO_start_millis > TO_duration_minutes * 60000UL || millis() - TO_start_millis > maxON_minutes * 60000UL)
         {
             finish_TO("timeOut");
         }
@@ -135,6 +122,25 @@ void timeOUTSwitch::_input_looper()
             {
                 start_TO(def_TO_minutes, "Sensor");
             }
+            else if (trigType == 3 && currentRead_0 == _inputstatOn) /* Case of sensor that each detection resets its timeout */
+            {
+                bool cond_a = (pwm_pCount == 0) || (pwm_pCount < totPWMsteps && millis() - _lastPress < 3000); /* inc light */
+                bool cond_b = (pwm_pCount >= totPWMsteps) || (millis() - _lastPress > 3000);                   /* shut down */
+                if (cond_a)
+                {
+                    pwm_pCount++;
+                    start_TO(def_TO_minutes, "Button");
+                    _lastPress = millis();
+                }
+                else if (cond_b)
+                {
+                    _lastPress = 0;
+                    pwm_pCount = 0;
+                    finish_TO("Button");
+                }
+            }
+            // Serial.print("PWM_LEVEL: ");
+            // Serial.println(pwm_pCount);
             _lastinput = currentRead_0;
         }
     }
@@ -145,7 +151,7 @@ void timeOUTSwitch::_updateEndClk(int TO_dur_minutes, unsigned long TO_start_clk
     {
         TO_start_clk = now();
     }
-    TO_endclk = TO_start_clk + TO_dur_minutes;
+    TO_endclk = TO_start_clk + TO_dur_minutes * 60;
     if (_useSavedCLK)
     {
         CLKstore.setValue(_keyJSON, (long)TO_endclk);
@@ -158,6 +164,7 @@ void timeOUTSwitch::_chk_rem_after_boot()
 
     if (bb > 0 && bb - now() > 0)
     {
-        start_TO(bb - now(), "Resume");
+        start_TO((int)((bb - now()) / 60), "Resume");
     }
 }
+byte timeOUTSwitch::_counter = 0;

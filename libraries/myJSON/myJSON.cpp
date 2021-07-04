@@ -93,6 +93,7 @@ bool myJSON::readJSON_file(JsonDocument &_doc)
         if (error)
         {
                 Serial.println(F("Failed to read JSON file"));
+                Serial.println(_filename);
                 Serial.println(error.c_str());
                 readFile.close();
                 return 0;
