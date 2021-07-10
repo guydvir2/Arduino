@@ -2,17 +2,30 @@
 #include <Arduino.h>
 #include <myTimeoutSwitch.h>
 
-timeOUTSwitch timeoutSW_0;
+myIOT2 iot;
+
+timeOUTSwitch *TOsw[2] = {};
 
 /* Values get uodated from parameter files */
-bool inputPressed = LOW;
-bool output_ON = HIGH;
-bool OnatBoot = true;
-byte inputPin = 1;
-byte outputPin = 2;
-byte defPWM = 2;
-byte limitPWM = 80;
+// char *name_0 = "SW_A";
+// char *name_1 = "SW_B";
 int PWM_res = 1023;
+bool inputPressed[] = {LOW, LOW};
+bool output_ON[] = {HIGH, HIGH};
+bool OnatBoot[] = {true, true};
+byte numSW = 2;
+byte inputPin[] = {5, 2};
+byte outputPin[] = {4, 0};
+byte defPWM[] = {2, 2};
+byte limitPWM[] = {80, 80};
+char sw_names[2][10]; // = {name_0, name_1};
+
+// bool useInput[] = {true, true};
+// byte totPWMsteps[] = {3, 3};
+// byte trigType[] = {0, 0};
+// int def_TO_minutes[] = {1, 1};
+// int maxON_minutes[] = {720, 600};
+
 /* End */
 
 #include "myTO_param.h"
@@ -20,14 +33,17 @@ int PWM_res = 1023;
 
 void startIO()
 {
-        pinMode(outputPin, OUTPUT);
-        digitalWrite(outputPin, !output_ON);
-}
-bool get_SWstate()
-{
-        if (timeoutSW_0.trigType != 3)
+        for (int x = 0; x < numSW; x++)
         {
-                if (digitalRead(outputPin) == output_ON)
+                pinMode(outputPin[x], OUTPUT);
+                digitalWrite(outputPin[x], !output_ON);
+        }
+}
+bool get_SWstate(byte i = 0)
+{
+        if (TOsw[i]->trigType != 3)
+        {
+                if (digitalRead(outputPin[i]) == output_ON[i])
                 {
                         return 1;
                 }
@@ -38,7 +54,7 @@ bool get_SWstate()
         }
         else /* PWM */
         {
-                if (timeoutSW_0.pwm_pCount > 0)
+                if (TOsw[i]->pwm_pCount > 0)
                 {
                         return 1;
                 }
@@ -48,17 +64,17 @@ bool get_SWstate()
                 }
         }
 }
-bool switchIt(bool state)
+bool switchIt(bool state, byte i)
 {
-        if (state != get_SWstate())
+        if (state != get_SWstate(i))
         {
                 if (state == HIGH)
                 {
-                        digitalWrite(outputPin, output_ON);
+                        digitalWrite(outputPin[i], output_ON[i]);
                 }
                 else
                 {
-                        digitalWrite(outputPin, !output_ON);
+                        digitalWrite(outputPin[i], !output_ON[i]);
                 }
                 return 1;
         }
@@ -78,64 +94,62 @@ void simplifyClock(char *days, char *clk, char retVal[25])
                 sprintf(retVal, "%s", clk);
         }
 }
-int convDim(byte dim_step)
+int convDim(byte dim_step, byte i)
 {
-        return (int)((dim_step * PWM_res * limitPWM) / (timeoutSW_0.totPWMsteps * 100));
+        return (int)((dim_step * PWM_res * limitPWM[i]) / (TOsw[i]->totPWMsteps * 100));
 }
-void PWMdim(int dim_step)
+void PWMdim(int dim_step, byte i)
 {
-        byte sign = 2;
         byte delay_step = 2;
-        byte C_val = 1;
+        int C_val = 1;
         int desiredval = 0;
-        static int _last_dimVal = 0;
-        
-        desiredval = convDim(dim_step);
+        static int _last_dimVal[] = {0, 0};
+        desiredval = convDim(dim_step, i);
 
-        if (desiredval < _last_dimVal)
+        if (desiredval < _last_dimVal[i])
         {
                 C_val = -1 * C_val;
         }
-        while (abs(desiredval - _last_dimVal) >= 1)
+        while (abs(desiredval - _last_dimVal[i]) >= 1)
         {
-                _last_dimVal = _last_dimVal + C_val;
-                analogWrite(outputPin, _last_dimVal);
+                _last_dimVal[i] = _last_dimVal[i] + C_val;
+                analogWrite(outputPin[i], _last_dimVal[i]);
                 delay(delay_step);
         }
 }
-void switchON_cb(char msg1[50])
+void switchON_cb(char msg1[50], byte i)
 {
         char msg[100];
         char s1[25];
         char s2[7];
         char clk[25];
 
-        if (timeoutSW_0.trigType != 3)
+        if (TOsw[i]->trigType != 3)
         {
-                if (get_SWstate() == 0)
+                if (get_SWstate(i) == 0)
                 {
-                        iot.convert_epoch2clock(timeoutSW_0.TO_duration_minutes * 60, 0, s1, s2);
+                        iot.convert_epoch2clock(TOsw[i]->TO_duration_minutes * 60, 0, s1, s2);
                         simplifyClock(s2, s1, clk);
-                        switchIt(HIGH);
-                        sprintf(msg, "%s: Switched [ON] for [%s]", msg1, clk);
+                        switchIt(HIGH, i);
+                        sprintf(msg, "%s: [%s] Switched [ON] for [%s]", msg1, sw_names[i], clk);
                         iot.pub_msg(msg);
                 }
         }
         else
         {
-                if (timeoutSW_0.pwm_pCount == 0)
+                if (TOsw[i]->pwm_pCount == 0)
                 {
-                        timeoutSW_0.pwm_pCount = 1;
+                        TOsw[i]->pwm_pCount = 1;
                 }
-                PWMdim(timeoutSW_0.pwm_pCount);
+                PWMdim(TOsw[i]->pwm_pCount, i);
 
-                iot.convert_epoch2clock(timeoutSW_0.TO_duration_minutes * 60, 0, s1, s2);
+                iot.convert_epoch2clock(TOsw[i]->TO_duration_minutes * 60, 0, s1, s2);
                 simplifyClock(s2, s1, clk);
-                sprintf(msg, "%s: Switched [ON] Power[%d%%] for [%s]", msg1, (int)(100 * timeoutSW_0.pwm_pCount / timeoutSW_0.totPWMsteps), clk);
+                sprintf(msg, "%s: [%s] Switched [ON] Power[%d%%] for [%s]", msg1, sw_names[i], (int)(100 * TOsw[i]->pwm_pCount / TOsw[i]->totPWMsteps), clk);
                 iot.pub_msg(msg);
         }
 }
-void switchOFF_cb(char msg1[50])
+void switchOFF_cb(char msg1[50], byte i)
 {
         char msg[100];
         char s1[15];
@@ -143,56 +157,86 @@ void switchOFF_cb(char msg1[50])
         char clk[25];
         char clk2[25];
 
-        if (get_SWstate() == 1)
+        if (get_SWstate(i) == 1)
         {
-                if (timeoutSW_0.trigType != 3)
+                if (TOsw[i]->trigType != 3)
                 {
-                        switchIt(LOW);
+                        Serial.println("A");
+                        switchIt(LOW, i);
                 }
                 else
                 {
-                        PWMdim(0);
+                        Serial.println("B");
+                        PWMdim(0, i);
+                        Serial.println("C");
                 }
-                int a = (int)((millis() - timeoutSW_0.TO_start_millis) / 1000);
-                if (timeoutSW_0.remTime() > 0)
-                {
-                        iot.convert_epoch2clock(a, 0, s1, s2);
-                        simplifyClock(s2, s1, clk);
-                        iot.convert_epoch2clock(timeoutSW_0.remTime(), 0, s1, s2);
-                        simplifyClock(s2, s1, clk2);
-                        sprintf(msg, "%s: Switched [OFF] after [%s], remained [%s]", msg1, clk, clk2);
-                }
-                else
-                {
-                        iot.convert_epoch2clock(a, 0, s1, s2);
-                        simplifyClock(s2, s1, clk);
-                        sprintf(msg, "%s: Switched [OFF] ended after [%s]", msg1, clk);
-                }
+                // int a = (int)((millis() - TOsw[i]->TO_start_millis) / 1000);
+                // if (TOsw[i]->remTime() > 0)
+                // {
+                //         iot.convert_epoch2clock(a, 0, s1, s2);
+                //         simplifyClock(s2, s1, clk);
+                //         iot.convert_epoch2clock(TOsw[i]->remTime(), 0, s1, s2);
+                //         simplifyClock(s2, s1, clk2);
+                //         sprintf(msg, "%s: [%s] Switched [OFF] after [%s], remained [%s]", msg1, sw_names[i], clk, clk2);
+                // }
+                // else
+                // {
+                //         iot.convert_epoch2clock(a, 0, s1, s2);
+                //         simplifyClock(s2, s1, clk);
+                //         sprintf(msg, "%s: [%s] Switched [OFF] ended after [%s]", msg1, sw_names[i], clk);
+                // }
         }
-        iot.pub_msg(msg);
+        // iot.pub_msg(msg);
+}
+void init_timeOUT()
+{
+        static timeOUTSwitch timeoutSW_0;
+        TOsw[0] = &timeoutSW_0;
+        TOsw[0]->icount = 0;
+        if (numSW == 2)
+        {
+                static timeOUTSwitch timeoutSW_1;
+                TOsw[1] = &timeoutSW_1;
+                TOsw[1]->icount = 1;
+        }
 }
 void start_timeOUT()
 {
-        timeoutSW_0.startIO(inputPin, inputPressed);
-        timeoutSW_0.def_funcs(switchON_cb, switchOFF_cb);
+        for (int i = 0; i < numSW; i++)
+        {
+                // TOsw[i]->useInput = useInput[i];
+                // TOsw[i]->maxON_minutes = maxON_minutes[i];
+                // TOsw[i]->def_TO_minutes = def_TO_minutes[i];
+                // TOsw[i]->trigType = trigType[i];
+                // TOsw[i]->totPWMsteps = totPWMsteps[i];
+                // strcpy(sw_names[i], DOC["sw_names"][i].as<const char *>());
+
+                TOsw[i]->startIO(inputPin[i], inputPressed[i]);
+                TOsw[i]->def_funcs(switchON_cb, switchOFF_cb);
+                if (OnatBoot[i])
+                {
+                        TOsw[i]->start_TO(TOsw[i]->def_TO_minutes, "Boot-On");
+                }
+                Serial.print("Start Switch #");
+                Serial.println(i);
+        }
 }
 
 void setup()
 {
+        init_timeOUT();
         startRead_parameters();
         startIOTservices();
-        endRead_parameters();
         startIO();
         start_timeOUT();
-
-        if (OnatBoot)
-        {
-                timeoutSW_0.start_TO(timeoutSW_0.def_TO_minutes, "BootOn");
-        }
+        endRead_parameters();
 }
 void loop()
 {
         iot.looper();
-        timeoutSW_0.looper();
+        for (int i = 0; i < numSW; i++)
+        {
+                TOsw[i]->looper();
+        }
         delay(100);
 }

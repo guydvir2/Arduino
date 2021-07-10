@@ -4,7 +4,7 @@
 timeOUTSwitch::timeOUTSwitch(bool saveCLK) : CLKstore("ClkStore.json")
 {
     _useSavedCLK = saveCLK;
-    _counter++;
+    // _counter++;
 }
 void timeOUTSwitch::def_funcs(func_cb startF, func_cb endF)
 {
@@ -13,7 +13,9 @@ void timeOUTSwitch::def_funcs(func_cb startF, func_cb endF)
 
     if (_useSavedCLK)
     {
+        sprintf(_keyJSON, "end_clk_%d", icount);
         CLKstore.start();
+        // CLKstore.printFile();
         _chk_rem_after_boot();
     }
 }
@@ -23,14 +25,14 @@ void timeOUTSwitch::start_TO(int _TO, char *src)
     TO_start_millis = millis();
     if (inTO == false || trigType == 3)
     {
-        _startf(src);
+        _startf(src, icount);
     }
     inTO = true;
     _updateEndClk(TO_duration_minutes, now());
 }
 void timeOUTSwitch::finish_TO(char *src)
 {
-    _endf(src); /*calling first to get remTime correct on MQTT msg */
+    _endf(src, icount); /*calling first to get remTime correct on MQTT msg */
     clearTO();
 }
 void timeOUTSwitch::startIO(int _in_IO, bool _instate)
@@ -160,11 +162,17 @@ void timeOUTSwitch::_updateEndClk(int TO_dur_minutes, unsigned long TO_start_clk
 void timeOUTSwitch::_chk_rem_after_boot()
 {
     long bb = 0;
-    CLKstore.getValue(_keyJSON, bb);
-
-    if (bb > 0 && bb - now() > 0)
+    bool record = CLKstore.getValue(_keyJSON, bb);
+    if (record)
     {
-        start_TO((int)((bb - now()) / 60), "Resume");
+        if (bb > 0 && bb - now() > 0)
+        {
+            start_TO((int)((bb - now()) / 60), "Resume");
+        }
+    }
+    else
+    {
+        CLKstore.setValue(_keyJSON, 0);
     }
 }
-byte timeOUTSwitch::_counter = 0;
+// byte timeOUTSwitch::_counter = 0;

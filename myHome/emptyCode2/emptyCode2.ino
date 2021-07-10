@@ -3,7 +3,7 @@
 #include <FS.h>
 #include <LittleFS.h>
 
-#define USE_SIMPLE_IOT 0 // Not Using FlashParameters
+#define USE_SIMPLE_IOT 1 // Not Using FlashParameters
 
 #if USE_SIMPLE_IOT == 0
 #include "empty_param.h"

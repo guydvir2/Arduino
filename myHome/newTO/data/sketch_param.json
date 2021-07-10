@@ -1,15 +1,57 @@
 {
-    "useInput": true,
-    "trigType": 0,
-    "def_TO_minutes": 120,
-    "maxON_minutes": 720,
-    "inputPressed": true,
-    "inputPin": 5,
-    "outputPin": 4,
-    "output_ON": true,
-    "PWM_res":1023,
-    "totPWMsteps": 3,
-    "defPWM": 2,
-    "limitPWM":80,
-    "OnatBoot": false
+    "numSW": 1,
+    "PWM_res": 1023,
+    "useInput": [
+        true,
+        true
+    ],
+    "trigType": [
+        3,
+        0
+    ],
+    "def_TO_minutes": [
+        1,
+        2
+    ],
+    "maxON_minutes": [
+        720,
+        600
+    ],
+    "inputPressed": [
+        false,
+        false
+    ],
+    "inputPin": [
+        5,
+        2
+    ],
+    "outputPin": [
+        4,
+        0
+    ],
+    "output_ON": [
+        true,
+        true
+    ],
+    "totPWMsteps": [
+        3,
+        3
+    ],
+    "defPWM": [
+        2,
+        2
+    ],
+    "limitPWM": [
+        80,
+        80
+    ],
+    "OnatBoot": [
+        true,
+        true
+    ],
+    "sw_names": [
+        "SW_AA",
+        "SW_BB"
+    ],
+    "v_file": 0.2
 }

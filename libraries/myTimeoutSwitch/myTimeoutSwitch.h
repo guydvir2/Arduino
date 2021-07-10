@@ -5,12 +5,12 @@
 #include <TimeLib.h>
 #include <myJSON.h>
 
-typedef void (*func_cb)(char msg1[50]);
+typedef void (*func_cb)(char msg1[50], byte i);
 
 class timeOUTSwitch
 {
 public:
-    const char *VER = "TOsw_v0.2";
+    const char *VER = "TOsw_v0.3";
     bool useInput = false;
     bool inTO = false;
     byte trigType = 0; /* 0: button/ momentary; 1:switch; 2: trigger; 3: step power ( example PWM )*/
@@ -22,6 +22,7 @@ public:
     unsigned long TO_endclk = 0;
     byte totPWMsteps = 3;
     byte pwm_pCount = 0;
+    byte icount = 0;
 
     timeOUTSwitch(bool saveCLK = true);
     void def_funcs(func_cb startF, func_cb endF);
@@ -35,16 +36,16 @@ public:
     myJSON CLKstore;
 
 private:
-    int _IN_io = 1;
+    byte _IN_io = 1;
+    // static byte _counter;
     bool _inputstatOn = HIGH;
     bool _lastinput = !_inputstatOn;
     bool _useSavedCLK = false;
-    
+
     unsigned long _lastPress = 0;
     func_cb _startf;
     func_cb _endf;
-    const char *_keyJSON = "end_clk";
-    static byte _counter;
+    char *_keyJSON = "end_clk_XXX";
 
     void _TOlooper();
     void _input_looper();

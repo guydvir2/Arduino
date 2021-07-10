@@ -193,6 +193,7 @@ bool myJSON::getValue(const char *key, long &retval)
         }
         else
         {
+                // Serial.println("NOT SUCH KEY");
                 return 0; // when key is not present
         }
 }
@@ -475,7 +476,9 @@ void myJSON::printFile()
         if (file_exists())
         {
                 readJSON_file(tempJDOC);
+                Serial.println(_filename);
                 serializeJsonPretty(tempJDOC, Serial);
+                Serial.println();
         }
 }
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

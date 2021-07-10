@@ -1,5 +1,5 @@
 {
-    "useSerial": false,
+    "useSerial": true,
     "useWDT": true,
     "useOTA": true,
     "useResetKeeper": true,
@@ -10,7 +10,7 @@
     "useNetworkReset": true,
     "noNetwork_reset": 30,
     "useextTopic": false,
-    "deviceTopic": "KitchenLEDs",
+    "deviceTopic": "test",
     "groupTopic": "intLights",
     "prefixTopic": "myHome",
     "v_Pfile": 0.1
