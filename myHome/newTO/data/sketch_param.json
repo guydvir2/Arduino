@@ -1,37 +1,48 @@
 {
-    "numSW": 1,
-    "PWM_res": 1023,
+    "numSW": 2,
+    "OnatBoot": [
+        false,
+        true
+    ],
+    "sw_names": [
+        "PWM_LED",
+        "bulb"
+    ],
+    "trigType": [
+        1,
+        0
+    ],
     "useInput": [
         true,
         true
     ],
-    "trigType": [
-        3,
-        0
-    ],
-    "def_TO_minutes": [
-        1,
-        2
-    ],
-    "maxON_minutes": [
-        720,
-        600
-    ],
     "inputPressed": [
-        false,
+        true,
         false
     ],
     "inputPin": [
-        5,
-        2
+        14,
+        0
     ],
     "outputPin": [
-        4,
-        0
+        5,
+        4
     ],
     "output_ON": [
         true,
         true
+    ],
+    "def_TO_minutes": [
+        10,
+        240
+    ],
+    "maxON_minutes": [
+        60,
+        600
+    ],
+    "outputPWM": [
+        true,
+        false
     ],
     "totPWMsteps": [
         3,
@@ -42,16 +53,9 @@
         2
     ],
     "limitPWM": [
-        80,
+        100,
         80
     ],
-    "OnatBoot": [
-        true,
-        true
-    ],
-    "sw_names": [
-        "SW_AA",
-        "SW_BB"
-    ],
-    "v_file": 0.2
+    "PWM_res": 1023,
+    "v_file": 0.3
 }
