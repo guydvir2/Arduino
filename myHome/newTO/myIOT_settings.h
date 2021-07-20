@@ -14,7 +14,7 @@ void addiotnalMQTT(char *incoming_msg)
             char s1[15], s2[7];
             char clk[60], clk2[25];
             char state[15];
-            if (TOsw[i]->outputPWM == false)
+            if (outputPWM[i] == false)
             {
                 bool Q = digitalRead(outputPin[i]);
                 sprintf(state, "[%s]", Q == output_ON[i] ? "ON" : "OFF");
@@ -23,7 +23,7 @@ void addiotnalMQTT(char *incoming_msg)
             {
                 if (TOsw[i]->remTime() > 0)
                 {
-                    sprintf(clk2, "Power[%d/%d]", TOsw[i]->pwm_pCount, (int)TOsw[i]->totPWMsteps);
+                    sprintf(clk2, "Power[%d/%d]", TOsw[i]->pCounter, (int)TOsw[i]->max_pCount);
                     strcpy(state, clk2);
                 }
                 else
@@ -73,14 +73,14 @@ void addiotnalMQTT(char *incoming_msg)
     {
         for (int i = 0; i < numSW; i++)
         {
-            TOsw[i]->finish_TO("MQTT");
+            TOsw[i]->finish_TO(2);
         }
     }
     else if (strcmp(incoming_msg, "all_on") == 0)
     {
         for (int i = 0; i < numSW; i++)
         {
-            TOsw[i]->start_TO(TOsw[i]->def_TO_minutes, "MQTT");
+            TOsw[i]->start_TO(TOsw[i]->def_TO_minutes, 2);
         }
     }
     else if (strcmp(incoming_msg, "help2") == 0)
@@ -95,33 +95,34 @@ void addiotnalMQTT(char *incoming_msg)
         {
             if (strcmp(iot.inline_param[1], "timeout") == 0)
             {
-                if (TOsw[atoi(iot.inline_param[0])]->outputPWM == false)
+                if (outputPWM[atoi(iot.inline_param[0])] == false)
                 {
-                    TOsw[atoi(iot.inline_param[0])]->start_TO(atoi(iot.inline_param[2]), "MQTT");
+                    TOsw[atoi(iot.inline_param[0])]->start_TO(atoi(iot.inline_param[2]), 2);
+                    Serial.println("HERE");
                 }
                 else
                 {
-                    TOsw[atoi(iot.inline_param[0])]->pwm_pCount = atoi(iot.inline_param[3]);
-                    TOsw[atoi(iot.inline_param[0])]->start_TO(atoi(iot.inline_param[2]), "MQTT");
+                    TOsw[atoi(iot.inline_param[0])]->pCounter = atoi(iot.inline_param[3]);
+                    TOsw[atoi(iot.inline_param[0])]->start_TO(atoi(iot.inline_param[2]), 2);
                 }
             }
             else if (strcmp(iot.inline_param[1], "on") == 0)
             {
-                if (TOsw[atoi(iot.inline_param[0])]->outputPWM == false)
+                if (outputPWM[atoi(iot.inline_param[0])] == false)
                 {
                     if (num_parameters == 2)
                     {
-                        TOsw[atoi(iot.inline_param[0])]->start_TO(TOsw[atoi(iot.inline_param[0])]->maxON_minutes, "MQTT"); /* max time*/
+                        TOsw[atoi(iot.inline_param[0])]->start_TO(TOsw[atoi(iot.inline_param[0])]->maxON_minutes, 2); /* max time*/
                     }
                     else
                     {
-                        TOsw[atoi(iot.inline_param[0])]->start_TO(atoi(iot.inline_param[0]), "MQTT"); /* define time in minutes */
+                        TOsw[atoi(iot.inline_param[0])]->start_TO(atoi(iot.inline_param[0]), 2); /* define time in minutes */
                     }
                 }
-                else
+                else /* Define power level */
                 {
-                    TOsw[atoi(iot.inline_param[0])]->pwm_pCount = atoi(iot.inline_param[3]);
-                    TOsw[atoi(iot.inline_param[0])]->start_TO(TOsw[atoi(iot.inline_param[2])]->maxON_minutes, "MQTT");
+                    TOsw[atoi(iot.inline_param[0])]->pCounter = atoi(iot.inline_param[2]); // Power Level
+                    TOsw[atoi(iot.inline_param[0])]->start_TO(TOsw[atoi(iot.inline_param[0])]->maxON_minutes, 2);
                 }
             }
             else if (strcmp(iot.inline_param[1], "remain") == 0)
@@ -131,7 +132,7 @@ void addiotnalMQTT(char *incoming_msg)
             }
             else if (strcmp(iot.inline_param[1], "off") == 0)
             {
-                TOsw[atoi(iot.inline_param[0])]->finish_TO("MQTT");
+                TOsw[atoi(iot.inline_param[0])]->finish_TO(2);
             }
         }
     }

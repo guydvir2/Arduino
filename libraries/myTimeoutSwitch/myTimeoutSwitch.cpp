@@ -16,11 +16,12 @@ void timeOUTSwitch::def_funcs(func_cb startF, func_cb endF)
         // Create desticntive name in case of several instances
         sprintf(_keyEnd, "endClk_%d", icount);
         sprintf(_keyStart, "strtClk_%d", icount);
+        sprintf(_keyCounter, "Count_%d", icount);
         CLKstore.start();
         _chk_rem_after_boot();
     }
 }
-void timeOUTSwitch::start_TO(int _TO, char *src, bool minutes)
+void timeOUTSwitch::start_TO(int _TO, byte src, bool minutes)
 {
     TO_duration = _TO; // given in seconds
     if (minutes)
@@ -28,7 +29,7 @@ void timeOUTSwitch::start_TO(int _TO, char *src, bool minutes)
         TO_duration *= 60; // in case given in minutes
     }
     TO_start_millis = millis();
-    if (inTO == false || outputPWM)
+    if (inTO == false || trigType == 3)
     {
         _startf(src, icount);
     }
@@ -39,7 +40,7 @@ void timeOUTSwitch::start_TO(int _TO, char *src, bool minutes)
     inTO = true;
     _updateEndClk(TO_duration, now());
 }
-void timeOUTSwitch::finish_TO(char *src)
+void timeOUTSwitch::finish_TO(byte src)
 {
     _endf(src, icount); /*calling first to get remTime correct on MQTT msg */
     clearTO();
@@ -94,6 +95,12 @@ time_t timeOUTSwitch::onClk()
     CLKstore.getValue(_keyStart, bb);
     return bb;
 }
+byte timeOUTSwitch::getCount()
+{
+    int a = 0;
+    CLKstore.getValue(_keyCounter, a);
+    return (byte)a;
+}
 
 void timeOUTSwitch::_TOlooper()
 {
@@ -101,7 +108,7 @@ void timeOUTSwitch::_TOlooper()
     {
         if (millis() - TO_start_millis > TO_duration * 1000UL || millis() - TO_start_millis > maxON_minutes * 60000UL)
         {
-            finish_TO("timeOut");
+            finish_TO(1);
         }
     }
 }
@@ -118,51 +125,40 @@ void timeOUTSwitch::_input_looper()
         {
             if (trigType == 0 && currentRead_0 == _inputstatOn) /* momnetary button is pressed */
             {
-                if (outputPWM)
-                {
-                    bool cond_a = (pwm_pCount == 0) || (pwm_pCount < totPWMsteps && millis() - _lastPress < 3000); /* first press on, or inc intensity */
-                    bool cond_b = (pwm_pCount >= totPWMsteps) || (millis() - _lastPress > 3000);                   /* when press is far from last - turn off */
-                    bool cond_c = millis() - _lastPress > 1000 * press_to_off;                                     /* timeout to off */
+                bool cond_a = (pCounter == 0) || (pCounter < max_pCount && millis() - _lastPress < 1000 * press_to_off); /* first press on, or inc intensity */
+                bool cond_b = (pCounter >= max_pCount) || (millis() - _lastPress > 1000 * press_to_off);                 /* when press is far from last - turn off */
 
-                    if (cond_a)
-                    {
-                        pwm_pCount++;
-                        start_TO(def_TO_minutes, "Button");
-                        _lastPress = millis();
-                    }
-                    else if (cond_b || cond_c)
-                    {
-                        finish_TO("Button");
-                        pwm_pCount = 0;
-                        _lastPress = 0;
-                    }
+                if (cond_a || !inTO)
+                {
+                    pCounter++;
+                    start_TO(def_TO_minutes, 0);
+                    _lastPress = millis();
+                }
+                else if (inTO == true || cond_b)
+                {
+                    finish_TO(0);
+                    pCounter = 0;
+                    _lastPress = 0;
                 }
                 else
                 {
-                    if (inTO == true)
-                    {
-                        finish_TO("Button");
-                    }
-                    else
-                    {
-                        start_TO(def_TO_minutes, "Button");
-                    }
+                    Serial.println("State not defined");
                 }
             }
             else if (trigType == 1) /* Switch is set ON or OFF */
             {
                 if (currentRead_0 == _inputstatOn)
                 {
-                    start_TO(def_TO_minutes, "Button");
+                    start_TO(def_TO_minutes, 0);
                 }
                 else
                 {
-                    finish_TO("Button");
+                    finish_TO(0);
                 }
             }
             else if (trigType == 2 && currentRead_0 == _inputstatOn) /* Case of sensor that each detection restarts its timeout */
             {
-                start_TO(def_TO_minutes, "Sensor");
+                start_TO(def_TO_minutes, 0);
             }
         }
         _lastinput = currentRead_0;
@@ -178,6 +174,7 @@ void timeOUTSwitch::_updateEndClk(int _TO_dur, unsigned long TO_start_clk)
     if (_useSavedCLK)
     {
         CLKstore.setValue(_keyEnd, (long)TO_endclk);
+        CLKstore.setValue(_keyCounter, pCounter);
     }
 }
 void timeOUTSwitch::_updateStartClk(long TO_start_clk)
@@ -185,6 +182,7 @@ void timeOUTSwitch::_updateStartClk(long TO_start_clk)
     if (_useSavedCLK)
     {
         CLKstore.setValue(_keyStart, TO_start_clk);
+        CLKstore.setValue(_keyCounter, pCounter);
     }
 }
 void timeOUTSwitch::_chk_rem_after_boot()
@@ -196,7 +194,7 @@ void timeOUTSwitch::_chk_rem_after_boot()
     {
         if (bb > 0 && bb - now() > 0)
         {
-            start_TO(bb - now(), "Resume", false);
+            start_TO(bb - now(), 1, false);
         }
         else if (bb > 0 && bb - now() < 0)
         {

@@ -1,50 +1,46 @@
 {
-    "numSW": 2,
+    "numSW": 1,
     "OnatBoot": [
-        false,
+        true,
         true
     ],
     "sw_names": [
-        "PWM_LED",
-        "bulb"
+        "LEDs",
+        "Mirror"
     ],
     "trigType": [
-        1,
-        0
+        0,
+        1
     ],
     "useInput": [
         true,
         true
     ],
     "inputPressed": [
-        true,
+        false,
         false
     ],
     "inputPin": [
-        14,
-        0
+        2,
+        13
     ],
     "outputPin": [
-        5,
-        4
+        0,
+        14
     ],
     "output_ON": [
         true,
         true
     ],
     "def_TO_minutes": [
-        10,
-        240
+        20,
+        120
     ],
     "maxON_minutes": [
-        60,
-        600
+        200,
+        300
     ],
-    "outputPWM": [
-        true,
-        false
-    ],
-    "totPWMsteps": [
+    "max_pCount": [
         3,
         3
     ],
@@ -53,9 +49,13 @@
         2
     ],
     "limitPWM": [
-        100,
+        80,
         80
     ],
+    "outputPWM": [
+        true,
+        false
+    ],
     "PWM_res": 1023,
-    "v_file": 0.3
+    "v_file": 0.5
 }

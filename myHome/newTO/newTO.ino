@@ -8,18 +8,19 @@ timeOUTSwitch *TOsw[2] = {}; /* Support up to 2 TOsw */
 
 /* Values get uodated from parameter file */
 int PWM_res = 1023;
-bool inputPressed[] = {LOW, LOW};
-bool output_ON[] = {HIGH, HIGH};
-bool OnatBoot[] = {true, true};
-byte numSW = 2;
-byte inputPin[] = {5, 2};
-byte outputPin[] = {4, 0};
-byte defPWM[] = {2, 2};
-byte limitPWM[] = {80, 80};
-char sw_names[2][10];
+bool inputPressed[] = {LOW, LOW}; /* High or LOW on button press */
+bool output_ON[] = {HIGH, HIGH};  /* OUTPUT when ON is HIGH or LOW */
+bool OnatBoot[] = {true, true};   /* After reboot- On or Off */
+byte numSW = 2;                   /* Num of switches: 1 or 2 */
+byte inputPin[] = {5, 2};         /* IO for inputs */
+byte outputPin[] = {4, 0};        /* IO for outputs */
+byte defPWM[] = {2, 2};           /* Default PWM value for some cases not specified */
+byte limitPWM[] = {80, 80};       /* Limit total intensity, 1-100 */
+bool outputPWM[] = {false, false};
+char sw_names[2][10]; /* Name of each Switch, as shown on MQTT msg */
 /* End */
 
-const char *VER = "TOswitch_v0.3";
+const char *VER = "TOswitch_v0.5";
 
 #include "myTO_param.h"
 #include "myIOT_settings.h"
@@ -42,7 +43,7 @@ void startIO()
 }
 bool get_SWstate(byte i = 0)
 {
-        if (TOsw[i]->outputPWM == false)
+        if (outputPWM[i] == false)
         {
                 if (digitalRead(outputPin[i]) == output_ON[i])
                 {
@@ -55,7 +56,7 @@ bool get_SWstate(byte i = 0)
         }
         else /* PWM */
         {
-                if (TOsw[i]->pwm_pCount > 0)
+                if (TOsw[i]->pCounter > 0)
                 {
                         return 1;
                 }
@@ -86,7 +87,7 @@ bool switchIt(bool state, byte i)
 }
 int convDim(byte dim_step, byte i)
 {
-        return (int)((dim_step * PWM_res * limitPWM[i]) / (TOsw[i]->totPWMsteps * 100));
+        return (int)((dim_step * PWM_res * limitPWM[i]) / (TOsw[i]->max_pCount * 100));
 }
 void PWMdim(int dim_step, byte i)
 {
@@ -119,49 +120,85 @@ void simplifyClock(char *days, char *clk, char retVal[25])
                 sprintf(retVal, "%s", clk);
         }
 }
-void switchON_cb(char msg1[50], byte i)
+void switchON_cb(byte src, byte i)
 {
         char msg[100];
         char s1[25];
         char s2[7];
         char clk[25];
+        char orig[10];
 
-        if (TOsw[i]->outputPWM == false)
+        if (src == 0)
+        {
+                strcpy(orig, "Button");
+        }
+        else if (src == 1)
+        {
+                strcpy(orig, "Resume");
+        }
+        else if (src == 2)
+        {
+                strcpy(orig, "MQTT");
+        }
+        else if (src == 3)
+        {
+                strcpy(orig, "PowenOn");
+        }
+
+        if (outputPWM[i] == false)
         {
                 if (get_SWstate(i) == 0 || millis() < 15000) /* millis() added in case of power-on boot*/
                 {
                         iot.convert_epoch2clock(TOsw[i]->TO_duration, 0, s1, s2);
                         simplifyClock(s2, s1, clk);
                         switchIt(HIGH, i);
-                        sprintf(msg, "%s: [%s] Switched [ON] for [%s]", msg1, sw_names[i], clk);
+                        sprintf(msg, "%s: [%s] Switched [ON] for [%s]", orig, sw_names[i], clk);
                         iot.pub_msg(msg);
                 }
         }
         else
         {
-                if (TOsw[i]->trigType == 1)
+                if (src == 1)
                 {
-                        TOsw[i]->pwm_pCount = defPWM[i];
+                        TOsw[i]->pCounter = TOsw[i]->getCount();
                 }
-                PWMdim(TOsw[i]->pwm_pCount, i);
+                else if ((TOsw[i]->trigType == 1 && src == 0) || (TOsw[i]->pCounter == 0)) /* case of activate ONLY by Switch - use DEF value */
+                {
+                        TOsw[i]->pCounter = defPWM[i];
+                }
+                PWMdim(TOsw[i]->pCounter, i);
 
                 iot.convert_epoch2clock(TOsw[i]->TO_duration, 0, s1, s2);
                 simplifyClock(s2, s1, clk);
-                sprintf(msg, "%s: [%s] Switched [ON] Power[%d%%] for [%s]", msg1, sw_names[i], (int)(100 * TOsw[i]->pwm_pCount / TOsw[i]->totPWMsteps), clk);
+                sprintf(msg, "%s: [%s] Switched [ON] Power[%d%%] for [%s]", orig, sw_names[i], (int)(100 * TOsw[i]->pCounter / TOsw[i]->max_pCount), clk);
                 iot.pub_msg(msg);
         }
 }
-void switchOFF_cb(char msg1[50], byte i)
+void switchOFF_cb(byte src, byte i)
 {
         char msg[100];
         char s1[15];
         char s2[7];
         char clk[25];
         char clk2[25];
+        char orig[10];
+
+        if (src == 0)
+        {
+                strcpy(orig, "Button");
+        }
+        else if (src == 1)
+        {
+                strcpy(orig, "Timeout");
+        }
+        else if (src == 2)
+        {
+                strcpy(orig, "MQTT");
+        }
 
         if (get_SWstate(i) == 1 && TOsw[i]->onClk() != 0)
         {
-                if (TOsw[i]->outputPWM == false)
+                if (outputPWM[i] == false)
                 {
                         switchIt(LOW, i);
                 }
@@ -174,16 +211,16 @@ void switchOFF_cb(char msg1[50], byte i)
                 iot.convert_epoch2clock(a, 0, s1, s2);
                 simplifyClock(s2, s1, clk);
 
-                if (TOsw[i]->remTime() > 0)
+                if (TOsw[i]->remTime() > 0) /* Forced-End before time */
                 {
                         iot.convert_epoch2clock(TOsw[i]->remTime(), 0, s1, s2);
                         simplifyClock(s2, s1, clk2);
-                        sprintf(msg, "%s: [%s] Switched [OFF] after [%s], remained [%s]", msg1, sw_names[i], clk, clk2);
+                        sprintf(msg, "%s: [%s] Switched [OFF] after [%s], remained [%s]", orig, sw_names[i], clk, clk2);
                         iot.pub_msg(msg);
                 }
-                else
+                else /* End by timeout */
                 {
-                        sprintf(msg, "%s: [%s] Switched [OFF] ended after [%s]", msg1, sw_names[i], clk);
+                        sprintf(msg, "%s: [%s] Switched [OFF] ended after [%s]", orig, sw_names[i], clk);
                         iot.pub_msg(msg);
                 }
         }
@@ -214,7 +251,7 @@ void start_timeOUT()
                 {
                         if (TOsw[i]->remTime() == 0) /* last oper was ended prior to reboot */
                         {
-                                TOsw[i]->start_TO(TOsw[i]->def_TO_minutes, "Boot-On");
+                                TOsw[i]->start_TO(TOsw[i]->def_TO_minutes, 3);
                         }
                 }
         }

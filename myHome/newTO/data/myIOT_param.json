@@ -11,7 +11,7 @@
     "noNetwork_reset": 30,
     "useextTopic": false,
     "deviceTopic": "test",
-    "groupTopic": "extLights",
+    "groupTopic": "intLights",
     "prefixTopic": "myHome",
     "ver": 0.1
 }
