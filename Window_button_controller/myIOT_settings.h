@@ -2,8 +2,8 @@
 
 myIOT2 iot;
 
-#define DEV_TOPIC "empty"
-#define GROUP_TOPIC "none"
+#define DEV_TOPIC "All-Win_Controller"
+#define GROUP_TOPIC ""
 #define PREFIX_TOPIC "myHome"
 
 void addiotnalMQTT(char *incoming_msg)
@@ -12,17 +12,17 @@ void addiotnalMQTT(char *incoming_msg)
     char msg2[20];
     if (strcmp(incoming_msg, "status") == 0)
     {
-        sprintf(msg, "BOOOOO");
+        sprintf(msg, "I'm OK");
         iot.pub_msg(msg);
     }
     else if (strcmp(incoming_msg, "ver2") == 0)
     {
-        // sprintf(msg, "ver #2: [%s], lib: [%s], boardType[%s]", "espVer", VER, boardType);
-        // iot.pub_msg(msg);
+        sprintf(msg, "ver #2: lib: [%s]",iot.ver);
+        iot.pub_msg(msg);
     }
     else if (strcmp(incoming_msg, "help2") == 0)
     {
-        sprintf(msg, "Help2: Commands #2 - [; m; ,x]");
+        sprintf(msg, "Help2: none");
         iot.pub_msg(msg);
     }
 }

@@ -1,5 +1,5 @@
 {
-    "useSerial": true,
+    "useSerial": false,
     "useWDT": true,
     "useOTA": true,
     "useResetKeeper": true,
@@ -10,7 +10,7 @@
     "useNetworkReset": true,
     "noNetwork_reset": 30,
     "useextTopic": false,
-    "deviceTopic": "test",
+    "deviceTopic": "parentsClosetLEDs",
     "groupTopic": "intLights",
     "prefixTopic": "myHome",
     "ver": 0.1

@@ -3,8 +3,12 @@
 
 #include "myIOT_settings.h"
 
-#define buttonPin D3
+byte BUTPIN_UP = D1;
+byte BUTPIN_DOWN = D2;
+
 #define BUT_PRESSED LOW
+bool lastUP = !BUT_PRESSED;
+bool lastDOWN = !BUT_PRESSED;
 
 void butcmds(byte i)
 {
@@ -13,85 +17,56 @@ void butcmds(byte i)
         if (i == 1)
         {
                 iot.pub_noTopic("up", Topic);
+                iot.pub_msg("All-Windows: Set [Up]");
         }
         else if (i == 2)
         {
                 iot.pub_noTopic("down", Topic);
+                iot.pub_msg("All-Windows: Set [DOWN]");
         }
         else
         {
                 iot.pub_noTopic("off", Topic);
+                iot.pub_msg("All-Windows: Set [OFF]");
         }
         Serial.println(i);
 }
-void readButton_lopper()
+void read_toggle(byte _pin, bool &_state)
 {
-        const byte tstartCMD = 130; // millis
-        const byte tbpress = 100;   // millis
-        const byte ttoff = 200;     // millis
-        bool current_but = digitalRead(buttonPin);
-        static bool allow_enter_loop = true;
-        static bool lastState = !BUT_PRESSED;
-        static unsigned long last_press_clk = 0;
-        static byte press_counter = 0;
-
-        if (current_but == BUT_PRESSED && allow_enter_loop == true)
+        bool curRead = digitalRead(_pin);
+        delay(50);
+        bool curRead2 = digitalRead(_pin);
+        
+        if (curRead == curRead2 && curRead != _state)
         {
-                delay(50);
-                if (digitalRead(buttonPin) == BUT_PRESSED)
+                if (curRead == !BUT_PRESSED)
                 {
-                        if (press_counter > 0 && millis() - last_press_clk < tbpress * 10) // multi-press detected
+                        butcmds(0); // OFF
+                }
+                else
+                {
+                        if (_pin == BUTPIN_UP)
                         {
-                                press_counter++;
-                                Serial.println("A");
+                                butcmds(1); // UP
                         }
-
-                        else if ((millis() - last_press_clk > tbpress * 10) || (press_counter == 0)) // first press or beyond multipress
+                        else if (_pin == BUTPIN_DOWN)
                         {
-                                press_counter = 1;
-                                Serial.println("B");
-                        }
-
-                        last_press_clk = millis();
-                        while ((digitalRead(buttonPin) == BUT_PRESSED) && (millis() - last_press_clk < ttoff * 10)) //long press
-                        {
-                                delay(10);
-                        }
-                        if (millis() - last_press_clk > ttoff * 10)
-                        {
-                                butcmds(2);
-                                press_counter = 0;
-                                Serial.println("D");
-                                allow_enter_loop = false;
+                                butcmds(2); // DOWN
                         }
                 }
-        }
-        else if (current_but != BUT_PRESSED)
-        {
-                allow_enter_loop = true;
-        }
-
-        if (press_counter > 0)
-        {
-                if (millis() - last_press_clk > 10 * tstartCMD)
-                {
-                        butcmds(press_counter);
-                        press_counter = 0;
-                        Serial.println("EXEC");
-                        allow_enter_loop = false;
-                }
+                _state = curRead;
         }
 }
-
 void setup()
 {
         startIOTservices();
-        Serial.println("BOOT!!!!");
-        pinMode(buttonPin, INPUT_PULLUP);
+        pinMode(BUTPIN_UP, INPUT_PULLUP);
+        pinMode(BUTPIN_DOWN, INPUT_PULLUP);
 }
 void loop()
 {
         iot.looper();
-        readButton_lopper();
+        read_toggle(BUTPIN_UP, lastUP);
+        read_toggle(BUTPIN_DOWN, lastDOWN);
         delay(100);
 }

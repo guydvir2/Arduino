@@ -25,6 +25,7 @@ void update_vars(JsonDocument &DOC)
     defPWM[i] = DOC["defPWM"][i];
     limitPWM[i] = DOC["limitPWM"][i];
     outputPWM[i] = DOC["outputPWM"][i];
+    reverseInput[i] = DOC["reverseInput"][i];
 
     TOsw[i]->useInput = DOC["useInput"][i];
     TOsw[i]->maxON_minutes = DOC["maxON_minutes"][i];
@@ -43,7 +44,7 @@ void startRead_parameters()
   String sketch_defs = "{\"useInput\":[true,true],\"trigType\":[3,3], \"def_TO_minutes\":[120,100],\"maxON_minutes\":[720,360],\
                         \"inputPressed\":[true, false],\"inputPin\":[5,6], \"outputPin\":[4,3],\"output_ON\":[true,true],\
                         \"PWM_res\":1023,\"max_pCount\":[3,3], \"defPWM\":[2,2], \"limitPWM\":[80,80],\"OnatBoot\":[true,false],\
-                        \"numSW\":1, \"sw_names\":[\"sw0\",\"sw1\"]}";
+                        \"numSW\":1, \"sw_names\":[\"sw0\",\"sw1\"],\"reverseInput\":[false,false]}";
 
   bool a = iot.read_fPars(sketch_paramfile, sketch_defs, sketchJSON);  /* Read sketch defs */
   bool b = iot.read_fPars(iot.myIOT_paramfile, myIOT_defs, paramJSON); /* Read myIOT defs */

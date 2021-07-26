@@ -2,6 +2,38 @@
 #include <myPIR.h>
 #include <Arduino.h>
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 /*
  on ESP-01
  TX - GPIO1 --> OUTPUT ONLY

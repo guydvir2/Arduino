@@ -29,28 +29,44 @@ void timeOUTSwitch::start_TO(int _TO, byte src, bool minutes)
         TO_duration *= 60; // in case given in minutes
     }
     TO_start_millis = millis();
-    if (inTO == false || trigType == 3)
-    {
-        _startf(src, icount);
-    }
-    if (inTO == false && onClk() == 0)
+    // if (inTO == false)
+    // {
+    _startf(src, icount);
+    if (onClk() == 0)
     {
         _updateStartClk(now());
+        _updateEndClk(TO_duration, now());
     }
+    if (trigType == 2)
+    {
+        _updateEndClk(TO_duration, now());
+    }
+    // }
+    // else if (trigType == 0)
+    // {
+    //     _startf(src, icount);
+    // }
+    // if (inTO == false && onClk() == 0)
+    // {
+    //     _updateStartClk(now());
+    // }
     inTO = true;
-    _updateEndClk(TO_duration, now());
 }
 void timeOUTSwitch::finish_TO(byte src)
 {
     _endf(src, icount); /*calling first to get remTime correct on MQTT msg */
     clearTO();
 }
-void timeOUTSwitch::startIO(int _in_IO, bool _instate)
+void timeOUTSwitch::startIO(int _in_IO, bool _instate, bool _reverseInput)
 {
     _IN_io = _in_IO;
     _inputstatOn = _instate;
 
     if (_inputstatOn == LOW)
+    {
+        pinMode(_IN_io, INPUT_PULLUP);
+    }
+    else if (_reverseInput)
     {
         pinMode(_IN_io, INPUT_PULLUP);
     }
@@ -160,8 +176,8 @@ void timeOUTSwitch::_input_looper()
             {
                 start_TO(def_TO_minutes, 0);
             }
+            _lastinput = currentRead_0;
         }
-        _lastinput = currentRead_0;
     }
 }
 void timeOUTSwitch::_updateEndClk(int _TO_dur, unsigned long TO_start_clk)
@@ -182,7 +198,6 @@ void timeOUTSwitch::_updateStartClk(long TO_start_clk)
     if (_useSavedCLK)
     {
         CLKstore.setValue(_keyStart, TO_start_clk);
-        CLKstore.setValue(_keyCounter, pCounter);
     }
 }
 void timeOUTSwitch::_chk_rem_after_boot()

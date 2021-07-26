@@ -88,6 +88,20 @@ void addiotnalMQTT(char *incoming_msg)
         sprintf(msg, "Help2: Commands #3 - [{on,i}, {off,i}, all_off, {timeout,minutes,i}, {remain,i}, {show_flash_param}]");
         iot.pub_msg(msg);
     }
+    else if (strcmp(incoming_msg, "p") == 0)
+    {
+        for (int i = 0; i < numSW; i++)
+        {
+            digitalWrite(outputPin[i], !output_ON[i]);
+        }
+        // sprintf(msg, "Help2: Commands #3 - [{on,i}, {off,i}, all_off, {timeout,minutes,i}, {remain,i}, {show_flash_param}]");
+        iot.pub_msg("done");
+    }
+    else if (strcmp(incoming_msg, "T") == 0)
+    {
+        sprintf(msg, "T: io%d:%d io%d:%d", outputPin[0], digitalRead(outputPin[0]), outputPin[1], digitalRead(outputPin[1]));
+        iot.pub_msg(msg);
+    }
     else
     {
         int num_parameters = iot.inline_read(incoming_msg);

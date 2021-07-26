@@ -8,19 +8,20 @@ timeOUTSwitch *TOsw[2] = {}; /* Support up to 2 TOsw */
 
 /* Values get uodated from parameter file */
 int PWM_res = 1023;
-bool inputPressed[] = {LOW, LOW}; /* High or LOW on button press */
-bool output_ON[] = {HIGH, HIGH};  /* OUTPUT when ON is HIGH or LOW */
-bool OnatBoot[] = {true, true};   /* After reboot- On or Off */
-byte numSW = 2;                   /* Num of switches: 1 or 2 */
-byte inputPin[] = {5, 2};         /* IO for inputs */
-byte outputPin[] = {4, 0};        /* IO for outputs */
-byte defPWM[] = {2, 2};           /* Default PWM value for some cases not specified */
-byte limitPWM[] = {80, 80};       /* Limit total intensity, 1-100 */
+bool inputPressed[] = {LOW, LOW};     /* High or LOW on button press */
+bool output_ON[] = {HIGH, HIGH};      /* OUTPUT when ON is HIGH or LOW */
+bool OnatBoot[] = {false, false};     /* After reboot- On or Off */
+bool reverseInput[] = {false, false}; /* When a HIGH trig input uses a PULLUP resistor */
+byte numSW = 2;                       /* Num of switches: 1 or 2 */
+byte inputPin[] = {3, 0};             /* IO for inputs */
+byte outputPin[] = {1, 2};            /* IO for outputs */
+byte defPWM[] = {2, 2};               /* Default PWM value for some cases not specified */
+byte limitPWM[] = {80, 80};           /* Limit total intensity, 1-100 */
 bool outputPWM[] = {false, false};
 char sw_names[2][10]; /* Name of each Switch, as shown on MQTT msg */
 /* End */
 
-const char *VER = "TOswitch_v0.5";
+const char *VER = "TOswitch_v0.51";
 
 #include "myTO_param.h"
 #include "myIOT_settings.h"
@@ -78,6 +79,7 @@ bool switchIt(bool state, byte i)
                 {
                         digitalWrite(outputPin[i], !output_ON[i]);
                 }
+
                 return 1;
         }
         else
@@ -158,7 +160,8 @@ void switchON_cb(byte src, byte i)
         }
         else
         {
-                if (src == 1)
+                bool msg_a = false;
+                if (src == 1) /* Resume after boot */
                 {
                         TOsw[i]->pCounter = TOsw[i]->getCount();
                 }
@@ -166,11 +169,22 @@ void switchON_cb(byte src, byte i)
                 {
                         TOsw[i]->pCounter = defPWM[i];
                 }
+                else if (TOsw[i]->trigType == 0) /* Case of Button */
+                {
+                        if (TOsw[i]->inTO == true)
+                        {
+                                sprintf(msg, "%s: [%s] Power change[%d%%]", orig, sw_names[i], (int)(100 * TOsw[i]->pCounter / TOsw[i]->max_pCount));
+                                msg_a = true;
+                        }
+                }
                 PWMdim(TOsw[i]->pCounter, i);
 
-                iot.convert_epoch2clock(TOsw[i]->TO_duration, 0, s1, s2);
-                simplifyClock(s2, s1, clk);
-                sprintf(msg, "%s: [%s] Switched [ON] Power[%d%%] for [%s]", orig, sw_names[i], (int)(100 * TOsw[i]->pCounter / TOsw[i]->max_pCount), clk);
+                if (msg_a == false) /* Valid for power on */
+                {
+                        iot.convert_epoch2clock(TOsw[i]->TO_duration, 0, s1, s2);
+                        simplifyClock(s2, s1, clk);
+                        sprintf(msg, "%s: [%s] Switched [ON] Power[%d%%] for [%s]", orig, sw_names[i], (int)(100 * TOsw[i]->pCounter / TOsw[i]->max_pCount), clk);
+                }
                 iot.pub_msg(msg);
         }
 }
@@ -245,7 +259,7 @@ void start_timeOUT()
         for (int i = 0; i < numSW; i++)
         {
                 TOsw[i]->icount = i;
-                TOsw[i]->startIO(inputPin[i], inputPressed[i]);
+                TOsw[i]->startIO(inputPin[i], inputPressed[i], reverseInput[i]);
                 TOsw[i]->def_funcs(switchON_cb, switchOFF_cb);
                 if (OnatBoot[i])
                 {

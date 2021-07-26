@@ -1,12 +1,12 @@
 {
-    "numSW": 1,
+    "numSW": 2,
     "OnatBoot": [
-        true,
-        true
+        false,
+        false
     ],
     "sw_names": [
-        "LEDs",
-        "Mirror"
+        "Annas",
+        "GUYs"
     ],
     "trigType": [
         0,
@@ -18,26 +18,30 @@
     ],
     "inputPressed": [
         false,
+        true
+    ],
+    "reverseInput":[
+        false,
         false
     ],
     "inputPin": [
-        2,
-        13
+        3,
+        0
     ],
     "outputPin": [
-        0,
-        14
+        1,
+        2
     ],
     "output_ON": [
         true,
         true
     ],
     "def_TO_minutes": [
-        20,
-        120
+        30,
+        30
     ],
     "maxON_minutes": [
-        200,
+        300,
         300
     ],
     "max_pCount": [
@@ -53,9 +57,9 @@
         80
     ],
     "outputPWM": [
-        true,
+        false,
         false
     ],
     "PWM_res": 1023,
-    "v_file": 0.5
+    "v_file": 0.6
 }

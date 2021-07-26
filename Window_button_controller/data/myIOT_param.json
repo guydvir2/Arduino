@@ -6,8 +6,8 @@
     "useFailNTP": true,
     "useDebugLog": true,
     "useNetworkReset":true,
-    "deviceTopic": "empty",
-    "groupTopic": "test",
+    "deviceTopic": "AllWin_Controller",
+    "groupTopic": "",
     "prefixTopic": "myHome",
     "debug_level":0,
     "noNetwork_reset":7
