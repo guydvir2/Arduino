@@ -18,28 +18,32 @@ class buttonPress
 #define BUT_PRESSED LOW
 
 public:
-        buttonPress(byte _butPin, byte _butPinAux = 255, byte _type = 0)
+        buttonPress(byte pin0, byte pin1 = 255, byte _type = 0)
         {
-                butPin = _butPin;
-                butPinAux = _butPinAux;
+                /* 0: pushbutton
+                   1: toggle
+                   2: rocker 3 state 
+                   */
+                _pin0 = pin0;
+                _pin1 = pin1;
                 buttonType = _type;
-                pinMode(butPin, INPUT_PULLUP);
-                if (_butPinAux != 255)
+                pinMode(_pin0, INPUT_PULLUP);
+                if (pin1 != 255)
                 {
-                        pinMode(butPinAux, INPUT_PULLUP);
+                        pinMode(_pin1, INPUT_PULLUP);
                 }
         }
         byte read_button()
         {
-                bool curRead = digitalRead(butPin);
+                bool curRead = digitalRead(_pin0);
                 delay(50);
-                bool curRead2 = digitalRead(butPin);
+                bool curRead2 = digitalRead(_pin0);
 
                 if (curRead == curRead2 && curRead == BUT_PRESSED && _nowPressed == false)
                 {
                         unsigned long lastRead = millis();
                         _nowPressed = true;
-                        while (digitalRead(butPin) == BUT_PRESSED && millis() - lastRead < 2000)
+                        while (digitalRead(_pin0) == BUT_PRESSED && millis() - lastRead < 2000)
                         {
                                 delay(10);
                         }
@@ -74,15 +78,30 @@ public:
                         }
                         else
                         {
-                                if (_pin == butPin)
+                                if (_pin == _pin0)
                                 {
                                         return 1;
                                 }
-                                else if (_pin == butPinAux)
+                                else if (_pin == _pin1)
                                 {
                                         return 2;
                                 }
                         }
+                }
+        }
+        byte read_pushbutton()
+        {
+                bool curRead = digitalRead(_pin0);
+                delay(50);
+                bool curRead2 = digitalRead(_pin0);
+
+                if (curRead == curRead2 && curRead == BUT_PRESSED)
+                {
+                        return 1;
+                }
+                else
+                {
+                        return 0;
                 }
         }
         void loop()
@@ -93,14 +112,14 @@ public:
                 }
                 else if (buttonType == 1)
                 {
-                        read_toggle(butPin, _state);
-                        read_toggle(butPinAux, _stateAux);
+                        read_toggle(_pin0, _state);
+                        read_toggle(_pin1, _stateAux);
                 }
         }
 
 private:
-        byte butPin;
-        byte butPinAux;
+        byte _pin0;
+        byte _pin1;
         byte buttonType = 0;
         bool _nowPressed = false;
         bool _state = false;

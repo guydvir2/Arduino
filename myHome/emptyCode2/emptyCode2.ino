@@ -16,9 +16,9 @@ void show_services()
         if (!showed)
         {
                 char msg[300];
-                sprintf(msg, "Service: useSerial[%d], useWDT[%d], useOTA[%d], useResetKeeper[%d], useextTopic[%d], resetFailNTP[%d], useDebug[%d], debug_level[%d], useNetworkReset[%d], noNetwork_reset[%d],useBootClockLog[%d]",
-                        iot.useSerial, iot.useWDT, iot.useOTA, iot.useResetKeeper, iot.useextTopic, iot.resetFailNTP, iot.useDebug, iot.debug_level, iot.useNetworkReset, iot.noNetwork_reset, iot.useBootClockLog);
-                Serial.println(msg);
+//                sprintf(msg, "Service: useSerial[%d], useWDT[%d], useOTA[%d], useResetKeeper[%d], useextTopic[%d], resetFailNTP[%d], useDebug[%d], debug_level[%d], useNetworkReset[%d], noNetwork_reset[%d],useBootClockLog[%d]",
+//                        iot.useSerial, iot.useWDT, iot.useOTA, iot.useResetKeeper, iot.useextTopic, iot.resetFailNTP, iot.useDebug, iot.debug_level, iot.useNetworkReset, iot.noNetwork_reset, iot.useBootClockLog);
+//                Serial.println(msg);
                 showed = true;
         }
 }
