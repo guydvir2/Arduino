@@ -118,5 +118,4 @@ void loop()
         iot.looper();
         readButtons(); /* Delay is already here */
         steady_blink();
-        // delay(200);
 }
