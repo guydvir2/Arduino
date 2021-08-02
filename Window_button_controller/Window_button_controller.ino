@@ -6,15 +6,14 @@
 #define BUT_PRESSED LOW
 #define LIGHT_ON HIGH
 
-
 uint8_t BUTPIN_UP = D1;
 uint8_t LIGHTPIN_UP = D2;
 uint8_t BUTPIN_DOWN = D3;
 uint8_t LIGHTPIN_DOWN = D4;
 uint8_t *outputPins[] = {&LIGHTPIN_UP, &LIGHTPIN_DOWN};
 
-buttonPresses buttUP(BUTPIN_UP,3);
-buttonPresses buttDOWN(BUTPIN_DOWN,3);
+buttonPresses buttUP(BUTPIN_UP, 3);
+buttonPresses buttDOWN(BUTPIN_DOWN, 3);
 
 void butcmds(uint8_t i)
 {
@@ -108,11 +107,11 @@ void blink_lights(uint8_t i, uint8_t x)
 }
 void setup()
 {
-        startIOTservices();
         buttDOWN.start();
         buttUP.start();
         pinMode(LIGHTPIN_UP, OUTPUT);
         pinMode(LIGHTPIN_DOWN, OUTPUT);
+        startIOTservices();
 }
 void loop()
 {
