@@ -28,6 +28,7 @@
     - RTC_DS1307
     - RTC_DS3231
     - RTC_PCF8523
+    - RTC_PCF8563
   - RTC emulated in software; do not expect much accuracy out of these:
     - RTC_Millis is based on `millis()`
     - RTC_Micros is based on `micros()`; its drift rate can be tuned by
@@ -808,6 +809,7 @@ static uint8_t bin2bcd(uint8_t val) { return val + 6 * (val / 10); }
 /**************************************************************************/
 /*!
     @brief  Start I2C for the DS1307 and test succesful connection
+    @param  wireInstance pointer to the I2C bus
     @return True if Wire can find DS1307 or false otherwise.
 */
 /**************************************************************************/
@@ -975,14 +977,6 @@ void RTC_DS1307::writenvram(uint8_t address, uint8_t data) {
   writenvram(address, &data, 1);
 }
 
-/** Alignment between the millis() timescale and the Unix timescale. These
-  two variables are updated on each call to now(), which prevents
-  rollover issues. Note that lastMillis is **not** the millis() value
-  of the last call to now(): it's the millis() value corresponding to
-  the last **full second** of Unix time. */
-uint32_t RTC_Millis::lastMillis;
-uint32_t RTC_Millis::lastUnix;
-
 /**************************************************************************/
 /*!
     @brief  Set the current date/time of the RTC_Millis clock.
@@ -1009,14 +1003,6 @@ DateTime RTC_Millis::now() {
   return lastUnix;
 }
 
-/** Number of microseconds reported by micros() per "true" (calibrated) second.
- */
-uint32_t RTC_Micros::microsPerSecond = 1000000;
-
-/** The timing logic is identical to RTC_Millis. */
-uint32_t RTC_Micros::lastMicros;
-uint32_t RTC_Micros::lastUnix;
-
 /**************************************************************************/
 /*!
     @brief  Set the current date/time of the RTC_Micros clock.
@@ -1031,10 +1017,9 @@ void RTC_Micros::adjust(const DateTime &dt) {
 /**************************************************************************/
 /*!
     @brief  Adjust the RTC_Micros clock to compensate for system clock drift
-    @param ppm Adjustment to make
+    @param ppm Adjustment to make. A positive adjustment makes the clock faster.
 */
 /**************************************************************************/
-// A positive adjustment makes the clock faster.
 void RTC_Micros::adjustDrift(int ppm) { microsPerSecond = 1000000 - ppm; }
 
 /**************************************************************************/
@@ -1053,6 +1038,7 @@ DateTime RTC_Micros::now() {
 /**************************************************************************/
 /*!
     @brief  Start I2C for the PCF8523 and test succesful connection
+    @param  wireInstance pointer to the I2C bus
     @return True if Wire can find PCF8523 or false otherwise.
 */
 /**************************************************************************/
@@ -1402,6 +1388,7 @@ void RTC_PCF8523::calibrate(Pcf8523OffsetMode mode, int8_t offset) {
 /**************************************************************************/
 /*!
     @brief  Start I2C for the PCF8563 and test succesful connection
+    @param  wireInstance pointer to the I2C bus
     @return True if Wire can find PCF8563 or false otherwise.
 */
 /**************************************************************************/
@@ -1564,6 +1551,7 @@ static uint8_t dowToDS3231(uint8_t d) { return d == 0 ? 7 : d; }
 /**************************************************************************/
 /*!
     @brief  Start I2C for the DS3231 and test succesful connection
+    @param  wireInstance pointer to the I2C bus
     @return True if Wire can find DS3231 or false otherwise.
 */
 /**************************************************************************/

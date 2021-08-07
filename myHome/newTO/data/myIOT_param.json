@@ -3,16 +3,15 @@
     "useWDT": true,
     "useOTA": true,
     "useResetKeeper": true,
-    "useFailNTP": true,
     "debug_level": 0,
-    "useDebugLog": true,
-    "useBootClockLog": true,
+    "useDebugLog": false,
+    "useBootClockLog": false,
     "useNetworkReset": true,
     "noNetwork_reset": 30,
     "useextTopic": false,
-    "deviceTopic": "parentsClosetLEDs",
+    "deviceTopic": "familyRoomLEDs",
     "groupTopic": "intLights",
     "prefixTopic": "myHome",
-    "ver": 0.1
+    "ver": 0.2
 }
 

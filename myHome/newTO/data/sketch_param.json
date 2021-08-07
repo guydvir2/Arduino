@@ -1,11 +1,11 @@
 {
-    "numSW": 2,
+    "numSW": 1,
     "OnatBoot": [
-        false,
+        true,
         false
     ],
     "sw_names": [
-        "Annas",
+        "TableLEDs",
         "GUYs"
     ],
     "trigType": [
@@ -25,11 +25,11 @@
         false
     ],
     "inputPin": [
-        3,
+        5,
         0
     ],
     "outputPin": [
-        1,
+        12,
         2
     ],
     "output_ON": [
@@ -37,11 +37,11 @@
         true
     ],
     "def_TO_minutes": [
-        30,
+        180,
         30
     ],
     "maxON_minutes": [
-        300,
+        720,
         300
     ],
     "max_pCount": [
@@ -49,7 +49,7 @@
         3
     ],
     "defPWM": [
-        2,
+        1,
         2
     ],
     "limitPWM": [
@@ -57,7 +57,7 @@
         80
     ],
     "outputPWM": [
-        false,
+        true,
         false
     ],
     "PWM_res": 1023,

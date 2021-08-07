@@ -38,7 +38,7 @@ void update_vars(JsonDocument &DOC)
 void startRead_parameters()
 {
   String myIOT_defs = "{\"useSerial\":true,\"useWDT\":false,\"useOTA\":true,\"useResetKeeper\" : false,\
-                        \"useFailNTP\" : true,\"useDebugLog\" : true,\"useNetworkReset\":true, \"deviceTopic\" : \"devTopic\",\
+                        \"useDebugLog\" : true,\"useNetworkReset\":true, \"deviceTopic\" : \"devTopic\",\
                         \"groupTopic\" : \"group\",\"prefixTopic\" : \"myHome\",\"debug_level\":0,\"noNetwork_reset\":1}";
 
   String sketch_defs = "{\"useInput\":[true,true],\"trigType\":[3,3], \"def_TO_minutes\":[120,100],\"maxON_minutes\":[720,360],\

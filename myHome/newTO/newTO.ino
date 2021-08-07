@@ -6,22 +6,22 @@ myIOT2 iot;
 
 timeOUTSwitch *TOsw[2] = {}; /* Support up to 2 TOsw */
 
-/* Values get uodated from parameter file */
+/* ~~~~~~~~~~~ Values get updated from parameter file ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
 int PWM_res = 1023;
-bool inputPressed[] = {LOW, LOW};     /* High or LOW on button press */
-bool output_ON[] = {HIGH, HIGH};      /* OUTPUT when ON is HIGH or LOW */
-bool OnatBoot[] = {false, false};     /* After reboot- On or Off */
-bool reverseInput[] = {false, false}; /* When a HIGH trig input uses a PULLUP resistor */
-byte numSW = 2;                       /* Num of switches: 1 or 2 */
-byte inputPin[] = {3, 0};             /* IO for inputs */
-byte outputPin[] = {1, 2};            /* IO for outputs */
-byte defPWM[] = {2, 2};               /* Default PWM value for some cases not specified */
-byte limitPWM[] = {80, 80};           /* Limit total intensity, 1-100 */
+bool inputPressed[] = {LOW, LOW};        /* High or LOW on button press */
+bool output_ON[] = {HIGH, HIGH};         /* OUTPUT when ON is HIGH or LOW */
+bool OnatBoot[] = {false, false};        /* After reboot- On or Off */
+bool reverseInput[] = {false, false};    /* When a HIGH trig input uses a PULLUP resistor */
+uint8_t numSW = 2;                       /* Num of switches: 1 or 2 */
+uint8_t inputPin[] = {3, 0};             /* IO for inputs */
+uint8_t outputPin[] = {1, 2};            /* IO for outputs */
+uint8_t defPWM[] = {2, 2};               /* Default PWM value for some cases not specified */
+uint8_t limitPWM[] = {80, 80};           /* Limit total intensity, 1-100 */
 bool outputPWM[] = {false, false};
-char sw_names[2][10]; /* Name of each Switch, as shown on MQTT msg */
-/* End */
+char sw_names[2][10];                    /* Name of each Switch, as shown on MQTT msg */
+/* ~~~~~~~~~~~~~~~~~~ End ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 
-const char *VER = "TOswitch_v0.51";
+const char *VER = "TOswitch_v0.6";
 
 #include "myTO_param.h"
 #include "myIOT_settings.h"
@@ -42,7 +42,7 @@ void startIO()
                 }
         }
 }
-bool get_SWstate(byte i = 0)
+bool get_SWstate(uint8_t i = 0)
 {
         if (outputPWM[i] == false)
         {
@@ -67,7 +67,7 @@ bool get_SWstate(byte i = 0)
                 }
         }
 }
-bool switchIt(bool state, byte i)
+bool switchIt(bool state, uint8_t i)
 {
         if (state != get_SWstate(i))
         {
@@ -87,14 +87,14 @@ bool switchIt(bool state, byte i)
                 return 0;
         }
 }
-int convDim(byte dim_step, byte i)
+int convDim(uint8_t dim_step, uint8_t i)
 {
         return (int)((dim_step * PWM_res * limitPWM[i]) / (TOsw[i]->max_pCount * 100));
 }
-void PWMdim(int dim_step, byte i)
+void PWMdim(int dim_step, uint8_t i)
 {
         int C_val = 1;
-        const byte delay_step = 2;
+        const uint8_t delay_step = 2;
         static int _last_dimVal[] = {0, 0};
         int desiredval = convDim(dim_step, i);
 
@@ -122,13 +122,15 @@ void simplifyClock(char *days, char *clk, char retVal[25])
                 sprintf(retVal, "%s", clk);
         }
 }
-void switchON_cb(byte src, byte i)
+void switchON_cb(uint8_t src, uint8_t i)
 {
         char msg[100];
         char s1[25];
         char s2[7];
         char clk[25];
         char orig[10];
+
+        Serial.println("HERE");
 
         if (src == 0)
         {
@@ -161,7 +163,7 @@ void switchON_cb(byte src, byte i)
         else
         {
                 bool msg_a = false;
-                if (src == 1) /* Resume after boot */
+                if (src == 1)                                                              /* Resume after boot */
                 {
                         TOsw[i]->pCounter = TOsw[i]->getCount();
                 }
@@ -169,7 +171,7 @@ void switchON_cb(byte src, byte i)
                 {
                         TOsw[i]->pCounter = defPWM[i];
                 }
-                else if (TOsw[i]->trigType == 0) /* Case of Button */
+                else if (TOsw[i]->trigType == 0)                                           /* Case of Button */
                 {
                         if (TOsw[i]->inTO == true)
                         {
@@ -188,7 +190,7 @@ void switchON_cb(byte src, byte i)
                 iot.pub_msg(msg);
         }
 }
-void switchOFF_cb(byte src, byte i)
+void switchOFF_cb(uint8_t src, uint8_t i)
 {
         char msg[100];
         char s1[15];
@@ -221,7 +223,7 @@ void switchOFF_cb(byte src, byte i)
                         PWMdim(0, i);
                 }
 
-                int a = now() - TOsw[i]->onClk();
+                int a = iot.now() - TOsw[i]->onClk();
                 iot.convert_epoch2clock(a, 0, s1, s2);
                 simplifyClock(s2, s1, clk);
 
@@ -283,6 +285,7 @@ void setup()
 {
         init_timeOUT();
         startRead_parameters();
+        analogWriteRange(1023);
         startIO();
         startIOTservices();
         start_timeOUT();

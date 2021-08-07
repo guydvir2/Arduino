@@ -21,7 +21,7 @@ void timeOUTSwitch::def_funcs(func_cb startF, func_cb endF)
         _chk_rem_after_boot();
     }
 }
-void timeOUTSwitch::start_TO(int _TO, byte src, bool minutes)
+void timeOUTSwitch::start_TO(int _TO, uint8_t src, bool minutes)
 {
     TO_duration = _TO; // given in seconds
     if (minutes)
@@ -29,30 +29,19 @@ void timeOUTSwitch::start_TO(int _TO, byte src, bool minutes)
         TO_duration *= 60; // in case given in minutes
     }
     TO_start_millis = millis();
-    // if (inTO == false)
-    // {
     _startf(src, icount);
     if (onClk() == 0)
     {
-        _updateStartClk(now());
-        _updateEndClk(TO_duration, now());
+        _updateStartClk(_now());
+        _updateEndClk(TO_duration, _now());
     }
     if (trigType == 2)
     {
-        _updateEndClk(TO_duration, now());
+        _updateEndClk(TO_duration, _now());
     }
-    // }
-    // else if (trigType == 0)
-    // {
-    //     _startf(src, icount);
-    // }
-    // if (inTO == false && onClk() == 0)
-    // {
-    //     _updateStartClk(now());
-    // }
     inTO = true;
 }
-void timeOUTSwitch::finish_TO(byte src)
+void timeOUTSwitch::finish_TO(uint8_t src)
 {
     _endf(src, icount); /*calling first to get remTime correct on MQTT msg */
     clearTO();
@@ -96,9 +85,9 @@ int timeOUTSwitch::remTime()
 {
     long bb = 0;
     CLKstore.getValue(_keyEnd, bb);
-    if (bb > 0 && bb - now() > 0)
+    if (bb > 0 && bb - _now() > 0)
     {
-        return bb - now();
+        return bb - _now();
     }
     else
     {
@@ -111,11 +100,11 @@ time_t timeOUTSwitch::onClk()
     CLKstore.getValue(_keyStart, bb);
     return bb;
 }
-byte timeOUTSwitch::getCount()
+uint8_t timeOUTSwitch::getCount()
 {
     int a = 0;
     CLKstore.getValue(_keyCounter, a);
-    return (byte)a;
+    return (uint8_t)a;
 }
 
 void timeOUTSwitch::_TOlooper()
@@ -130,7 +119,7 @@ void timeOUTSwitch::_TOlooper()
 }
 void timeOUTSwitch::_input_looper()
 {
-    byte press_to_off = 2; //seconds. after this re-press PWM will set OFF
+    uint8_t press_to_off = 2; //seconds. after this re-press PWM will set OFF
     if (useInput)
     {
         bool currentRead_0 = digitalRead(_IN_io);
@@ -184,7 +173,7 @@ void timeOUTSwitch::_updateEndClk(int _TO_dur, unsigned long TO_start_clk)
 {
     if (TO_start_clk == 0)
     {
-        TO_start_clk = now();
+        TO_start_clk = _now();
     }
     TO_endclk = TO_start_clk + _TO_dur;
     if (_useSavedCLK)
@@ -207,11 +196,11 @@ void timeOUTSwitch::_chk_rem_after_boot()
 
     if (record)
     {
-        if (bb > 0 && bb - now() > 0)
+        if (bb > 0 && bb - _now() > 0)
         {
-            start_TO(bb - now(), 1, false);
+            start_TO(bb - _now(), 1, false);
         }
-        else if (bb > 0 && bb - now() < 0)
+        else if (bb > 0 && bb - _now() < 0)
         {
             clearTO();
         }
@@ -221,4 +210,8 @@ void timeOUTSwitch::_chk_rem_after_boot()
         clearTO();
     }
 }
-// byte timeOUTSwitch::_counter = 0;
+time_t timeOUTSwitch::_now()
+{
+    return time(nullptr);
+}
+// uint8_t timeOUTSwitch::_counter = 0;

@@ -20,7 +20,7 @@ bool flashLOG::start(int max_entries, int max_entry_len, bool delyedSave, bool d
         }
     }
     _logSize = max_entries;
-    _logLength = max_entry_len;
+    _logLength = max_entry_len + 3;
     _useDelayedSave = delyedSave;
     _useDebug = debugmode;
 
@@ -38,9 +38,16 @@ void flashLOG::looper(int savePeriod)
 }
 void flashLOG::write(const char *message, bool NOW)
 {
-    char b[_logLength + 3];
-    strncpy(b, message, _logLength);
-    sprintf(_logBuffer[_buff_i], "%s%c", b, _EOL);
+    char b[_logLength];
+    // strncpy(b, message, _logLength - 3);
+    // strcpy()
+    // sprintf(_logBuffer[_buff_i], "%s%c", b, _EOL);
+    sprintf(_logBuffer[_buff_i], "%s%c", message, _EOL);
+
+    Serial.print("add buffer #");
+    Serial.print(_buff_i);
+    Serial.print(": ");
+    Serial.println(_logBuffer[_buff_i]);
     _buff_i++;
     lastUpdate = millis();
 
@@ -55,11 +62,11 @@ void flashLOG::writeNow()
     _write2file();
     _printDebug("writeNOW");
 }
-bool flashLOG::del_line(byte line_index)
+bool flashLOG::del_line(int line_index)
 {
     int c = 0;
     int row_counter = 0;
-    char a[_logLength + 3];
+    char a[_logLength];
     char *tfile = "/tempfile.txt";
     bool line_deleted = false;
 
@@ -196,6 +203,9 @@ void flashLOG::rawPrintfile()
             Serial.println("Failed to open file for reading");
         }
     }
+    Serial.print("~~~ Saved in ");
+    Serial.print(_logfilename);
+    Serial.println(" ~~~");
     while (file.available())
     {
         if (new_line)
@@ -217,15 +227,15 @@ void flashLOG::rawPrintfile()
         }
     }
     file.close();
+    Serial.println("~~~ EOF ~~~");
 }
 void flashLOG::_write2file()
 {
     int num_lines = getnumlines();
     if (num_lines > 0 && num_lines + _buff_i > _logSize)
     {
-        _del_lines(num_lines + _buff_i - _logSize);
+        // _del_lines(num_lines + _buff_i - _logSize);
     }
-
     File file1 = SPIFFS.open(_logfilename, "a");
     if (!file1)
     {
@@ -245,17 +255,13 @@ void flashLOG::_write2file()
         lastUpdate = 0;
     }
     _printDebug(" -Saved");
-    // if (_useDebug)
-    // {
-    //     rawPrintfile();
-    // }
     file1.close();
 }
-void flashLOG::_del_lines(byte line_index)
+void flashLOG::_del_lines(int line_index)
 {
     int c = 0;
     int row_counter = 0;
-    char a[_logLength + 3];
+    char a[_logLength];
     char *tfile = "/tempfile.txt";
 
     File file1 = SPIFFS.open(_logfilename, "r");
@@ -275,34 +281,35 @@ void flashLOG::_del_lines(byte line_index)
             char tt = file1.read();
             if (row_counter >= line_index) /* copying non-deleted lines */
             {
-                if (tt != _EOL)
-                {
-                    a[c] = tt;
-                    c++;
-                }
-                else
-                {
-                    a[c] = _EOL;
-                    a[c + 1] = '\0';
-                    file2.print(a);
-                    sprintf(a, "");
-                    row_counter++;
-                    c = 0;
-                }
+            //     if (tt != _EOL)
+            //     {
+            //         a[c] = tt;
+            //         c++;
+            //     }
+            //     else
+            //     {
+            //         a[c] = _EOL;
+            //         a[c + 1] = '\0';
+            //         file2.print(a);
+            //         sprintf(a, "");
+            //         row_counter++;
+            //         c = 0;
+            //     }
             }
             else /* ignoring line to be delted */
             {
                 if (tt == _EOL)
                 {
                     row_counter++;
+                    Serial.println(row_counter);
                 }
             }
         }
     }
     file1.close();
     file2.close();
-    SPIFFS.remove(_logfilename);
-    SPIFFS.rename(tfile, _logfilename);
+    // SPIFFS.remove(_logfilename);
+    // SPIFFS.rename(tfile, _logfilename);
 }
 void flashLOG::_printDebug(char *msg)
 {
@@ -312,4 +319,14 @@ void flashLOG::_printDebug(char *msg)
         Serial.print(": ");
         Serial.println(msg);
     }
+}
+void flashLOG::printraw()
+{
+    File file = SPIFFS.open(_logfilename, "r");
+    while (file.available())
+    {
+        char tt = file.read();
+        Serial.print(tt);
+    }
+    file.close();
 }

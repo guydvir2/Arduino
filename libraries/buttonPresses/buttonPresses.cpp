@@ -7,14 +7,13 @@ buttonPresses::buttonPresses()
 buttonPresses::buttonPresses(uint8_t _pin0, uint8_t _type, uint8_t _pin1)
 {
     /* 0: button
-                   1: switch
-                   2: rocker 3 state
-                   3: multiPress inc. long press
-                   */
+       1: switch
+       2: rocker 3 state
+       3: multiPress inc. long press
+    */
     pin0 = _pin0;
     pin1 = _pin1;
     buttonType = _type;
-    // start();
 }
 void buttonPresses::start()
 {
@@ -32,7 +31,7 @@ uint8_t buttonPresses::getValue()
     }
     else if (buttonType == 1)
     {
-        return _read_switch(pin0, _statePin0);
+        return _read_switch(pin0, _swState0,_lastState_pin0);
     }
     else if (buttonType == 2) /* 3 state Rocker switch */
     {
@@ -49,7 +48,7 @@ uint8_t buttonPresses::getValue()
 }
 uint8_t buttonPresses::_read_button()
 {
-    uint8_t a = _readPin(pin0);
+    uint8_t a = _readPin(pin0,_swState0);
 
     if (a == 1 && _nowPressed == false) /* Press */
     {
@@ -66,9 +65,9 @@ uint8_t buttonPresses::_read_button()
         return 0;
     }
 }
-uint8_t buttonPresses::_read_switch(uint8_t _pin, bool &_state)
+uint8_t buttonPresses::_read_switch(uint8_t _pin, bool &_state, bool &_pinState)
 {
-    uint8_t a = _readPin(_pin);
+    uint8_t a = _readPin(_pin,_pinState);
     if (a != 2 && (a != _state))
     {
         _state = a;
@@ -88,8 +87,8 @@ uint8_t buttonPresses::_read_switch(uint8_t _pin, bool &_state)
 }
 uint8_t buttonPresses::_read_rocker()
 {
-    uint8_t a = _read_switch(pin0, _statePin0);
-    uint8_t b = _read_switch(pin1, _statePin1);
+    uint8_t a = _read_switch(pin0,_swState0,_lastState_pin0);
+    uint8_t b = _read_switch(pin1, _swState1,_lastState_pin1);
     if (a == 2 || b == 2) /* One set to off */
     {
         return 3;
@@ -109,7 +108,7 @@ uint8_t buttonPresses::_read_rocker()
 }
 uint8_t buttonPresses::_read_multiPress()
 {
-    bool a = _readPin(pin0);
+    bool a = _readPin(pin0,_swState0);
 
     if (a == 1 && (_nowPressed == false))
     {
@@ -149,21 +148,30 @@ uint8_t buttonPresses::_read_multiPress()
         return 0;
     }
 }
-uint8_t buttonPresses::_readPin(uint8_t &_pin)
+uint8_t buttonPresses::_readPin(uint8_t &_pin, bool &_state)
 {
     // PRESSED == 1; NOT PRESSED == 0 Err == 2
     bool curRead = digitalRead(_pin);
-    delay(debounce);
-    bool curRead2 = digitalRead(_pin);
-    if (curRead == curRead2)
+    if (curRead != _state)
     {
-        if (curRead == BUT_PRESSED)
+        delay(debounce);
+        bool curRead2 = digitalRead(_pin);
+
+        if (curRead == curRead2)
         {
-            return 1;
+            _state = curRead;
+            if (curRead == BUT_PRESSED)
+            {
+                return 1; /* Pressed */
+            }
+            else
+            {
+                return 0; /* Released */
+            }
         }
         else
         {
-            return 0;
+            return 2;
         }
     }
     else
