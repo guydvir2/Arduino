@@ -1,315 +1,239 @@
-#include <myLOG.h>
+#include <Arduino.h>
+#include "myLOG.h"
 
 flashLOG::flashLOG(char *filename)
 {
     _logfilename = filename;
 }
-bool flashLOG::start(int max_entries, int max_entry_len, bool delyedSave, bool debugmode)
+bool flashLOG::start(uint8_t max_entries, uint8_t max_entry_len, bool delyedSave, bool debugmode)
 {
+    _logSize = max_entries;
+    _logLength = max_entry_len;
+    _useDelayedSave = delyedSave;
+    _useDebug = debugmode;
+
 #if isESP32
     bool a = SPIFFS.begin(true);
 #elif isESP8266
-    bool a = SPIFFS.begin();
+    bool a = LittleFS.begin();
 #endif
 
     if (!a)
     {
         if (_useDebug)
         {
-            Serial.println("SPIFFS mount failed");
+            Serial.println("LittleFS mount failed");
         }
     }
-    _logSize = max_entries;
-    _logLength = max_entry_len + 3;
-    _useDelayedSave = delyedSave;
-    _useDebug = debugmode;
-
     return a;
 }
-void flashLOG::looper(int savePeriod)
+void flashLOG::looper(uint8_t savePeriod)
 {
     bool timeCondition = lastUpdate > 0 && millis() - lastUpdate > savePeriod * 1000UL;
-    bool overSize_Condition = _buff_i > (int)(0.7 * TEMP_LOG_SIZE);
+    bool overSize_Condition = _buff_i > (int)(0.7 * _logSize);
     if (timeCondition || overSize_Condition)
     {
         _write2file();
-        _printDebug("loop_save");
+        // _printDebug("loop_save");
     }
 }
 void flashLOG::write(const char *message, bool NOW)
 {
-    char b[_logLength];
-    // strncpy(b, message, _logLength - 3);
-    // strcpy()
-    // sprintf(_logBuffer[_buff_i], "%s%c", b, _EOL);
-    sprintf(_logBuffer[_buff_i], "%s%c", message, _EOL);
+    sprintf(_logBuffer[_buff_i], "%s", message);
 
-    Serial.print("add buffer #");
-    Serial.print(_buff_i);
-    Serial.print(": ");
-    Serial.println(_logBuffer[_buff_i]);
     _buff_i++;
     lastUpdate = millis();
 
     if (!_useDelayedSave || NOW == true)
     {
         _write2file();
-        _printDebug("immediate save");
+        // _printDebug("immediate save");
     }
 }
-void flashLOG::writeNow()
+void flashLOG::rawPrintfile()
 {
-    _write2file();
-    _printDebug("writeNOW");
-}
-bool flashLOG::del_line(int line_index)
-{
-    int c = 0;
-    int row_counter = 0;
-    char a[_logLength];
-    char *tfile = "/tempfile.txt";
-    bool line_deleted = false;
+    uint8_t row_counter = 0;
 
-    File file1 = SPIFFS.open(_logfilename, "r");
-    File file2 = SPIFFS.open(tfile, "w");
-
-    if (!file1 && !file2)
-    {
-        if (_useDebug)
-        {
-            Serial.println("Failed to open file for appending");
-        }
-    }
-    else
-    {
-        while (file1.available())
-        {
-            char tt = file1.read();
-            if (row_counter != line_index) /* copying non-deleted lines */
-            {
-                if (tt != _EOL)
-                {
-                    a[c] = tt;
-                    c++;
-                }
-                else
-                {
-                    a[c] = _EOL;
-                    a[c + 1] = '\0';
-                    file2.print(a);
-                    sprintf(a, "");
-                    row_counter++;
-                    c = 0;
-                }
-            }
-            else /* ignoring line to be delted */
-            {
-                if (tt == _EOL)
-                {
-                    row_counter++;
-                    line_deleted = true;
-                }
-            }
-        }
-    }
-    file1.close();
-    file2.close();
-    SPIFFS.remove(_logfilename);
-    SPIFFS.rename(tfile, _logfilename);
-    return line_deleted;
-}
-bool flashLOG::del_last_record()
-{
-    int i = getnumlines();
-    return del_line(i - 1);
-}
-void flashLOG::delog()
-{
-    SPIFFS.remove(_logfilename);
-}
-bool flashLOG::readline(int r, char retLog[])
-{
-    int c = 0;
-    int row_counter = 0;
-
-    File file = SPIFFS.open(_logfilename, "r");
+    File file = LittleFS.open(_logfilename, "r");
     if (!file)
     {
         if (_useDebug)
         {
             Serial.println("Failed to open file for reading");
         }
-        return 0;
     }
-    while (file.available())
-    {
-        char tt = file.read();
-        if (tt == _EOL && row_counter != r)
-        {
-            row_counter++;
-        }
-        else if (row_counter == r && tt != _EOL)
-        {
-            retLog[c] = tt;
-            c++;
-        }
-        else if (row_counter == r && tt == _EOL)
-        {
-            retLog[c] = _EOL;
-            retLog[c + 1] = '\0';
-            row_counter++;
-        }
-    }
-    if (row_counter < r)
-    {
-        // sprintf(retLog, "error-line does not exist");
-    }
-    file.close();
-    return 1;
-}
-int flashLOG::getnumlines()
-{
-    int row_counter = 0;
 
-    File file = SPIFFS.open(_logfilename, "r");
+    Serial.print("~~~ Saved in ");
+    Serial.print(_logfilename);
+    Serial.println(" ~~~");
     while (file.available())
     {
-        char tt = file.read();
-        if (tt == _EOL)
+        String line = file.readStringUntil(_EOL);
+        String lineFormat = "row #" + String(row_counter) + " {" + line + "}";
+        Serial.println(lineFormat);
+        row_counter++;
+    }
+    Serial.println("~~~ EOF ~~~");
+    file.close();
+}
+bool flashLOG::del_line(uint8_t line_index)
+{
+    uint8_t row_counter = 0;
+    char *tfile = "/tempfile.txt";
+    bool line_deleted = false;
+
+    File file1 = LittleFS.open(_logfilename, "r");
+    File file2 = LittleFS.open(tfile, "w");
+
+    if (_chkFileOK(file1) && _chkFileOK(file2))
+    {
+        while (file1.available())
         {
+            String line = file1.readStringUntil(_EOL);
+            if (line_index != row_counter)
+            {
+                file2.println(line);
+            }
+            row_counter++;
+        }
+    }
+
+    file1.close();
+    file2.close();
+    LittleFS.remove(_logfilename);
+    LittleFS.rename(tfile, _logfilename);
+    return line_deleted;
+}
+bool flashLOG::del_last_record()
+{
+    uint8_t i = getnumlines();
+    return del_line(i-1);
+}
+bool flashLOG::readline(uint8_t r, char retLog[])
+{
+    uint8_t row_counter = 0;
+
+    File file = LittleFS.open(_logfilename, "r");
+
+    if (_chkFileOK(file))
+    {
+        while (file.available() || row_counter != r)
+        {
+            String line = file.readStringUntil(_EOL);
+            if (row_counter == r)
+            {
+                int len=line.length()+1;
+                line.toCharArray(retLog, len);
+                file.close();
+                return 1;
+            }
+            row_counter++;
+        }
+    }
+    return 0;
+}
+bool flashLOG::delog()
+{
+    return LittleFS.remove(_logfilename);
+}
+uint8_t flashLOG::getnumlines()
+{
+    uint8_t row_counter = 0;
+
+    File file = LittleFS.open(_logfilename, "r");
+    if (file)
+    {
+        while (file.available())
+        {
+            file.readStringUntil(_EOL);
             row_counter++;
         }
     }
     file.close();
     return row_counter;
 }
-int flashLOG::sizelog()
+uint8_t flashLOG::sizelog()
 {
-    File file = SPIFFS.open(_logfilename, "r");
-    int f = file.size();
+    File file = LittleFS.open(_logfilename, "r");
+    uint8_t f = file.size();
     file.close();
     return f;
 }
-void flashLOG::rawPrintfile()
-{
-    int row_counter = 0;
-    bool new_line = true;
 
-    File file = SPIFFS.open(_logfilename, "r");
-    if (!file)
-    {
-        if (_useDebug)
-        {
-            Serial.println("Failed to open file for reading");
-        }
-    }
-    Serial.print("~~~ Saved in ");
-    Serial.print(_logfilename);
-    Serial.println(" ~~~");
-    while (file.available())
-    {
-        if (new_line)
-        {
-            Serial.print("row #");
-            Serial.print(row_counter++);
-            Serial.print(" {");
-            new_line = false;
-        }
-        char tt = file.read();
-        if (tt == _EOL)
-        {
-            new_line = true;
-            Serial.println("}");
-        }
-        else
-        {
-            Serial.print(tt);
-        }
-    }
-    file.close();
-    Serial.println("~~~ EOF ~~~");
-}
-void flashLOG::_write2file()
+bool flashLOG::_chkFileOK(File &_file)
 {
-    int num_lines = getnumlines();
-    if (num_lines > 0 && num_lines + _buff_i > _logSize)
-    {
-        // _del_lines(num_lines + _buff_i - _logSize);
-    }
-    File file1 = SPIFFS.open(_logfilename, "a");
-    if (!file1)
+    if (!_file)
     {
         if (_useDebug)
         {
             Serial.println("Failed to open file for appending");
         }
+        return 0;
     }
     else
     {
-        for (int x = 0; x <= _buff_i; x++)
+        return 1;
+    }
+}
+bool flashLOG::_write2file()
+{
+    bool _line_added = false;
+    uint8_t num_lines = getnumlines();
+    if (_logSize - 1 < num_lines + _buff_i)
+    {
+        _del_lines(num_lines + _buff_i + 1 - _logSize);
+    }
+
+    Serial.print("total Lines: ");
+    Serial.println(num_lines);
+    Serial.print("buffer: ");
+    Serial.println(_buff_i);
+
+    File file1 = LittleFS.open(_logfilename, "a+");
+    if (_chkFileOK(file1))
+    {
+        for (int x = 0; x < _buff_i; x++)
         {
-            file1.print(_logBuffer[x]);
-            sprintf(_logBuffer[x], "");
+            file1.println(_logBuffer[x]);
+            _line_added=true;
         }
         _buff_i = 0;
         lastUpdate = 0;
     }
-    _printDebug(" -Saved");
     file1.close();
-}
-void flashLOG::_del_lines(int line_index)
-{
-    int c = 0;
-    int row_counter = 0;
-    char a[_logLength];
-    char *tfile = "/tempfile.txt";
-
-    File file1 = SPIFFS.open(_logfilename, "r");
-    File file2 = SPIFFS.open(tfile, "w");
-
-    if (!file1 && !file2)
+    if (_useDebug)
     {
-        if (_useDebug)
-        {
-            Serial.println("Failed to open file for appending");
-        }
+        rawPrintfile();
     }
-    else
+    return _line_added;
+}
+bool flashLOG::_del_lines(uint8_t line_index)
+{
+    uint8_t row_counter = 0;
+    char *tfile = "/tempfile.txt";
+    bool _delted_lines=false;
+
+    File file1 = LittleFS.open(_logfilename, "r");
+    File file2 = LittleFS.open(tfile, "w");
+
+    if (_chkFileOK(file1) && _chkFileOK(file2))
     {
         while (file1.available())
         {
-            char tt = file1.read();
+            String line = file1.readStringUntil(_EOL);
+            row_counter++;
             if (row_counter >= line_index) /* copying non-deleted lines */
             {
-            //     if (tt != _EOL)
-            //     {
-            //         a[c] = tt;
-            //         c++;
-            //     }
-            //     else
-            //     {
-            //         a[c] = _EOL;
-            //         a[c + 1] = '\0';
-            //         file2.print(a);
-            //         sprintf(a, "");
-            //         row_counter++;
-            //         c = 0;
-            //     }
-            }
-            else /* ignoring line to be delted */
-            {
-                if (tt == _EOL)
-                {
-                    row_counter++;
-                    Serial.println(row_counter);
-                }
+                file2.println(line);
+                _delted_lines = true;
             }
         }
     }
     file1.close();
     file2.close();
-    // SPIFFS.remove(_logfilename);
-    // SPIFFS.rename(tfile, _logfilename);
+    LittleFS.remove(_logfilename);
+    LittleFS.rename(tfile, _logfilename);
+    return _delted_lines;
 }
 void flashLOG::_printDebug(char *msg)
 {
@@ -319,14 +243,4 @@ void flashLOG::_printDebug(char *msg)
         Serial.print(": ");
         Serial.println(msg);
     }
-}
-void flashLOG::printraw()
-{
-    File file = SPIFFS.open(_logfilename, "r");
-    while (file.available())
-    {
-        char tt = file.read();
-        Serial.print(tt);
-    }
-    file.close();
 }
