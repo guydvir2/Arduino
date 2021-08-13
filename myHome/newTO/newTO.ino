@@ -8,17 +8,17 @@ timeOUTSwitch *TOsw[2] = {}; /* Support up to 2 TOsw */
 
 /* ~~~~~~~~~~~ Values get updated from parameter file ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
 int PWM_res = 1023;
-bool inputPressed[] = {LOW, LOW};        /* High or LOW on button press */
-bool output_ON[] = {HIGH, HIGH};         /* OUTPUT when ON is HIGH or LOW */
-bool OnatBoot[] = {false, false};        /* After reboot- On or Off */
-bool reverseInput[] = {false, false};    /* When a HIGH trig input uses a PULLUP resistor */
-uint8_t numSW = 2;                       /* Num of switches: 1 or 2 */
-uint8_t inputPin[] = {3, 0};             /* IO for inputs */
-uint8_t outputPin[] = {1, 2};            /* IO for outputs */
-uint8_t defPWM[] = {2, 2};               /* Default PWM value for some cases not specified */
-uint8_t limitPWM[] = {80, 80};           /* Limit total intensity, 1-100 */
+bool inputPressed[] = {LOW, LOW};     /* High or LOW on button press */
+bool output_ON[] = {HIGH, HIGH};      /* OUTPUT when ON is HIGH or LOW */
+bool OnatBoot[] = {false, false};     /* After reboot- On or Off */
+bool reverseInput[] = {false, false}; /* When a HIGH trig input uses a PULLUP resistor */
+uint8_t numSW = 2;                    /* Num of switches: 1 or 2 */
+uint8_t inputPin[] = {3, 0};          /* IO for inputs */
+uint8_t outputPin[] = {1, 2};         /* IO for outputs */
+uint8_t defPWM[] = {2, 2};            /* Default PWM value for some cases not specified */
+uint8_t limitPWM[] = {80, 80};        /* Limit total intensity, 1-100 */
 bool outputPWM[] = {false, false};
-char sw_names[2][10];                    /* Name of each Switch, as shown on MQTT msg */
+char sw_names[2][10]; /* Name of each Switch, as shown on MQTT msg */
 /* ~~~~~~~~~~~~~~~~~~ End ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 
 const char *VER = "TOswitch_v0.6";
@@ -130,8 +130,6 @@ void switchON_cb(uint8_t src, uint8_t i)
         char clk[25];
         char orig[10];
 
-        Serial.println("HERE");
-
         if (src == 0)
         {
                 strcpy(orig, "Button");
@@ -163,7 +161,7 @@ void switchON_cb(uint8_t src, uint8_t i)
         else
         {
                 bool msg_a = false;
-                if (src == 1)                                                              /* Resume after boot */
+                if (src == 1) /* Resume after boot */
                 {
                         TOsw[i]->pCounter = TOsw[i]->getCount();
                 }
@@ -171,7 +169,7 @@ void switchON_cb(uint8_t src, uint8_t i)
                 {
                         TOsw[i]->pCounter = defPWM[i];
                 }
-                else if (TOsw[i]->trigType == 0)                                           /* Case of Button */
+                else if (TOsw[i]->trigType == 0) /* Case of Button */
                 {
                         if (TOsw[i]->inTO == true)
                         {
@@ -232,19 +230,19 @@ void switchOFF_cb(uint8_t src, uint8_t i)
                         iot.convert_epoch2clock(TOsw[i]->remTime(), 0, s1, s2);
                         simplifyClock(s2, s1, clk2);
                         sprintf(msg, "%s: [%s] Switched [OFF] after [%s], remained [%s]", orig, sw_names[i], clk, clk2);
-                        iot.pub_msg(msg);
                 }
                 else /* End by timeout */
                 {
                         sprintf(msg, "%s: [%s] Switched [OFF] ended after [%s]", orig, sw_names[i], clk);
-                        iot.pub_msg(msg);
                 }
-        }
-        else
-        {
-                sprintf(msg, "Error: [%s] not ON or not in timeout", sw_names[i]);
                 iot.pub_msg(msg);
         }
+
+        // else
+        // {
+        //         sprintf(msg, "Error: [%s] not ON or not in timeout", sw_names[i]);
+        //         iot.pub_msg(msg);
+        // }
 }
 void init_timeOUT()
 {

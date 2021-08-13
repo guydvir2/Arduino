@@ -184,11 +184,6 @@ bool flashLOG::_write2file()
         _del_lines(num_lines + _buff_i + 1 - _logSize);
     }
 
-    Serial.print("total Lines: ");
-    Serial.println(num_lines);
-    Serial.print("buffer: ");
-    Serial.println(_buff_i);
-
     File file1 = LittleFS.open(_logfilename, "a+");
     if (_chkFileOK(file1))
     {
