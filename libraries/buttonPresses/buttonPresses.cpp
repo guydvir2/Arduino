@@ -18,9 +18,12 @@ buttonPresses::buttonPresses(uint8_t _pin0, uint8_t _type, uint8_t _pin1)
 void buttonPresses::start()
 {
     pinMode(pin0, INPUT_PULLUP);
+    // _swState0 = digitalRead(pin0);
+    _readPin(pin0, _swState0);
     if (pin1 != 255)
     {
         pinMode(pin1, INPUT_PULLUP);
+        _readPin(pin1, _swState1);
     }
 }
 uint8_t buttonPresses::getValue()
@@ -31,7 +34,7 @@ uint8_t buttonPresses::getValue()
     }
     else if (buttonType == 1)
     {
-        return _read_switch(pin0, _swState0,_lastState_pin0);
+        return _read_switch(pin0, _swState0, _lastState_pin0);
     }
     else if (buttonType == 2) /* 3 state Rocker switch */
     {
@@ -48,7 +51,7 @@ uint8_t buttonPresses::getValue()
 }
 uint8_t buttonPresses::_read_button()
 {
-    uint8_t a = _readPin(pin0,_swState0);
+    uint8_t a = _readPin(pin0, _swState0);
 
     if (a == 1 && _nowPressed == false) /* Press */
     {
@@ -67,7 +70,7 @@ uint8_t buttonPresses::_read_button()
 }
 uint8_t buttonPresses::_read_switch(uint8_t _pin, bool &_state, bool &_pinState)
 {
-    uint8_t a = _readPin(_pin,_pinState);
+    uint8_t a = _readPin(_pin, _pinState);
     if (a != 2 && (a != _state))
     {
         _state = a;
@@ -87,8 +90,8 @@ uint8_t buttonPresses::_read_switch(uint8_t _pin, bool &_state, bool &_pinState)
 }
 uint8_t buttonPresses::_read_rocker()
 {
-    uint8_t a = _read_switch(pin0,_swState0,_lastState_pin0);
-    uint8_t b = _read_switch(pin1, _swState1,_lastState_pin1);
+    uint8_t a = _read_switch(pin0, _swState0, _lastState_pin0);
+    uint8_t b = _read_switch(pin1, _swState1, _lastState_pin1);
     if (a == 2 || b == 2) /* One set to off */
     {
         return 3;
@@ -108,42 +111,37 @@ uint8_t buttonPresses::_read_rocker()
 }
 uint8_t buttonPresses::_read_multiPress()
 {
-    bool a = _readPin(pin0,_swState0);
-
-    if (a == 1 && (_nowPressed == false))
+    if (_read_button()) /* Pressed */
     {
-        unsigned long lastRead = millis();
-        _nowPressed = true;
-
-        while (digitalRead(pin0) == BUT_PRESSED && millis() - lastRead < TIMEOUT_LONG_PRESS)
+        /* calc press duration */
+        unsigned long current_press_duration = millis();
+        while (digitalRead(pin0) == BUT_PRESSED && millis() - current_press_duration < TIMEOUT_LONG_PRESS)
         {
             delay(10);
         }
-        int calc = millis() - lastRead;
-        if (calc < SHORT_PRESS_DEF)
+        int press_duration = millis() - current_press_duration;
+
+        /* Was it a short press or a long press ? */
+        if (press_duration < SHORT_PRESS_DEF)
         {
             _pCounter++;
         }
         else
         {
             _lastPress = millis();
-            return END_LONG_PRESS_VAL;
+            return END_LONG_PRESS_VAL; /* Case of long press - return long press value */
         }
         _lastPress = millis();
     }
-    else if (a == 0 && (_nowPressed == true))
-    {
-        _nowPressed = false;
-    }
 
-    if (_pCounter > 0 && millis() - _lastPress > END_PRESS_DEF)
+    if (_pCounter > 0 && millis() - _lastPress > END_PRESS_DEF) /* After timeout - return pCounts */
     {
         byte a = _pCounter;
         _pCounter = 0;
         _lastPress = 0;
         return a;
     }
-    else
+    else                                                        /* Return 0 if no change */
     {
         return 0;
     }

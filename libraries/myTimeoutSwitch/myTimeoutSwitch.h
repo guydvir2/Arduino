@@ -43,7 +43,6 @@ public:
 
 private:
     uint8_t _IN_io = 1;
-    // static uint8_t _counter;
     bool _inputstatOn = HIGH;
     bool _lastinput = !_inputstatOn;
     bool _useSavedCLK = false;

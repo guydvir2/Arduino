@@ -9,7 +9,6 @@ myIOT2 iot;
 void addiotnalMQTT(char *incoming_msg)
 {
     char msg[150];
-    char msg2[20];
     if (strcmp(incoming_msg, "status") == 0)
     {
         sprintf(msg, "I'm OK");
@@ -33,11 +32,10 @@ void startIOTservices()
     iot.useOTA = true;
     iot.useResetKeeper = false;
     iot.useextTopic = false;
-    iot.resetFailNTP = true;
-    iot.useDebug = false;
-    iot.debug_level = 0;
+    iot.useDebug = true;
+    iot.debug_level = 1;
     iot.useNetworkReset = true;
-    iot.noNetwork_reset = 2;
+    iot.noNetwork_reset = 10;
     iot.useBootClockLog = true;
     strcpy(iot.deviceTopic, DEV_TOPIC);
     strcpy(iot.prefixTopic, PREFIX_TOPIC);

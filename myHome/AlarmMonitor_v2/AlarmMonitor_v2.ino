@@ -29,6 +29,12 @@
 3. know bug when arm_home using code, it arm_away.
 */
 
+/*Update 8/2021
+1.Update iot2 Services
+2. switch 2 uint_8 instead of byte
+3. know bug when arm_home using code, it arm_away.
+*/
+
 /*
 
                 +==========+=============+============+============+===============+
@@ -91,22 +97,23 @@
 
 #define RelayOn HIGH
 #define SwitchOn LOW
-#define VER "NodeMCU_3.7"
+#define VER "NodeMCU_3.8"
 
 #include <myIOT2.h>
 #include "myIOT_settings.h"
 #include <Arduino.h>
 
-byte relays[] = {OUTPUT1, OUTPUT2};
-byte inputs[] = {INPUT1, INPUT2};
+const uint8_t relays[] = {OUTPUT1, OUTPUT2};
+const uint8_t inputs[] = {INPUT1, INPUT2};
+const uint8_t systemPause = 2; // seconds, delay to system react
+const uint8_t deBounceInt = 50;
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 // GPIO status flags
 bool indication_ARMED_lastState;
 bool indication_ALARMED_lastState;
 
-const int systemPause = 2000; // milli-seconds, delay to system react
-const int deBounceInt = 50;
+
 
 void startGPIOs()
 {
@@ -125,7 +132,7 @@ void allOff()
         {
                 digitalWrite(relays[i], !RelayOn);
         }
-        delay(systemPause);
+        delay(systemPause*1000);
 }
 void arm_home()
 {
@@ -135,11 +142,11 @@ void arm_home()
                 { // in armed away state
                         digitalWrite(OUTPUT2, !RelayOn);
                         iot.pub_msg("System change: [Disarmed] [Away] using [Code]");
-                        delay(systemPause);
+                        delay(systemPause*1000);
                 }
 
                 digitalWrite(OUTPUT1, RelayOn); // Now switch to armed_home
-                delay(systemPause);
+                delay(systemPause*1000);
 
                 if (digitalRead(INPUT1) == SwitchOn)
                 {
@@ -165,11 +172,11 @@ void arm_away()
                 { // armed home
                         digitalWrite(OUTPUT1, !RelayOn);
                         iot.pub_msg("System change: [Disarmed] [Home] using [Code]");
-                        delay(systemPause);
+                        delay(systemPause*1000);
                 }
 
                 digitalWrite(OUTPUT2, RelayOn); // now switch to Away
-                delay(systemPause);
+                delay(systemPause*1000);
 
                 if (digitalRead(INPUT1) == SwitchOn)
                 {
@@ -190,7 +197,7 @@ void arm_away()
 void disarmed()
 {
         bool armed_code;
-        char mqttmsg[50];
+        char mqttmsg[100];
 
         if (indication_ARMED_lastState == SwitchOn)
         { // indicatio n system is armed
@@ -198,16 +205,16 @@ void disarmed()
                 { // case A: armed using code
                         allOff();
                         armed_code = true;
-                        delay(systemPause);
+                        delay(systemPause*1000);
                 }
                 else
                 { // case B: armed using keyPad
                         // initiate any arm state in order to disarm
                         digitalWrite(OUTPUT1, RelayOn);
-                        delay(systemPause / 2); // Time for system to react to fake state change
+                        delay(systemPause*1000 / 2); // Time for system to react to fake state change
                         allOff();
                         armed_code = false;
-                        delay(systemPause / 2);
+                        delay(systemPause*1000 / 2);
                 }
                 if (digitalRead(INPUT1) != SwitchOn)
                 { //&& digitalRead(OUTPUT2) != RelayOn && digitalRead(OUTPUT1) != RelayOn) {
@@ -230,7 +237,7 @@ void check_systemState_armed()
                 delay(deBounceInt);
                 if (digitalRead(INPUT1) != indication_ARMED_lastState)
                 {
-                        delay(systemPause);
+                        delay(systemPause*1000);
 
                         indication_ARMED_lastState = digitalRead(INPUT1);
                         if (indication_ARMED_lastState == SwitchOn)
@@ -275,7 +282,7 @@ void check_systemState_alarming()
                 delay(deBounceInt);
                 if (digitalRead(INPUT2) != indication_ALARMED_lastState)
                 {
-                        delay(systemPause);
+                        delay(systemPause*1000);
                         // alarm set off
                         if (digitalRead(INPUT2) == SwitchOn)
                         {

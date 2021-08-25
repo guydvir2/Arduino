@@ -15,6 +15,8 @@ uint8_t *outputPins[] = {&LIGHTPIN_UP, &LIGHTPIN_DOWN};
 buttonPresses buttUP(BUTPIN_UP, 3);
 buttonPresses buttDOWN(BUTPIN_DOWN, 3);
 
+bool blinkNow = false;
+
 void butcmds(uint8_t i)
 {
         char *Topic = "myHome/Windows";
@@ -22,7 +24,7 @@ void butcmds(uint8_t i)
         if (i == 1)
         {
                 blink_lights(i, 2);
-                iot.pub_noTopic("up", Topic);
+                // iot.pub_noTopic("up", Topic);
                 iot.pub_msg("All-Windows: Set [Up]");
         }
         else if (i == 2)
@@ -39,7 +41,6 @@ void butcmds(uint8_t i)
                 iot.pub_msg("All-Windows: Set [OFF]");
         }
         // delay(2000);
-        // Serial.println(i);
 }
 void readButtons()
 {
@@ -47,34 +48,35 @@ void readButtons()
            100 - long press
            0 - button released
         */
+
         uint8_t upButton_readVal = buttUP.getValue();
         uint8_t downButton_readVal = buttDOWN.getValue();
         const uint8_t sec_part_cmd = 3;
 
         if (upButton_readVal == 100 || downButton_readVal == 100)
         {
-                butcmds(0);
+                butcmds(0); // Off
         }
         else if (upButton_readVal == 1)
         {
-                butcmds(1);
+                butcmds(1); // UP
         }
         else if (downButton_readVal == 1)
         {
-                butcmds(2);
+                butcmds(2); // Down
         }
-        else if (upButton_readVal == 2)
-        {
-                butcmds(1);
-                delay(sec_part_cmd * 1000);
-                butcmds(0);
-        }
-        else if (downButton_readVal == 2)
-        {
-                butcmds(2);
-                delay(sec_part_cmd * 1000);
-                butcmds(0);
-        }
+        // else if (upButton_readVal == 2)
+        // {
+        //         butcmds(1);
+        //         delay(sec_part_cmd * 1000);
+        //         butcmds(0);
+        // }
+        // else if (downButton_readVal == 2)
+        // {
+        //         butcmds(2);
+        //         delay(sec_part_cmd * 1000);
+        //         butcmds(0);
+        // }
 }
 void steady_blink()
 {
@@ -95,14 +97,17 @@ void steady_blink()
 }
 void blink_lights(uint8_t i, uint8_t x)
 {
-        const uint8_t DELAY = 100;
-        for (int a = 0; a < x; a++)
+        if (blinkNow)
         {
-                digitalWrite(*outputPins[i - 1], !LIGHT_ON);
-                digitalWrite(*outputPins[i - 1], LIGHT_ON);
-                delay(DELAY);
-                digitalWrite(*outputPins[i - 1], !LIGHT_ON);
-                delay(DELAY);
+                const uint8_t DELAY = 100;
+                // for (int a = 0; a < x; a++)
+                // {
+                //         digitalWrite(*outputPins[i - 1], !LIGHT_ON);
+                //         digitalWrite(*outputPins[i - 1], LIGHT_ON);
+                //         delay(DELAY);
+                //         digitalWrite(*outputPins[i - 1], !LIGHT_ON);
+                //         delay(DELAY);
+                // }
         }
 }
 void setup()
@@ -117,5 +122,6 @@ void loop()
 {
         iot.looper();
         readButtons(); /* Delay is already here */
-        steady_blink();
+        // steady_blink();
+        delay(50);
 }

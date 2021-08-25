@@ -1,7 +1,10 @@
 #include <myIOT2.h>
 #include <Arduino.h>
 #include <myTimeoutSwitch.h>
+/* need to fix:
+1. help command + remain 
 
+*/
 myIOT2 iot;
 
 timeOUTSwitch *TOsw[2] = {}; /* Support up to 2 TOsw */

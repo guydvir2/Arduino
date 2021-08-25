@@ -1,11 +1,11 @@
 myIOT2 iot;
-extern const int systemPause, deBounceInt;
+extern const uint8_t systemPause, deBounceInt;
 extern void allOff();
 extern void arm_home();
 extern void arm_away();
 extern void disarmed();
 
-extern byte relays[], inputs[];
+extern const uint8_t relays[], inputs[];
 
 // ~~~~~~~ MQTT Topics ~~~~~~
 #define DEV_TOPIC "alarmMonitor"
@@ -96,7 +96,7 @@ void addiotnalMQTT(char *incoming_msg)
         sprintf(msg, "All OFF: Received from %s", "MQTT");
         iot.pub_msg(msg);
     }
-    else if (strcmp(incoming_msg, "help") == 0)
+    else if (strcmp(incoming_msg, "help2") == 0)
     {
         sprintf(msg, "Help2: Commands #1 - [status, boot, reset, ip, ota, ver2, help, pins]");
         iot.pub_msg(msg);
@@ -116,12 +116,12 @@ void startIOTservices()
     iot.useOTA = true;
     iot.useResetKeeper = false;
     iot.useextTopic = false;
-    iot.resetFailNTP = true;
     iot.useDebug = true;
     iot.debug_level = 0;
     iot.useNetworkReset = true;
     iot.noNetwork_reset = 30;
-    
+    iot.useBootClockLog = true;
+
     strcpy(iot.deviceTopic, DEV_TOPIC);
     strcpy(iot.prefixTopic, PREFIX_TOPIC);
     strcpy(iot.addGroupTopic, GROUP_TOPIC);

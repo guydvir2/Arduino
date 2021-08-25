@@ -1,65 +1,89 @@
-#include <Arduino.h>
-#include <myIOT.h>
+// ±±±±±± button configuration ±±±±±±±
+#include <buttonPresses.h>
+
+#define LED_PIN D1
+#define BUTTON_PIN D2
+#define SWITCH_ON HIGH
+#define LIGHT_ON_TIMEOUT 30 // minutes
+
+buttonPresses ButPress(BUTTON_PIN, 0);
+// ±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+
+// ±±±±±± iot configuration ±±±±±±±
+#include <myIOT2.h>
+#include <TimeLib.h>
+
+#define DEV_TOPIC "dotClock"
+#define GROUP_TOPIC "intLights"
+#define PREFIX_TOPIC "myHome"
+#define ADD_MQTT_FUNC addiotnalMQTT
+
+myIOT2 iot;
+// ±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+
+// ±±±±±± Display configuration ±±±±±±±
 #include <MD_Parola.h>
 #include <MD_MAX72xx.h>
 #include <SPI.h>
 
-// ********** Sketch Services ***********
-#define VER "WEMoSV0.2"
-#define ADD_MQTT_FUNC addiotnalMQTT
-
-#define BUTTON_PIN D2
-#define SWITCH_PIN D1
-#define SWITCH_ON HIGH
-#define BUT_PRESSED LOW
-
-#define DEV_TOPIC "dotClock"
-#define GROUP_TOPIC ""
-#define PREFIX_TOPIC "myHome"
-
-#define HARDWARE_TYPE MD_MAX72XX::FC16_HW
-#define MAX_DEVICES 4
+#define CS_PIN D4
 #define CLK_PIN D5
 #define DATA_PIN D7
-#define CS_PIN D4
+#define MAX_DEVICES 4
+#define HARDWARE_TYPE MD_MAX72XX::FC16_HW
 
-const int minutesON = 30;
-bool lastDet_state = false;
-unsigned long ONclock = 0;
-char dispText[10];
-
-myIOT iot;
 MD_Parola dotMatrix = MD_Parola(HARDWARE_TYPE, CS_PIN, MAX_DEVICES);
+// ±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+
+#define VER "LEDClockV0.3"
+
+char dispText[10];
+unsigned long ONclock = 0;
 
 void start_gpio()
 {
-  pinMode(BUTTON_PIN, INPUT_PULLUP);
-  pinMode(SWITCH_PIN, OUTPUT);
+  ButPress.start();
+  pinMode(LED_PIN, OUTPUT);
 }
 void turnLEDsON(char *txt = "Button")
 {
-  if (digitalRead(SWITCH_PIN) == LOW)
+  if (digitalRead(LED_PIN) == !SWITCH_ON)
   {
-    char a[20];
-    sprintf(a, "%s: LEDS turn [ON], TimeOut [%d min]", txt, minutesON);
-    digitalWrite(SWITCH_PIN, SWITCH_ON);
-    lastDet_state = 1;
+    postMSG("ON", txt);
+    digitalWrite(LED_PIN, SWITCH_ON);
     ONclock = millis();
-    iot.pub_msg(a);
     iot.pub_state("on");
   }
 }
 void turnLEDsOFF(char *txt = "TimeOUT")
 {
-  if (digitalRead(SWITCH_PIN) == HIGH)
+  if (digitalRead(LED_PIN) == SWITCH_ON)
   {
-    char a[20];
-    sprintf(a, "%s: LEDS turn [OFF]", txt);
-    digitalWrite(SWITCH_PIN, !SWITCH_ON);
-    lastDet_state = 0;
+    postMSG("Off", txt);
+    digitalWrite(LED_PIN, !SWITCH_ON);
     ONclock = 0;
-    iot.pub_msg(a);
     iot.pub_state("off");
+  }
+}
+void checkButton()
+{
+  if (ButPress.getValue() == 1)
+  {
+    if (digitalRead(LED_PIN) == SWITCH_ON)
+    {
+      turnLEDsOFF("Button");
+    }
+    else
+    {
+      turnLEDsON("Button");
+    }
+  }
+}
+void checkTimeOUT()
+{
+  if (ONclock > 0 && millis() > ONclock + LIGHT_ON_TIMEOUT * 1000 * 60L)
+  {
+    turnLEDsOFF();
   }
 }
 
@@ -69,11 +93,11 @@ void startIOTservices()
   iot.useWDT = true;
   iot.useOTA = true;
   iot.useResetKeeper = false;
-  iot.resetFailNTP = true;
   iot.useDebug = false;
+  iot.useBootClockLog = true;
   iot.debug_level = 0;
   iot.useNetworkReset = true;
-  iot.noNetwork_reset = 1;
+  iot.noNetwork_reset = 10;
   strcpy(iot.deviceTopic, DEV_TOPIC);
   strcpy(iot.prefixTopic, PREFIX_TOPIC);
   strcpy(iot.addGroupTopic, GROUP_TOPIC);
@@ -82,15 +106,14 @@ void startIOTservices()
 void addiotnalMQTT(char *incoming_msg)
 {
   char msg[150];
-  char msg2[20];
   if (strcmp(incoming_msg, "status") == 0)
   {
-    sprintf(msg, "Status: LED strip is [%s]", digitalRead(SWITCH_PIN) ? "ON" : "OFF");
+    sprintf(msg, "Status: LED strip is [%s]", digitalRead(LED_PIN) ? "ON" : "OFF");
     iot.pub_msg(msg);
   }
   else if (strcmp(incoming_msg, "help2") == 0)
   {
-    sprintf(msg, "Help: Commands #3 - [on, off, gpio]");
+    sprintf(msg, "Help2: Commands #3 - [on, off, gpio]");
     iot.pub_msg(msg);
   }
   else if (strcmp(incoming_msg, "ver2") == 0)
@@ -100,21 +123,23 @@ void addiotnalMQTT(char *incoming_msg)
   }
   else if (strcmp(incoming_msg, "gpio") == 0)
   {
-    sprintf(msg, "GPIO's: Button[%d], Relay[%d]", BUTTON_PIN, SWITCH_PIN);
+    sprintf(msg, "GPIO's: Button[%d], Relay[%d]", BUTTON_PIN, LED_PIN);
     iot.pub_msg(msg);
   }
   else if (strcmp(incoming_msg, "on") == 0)
   {
-    turnLEDsON();
-    sprintf(msg, "MQTT: LEDstrip switched [ON]");
-    iot.pub_msg(msg);
+    turnLEDsON("MQTT");
   }
   else if (strcmp(incoming_msg, "off") == 0)
   {
-    turnLEDsOFF();
-    sprintf(msg, "MQTT: LEDstrip switched [OFF]");
-    iot.pub_msg(msg);
+    turnLEDsOFF("MQTT");
   }
+}
+void postMSG(char *state, char *source)
+{
+  char a[50];
+  sprintf(a, "%s: LEDS [%s], TimeOut [%d min]", source, state, LIGHT_ON_TIMEOUT);
+  iot.pub_msg(a);
 }
 
 void start_dotMatrix()
@@ -122,77 +147,62 @@ void start_dotMatrix()
   dotMatrix.begin();
   dotMatrix.setIntensity(2);
 }
+void update_clk_newMinute(time_t &t)
+{
+  sprintf(dispText, "%02d:%02d\0", hour(t), minute(t));
+  dotMatrix.displayText(dispText, PA_CENTER, 30, 0, PA_SCROLL_LEFT);
+  while (!dotMatrix.displayAnimate())
+  {
+  }
+}
+void display_date(time_t &t)
+{
+  sprintf(dispText, "%02d/%02d\0", day(t), month(t));
+  dotMatrix.displayText(dispText, PA_CENTER, 30, 0, PA_SCROLL_RIGHT);
+  dotMatrix.displayText(dispText, PA_CENTER, 20, 0, PA_OPENING);
+  while (!dotMatrix.displayAnimate())
+  {
+  }
+}
+void update_clk_blink(time_t &t)
+{
+  static bool blink = false;
+
+  sprintf(dispText, "%02d%c%02d\0", hour(t), blink ? ':' : ' ', minute(t));
+  dotMatrix.displayText(dispText, PA_CENTER, 0, 0, PA_PRINT);
+  dotMatrix.displayAnimate();
+  blink = !blink;
+}
 void updateDisplay()
 {
-  char clk[10];
   const int blink_delay = 500;
-  static int lastMin = 0;
-  static bool blink = false;
+  static uint8_t lastMin = 0;
   static bool dateshown = false;
   static unsigned long blink_clock = 0;
 
-  time_t t = now();
+  time_t t = iot.now();
 
-  if (lastMin != minute(t))
+  if (lastMin != minute(t))                         /* update clk every minute with animation */
   {
-    sprintf(dispText, "%02d:%02d\0", hour(t), minute(t));
-    dotMatrix.displayText(dispText, PA_CENTER, 30, 0, PA_SCROLL_LEFT);
+    update_clk_newMinute(t);
     lastMin = minute(t);
     dateshown = false;
-    while (!dotMatrix.displayAnimate())
-    {
-    }
   }
-  else if (second(t) > 5 && second(t) <= 10)
+  else if (second(t) > 5 && second(t) <= 10)        /* display date at first 5sec every minute */
   {
     if (dateshown == false)
     {
+      display_date(t);
       dateshown = true;
-
-      sprintf(dispText, "%02d/%02d\0", day(t), month(t));
-      dotMatrix.displayText(dispText, PA_CENTER, 30, 0, PA_SCROLL_RIGHT);
-      dotMatrix.displayText(dispText, PA_CENTER, 20, 0, PA_OPENING);
-      while (!dotMatrix.displayAnimate())
-      {
-      }
     }
   }
-  else if (millis() >= blink_clock + blink_delay)
+  else if (millis() >= blink_clock + blink_delay)   /* update blinks */
   {
-    sprintf(dispText, "%02d%c%02d\0", hour(t), blink ? ':' : ' ', minute(t));
-    dotMatrix.displayText(dispText, PA_CENTER, 0, 0, PA_PRINT);
-    dotMatrix.displayAnimate();
-    blink = !blink;
+    update_clk_blink(t);
     blink_clock = millis();
   }
 }
 
-void checkButton()
-{
-  if (digitalRead(BUTTON_PIN) == BUT_PRESSED)
-  {
-    delay(50);
-    if (digitalRead(BUTTON_PIN) == BUT_PRESSED)
-    {
-      if (lastDet_state == 1)
-      {
-        turnLEDsOFF("Button");
-      }
-      else
-      {
-        turnLEDsON("Button");
-      }
-      delay(400);
-    }
-  }
-}
-void checkTimeOUT()
-{
-  if (ONclock > 0 && millis() > ONclock + minutesON * 1000 * 60L)
-  {
-    turnLEDsOFF();
-  }
-}
 void setup()
 {
   startIOTservices();
