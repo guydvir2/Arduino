@@ -10,12 +10,12 @@ typedef void (*func_cb)(uint8_t src, uint8_t i);
 class timeOUTSwitch
 {
 public:
-    const char *VER = "TOsw_v0.8";
+    const char *VER = "TOsw_v0.9";
     bool useInput = false;
     bool inTO = false;
     uint8_t trigType = 0; /* 
                           0: momentary button + in PWM pulse counter / PWM
-                          1:switch; 
+                          1:O-OFF switch; 
                           2:trigger/ sensor; 
                           */
 

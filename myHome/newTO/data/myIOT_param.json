@@ -9,7 +9,7 @@
     "useNetworkReset": true,
     "noNetwork_reset": 30,
     "useextTopic": false,
-    "deviceTopic": "kidsBed",
+    "deviceTopic": "toiletLEDs",
     "groupTopic": "intLights",
     "prefixTopic": "myHome",
     "ver": 0.2

@@ -2,8 +2,8 @@
 
 myIOT2 iot;
 
-#define DEV_TOPIC "All-Win_Controller"
-#define GROUP_TOPIC ""
+#define DEV_TOPIC "AllWins"
+#define GROUP_TOPIC "Windows"
 #define PREFIX_TOPIC "myHome"
 
 void addiotnalMQTT(char *incoming_msg)

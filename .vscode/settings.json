@@ -18,7 +18,8 @@
         "cstddef": "cpp",
         "regex": "cpp",
         "fstream": "cpp",
-        "ranges": "cpp"
+        "ranges": "cpp",
+        "ostream": "cpp"
     },
     "C_Cpp.errorSquiggles": "Disabled"
 }

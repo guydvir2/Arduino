@@ -1,48 +1,48 @@
 {
-    "numSW": 2,
+    "numSW": 1,
     "OnatBoot": [
         false,
         false
     ],
     "sw_names": [
-        "Oz",
-        "Shachar"
+        "LEDstrip",
+        "1345"
     ],
     "trigType": [
-        0,
-        0
+        2,
+        1
     ],
     "useInput": [
         true,
         true
     ],
     "inputPressed": [
-        false,
+        true,
         false
     ],
     "reverseInput": [
-        false,
+        true,
         false
     ],
     "inputPin": [
         2,
-        13
+        4
     ],
     "outputPin": [
-        0,
-        12
+        1,
+        2
     ],
     "output_ON": [
         true,
         true
     ],
     "def_TO_minutes": [
-        60,
-        120
+        10,
+        10
     ],
     "maxON_minutes": [
-        300,
-        300
+        180,
+        180
     ],
     "max_pCount": [
         3,
@@ -50,11 +50,11 @@
     ],
     "defPWM": [
         2,
-        2
+        3
     ],
     "limitPWM": [
         80,
-        80
+        60
     ],
     "outputPWM": [
         true,

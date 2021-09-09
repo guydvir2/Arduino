@@ -53,11 +53,11 @@ void timeOUTSwitch::startIO(int _in_IO, bool _instate, bool _reverseInput)
 
     if (_inputstatOn == LOW)
     {
-        pinMode(_IN_io, INPUT_PULLUP);
+        pinMode(_IN_io, INPUT_PULLUP); /* Input that trigers LOW, shuch as buttons that have pullups*/
     }
     else if (_reverseInput)
     {
-        pinMode(_IN_io, INPUT_PULLUP);
+        pinMode(_IN_io, INPUT); /* Inputs that triger HIGH , as PIR sensors*/
     }
     else
     {
@@ -128,7 +128,7 @@ void timeOUTSwitch::_input_looper()
 
         if (currentRead_0 == currentRead_1 && currentRead_0 != _lastinput)
         {
-            if (trigType == 0 && currentRead_0 == _inputstatOn) /* momnetary button is pressed */
+            if (trigType == 0 && currentRead_0 == _inputstatOn)      /* momnetary button is pressed */
             {
                 bool cond_a = (pCounter == 0) || (pCounter < max_pCount && millis() - _lastPress < 1000 * press_to_off); /* first press on, or inc intensity */
                 bool cond_b = (pCounter >= max_pCount) || (millis() - _lastPress > 1000 * press_to_off);                 /* when press is far from last - turn off */
@@ -150,7 +150,7 @@ void timeOUTSwitch::_input_looper()
                     Serial.println("State not defined");
                 }
             }
-            else if (trigType == 1) /* Switch is set ON or OFF */
+            else if (trigType == 1)                                  /* Switch is set ON or OFF */
             {
                 if (currentRead_0 == _inputstatOn)
                 {

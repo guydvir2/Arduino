@@ -1,12 +1,10 @@
 #include <myIOT2.h>
-#include <Arduino.h>
 #include <myTimeoutSwitch.h>
 /* need to fix:
 1. help command + remain 
-
 */
-myIOT2 iot;
 
+myIOT2 iot;
 timeOUTSwitch *TOsw[2] = {}; /* Support up to 2 TOsw */
 
 /* ~~~~~~~~~~~ Values get updated from parameter file ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
@@ -24,7 +22,7 @@ bool outputPWM[] = {false, false};
 char sw_names[2][10]; /* Name of each Switch, as shown on MQTT msg */
 /* ~~~~~~~~~~~~~~~~~~ End ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 
-const char *VER = "TOswitch_v0.6";
+const char *VER = "TOswitch_v0.7";
 
 #include "myTO_param.h"
 #include "myIOT_settings.h"
@@ -178,6 +176,13 @@ void switchON_cb(uint8_t src, uint8_t i)
                         {
                                 sprintf(msg, "%s: [%s] Power change[%d%%]", orig, sw_names[i], (int)(100 * TOsw[i]->pCounter / TOsw[i]->max_pCount));
                                 msg_a = true;
+                        }
+                }
+                else if (TOsw[i]->trigType == 2) /* Case of Sensor - extend duration */
+                {
+                        if (TOsw[i]->inTO == true)
+                        {
+                                return;
                         }
                 }
                 PWMdim(TOsw[i]->pCounter, i);

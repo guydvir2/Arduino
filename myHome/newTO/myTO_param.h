@@ -1,4 +1,3 @@
-#include <Arduino.h>
 #include <ArduinoJson.h>
 #include <myJSON.h>
 

@@ -23,6 +23,7 @@ void buttonPresses::start()
     if (pin1 != 255)
     {
         pinMode(pin1, INPUT_PULLUP);
+        // _swState1 = digitalRead(pin1);
         _readPin(pin1, _swState1);
     }
 }
@@ -92,7 +93,12 @@ uint8_t buttonPresses::_read_rocker()
 {
     uint8_t a = _read_switch(pin0, _swState0, _lastState_pin0);
     uint8_t b = _read_switch(pin1, _swState1, _lastState_pin1);
-    if (a == 2 || b == 2) /* One set to off */
+
+    if (a == 2 && b == 2) /* Both are off */
+    {
+        return 0;
+    }
+    else if (a == 2 || b == 2) /* One set to off */
     {
         return 3;
     }
@@ -141,7 +147,7 @@ uint8_t buttonPresses::_read_multiPress()
         _lastPress = 0;
         return a;
     }
-    else                                                        /* Return 0 if no change */
+    else /* Return 0 if no change */
     {
         return 0;
     }

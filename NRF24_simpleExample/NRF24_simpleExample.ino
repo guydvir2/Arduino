@@ -9,14 +9,14 @@
 #if ROLE == 1
 const byte w_address = 1;
 const byte r_address = 0;
-const byte CE_PIN = 7;
-const byte CSN_PIN = 8;
+const byte CE_PIN = 9;
+const byte CSN_PIN = 10;
 
 #elif ROLE == 0
 const byte w_address = 0;
 const byte r_address = 1;
 const byte CE_PIN = D4; /* ESP8266*/
-const byte CSN_PIN = D2;
+const byte CSN_PIN = D3;
 // const byte CE_PIN = 7;
 // const byte CSN_PIN = 8;
 #endif

@@ -24,7 +24,7 @@ void butcmds(uint8_t i)
         if (i == 1)
         {
                 blink_lights(i, 2);
-                // iot.pub_noTopic("up", Topic);
+                iot.pub_noTopic("up", Topic);
                 iot.pub_msg("All-Windows: Set [Up]");
         }
         else if (i == 2)
