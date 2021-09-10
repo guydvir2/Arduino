@@ -1,8 +1,5 @@
 #include <myIOT2.h>
 #include <myTimeoutSwitch.h>
-/* need to fix:
-1. help command + remain 
-*/
 
 myIOT2 iot;
 timeOUTSwitch *TOsw[2] = {}; /* Support up to 2 TOsw */
@@ -12,7 +9,7 @@ int PWM_res = 1023;
 bool inputPressed[] = {LOW, LOW};     /* High or LOW on button press */
 bool output_ON[] = {HIGH, HIGH};      /* OUTPUT when ON is HIGH or LOW */
 bool OnatBoot[] = {false, false};     /* After reboot- On or Off */
-bool reverseInput[] = {false, false}; /* When a HIGH trig input uses a PULLUP resistor */
+ 
 uint8_t numSW = 2;                    /* Num of switches: 1 or 2 */
 uint8_t inputPin[] = {3, 0};          /* IO for inputs */
 uint8_t outputPin[] = {1, 2};         /* IO for outputs */
@@ -22,7 +19,7 @@ bool outputPWM[] = {false, false};
 char sw_names[2][10]; /* Name of each Switch, as shown on MQTT msg */
 /* ~~~~~~~~~~~~~~~~~~ End ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 
-const char *VER = "TOswitch_v0.7";
+const char *VER = "TOswitch_v0.71";
 
 #include "myTO_param.h"
 #include "myIOT_settings.h"
@@ -267,7 +264,7 @@ void start_timeOUT()
         for (int i = 0; i < numSW; i++)
         {
                 TOsw[i]->icount = i;
-                TOsw[i]->startIO(inputPin[i], inputPressed[i], reverseInput[i]);
+                TOsw[i]->startIO(inputPin[i], inputPressed[i]);
                 TOsw[i]->def_funcs(switchON_cb, switchOFF_cb);
                 if (OnatBoot[i])
                 {
@@ -286,12 +283,11 @@ void loop_timeOUT()
         }
 }
 
-/* Mains */
 void setup()
 {
         init_timeOUT();
         startRead_parameters();
-        analogWriteRange(1023);
+        analogWriteRange(1023); /* PWM at ESP8266 */
         startIO();
         startIOTservices();
         start_timeOUT();

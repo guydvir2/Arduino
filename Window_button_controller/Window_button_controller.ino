@@ -65,18 +65,6 @@ void readButtons()
         {
                 butcmds(2); // Down
         }
-        // else if (upButton_readVal == 2)
-        // {
-        //         butcmds(1);
-        //         delay(sec_part_cmd * 1000);
-        //         butcmds(0);
-        // }
-        // else if (downButton_readVal == 2)
-        // {
-        //         butcmds(2);
-        //         delay(sec_part_cmd * 1000);
-        //         butcmds(0);
-        // }
 }
 void steady_blink()
 {

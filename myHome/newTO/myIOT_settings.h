@@ -85,21 +85,7 @@ void addiotnalMQTT(char *incoming_msg)
     }
     else if (strcmp(incoming_msg, "help2") == 0)
     {
-        sprintf(msg, "Help2: Commands #3 - [{on,i}, {off,i}, all_off, {timeout,minutes,i}, {remain,i}, {show_flash_param}]");
-        iot.pub_msg(msg);
-    }
-    else if (strcmp(incoming_msg, "p") == 0)
-    {
-        for (int i = 0; i < numSW; i++)
-        {
-            digitalWrite(outputPin[i], !output_ON[i]);
-        }
-        // sprintf(msg, "Help2: Commands #3 - [{on,i}, {off,i}, all_off, {timeout,minutes,i}, {remain,i}, {show_flash_param}]");
-        iot.pub_msg("done");
-    }
-    else if (strcmp(incoming_msg, "T") == 0)
-    {
-        sprintf(msg, "T: io%d:%d io%d:%d", outputPin[0], digitalRead(outputPin[0]), outputPin[1], digitalRead(outputPin[1]));
+        sprintf(msg, "Help2: Commands #3 - [{on,i}, {off,i}, all_off, all_on, {timeout,minutes,i}, {remain,i}, {show_flash_param}]");
         iot.pub_msg(msg);
     }
     else
@@ -141,8 +127,17 @@ void addiotnalMQTT(char *incoming_msg)
             }
             else if (strcmp(iot.inline_param[1], "remain") == 0)
             {
-                sprintf(msg, "Remain: [%s] [%d sec]", sw_names[atoi(iot.inline_param[0])], TOsw[atoi(iot.inline_param[0])]->remTime());
-                iot.pub_msg(msg);
+                char s1[15], s2[7];
+                char clk[60], clk2[25];
+                int i = atoi(iot.inline_param[0]);
+                if (TOsw[i]->remTime() > 0)
+                {
+                    iot.convert_epoch2clock(TOsw[i]->remTime(), 0, s1, s2);
+                    simplifyClock(s2, s1, clk2);
+                    iot.get_timeStamp(TOsw[i]->onClk());
+                    sprintf(clk, "remain[%s] ", clk2);
+                    iot.pub_msg(clk);
+                }
             }
             else if (strcmp(iot.inline_param[1], "off") == 0)
             {

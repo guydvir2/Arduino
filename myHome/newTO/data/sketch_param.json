@@ -20,16 +20,12 @@
         true,
         false
     ],
-    "reverseInput": [
-        true,
-        false
-    ],
     "inputPin": [
-        2,
+        5,
         4
     ],
     "outputPin": [
-        1,
+        12,
         2
     ],
     "output_ON": [
@@ -41,7 +37,7 @@
         10
     ],
     "maxON_minutes": [
-        180,
+        600,
         180
     ],
     "max_pCount": [
@@ -61,5 +57,5 @@
         true
     ],
     "PWM_res": 1023,
-    "v_file": 0.6
+    "v_file": 0.7
 }

@@ -46,7 +46,7 @@ void timeOUTSwitch::finish_TO(uint8_t src)
     _endf(src, icount); /*calling first to get remTime correct on MQTT msg */
     clearTO();
 }
-void timeOUTSwitch::startIO(int _in_IO, bool _instate, bool _reverseInput)
+void timeOUTSwitch::startIO(int _in_IO, bool _instate)
 {
     _IN_io = _in_IO;
     _inputstatOn = _instate;
@@ -55,13 +55,9 @@ void timeOUTSwitch::startIO(int _in_IO, bool _instate, bool _reverseInput)
     {
         pinMode(_IN_io, INPUT_PULLUP); /* Input that trigers LOW, shuch as buttons that have pullups*/
     }
-    else if (_reverseInput)
-    {
-        pinMode(_IN_io, INPUT); /* Inputs that triger HIGH , as PIR sensors*/
-    }
     else
     {
-        pinMode(_IN_io, INPUT);
+        pinMode(_IN_io, INPUT); /* Inputs that triger HIGH , as PIR sensors*/
     }
     _lastinput = digitalRead(_IN_io);
 }

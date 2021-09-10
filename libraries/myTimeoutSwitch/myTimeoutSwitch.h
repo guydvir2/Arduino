@@ -32,7 +32,7 @@ public:
     void def_funcs(func_cb startF, func_cb endF);
     void start_TO(int _TO, uint8_t src, bool minutes = true);
     void finish_TO(uint8_t src);
-    void startIO(int _in_IO, bool _instate = HIGH, bool _reverseInput = false);
+    void startIO(int _in_IO, bool _instate = HIGH);
     void looper();
     void clearTO();
     int remTime();
