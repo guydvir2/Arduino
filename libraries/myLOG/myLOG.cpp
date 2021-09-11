@@ -13,7 +13,7 @@ bool flashLOG::start(uint8_t max_entries, uint8_t max_entry_len, bool delyedSave
     _useDebug = debugmode;
 
 #if isESP32
-    bool a = SPIFFS.begin(true);
+    bool a = LITTLEFS.begin(true);
 #elif isESP8266
     bool a = LittleFS.begin();
 #endif
@@ -54,7 +54,12 @@ void flashLOG::rawPrintfile()
 {
     uint8_t row_counter = 0;
 
+#if isESP8266
     File file = LittleFS.open(_logfilename, "r");
+#elif isESP32
+    File file = LITTLEFS.open(_logfilename, "r");
+#endif
+
     if (!file)
     {
         if (_useDebug)
@@ -81,9 +86,13 @@ bool flashLOG::del_line(uint8_t line_index)
     uint8_t row_counter = 0;
     char *tfile = "/tempfile.txt";
     bool line_deleted = false;
-
+#if isESP8266
     File file1 = LittleFS.open(_logfilename, "r");
     File file2 = LittleFS.open(tfile, "w");
+#elif isESP32
+    File file1 = LITTLEFS.open(_logfilename, "r");
+    File file2 = LITTLEFS.open(tfile, "w");
+#endif
 
     if (_chkFileOK(file1) && _chkFileOK(file2))
     {
@@ -100,20 +109,28 @@ bool flashLOG::del_line(uint8_t line_index)
 
     file1.close();
     file2.close();
+#if isESP8266
     LittleFS.remove(_logfilename);
     LittleFS.rename(tfile, _logfilename);
+#elif isESP32
+    LITTLEFS.remove(_logfilename);
+    LITTLEFS.rename(tfile, _logfilename);
+#endif
     return line_deleted;
 }
 bool flashLOG::del_last_record()
 {
     uint8_t i = getnumlines();
-    return del_line(i-1);
+    return del_line(i - 1);
 }
 bool flashLOG::readline(uint8_t r, char retLog[])
 {
     uint8_t row_counter = 0;
-
+#if isESP8266
     File file = LittleFS.open(_logfilename, "r");
+#elif isESP32
+    File file = LITTLEFS.open(_logfilename, "r");
+#endif
 
     if (_chkFileOK(file))
     {
@@ -122,7 +139,7 @@ bool flashLOG::readline(uint8_t r, char retLog[])
             String line = file.readStringUntil(_EOL);
             if (row_counter == r)
             {
-                int len=line.length()+1;
+                int len = line.length() + 1;
                 line.toCharArray(retLog, len);
                 file.close();
                 return 1;
@@ -134,13 +151,20 @@ bool flashLOG::readline(uint8_t r, char retLog[])
 }
 bool flashLOG::delog()
 {
+#if isESP8266
     return LittleFS.remove(_logfilename);
+#elif isESP32
+    return LITTLEFS.remove(_logfilename);
+#endif
 }
 uint8_t flashLOG::getnumlines()
 {
     uint8_t row_counter = 0;
-
+#if isESP8266
     File file = LittleFS.open(_logfilename, "r");
+#elif isESP32
+    File file = LITTLEFS.open(_logfilename, "r");
+#endif
     if (file)
     {
         while (file.available())
@@ -154,8 +178,12 @@ uint8_t flashLOG::getnumlines()
 }
 uint8_t flashLOG::sizelog()
 {
+#if isESP8266
     File file = LittleFS.open(_logfilename, "r");
-    uint8_t f = file.size();
+#elif isESP32
+    File file = LITTLEFS.open(_logfilename, "r");
+#endif
+    int f = file.size();
     file.close();
     return f;
 }
@@ -183,14 +211,18 @@ bool flashLOG::_write2file()
     {
         _del_lines(num_lines + _buff_i + 1 - _logSize);
     }
-
+#if isESP8266
     File file1 = LittleFS.open(_logfilename, "a+");
+#elif isESP32
+    File file1 = LITTLEFS.open(_logfilename, "a+");
+#endif
+
     if (_chkFileOK(file1))
     {
         for (int x = 0; x < _buff_i; x++)
         {
             file1.println(_logBuffer[x]);
-            _line_added=true;
+            _line_added = true;
         }
         _buff_i = 0;
         lastUpdate = 0;
@@ -206,10 +238,14 @@ bool flashLOG::_del_lines(uint8_t line_index)
 {
     uint8_t row_counter = 0;
     char *tfile = "/tempfile.txt";
-    bool _delted_lines=false;
-
+    bool _delted_lines = false;
+#if isESP8266
     File file1 = LittleFS.open(_logfilename, "r");
     File file2 = LittleFS.open(tfile, "w");
+#elif isESP32
+    File file1 = LITTLEFS.open(_logfilename, "r");
+    File file2 = LITTLEFS.open(tfile, "w");
+#endif
 
     if (_chkFileOK(file1) && _chkFileOK(file2))
     {
@@ -226,8 +262,13 @@ bool flashLOG::_del_lines(uint8_t line_index)
     }
     file1.close();
     file2.close();
+#if isESP8266
     LittleFS.remove(_logfilename);
     LittleFS.rename(tfile, _logfilename);
+#elif isESP32
+    LITTLEFS.remove(_logfilename);
+    LITTLEFS.rename(tfile, _logfilename);
+#endif
     return _delted_lines;
 }
 void flashLOG::_printDebug(char *msg)

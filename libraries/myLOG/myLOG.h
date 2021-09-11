@@ -5,12 +5,13 @@
 #ifndef myLOG_h
 #define myLOG_h
 #include <FS.h>
-#include <LittleFS.h>
+
 #if defined(ESP32)
-#include <SPIFFS.h>
+#include <LITTLEFS.h>
 #define isESP32 true
 #define isESP8266 false
 #elif defined(ARDUINO_ARCH_ESP8266)
+#include <LittleFS.h>
 #define isESP32 false
 #define isESP8266 true
 #endif
@@ -32,7 +33,7 @@ private:
     const char _EOL = '\n';
 
 public:
-    char *VeR = "flashLOG v1.1";
+    char *VeR = "flashLOG v1.2";
     unsigned long lastUpdate = 0;
 
 private:

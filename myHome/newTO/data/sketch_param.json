@@ -1,44 +1,44 @@
 {
     "numSW": 1,
     "OnatBoot": [
-        false,
+        true,
         false
     ],
     "sw_names": [
-        "LEDstrip",
-        "1345"
+        "Bulb",
+        "Ledstrip"
     ],
     "trigType": [
-        2,
+        0,
         1
     ],
     "useInput": [
-        true,
-        true
+        false,
+        false
     ],
     "inputPressed": [
         true,
         false
     ],
     "inputPin": [
-        5,
-        4
+        14,
+        13
     ],
     "outputPin": [
         12,
-        2
+        5
     ],
     "output_ON": [
         true,
         true
     ],
     "def_TO_minutes": [
-        10,
-        10
+        420,
+        180
     ],
     "maxON_minutes": [
-        600,
-        180
+        720,
+        360
     ],
     "max_pCount": [
         3,
@@ -53,8 +53,8 @@
         60
     ],
     "outputPWM": [
-        true,
-        true
+        false,
+        false
     ],
     "PWM_res": 1023,
     "v_file": 0.7

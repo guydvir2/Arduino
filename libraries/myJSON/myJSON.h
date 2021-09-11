@@ -1,12 +1,10 @@
 #ifndef myJSON_h
 #define myJSON_h
-#include "Arduino.h"
 #include <ArduinoJson.h>
-
 #include <FS.h>
 
 #if defined(ESP32)
-#include <SPIFFS.h>
+#include <LITTLEFS.h>
 #define isESP32 true
 #define isESP8266 false
 #elif defined(ARDUINO_ARCH_ESP8266)

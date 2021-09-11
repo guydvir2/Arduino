@@ -12,7 +12,7 @@ myJSON::myJSON(const char *filename, bool useserial, int doc_size)
 void myJSON::start()
 {
 #if isESP32
-        bool a = LittleFS.begin(true);
+        bool a = LITTLEFS.begin(true);
 #elif isESP8266
         bool a = LittleFS.begin();
 #endif
@@ -38,27 +38,53 @@ void myJSON::start()
 // ~~~~~~~~~~~~~~ File Functions ~~~~~~~~~~~
 bool myJSON::file_exists()
 {
+#if isESP32
+        return LITTLEFS.exists(_filename);
+#elif isESP8266
         return LittleFS.exists(_filename);
+#endif
 }
 bool myJSON::file_remove()
 {
+#if isESP8266
         if (LittleFS.begin())
         {
                 return LittleFS.remove(_filename);
         }
-        else{
+        else
+        {
                 return 0;
         }
+#elif isESP32
+        if (LITTLEFS.begin())
+        {
+                return LITTLEFS.remove(_filename);
+        }
+        else
+        {
+                return 0;
+        }
+#endif
 }
 bool myJSON::format()
 {
-        if (LittleFS.begin())
+#if isESP32
+        bool a = LITTLEFS.begin(true);
+#elif isESP8266
+        bool a = LittleFS.begin();
+#endif
+
+        if (a)
         {
                 if (_useSerial)
                 {
                         Serial.print("Formating...");
                 }
+#if isESP32
+                bool flag = LITTLEFS.format();
+#elif isESP8266
                 bool flag = LittleFS.format();
+#endif
                 if (_useSerial)
                 {
                         if (flag)
@@ -72,7 +98,8 @@ bool myJSON::format()
                 }
                 return flag;
         }
-        else return 0;
+        else
+                return 0;
 }
 bool myJSON::FS_ok()
 {
@@ -83,7 +110,11 @@ bool myJSON::FS_ok()
 // ~~~~~~~~~~~~~~ JSON Functions ~~~~~~~~~~~
 void myJSON::_saveJSON2file(JsonDocument &_doc)
 {
+        #if isESP8266
         File writeFile = LittleFS.open(_filename, "w");
+        #elif isESP32
+        File writeFile = LITTLEFS.open(_filename, "w");
+        #endif
         serializeJson(_doc, writeFile);
         writeFile.close();
         // delay(50);
@@ -92,7 +123,12 @@ void myJSON::_saveJSON2file(JsonDocument &_doc)
 }
 bool myJSON::readJSON_file(JsonDocument &_doc)
 {
+        #if isESP8266
         File readFile = LittleFS.open(_filename, "r");
+        #elif isESP32
+        File readFile = LITTLEFS.open(_filename, "r");
+        #endif
+
         DeserializationError error = deserializeJson(_doc, readFile);
         if (error)
         {
