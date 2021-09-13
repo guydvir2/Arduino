@@ -1,70 +1,87 @@
 #ifndef myIPmonitor_h
 #define myIPmonitor_h
+
+#if defined(ARDUINO_ARCH_ESP8266)
+#define isESP8266 true
+#define isESP32 false
 #include <ESP8266WiFi.h>
-#include <TimeLib.h>
+#elif defined(ESP32)
+#define isESP32 true
+#define isESP8266 false
+#include <WiFi.h>
+#else
+#error Architecture unrecognized by this code.
+#endif
+
 #include <myLOG.h>
 
 class IPmonitoring
 {
-#define MAXPING_TIME 20    /* Max time between pings, sec */
-#define MINPING_TIME 10    /* Min time between pings, sec */
-#define TIME_TO_MAXPING 30 /* After this time period ping will be every MAXPING_TIME sec */
-#define RESET_BOOT_ERR 2   /* Time to wait until reset due to NO-internet or NO-NTP failure */
-#define LOG_ENTRIES 15
-#define ENTRY_LENGTH 15
+#define MAXPING_TIME 30  /* Max time between pings, sec */
+#define MINPING_TIME 10  /* Min time between pings, sec */
+#define RESET_BOOT_ERR 2 /* Time to wait until reset due to NO-internet or NO-NTP failure */
+#define LOG_ENTRIES 50   /* Entries saved in LOG */
+#define ENTRY_LENGTH 15  /* Length of each entry - 12 chars */
 
-    typedef bool (*cb_func)(char *externalSite, byte pings);
+    typedef bool (*cb_func)(char *externalSite, uint8_t pings);
+    typedef void (*cb_func2)(char *msg);
 
 public:
-    unsigned long bootClk = 0;
-    unsigned long currentstateClk = 0;
-    unsigned int dCounter = 0;
-    bool isConnected = false;
-    const char *libVer = "IPmon_v0.1";
     char *nick;
+    time_t bootClk = 0;
+    time_t currentstateClk = 0;
+    int dCounter = 0;
+    bool isConnected = false;
+    const char *libVer = "NETmon_v0.2";
 
 private:
     char *_IP;
     char *_conlog_filename;
-    byte _adaptive_ping_val = MINPING_TIME;
-    byte _pingCounter = 0;
-    bool _needRESET = true;
-    unsigned long reset_delay = 0;
-
-    bool _firstPing = true;
     char _inline_param[2][12];
-    unsigned long _lastCheck = 0;
+    uint8_t _adaptive_ping_val = MINPING_TIME;
+    uint8_t _pingCounter = 0;
+
+    bool _needRESET = true;
+    bool _firstPing = true;
+    bool _msgOUT = false;
+    time_t reset_delay = 0;
+    time_t _lastCheck = 0;
 
     flashLOG _conFlog;
     cb_func _ping_cb;
+    cb_func2 _msgout_cb;
 
 public:
     IPmonitoring(char *IP, char *nick);
     ~IPmonitoring();
-    void start(cb_func ping);
+    void start(cb_func ping, cb_func2 outmsg = NULL);
     void loop();
     void printFlog(int i = NULL);
     void getStatus(int h = 24);
     void deleteLOG();
+    void enter_fake_LOGentry(time_t t, uint8_t reason);
+    bool get_msg(char retMSG[]);
+    void clear_buffer();
 
 private:
     char *_str_concat(const char *a, const char *b);
-    void _disco_service();
-    void _reco_service();
+    void _disconnect_cb();
+    void _reconnect_cb();
     bool _ping_client();
     void _ping_looper();
     bool _verify_internet_ok();
-    void _post_msg(char *inmsg, char *inmsg2 = "");
     void _reset_bootFailure();
-    void _conv_epoch(time_t t, char *retDate);
+    void _conv_epoch(time_t &t, char *retDate);
     void _conv_epoch_duration(long t1, long t2, char *clk);
+    void _post_msg(char *inmsg, char *inmsg2 = "");
+    void _postExtMsg(char *inmsg);
 
     // ~~~~~~~~~~FlashLOGS
     void _LOGconnection();
     void _LOGdisconnection();
-    void _readFlog_2row(flashLOG &LOG, int numLine, time_t &retTime, byte &retType);
-    void _writeFlog_2row(flashLOG &LOG, byte Reason, time_t value = now(), bool writenow = false);
-    int _inline_read(char *inputstr);
+    void _readFlog_2row(flashLOG &LOG, int numLine, time_t &retTime, uint8_t &retType);
+    void _writeFlog_2row(flashLOG &LOG, uint8_t Reason, time_t value, bool writenow = false);
+    uint8_t _inline_read(char *inputstr);
     bool _startFlogs();
     void _loopFlogs();
 };

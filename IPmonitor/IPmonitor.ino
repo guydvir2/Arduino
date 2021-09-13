@@ -1,15 +1,12 @@
-#include <Arduino.h>
 #include <myIOT2.h>
 #include <myIPmonitor.h>
-#include <myDisplay.h>
 
-#define CHECK_MQTT true
 #define CHECK_WIFI true
 #define CHECK_INTERNET true
-#define CHECK_HASS true
+#define CHECK_MQTT true
+#define CHECK_HASS false
+#define USE_DISPLAY false
 
-// #define ROUTER_IP "192.168.2.1"
-// #define MQTT_SERVER_IP "192.168.2.101"
 #define MQTT_SERVER_IP "192.168.3.200"
 #define HASS_IP "192.168.3.199"
 #define INTERNET_IP "www.google.com"
@@ -19,25 +16,24 @@
 #define GROUP_TOPIC ""
 #define PREFIX_TOPIC "myHome"
 
-#define BUTTON_PIN D3
-#define BUTTON_PRESSED LOW
-#define MAX_BUTTON_PRESSES 4
-
 myIOT2 iot;
-myOLED OLED;
 
 #if CHECK_MQTT
 #define MQTT_NAME "MQTT"
 IPmonitoring MQTT_service(MQTT_SERVER_IP, MQTT_NAME);
-bool pingMQTT(char *a, byte b)
+bool pingMQTT(char *a, uint8_t b)
 {
         return iot.checkInternet(MQTT_SERVER_IP);
+}
+void MQTToutbox(char *msg)
+{
+        iot.pub_msg(msg);
 }
 #endif
 #if CHECK_WIFI
 #define WIFI_NAME "WiFi"
 IPmonitoring WiFi_service(ROUTER_IP, WIFI_NAME);
-bool pingWiFi(char *a, byte b)
+bool pingWiFi(char *a, uint8_t b)
 {
         return iot.checkInternet(ROUTER_IP);
 }
@@ -45,7 +41,7 @@ bool pingWiFi(char *a, byte b)
 #if CHECK_INTERNET
 #define INTERNET_NAME "WAN"
 IPmonitoring Internet_service(INTERNET_IP, INTERNET_NAME);
-bool pingINTERNET(char *a, byte b)
+bool pingINTERNET(char *a, uint8_t b)
 {
         return iot.checkInternet(INTERNET_IP);
 }
@@ -53,35 +49,12 @@ bool pingINTERNET(char *a, byte b)
 #if CHECK_HASS
 #define HASS_NAME "HASS"
 IPmonitoring HASS_service(HASS_IP, HASS_NAME);
-bool pingHASS(char *a, byte b)
+bool pingHASS(char *a, uint8_t b)
 {
         return iot.checkInternet(HASS_IP);
 }
 #endif
 
-byte but_press_counter = 0;
-void start_button()
-{
-        pinMode(BUTTON_PIN, INPUT);
-}
-void read_button()
-{
-        if (digitalRead(BUTTON_PIN) == BUTTON_PRESSED)
-        {
-                delay(50);
-                if (digitalRead(BUTTON_PIN) == BUTTON_PRESSED)
-                {
-                        if (but_press_counter < MAX_BUTTON_PRESSES)
-                        {
-                                but_press_counter++;
-                        }
-                        else
-                        {
-                                but_press_counter = 0;
-                        }
-                }
-        }
-}
 void addiotnalMQTT(char *incoming_msg)
 {
         char msg[150];
@@ -170,46 +143,42 @@ void startIOTservices()
         iot.useSerial = true;
         iot.useWDT = true;
         iot.useOTA = true;
+        iot.extDefine = true;
         iot.useResetKeeper = false;
         iot.useextTopic = false;
-        iot.resetFailNTP = true;
-        iot.useDebug = false;
+        iot.useDebug = true;
         iot.debug_level = 0;
         iot.useNetworkReset = false; // <-- only for this device
         iot.noNetwork_reset = 5;
+        iot.useBootClockLog = true;
         iot.useAltermqttServer = false;
         strcpy(iot.deviceTopic, DEV_TOPIC);
         strcpy(iot.prefixTopic, PREFIX_TOPIC);
         strcpy(iot.addGroupTopic, GROUP_TOPIC);
         iot.start_services(addiotnalMQTT);
-        // iot.start_services(addiotnalMQTT, "dvirz_iot", "GdSd13100301", MQTT_USER, MQTT_PASS, MQTT_SERVER_IP);
 }
+
 void startIPmonitorings()
 {
 #if CHECK_MQTT
-        MQTT_service.start(pingMQTT);
+        MQTT_service.start(pingMQTT, MQTToutbox);
 #endif
 #if CHECK_WIFI
-        WiFi_service.start(pingWiFi);
+        WiFi_service.start(pingWiFi, MQTToutbox);
 #endif
 
 #if CHECK_INTERNET
-        Internet_service.start(pingINTERNET);
+        Internet_service.start(pingINTERNET, MQTToutbox);
 #endif
 #if CHECK_HASS
-        HASS_service.start(pingHASS);
+        HASS_service.start(pingHASS, MQTToutbox);
 #endif
-}
-void startOLED()
-{
-        OLED.start();
-        // OLED.CenterTXT("BootUp", "IPmonitoring");
 }
 bool check_all_services()
 {
-        byte inc = 0;
-        byte max_v = 0;
-        byte all_service_ok = 1;
+        uint8_t inc = 0;
+        uint8_t max_v = 0;
+        uint8_t all_service_ok = 1;
 
 #if CHECK_MQTT
         inc++;
@@ -240,12 +209,68 @@ bool check_all_services()
                 return 0;
         }
 }
+void service_loop(IPmonitoring &s)
+{
+        s.loop();
+}
+void all_services_loop()
+{
+#if CHECK_MQTT
+        service_loop(MQTT_service);
+#endif
+#if CHECK_WIFI
+        service_loop(WiFi_service);
+#endif
+#if CHECK_INTERNET
+        service_loop(Internet_service);
+#endif
+#if CHECK_HASS
+        service_loop(HASS_service);
+#endif
+}
+
+#if USE_DISPLAY
+#include <myDisplay.h>
+
+#define BUTTON_PIN 5
+#define BUTTON_PRESSED LOW
+#define MAX_BUTTON_PRESSES 4
+
+myOLED OLED;
+uint8_t but_press_counter = 0;
+void start_button()
+{
+        pinMode(BUTTON_PIN, INPUT);
+}
+void read_button()
+{
+        if (digitalRead(BUTTON_PIN) == BUTTON_PRESSED)
+        {
+                delay(50);
+                if (digitalRead(BUTTON_PIN) == BUTTON_PRESSED)
+                {
+                        if (but_press_counter < MAX_BUTTON_PRESSES)
+                        {
+                                but_press_counter++;
+                        }
+                        else
+                        {
+                                but_press_counter = 0;
+                        }
+                }
+        }
+}
+void startOLED()
+{
+        OLED.start();
+        // OLED.CenterTXT("BootUp", "IPmonitoring");
+}
 void display_boot()
 {
         char txt[4][12];
         char uptime[12];
         char upday[5];
-        iot.convert_epoch2clock(now(), WiFi_service.bootClk, uptime, upday);
+        iot.convert_epoch2clock(iot.now(), WiFi_service.bootClk, uptime, upday);
 
         sprintf(txt[0], "BootUp");
         sprintf(txt[1], "%s", WiFi_service.libVer);
@@ -253,7 +278,7 @@ void display_boot()
         iot.return_date(txt[3]);
         OLED.CenterTXT(txt[0], txt[1], txt[2], uptime);
 }
-void compose_OLEDtxt0(byte &x, char a[], IPmonitoring &ipmon)
+void compose_OLEDtxt0(uint8_t &x, char a[], IPmonitoring &ipmon)
 {
         sprintf(a, "%s %s", ipmon.nick, ipmon.isConnected ? "V" : "x");
         x++;
@@ -266,12 +291,12 @@ void display_OK()
         {
                 sprintf(txt[n], "");
         }
-        byte inc = 0;
+        uint8_t inc = 0;
 
         if (check_all_services)
         {
                 sprintf(txt[0], "All OK");
-                iot.convert_epoch2clock(now(), WiFi_service.bootClk, txt[3], txt[2]);
+                iot.convert_epoch2clock(iot.now(), WiFi_service.bootClk, txt[3], txt[2]);
                 // iot.return_clock(txt[2]);
                 // iot.return_date(txt[3]);
         }
@@ -296,13 +321,13 @@ void display_OK()
 void display_1()
 {
 }
-void display_stats(byte &i)
+void display_stats(uint8_t &i)
 {
 }
 void displays_looper()
 {
         static unsigned long disp_t = 0;
-        const byte Sec_boot_display = 25;
+        const uint8_t Sec_boot_display = 25;
         if (millis() < Sec_boot_display * 1000)
         {
                 display_boot();
@@ -321,30 +346,24 @@ void displays_looper()
                 }
         }
 }
+#endif
+
 void setup()
 {
-        start_button();
         startIOTservices();
         startIPmonitorings();
+#if USE_DISPLAY
         startOLED();
-        check_all_services();
+        start_button();
+#endif
+        // check_all_services();
 }
 void loop()
 {
         iot.looper();
+        all_services_loop();
+#if USE_DISPLAY
         displays_looper();
         read_button();
-#if CHECK_MQTT
-        MQTT_service.loop();
 #endif
-#if CHECK_WIFI
-        WiFi_service.loop();
-#endif
-#if CHECK_INTERNET
-        Internet_service.loop();
-#endif
-#if CHECK_HASS
-        HASS_service.loop();
-#endif
-        delay(100);
 }
