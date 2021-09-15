@@ -24,7 +24,6 @@ class IPmonitoring
 #define ENTRY_LENGTH 15  /* Length of each entry - 12 chars */
 
     typedef bool (*cb_func)(char *externalSite, uint8_t pings);
-    typedef void (*cb_func2)(char *msg);
 
 public:
     char *nick;
@@ -49,12 +48,12 @@ private:
 
     flashLOG _conFlog;
     cb_func _ping_cb;
-    cb_func2 _msgout_cb;
+    cb_func _msgout_cb;
 
 public:
     IPmonitoring(char *IP, char *nick);
     ~IPmonitoring();
-    void start(cb_func ping, cb_func2 outmsg = NULL);
+    void start(cb_func ping, cb_func outmsg = NULL);
     void loop();
     void printFlog(int i = NULL);
     void getStatus(int h = 24);
@@ -73,7 +72,7 @@ private:
     void _reset_bootFailure();
     void _conv_epoch(time_t &t, char *retDate);
     void _conv_epoch_duration(long t1, long t2, char *clk);
-    void _post_msg(char *inmsg, char *inmsg2 = "");
+    void _post_msg(char *inmsg, uint8_t msg_type = 0);
     void _postExtMsg(char *inmsg);
 
     // ~~~~~~~~~~FlashLOGS

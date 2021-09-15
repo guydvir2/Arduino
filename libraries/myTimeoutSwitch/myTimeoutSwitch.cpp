@@ -124,7 +124,7 @@ void timeOUTSwitch::_input_looper()
 
         if (currentRead_0 == currentRead_1 && currentRead_0 != _lastinput)
         {
-            if (trigType == 0 && currentRead_0 == _inputstatOn)      /* momnetary button is pressed */
+            if (trigType == 0 && currentRead_0 == _inputstatOn) /* momnetary button is pressed */
             {
                 bool cond_a = (pCounter == 0) || (pCounter < max_pCount && millis() - _lastPress < 1000 * press_to_off); /* first press on, or inc intensity */
                 bool cond_b = (pCounter >= max_pCount) || (millis() - _lastPress > 1000 * press_to_off);                 /* when press is far from last - turn off */
@@ -146,7 +146,7 @@ void timeOUTSwitch::_input_looper()
                     Serial.println("State not defined");
                 }
             }
-            else if (trigType == 1)                                  /* Switch is set ON or OFF */
+            else if (trigType == 1) /* Switch is set ON or OFF */
             {
                 if (currentRead_0 == _inputstatOn)
                 {
@@ -157,9 +157,10 @@ void timeOUTSwitch::_input_looper()
                     finish_TO(0);
                 }
             }
-            else if (trigType == 2 && currentRead_0 == _inputstatOn) /* Case of sensor that each detection restarts its timeout */
+            else if (trigType == 2 && currentRead_0 == _inputstatOn && (_lastpress == 0 || millis() - _lastPress > 1000 * 60UL)) /* Case of sensor that each detection restarts its timeout */
             {
                 start_TO(def_TO_minutes, 0);
+                _lastPress = millis(); /* Avoid frequent write to flash */
             }
             _lastinput = currentRead_0;
         }

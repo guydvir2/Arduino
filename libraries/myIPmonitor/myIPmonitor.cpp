@@ -8,7 +8,7 @@ IPmonitoring::~IPmonitoring()
 {
         delete[] _conlog_filename;
 }
-void IPmonitoring::start(cb_func ping, cb_func2 outmsg)
+void IPmonitoring::start(cb_func ping, cb_func outmsg)
 {
         char a[80];
         _ping_cb = ping;
@@ -21,16 +21,16 @@ void IPmonitoring::start(cb_func ping, cb_func2 outmsg)
         {
                 bootClk = time(nullptr);
                 sprintf(a, "pings %s", _IP);
-                _post_msg(a);
+                _post_msg(a, 1);
                 if (!_startFlogs())
                 {
-                        _post_msg("Start LOG failed!");
+                        _post_msg("Start LOG failed!", 1);
                 }
         }
         else
         {
                 sprintf(a, "%s NOT Connected. Internet/NTP Failure", nick);
-                _post_msg(a);
+                _post_msg(a, 1);
         }
 }
 void IPmonitoring::loop()
@@ -103,14 +103,14 @@ void IPmonitoring::_ping_looper()
                         {
                                 _pingCounter = 0;
                                 _adaptive_ping_val = MINPING_TIME;
-                                _post_msg("Min_PING");
+                                _post_msg("Min_PING", 1);
                         }
                 }
 
                 if (_pingCounter == pingsOK)
                 {
                         _adaptive_ping_val = MAXPING_TIME;
-                        _post_msg("Max_PING");
+                        _post_msg("Max_PING", 1);
                 }
         }
 }
@@ -123,7 +123,7 @@ void IPmonitoring::_disconnect_cb()
         dCounter++;
         _LOGdisconnection();
         sprintf(a, "%s disconnect [#%d]", nick, dCounter);
-        _post_msg(a);
+        _post_msg(a, 0);
 }
 void IPmonitoring::_reconnect_cb()
 {
@@ -136,7 +136,7 @@ void IPmonitoring::_reconnect_cb()
 
                 _conv_epoch_duration(t, currentstateClk, b);
                 sprintf(a, "reconnect [#%d] after [%s]", dCounter, b);
-                _post_msg(a);
+                _post_msg(a, 0);
                 _LOGconnection();
                 currentstateClk = t;
         }
@@ -148,7 +148,7 @@ void IPmonitoring::_reconnect_cb()
         // }
         else
         {
-                _post_msg("connected");
+                _post_msg("connected", 1);
                 _LOGconnection();
                 currentstateClk = t;
         }
@@ -165,7 +165,7 @@ void IPmonitoring::_reset_bootFailure()
                 {
                         if (millis() >= 1000UL * RESET_BOOT_ERR + reset_delay)
                         {
-                                _post_msg("No internet on Boot");
+                                _post_msg("No internet on Boot", 1);
 #if isESP8266
                                 ESP.reset();
 #elif isESP32
@@ -201,28 +201,29 @@ void IPmonitoring::getStatus(int h)
                 /* return_logTime2 is log entry after return_logTime1 */
                 time_t t = time(nullptr);
                 _readFlog_2row(_conFlog, i, return_logTime1, return_reason1);
-                if (t - return_logTime1 <= hrs2sec)
+                if (t - return_logTime1 <= hrs2sec) /* Meets time interval critetia */
                 {
                         _readFlog_2row(_conFlog, i + 1, return_logTime2, return_reason2);
 
-                        if (return_reason1 == 0 && return_reason2 != 0)
+                        if (return_reason1 == 0 && return_reason2 != 0)               /* Disconnect record */
                         {
                                 cum_dTime += return_logTime2 - return_logTime1;
                                 total_disc++;
                         }
-                        else if (return_reason1 == 1 && return_reason2 != 1)
+                        else if (return_reason1 == 1 && return_reason2 != 1)          /* Reconnect record */
                         {
                                 cum_cTime += return_logTime2 - return_logTime1;
                                 total_c++;
                         }
-                        else if (return_reason1 == 2)
+                        else if (return_reason1 == 2)                                 /* Reboot Record */
                         {
                                 cum_cTime += return_logTime2 - return_logTime1;
                                 total_boots++;
                         }
                 }
         }
-        _readFlog_2row(_conFlog, total_records - 1, return_logTime1, return_reason1);
+
+        _readFlog_2row(_conFlog, total_records - 1, return_logTime1, return_reason1); /* last record and present state */ 
         time_t t = time(nullptr);
         if (return_reason1 == 2)
         {
@@ -243,23 +244,23 @@ void IPmonitoring::getStatus(int h)
         _conv_epoch_duration(cum_cTime, 0, connect_duration);
         _conv_epoch_duration(cum_dTime, 0, disco_duration);
         sprintf(a, "Records: Total/ Disconnects/ Reconnects/ Reboots:[%d/ %d/ %d/ %d]", total_records, total_disc, total_c, total_boots);
-        _post_msg(a);
+        _post_msg(a, 0);
         sprintf(a, "Durations: Disconnected/Connected:[%s/ %s]", disco_duration, connect_duration);
-        _post_msg(a);
+        _post_msg(a, 0);
 }
-void IPmonitoring::_post_msg(char *inmsg, char *inmsg2)
+void IPmonitoring::_post_msg(char *inmsg, uint8_t msg_type)
 {
         char msg[150];
         char Clk[20];
         time_t t = time(nullptr);
 
         _conv_epoch(t, Clk);
-        sprintf(msg, "[%s] [%s] %s %s", Clk, nick, inmsg, inmsg2);
+        sprintf(msg, "[%s] [%s] %s", Clk, nick, inmsg);
         Serial.println(msg);
         if (_msgOUT)
         {
-                sprintf(msg, "[%s] %s %s", nick, inmsg, inmsg2);
-                _msgout_cb(msg);
+                sprintf(msg, "[%s] %s", nick, inmsg);
+                _msgout_cb(msg, msg_type);
         }
 }
 
@@ -284,7 +285,7 @@ void IPmonitoring::printFlog(int i)
                         _readFlog_2row(_conFlog, a, return_logTime, return_reason);
                         _conv_epoch(return_logTime, clock);
                         sprintf(msg, "log entry:[#%03d] Clk:[%s] Type:[%s]", a, clock, logTypes[return_reason]);
-                        _post_msg(msg);
+                        _post_msg(msg, 2);
                 }
         }
 }
@@ -343,7 +344,7 @@ void IPmonitoring::_writeFlog_2row(flashLOG &LOG, uint8_t Reason, time_t value, 
 
         if (tm->tm_year + 1900 == 1970)
         {
-                _post_msg("NTP is not set - not entering logs entries");
+                _post_msg("NTP is not set - not entering logs entries", 1);
         }
         else
         {
