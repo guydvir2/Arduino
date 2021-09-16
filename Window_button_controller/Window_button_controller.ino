@@ -1,10 +1,10 @@
-#include <myIOT2.h>
-#include <Arduino.h>
 #include <buttonPresses.h>
 #include "myIOT_settings.h"
 
 #define BUT_PRESSED LOW
 #define LIGHT_ON HIGH
+
+bool blinkNow = false;
 
 uint8_t BUTPIN_UP = D1;
 uint8_t LIGHTPIN_UP = D2;
@@ -14,8 +14,6 @@ uint8_t *outputPins[] = {&LIGHTPIN_UP, &LIGHTPIN_DOWN};
 
 buttonPresses buttUP(BUTPIN_UP, 3);
 buttonPresses buttDOWN(BUTPIN_DOWN, 3);
-
-bool blinkNow = false;
 
 void butcmds(uint8_t i)
 {
@@ -38,9 +36,8 @@ void butcmds(uint8_t i)
                 blink_lights(1, 4);
                 blink_lights(2, 4);
                 iot.pub_noTopic("off", Topic);
-                iot.pub_msg("All-Windows: Set [OFF]");
+                iot.pub_msg("All-Windows: Set [STOP]");
         }
-        // delay(2000);
 }
 void readButtons()
 {
@@ -51,9 +48,8 @@ void readButtons()
 
         uint8_t upButton_readVal = buttUP.getValue();
         uint8_t downButton_readVal = buttDOWN.getValue();
-        const uint8_t sec_part_cmd = 3;
 
-        if (upButton_readVal == 100 || downButton_readVal == 100)
+        if (upButton_readVal == 100 || downButton_readVal == 100) /* long press UP or DOWN*/
         {
                 butcmds(0); // Off
         }
@@ -69,18 +65,27 @@ void readButtons()
 void steady_blink()
 {
         static unsigned long lastAction = millis();
-        const int offTime = 2000;
-        const int onTime = 150;
-        if (millis() - lastAction > onTime + offTime)
+        const int offTime = 1500;
+        const uint8_t onTime = 200;
+
+        if (millis() - lastAction <= offTime)
         {
                 digitalWrite(LIGHTPIN_UP, !LIGHT_ON);
                 digitalWrite(LIGHTPIN_DOWN, !LIGHT_ON);
-                lastAction = millis();
         }
-        else if (millis() - lastAction > offTime)
+        else if (millis() - lastAction > offTime && millis() - lastAction <= onTime + offTime)
         {
                 digitalWrite(LIGHTPIN_UP, LIGHT_ON);
+                digitalWrite(LIGHTPIN_DOWN, !LIGHT_ON);
+        }
+        else if (millis() - lastAction > offTime + onTime && millis() - lastAction <= offTime + 2 * onTime)
+        {
+                digitalWrite(LIGHTPIN_UP, !LIGHT_ON);
                 digitalWrite(LIGHTPIN_DOWN, LIGHT_ON);
+        }
+        else
+        {
+                lastAction = millis();
         }
 }
 void blink_lights(uint8_t i, uint8_t x)
@@ -110,6 +115,5 @@ void loop()
 {
         iot.looper();
         readButtons(); /* Delay is already here */
-        // steady_blink();
-        delay(50);
+        steady_blink();
 }
