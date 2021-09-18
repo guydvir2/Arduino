@@ -97,7 +97,7 @@ void IPmonitoring::_ping_looper()
                                 _pingCounter++;
                         }
                 }
-                else /* Ping fails */
+                else                /* Ping fails */
                 {
                         if (_pingCounter != 0)
                         {
@@ -260,6 +260,7 @@ void IPmonitoring::_post_msg(char *inmsg, uint8_t msg_type)
         if (_msgOUT)
         {
                 sprintf(msg, "[%s] %s", nick, inmsg);
+                Serial.println(msg_type);
                 _msgout_cb(msg, msg_type);
         }
 }

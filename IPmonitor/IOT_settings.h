@@ -1,5 +1,4 @@
-#include <Arduino.h>
-#define DEV_TOPIC "networkMonitor"
+#define DEV_TOPIC "networkMonitor2"
 #define GROUP_TOPIC ""
 #define PREFIX_TOPIC "myHome"
 

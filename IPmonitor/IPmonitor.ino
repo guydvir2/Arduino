@@ -29,18 +29,19 @@ IPmonitoring HASS_service(HASS_IP, "HomeAssistant");
 
 bool MQTToutbox(char *msg, uint8_t msg_t)
 {
-        if (msg_t == 0)
-        {
-                iot.pub_msg(msg);
-        }
-        else if (msg_t == 1)
-        {
-                iot.pub_log(msg);
-        }
-        else if (msg_t == 2)
-        {
-                iot.pub_debug(msg);
-        }
+        // Serial.println(msg);
+        // if (msg_t == 0)
+        // {
+        //         iot.pub_msg(msg);
+        // }
+        // else if (msg_t == 1)
+        // {
+        //         iot.pub_log(msg);
+        // }
+        // else if (msg_t == 2)
+        // {
+        //         iot.pub_debug(msg);
+        // }
 }
 void startIPmonitorings()
 {

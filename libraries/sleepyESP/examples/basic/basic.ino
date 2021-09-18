@@ -1,9 +1,10 @@
 #include <sleepyESP.h>
 #include <myIOT2.h>
 
-#define DEV_TOPIC "espSleep"
+#define DEV_TOPIC "esp32Sleep"
 #define GROUP_TOPIC "none"
 #define PREFIX_TOPIC "myHome"
+#define IGNORE_MQTT_BOOT_MSG true
 
 myIOT2 iot;
 
@@ -19,7 +20,7 @@ void startIOTservices()
   iot.useNetworkReset = true;
   iot.noNetwork_reset = 10;
   iot.useBootClockLog = true;
-  iot.ignore_boot_msg = true;
+  iot.ignore_boot_msg = IGNORE_MQTT_BOOT_MSG; // <---- This is for us only //
   strcpy(iot.deviceTopic, DEV_TOPIC);
   strcpy(iot.prefixTopic, PREFIX_TOPIC);
   strcpy(iot.addGroupTopic, GROUP_TOPIC);
@@ -47,24 +48,31 @@ void addiotnalMQTT(char *incoming_msg)
   }
 }
 
-#define SLEEP_PERIOD 2 // minutes
-#define WAKE_PERIOD 5  // seconds
+#define SLEEP_PERIOD 30 // minutes
+#define WAKE_PERIOD 5   // seconds
+#define MCU_NAME DEV_TOPIC
+#define CLK_ALIGN true
 sleepyESP sleepy;
 
 void wake_cb()
 {
-  Serial.println("WAKE");
+  Serial.println("Wake up callback");
 }
 void sleep_cb()
 {
-  Serial.println("going to sleep");
+  Serial.println("Sleep callback");
+  char sleepMSG[100];
+
+  sprintf(sleepMSG, "[Sleep]: {Boot#:%d; sleptTime_sec:%d; wakeDrift_sec:%d, nextSleep_sec:%d}", sleepy.bootCount,
+          sleepy.totalSleepTime, sleepy.wake_up_drift_sec, sleepy.nextsleep_duration);
+  iot.pub_msg(sleepMSG);
 }
 
 void setup()
 {
   // put your setup code here, to run once:
   startIOTservices();
-  sleepy.start(SLEEP_PERIOD, WAKE_PERIOD, "testDrive", wake_cb, sleep_cb, true);
+  sleepy.start(SLEEP_PERIOD, WAKE_PERIOD, MCU_NAME, wake_cb, sleep_cb, CLK_ALIGN);
 }
 
 void loop()

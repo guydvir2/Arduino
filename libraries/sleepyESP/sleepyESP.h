@@ -24,20 +24,19 @@ class sleepyESP
 
 private:
 #if isESP8266
-  const float _driftFactor = 1.0435; /* ESP8266 error correction for wake time - adds time to nominal sleep time*/
+  const float _driftFactor = 1.05629; /* ESP8266 error correction for wake time - adds time to nominal sleep time*/
 #elif isESP32
   const float _driftFactor = 1.006; /* ESP32 error correction for wake time - adds time to nominal sleep time*/
 #endif
 
   char _devname[15];
-  bool _clkAlign = true;                /* Adujst sllep time that will be on round clk */
-  bool _ready2Sleep = false;
+  bool _clkAlign = true; /* Adujst sllep time that will be on round clk */
   bool _force_postpone_sleep = false;
 
   uint8_t _deepsleep_mins = 0;
-  uint8_t _nominal_wait_secs = 0;
-  uint8_t _sec_to_wait_big_drift = 13;
-  uint8_t _sec_to_ignore_wake_before_time = 30;
+  uint8_t _nominal_wait_secs = 5;
+  uint8_t _sec_to_wait_big_drift = 2;
+  uint8_t _allowed_wake_err_sec = 15;
 
   const uint8_t _bootClock_addr = 0;
   const uint8_t _bootCounter_addr = 4;
@@ -53,7 +52,7 @@ public:
   int totalSleepTime = 0;
   int wake_up_drift_sec = 0;
   int nextsleep_duration = 0;
-  uint8_t foce_postpone_sec = 120;
+  uint8_t force_postpone_sec = 120;
   bool clock_update_success = false;
 
 public:
@@ -66,9 +65,9 @@ public:
 
 private:
   void _onWake_cb();
-  void _calc_nextwakeClk();
+  void _calc_nextSleep_duration();
   void _gotoSleep(int seconds2sleep = 10);
-  // void _convert_epoch2clock(long t1, long t2, char *time_str, char *days_str);
+  void _saveNext_wakeup(int duration,time_t t=time(nullptr));
 
   void EEPROMWritelong(int address, long value);
   long EEPROMReadlong(long address);
