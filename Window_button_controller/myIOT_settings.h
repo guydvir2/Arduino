@@ -1,5 +1,4 @@
 #include <myIOT2.h>
-
 myIOT2 iot;
 
 #define DEV_TOPIC "AllWins"
@@ -16,7 +15,7 @@ void addiotnalMQTT(char *incoming_msg)
     }
     else if (strcmp(incoming_msg, "ver2") == 0)
     {
-        sprintf(msg, "ver #2: lib: [%s]",iot.ver);
+        sprintf(msg, "ver #2: lib: [%s]", iot.ver);
         iot.pub_msg(msg);
     }
     else if (strcmp(incoming_msg, "help2") == 0)

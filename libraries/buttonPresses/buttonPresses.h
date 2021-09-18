@@ -4,10 +4,15 @@
 
 class buttonPresses
 {
+    /* 0: button
+       1: switch
+       2: rocker 3 state
+       3: multiPress inc. long press
+    */
 #define BUT_PRESSED LOW
 
 public:
-    int TIMEOUT_LONG_PRESS = 1500;    /* Above this value press will end and consider long press*/
+    int TIMEOUT_LONG_PRESS = 1000;    /* Above this value press will end and consider long press*/
     int SHORT_PRESS_DEF = 700;        /* Below this valus, it is short press, and above - it is long press */
     int END_PRESS_DEF = 1000;         /* Max time to wait to next press. after this time when no press occur, send presses */
     uint8_t END_LONG_PRESS_VAL = 100; /* Value get spit out to indicate a long press */
