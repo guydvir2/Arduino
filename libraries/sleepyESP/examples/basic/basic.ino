@@ -1,7 +1,7 @@
 #include <sleepyESP.h>
 #include <myIOT2.h>
 
-#define DEV_TOPIC "esp32Sleep"
+#define DEV_TOPIC "esp8266Sleep"
 #define GROUP_TOPIC "none"
 #define PREFIX_TOPIC "myHome"
 #define IGNORE_MQTT_BOOT_MSG true
@@ -48,7 +48,7 @@ void addiotnalMQTT(char *incoming_msg)
   }
 }
 
-#define SLEEP_PERIOD 30 // minutes
+#define SLEEP_PERIOD 60 // minutes
 #define WAKE_PERIOD 5   // seconds
 #define MCU_NAME DEV_TOPIC
 #define CLK_ALIGN true

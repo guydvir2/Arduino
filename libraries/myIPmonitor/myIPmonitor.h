@@ -55,7 +55,7 @@ public:
     ~IPmonitoring();
     void start(cb_func ping, cb_func outmsg = NULL);
     void loop();
-    void printFlog(int i = NULL);
+    void printFlog(int i = 0);
     void getStatus(int h = 24);
     void deleteLOG();
     void enter_fake_LOGentry(time_t t, uint8_t reason);

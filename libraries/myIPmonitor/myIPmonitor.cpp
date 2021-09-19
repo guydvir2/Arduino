@@ -103,14 +103,14 @@ void IPmonitoring::_ping_looper()
                         {
                                 _pingCounter = 0;
                                 _adaptive_ping_val = MINPING_TIME;
-                                _post_msg("Min_PING", 1);
+                                _post_msg("Min_PING", 2);
                         }
                 }
 
                 if (_pingCounter == pingsOK)
                 {
                         _adaptive_ping_val = MAXPING_TIME;
-                        _post_msg("Max_PING", 1);
+                        _post_msg("Max_PING", 2);
                 }
         }
 }
@@ -128,7 +128,6 @@ void IPmonitoring::_disconnect_cb()
 void IPmonitoring::_reconnect_cb()
 {
         time_t t = time(nullptr);
-
         if (currentstateClk >= MINPING_TIME)
         {
                 char a[50];
@@ -140,12 +139,6 @@ void IPmonitoring::_reconnect_cb()
                 _LOGconnection();
                 currentstateClk = t;
         }
-        // if (currentstateClk < MAXPING_TIME && currentstateClk != 0)
-        // {
-        //         _conFlog.del_last_record();
-        //         dCounter--;
-        //         _post_msg("Record Deleted");
-        // }
         else
         {
                 _post_msg("connected", 1);
@@ -260,7 +253,6 @@ void IPmonitoring::_post_msg(char *inmsg, uint8_t msg_type)
         if (_msgOUT)
         {
                 sprintf(msg, "[%s] %s", nick, inmsg);
-                Serial.println(msg_type);
                 _msgout_cb(msg, msg_type);
         }
 }
@@ -272,7 +264,7 @@ void IPmonitoring::deleteLOG()
 }
 void IPmonitoring::printFlog(int i)
 {
-        if (i == NULL)
+        if (i == 0)
         {
                 uint8_t return_reason;
                 time_t return_logTime;
