@@ -128,16 +128,16 @@ bool sleepyESP::post_wake_clkUpdate() /* Update clock after wakeup */
     time_t nowClk = time(nullptr);
     struct tm *timeinfo = localtime(&nowClk);
 
-    time_t lastBoot = EEPROMReadlong(_bootClock_addr);
-    time_t last_wakeClock = EEPROMReadlong(_nextWake_clock_addr);
+    time_t lastBootClk = EEPROMReadlong(_bootClock_addr);
+    time_t saved_expected_wakeClk = EEPROMReadlong(_nextWake_clock_addr);
     bootCount = EEPROMReadlong(_bootCounter_addr) + 1;
     EEPROMWritelong(_bootCounter_addr, bootCount);
 
     if (timeinfo->tm_year != 70)
     {
         EEPROMWritelong(_bootClock_addr, nowClk);
-        totalSleepTime = nowClk - lastBoot - _nominal_wait_secs;
-        wake_up_drift_sec = nowClk - last_wakeClock - (int)(millis() / 1000);
+        totalSleepTime = nowClk - lastBootClk - _nominal_wait_secs;
+        wake_up_drift_sec = nowClk - saved_expected_wakeClk - (int)(millis() / 1000);
         if (abs(wake_up_drift_sec) > _deepsleep_mins * MINUTES2SEC)
         {
             wake_up_drift_sec = 0;

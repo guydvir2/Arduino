@@ -48,12 +48,14 @@ void addiotnalMQTT(char *incoming_msg)
   }
 }
 
-#define SLEEP_PERIOD 60 // minutes
-#define WAKE_PERIOD 5  // seconds
+#define SLEEP_PERIOD 15 // minutes
+#define WAKE_PERIOD 5   // seconds
 #define MCU_NAME DEV_TOPIC
 #define CLK_ALIGN true
+#define READ_BAT_VOLT true
 
 sleepyESP sleepy;
+float vBAT = 0;
 
 void wake_cb()
 {
@@ -61,24 +63,63 @@ void wake_cb()
 }
 void sleep_cb()
 {
-  Serial.println("Sleep callback");
   char sleepMSG[100];
-
-  sprintf(sleepMSG, "[Sleep]: {Boot#:%d; sleptTime_sec:%d; wakeDrift_sec:%d, nextSleep_sec:%d}", sleepy.bootCount,
-          sleepy.totalSleepTime, sleepy.wake_up_drift_sec, sleepy.nextsleep_duration);
+  Serial.println("Sleep callback");
+  sprintf(sleepMSG, "[Sleep]: {Boot#:%d; sleptTime_sec:%d; wakeDrift_sec:%d, nextSleep_sec:%d, BAT_v:%.2f}", sleepy.bootCount,
+          sleepy.totalSleepTime, sleepy.wake_up_drift_sec, sleepy.nextsleep_duration, vBAT);
   iot.pub_msg(sleepMSG);
 }
 
+#if READ_BAT_VOLT
+#include <Adafruit_ADS1X15.h>
+Adafruit_ADS1115 ads;
+
+bool start_ads()
+{
+  if (!ads.begin())
+  {
+    Serial.println("Failed to initialize ADS.");
+    return 0;
+  }
+  else
+  {
+    return 1;
+  }
+}
+float read_ads()
+{
+  int16_t adc0;
+  float volts;
+  adc0 = ads.readADC_SingleEnded(0);
+  volts = ads.computeVolts(adc0);
+  return volts;
+}
+void getBATv(uint8_t x = 3)
+{
+  float sum = 0;
+  uint8_t i = 0;
+  if (start_ads())
+  {
+    while (i < x)
+    {
+      sum += read_ads();
+      i++;
+      delay(50);
+    }
+    vBAT = sum / ((float)x);
+  }
+}
+#endif
+
 void setup()
 {
-  // put your setup code here, to run once:
   startIOTservices();
   sleepy.start(SLEEP_PERIOD, WAKE_PERIOD, MCU_NAME, wake_cb, sleep_cb, CLK_ALIGN);
+  getBATv(5);
 }
 
 void loop()
 {
-  // put your main code here, to run repeatedly:
   iot.looper();
   sleepy.wait2Sleep();
 }

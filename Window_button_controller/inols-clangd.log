@@ -1,0 +1,621 @@
+
+
+
+
+
+
+
+Started logging.
+
+>>>
+Content-Length: 2098
+
+{"method":"initialize","params":{"processId":389776,"rootPath":"/tmp/arduino-language-server140705626/sketch","rootUri":"file:///tmp/arduino-language-server140705626/sketch","clientInfo":{"name":"vscode","version":"1.50.0"},"trace":"off","initializationOptions":{},"capabilities":{"workspace":{"workspaceEdit":{"documentChanges":true,"resourceOperations":["create","rename","delete"]},"applyEdit":true,"symbol":{"symbolKind":{"valueSet":[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26]}},"executeCommand":{"dynamicRegistration":true},"didChangeWatchedFiles":{"dynamicRegistration":true},"workspaceFolders":true,"configuration":true},"textDocument":{"declaration":{"linkSupport":true},"definition":{"linkSupport":true},"implementation":{"linkSupport":true,"dynamicRegistration":true},"typeDefinition":{"linkSupport":true},"synchronization":{"willSave":true,"didSave":true,"willSaveWaitUntil":true},"documentSymbol":{"symbolKind":{"valueSet":[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26]},"hierarchicalDocumentSymbolSupport":true},"formatting":{"dynamicRegistration":true},"rangeFormatting":{"dynamicRegistration":true},"rename":{"dynamicRegistration":true,"prepareSupport":true},"codeAction":{"dynamicRegistration":true,"isPreferredSupport":true,"codeActionLiteralSupport":{"codeActionKind":{"valueSet":["","quickfix","refactor","refactor.extract","refactor.inline","refactor.rewrite","source","source.organizeImports"]}}},"completion":{"completionItem":{"documentationFormat":["markdown","plaintext"],"snippetSupport":true},"completionItemKind":{"valueSet":[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25]},"contextSupport":true},"signatureHelp":{"signatureInformation":{"parameterInformation":{"labelOffsetSupport":true}}},"documentLink":{"dynamicRegistration":true,"tooltipSupport":true},"hover":{"contentFormat":["markdown","plaintext"]},"foldingRange":{"dynamicRegistration":true,"rangeLimit":5000,"lineFoldingOnly":true},"colorProvider":{"dynamicRegistration":true}},"window":{"workDoneProgress":true}}},"id":0,"jsonrpc":"2.0"}
+<<<
+Content-Length: 1671
+
+{"id":0,"jsonrpc":"2.0","result":{"capabilities":{"astProvider":true,"callHierarchyProvider":true,"codeActionProvider":{"codeActionKinds":["quickfix","refactor","info"]},"compilationDatabase":{"automaticReload":true},"completionProvider":{"allCommitCharacters":[" ","\t","(",")","[","]","{","}","<",">",":",";",",","+","-","/","*","%","^","&","#","?",".","=","\"","'","|"],"resolveProvider":false,"triggerCharacters":[".","<",">",":","\"","/"]},"declarationProvider":true,"definitionProvider":true,"documentFormattingProvider":true,"documentHighlightProvider":true,"documentLinkProvider":{"resolveProvider":false},"documentOnTypeFormattingProvider":{"firstTriggerCharacter":"\n","moreTriggerCharacter":[]},"documentRangeFormattingProvider":true,"documentSymbolProvider":true,"executeCommandProvider":{"commands":["clangd.applyFix","clangd.applyTweak"]},"hoverProvider":true,"implementationProvider":true,"memoryUsageProvider":true,"referencesProvider":true,"renameProvider":{"prepareProvider":true},"selectionRangeProvider":true,"semanticTokensProvider":{"full":{"delta":true},"legend":{"tokenModifiers":[],"tokenTypes":["variable","variable","parameter","function","method","function","property","variable","class","enum","enumMember","type","dependent","dependent","namespace","typeParameter","concept","type","macro","comment"]},"range":false},"signatureHelpProvider":{"triggerCharacters":["(",","]},"textDocumentSync":{"change":2,"openClose":true,"save":true},"typeHierarchyProvider":true,"workspaceSymbolProvider":true},"serverInfo":{"name":"clangd","version":"clangd version 12.0.0 (https://github.com/llvm/llvm-project e841bd5f335864b8c4d81cbf4df08460ef39f2ae)"}}}
+>>>
+Content-Length: 52
+
+{"method":"initialized","params":{},"jsonrpc":"2.0"}Content-Length: 4623
+
+{"method":"textDocument/didOpen","params":{"textDocument":{"uri":"file:///tmp/arduino-language-server140705626/sketch/Window_button_controller.ino.cpp","languageId":"cpp","version":1,"text":"#include \u003cArduino.h\u003e\n#line 1 \"/home/guy/Documents/git/Arduino/Window_button_controller/Window_button_controller.ino\"\n#include \u003cbuttonPresses.h\u003e\n#include \"myIOT_settings.h\"\n\n#define BUT_PRESSED LOW\n#define LIGHT_ON HIGH\n\nbool blinkNow = false;\n\nuint8_t BUTPIN_UP = D1;\nuint8_t LIGHTPIN_UP = D2;\nuint8_t BUTPIN_DOWN = D3;\nuint8_t LIGHTPIN_DOWN = D4;\nuint8_t *outputPins[] = {\u0026LIGHTPIN_UP, \u0026LIGHTPIN_DOWN};\n\nbuttonPresses buttUP(BUTPIN_UP, 3);\nbuttonPresses buttDOWN(BUTPIN_DOWN, 3);\n\n#line 18 \"/home/guy/Documents/git/Arduino/Window_button_controller/Window_button_controller.ino\"\nvoid butcmds(uint8_t i);\n#line 42 \"/home/guy/Documents/git/Arduino/Window_button_controller/Window_button_controller.ino\"\nvoid readButtons();\n#line 65 \"/home/guy/Documents/git/Arduino/Window_button_controller/Window_button_controller.ino\"\nvoid steady_blink();\n#line 91 \"/home/guy/Documents/git/Arduino/Window_button_controller/Window_button_controller.ino\"\nvoid blink_lights(uint8_t i, uint8_t x);\n#line 106 \"/home/guy/Documents/git/Arduino/Window_button_controller/Window_button_controller.ino\"\nvoid setup();\n#line 114 \"/home/guy/Documents/git/Arduino/Window_button_controller/Window_button_controller.ino\"\nvoid loop();\n#line 18 \"/home/guy/Documents/git/Arduino/Window_button_controller/Window_button_controller.ino\"\nvoid butcmds(uint8_t i)\n{\n        char *Topic = \"myHome/Windows\";\n\n        if (i == 1)\n        {\n                blink_lights(i, 2);\n                iot.pub_noTopic(\"up\", Topic);\n                iot.pub_msg(\"All-Windows: Set [Up]\");\n        }\n        else if (i == 2)\n        {\n                blink_lights(i, 2);\n                iot.pub_noTopic(\"down\", Topic);\n                iot.pub_msg(\"All-Windows: Set [DOWN]\");\n        }\n        else\n        {\n                blink_lights(1, 4);\n                blink_lights(2, 4);\n                iot.pub_noTopic(\"off\", Topic);\n                iot.pub_msg(\"All-Windows: Set [STOP]\");\n        }\n}\nvoid readButtons()\n{\n        /* 1 - short press\n           100 - long press\n           0 - button released\n        */\n\n        uint8_t upButton_readVal = buttUP.getValue();\n        uint8_t downButton_readVal = buttDOWN.getValue();\n\n        if (upButton_readVal == 100 || downButton_readVal == 100) /* long press UP or DOWN*/\n        {\n                butcmds(0); // Off\n        }\n        else if (upButton_readVal == 1)\n        {\n                butcmds(1); // UP\n        }\n        else if (downButton_readVal == 1)\n        {\n                butcmds(2); // Down\n        }\n}\nvoid steady_blink()\n{\n        static unsigned long lastAction = millis();\n        const int offTime = 1500;\n        const uint8_t onTime = 200;\n\n        if (millis() - lastAction \u003c= offTime)\n        {\n                digitalWrite(LIGHTPIN_UP, !LIGHT_ON);\n                digitalWrite(LIGHTPIN_DOWN, !LIGHT_ON);\n        }\n        else if (millis() - lastAction \u003e offTime \u0026\u0026 millis() - lastAction \u003c= onTime + offTime)\n        {\n                digitalWrite(LIGHTPIN_UP, LIGHT_ON);\n                digitalWrite(LIGHTPIN_DOWN, !LIGHT_ON);\n        }\n        else if (millis() - lastAction \u003e offTime + onTime \u0026\u0026 millis() - lastAction \u003c= offTime + 2 * onTime)\n        {\n                digitalWrite(LIGHTPIN_UP, !LIGHT_ON);\n                digitalWrite(LIGHTPIN_DOWN, LIGHT_ON);\n        }\n        else\n        {\n                lastAction = millis();\n        }\n}\nvoid blink_lights(uint8_t i, uint8_t x)\n{\n        if (blinkNow)\n        {\n                const uint8_t DELAY = 100;\n                // for (int a = 0; a \u003c x; a++)\n                // {\n                //         digitalWrite(*outputPins[i - 1], !LIGHT_ON);\n                //         digitalWrite(*outputPins[i - 1], LIGHT_ON);\n                //         delay(DELAY);\n                //         digitalWrite(*outputPins[i - 1], !LIGHT_ON);\n                //         delay(DELAY);\n                // }\n        }\n}\nvoid setup()\n{\n        buttDOWN.start();\n        buttUP.start();\n        pinMode(LIGHTPIN_UP, OUTPUT);\n        pinMode(LIGHTPIN_DOWN, OUTPUT);\n        startIOTservices();\n}\nvoid loop()\n{\n        iot.looper();\n        readButtons(); /* Delay is already here */\n        steady_blink();\n}\n"}},"jsonrpc":"2.0"}Content-Length: 1300
+
+{"method":"textDocument/didOpen","params":{"textDocument":{"uri":"file:///tmp/arduino-language-server140705626/sketch/myIOT_settings.h","languageId":"cpp","version":1,"text":"#include \u003cmyIOT2.h\u003e\nmyIOT2 iot;\n\n#define DEV_TOPIC \"AllWins\"\n#define GROUP_TOPIC \"Windows\"\n#define PREFIX_TOPIC \"myHome\"\n\nvoid addiotnalMQTT(char *incoming_msg)\n{\n    char msg[150];\n    if (strcmp(incoming_msg, \"status\") == 0)\n    {\n        sprintf(msg, \"I'm OK\");\n        iot.pub_msg(msg);\n    }\n    else if (strcmp(incoming_msg, \"ver2\") == 0)\n    {\n        sprintf(msg, \"ver #2: lib: [%s]\", iot.ver);\n        iot.pub_msg(msg);\n    }\n    else if (strcmp(incoming_msg, \"help2\") == 0)\n    {\n        sprintf(msg, \"Help2: none\");\n        iot.pub_msg(msg);\n    }\n}\nvoid startIOTservices()\n{\n    iot.useSerial = true;\n    iot.useWDT = true;\n    iot.useOTA = true;\n    iot.useResetKeeper = false;\n    iot.useextTopic = false;\n    iot.useDebug = true;\n    iot.debug_level = 1;\n    iot.useNetworkReset = true;\n    iot.noNetwork_reset = 10;\n    iot.useBootClockLog = true;\n    strcpy(iot.deviceTopic, DEV_TOPIC);\n    strcpy(iot.prefixTopic, PREFIX_TOPIC);\n    strcpy(iot.addGroupTopic, GROUP_TOPIC);\n\n    iot.start_services(addiotnalMQTT);\n}\n"}},"jsonrpc":"2.0"}Content-Length: 283
+
+{"method":"textDocument/codeAction","params":{"textDocument":{"uri":"file:///tmp/arduino-language-server140705626/sketch/Window_button_controller.ino.cpp"},"range":{"start":{"line":2,"character":0},"end":{"line":2,"character":0}},"context":{"diagnostics":[]}},"id":1,"jsonrpc":"2.0"}Content-Length: 184
+
+{"method":"textDocument/documentSymbol","params":{"textDocument":{"uri":"file:///tmp/arduino-language-server140705626/sketch/Window_button_controller.ino.cpp"}},"id":2,"jsonrpc":"2.0"}
+<<<
+Content-Length: 111
+
+{"id":0,"jsonrpc":"2.0","method":"window/workDoneProgress/create","params":{"token":"backgroundIndexProgress"}}
+>>>
+Content-Length: 38
+
+{"id":0,"result":null,"jsonrpc":"2.0"}
+<<<
+Content-Length: 143
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"begin","percentage":0,"title":"indexing"}}}Content-Length: 141
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"0/1","percentage":0}}}Content-Length: 141
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"0/1","percentage":0}}}Content-Length: 143
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"0/116","percentage":0}}}Content-Length: 143
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"0/116","percentage":0}}}Content-Length: 143
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"0/116","percentage":0}}}Content-Length: 143
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"0/116","percentage":0}}}Content-Length: 161
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"1/116","percentage":0.86206896551724133}}}Content-Length: 161
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"1/116","percentage":0.86206896551724133}}}Content-Length: 160
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"2/116","percentage":1.7241379310344827}}}Content-Length: 160
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"2/116","percentage":1.7241379310344827}}}Content-Length: 160
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"3/116","percentage":2.5862068965517242}}}Content-Length: 160
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"3/116","percentage":2.5862068965517242}}}Content-Length: 1609
+
+{"jsonrpc":"2.0","method":"textDocument/publishDiagnostics","params":{"diagnostics":[{"code":"drv_unknown_argument_with_suggestion","message":"Unknown argument '-free'; did you mean '-fsee'?","range":{"end":{"character":0,"line":0},"start":{"character":0,"line":0}},"severity":1,"source":"clang"},{"code":"drv_unknown_argument","message":"Unknown argument: '-fipa-pta'","range":{"end":{"character":0,"line":0},"start":{"character":0,"line":0}},"severity":1,"source":"clang"},{"code":"drv_unknown_argument_with_suggestion","message":"Unknown argument '-mlongcalls'; did you mean '-mlong-calls'?","range":{"end":{"character":0,"line":0},"start":{"character":0,"line":0}},"severity":1,"source":"clang"},{"code":"drv_unknown_argument","message":"Unknown argument: '-mtext-section-literals'","range":{"end":{"character":0,"line":0},"start":{"character":0,"line":0}},"severity":1,"source":"clang"},{"code":"redefinition_different_typedef","message":"In included file: typedef redefinition with different types ('int' vs '_ssize_t' (aka 'long'))\n\n/home/guy/.arduino15/packages/esp8266/hardware/esp8266/3.0.2/tools/sdk/lwip2/include/lwip/arch.h:202:13:\nnote: error occurred here\n\n/home/guy/.arduino15/packages/esp8266/tools/xtensa-lx106-elf-gcc/3.0.4-gcc10.3-1757bed/bin/../lib/gcc/xtensa-lx106-elf/10.3.0/../../../../xtensa-lx106-elf/include/sys/types.h:185:18:\nnote: previous definition is here","range":{"end":{"character":27,"line":3},"start":{"character":9,"line":3}},"severity":1,"source":"clang"}],"uri":"file:///tmp/arduino-language-server140705626/sketch/Window_button_controller.ino.cpp","version":1}}Content-Length: 1593
+
+{"jsonrpc":"2.0","method":"textDocument/publishDiagnostics","params":{"diagnostics":[{"code":"drv_unknown_argument_with_suggestion","message":"Unknown argument '-free'; did you mean '-fsee'?","range":{"end":{"character":0,"line":0},"start":{"character":0,"line":0}},"severity":1,"source":"clang"},{"code":"drv_unknown_argument","message":"Unknown argument: '-fipa-pta'","range":{"end":{"character":0,"line":0},"start":{"character":0,"line":0}},"severity":1,"source":"clang"},{"code":"drv_unknown_argument_with_suggestion","message":"Unknown argument '-mlongcalls'; did you mean '-mlong-calls'?","range":{"end":{"character":0,"line":0},"start":{"character":0,"line":0}},"severity":1,"source":"clang"},{"code":"drv_unknown_argument","message":"Unknown argument: '-mtext-section-literals'","range":{"end":{"character":0,"line":0},"start":{"character":0,"line":0}},"severity":1,"source":"clang"},{"code":"redefinition_different_typedef","message":"In included file: typedef redefinition with different types ('int' vs '_ssize_t' (aka 'long'))\n\n/home/guy/.arduino15/packages/esp8266/hardware/esp8266/3.0.2/tools/sdk/lwip2/include/lwip/arch.h:202:13:\nnote: error occurred here\n\n/home/guy/.arduino15/packages/esp8266/tools/xtensa-lx106-elf-gcc/3.0.4-gcc10.3-1757bed/bin/../lib/gcc/xtensa-lx106-elf/10.3.0/../../../../xtensa-lx106-elf/include/sys/types.h:185:18:\nnote: previous definition is here","range":{"end":{"character":10,"line":0},"start":{"character":9,"line":0}},"severity":1,"source":"clang"}],"uri":"file:///tmp/arduino-language-server140705626/sketch/myIOT_settings.h","version":1}}Content-Length: 36
+
+{"id":1,"jsonrpc":"2.0","result":[]}
+>>>
+Content-Length: 267
+
+{"method":"textDocument/codeAction","params":{"textDocument":{"uri":"file:///tmp/arduino-language-server140705626/sketch/myIOT_settings.h"},"range":{"start":{"line":0,"character":0},"end":{"line":0,"character":0}},"context":{"diagnostics":[]}},"id":3,"jsonrpc":"2.0"}
+<<<
+Content-Length: 3916
+
+{"id":2,"jsonrpc":"2.0","result":[{"kind":13,"name":"blinkNow","range":{"end":{"character":21,"line":8},"start":{"character":0,"line":8}},"selectionRange":{"end":{"character":13,"line":8},"start":{"character":5,"line":8}}},{"kind":13,"name":"BUTPIN_UP","range":{"end":{"character":22,"line":10},"start":{"character":0,"line":10}},"selectionRange":{"end":{"character":17,"line":10},"start":{"character":8,"line":10}}},{"kind":13,"name":"LIGHTPIN_UP","range":{"end":{"character":24,"line":11},"start":{"character":0,"line":11}},"selectionRange":{"end":{"character":19,"line":11},"start":{"character":8,"line":11}}},{"kind":13,"name":"BUTPIN_DOWN","range":{"end":{"character":24,"line":12},"start":{"character":0,"line":12}},"selectionRange":{"end":{"character":19,"line":12},"start":{"character":8,"line":12}}},{"kind":13,"name":"LIGHTPIN_DOWN","range":{"end":{"character":26,"line":13},"start":{"character":0,"line":13}},"selectionRange":{"end":{"character":21,"line":13},"start":{"character":8,"line":13}}},{"kind":13,"name":"outputPins","range":{"end":{"character":54,"line":14},"start":{"character":0,"line":14}},"selectionRange":{"end":{"character":19,"line":14},"start":{"character":9,"line":14}}},{"kind":13,"name":"buttUP","range":{"end":{"character":34,"line":16},"start":{"character":0,"line":16}},"selectionRange":{"end":{"character":20,"line":16},"start":{"character":14,"line":16}}},{"kind":13,"name":"buttDOWN","range":{"end":{"character":38,"line":17},"start":{"character":0,"line":17}},"selectionRange":{"end":{"character":22,"line":17},"start":{"character":14,"line":17}}},{"kind":12,"name":"butcmds","range":{"end":{"character":23,"line":20},"start":{"character":0,"line":20}},"selectionRange":{"end":{"character":12,"line":20},"start":{"character":5,"line":20}}},{"kind":12,"name":"readButtons","range":{"end":{"character":18,"line":22},"start":{"character":0,"line":22}},"selectionRange":{"end":{"character":16,"line":22},"start":{"character":5,"line":22}}},{"kind":12,"name":"steady_blink","range":{"end":{"character":19,"line":24},"start":{"character":0,"line":24}},"selectionRange":{"end":{"character":17,"line":24},"start":{"character":5,"line":24}}},{"kind":12,"name":"blink_lights","range":{"end":{"character":39,"line":26},"start":{"character":0,"line":26}},"selectionRange":{"end":{"character":17,"line":26},"start":{"character":5,"line":26}}},{"kind":12,"name":"setup","range":{"end":{"character":12,"line":28},"start":{"character":0,"line":28}},"selectionRange":{"end":{"character":10,"line":28},"start":{"character":5,"line":28}}},{"kind":12,"name":"loop","range":{"end":{"character":11,"line":30},"start":{"character":0,"line":30}},"selectionRange":{"end":{"character":9,"line":30},"start":{"character":5,"line":30}}},{"kind":12,"name":"butcmds","range":{"end":{"character":1,"line":55},"start":{"character":0,"line":32}},"selectionRange":{"end":{"character":12,"line":32},"start":{"character":5,"line":32}}},{"kind":12,"name":"readButtons","range":{"end":{"character":1,"line":78},"start":{"character":0,"line":56}},"selectionRange":{"end":{"character":16,"line":56},"start":{"character":5,"line":56}}},{"kind":12,"name":"steady_blink","range":{"end":{"character":1,"line":104},"start":{"character":0,"line":79}},"selectionRange":{"end":{"character":17,"line":79},"start":{"character":5,"line":79}}},{"kind":12,"name":"blink_lights","range":{"end":{"character":1,"line":119},"start":{"character":0,"line":105}},"selectionRange":{"end":{"character":17,"line":105},"start":{"character":5,"line":105}}},{"kind":12,"name":"setup","range":{"end":{"character":1,"line":127},"start":{"character":0,"line":120}},"selectionRange":{"end":{"character":10,"line":120},"start":{"character":5,"line":120}}},{"kind":12,"name":"loop","range":{"end":{"character":1,"line":133},"start":{"character":0,"line":128}},"selectionRange":{"end":{"character":9,"line":128},"start":{"character":5,"line":128}}}]}Content-Length: 36
+
+{"id":3,"jsonrpc":"2.0","result":[]}
+>>>
+Content-Length: 283
+
+{"method":"textDocument/codeAction","params":{"textDocument":{"uri":"file:///tmp/arduino-language-server140705626/sketch/Window_button_controller.ino.cpp"},"range":{"start":{"line":2,"character":0},"end":{"line":2,"character":0}},"context":{"diagnostics":[]}},"id":4,"jsonrpc":"2.0"}
+<<<
+Content-Length: 36
+
+{"id":4,"jsonrpc":"2.0","result":[]}
+>>>
+Content-Length: 1073
+
+{"method":"textDocument/codeAction","params":{"textDocument":{"uri":"file:///tmp/arduino-language-server140705626/sketch/myIOT_settings.h"},"range":{"start":{"line":0,"character":0},"end":{"line":0,"character":0}},"context":{"diagnostics":[{"range":{"start":{"line":0,"character":0},"end":{"line":0,"character":0}},"severity":1,"code":"drv_unknown_argument_with_suggestion","source":"clang","message":"Unknown argument '-free'; did you mean '-fsee'?"},{"range":{"start":{"line":0,"character":0},"end":{"line":0,"character":0}},"severity":1,"code":"drv_unknown_argument","source":"clang","message":"Unknown argument: '-fipa-pta'"},{"range":{"start":{"line":0,"character":0},"end":{"line":0,"character":0}},"severity":1,"code":"drv_unknown_argument_with_suggestion","source":"clang","message":"Unknown argument '-mlongcalls'; did you mean '-mlong-calls'?"},{"range":{"start":{"line":0,"character":0},"end":{"line":0,"character":0}},"severity":1,"code":"drv_unknown_argument","source":"clang","message":"Unknown argument: '-mtext-section-literals'"}]}},"id":5,"jsonrpc":"2.0"}
+<<<
+Content-Length: 36
+
+{"id":5,"jsonrpc":"2.0","result":[]}Content-Length: 160
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"4/116","percentage":3.4482758620689653}}}Content-Length: 160
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"4/116","percentage":3.4482758620689653}}}Content-Length: 160
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"5/116","percentage":4.3103448275862073}}}Content-Length: 160
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"5/116","percentage":4.3103448275862073}}}Content-Length: 160
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"6/116","percentage":5.1724137931034484}}}Content-Length: 160
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"6/116","percentage":5.1724137931034484}}}Content-Length: 160
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"7/116","percentage":6.0344827586206895}}}Content-Length: 160
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"7/116","percentage":6.0344827586206895}}}Content-Length: 160
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"8/116","percentage":6.8965517241379306}}}Content-Length: 160
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"8/116","percentage":6.8965517241379306}}}Content-Length: 160
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"9/116","percentage":7.7586206896551726}}}Content-Length: 160
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"9/116","percentage":7.7586206896551726}}}Content-Length: 161
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"10/116","percentage":8.6206896551724146}}}Content-Length: 161
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"10/116","percentage":8.6206896551724146}}}Content-Length: 161
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"11/116","percentage":9.4827586206896548}}}Content-Length: 161
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"11/116","percentage":9.4827586206896548}}}Content-Length: 161
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"12/116","percentage":10.344827586206897}}}Content-Length: 161
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"12/116","percentage":10.344827586206897}}}Content-Length: 161
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"13/116","percentage":11.206896551724139}}}Content-Length: 161
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"13/116","percentage":11.206896551724139}}}Content-Length: 161
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"14/116","percentage":12.068965517241379}}}Content-Length: 161
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"14/116","percentage":12.068965517241379}}}Content-Length: 161
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"15/116","percentage":12.931034482758621}}}Content-Length: 161
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"15/116","percentage":12.931034482758621}}}Content-Length: 161
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"16/116","percentage":13.793103448275861}}}Content-Length: 161
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"16/116","percentage":13.793103448275861}}}Content-Length: 161
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"17/116","percentage":14.655172413793103}}}Content-Length: 161
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"17/116","percentage":14.655172413793103}}}Content-Length: 161
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"18/116","percentage":15.517241379310345}}}Content-Length: 161
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"18/116","percentage":15.517241379310345}}}Content-Length: 161
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"19/116","percentage":16.379310344827587}}}Content-Length: 161
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"19/116","percentage":16.379310344827587}}}Content-Length: 161
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"20/116","percentage":17.241379310344829}}}Content-Length: 161
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"20/116","percentage":17.241379310344829}}}Content-Length: 161
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"21/116","percentage":18.103448275862068}}}Content-Length: 161
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"21/116","percentage":18.103448275862068}}}Content-Length: 160
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"22/116","percentage":18.96551724137931}}}Content-Length: 160
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"22/116","percentage":18.96551724137931}}}Content-Length: 161
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"23/116","percentage":19.827586206896552}}}Content-Length: 161
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"23/116","percentage":19.827586206896552}}}Content-Length: 161
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"24/116","percentage":20.689655172413794}}}Content-Length: 161
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"24/116","percentage":20.689655172413794}}}Content-Length: 161
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"25/116","percentage":21.551724137931036}}}Content-Length: 161
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"25/116","percentage":21.551724137931036}}}Content-Length: 161
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"26/116","percentage":22.413793103448278}}}Content-Length: 161
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"26/116","percentage":22.413793103448278}}}Content-Length: 161
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"27/116","percentage":23.275862068965516}}}Content-Length: 161
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"27/116","percentage":23.275862068965516}}}Content-Length: 161
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"28/116","percentage":24.137931034482758}}}Content-Length: 161
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"28/116","percentage":24.137931034482758}}}Content-Length: 145
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"29/116","percentage":25}}}Content-Length: 145
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"29/116","percentage":25}}}Content-Length: 161
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"30/116","percentage":25.862068965517242}}}Content-Length: 161
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"30/116","percentage":25.862068965517242}}}Content-Length: 161
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"31/116","percentage":26.724137931034484}}}Content-Length: 161
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"31/116","percentage":26.724137931034484}}}Content-Length: 161
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"32/116","percentage":27.586206896551722}}}Content-Length: 161
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"32/116","percentage":27.586206896551722}}}Content-Length: 161
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"33/116","percentage":28.448275862068964}}}Content-Length: 161
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"33/116","percentage":28.448275862068964}}}Content-Length: 161
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"34/116","percentage":29.310344827586206}}}Content-Length: 161
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"34/116","percentage":29.310344827586206}}}Content-Length: 161
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"35/116","percentage":30.172413793103448}}}Content-Length: 161
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"35/116","percentage":30.172413793103448}}}Content-Length: 160
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"36/116","percentage":31.03448275862069}}}Content-Length: 160
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"36/116","percentage":31.03448275862069}}}Content-Length: 161
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"37/116","percentage":31.896551724137932}}}Content-Length: 161
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"37/116","percentage":31.896551724137932}}}Content-Length: 161
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"38/116","percentage":32.758620689655174}}}Content-Length: 161
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"38/116","percentage":32.758620689655174}}}Content-Length: 161
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"39/116","percentage":33.620689655172413}}}Content-Length: 161
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"39/116","percentage":33.620689655172413}}}Content-Length: 161
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"40/116","percentage":34.482758620689658}}}Content-Length: 161
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"40/116","percentage":34.482758620689658}}}Content-Length: 161
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"41/116","percentage":35.344827586206897}}}Content-Length: 161
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"41/116","percentage":35.344827586206897}}}Content-Length: 161
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"42/116","percentage":36.206896551724135}}}Content-Length: 161
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"42/116","percentage":36.206896551724135}}}Content-Length: 161
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"43/116","percentage":37.068965517241381}}}Content-Length: 161
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"43/116","percentage":37.068965517241381}}}Content-Length: 161
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"44/116","percentage":37.931034482758619}}}Content-Length: 161
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"44/116","percentage":37.931034482758619}}}Content-Length: 161
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"45/116","percentage":38.793103448275865}}}Content-Length: 161
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"45/116","percentage":38.793103448275865}}}Content-Length: 161
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"46/116","percentage":39.655172413793103}}}Content-Length: 161
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"46/116","percentage":39.655172413793103}}}Content-Length: 161
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"47/116","percentage":40.517241379310342}}}Content-Length: 161
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"47/116","percentage":40.517241379310342}}}Content-Length: 161
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"48/116","percentage":41.379310344827587}}}Content-Length: 161
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"48/116","percentage":41.379310344827587}}}Content-Length: 161
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"49/116","percentage":42.241379310344826}}}Content-Length: 161
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"49/116","percentage":42.241379310344826}}}Content-Length: 161
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"50/116","percentage":43.103448275862071}}}Content-Length: 161
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"50/116","percentage":43.103448275862071}}}Content-Length: 160
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"51/116","percentage":43.96551724137931}}}Content-Length: 160
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"51/116","percentage":43.96551724137931}}}Content-Length: 161
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"52/116","percentage":44.827586206896555}}}Content-Length: 161
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"52/116","percentage":44.827586206896555}}}Content-Length: 161
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"53/116","percentage":45.689655172413794}}}Content-Length: 161
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"53/116","percentage":45.689655172413794}}}Content-Length: 161
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"54/116","percentage":46.551724137931032}}}Content-Length: 161
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"54/116","percentage":46.551724137931032}}}Content-Length: 161
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"55/116","percentage":47.413793103448278}}}Content-Length: 161
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"55/116","percentage":47.413793103448278}}}Content-Length: 161
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"56/116","percentage":48.275862068965516}}}Content-Length: 161
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"56/116","percentage":48.275862068965516}}}Content-Length: 161
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"57/116","percentage":49.137931034482762}}}Content-Length: 161
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"57/116","percentage":49.137931034482762}}}Content-Length: 145
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"58/116","percentage":50}}}Content-Length: 145
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"58/116","percentage":50}}}Content-Length: 161
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"59/116","percentage":50.862068965517238}}}Content-Length: 161
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"59/116","percentage":50.862068965517238}}}Content-Length: 161
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"60/116","percentage":51.724137931034484}}}Content-Length: 161
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"60/116","percentage":51.724137931034484}}}Content-Length: 161
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"61/116","percentage":52.586206896551722}}}Content-Length: 161
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"61/116","percentage":52.586206896551722}}}Content-Length: 161
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"62/116","percentage":53.448275862068968}}}Content-Length: 161
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"62/116","percentage":53.448275862068968}}}Content-Length: 161
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"63/116","percentage":54.310344827586206}}}Content-Length: 161
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"63/116","percentage":54.310344827586206}}}Content-Length: 161
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"64/116","percentage":55.172413793103445}}}Content-Length: 161
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"64/116","percentage":55.172413793103445}}}Content-Length: 160
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"65/116","percentage":56.03448275862069}}}Content-Length: 160
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"65/116","percentage":56.03448275862069}}}Content-Length: 161
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"66/116","percentage":56.896551724137929}}}Content-Length: 161
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"66/116","percentage":56.896551724137929}}}Content-Length: 161
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"67/116","percentage":57.758620689655174}}}Content-Length: 161
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"67/116","percentage":57.758620689655174}}}Content-Length: 161
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"68/116","percentage":58.620689655172413}}}Content-Length: 161
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"68/116","percentage":58.620689655172413}}}Content-Length: 161
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"69/116","percentage":59.482758620689658}}}Content-Length: 161
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"69/116","percentage":59.482758620689658}}}Content-Length: 161
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"70/116","percentage":60.344827586206897}}}Content-Length: 161
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"70/116","percentage":60.344827586206897}}}Content-Length: 161
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"71/116","percentage":61.206896551724135}}}Content-Length: 161
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"71/116","percentage":61.206896551724135}}}Content-Length: 161
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"72/116","percentage":62.068965517241381}}}Content-Length: 161
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"72/116","percentage":62.068965517241381}}}Content-Length: 161
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"73/116","percentage":62.931034482758619}}}Content-Length: 161
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"73/116","percentage":62.931034482758619}}}Content-Length: 161
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"74/116","percentage":63.793103448275865}}}Content-Length: 161
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"74/116","percentage":63.793103448275865}}}Content-Length: 160
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"75/116","percentage":64.65517241379311}}}Content-Length: 160
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"75/116","percentage":64.65517241379311}}}Content-Length: 161
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"76/116","percentage":65.517241379310349}}}Content-Length: 161
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"76/116","percentage":65.517241379310349}}}Content-Length: 161
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"77/116","percentage":66.379310344827587}}}Content-Length: 161
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"77/116","percentage":66.379310344827587}}}Content-Length: 161
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"78/116","percentage":67.241379310344826}}}Content-Length: 161
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"78/116","percentage":67.241379310344826}}}Content-Length: 161
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"79/116","percentage":68.103448275862064}}}Content-Length: 161
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"79/116","percentage":68.103448275862064}}}Content-Length: 161
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"80/116","percentage":68.965517241379317}}}Content-Length: 161
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"80/116","percentage":68.965517241379317}}}Content-Length: 161
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"81/116","percentage":69.827586206896555}}}Content-Length: 161
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"81/116","percentage":69.827586206896555}}}Content-Length: 161
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"82/116","percentage":70.689655172413794}}}Content-Length: 161
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"82/116","percentage":70.689655172413794}}}Content-Length: 161
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"83/116","percentage":71.551724137931032}}}Content-Length: 161
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"83/116","percentage":71.551724137931032}}}Content-Length: 160
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"84/116","percentage":72.41379310344827}}}Content-Length: 160
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"84/116","percentage":72.41379310344827}}}Content-Length: 161
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"85/116","percentage":73.275862068965523}}}Content-Length: 161
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"85/116","percentage":73.275862068965523}}}Content-Length: 161
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"86/116","percentage":74.137931034482762}}}Content-Length: 161
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"86/116","percentage":74.137931034482762}}}Content-Length: 145
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"87/116","percentage":75}}}Content-Length: 145
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"87/116","percentage":75}}}Content-Length: 161
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"88/116","percentage":75.862068965517238}}}Content-Length: 161
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"88/116","percentage":75.862068965517238}}}Content-Length: 161
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"89/116","percentage":76.724137931034477}}}Content-Length: 161
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"89/116","percentage":76.724137931034477}}}Content-Length: 160
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"90/116","percentage":77.58620689655173}}}Content-Length: 160
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"90/116","percentage":77.58620689655173}}}Content-Length: 161
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"91/116","percentage":78.448275862068968}}}Content-Length: 161
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"91/116","percentage":78.448275862068968}}}Content-Length: 161
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"92/116","percentage":79.310344827586206}}}Content-Length: 161
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"92/116","percentage":79.310344827586206}}}Content-Length: 161
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"93/116","percentage":80.172413793103445}}}Content-Length: 161
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"93/116","percentage":80.172413793103445}}}Content-Length: 161
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"94/116","percentage":81.034482758620683}}}Content-Length: 161
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"94/116","percentage":81.034482758620683}}}Content-Length: 161
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"95/116","percentage":81.896551724137936}}}Content-Length: 161
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"95/116","percentage":81.896551724137936}}}Content-Length: 161
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"96/116","percentage":82.758620689655174}}}Content-Length: 161
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"96/116","percentage":82.758620689655174}}}Content-Length: 161
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"97/116","percentage":83.620689655172413}}}Content-Length: 161
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"97/116","percentage":83.620689655172413}}}Content-Length: 161
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"98/116","percentage":84.482758620689651}}}Content-Length: 161
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"98/116","percentage":84.482758620689651}}}Content-Length: 160
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"99/116","percentage":85.34482758620689}}}Content-Length: 160
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"99/116","percentage":85.34482758620689}}}Content-Length: 162
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"100/116","percentage":86.206896551724142}}}Content-Length: 162
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"100/116","percentage":86.206896551724142}}}Content-Length: 162
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"101/116","percentage":87.068965517241381}}}Content-Length: 162
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"101/116","percentage":87.068965517241381}}}Content-Length: 162
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"102/116","percentage":87.931034482758619}}}Content-Length: 162
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"102/116","percentage":87.931034482758619}}}Content-Length: 162
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"103/116","percentage":88.793103448275858}}}Content-Length: 162
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"103/116","percentage":88.793103448275858}}}Content-Length: 161
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"104/116","percentage":89.65517241379311}}}Content-Length: 161
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"104/116","percentage":89.65517241379311}}}Content-Length: 162
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"105/116","percentage":90.517241379310349}}}Content-Length: 162
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"105/116","percentage":90.517241379310349}}}Content-Length: 162
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"106/116","percentage":91.379310344827587}}}Content-Length: 162
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"106/116","percentage":91.379310344827587}}}Content-Length: 162
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"107/116","percentage":92.241379310344826}}}Content-Length: 162
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"107/116","percentage":92.241379310344826}}}Content-Length: 162
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"108/116","percentage":93.103448275862064}}}Content-Length: 162
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"108/116","percentage":93.103448275862064}}}Content-Length: 162
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"109/116","percentage":93.965517241379317}}}Content-Length: 162
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"109/116","percentage":93.965517241379317}}}Content-Length: 162
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"110/116","percentage":94.827586206896555}}}Content-Length: 162
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"110/116","percentage":94.827586206896555}}}Content-Length: 162
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"111/116","percentage":95.689655172413794}}}Content-Length: 162
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"111/116","percentage":95.689655172413794}}}Content-Length: 162
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"112/116","percentage":96.551724137931032}}}Content-Length: 162
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"112/116","percentage":96.551724137931032}}}Content-Length: 161
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"113/116","percentage":97.41379310344827}}}Content-Length: 162
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"114/116","percentage":98.275862068965523}}}Content-Length: 162
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"115/116","percentage":99.137931034482762}}}Content-Length: 107
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"end"}}}
+>>>
+Content-Length: 233
+
+{"method":"textDocument/formatting","params":{"textDocument":{"uri":"file:///tmp/arduino-language-server140705626/sketch/Window_button_controller.ino.cpp"},"options":{"tabSize":2,"insertSpaces":true,"key":""}},"id":6,"jsonrpc":"2.0"}
+<<<
+Content-Length: 8532
+
+{"id":6,"jsonrpc":"2.0","result":[{"newText":" ","range":{"end":{"character":25,"line":14},"start":{"character":25,"line":14}}},{"newText":" ","range":{"end":{"character":53,"line":14},"start":{"character":53,"line":14}}},{"newText":" ","range":{"end":{"character":0,"line":33},"start":{"character":23,"line":32}}},{"newText":"\n  ","range":{"end":{"character":8,"line":34},"start":{"character":1,"line":33}}},{"newText":"\n\n  ","range":{"end":{"character":8,"line":36},"start":{"character":39,"line":34}}},{"newText":" ","range":{"end":{"character":8,"line":37},"start":{"character":19,"line":36}}},{"newText":"\n    ","range":{"end":{"character":16,"line":38},"start":{"character":9,"line":37}}},{"newText":"\n    ","range":{"end":{"character":16,"line":39},"start":{"character":35,"line":38}}},{"newText":"\n    ","range":{"end":{"character":16,"line":40},"start":{"character":45,"line":39}}},{"newText":"\n  ","range":{"end":{"character":8,"line":41},"start":{"character":53,"line":40}}},{"newText":" ","range":{"end":{"character":8,"line":42},"start":{"character":9,"line":41}}},{"newText":" ","range":{"end":{"character":8,"line":43},"start":{"character":24,"line":42}}},{"newText":"\n    ","range":{"end":{"character":16,"line":44},"start":{"character":9,"line":43}}},{"newText":"\n    ","range":{"end":{"character":16,"line":45},"start":{"character":35,"line":44}}},{"newText":"\n    ","range":{"end":{"character":16,"line":46},"start":{"character":47,"line":45}}},{"newText":"\n  ","range":{"end":{"character":8,"line":47},"start":{"character":55,"line":46}}},{"newText":" ","range":{"end":{"character":8,"line":48},"start":{"character":9,"line":47}}},{"newText":" ","range":{"end":{"character":8,"line":49},"start":{"character":12,"line":48}}},{"newText":"\n    ","range":{"end":{"character":16,"line":50},"start":{"character":9,"line":49}}},{"newText":"\n    ","range":{"end":{"character":16,"line":51},"start":{"character":35,"line":50}}},{"newText":"\n    ","range":{"end":{"character":16,"line":52},"start":{"character":35,"line":51}}},{"newText":"\n    ","range":{"end":{"character":16,"line":53},"start":{"character":46,"line":52}}},{"newText":"\n  ","range":{"end":{"character":8,"line":54},"start":{"character":55,"line":53}}},{"newText":" ","range":{"end":{"character":0,"line":57},"start":{"character":18,"line":56}}},{"newText":"\n  ","range":{"end":{"character":8,"line":58},"start":{"character":1,"line":57}}},{"newText":"\n\n  ","range":{"end":{"character":8,"line":63},"start":{"character":10,"line":61}}},{"newText":"\n  ","range":{"end":{"character":8,"line":64},"start":{"character":53,"line":63}}},{"newText":"\n\n  ","range":{"end":{"character":8,"line":66},"start":{"character":57,"line":64}}},{"newText":"\n  ","range":{"end":{"character":8,"line":67},"start":{"character":92,"line":66}}},{"newText":"\n    ","range":{"end":{"character":16,"line":68},"start":{"character":9,"line":67}}},{"newText":"  ","range":{"end":{"character":28,"line":68},"start":{"character":27,"line":68}}},{"newText":"\n  ","range":{"end":{"character":8,"line":69},"start":{"character":34,"line":68}}},{"newText":" ","range":{"end":{"character":8,"line":70},"start":{"character":9,"line":69}}},{"newText":" ","range":{"end":{"character":8,"line":71},"start":{"character":39,"line":70}}},{"newText":"\n    ","range":{"end":{"character":16,"line":72},"start":{"character":9,"line":71}}},{"newText":"  ","range":{"end":{"character":28,"line":72},"start":{"character":27,"line":72}}},{"newText":"\n  ","range":{"end":{"character":8,"line":73},"start":{"character":33,"line":72}}},{"newText":" ","range":{"end":{"character":8,"line":74},"start":{"character":9,"line":73}}},{"newText":" ","range":{"end":{"character":8,"line":75},"start":{"character":41,"line":74}}},{"newText":"\n    ","range":{"end":{"character":16,"line":76},"start":{"character":9,"line":75}}},{"newText":"  ","range":{"end":{"character":28,"line":76},"start":{"character":27,"line":76}}},{"newText":"\n  ","range":{"end":{"character":8,"line":77},"start":{"character":35,"line":76}}},{"newText":" ","range":{"end":{"character":0,"line":80},"start":{"character":19,"line":79}}},{"newText":"\n  ","range":{"end":{"character":8,"line":81},"start":{"character":1,"line":80}}},{"newText":"\n  ","range":{"end":{"character":8,"line":82},"start":{"character":51,"line":81}}},{"newText":"\n  ","range":{"end":{"character":8,"line":83},"start":{"character":33,"line":82}}},{"newText":"\n\n  ","range":{"end":{"character":8,"line":85},"start":{"character":35,"line":83}}},{"newText":" ","range":{"end":{"character":8,"line":86},"start":{"character":45,"line":85}}},{"newText":"\n    ","range":{"end":{"character":16,"line":87},"start":{"character":9,"line":86}}},{"newText":"\n    ","range":{"end":{"character":16,"line":88},"start":{"character":53,"line":87}}},{"newText":"\n  ","range":{"end":{"character":8,"line":89},"start":{"character":55,"line":88}}},{"newText":" ","range":{"end":{"character":8,"line":90},"start":{"character":9,"line":89}}},{"newText":" ","range":{"end":{"character":8,"line":91},"start":{"character":94,"line":90}}},{"newText":"\n    ","range":{"end":{"character":16,"line":92},"start":{"character":9,"line":91}}},{"newText":"\n    ","range":{"end":{"character":16,"line":93},"start":{"character":52,"line":92}}},{"newText":"\n  ","range":{"end":{"character":8,"line":94},"start":{"character":55,"line":93}}},{"newText":" ","range":{"end":{"character":8,"line":95},"start":{"character":9,"line":94}}},{"newText":" ","range":{"end":{"character":8,"line":96},"start":{"character":107,"line":95}}},{"newText":"\n    ","range":{"end":{"character":16,"line":97},"start":{"character":9,"line":96}}},{"newText":"\n    ","range":{"end":{"character":16,"line":98},"start":{"character":53,"line":97}}},{"newText":"\n  ","range":{"end":{"character":8,"line":99},"start":{"character":54,"line":98}}},{"newText":" ","range":{"end":{"character":8,"line":100},"start":{"character":9,"line":99}}},{"newText":" ","range":{"end":{"character":8,"line":101},"start":{"character":12,"line":100}}},{"newText":"\n    ","range":{"end":{"character":16,"line":102},"start":{"character":9,"line":101}}},{"newText":"\n  ","range":{"end":{"character":8,"line":103},"start":{"character":38,"line":102}}},{"newText":" ","range":{"end":{"character":0,"line":106},"start":{"character":39,"line":105}}},{"newText":"\n  ","range":{"end":{"character":8,"line":107},"start":{"character":1,"line":106}}},{"newText":" ","range":{"end":{"character":8,"line":108},"start":{"character":21,"line":107}}},{"newText":"\n    ","range":{"end":{"character":16,"line":109},"start":{"character":9,"line":108}}},{"newText":"\n    ","range":{"end":{"character":16,"line":110},"start":{"character":42,"line":109}}},{"newText":"\n    ","range":{"end":{"character":16,"line":111},"start":{"character":46,"line":110}}},{"newText":"\n    ","range":{"end":{"character":16,"line":112},"start":{"character":20,"line":111}}},{"newText":"\n    ","range":{"end":{"character":16,"line":113},"start":{"character":71,"line":112}}},{"newText":"\n    ","range":{"end":{"character":16,"line":114},"start":{"character":70,"line":113}}},{"newText":"\n    ","range":{"end":{"character":16,"line":115},"start":{"character":40,"line":114}}},{"newText":"\n    ","range":{"end":{"character":16,"line":116},"start":{"character":71,"line":115}}},{"newText":"\n    ","range":{"end":{"character":16,"line":117},"start":{"character":40,"line":116}}},{"newText":"\n  ","range":{"end":{"character":8,"line":118},"start":{"character":20,"line":117}}},{"newText":" ","range":{"end":{"character":0,"line":121},"start":{"character":12,"line":120}}},{"newText":"\n  ","range":{"end":{"character":8,"line":122},"start":{"character":1,"line":121}}},{"newText":"\n  ","range":{"end":{"character":8,"line":123},"start":{"character":25,"line":122}}},{"newText":"\n  ","range":{"end":{"character":8,"line":124},"start":{"character":23,"line":123}}},{"newText":"\n  ","range":{"end":{"character":8,"line":125},"start":{"character":37,"line":124}}},{"newText":"\n  ","range":{"end":{"character":8,"line":126},"start":{"character":39,"line":125}}},{"newText":" ","range":{"end":{"character":0,"line":129},"start":{"character":11,"line":128}}},{"newText":"\n  ","range":{"end":{"character":8,"line":130},"start":{"character":1,"line":129}}},{"newText":"\n  ","range":{"end":{"character":8,"line":131},"start":{"character":21,"line":130}}},{"newText":"\n  ","range":{"end":{"character":8,"line":132},"start":{"character":50,"line":131}}}]}
+>>>
+Content-Length: 9425
+
+{"method":"textDocument/didChange","params":{"textDocument":{"uri":"file:///tmp/arduino-language-server140705626/sketch/Window_button_controller.ino.cpp","version":89},"contentChanges":[{"range":{"start":{"line":132,"character":2},"end":{"line":132,"character":8}},"rangeLength":6,"text":""},{"range":{"start":{"line":131,"character":2},"end":{"line":131,"character":8}},"rangeLength":6,"text":""},{"range":{"start":{"line":130,"character":2},"end":{"line":130,"character":8}},"rangeLength":6,"text":""},{"range":{"start":{"line":128,"character":11},"end":{"line":129,"character":0}},"rangeLength":1,"text":" "},{"range":{"start":{"line":126,"character":2},"end":{"line":126,"character":8}},"rangeLength":6,"text":""},{"range":{"start":{"line":125,"character":2},"end":{"line":125,"character":8}},"rangeLength":6,"text":""},{"range":{"start":{"line":124,"character":2},"end":{"line":124,"character":8}},"rangeLength":6,"text":""},{"range":{"start":{"line":123,"character":2},"end":{"line":123,"character":8}},"rangeLength":6,"text":""},{"range":{"start":{"line":122,"character":2},"end":{"line":122,"character":8}},"rangeLength":6,"text":""},{"range":{"start":{"line":120,"character":12},"end":{"line":121,"character":0}},"rangeLength":1,"text":" "},{"range":{"start":{"line":118,"character":2},"end":{"line":118,"character":8}},"rangeLength":6,"text":""},{"range":{"start":{"line":117,"character":4},"end":{"line":117,"character":16}},"rangeLength":12,"text":""},{"range":{"start":{"line":116,"character":4},"end":{"line":116,"character":16}},"rangeLength":12,"text":""},{"range":{"start":{"line":115,"character":4},"end":{"line":115,"character":16}},"rangeLength":12,"text":""},{"range":{"start":{"line":114,"character":4},"end":{"line":114,"character":16}},"rangeLength":12,"text":""},{"range":{"start":{"line":113,"character":4},"end":{"line":113,"character":16}},"rangeLength":12,"text":""},{"range":{"start":{"line":112,"character":4},"end":{"line":112,"character":16}},"rangeLength":12,"text":""},{"range":{"start":{"line":111,"character":4},"end":{"line":111,"character":16}},"rangeLength":12,"text":""},{"range":{"start":{"line":110,"character":4},"end":{"line":110,"character":16}},"rangeLength":12,"text":""},{"range":{"start":{"line":109,"character":4},"end":{"line":109,"character":16}},"rangeLength":12,"text":""},{"range":{"start":{"line":107,"character":21},"end":{"line":108,"character":7}},"rangeLength":8,"text":""},{"range":{"start":{"line":107,"character":2},"end":{"line":107,"character":8}},"rangeLength":6,"text":""},{"range":{"start":{"line":105,"character":39},"end":{"line":106,"character":0}},"rangeLength":1,"text":" "},{"range":{"start":{"line":103,"character":2},"end":{"line":103,"character":8}},"rangeLength":6,"text":""},{"range":{"start":{"line":102,"character":4},"end":{"line":102,"character":16}},"rangeLength":12,"text":""},{"range":{"start":{"line":100,"character":12},"end":{"line":101,"character":7}},"rangeLength":8,"text":""},{"range":{"start":{"line":99,"character":9},"end":{"line":100,"character":7}},"rangeLength":8,"text":""},{"range":{"start":{"line":99,"character":2},"end":{"line":99,"character":8}},"rangeLength":6,"text":""},{"range":{"start":{"line":98,"character":4},"end":{"line":98,"character":16}},"rangeLength":12,"text":""},{"range":{"start":{"line":97,"character":4},"end":{"line":97,"character":16}},"rangeLength":12,"text":""},{"range":{"start":{"line":95,"character":107},"end":{"line":96,"character":7}},"rangeLength":8,"text":""},{"range":{"start":{"line":94,"character":9},"end":{"line":95,"character":7}},"rangeLength":8,"text":""},{"range":{"start":{"line":94,"character":2},"end":{"line":94,"character":8}},"rangeLength":6,"text":""},{"range":{"start":{"line":93,"character":4},"end":{"line":93,"character":16}},"rangeLength":12,"text":""},{"range":{"start":{"line":92,"character":4},"end":{"line":92,"character":16}},"rangeLength":12,"text":""},{"range":{"start":{"line":90,"character":94},"end":{"line":91,"character":7}},"rangeLength":8,"text":""},{"range":{"start":{"line":89,"character":9},"end":{"line":90,"character":7}},"rangeLength":8,"text":""},{"range":{"start":{"line":89,"character":2},"end":{"line":89,"character":8}},"rangeLength":6,"text":""},{"range":{"start":{"line":88,"character":4},"end":{"line":88,"character":16}},"rangeLength":12,"text":""},{"range":{"start":{"line":87,"character":4},"end":{"line":87,"character":16}},"rangeLength":12,"text":""},{"range":{"start":{"line":85,"character":45},"end":{"line":86,"character":7}},"rangeLength":8,"text":""},{"range":{"start":{"line":85,"character":2},"end":{"line":85,"character":8}},"rangeLength":6,"text":""},{"range":{"start":{"line":83,"character":2},"end":{"line":83,"character":8}},"rangeLength":6,"text":""},{"range":{"start":{"line":82,"character":2},"end":{"line":82,"character":8}},"rangeLength":6,"text":""},{"range":{"start":{"line":81,"character":2},"end":{"line":81,"character":8}},"rangeLength":6,"text":""},{"range":{"start":{"line":79,"character":19},"end":{"line":80,"character":0}},"rangeLength":1,"text":" "},{"range":{"start":{"line":77,"character":2},"end":{"line":77,"character":8}},"rangeLength":6,"text":""},{"range":{"start":{"line":76,"character":28},"end":{"line":76,"character":28}},"text":" "},{"range":{"start":{"line":76,"character":4},"end":{"line":76,"character":16}},"rangeLength":12,"text":""},{"range":{"start":{"line":74,"character":41},"end":{"line":75,"character":7}},"rangeLength":8,"text":""},{"range":{"start":{"line":73,"character":9},"end":{"line":74,"character":7}},"rangeLength":8,"text":""},{"range":{"start":{"line":73,"character":2},"end":{"line":73,"character":8}},"rangeLength":6,"text":""},{"range":{"start":{"line":72,"character":28},"end":{"line":72,"character":28}},"text":" "},{"range":{"start":{"line":72,"character":4},"end":{"line":72,"character":16}},"rangeLength":12,"text":""},{"range":{"start":{"line":70,"character":39},"end":{"line":71,"character":7}},"rangeLength":8,"text":""},{"range":{"start":{"line":69,"character":9},"end":{"line":70,"character":7}},"rangeLength":8,"text":""},{"range":{"start":{"line":69,"character":2},"end":{"line":69,"character":8}},"rangeLength":6,"text":""},{"range":{"start":{"line":68,"character":28},"end":{"line":68,"character":28}},"text":" "},{"range":{"start":{"line":68,"character":4},"end":{"line":68,"character":16}},"rangeLength":12,"text":""},{"range":{"start":{"line":67,"character":2},"end":{"line":67,"character":8}},"rangeLength":6,"text":""},{"range":{"start":{"line":66,"character":2},"end":{"line":66,"character":8}},"rangeLength":6,"text":""},{"range":{"start":{"line":64,"character":2},"end":{"line":64,"character":8}},"rangeLength":6,"text":""},{"range":{"start":{"line":63,"character":2},"end":{"line":63,"character":8}},"rangeLength":6,"text":""},{"range":{"start":{"line":58,"character":2},"end":{"line":58,"character":8}},"rangeLength":6,"text":""},{"range":{"start":{"line":56,"character":18},"end":{"line":57,"character":0}},"rangeLength":1,"text":" "},{"range":{"start":{"line":54,"character":2},"end":{"line":54,"character":8}},"rangeLength":6,"text":""},{"range":{"start":{"line":53,"character":4},"end":{"line":53,"character":16}},"rangeLength":12,"text":""},{"range":{"start":{"line":52,"character":4},"end":{"line":52,"character":16}},"rangeLength":12,"text":""},{"range":{"start":{"line":51,"character":4},"end":{"line":51,"character":16}},"rangeLength":12,"text":""},{"range":{"start":{"line":50,"character":4},"end":{"line":50,"character":16}},"rangeLength":12,"text":""},{"range":{"start":{"line":48,"character":12},"end":{"line":49,"character":7}},"rangeLength":8,"text":""},{"range":{"start":{"line":47,"character":9},"end":{"line":48,"character":7}},"rangeLength":8,"text":""},{"range":{"start":{"line":47,"character":2},"end":{"line":47,"character":8}},"rangeLength":6,"text":""},{"range":{"start":{"line":46,"character":4},"end":{"line":46,"character":16}},"rangeLength":12,"text":""},{"range":{"start":{"line":45,"character":4},"end":{"line":45,"character":16}},"rangeLength":12,"text":""},{"range":{"start":{"line":44,"character":4},"end":{"line":44,"character":16}},"rangeLength":12,"text":""},{"range":{"start":{"line":42,"character":24},"end":{"line":43,"character":7}},"rangeLength":8,"text":""},{"range":{"start":{"line":41,"character":9},"end":{"line":42,"character":7}},"rangeLength":8,"text":""},{"range":{"start":{"line":41,"character":2},"end":{"line":41,"character":8}},"rangeLength":6,"text":""},{"range":{"start":{"line":40,"character":4},"end":{"line":40,"character":16}},"rangeLength":12,"text":""},{"range":{"start":{"line":39,"character":4},"end":{"line":39,"character":16}},"rangeLength":12,"text":""},{"range":{"start":{"line":38,"character":4},"end":{"line":38,"character":16}},"rangeLength":12,"text":""},{"range":{"start":{"line":36,"character":19},"end":{"line":37,"character":7}},"rangeLength":8,"text":""},{"range":{"start":{"line":36,"character":2},"end":{"line":36,"character":8}},"rangeLength":6,"text":""},{"range":{"start":{"line":34,"character":2},"end":{"line":34,"character":8}},"rangeLength":6,"text":""},{"range":{"start":{"line":32,"character":23},"end":{"line":33,"character":0}},"rangeLength":1,"text":" "},{"range":{"start":{"line":14,"character":53},"end":{"line":14,"character":53}},"text":" "},{"range":{"start":{"line":14,"character":25},"end":{"line":14,"character":25}},"text":" "}]},"jsonrpc":"2.0"}
+<<<
+Content-Length: 1610
+
+{"jsonrpc":"2.0","method":"textDocument/publishDiagnostics","params":{"diagnostics":[{"code":"drv_unknown_argument_with_suggestion","message":"Unknown argument '-free'; did you mean '-fsee'?","range":{"end":{"character":0,"line":0},"start":{"character":0,"line":0}},"severity":1,"source":"clang"},{"code":"drv_unknown_argument","message":"Unknown argument: '-fipa-pta'","range":{"end":{"character":0,"line":0},"start":{"character":0,"line":0}},"severity":1,"source":"clang"},{"code":"drv_unknown_argument_with_suggestion","message":"Unknown argument '-mlongcalls'; did you mean '-mlong-calls'?","range":{"end":{"character":0,"line":0},"start":{"character":0,"line":0}},"severity":1,"source":"clang"},{"code":"drv_unknown_argument","message":"Unknown argument: '-mtext-section-literals'","range":{"end":{"character":0,"line":0},"start":{"character":0,"line":0}},"severity":1,"source":"clang"},{"code":"redefinition_different_typedef","message":"In included file: typedef redefinition with different types ('int' vs '_ssize_t' (aka 'long'))\n\n/home/guy/.arduino15/packages/esp8266/hardware/esp8266/3.0.2/tools/sdk/lwip2/include/lwip/arch.h:202:13:\nnote: error occurred here\n\n/home/guy/.arduino15/packages/esp8266/tools/xtensa-lx106-elf-gcc/3.0.4-gcc10.3-1757bed/bin/../lib/gcc/xtensa-lx106-elf/10.3.0/../../../../xtensa-lx106-elf/include/sys/types.h:185:18:\nnote: previous definition is here","range":{"end":{"character":27,"line":3},"start":{"character":9,"line":3}},"severity":1,"source":"clang"}],"uri":"file:///tmp/arduino-language-server140705626/sketch/Window_button_controller.ino.cpp","version":89}}
+>>>
+Content-Length: 3938
+
+{"method":"textDocument/didChange","params":{"textDocument":{"uri":"file:///tmp/arduino-language-server140705626/sketch/Window_button_controller.ino.cpp","version":90},"contentChanges":[{"text":"#include \u003cArduino.h\u003e\n#line 1 \"/home/guy/Documents/git/Arduino/Window_button_controller/Window_button_controller.ino\"\n#include \u003cbuttonPresses.h\u003e\n#include \"myIOT_settings.h\"\n\n#define BUT_PRESSED LOW\n#define LIGHT_ON HIGH\n\nbool blinkNow = false;\n\nuint8_t BUTPIN_UP = D1;\nuint8_t LIGHTPIN_UP = D2;\nuint8_t BUTPIN_DOWN = D3;\nuint8_t LIGHTPIN_DOWN = D4;\nuint8_t *outputPins[] = { \u0026LIGHTPIN_UP, \u0026LIGHTPIN_DOWN };\n\nbuttonPresses buttUP(BUTPIN_UP, 3);\nbuttonPresses buttDOWN(BUTPIN_DOWN, 3);\n\n#line 18 \"/home/guy/Documents/git/Arduino/Window_button_controller/Window_button_controller.ino\"\nvoid butcmds(uint8_t i);\n#line 36 \"/home/guy/Documents/git/Arduino/Window_button_controller/Window_button_controller.ino\"\nvoid readButtons();\n#line 54 \"/home/guy/Documents/git/Arduino/Window_button_controller/Window_button_controller.ino\"\nvoid steady_blink();\n#line 72 \"/home/guy/Documents/git/Arduino/Window_button_controller/Window_button_controller.ino\"\nvoid blink_lights(uint8_t i, uint8_t x);\n#line 85 \"/home/guy/Documents/git/Arduino/Window_button_controller/Window_button_controller.ino\"\nvoid setup();\n#line 92 \"/home/guy/Documents/git/Arduino/Window_button_controller/Window_button_controller.ino\"\nvoid loop();\n#line 18 \"/home/guy/Documents/git/Arduino/Window_button_controller/Window_button_controller.ino\"\nvoid butcmds(uint8_t i) {\n  char *Topic = \"myHome/Windows\";\n\n  if (i == 1) {\n    blink_lights(i, 2);\n    iot.pub_noTopic(\"up\", Topic);\n    iot.pub_msg(\"All-Windows: Set [Up]\");\n  } else if (i == 2) {\n    blink_lights(i, 2);\n    iot.pub_noTopic(\"down\", Topic);\n    iot.pub_msg(\"All-Windows: Set [DOWN]\");\n  } else {\n    blink_lights(1, 4);\n    blink_lights(2, 4);\n    iot.pub_noTopic(\"off\", Topic);\n    iot.pub_msg(\"All-Windows: Set [STOP]\");\n  }\n}\nvoid readButtons() {\n  /* 1 - short press\n           100 - long press\n           0 - button released\n        */\n\n  uint8_t upButton_readVal = buttUP.getValue();\n  uint8_t downButton_readVal = buttDOWN.getValue();\n\n  if (upButton_readVal == 100 || downButton_readVal == 100) /* long press UP or DOWN*/\n  {\n    butcmds(0);  // Off\n  } else if (upButton_readVal == 1) {\n    butcmds(1);  // UP\n  } else if (downButton_readVal == 1) {\n    butcmds(2);  // Down\n  }\n}\nvoid steady_blink() {\n  static unsigned long lastAction = millis();\n  const int offTime = 1500;\n  const uint8_t onTime = 200;\n\n  if (millis() - lastAction \u003c= offTime) {\n    digitalWrite(LIGHTPIN_UP, !LIGHT_ON);\n    digitalWrite(LIGHTPIN_DOWN, !LIGHT_ON);\n  } else if (millis() - lastAction \u003e offTime \u0026\u0026 millis() - lastAction \u003c= onTime + offTime) {\n    digitalWrite(LIGHTPIN_UP, LIGHT_ON);\n    digitalWrite(LIGHTPIN_DOWN, !LIGHT_ON);\n  } else if (millis() - lastAction \u003e offTime + onTime \u0026\u0026 millis() - lastAction \u003c= offTime + 2 * onTime) {\n    digitalWrite(LIGHTPIN_UP, !LIGHT_ON);\n    digitalWrite(LIGHTPIN_DOWN, LIGHT_ON);\n  } else {\n    lastAction = millis();\n  }\n}\nvoid blink_lights(uint8_t i, uint8_t x) {\n  if (blinkNow) {\n    const uint8_t DELAY = 100;\n    // for (int a = 0; a \u003c x; a++)\n    // {\n    //         digitalWrite(*outputPins[i - 1], !LIGHT_ON);\n    //         digitalWrite(*outputPins[i - 1], LIGHT_ON);\n    //         delay(DELAY);\n    //         digitalWrite(*outputPins[i - 1], !LIGHT_ON);\n    //         delay(DELAY);\n    // }\n  }\n}\nvoid setup() {\n  buttDOWN.start();\n  buttUP.start();\n  pinMode(LIGHTPIN_UP, OUTPUT);\n  pinMode(LIGHTPIN_DOWN, OUTPUT);\n  startIOTservices();\n}\nvoid loop() {\n  iot.looper();\n  readButtons(); /* Delay is already here */\n  steady_blink();\n}\n"}]},"jsonrpc":"2.0"}Content-Length: 233
+
+{"method":"textDocument/formatting","params":{"textDocument":{"uri":"file:///tmp/arduino-language-server140705626/sketch/Window_button_controller.ino.cpp"},"options":{"tabSize":2,"insertSpaces":true,"key":""}},"id":7,"jsonrpc":"2.0"}
+<<<
+Content-Length: 36
+
+{"id":7,"jsonrpc":"2.0","result":[]}
+>>>
+Content-Length: 184
+
+{"method":"textDocument/documentSymbol","params":{"textDocument":{"uri":"file:///tmp/arduino-language-server140705626/sketch/Window_button_controller.ino.cpp"}},"id":8,"jsonrpc":"2.0"}
+<<<
+Content-Length: 111
+
+{"id":1,"jsonrpc":"2.0","method":"window/workDoneProgress/create","params":{"token":"backgroundIndexProgress"}}
+>>>
+Content-Length: 38
+
+{"id":1,"result":null,"jsonrpc":"2.0"}
+<<<
+Content-Length: 143
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"begin","percentage":0,"title":"indexing"}}}Content-Length: 141
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"0/1","percentage":0}}}Content-Length: 141
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"report","message":"0/1","percentage":0}}}Content-Length: 107
+
+{"jsonrpc":"2.0","method":"$/progress","params":{"token":"backgroundIndexProgress","value":{"kind":"end"}}}Content-Length: 3908
+
+{"id":8,"jsonrpc":"2.0","result":[{"kind":13,"name":"blinkNow","range":{"end":{"character":21,"line":8},"start":{"character":0,"line":8}},"selectionRange":{"end":{"character":13,"line":8},"start":{"character":5,"line":8}}},{"kind":13,"name":"BUTPIN_UP","range":{"end":{"character":22,"line":10},"start":{"character":0,"line":10}},"selectionRange":{"end":{"character":17,"line":10},"start":{"character":8,"line":10}}},{"kind":13,"name":"LIGHTPIN_UP","range":{"end":{"character":24,"line":11},"start":{"character":0,"line":11}},"selectionRange":{"end":{"character":19,"line":11},"start":{"character":8,"line":11}}},{"kind":13,"name":"BUTPIN_DOWN","range":{"end":{"character":24,"line":12},"start":{"character":0,"line":12}},"selectionRange":{"end":{"character":19,"line":12},"start":{"character":8,"line":12}}},{"kind":13,"name":"LIGHTPIN_DOWN","range":{"end":{"character":26,"line":13},"start":{"character":0,"line":13}},"selectionRange":{"end":{"character":21,"line":13},"start":{"character":8,"line":13}}},{"kind":13,"name":"outputPins","range":{"end":{"character":56,"line":14},"start":{"character":0,"line":14}},"selectionRange":{"end":{"character":19,"line":14},"start":{"character":9,"line":14}}},{"kind":13,"name":"buttUP","range":{"end":{"character":34,"line":16},"start":{"character":0,"line":16}},"selectionRange":{"end":{"character":20,"line":16},"start":{"character":14,"line":16}}},{"kind":13,"name":"buttDOWN","range":{"end":{"character":38,"line":17},"start":{"character":0,"line":17}},"selectionRange":{"end":{"character":22,"line":17},"start":{"character":14,"line":17}}},{"kind":12,"name":"butcmds","range":{"end":{"character":23,"line":20},"start":{"character":0,"line":20}},"selectionRange":{"end":{"character":12,"line":20},"start":{"character":5,"line":20}}},{"kind":12,"name":"readButtons","range":{"end":{"character":18,"line":22},"start":{"character":0,"line":22}},"selectionRange":{"end":{"character":16,"line":22},"start":{"character":5,"line":22}}},{"kind":12,"name":"steady_blink","range":{"end":{"character":19,"line":24},"start":{"character":0,"line":24}},"selectionRange":{"end":{"character":17,"line":24},"start":{"character":5,"line":24}}},{"kind":12,"name":"blink_lights","range":{"end":{"character":39,"line":26},"start":{"character":0,"line":26}},"selectionRange":{"end":{"character":17,"line":26},"start":{"character":5,"line":26}}},{"kind":12,"name":"setup","range":{"end":{"character":12,"line":28},"start":{"character":0,"line":28}},"selectionRange":{"end":{"character":10,"line":28},"start":{"character":5,"line":28}}},{"kind":12,"name":"loop","range":{"end":{"character":11,"line":30},"start":{"character":0,"line":30}},"selectionRange":{"end":{"character":9,"line":30},"start":{"character":5,"line":30}}},{"kind":12,"name":"butcmds","range":{"end":{"character":1,"line":49},"start":{"character":0,"line":32}},"selectionRange":{"end":{"character":12,"line":32},"start":{"character":5,"line":32}}},{"kind":12,"name":"readButtons","range":{"end":{"character":1,"line":67},"start":{"character":0,"line":50}},"selectionRange":{"end":{"character":16,"line":50},"start":{"character":5,"line":50}}},{"kind":12,"name":"steady_blink","range":{"end":{"character":1,"line":85},"start":{"character":0,"line":68}},"selectionRange":{"end":{"character":17,"line":68},"start":{"character":5,"line":68}}},{"kind":12,"name":"blink_lights","range":{"end":{"character":1,"line":98},"start":{"character":0,"line":86}},"selectionRange":{"end":{"character":17,"line":86},"start":{"character":5,"line":86}}},{"kind":12,"name":"setup","range":{"end":{"character":1,"line":105},"start":{"character":0,"line":99}},"selectionRange":{"end":{"character":10,"line":99},"start":{"character":5,"line":99}}},{"kind":12,"name":"loop","range":{"end":{"character":1,"line":110},"start":{"character":0,"line":106}},"selectionRange":{"end":{"character":9,"line":106},"start":{"character":5,"line":106}}}]}Content-Length: 1610
+
+{"jsonrpc":"2.0","method":"textDocument/publishDiagnostics","params":{"diagnostics":[{"code":"drv_unknown_argument_with_suggestion","message":"Unknown argument '-free'; did you mean '-fsee'?","range":{"end":{"character":0,"line":0},"start":{"character":0,"line":0}},"severity":1,"source":"clang"},{"code":"drv_unknown_argument","message":"Unknown argument: '-fipa-pta'","range":{"end":{"character":0,"line":0},"start":{"character":0,"line":0}},"severity":1,"source":"clang"},{"code":"drv_unknown_argument_with_suggestion","message":"Unknown argument '-mlongcalls'; did you mean '-mlong-calls'?","range":{"end":{"character":0,"line":0},"start":{"character":0,"line":0}},"severity":1,"source":"clang"},{"code":"drv_unknown_argument","message":"Unknown argument: '-mtext-section-literals'","range":{"end":{"character":0,"line":0},"start":{"character":0,"line":0}},"severity":1,"source":"clang"},{"code":"redefinition_different_typedef","message":"In included file: typedef redefinition with different types ('int' vs '_ssize_t' (aka 'long'))\n\n/home/guy/.arduino15/packages/esp8266/hardware/esp8266/3.0.2/tools/sdk/lwip2/include/lwip/arch.h:202:13:\nnote: error occurred here\n\n/home/guy/.arduino15/packages/esp8266/tools/xtensa-lx106-elf-gcc/3.0.4-gcc10.3-1757bed/bin/../lib/gcc/xtensa-lx106-elf/10.3.0/../../../../xtensa-lx106-elf/include/sys/types.h:185:18:\nnote: previous definition is here","range":{"end":{"character":27,"line":3},"start":{"character":9,"line":3}},"severity":1,"source":"clang"}],"uri":"file:///tmp/arduino-language-server140705626/sketch/Window_button_controller.ino.cpp","version":90}}
+>>>
+Content-Length: 287
+
+{"method":"textDocument/codeAction","params":{"textDocument":{"uri":"file:///tmp/arduino-language-server140705626/sketch/Window_button_controller.ino.cpp"},"range":{"start":{"line":83,"character":26},"end":{"line":83,"character":26}},"context":{"diagnostics":[]}},"id":9,"jsonrpc":"2.0"}
+<<<
+Content-Length: 36
+
+{"id":9,"jsonrpc":"2.0","result":[]}
+>>>
+Content-Length: 288
+
+{"method":"textDocument/codeAction","params":{"textDocument":{"uri":"file:///tmp/arduino-language-server140705626/sketch/Window_button_controller.ino.cpp"},"range":{"start":{"line":81,"character":42},"end":{"line":81,"character":42}},"context":{"diagnostics":[]}},"id":10,"jsonrpc":"2.0"}
+<<<
+Content-Length: 37
+
+{"id":10,"jsonrpc":"2.0","result":[]}
+>>>
+Content-Length: 59
+
+{"method":"shutdown","params":null,"id":11,"jsonrpc":"2.0"}
+<<<
+Content-Length: 39
+
+{"id":11,"jsonrpc":"2.0","result":null}
+>>>
+Content-Length: 47
+
+{"method":"exit","params":null,"jsonrpc":"2.0"}<<< Read Error: EOF

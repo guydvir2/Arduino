@@ -1,17 +1,15 @@
-#include <myLOG.h>
-
-flashLOG fLOG;
+char *test[] = {&nullptr, nullptr};
 void setup()
 {
   Serial.begin(115200);
-  Serial.println("Start");
-  fLOG.start();
-  fLOG.write("HELLLLLO", true);
-  fLOG.rawPrintfile();
+  Serial.println("START");
+  char *a = "GUY)_SDVSDFVSDFVSDFVSDF";
+  test[0] = a;
+  Serial.println(test[0]);
 }
 
 void loop()
 {
   // put your main code here, to run repeatedly:
-  fLOG.looper();
+  delay(100);
 }

@@ -26,10 +26,10 @@ private:
 #if isESP8266
   const float _driftFactor = 1.05629; /* ESP8266 error correction for wake time - adds time to nominal sleep time*/
 #elif isESP32
-  const float _driftFactor = 1.006; /* ESP32 error correction for wake time - adds time to nominal sleep time*/
+  const float _driftFactor = 1.0074; /* ESP32 error correction for wake time - adds time to nominal sleep time*/
 #endif
 
-  char _devname[15];
+  char _devname[25];
   bool _clkAlign = true; /* Adujst sllep time that will be on round clk */
   bool _force_postpone_sleep = false;
 
