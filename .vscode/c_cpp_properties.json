@@ -5,15 +5,8 @@
             "name": "Linux",
             "compilerPath": "/usr/bin/clang",
             "compilerArgs": [],
-            "intelliSenseMode": "clang-x64",
-            "includePath": [
-                "/home/guy/.arduino15/packages/esp8266/tools/**",
-                "/home/guy/.arduino15/packages/esp8266/hardware/esp8266/**/**",
-                "${workspaceFolder}/**",
-                "libraries/**",
-                "/home/guy/Documents/git/Arduino/libraries/**",
-                "/home/guy/arduino-1.8.13/libraries/**"
-            ],
+            "intelliSenseMode": "${default}",
+            "includePath": [],
             "forcedInclude": [],
             "cStandard": "c17",
             "cppStandard": "c++17",

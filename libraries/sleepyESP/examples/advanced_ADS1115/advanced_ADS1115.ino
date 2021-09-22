@@ -1,4 +1,3 @@
-#include <Arduino.h>
 #include <sleepyESP.h>
 #include <myIOT2.h>
 
@@ -154,6 +153,5 @@ void setup()
 void loop()
 {
   iot.looper();
-  // checkWake_topic();
   sleepy.wait2Sleep();
 }

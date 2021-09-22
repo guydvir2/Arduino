@@ -1,0 +1,6 @@
+/home/guy/Documents/Dropbox/Arduino/libraries/**
+/home/guy/.arduino15/packages/esp8266/tools/**
+/home/guy/.arduino15/packages/esp8266/hardware/esp8266/**/**
+${workspaceFolder}/**
+/home/guy/arduino-1.8.13/libraries/**
+

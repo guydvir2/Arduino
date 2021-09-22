@@ -6,9 +6,7 @@ void addiotnalMQTT(char *incoming_msg)
     char msg2[60];
     if (strcmp(incoming_msg, "status") == 0)
     {
-
         sprintf(msg, "Status: ");
-
         for (int i = 0; i < numSW; i++)
         {
             char s1[15], s2[7];

@@ -9,7 +9,7 @@
     "useNetworkReset": true,
     "noNetwork_reset": 30,
     "useextTopic": false,
-    "deviceTopic": "frontDoor",
+    "deviceTopic": "test",
     "groupTopic": "extLights",
     "prefixTopic": "myHome",
     "ver": 0.2

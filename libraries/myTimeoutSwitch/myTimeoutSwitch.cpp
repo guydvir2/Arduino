@@ -157,7 +157,7 @@ void timeOUTSwitch::_input_looper()
                     finish_TO(0);
                 }
             }
-            else if (trigType == 2 && currentRead_0 == _inputstatOn && (_lastpress == 0 || millis() - _lastPress > 1000 * 60UL)) /* Case of sensor that each detection restarts its timeout */
+            else if (trigType == 2 && currentRead_0 == _inputstatOn && (_lastPress == 0 || millis() - _lastPress > 1000 * 60UL)) /* Case of sensor that each detection restarts its timeout */
             {
                 start_TO(def_TO_minutes, 0);
                 _lastPress = millis(); /* Avoid frequent write to flash */

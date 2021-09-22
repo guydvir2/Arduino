@@ -5,7 +5,7 @@
         false
     ],
     "sw_names": [
-        "Bulb",
+        "LEDstrip",
         "Ledstrip"
     ],
     "trigType": [
@@ -21,11 +21,11 @@
         false
     ],
     "inputPin": [
-        14,
+        12,
         13
     ],
     "outputPin": [
-        12,
+        1,
         5
     ],
     "output_ON": [
@@ -53,8 +53,8 @@
         60
     ],
     "outputPWM": [
-        false,
-        false
+        true,
+        true
     ],
     "PWM_res": 1023,
     "v_file": 0.7
