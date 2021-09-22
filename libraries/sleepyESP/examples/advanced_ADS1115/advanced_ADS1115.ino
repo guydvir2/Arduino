@@ -17,6 +17,12 @@
 #define CLK_ALIGN true
 #define READ_BAT_VOLT false
 
+#if isESP32
+/* Reminder - ablity to store vairable in ESP32 that survives reboot */
+// RTC_DATA_ATTR long clock_expectedWake = 0;
+// RTC_DATA_ATTR int bootCounter = 0;
+#endif
+
 uint8_t SLEEP_PERIOD = 30; // minutes
 uint8_t WAKE_PERIOD = 15;  // seconds
 
