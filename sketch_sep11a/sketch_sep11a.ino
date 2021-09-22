@@ -1,11 +1,14 @@
-char *test[] = {&nullptr, nullptr};
+char *test[] = {nullptr, nullptr};
+int a = 100;
+int &p = a;
 void setup()
 {
   Serial.begin(115200);
-  Serial.println("START");
-  char *a = "GUY)_SDVSDFVSDFVSDFVSDF";
-  test[0] = a;
-  Serial.println(test[0]);
+  Serial.println("start");
+  Serial.println(a);
+  // Serial.println(&a);
+  // Serial.println(*p);
+  Serial.println(*&p);
 }
 
 void loop()

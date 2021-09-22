@@ -15,8 +15,8 @@
                 "/home/guy/arduino-1.8.13/libraries/**"
             ],
             "forcedInclude": [],
-            "cStandard": "c11",
-            "cppStandard": "c++14",
+            "cStandard": "c17",
+            "cppStandard": "c++17",
             "defines": [
                 "USBCON"
             ]

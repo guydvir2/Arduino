@@ -16,7 +16,6 @@
 
 class sleepyESP
 {
-#define VER "sleepyESP_v0.8"
 #define MINUTES2SEC 60
 #define microsec2sec 1000000ULL /* Conversion micro seconds to seconds */
 
@@ -29,7 +28,7 @@ private:
   const float _driftFactor = 1.0074; /* ESP32 error correction for wake time - adds time to nominal sleep time*/
 #endif
 
-  char _devname[25];
+  char *_devname;
   bool _clkAlign = true; /* Adujst sllep time that will be on round clk */
   bool _force_postpone_sleep = false;
 
@@ -54,10 +53,11 @@ public:
   int nextsleep_duration = 0;
   uint8_t force_postpone_sec = 120;
   bool clock_update_success = false;
+  const char *VER = "sleepyESP_v0.9";
 
 public:
   sleepyESP();
-  void start(uint8_t deepsleep_mins, uint8_t forcedwake_secs, char *devname, cb_func wake_cb = nullptr, cb_func sleep_cb = nullptr, bool clkAlign = true);
+  void start(const uint8_t &deepsleep_mins, const uint8_t &forcedwake_secs, char *devname, cb_func wake_cb = nullptr, cb_func sleep_cb = nullptr, bool clkAlign = true);
   void wait2Sleep();
   bool post_wake_clkUpdate();
   void delay_sleep(int sec_delay = 120);

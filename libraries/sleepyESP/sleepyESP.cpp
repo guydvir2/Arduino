@@ -9,7 +9,7 @@ sleepyESP::sleepyESP()
 #endif
     yield;
 }
-void sleepyESP::start(uint8_t deepsleep_mins, uint8_t forcedwake_secs, char *devname, cb_func wake_cb, cb_func sleep_cb, bool clkAlign)
+void sleepyESP::start(const uint8_t &deepsleep_mins, const uint8_t &forcedwake_secs, char *devname, cb_func wake_cb, cb_func sleep_cb, bool clkAlign)
 {
     EEPROM.begin(100);
     _wake_cb = wake_cb;
@@ -17,7 +17,7 @@ void sleepyESP::start(uint8_t deepsleep_mins, uint8_t forcedwake_secs, char *dev
     _deepsleep_mins = deepsleep_mins;
     _nominal_wait_secs = forcedwake_secs;
     _clkAlign = clkAlign;
-    sprintf(_devname, "%s", devname);
+    _devname = devname;
     clock_update_success = post_wake_clkUpdate();
     _onWake_cb();
 }

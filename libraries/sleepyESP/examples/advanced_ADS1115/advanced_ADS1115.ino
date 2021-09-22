@@ -2,19 +2,24 @@
 #include <sleepyESP.h>
 #include <myIOT2.h>
 
-#define DEV_TOPIC "esp8266_Bat"
+#if defined(ARDUINO_ARCH_ESP8266)
+#define isESP32 false
+#define isESP8266 true
+#elif defined(ESP32)
+#define isESP32 true
+#define isESP8266 false
+#endif
+
+#define DEV_TOPIC "esp32"
 #define GROUP_TOPIC "sleepy"
 #define PREFIX_TOPIC "myHome"
-#define USE_EXT_TOPIC true
-#define MQTT_EXT_TOPIC PREFIX_TOPIC "/" GROUP_TOPIC "/" DEV_TOPIC "/" \
-                                    "onWake"
 #define IGNORE_MQTT_BOOT_MSG true
-
-#define SLEEP_PERIOD 60 // minutes
-#define WAKE_PERIOD 15  // seconds
 #define MCU_NAME DEV_TOPIC
 #define CLK_ALIGN true
-#define READ_BAT_VOLT true
+#define READ_BAT_VOLT false
+
+uint8_t SLEEP_PERIOD = 30; // minutes
+uint8_t WAKE_PERIOD = 15;  // seconds
 
 myIOT2 iot;
 sleepyESP sleepy;
@@ -70,14 +75,13 @@ void startIOTservices()
   iot.useWDT = true;
   iot.useOTA = true;
   iot.useResetKeeper = true;
-  iot.useextTopic = USE_EXT_TOPIC;
+  iot.useextTopic = false;
   iot.useDebug = true;
   iot.debug_level = 1;
   iot.useNetworkReset = false;
   iot.noNetwork_reset = 10;
   iot.useBootClockLog = true;
   iot.ignore_boot_msg = IGNORE_MQTT_BOOT_MSG; // <---- This is for us only //
-  iot.extTopic[0] = MQTT_EXT_TOPIC;           // <---- This is for us only //
 
   strcpy(iot.deviceTopic, DEV_TOPIC);
   strcpy(iot.prefixTopic, PREFIX_TOPIC);
@@ -90,18 +94,22 @@ void addiotnalMQTT(char *incoming_msg)
   char msg[150];
   if (strcmp(incoming_msg, "status") == 0)
   {
-    sprintf(msg, "I'm awake for %.2f[sec]",(float)(millis()/1000.0));
+    sprintf(msg, "I'm awake for %.2f[sec]", (float)(millis() / 1000.0));
     iot.pub_msg(msg);
   }
   else if (strcmp(incoming_msg, "ver2") == 0)
   {
-    // sprintf(msg, "ver #2: [%s], lib: [%s], boardType[%s]", "espVer", VER, boardType);
-    // iot.pub_msg(msg);
+    sprintf(msg, "ver #2: [%s], myIOT2: [%s], boardType[%s]", "espVer", sleepy.VER, iot.ver, isESP32 ? "ESP32" : "ESP8266");
+    iot.pub_msg(msg);
   }
   else if (strcmp(incoming_msg, "help2") == 0)
   {
     sprintf(msg, "Help2: Commands #2 - [; m; ,x]");
     iot.pub_msg(msg);
+  }
+  else if (strcmp(incoming_msg, "m") == 0) /* retained msg "m" will start maintenance mode*/
+  {
+    start_maintainance();
   }
 }
 void start_maintainance()
@@ -112,15 +120,9 @@ void start_maintainance()
   Serial.println("maintainance");
   sprintf(m, "Maintainance: Sleep delay %d[sec]", POSTPONE_SLEEP_SEC);
   iot.pub_log(m);
-  iot.pub_ext("maintainance_done", DEV_TOPIC, true);
-}
-void checkWake_topic()
-{
-  if (strcmp(iot.extTopic_msg.msg, "m") == 0) /* retained msg "m" will start maintenance mode*/
-  {
-    start_maintainance();
-    iot.clear_ExtTopicbuff();
-  }
+  char top[50];
+  sprintf(top, "%s/%s/%s", PREFIX_TOPIC, GROUP_TOPIC, DEV_TOPIC);
+  iot.pub_noTopic("", top,true);
 }
 void wake_cb()
 {
@@ -141,8 +143,6 @@ void sleep_cb()
   iot.pub_msg(sleepMSG);
 }
 
-
-
 void setup()
 {
 #if ESP32
@@ -154,6 +154,6 @@ void setup()
 void loop()
 {
   iot.looper();
-  checkWake_topic();
+  // checkWake_topic();
   sleepy.wait2Sleep();
 }
