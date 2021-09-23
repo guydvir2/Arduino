@@ -13,8 +13,7 @@
 #define TS_MIN_Y 350
 #define TS_MAX_X 3800
 #define TS_MAX_Y 3800
-const int TFT_MAX_X = 320;
-const int TFT_MAX_Y = 240;
+
 int TFT_W = 0;
 int TFT_H = 0;
 
@@ -39,15 +38,15 @@ void create_button(uint8_t xc, uint8_t yc, uint8_t a, uint8_t b, char *txt, uint
   }
   tft.println(txt);
 }
-int conv_x_ts_tft(int px)
+int TS2TFT_x(int px)
 {
-  if (SCREEN_ROT == 1)
-  {
-    return map(px, TS_MAX_X, TS_MIN_X, 0, TFT_W);
-  }
-  else if (SCREEN_ROT == 0)
+  if (SCREEN_ROT == 0)
   {
     return map(px, TS_MAX_X, TS_MIN_X, 0, TFT_H);
+  }
+  else if (SCREEN_ROT == 1)
+  {
+    return map(px, TS_MAX_X, TS_MIN_X, 0, TFT_W);
   }
   else if (SCREEN_ROT == 2)
   {
@@ -58,16 +57,16 @@ int conv_x_ts_tft(int px)
     return map(px, TS_MIN_X, TS_MAX_X, 0, TFT_W);
   }
 }
-int conv_y_ts_tft(int py)
+int TS2TFT_y(int py)
 {
 
-  if (SCREEN_ROT == 1)
-  {
-    return map(py, TS_MIN_Y, TS_MAX_Y, 0, TFT_H);
-  }
-  else if (SCREEN_ROT == 0)
+  if (SCREEN_ROT == 0)
   {
     return map(py, TS_MAX_Y, TS_MIN_Y, 0, TFT_W);
+  }
+  else if (SCREEN_ROT == 1)
+  {
+    return map(py, TS_MIN_Y, TS_MAX_Y, 0, TFT_H);
   }
   else if (SCREEN_ROT == 2)
   {
@@ -88,13 +87,13 @@ void pressLooper()
     int x, y;
     if (SCREEN_ROT == 1 || SCREEN_ROT == 3)
     {
-      x = conv_x_ts_tft(p.x);
-      y = conv_y_ts_tft(p.y);
+      x = TS2TFT_x(p.x);
+      y = TS2TFT_y(p.y);
     }
     else
     {
-      y = conv_x_ts_tft(p.x);
-      x = conv_y_ts_tft(p.y);
+      y = TS2TFT_x(p.x);
+      x = TS2TFT_y(p.y);
     }
     tft.setCursor(0, 0);
     tft.print(p.x);

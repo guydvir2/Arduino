@@ -9,26 +9,28 @@
 #define isESP32 true
 #endif
 
-#define DEV_TOPIC "esp32"
+#define DEV_TOPIC "esp32_2"
 #define GROUP_TOPIC "sleepy"
 #define PREFIX_TOPIC "myHome"
 #define IGNORE_MQTT_BOOT_MSG true
 #define MCU_NAME DEV_TOPIC
 #define CLK_ALIGN true
-#define READ_BAT_VOLT false
+#define READ_BAT_VOLT true
 
 #if isESP32
 /* Reminder - ablity to store vairable in ESP32 that survives reboot */
 // RTC_DATA_ATTR long clock_expectedWake = 0;
 // RTC_DATA_ATTR int bootCounter = 0;
 #endif
-uint8_t SLEEP_PERIOD = 30; // minutes
-uint8_t WAKE_PERIOD = 15;  // seconds
+uint8_t SLEEP_PERIOD = 60; // minutes
+uint8_t WAKE_PERIOD = 10;  // seconds
 
 myIOT2 iot;
 sleepyESP sleepy;
 
 #if READ_BAT_VOLT
+#include <Adafruit_ADS1X15.h>
+Adafruit_ADS1115 ads;
 
 bool start_ads()
 {
@@ -126,6 +128,11 @@ void start_maintainance()
   sprintf(top, "%s/%s/%s", PREFIX_TOPIC, GROUP_TOPIC, DEV_TOPIC);
   iot.pub_noTopic("", top, true);
 
+  Serial.println("Wake up callback");
+}
+
+void wake_cb()
+{
   Serial.println("Wake up callback");
 }
 void sleep_cb()
