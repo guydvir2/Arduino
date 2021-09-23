@@ -5,8 +5,8 @@
 #define isESP32 false
 #define isESP8266 true
 #elif defined(ESP32)
-#define isESP32 true
 #define isESP8266 false
+#define isESP32 true
 #endif
 
 #define DEV_TOPIC "esp32"
@@ -22,7 +22,6 @@
 // RTC_DATA_ATTR long clock_expectedWake = 0;
 // RTC_DATA_ATTR int bootCounter = 0;
 #endif
-
 uint8_t SLEEP_PERIOD = 30; // minutes
 uint8_t WAKE_PERIOD = 15;  // seconds
 
@@ -30,8 +29,6 @@ myIOT2 iot;
 sleepyESP sleepy;
 
 #if READ_BAT_VOLT
-#include <Adafruit_ADS1X15.h>
-Adafruit_ADS1115 ads;
 
 bool start_ads()
 {
@@ -127,10 +124,8 @@ void start_maintainance()
   iot.pub_log(m);
   char top[50];
   sprintf(top, "%s/%s/%s", PREFIX_TOPIC, GROUP_TOPIC, DEV_TOPIC);
-  iot.pub_noTopic("", top,true);
-}
-void wake_cb()
-{
+  iot.pub_noTopic("", top, true);
+
   Serial.println("Wake up callback");
 }
 void sleep_cb()
@@ -159,5 +154,6 @@ void setup()
 void loop()
 {
   iot.looper();
+  sleepy.wait2Sleep();
   sleepy.wait2Sleep();
 }
