@@ -1,4 +1,3 @@
-
 #ifndef TFT_GUI_h
 #define TFT_GUI_h
 
@@ -31,54 +30,10 @@
 #define GLCD_CL_PURPLE 0x780F
 #define GLCD_CL_OLIVE 0x7BE0
 
+extern XPT2046_Touchscreen ts; /* Touch screen */
+extern Adafruit_ILI9341 tft;   /* Graphics */
 
-extern XPT2046_Touchscreen ts;
-extern Adafruit_ILI9341 tft;
-
-const uint8_t _pos_corr_factor[3] = {3, 6, 9};
-
-class ButtonTFT
-{
-
-public:
-  /* Screen calibration */
-  int TS_MIN_X = 350;
-  int TS_MIN_Y = 350;
-  int TS_MAX_X = 3800;
-  int TS_MAX_Y = 3800;
-  /* ~~~~~~~~~~~~~~~~~ */
-  uint8_t xc, yc;
-  uint8_t a, b;
-  uint8_t txt_size = 1;
-  uint8_t border_thickness = 2;
-  uint8_t screen_rotation = 0;
-  uint16_t press_delay = 1000;
-  uint16_t face_color = ILI9341_GREEN;
-  uint16_t border_color = ILI9341_RED;
-  uint16_t txt_color = ILI9341_BLACK;
-
-  char txt_buf[15];
-
-public:
-  ButtonTFT(XPT2046_Touchscreen &_ts, Adafruit_ILI9341 &_tft);
-  void init();
-  void drawButton();
-  bool wait4press();
-
-private:
-  int _TFT_W = 0;
-  int _TFT_H = 0;
-  int _tft_x, _tft_y;
-
-private:
-  void _construct_button();
-  void _put_text();
-  void _press_cb();
-  void _conv_ts_tft(TS_Point &p);
-  int _TS2TFT_x(int px);
-  int _TS2TFT_y(int py);
-};
-
+const uint8_t _pos_corr_factor[3] = {3, 6, 9}; /* Center text inside a box */
 class MessageTFT
 {
 public:
@@ -106,5 +61,50 @@ private:
 private:
   void _construct_GUI();
   void _put_text();
+};
+class ButtonTFT
+{
+public:
+  /* Screen calibration */
+  int TS_MIN_X = 350;
+  int TS_MIN_Y = 350;
+  int TS_MAX_X = 3800;
+  int TS_MAX_Y = 3800;
+  /* ~~~~~~~~~~~~~~~~~ */
+  char txt_buf[15];
+
+  uint8_t &xc = _MSGwindow.xc;
+  uint8_t &yc = _MSGwindow.yc;
+  uint8_t &a = _MSGwindow.a;
+  uint8_t &b = _MSGwindow.b;
+  uint8_t &txt_size = _MSGwindow.txt_size;
+  uint8_t &border_thickness = _MSGwindow.border_thickness;
+  uint8_t &screen_rotation = _MSGwindow.screen_rotation;
+  uint16_t face_color = _MSGwindow.face_color;
+  uint16_t border_color = _MSGwindow.border_color;
+  uint16_t txt_color = _MSGwindow.txt_color;
+  uint16_t press_delay = 1000;
+
+public:
+  ButtonTFT(XPT2046_Touchscreen &_ts, Adafruit_ILI9341 &_tft);
+  void init();
+  void drawButton();
+  bool wait4press();
+
+private:
+  int _TFT_W = 0;
+  int _TFT_H = 0;
+  int _tft_x, _tft_y;
+
+private:
+  bool _check_press_geometry(TS_Point &p);
+  void _construct_button();
+  void _put_text();
+  void _press_cb();
+  void _conv_ts_tft(TS_Point &p);
+  int _TS2TFT_x(int px);
+  int _TS2TFT_y(int py);
+
+  MessageTFT _MSGwindow;
 };
 #endif

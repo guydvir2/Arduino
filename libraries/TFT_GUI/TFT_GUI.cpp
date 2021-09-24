@@ -1,31 +1,25 @@
 #include "TFT_GUI.h"
 
-ButtonTFT::ButtonTFT(XPT2046_Touchscreen &_ts, Adafruit_ILI9341 &_tft)
+ButtonTFT::ButtonTFT(XPT2046_Touchscreen &_ts, Adafruit_ILI9341 &_tft) : _MSGwindow(_tft)
 {
 }
 void ButtonTFT::init()
 {
-  _TFT_W = tft.width();
-  _TFT_H = tft.height();
+  _MSGwindow.init();
 }
 void ButtonTFT::drawButton()
 {
-  _construct_button();
-  _put_text();
+  _MSGwindow.drawMSG();
 }
 bool ButtonTFT::wait4press()
 {
   if (ts.touched())
   {
     TS_Point p = ts.getPoint();
-    _conv_ts_tft(p);
-    if (_tft_x <= xc + a / 2 && _tft_x >= xc - a / 2)
+    if (_check_press_geometry(p))
     {
-      if (_tft_y <= yc + b / 2 && _tft_y >= yc - b / 2)
-      {
-        _press_cb();
-        return 1;
-      }
+      _press_cb();
+      return 1;
     }
     else
     {
@@ -36,23 +30,6 @@ bool ButtonTFT::wait4press()
   {
     return 0;
   }
-}
-void ButtonTFT::_construct_button()
-{
-  tft.setCursor(xc - _pos_corr_factor[txt_size - 1] - a / 2, yc - _pos_corr_factor[txt_size - 1]);
-  tft.fillRect(xc - a / 2, yc - b / 2, a, b, face_color);
-  for (uint8_t x = 0; x < border_thickness * 2; x++)
-  {
-    tft.drawRect((xc - a / 2) + x / 2, (yc - b / 2) + x / 2, a - x, b - x, border_color);
-  }
-}
-void ButtonTFT::_put_text()
-{
-  uint8_t x = strlen(txt_buf);
-  tft.setCursor(xc - x * _pos_corr_factor[txt_size - 1], yc - _pos_corr_factor[txt_size - 1]);
-  tft.setTextColor(txt_color);
-  tft.setTextSize(txt_size);
-  tft.print(txt_buf);
 }
 void ButtonTFT::_press_cb()
 {
@@ -68,9 +45,27 @@ void ButtonTFT::_press_cb()
   drawButton();
   delay(press_delay - 300);
 }
+bool ButtonTFT::_check_press_geometry(TS_Point &p)
+{
+  _conv_ts_tft(p);
+  if (_tft_x <= xc + a / 2 && _tft_x >= xc - a / 2)
+  {
+    if (_tft_y <= yc + b / 2 && _tft_y >= yc - b / 2)
+    {
+      return 1;
+    }
+    else
+    {
+      return 0;
+    }
+  }
+  else
+  {
+    return 0;
+  }
+}
 void ButtonTFT::_conv_ts_tft(TS_Point &p)
 {
-
   if (screen_rotation == 1 || screen_rotation == 3)
   {
     _tft_x = _TS2TFT_x(p.x);
@@ -121,6 +116,7 @@ int ButtonTFT::_TS2TFT_y(int py)
     return map(py, TS_MAX_Y, TS_MIN_Y, 0, _TFT_H);
   }
 }
+
 
 MessageTFT::MessageTFT(Adafruit_ILI9341 &_tft)
 {
