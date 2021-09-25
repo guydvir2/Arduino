@@ -11,6 +11,10 @@ void ButtonTFT::drawButton()
 {
   _MSGwindow.drawMSG();
 }
+void ButtonTFT::text(char *txt)
+{
+  strcpy(_MSGwindow.txt_buf, txt);
+}
 bool ButtonTFT::wait4press()
 {
   if (ts.touched())
@@ -117,7 +121,6 @@ int ButtonTFT::_TS2TFT_y(int py)
   }
 }
 
-
 MessageTFT::MessageTFT(Adafruit_ILI9341 &_tft)
 {
 }
@@ -130,6 +133,10 @@ void MessageTFT::drawMSG()
 {
   _construct_GUI();
   _put_text();
+}
+void MessageTFT::text(char *txt)
+{
+  strcpy(txt_buf, txt);
 }
 void MessageTFT::_construct_GUI()
 {

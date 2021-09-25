@@ -53,6 +53,7 @@ public:
   MessageTFT(Adafruit_ILI9341 &_tft);
   void init();
   void drawMSG();
+  void text(char *txt);
 
 private:
   int _TFT_W = 0;
@@ -80,15 +81,16 @@ public:
   uint8_t &txt_size = _MSGwindow.txt_size;
   uint8_t &border_thickness = _MSGwindow.border_thickness;
   uint8_t &screen_rotation = _MSGwindow.screen_rotation;
-  uint16_t face_color = _MSGwindow.face_color;
-  uint16_t border_color = _MSGwindow.border_color;
-  uint16_t txt_color = _MSGwindow.txt_color;
+  uint16_t &face_color = _MSGwindow.face_color;
+  uint16_t &border_color = _MSGwindow.border_color;
+  uint16_t &txt_color = _MSGwindow.txt_color;
   uint16_t press_delay = 1000;
 
 public:
   ButtonTFT(XPT2046_Touchscreen &_ts, Adafruit_ILI9341 &_tft);
   void init();
   void drawButton();
+  void text(char *txt);
   bool wait4press();
 
 private:
@@ -97,14 +99,14 @@ private:
   int _tft_x, _tft_y;
 
 private:
-  bool _check_press_geometry(TS_Point &p);
   void _construct_button();
   void _put_text();
   void _press_cb();
   void _conv_ts_tft(TS_Point &p);
+  bool _check_press_geometry(TS_Point &p);
   int _TS2TFT_x(int px);
   int _TS2TFT_y(int py);
 
   MessageTFT _MSGwindow;
-};
+  };
 #endif
