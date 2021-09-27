@@ -9,7 +9,6 @@
 #define TFT_RST -1
 #define TS_CS D3
 
-
 XPT2046_Touchscreen ts(TS_CS);
 Adafruit_ILI9341 tft = Adafruit_ILI9341(TFT_CS, TFT_DC, TFT_RST);
 
@@ -66,7 +65,7 @@ void create_buttons()
   const uint8_t but_space = but_size + 5;
   const uint8_t x_margin = (int)((TFT_W - 3 * but_space) / 2) + but_size / 2;
   const uint8_t y_margin = (int)((TFT_H - 4 * but_space) / 2) + but_size / 2;
-  const char *txt_buttons[] = {"1", "2", "3", "4", "5", "6", "7", "8", "9", "*", "0", "#"};
+  char *txt_buttons[] = {"1", "2", "3", "4", "5", "6", "7", "8", "9", "*", "0", "#"};
 
   for (uint8_t r = 0; r < 4; r++)
   {
@@ -74,7 +73,7 @@ void create_buttons()
     {
       buttons[3 * r + c]->init();
       buttons[3 * r + c]->screen_rotation = SCREEN_ROT;
-      strcpy(buttons[3 * r + c]->txt_buf, txt_buttons[3 * r + c]);
+      buttons[3 * r + c]->text(txt_buttons[3 * r + c]);
       buttons[3 * r + c]->txt_size = txt_size;
       buttons[3 * r + c]->a = but_size;
       buttons[3 * r + c]->b = but_size;

@@ -26,12 +26,14 @@
             "intelliSenseMode": "macos-clang-x64",
             "includePath": [
                 "/Users/guydvir/Library/Arduino15/packages/esp8266/tools/**",
-                "/Users/guydvir/Library/Arduino15/packages/esp8266/hardware/esp8266/**/**"
+                "/Users/guydvir/Library/Arduino15/packages/esp8266/hardware/esp8266/**/**",
+                "/Users/guydvir/Documents/github/Arduino/libraries/**"
             ],
             "forcedInclude": [],
             "cStandard": "c17",
             "cppStandard": "c++17",
-            "defines": []
+            "defines": [],
+            "configurationProvider": "ms-vscode.cmake-tools"
         },
         {
             "name": "Arduino",

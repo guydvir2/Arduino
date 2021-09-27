@@ -3,10 +3,6 @@
 ButtonTFT::ButtonTFT(XPT2046_Touchscreen &_ts, Adafruit_ILI9341 &_tft) : _MSGwindow(_tft)
 {
 }
-void ButtonTFT::init()
-{
-  _MSGwindow.init();
-}
 void ButtonTFT::drawButton()
 {
   _MSGwindow.drawMSG();
@@ -85,66 +81,78 @@ int ButtonTFT::_TS2TFT_x(int px)
 {
   if (screen_rotation == 0)
   {
-    return map(px, TS_MAX_X, TS_MIN_X, 0, _TFT_H);
+    return map(px, TS_MAX_X, TS_MIN_X, 0, tft.height());
   }
   else if (screen_rotation == 1)
   {
-    return map(px, TS_MAX_X, TS_MIN_X, 0, _TFT_W);
+    return map(px, TS_MAX_X, TS_MIN_X, 0, tft.width());
   }
   else if (screen_rotation == 2)
   {
-    return map(px, TS_MIN_X, TS_MAX_X, 0, _TFT_H);
+    return map(px, TS_MIN_X, TS_MAX_X, 0, tft.height());
   }
   else if (screen_rotation == 3)
   {
-    return map(px, TS_MIN_X, TS_MAX_X, 0, _TFT_W);
+    return map(px, TS_MIN_X, TS_MAX_X, 0, tft.width());
   }
 }
 int ButtonTFT::_TS2TFT_y(int py)
 {
-
   if (screen_rotation == 0)
   {
-    return map(py, TS_MAX_Y, TS_MIN_Y, 0, _TFT_W);
+    return map(py, TS_MAX_Y, TS_MIN_Y, 0, tft.width());
   }
   else if (screen_rotation == 1)
   {
-    return map(py, TS_MIN_Y, TS_MAX_Y, 0, _TFT_H);
+    return map(py, TS_MIN_Y, TS_MAX_Y, 0, tft.height());
   }
   else if (screen_rotation == 2)
   {
-    return map(py, TS_MIN_Y, TS_MAX_Y, 0, _TFT_W);
+    return map(py, TS_MIN_Y, TS_MAX_Y, 0, tft.width());
   }
   else if (screen_rotation == 3)
   {
-    return map(py, TS_MAX_Y, TS_MIN_Y, 0, _TFT_H);
+    return map(py, TS_MAX_Y, TS_MIN_Y, 0, tft.height());
   }
 }
 
 MessageTFT::MessageTFT(Adafruit_ILI9341 &_tft)
 {
 }
-void MessageTFT::init()
-{
-  _TFT_W = tft.width();
-  _TFT_H = tft.height();
-}
 void MessageTFT::drawMSG()
 {
-  _construct_GUI();
+  _drawFace();
+  _drawBorder();
   _put_text();
 }
 void MessageTFT::text(char *txt)
 {
   strcpy(txt_buf, txt);
 }
-void MessageTFT::_construct_GUI()
+void MessageTFT::_drawFace()
 {
-  tft.setCursor(xc - _pos_corr_factor[txt_size - 1] - a / 2, yc - _pos_corr_factor[txt_size - 1]);
-  tft.fillRect(xc - a / 2, yc - b / 2, a, b, face_color);
-  for (uint8_t x = 0; x < border_thickness * 2; x++)
+  // tft.setCursor(xc - _pos_corr_factor[txt_size - 1] - a / 2, yc - _pos_corr_factor[txt_size - 1]); /* is it neccesary ?? */
+  if (roundRect == false)
   {
-    tft.drawRect((xc - a / 2) + x / 2, (yc - b / 2) + x / 2, a - x, b - x, border_color);
+    tft.fillRect(xc - a / 2, yc - b / 2, a, b, face_color);
+  }
+  else
+  {
+    tft.fillRoundRect(xc - a / 2, yc - b / 2, a, b, 2, face_color);
+  }
+}
+void MessageTFT::_drawBorder()
+{
+  for (uint8_t t = 0; t < border_thickness * 2; t++)
+  {
+    if (roundRect == false)
+    {
+      tft.drawRect((xc - a / 2) + t / 2, (yc - b / 2) + t / 2, a - t, b - t, border_color); /* how to change border direction ?*/
+    }
+    else
+    {
+      tft.drawRoundRect((xc - a / 2) + t / 2, (yc - b / 2) + t / 2, a - t, b - t, 2, border_color);
+    }
   }
 }
 void MessageTFT::_put_text()
