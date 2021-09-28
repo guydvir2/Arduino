@@ -38,14 +38,14 @@ class MessageTFT
 {
 public:
   uint8_t a, b;
-  uint8_t xc, yc;
+  int xc, yc;
   uint8_t txt_size = 1;
   uint8_t screen_rotation = 0;
   uint8_t border_thickness = 1;
-  uint16_t press_delay = 1000;
   uint16_t face_color = ILI9341_GREEN;
   uint16_t border_color = ILI9341_RED;
   uint16_t txt_color = ILI9341_BLACK;
+  
   char txt_buf[30];
   bool roundRect = false;
 
@@ -53,6 +53,8 @@ public:
   MessageTFT(Adafruit_ILI9341 &_tft);
   void drawMSG();
   void text(char *txt);
+private:
+  uint8_t _radius = 15;
 
 private:
   void _drawFace();
@@ -69,8 +71,8 @@ public:
   int TS_MAX_X = 3800;
   int TS_MAX_Y = 3800;
   /* ~~~~~~~~~~~~~~~~~ */
-  uint8_t &xc = _MSGwindow.xc;
-  uint8_t &yc = _MSGwindow.yc;
+  int &xc = _MSGwindow.xc;
+  int &yc = _MSGwindow.yc;
   uint8_t &a = _MSGwindow.a;
   uint8_t &b = _MSGwindow.b;
   uint8_t &txt_size = _MSGwindow.txt_size;
@@ -79,16 +81,25 @@ public:
   uint16_t &face_color = _MSGwindow.face_color;
   uint16_t &border_color = _MSGwindow.border_color;
   uint16_t &txt_color = _MSGwindow.txt_color;
-  uint16_t press_delay = 1000;
+  uint16_t tempColor;
+
+  bool &roundRect = _MSGwindow.roundRect;
+  char *txt_buf = _MSGwindow.txt_buf;
+
+  bool latchButton = false;
+  bool latchState = false;
+  uint16_t faceColor_pressed = ILI9341_RED;
 
 public:
   ButtonTFT(XPT2046_Touchscreen &_ts, Adafruit_ILI9341 &_tft);
   void drawButton();
   void text(char *txt);
   bool wait4press();
+  bool checkPress(TS_Point &p);
 
 private:
-  int _tft_x, _tft_y;
+  int _tft_x,_tft_y;
+  uint8_t _press_del = 75;
 
 private:
   void _construct_button();

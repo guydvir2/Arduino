@@ -71,7 +71,6 @@ void create_buttons()
   {
     for (uint8_t c = 0; c < 3; c++)
     {
-      buttons[3 * r + c]->init();
       buttons[3 * r + c]->screen_rotation = SCREEN_ROT;
       buttons[3 * r + c]->text(txt_buttons[3 * r + c]);
       buttons[3 * r + c]->txt_size = txt_size;
@@ -79,6 +78,8 @@ void create_buttons()
       buttons[3 * r + c]->b = but_size;
       buttons[3 * r + c]->xc = x_margin + c * but_space;
       buttons[3 * r + c]->yc = y_margin + r * but_space;
+      buttons[3 * r + c]->roundRect = true;
+      buttons[3 * r + c]->latchButton= true;
       buttons[3 * r + c]->drawButton();
     }
   }

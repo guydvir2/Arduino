@@ -18,6 +18,10 @@ bool ButtonTFT::wait4press()
     TS_Point p = ts.getPoint();
     if (_check_press_geometry(p))
     {
+      if (latchButton)
+      {
+        latchState = !latchState;
+      }
       _press_cb();
       return 1;
     }
@@ -31,19 +35,50 @@ bool ButtonTFT::wait4press()
     return 0;
   }
 }
+bool ButtonTFT::checkPress(TS_Point &p)
+{
+  if (_check_press_geometry(p))
+  {
+    if (latchButton)
+    {
+      latchState = !latchState;
+    }
+    _press_cb();
+    return 1;
+  }
+  else
+  {
+    return 0;
+  }
+}
 void ButtonTFT::_press_cb()
 {
-  uint16_t _old_fc = face_color;
-  uint16_t _old_bc = border_color;
-  face_color = border_color;
-  border_color = _old_fc;
-
-  drawButton();
-  delay(300);
-  face_color = _old_fc;
-  border_color = _old_bc;
-  drawButton();
-  delay(press_delay - 300);
+  if (latchButton == false)
+  {
+    tempColor = face_color;
+    face_color = ILI9341_RED;
+    drawButton();
+    delay(_press_del);
+    face_color = tempColor;
+    drawButton();
+    delay(_press_del);
+  }
+  else
+  {
+    if (latchState == true) /* Pressed ON*/
+    {
+      tempColor = face_color;
+      face_color = ILI9341_RED;
+      drawButton();
+      delay(_press_del);
+    }
+    else /* Pressed Off*/
+    {
+      face_color = tempColor;
+      drawButton();
+      delay(_press_del);
+    }
+  }
 }
 bool ButtonTFT::_check_press_geometry(TS_Point &p)
 {
@@ -131,14 +166,13 @@ void MessageTFT::text(char *txt)
 }
 void MessageTFT::_drawFace()
 {
-  // tft.setCursor(xc - _pos_corr_factor[txt_size - 1] - a / 2, yc - _pos_corr_factor[txt_size - 1]); /* is it neccesary ?? */
   if (roundRect == false)
   {
     tft.fillRect(xc - a / 2, yc - b / 2, a, b, face_color);
   }
   else
   {
-    tft.fillRoundRect(xc - a / 2, yc - b / 2, a, b, 2, face_color);
+    tft.fillRoundRect(xc - a / 2, yc - b / 2, a, b, a / _radius, face_color);
   }
 }
 void MessageTFT::_drawBorder()
@@ -151,7 +185,7 @@ void MessageTFT::_drawBorder()
     }
     else
     {
-      tft.drawRoundRect((xc - a / 2) + t / 2, (yc - b / 2) + t / 2, a - t, b - t, 2, border_color);
+      tft.drawRoundRect((xc - a / 2) + t / 2, (yc - b / 2) + t / 2, a - t, b - t, a / _radius, border_color);
     }
   }
 }
