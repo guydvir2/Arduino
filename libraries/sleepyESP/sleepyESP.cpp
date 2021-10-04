@@ -25,13 +25,13 @@ void sleepyESP::wait2Sleep() /* place in loop at main code */
 {
     if (_force_postpone_sleep == false) /* Force postpone sleep - for OTA purposes */
     {
-        if (clock_update_success && _clkAlign == true)
+        if (clock_update_success) /* Got time Sync correctly after boot*/
         {
-            if (wake_up_drift_sec >= 0)
+            if (wake_up_drift_sec >= 0) /* Woke up after intended time */
             {
                 if (millis() > _nominal_wait_secs * 1000)
                 {
-                    Serial.print("a) After time wake up");
+                    Serial.print("a) After-time wake up");
                     Serial.flush();
 
                     _calc_nextSleep_duration();
@@ -42,7 +42,7 @@ void sleepyESP::wait2Sleep() /* place in loop at main code */
                     _gotoSleep(nextsleep_duration * _driftFactor);
                 }
             }
-            else if (abs(wake_up_drift_sec) < _allowed_wake_err_sec) /* wake up earlier up to [x] sec */
+            else if (abs(wake_up_drift_sec) < _allowed_wake_err_sec)  /* woke up earlier, but completing wake cycle */
             {
                 if (millis() > _nominal_wait_secs * 1000) /* Completing wake cycle */
                 {
@@ -52,22 +52,24 @@ void sleepyESP::wait2Sleep() /* place in loop at main code */
                     {
                         _sleep_cb();
                     }
+
                     Serial.print("millis_diff: ");
                     Serial.println(millis() / 1000 - abs(wake_up_drift_sec));
-                    if (millis() > abs(wake_up_drift_sec) * 1000)
+
+                    if (millis() > abs(wake_up_drift_sec) * 1000) // Did it pass original wake time ?
                     {
                         _calc_nextSleep_duration();
                         _gotoSleep(nextsleep_duration * _driftFactor);
                     }
                     else
                     {
-                        int tsleep = millis() / 1000 - abs(wake_up_drift_sec) + _deepsleep_mins * MINUTES2SEC;
+                        int tsleep = millis() / 1000 - abs(wake_up_drift_sec) + _deepsleep_mins * MINUTES2SEC; // Nominal sleep + time delta
                         _saveNext_wakeup(tsleep);
                         _gotoSleep(tsleep * _driftFactor);
                     }
                 }
             }
-            else if (abs(wake_up_drift_sec) > _allowed_wake_err_sec) /* wake up more than 30 sec earlier */
+            else if (abs(wake_up_drift_sec) >= _allowed_wake_err_sec) /* woke up much earlier that allowed */
             {
                 Serial.println("c) Major pre-time wakeup.");
                 Serial.flush();
@@ -78,18 +80,93 @@ void sleepyESP::wait2Sleep() /* place in loop at main code */
                 _gotoSleep(tsleep * _driftFactor);
             }
         }
-        else /* Clk is not setup - just wait nominal time */
+        else /* Case of no ClockSync*/
         {
             if (millis() > _nominal_wait_secs * 1000)
             {
+                Serial.print("Wake period ended. Start sleep");
+                Serial.flush();
                 if (_sleep_cb != nullptr)
                 {
                     _sleep_cb();
                 }
-                Serial.println("not Aligned");
-                _gotoSleep(_deepsleep_mins * MINUTES2SEC * _driftFactor);
+                if (clock_update_success)
+                {
+                    _calc_nextSleep_duration();
+                    _gotoSleep(nextsleep_duration * _driftFactor);
+                }
+                else
+                {
+                    _gotoSleep(_deepsleep_mins * MINUTES2SEC * _driftFactor);
+                }
             }
         }
+
+        // if (clock_update_success && _clkAlign == true)
+        // {
+        //     if (wake_up_drift_sec >= 0)
+        //     {
+        //         if (millis() > _nominal_wait_secs * 1000)
+        //         {
+        //             Serial.print("a) After time wake up");
+        //             Serial.flush();
+
+        //             _calc_nextSleep_duration();
+        //             if (_sleep_cb != nullptr)
+        //             {
+        //                 _sleep_cb();
+        //             }
+        //             _gotoSleep(nextsleep_duration * _driftFactor);
+        //         }
+        //     }
+        //     else if (abs(wake_up_drift_sec) < _allowed_wake_err_sec) /* wake up earlier up to [x] sec */
+        //     {
+        //         if (millis() > _nominal_wait_secs * 1000) /* Completing wake cycle */
+        //         {
+        //             Serial.println("b) Minor pre-time wakeup");
+        //             Serial.flush();
+        //             if (_sleep_cb != nullptr)
+        //             {
+        //                 _sleep_cb();
+        //             }
+        //             Serial.print("millis_diff: ");
+        //             Serial.println(millis() / 1000 - abs(wake_up_drift_sec));
+        //             if (millis() > abs(wake_up_drift_sec) * 1000)
+        //             {
+        //                 _calc_nextSleep_duration();
+        //                 _gotoSleep(nextsleep_duration * _driftFactor);
+        //             }
+        //             else
+        //             {
+        //                 int tsleep = millis() / 1000 - abs(wake_up_drift_sec) + _deepsleep_mins * MINUTES2SEC;
+        //                 _saveNext_wakeup(tsleep);
+        //                 _gotoSleep(tsleep * _driftFactor);
+        //             }
+        //         }
+        //     }
+        //     else if (abs(wake_up_drift_sec) > _allowed_wake_err_sec) /* wake up more than 30 sec earlier */
+        //     {
+        //         Serial.println("c) Major pre-time wakeup.");
+        //         Serial.flush();
+        //         Serial.print("Drift: ");
+        //         Serial.println(wake_up_drift_sec);
+        //         int tsleep = abs(wake_up_drift_sec) - millis() / 1000;
+        //         _saveNext_wakeup(tsleep);
+        //         _gotoSleep(tsleep * _driftFactor);
+        //     }
+        // }
+        // else /* Clk is not setup - just wait nominal time */
+        // {
+        //     if (millis() > _nominal_wait_secs * 1000)
+        //     {
+        //         if (_sleep_cb != nullptr)
+        //         {
+        //             _sleep_cb();
+        //         }
+        //         Serial.println("not Aligned");
+        //         _gotoSleep(_deepsleep_mins * MINUTES2SEC * _driftFactor);
+        //     }
+        // }
     }
     else
     { // OTA
@@ -125,16 +202,14 @@ void sleepyESP::wait2Sleep() /* place in loop at main code */
 }
 bool sleepyESP::post_wake_clkUpdate() /* Update clock after wakeup */
 {
-    time_t nowClk = time(nullptr);
-    struct tm *timeinfo = localtime(&nowClk);
-
     time_t lastBootClk = EEPROMReadlong(_bootClock_addr);
     time_t saved_expected_wakeClk = EEPROMReadlong(_nextWake_clock_addr);
     bootCount = EEPROMReadlong(_bootCounter_addr) + 1;
     EEPROMWritelong(_bootCounter_addr, bootCount);
 
-    if (timeinfo->tm_year != 70)
+    if (_checkClockSync())
     {
+        time_t nowClk = time(nullptr);
         EEPROMWritelong(_bootClock_addr, nowClk);
         totalSleepTime = nowClk - lastBootClk - _nominal_wait_secs;
         wake_up_drift_sec = nowClk - saved_expected_wakeClk - (int)(millis() / 1000);
@@ -195,6 +270,19 @@ void sleepyESP::_gotoSleep(int seconds2sleep)
 void sleepyESP::_saveNext_wakeup(int duration, time_t t)
 {
     EEPROMWritelong(_nextWake_clock_addr, t + duration);
+}
+bool sleepyESP::_checkClockSync()
+{
+    time_t nowClk = time(nullptr);
+    struct tm *timeinfo = localtime(&nowClk);
+    if (timeinfo->tm_year != 70)
+    {
+        return 1;
+    }
+    else
+    {
+        return 0;
+    }
 }
 void sleepyESP::EEPROMWritelong(int address, long value)
 {

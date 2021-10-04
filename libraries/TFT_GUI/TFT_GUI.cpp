@@ -11,31 +11,19 @@ void ButtonTFT::text(char *txt)
 {
   strcpy(_MSGwindow.txt_buf, txt);
 }
-bool ButtonTFT::wait4press()
+bool ButtonTFT::wait4press() /* include getPoint loop - use for simple cases*/
 {
   if (ts.touched())
   {
     TS_Point p = ts.getPoint();
-    if (_check_press_geometry(p))
-    {
-      if (latchButton)
-      {
-        latchState = !latchState;
-      }
-      _press_cb();
-      return 1;
-    }
-    else
-    {
-      return 0;
-    }
+    return checkPress(p); /* in or out ? */
   }
   else
   {
     return 0;
   }
 }
-bool ButtonTFT::checkPress(TS_Point &p)
+bool ButtonTFT::checkPress(TS_Point &p) /* can be called from code outside lib when lots of buttons involved */
 {
   if (_check_press_geometry(p))
   {

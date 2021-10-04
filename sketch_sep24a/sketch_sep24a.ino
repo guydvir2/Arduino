@@ -10,43 +10,38 @@
 #define TFT_RST -1
 #define TS_CS D3
 
+#define DEV_TOPIC "tft"
+#define GROUP_TOPIC "none"
+#define PREFIX_TOPIC "myHome"
+
 #define SCREEN_ROT 0
 
 myIOT2 iot;
 XPT2046_Touchscreen ts(TS_CS);
 Adafruit_ILI9341 tft = Adafruit_ILI9341(TFT_CS, TFT_DC, TFT_RST);
 
-ButtonTFT But_LIGHTS(ts, tft);
-ButtonTFT But_WINDOWS(ts, tft);
-ButtonTFT But_ALARN(ts, tft);
-
 ButtonTFT But_NAV_back(ts, tft);
 ButtonTFT But_NAV_home(ts, tft);
-
-ButtonTFT But_Win_All(ts, tft);
-ButtonTFT But_Win_Rooms(ts, tft);
-ButtonTFT But_Saloon(ts, tft);
-ButtonTFT But_Specific(ts, tft);
-ButtonTFT But_Win_family(ts, tft);
-ButtonTFT But_Win_parents(ts, tft);
-ButtonTFT But_Win_kids(ts, tft);
-ButtonTFT But_Win_exit(ts, tft);
-ButtonTFT But_Win_single(ts, tft);
-ButtonTFT But_Win_dual(ts, tft);
-
-ButtonTFT But_Win_cmdUP(ts, tft);
-ButtonTFT But_Win_cmdDOWN(ts, tft);
-ButtonTFT But_Win_cmdSTOP(ts, tft);
-
-ButtonTFT Alarm_home(ts, tft);
-ButtonTFT Alarm_full(ts, tft);
-ButtonTFT Alarm_disarmed(ts, tft);
-
+ButtonTFT generic_but_0(ts, tft);
+ButtonTFT generic_but_1(ts, tft);
+ButtonTFT generic_but_2(ts, tft);
+ButtonTFT generic_but_3(ts, tft);
+ButtonTFT generic_but_4(ts, tft);
+ButtonTFT generic_but_5(ts, tft);
+ButtonTFT generic_but_6(ts, tft);
+ButtonTFT generic_but_7(ts, tft);
+ButtonTFT generic_but_8(ts, tft);
+ButtonTFT generic_but_9(ts, tft);
+ButtonTFT generic_but_10(ts, tft);
+ButtonTFT generic_but_11(ts, tft);
 MessageTFT MSG_WiFi(tft);
+
+ButtonTFT *NAVbuttons[] = {&But_NAV_back, &But_NAV_home};
+ButtonTFT *buttons[] = {&generic_but_0, &generic_but_1, &generic_but_2, &generic_but_3, &generic_but_4, &generic_but_5, &generic_but_6,
+                        &generic_but_7, &generic_but_8, &generic_but_9, &generic_but_10, &generic_but_11};
 
 int window_t = 0;
 int current_menu = 0;
-bool conn_state = false;
 
 void clearScreen()
 {
@@ -60,7 +55,7 @@ void start_GUI()
   clearScreen();
 }
 
-void msg_wifi(bool &state)
+void msg_wifi(bool state)
 {
   const uint8_t txt_size = 1;
   const uint8_t MSG_size_y = 15;
@@ -87,213 +82,85 @@ void msg_wifi(bool &state)
   MSG_WiFi.drawMSG();
 }
 
+void create_buttons(uint8_t R, uint8_t C, char *but_txt[], uint8_t txt_size = 2)
+{
+  const uint8_t but_space = 5;
+  const uint8_t but_size_a = (uint8_t)((tft.width() - 50) / C);
+  const uint8_t but_size_b = (uint8_t)((tft.height() - 50) / R);
+  const uint8_t x_margin = (int)(tft.width() + (1 - C) * (but_size_a + but_space)) / 2;
+  const uint8_t y_margin = (int)(tft.height() + (1 - R) * (but_size_b + but_space)) / 2;
+
+  for (uint8_t r = 0; r < R; r++)
+  {
+    for (uint8_t c = 0; c < C; c++)
+    {
+      buttons[C * r + c]->screen_rotation = SCREEN_ROT;
+      buttons[C * r + c]->text(but_txt[C * r + c]);
+      buttons[C * r + c]->txt_size = txt_size;
+      buttons[C * r + c]->a = but_size_a;
+      buttons[C * r + c]->b = but_size_b;
+      buttons[C * r + c]->xc = x_margin + c * (but_size_a + but_space);
+      buttons[C * r + c]->yc = y_margin + r * (but_size_b + but_space);
+      buttons[C * r + c]->roundRect = true;
+      buttons[C * r + c]->latchButton = false;
+      buttons[C * r + c]->drawButton();
+    }
+  }
+}
 void menu_0()
 {
   current_menu = 0;
-  const uint8_t txt_size = 2;
-  const uint8_t but_size_a = 150;
-  const uint8_t but_size_b = 75;
-  const uint8_t but_space = 5;
   char *txt_buttons[] = {"Lights", "Windows", "Alarm"};
-
-  ButtonTFT *buttons[] = {&But_LIGHTS, &But_WINDOWS, &But_ALARN};
-  uint8_t num_items = sizeof(buttons) / sizeof(buttons[0]);
-
-  for (uint8_t c = 0; c < num_items; c++)
-  {
-    buttons[c]->screen_rotation = SCREEN_ROT;
-    buttons[c]->text(txt_buttons[c]);
-    buttons[c]->txt_size = txt_size;
-    buttons[c]->a = but_size_a;
-    buttons[c]->b = but_size_b;
-    buttons[c]->xc = tft.width() / 2;
-    buttons[c]->yc = (c + 1) * (tft.height() / (num_items + 1));
-    buttons[c]->roundRect = true;
-    buttons[c]->latchButton = false;
-    buttons[c]->drawButton();
-  }
+  create_buttons(3, 1, txt_buttons);
 }
-void menu_1_1()
+void menu_1_1() /* Lights main*/
 {
   current_menu = 11;
-  const uint8_t txt_size = 2;
-  const uint8_t but_size_a = 150;
-  const uint8_t but_size_b = 75;
-  const uint8_t but_space = 5;
   char *txt_buttons[] = {"Indoors", "Outdoors", "Rooms"};
-
-  ButtonTFT *buttons[] = {&Alarm_home, &Alarm_full, &Alarm_disarmed};
-  uint8_t num_items = sizeof(buttons) / sizeof(buttons[0]);
-
-  for (uint8_t c = 0; c < num_items; c++)
-  {
-    buttons[c]->screen_rotation = SCREEN_ROT;
-    buttons[c]->text(txt_buttons[c]);
-    buttons[c]->txt_size = txt_size;
-    buttons[c]->a = but_size_a;
-    buttons[c]->b = but_size_b;
-    buttons[c]->xc = tft.width() / 2;
-    buttons[c]->yc = (c + 1) * (tft.height() / (num_items + 1));
-    buttons[c]->roundRect = true;
-    buttons[c]->latchButton = false;
-    buttons[c]->drawButton();
-  }
+  create_buttons(3, 1, txt_buttons);
 }
-void menu_1_1_1()
+void menu_1_1_1() /* Indoor Lights */
 {
   current_menu = 111;
-  const uint8_t txt_size = 2;
-  const uint8_t but_size_a = 125;
-  const uint8_t but_size_b = 60;
-  const uint8_t but_space = 5;
   char *txt_buttons[] = {"Stove", "Kitchen", "Saloon"};
-
-  ButtonTFT *buttons[] = {&Alarm_home, &Alarm_full, &Alarm_disarmed};
-  uint8_t num_items = sizeof(buttons) / sizeof(buttons[0]);
-
-  for (uint8_t c = 0; c < num_items; c++)
-  {
-    buttons[c]->screen_rotation = SCREEN_ROT;
-    buttons[c]->text(txt_buttons[c]);
-    buttons[c]->txt_size = txt_size;
-    buttons[c]->a = but_size_a;
-    buttons[c]->b = but_size_b;
-    buttons[c]->xc = tft.width() / 2;
-    buttons[c]->yc = (c + 1) * (tft.height() / (num_items + 1));
-    buttons[c]->roundRect = true;
-    buttons[c]->latchButton = false;
-    buttons[c]->drawButton();
-  }
+  create_buttons(3, 1, txt_buttons);
 }
-void menu_1_1_1()
+void menu_1_1_2() /* outDoor Lights */
 {
-  current_menu = 111;
-  const uint8_t txt_size = 2;
-  const uint8_t but_size_a = 125;
-  const uint8_t but_size_b = 60;
-  const uint8_t but_space = 5;
-  char *txt_buttons[] = {"Stove", "Kitchen", "Saloon"};
-
-  ButtonTFT *buttons[] = {&Alarm_home, &Alarm_full, &Alarm_disarmed};
-  uint8_t num_items = sizeof(buttons) / sizeof(buttons[0]);
-
-  for (uint8_t c = 0; c < num_items; c++)
-  {
-    buttons[c]->screen_rotation = SCREEN_ROT;
-    buttons[c]->text(txt_buttons[c]);
-    buttons[c]->txt_size = txt_size;
-    buttons[c]->a = but_size_a;
-    buttons[c]->b = but_size_b;
-    buttons[c]->xc = tft.width() / 2;
-    buttons[c]->yc = (c + 1) * (tft.height() / (num_items + 1));
-    buttons[c]->roundRect = true;
-    buttons[c]->latchButton = false;
-    buttons[c]->drawButton();
-  }
+  current_menu = 112;
+  char *txt_buttons[] = {"A", "B", "C", "D", "E", "F"};
+  create_buttons(3, 2, txt_buttons);
 }
+void menu_1_1_3() /* Room Lights */
+{
+  current_menu = 113;
+  char *txt_buttons[] = {"F.R LEDs", "P.R Mirror", "P.R Bed", "K.R Mirror", "K.R Bed_1", "K.R Bed_2"};
+  create_buttons(3, 2, txt_buttons, 1);
+}
+
 void menu_2_1() /* main windows */
 {
   current_menu = 21;
-  const uint8_t txt_size = 2;
-  const uint8_t but_size_a = 125;
-  const uint8_t but_size_b = 60;
-  const uint8_t but_space = 5;
   char *txt_buttons[] = {"All", "Rooms", "Saloon", "Specific"};
-
-  ButtonTFT *buttons[] = {&But_Win_All, &But_Win_Rooms, &But_Saloon, &But_Specific};
-  uint8_t num_items = sizeof(buttons) / sizeof(buttons[0]);
-
-  for (uint8_t c = 0; c < num_items; c++)
-  {
-    buttons[c]->screen_rotation = SCREEN_ROT;
-    buttons[c]->text(txt_buttons[c]);
-    buttons[c]->txt_size = txt_size;
-    buttons[c]->a = but_size_a;
-    buttons[c]->b = but_size_b;
-    buttons[c]->xc = tft.width() / 2;
-    buttons[c]->yc = (c + 1) * (tft.height() / (num_items + 1));
-    buttons[c]->roundRect = true;
-    buttons[c]->latchButton = false;
-    buttons[c]->drawButton();
-  }
+  create_buttons(4, 1, txt_buttons);
 }
 void menu_2_1_1() /* specific windows*/
 {
   current_menu = 211;
-  const uint8_t txt_size = 2;
-  const uint8_t but_size_a = 125;
-  const uint8_t but_size_b = 60;
-  const uint8_t but_space = 5;
   char *txt_buttons[] = {"Family", "Parents", "Kids", "S.Exit", "S.Single", "S.Dual"};
-
-  ButtonTFT *buttons[] = {&But_Win_family, &But_Win_parents, &But_Win_kids, &But_Win_exit, &But_Win_single, &But_Win_dual};
-  uint8_t num_items = sizeof(buttons) / sizeof(buttons[0]);
-
-  for (uint8_t c = 0; c < num_items; c++)
-  {
-    buttons[c]->screen_rotation = SCREEN_ROT;
-    buttons[c]->text(txt_buttons[c]);
-    buttons[c]->txt_size = txt_size;
-    buttons[c]->a = but_size_a;
-    buttons[c]->b = but_size_b;
-    buttons[c]->xc = tft.width() / 2;
-    buttons[c]->yc = (c + 1) * (tft.height() / (num_items + 1));
-    buttons[c]->roundRect = true;
-    buttons[c]->latchButton = false;
-    buttons[c]->drawButton();
-  }
+  create_buttons(3, 2, txt_buttons);
 }
 void menu_2_1_1_1() /* Commands to MQTT Windows */
 {
   current_menu = 2111;
-  const uint8_t txt_size = 2;
-  const uint8_t but_size_a = 150;
-  const uint8_t but_size_b = 75;
-  const uint8_t but_space = 5;
   char *txt_buttons[] = {"Up", "Stop", "Down"};
-
-  ButtonTFT *buttons[] = {&But_Win_cmdUP, &But_Win_cmdSTOP, &But_Win_cmdDOWN};
-  uint8_t num_items = sizeof(buttons) / sizeof(buttons[0]);
-
-  for (uint8_t c = 0; c < num_items; c++)
-  {
-    buttons[c]->screen_rotation = SCREEN_ROT;
-    buttons[c]->text(txt_buttons[c]);
-    buttons[c]->txt_size = txt_size;
-    buttons[c]->a = but_size_a;
-    buttons[c]->b = but_size_b;
-    buttons[c]->xc = tft.width() / 2;
-    buttons[c]->yc = (c + 1) * (tft.height() / (num_items + 1));
-    buttons[c]->roundRect = true;
-    buttons[c]->latchButton = false;
-    buttons[c]->drawButton();
-  }
+  create_buttons(3, 1, txt_buttons);
 }
 void menu_3_1() /* Alarm Main */
 {
   current_menu = 31;
-  const uint8_t txt_size = 2;
-  const uint8_t but_size_a = 150;
-  const uint8_t but_size_b = 75;
-  const uint8_t but_space = 5;
   char *txt_buttons[] = {"Home", "Full", "Disarm"};
-
-  ButtonTFT *buttons[] = {&Alarm_home, &Alarm_full, &Alarm_disarmed};
-  uint8_t num_items = sizeof(buttons) / sizeof(buttons[0]);
-
-  for (uint8_t c = 0; c < num_items; c++)
-  {
-    buttons[c]->screen_rotation = SCREEN_ROT;
-    buttons[c]->text(txt_buttons[c]);
-    buttons[c]->txt_size = txt_size;
-    buttons[c]->a = but_size_a;
-    buttons[c]->b = but_size_b;
-    buttons[c]->xc = tft.width() / 2;
-    buttons[c]->yc = (c + 1) * (tft.height() / (num_items + 1));
-    buttons[c]->roundRect = true;
-    buttons[c]->latchButton = false;
-    buttons[c]->drawButton();
-  }
+  create_buttons(3, 1, txt_buttons);
 }
 void menu_4() /* Nav Buttons */
 {
@@ -301,56 +168,173 @@ void menu_4() /* Nav Buttons */
   const uint8_t but_size_a = 60;
   const uint8_t but_size_b = 30;
   char *txt_buttons[] = {"Back", "Home"};
-  ButtonTFT *buttons[] = {&But_NAV_back, &But_NAV_home};
-  uint8_t num_items = sizeof(buttons) / sizeof(buttons[0]);
+  uint8_t num_items = sizeof(txt_buttons) / sizeof(txt_buttons[0]);
 
   for (uint8_t c = 0; c < num_items; c++)
   {
-    buttons[c]->screen_rotation = SCREEN_ROT;
-    buttons[c]->text(txt_buttons[c]);
-    buttons[c]->txt_size = txt_size;
-    buttons[c]->a = but_size_a;
-    buttons[c]->b = but_size_b;
-    buttons[c]->xc = but_size_a / 2 + c * (tft.width() - but_size_a);
-    buttons[c]->yc = tft.height() - but_size_b / 2;
-    buttons[c]->face_color = ILI9341_RED;
-    buttons[c]->border_color = ILI9341_GREEN;
-    buttons[c]->roundRect = true;
-    buttons[c]->latchButton = false;
-    buttons[c]->drawButton();
+    NAVbuttons[c]->screen_rotation = SCREEN_ROT;
+    NAVbuttons[c]->text(txt_buttons[c]);
+    NAVbuttons[c]->txt_size = txt_size;
+    NAVbuttons[c]->a = but_size_a;
+    NAVbuttons[c]->b = but_size_b;
+    NAVbuttons[c]->xc = but_size_a / 2 + c * (tft.width() - but_size_a);
+    NAVbuttons[c]->yc = tft.height() - but_size_b / 2;
+    NAVbuttons[c]->face_color = ILI9341_RED;
+    NAVbuttons[c]->border_color = ILI9341_GREEN;
+    NAVbuttons[c]->roundRect = true;
+    NAVbuttons[c]->latchButton = false;
+    NAVbuttons[c]->drawButton();
   }
 }
 
-void loop_menu_0(TS_Point &p)
+void loop_menu_0(TS_Point &p, uint8_t num_items)
 {
-  ButtonTFT *buttons[] = {&But_LIGHTS, &But_WINDOWS, &But_ALARN};
-  uint8_t num_items = sizeof(buttons) / sizeof(buttons[0]);
-
   for (uint8_t i = 0; i < num_items; i++)
   {
     if (buttons[i]->checkPress(p))
     {
-      if (i == 1)
+      if (i == 0)
       {
         clearScreen();
-        menu_4();
+        //menu_4();
+        menu_1_1();
+      }
+      else if (i == 1)
+      {
+        clearScreen();
+        //menu_4();
         menu_2_1();
       }
       else if (i == 2)
       {
         clearScreen();
-        menu_4();
+        //menu_4();
         menu_3_1();
       }
-      Serial.println(buttons[i]->txt_buf);
     }
   }
 }
-void loop_menu_2_1(TS_Point &p)
+void loop_menu_1_1(TS_Point &p, uint8_t num_items)
 {
-  ButtonTFT *buttons[] = {&But_Win_All, &But_Win_Rooms, &But_Saloon, &But_Specific};
-  uint8_t num_items = sizeof(buttons) / sizeof(buttons[0]);
-
+  for (uint8_t i = 0; i < num_items; i++)
+  {
+    if (buttons[i]->checkPress(p))
+    {
+      Serial.println(buttons[i]->txt_buf);
+      if (i == 0)
+      {
+        clearScreen();
+        menu_1_1_1();
+        //menu_4();
+      }
+      else if (i == 1)
+      {
+        clearScreen();
+        menu_1_1_2();
+        //menu_4();
+      }
+      else if (i == 2)
+      {
+        clearScreen();
+        menu_1_1_3();
+        //menu_4();
+      }
+    }
+  }
+}
+void loop_menu_1_1_1(TS_Point &p, uint8_t num_items)
+{
+  for (uint8_t i = 0; i < num_items; i++)
+  {
+    if (buttons[i]->checkPress(p))
+    {
+      Serial.println(buttons[i]->txt_buf);
+      if (i == 0)
+      {
+        clearScreen();
+        menu_0();
+      }
+      else if (i == 1)
+      {
+        clearScreen();
+        menu_0();
+        //menu_4();
+      }
+      else if (i == 2)
+      {
+        clearScreen();
+        menu_0();
+        //menu_4();
+      }
+    }
+  }
+}
+void loop_menu_1_1_2(TS_Point &p, uint8_t num_items)
+{
+  for (uint8_t i = 0; i < num_items; i++)
+  {
+    if (buttons[i]->checkPress(p))
+    {
+      Serial.println(buttons[i]->txt_buf);
+      if (i == 0)
+      {
+        clearScreen();
+        menu_0();
+      }
+      else if (i == 1)
+      {
+        clearScreen();
+        menu_0();
+        //menu_4();
+      }
+      else if (i == 2)
+      {
+        clearScreen();
+        menu_0();
+        //menu_4();
+      }
+      else
+      {
+        clearScreen();
+        menu_0();
+      }
+    }
+  }
+}
+void loop_menu_1_1_3(TS_Point &p, uint8_t num_items)
+{
+  for (uint8_t i = 0; i < num_items; i++)
+  {
+    if (buttons[i]->checkPress(p))
+    {
+      Serial.println(buttons[i]->txt_buf);
+      if (i == 0)
+      {
+        clearScreen();
+        menu_0();
+      }
+      else if (i == 1)
+      {
+        clearScreen();
+        menu_0();
+        //menu_4();
+      }
+      else if (i == 2)
+      {
+        clearScreen();
+        menu_0();
+        //menu_4();
+      }
+      else
+      {
+        clearScreen();
+        menu_0();
+      }
+    }
+  }
+}
+void loop_menu_2_1(TS_Point &p, uint8_t num_items)
+{
   for (uint8_t i = 0; i < num_items; i++)
   {
     if (buttons[i]->checkPress(p))
@@ -358,14 +342,13 @@ void loop_menu_2_1(TS_Point &p)
       if (i == 3)
       {
         clearScreen();
-        menu_4();
+        //menu_4();
         menu_2_1_1();
-        Serial.println("Specific");
       }
       else
       {
         clearScreen();
-        menu_4();
+        //menu_4();
         menu_2_1_1_1();
       }
       Serial.println(buttons[i]->txt_buf);
@@ -373,27 +356,22 @@ void loop_menu_2_1(TS_Point &p)
     }
   }
 }
-void loop_menu_2_1_1(TS_Point &p)
+void loop_menu_2_1_1(TS_Point &p, uint8_t num_items)
 {
-  ButtonTFT *buttons[] = {&But_Win_family, &But_Win_parents, &But_Win_kids, &But_Win_exit};
-  uint8_t num_items = sizeof(buttons) / sizeof(buttons[0]);
-
   for (uint8_t i = 0; i < num_items; i++)
   {
     if (buttons[i]->checkPress(p))
     {
       clearScreen();
-      menu_4();
+      //menu_4();
       menu_2_1_1_1();
       Serial.println(buttons[i]->txt_buf);
       window_t = 10 + i;
     }
   }
 }
-void loop_menu_2_1_1_1(TS_Point &p)
+void loop_menu_2_1_1_1(TS_Point &p, uint8_t num_items)
 {
-  ButtonTFT *buttons[] = {&But_Win_cmdUP, &But_Win_cmdSTOP, &But_Win_cmdDOWN};
-  uint8_t num_items = sizeof(buttons) / sizeof(buttons[0]);
   char *baseTopic = "myHome/Windows";   /* MQTT Topic prefix*/
   char *cmds[] = {"up", "off", "down"}; /* MQTT CMD*/
   char msg[40];
@@ -436,28 +414,23 @@ void loop_menu_2_1_1_1(TS_Point &p)
     }
   }
 }
-void loop_menu_3_1(TS_Point &p)
+void loop_menu_3_1(TS_Point &p, uint8_t num_items)
 {
-  ButtonTFT *buttons[] = {&Alarm_home, &Alarm_full, &Alarm_disarmed};
-  uint8_t num_items = sizeof(buttons) / sizeof(buttons[0]);
+  char *topic = "myHome/alarmMonitor";
+  char *cmds[] = {"armed_home", "armed_away", "disarmed"};
 
   for (uint8_t i = 0; i < num_items; i++)
   {
     if (buttons[i]->checkPress(p))
     {
-      char *topic = "myHome/alarmMonitor";
-      char *cmds[] = {"armed_home", "armed_away", "disarmed"};
       iot.pub_noTopic(cmds[i], topic);
-      clearScreen();
-      menu_4();
       Serial.println(buttons[i]->txt_buf);
     }
   }
 }
 void loop_menu_4(TS_Point &p)
 {
-  ButtonTFT *buttons[] = {&But_NAV_back, &But_NAV_home};
-  uint8_t num_items = sizeof(buttons) / sizeof(buttons[0]);
+  uint8_t num_items = sizeof(NAVbuttons) / sizeof(NAVbuttons[0]);
 
   for (uint8_t i = 0; i < num_items; i++)
   {
@@ -466,7 +439,7 @@ void loop_menu_4(TS_Point &p)
       if (i == 1)
       {
         clearScreen();
-        menu_4();
+        //menu_4();
         menu_0();
       }
       else
@@ -477,16 +450,20 @@ void loop_menu_4(TS_Point &p)
   }
 }
 
-#define DEV_TOPIC "tft"
-#define GROUP_TOPIC "none"
-#define PREFIX_TOPIC "myHome"
 void check_wifi()
 {
   static unsigned long last_check = 0;
-  if (millis() - last_check > 30000)
+  if (millis() - last_check > 5000)
   {
     last_check = millis();
-    conn_state = true;
+    if (WiFi.status() == WL_CONNECTED)
+    {
+      msg_wifi(true);
+    }
+    else
+    {
+      msg_wifi(true);
+    }
   }
 }
 void addiotnalMQTT(char *incoming_msg)
@@ -531,38 +508,79 @@ void setup()
 {
   start_GUI();
   menu_0();
-  menu_4();
-  startIOTservices();
+  // //menu_4();
+  startIOTservices();gn
 }
 void loop()
 {
   static unsigned long last_touch = 0;
-  if (ts.touched() && millis() - last_touch > 500)
+  // Serial.println(current_menu);
+  if (ts.touched())
   {
-    last_touch = millis();
-    TS_Point p = ts.getPoint();
-    loop_menu_4(p); /* Always appears */
-    if (current_menu == 0)
+    // if (millis() - last_touch > 500 && millis() - last_touch < 5000 || last_touch == 0)
+    // {
+    if (millis() - last_touch > 500)
     {
-      loop_menu_0(p);
-    }
-    else if (current_menu == 21)
-    {
-      loop_menu_2_1(p);
-    }
-    else if (current_menu == 211)
-    {
-      loop_menu_2_1_1(p);
-    }
-    else if (current_menu == 2111)
-    {
-      loop_menu_2_1_1_1(p);
-    }
-    else if (current_menu == 31)
-    {
-      loop_menu_3_1(p);
+      last_touch = millis();
+      TS_Point p = ts.getPoint();
+      // loop_//menu_4(p); /* Always appear */
+      if (current_menu == 0)
+      {
+        loop_menu_0(p, 3);
+      }
+      else if (current_menu == 11)
+      {
+        loop_menu_1_1(p, 3);
+        Serial.println("a");
+      }
+      else if (current_menu == 111)
+      {
+        Serial.println("b");
+        loop_menu_1_1_1(p, 3);
+      }
+      else if (current_menu == 112)
+      {
+        Serial.println("c");
+        loop_menu_1_1_2(p, 6);
+      }
+      else if (current_menu == 113)
+      {
+        Serial.println("d");
+        loop_menu_1_1_3(p, 6);
+      }
+      else if (current_menu == 21)
+      {
+        loop_menu_2_1(p, 4);
+      }
+      else if (current_menu == 211)
+      {
+        loop_menu_2_1_1(p, 6);
+      }
+      else if (current_menu == 2111)
+      {
+        loop_menu_2_1_1_1(p, 3);
+      }
+      else if (current_menu == 31)
+      {
+        loop_menu_3_1(p, 3);
+      }
+      else
+      {
+        Serial.println("Nothing");
+      }
     }
   }
-  msg_wifi(conn_state);
+  // }
+  // else
+  // {
+  //   if (millis() - last_touch > 5000 && current_menu != 0)
+  //   {
+  //     clearScreen();
+  //     menu_0();
+  //     //menu_4();
+  //     last_touch = 0;
+  //   }
+  // }
+  // check_wifi();
   iot.looper();
 }

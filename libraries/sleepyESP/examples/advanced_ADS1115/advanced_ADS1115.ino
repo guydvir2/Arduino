@@ -9,20 +9,20 @@
 #define isESP32 true
 #endif
 
-#define DEV_TOPIC "esp32_2"
+#define DEV_TOPIC "esp32_3"
 #define GROUP_TOPIC "sleepy"
 #define PREFIX_TOPIC "myHome"
 #define IGNORE_MQTT_BOOT_MSG true
 #define MCU_NAME DEV_TOPIC
 #define CLK_ALIGN true
-#define READ_BAT_VOLT true
+#define READ_BAT_VOLT false
 
 #if isESP32
 /* Reminder - ablity to store vairable in ESP32 that survives reboot */
 // RTC_DATA_ATTR long clock_expectedWake = 0;
 // RTC_DATA_ATTR int bootCounter = 0;
 #endif
-uint8_t SLEEP_PERIOD = 60; // minutes
+uint8_t SLEEP_PERIOD = 30; // minutes
 uint8_t WAKE_PERIOD = 10;  // seconds
 
 myIOT2 iot;
@@ -90,7 +90,7 @@ void startIOTservices()
   strcpy(iot.deviceTopic, DEV_TOPIC);
   strcpy(iot.prefixTopic, PREFIX_TOPIC);
   strcpy(iot.addGroupTopic, GROUP_TOPIC);
-
+  // iot.start_services(addiotnalMQTT, "Xiaomi_D6C8_", "guyd5161", MQTT_USER, MQTT_PASS, "192.168.3.200");
   iot.start_services(addiotnalMQTT);
 }
 void addiotnalMQTT(char *incoming_msg)
@@ -161,6 +161,5 @@ void setup()
 void loop()
 {
   iot.looper();
-  sleepy.wait2Sleep();
   sleepy.wait2Sleep();
 }

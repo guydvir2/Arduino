@@ -29,11 +29,11 @@ private:
 #endif
 
   char *_devname;
-  bool _clkAlign = true; /* Adujst sllep time that will be on round clk */
+  bool _clkAlign = true; /* Adujst sleep time that will be on round clk */
   bool _force_postpone_sleep = false;
 
   uint8_t _deepsleep_mins = 0;
-  uint8_t _nominal_wait_secs = 5;
+  uint8_t _nominal_wait_secs = 15; /* total wake time, including connect WiFi and MQTT (on ESP8266 can easly be 11 sec, on ESP32 around 6sec) */
   uint8_t _sec_to_wait_big_drift = 2;
   uint8_t _allowed_wake_err_sec = 15;
 
@@ -53,7 +53,7 @@ public:
   int nextsleep_duration = 0;
   uint8_t force_postpone_sec = 120;
   bool clock_update_success = false;
-  const char *VER = "sleepyESP_v0.9";
+  const char *VER = "sleepyESP_v0.95";
 
 public:
   sleepyESP();
@@ -68,6 +68,7 @@ private:
   void _calc_nextSleep_duration();
   void _gotoSleep(int seconds2sleep = 10);
   void _saveNext_wakeup(int duration,time_t t=time(nullptr));
+  bool _checkClockSync();
 
   void EEPROMWritelong(int address, long value);
   long EEPROMReadlong(long address);
