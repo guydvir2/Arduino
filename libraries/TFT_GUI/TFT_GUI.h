@@ -33,7 +33,9 @@
 extern XPT2046_Touchscreen ts; /* Touch screen */
 extern Adafruit_ILI9341 tft;   /* Graphics */
 
-const uint8_t _pos_corr_factor[3] = {3, 6, 9}; /* Center text inside a box */
+const uint8_t _pos_corr_factor_x = 3;
+const uint8_t _pos_corr_factor_y = 4;
+
 class MessageTFT
 {
 public:

@@ -118,6 +118,9 @@ int ButtonTFT::_TS2TFT_x(int px)
   {
     return map(px, TS_MIN_X, TS_MAX_X, 0, tft.width());
   }
+  else{
+    return 99999999;
+  }
 }
 int ButtonTFT::_TS2TFT_y(int py)
 {
@@ -136,6 +139,10 @@ int ButtonTFT::_TS2TFT_y(int py)
   else if (screen_rotation == 3)
   {
     return map(py, TS_MAX_Y, TS_MIN_Y, 0, tft.height());
+  }
+  else
+  {
+    return 99999999;
   }
 }
 
@@ -180,7 +187,8 @@ void MessageTFT::_drawBorder()
 void MessageTFT::_put_text()
 {
   uint8_t x = strlen(txt_buf);
-  tft.setCursor(xc - x * _pos_corr_factor[txt_size - 1], yc - _pos_corr_factor[txt_size - 1]);
+  // tft.setCursor(xc - x * _pos_corr_factor[txt_size - 1], yc - _pos_corr_factor[txt_size - 1]);
+  tft.setCursor(xc - x * _pos_corr_factor_x*txt_size, yc - _pos_corr_factor_y*txt_size);
   tft.setTextColor(txt_color);
   tft.setTextSize(txt_size);
   tft.print(txt_buf);

@@ -37,8 +37,8 @@ ButtonTFT generic_but_11(ts, tft);
 MessageTFT MSG_WiFi(tft);
 
 ButtonTFT *NAVbuttons[] = {&But_NAV_back, &But_NAV_home};
-ButtonTFT *buttons[] = {&generic_but_0, &generic_but_1, &generic_but_2, &generic_but_3, &generic_but_4, &generic_but_5, &generic_but_6,
-                        &generic_but_7, &generic_but_8, &generic_but_9, &generic_but_10, &generic_but_11};
+ButtonTFT *buttons[] = {&generic_but_0, &generic_but_1, &generic_but_2, &generic_but_3, &generic_but_4, &generic_but_5,
+                        &generic_but_6, &generic_but_7, &generic_but_8, &generic_but_9, &generic_but_10, &generic_but_11};
 
 int window_t = 0;
 int current_menu = 0;
@@ -509,18 +509,18 @@ void setup()
   start_GUI();
   menu_0();
   // //menu_4();
-  startIOTservices();gn
+  startIOTservices();
 }
 void loop()
 {
   static unsigned long last_touch = 0;
   // Serial.println(current_menu);
-  if (ts.touched())
+  if (millis() - last_touch > 500)
   {
-    // if (millis() - last_touch > 500 && millis() - last_touch < 5000 || last_touch == 0)
-    // {
-    if (millis() - last_touch > 500)
+    if (ts.touched())
     {
+      // if (millis() - last_touch > 500 && millis() - last_touch < 5000 || last_touch == 0)
+      // {
       last_touch = millis();
       TS_Point p = ts.getPoint();
       // loop_//menu_4(p); /* Always appear */
@@ -532,6 +532,14 @@ void loop()
       {
         loop_menu_1_1(p, 3);
         Serial.println("a");
+      }
+      else if (current_menu == 21)
+      {
+        loop_menu_2_1(p, 4);
+      }
+      else if (current_menu == 31)
+      {
+        loop_menu_3_1(p, 3);
       }
       else if (current_menu == 111)
       {
@@ -548,10 +556,7 @@ void loop()
         Serial.println("d");
         loop_menu_1_1_3(p, 6);
       }
-      else if (current_menu == 21)
-      {
-        loop_menu_2_1(p, 4);
-      }
+
       else if (current_menu == 211)
       {
         loop_menu_2_1_1(p, 6);
@@ -560,10 +565,7 @@ void loop()
       {
         loop_menu_2_1_1_1(p, 3);
       }
-      else if (current_menu == 31)
-      {
-        loop_menu_3_1(p, 3);
-      }
+
       else
       {
         Serial.println("Nothing");
