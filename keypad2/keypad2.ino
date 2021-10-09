@@ -13,27 +13,41 @@ XPT2046_Touchscreen ts(TS_CS);
 Adafruit_ILI9341 tft = Adafruit_ILI9341(TFT_CS, TFT_DC, TFT_RST);
 keypadTFT keypad(ts,tft);
 
-const uint8_t SCREEN_ROT = 0;
+const uint8_t SCREEN_ROT = 1;
 
-void keypad_cb(uint8_t i)
+void keypad_cb(char *passcode)
 {
-  Serial.print("Key: ");
-  Serial.print(i);
-  Serial.println(" pressed");
+  Serial.print("passcode: ");
+  Serial.print(passcode);
 }
 
+void clearScreen(int c = 0)
+{
+  if (c == 0)
+  {
+    tft.fillScreen(ILI9341_BLACK);
+  }
+  else if (c == 1)
+  {
+    tft.fillScreen(ILI9341_YELLOW);
+  }
+  else if (c == 2)
+  {
+    tft.fillScreen(ILI9341_BLUE);
+  }
+}
 void start_GUI()
 {
   ts.begin();
   tft.begin();
   tft.setRotation(SCREEN_ROT); /* 0-3 90 deg each */
+  clearScreen();
 }
 
 void setup()
 {
   Serial.begin(115200);
   start_GUI();
-  keypad.screen_rotation = SCREEN_ROT;
   keypad.create_keypad();
 }
 
@@ -42,14 +56,9 @@ void loop()
   if (ts.touched())
   {
     TS_Point p = ts.getPoint();
-    if (keypad.when_pressed(p)) /* Returns true only when code is ended by "#" */
+    if (keypad.getPasscode(p)) /* Returns true only when code is ended by "#" */
     {
-      Serial.println(keypad.keypad_value);
-      // clearScreen(2);
-      // msg_box(keypad.keypad_value, 200, 40);
-      // delay(2000);
-      // clearScreen();
-      // keypad.create_keypad();
+      keypad_cb(keypad.keypad_value);
     }
   }
 }

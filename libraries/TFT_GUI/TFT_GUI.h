@@ -51,13 +51,15 @@ public:
   uint8_t txt_size;
   char txt_buf[30];
   uint8_t screen_rotation = 0;
+  Adafruit_ILI9341 *TFT[1];
 
 public:
   MessageTFT(Adafruit_ILI9341 &_tft);
   void drawMSG(char *txt, uint8_t a, uint8_t b, int xc, int yc, uint8_t txt_size = 2, uint8_t border_thickness = 1, uint16_t face_color = ILI9341_GREEN, uint16_t border_color = ILI9341_RED, uint16_t txt_color = ILI9341_BLACK, bool roundRect = true);
-  void _put_text(char *txt, int xc, int yc, uint8_t txt_size, uint16_t txt_color);
+  void clear_screen(uint8_t c = 0);
 
 private:
+  void _put_text(char *txt, int xc, int yc, uint8_t txt_size, uint16_t txt_color);
   void _drawFace(uint8_t a, uint8_t b, int xc, int yc, uint16_t face_color, bool roundRect);
   void _drawBorder(uint8_t a, uint8_t b, int xc, int yc, uint8_t border_thickness, uint16_t border_color, bool roundRect);
 };
@@ -65,19 +67,22 @@ private:
 class ButtonTFT
 {
 public:
-  int &xc = _MSGwindow.xc;
-  int &yc = _MSGwindow.yc;
-  uint8_t &a = _MSGwindow.a;
-  uint8_t &b = _MSGwindow.b;
-  uint8_t &txt_size = _MSGwindow.txt_size;
-  uint8_t &screen_rotation = _MSGwindow.screen_rotation;
-  
+  int &xc = MSGwindow.xc;
+  int &yc = MSGwindow.yc;
+  uint8_t &a = MSGwindow.a;
+  uint8_t &b = MSGwindow.b;
+  uint8_t &txt_size = MSGwindow.txt_size;
+  uint8_t &screen_rotation = MSGwindow.screen_rotation;
+  char *txt_buf = MSGwindow.txt_buf;
+
+  bool latchState = false;
+  bool latchButton = false;
   uint16_t face_color;
   uint16_t border_color;
   uint16_t txt_color;
-  char *txt_buf = _MSGwindow.txt_buf;
-  bool latchButton = false;
-  bool latchState = false;
+
+  XPT2046_Touchscreen *TS[1];
+  MessageTFT MSGwindow;
 
 public:
   ButtonTFT(XPT2046_Touchscreen &_ts, Adafruit_ILI9341 &_tft);
@@ -85,20 +90,18 @@ public:
   bool wait4press();
   bool checkPress(TS_Point &p);
 
-private:
-  int _tft_x, _tft_y;
+  private:
+    int _tft_x, _tft_y;
 
-private:
-  void _construct_button();
-  void _put_text();
-  void _press_cb();
-  void _conv_ts_tft(TS_Point &p);
-  bool _check_press_geometry(TS_Point &p);
-  int _TS2TFT_x(int px);
-  int _TS2TFT_y(int py);
-
-  MessageTFT _MSGwindow;
-};
+  private:
+    void _construct_button();
+    void _put_text();
+    void _press_cb();
+    void _conv_ts_tft(TS_Point & p);
+    bool _check_press_geometry(TS_Point & p);
+    int _TS2TFT_x(int px);
+    int _TS2TFT_y(int py);
+  };
 
 class keypadTFT
 {
@@ -107,7 +110,8 @@ class keypadTFT
 public:
   keypadTFT(XPT2046_Touchscreen &_ts, Adafruit_ILI9341 &_tft);
   void create_keypad();
-  bool when_pressed(TS_Point &p);
+  void loop();
+  bool getPasscode(TS_Point &p);
 
 public:
   char keypad_value[15]; /* To reach externally */
@@ -135,9 +139,9 @@ private:
 
   void _create_buttons(uint8_t R, uint8_t C, char *but_txt[], uint8_t txt_size = 2);
   void _reset_keypad_values();
-  bool _loop_keypad(TS_Point &p, uint8_t num_items);
+  bool _check_pressed_in(TS_Point &p, uint8_t num_items);
 
-  private:
+private:
   char _stored_keypad_value[15];
 };
 

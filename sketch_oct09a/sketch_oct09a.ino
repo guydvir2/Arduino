@@ -13,8 +13,9 @@
 
 XPT2046_Touchscreen ts(TS_CS);
 Adafruit_ILI9341 tft = Adafruit_ILI9341(TFT_CS, TFT_DC, TFT_RST);
-
-buttonArrayTFT butArray(ts, tft);
+// MessageTFT MsgBox(tft);
+// ButtonTFT butt(ts, tft);
+keypadTFT keypad(ts, tft);
 
 void clearScreen(int c = 0)
 {
@@ -38,19 +39,15 @@ void start_touchScreen()
   tft.setRotation(SCREEN_ROT); /* 0-3 90 deg each */
   clearScreen();
 }
-void build_butArray()
-{
-  clearScreen();
-  char *txt_buttons[] = {"F1", "F2", "F3", "F4", "F5", "F6", "F7", "F8"};
-  butArray.screen_rotation = SCREEN_ROT;
-  butArray.create_array(3, 2, txt_buttons, 2);
-}
 
 void setup()
 {
   Serial.begin(115200);
   start_touchScreen();
-  build_butArray();
+  keypad.create_keypad();
+  // MsgBox.drawMSG("msgBox", 200, 60, tft.width() / 2, 25);
+  // butt.drawButton("Button", 150, 50, tft.width() / 2, tft.height() / 2);
+  // build_butArray();
 }
 
 void loop()
@@ -58,8 +55,13 @@ void loop()
   if (ts.touched())
   {
     TS_Point p = ts.getPoint();
-    // butArray.checkPress(p);
-    Serial.print("Button #");
-    Serial.println(butArray.checkPress(p));
+    if (keypad.getPasscode(p))
+    {
+      Serial.println(keypad.keypad_value);
+    }
+    // if(butt.checkPress(p)){
+    //   Serial.print("Pressed");
+    // }
+    // Serial.println(butArray.checkPress(p));
   }
 }
