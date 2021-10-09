@@ -1,15 +1,67 @@
 #include "TFT_GUI.h"
 
+MessageTFT::MessageTFT(Adafruit_ILI9341 &_tft)
+{
+}
+void MessageTFT::drawMSG(char *txt, uint8_t a, uint8_t b, int xc, int yc, uint8_t txt_size, uint8_t border_thickness, uint16_t face_color, uint16_t border_color, uint16_t txt_color, bool roundRect)
+{
+  _drawFace(a, b, xc, yc, face_color, roundRect);
+  _drawBorder(a, b, xc, yc, border_thickness, border_color, roundRect);
+  _put_text(txt, xc, yc, txt_size, txt_color);
+}
+void MessageTFT::_drawFace(uint8_t a, uint8_t b, int xc, int yc, uint16_t face_color, bool roundRect)
+{
+  const uint8_t _radius = 15;
+
+  if (roundRect == false)
+  {
+    tft.fillRect(xc - a / 2, yc - b / 2, a, b, face_color);
+  }
+  else
+  {
+    tft.fillRoundRect(xc - a / 2, yc - b / 2, a, b, a / _radius, face_color);
+  }
+}
+void MessageTFT::_drawBorder(uint8_t a, uint8_t b, int xc, int yc, uint8_t border_thickness, uint16_t border_color, bool roundRect)
+{
+  const uint8_t _radius = 15;
+
+  for (uint8_t t = 0; t < border_thickness * 2; t++)
+  {
+    if (roundRect == false)
+    {
+      tft.drawRect((xc - a / 2) + t / 2, (yc - b / 2) + t / 2, a - t, b - t, border_color); /* how to change border direction ?*/
+    }
+    else
+    {
+      tft.drawRoundRect((xc - a / 2) + t / 2, (yc - b / 2) + t / 2, a - t, b - t, a / _radius, border_color);
+    }
+  }
+}
+void MessageTFT::_put_text(char *txt, int xc, int yc, uint8_t txt_size, uint16_t txt_color)
+{
+  strcpy(txt_buf, txt);
+  uint8_t x = strlen(txt_buf);
+  tft.setCursor(xc - x * _pos_corr_factor_x * txt_size, yc - _pos_corr_factor_y * txt_size);
+  tft.setTextColor(txt_color);
+  tft.setTextSize(txt_size);
+  tft.print(txt_buf);
+}
+
 ButtonTFT::ButtonTFT(XPT2046_Touchscreen &_ts, Adafruit_ILI9341 &_tft) : _MSGwindow(_tft)
 {
 }
-void ButtonTFT::drawButton()
+void ButtonTFT::drawButton(char *txt, uint8_t _a, uint8_t _b, int _xc, int _yc, uint8_t _txt_size, uint16_t _face_color, uint16_t _border_color, uint16_t _txt_color)
 {
-  _MSGwindow.drawMSG();
-}
-void ButtonTFT::text(char *txt)
-{
-  strcpy(_MSGwindow.txt_buf, txt);
+  a = _a;
+  b = _b;
+  xc = _xc;
+  yc = _yc;
+  txt_size = _txt_size;
+  txt_color = _txt_color;
+  face_color = _face_color;
+  border_color = _border_color;
+  _MSGwindow.drawMSG(txt, a, b, xc, yc, txt_size, 1, face_color, border_color, txt_color, true);
 }
 bool ButtonTFT::wait4press() /* include getPoint loop - use for simple cases*/
 {
@@ -41,31 +93,29 @@ bool ButtonTFT::checkPress(TS_Point &p) /* can be called from code outside lib w
 }
 void ButtonTFT::_press_cb()
 {
+  uint8_t _press_del = 80;
   if (latchButton == false)
   {
-    tempColor = face_color;
-    face_color = ILI9341_RED;
-    drawButton();
+    _MSGwindow.drawMSG(txt_buf, a, b, xc, yc, txt_size, 1, ILI9341_RED, border_color, txt_color, true);
     delay(_press_del);
-    face_color = tempColor;
-    drawButton();
+    _MSGwindow.drawMSG(txt_buf, a, b, xc, yc, txt_size, 1, face_color, border_color, txt_color, true);
     delay(_press_del);
   }
   else
   {
-    if (latchState == true) /* Pressed ON*/
-    {
-      tempColor = face_color;
-      face_color = ILI9341_RED;
-      drawButton();
-      delay(_press_del);
-    }
-    else /* Pressed Off*/
-    {
-      face_color = tempColor;
-      drawButton();
-      delay(_press_del);
-    }
+    //   if (latchState == true) /* Pressed ON*/
+    //   {
+    //     tempColor = face_color;
+    //     face_color = ILI9341_RED;
+    //     drawButton();
+    //     delay(_press_del);
+    //   }
+    //   else /* Pressed Off*/
+    //   {
+    //     face_color = tempColor;
+    //     drawButton();
+    //     delay(_press_del);
+    // }
   }
 }
 bool ButtonTFT::_check_press_geometry(TS_Point &p)
@@ -120,7 +170,7 @@ int ButtonTFT::_TS2TFT_x(int px)
   }
   else
   {
-    return 99999999;
+    return 9999;
   }
 }
 int ButtonTFT::_TS2TFT_y(int py)
@@ -145,54 +195,6 @@ int ButtonTFT::_TS2TFT_y(int py)
   {
     return 99999999;
   }
-}
-
-MessageTFT::MessageTFT(Adafruit_ILI9341 &_tft)
-{
-}
-void MessageTFT::drawMSG()
-{
-  _drawFace();
-  _drawBorder();
-  _put_text();
-}
-void MessageTFT::text(char *txt)
-{
-  strcpy(txt_buf, txt);
-}
-void MessageTFT::_drawFace()
-{
-  if (roundRect == false)
-  {
-    tft.fillRect(xc - a / 2, yc - b / 2, a, b, face_color);
-  }
-  else
-  {
-    tft.fillRoundRect(xc - a / 2, yc - b / 2, a, b, a / _radius, face_color);
-  }
-}
-void MessageTFT::_drawBorder()
-{
-  for (uint8_t t = 0; t < border_thickness * 2; t++)
-  {
-    if (roundRect == false)
-    {
-      tft.drawRect((xc - a / 2) + t / 2, (yc - b / 2) + t / 2, a - t, b - t, border_color); /* how to change border direction ?*/
-    }
-    else
-    {
-      tft.drawRoundRect((xc - a / 2) + t / 2, (yc - b / 2) + t / 2, a - t, b - t, a / _radius, border_color);
-    }
-  }
-}
-void MessageTFT::_put_text()
-{
-  uint8_t x = strlen(txt_buf);
-  // tft.setCursor(xc - x * _pos_corr_factor[txt_size - 1], yc - _pos_corr_factor[txt_size - 1]);
-  tft.setCursor(xc - x * _pos_corr_factor_x * txt_size, yc - _pos_corr_factor_y * txt_size);
-  tft.setTextColor(txt_color);
-  tft.setTextSize(txt_size);
-  tft.print(txt_buf);
 }
 
 keypadTFT::keypadTFT(XPT2046_Touchscreen &_ts, Adafruit_ILI9341 &_tft)
@@ -220,15 +222,7 @@ void keypadTFT::_create_buttons(uint8_t R, uint8_t C, char *but_txt[], uint8_t t
     for (uint8_t c = 0; c < C; c++)
     {
       _buttons[C * r + c]->screen_rotation = screen_rotation;
-      _buttons[C * r + c]->text(but_txt[C * r + c]);
-      _buttons[C * r + c]->txt_size = txt_size;
-      _buttons[C * r + c]->a = but_size_a;
-      _buttons[C * r + c]->b = but_size_b;
-      _buttons[C * r + c]->xc = x_margin + c * (but_size_a + but_space);
-      _buttons[C * r + c]->yc = y_margin + r * (but_size_b + but_space);
-      _buttons[C * r + c]->roundRect = true;
-      _buttons[C * r + c]->latchButton = false;
-      _buttons[C * r + c]->drawButton();
+      _buttons[C * r + c]->drawButton(but_txt[C * r + c], but_size_a, but_size_b, x_margin + c * (but_size_a + but_space), y_margin + r * (but_size_b + but_space), txt_size);
     }
   }
 }
@@ -287,49 +281,49 @@ bool keypadTFT::when_pressed(TS_Point &p)
   // }
 }
 
-buttonArrayTFT::buttonArrayTFT(XPT2046_Touchscreen &_ts, Adafruit_ILI9341 &_tft)
-    : _button0(_ts, _tft), _button1(_ts, _tft), _button2(_ts, _tft),
-      _button3(_ts, _tft), _button4(_ts, _tft), _button5(_ts, _tft),
-      _button6(_ts, _tft), _button7(_ts, _tft)
-{
-}
-uint8_t buttonArrayTFT::checkPress(TS_Point &p)
-{
-  for (uint8_t i = 0; i < _num_items; i++)
-  {
-    if (_buttons[i]->checkPress(p))
-    {
-      return i;
-    }
-  }
-  return 99;
-}
-void buttonArrayTFT::create_array(uint8_t R, uint8_t C, char *but_txt[], uint8_t txt_size, uint16_t face_c, uint16_t border_c, uint16_t text_c)
-{
-  _num_items = R * C;
-  const uint8_t but_space = 5;
-  const uint8_t but_size_a = (uint8_t)((tft.width() - 50) / C);
-  const uint8_t but_size_b = (uint8_t)((tft.height() - 50) / R);
-  const uint8_t x_margin = (int)(tft.width() + (1 - C) * (but_size_a + but_space)) / 2;
-  const uint8_t y_margin = (int)(tft.height() + (1 - R) * (but_size_b + but_space)) / 2;
+// buttonArrayTFT::buttonArrayTFT(XPT2046_Touchscreen &_ts, Adafruit_ILI9341 &_tft)
+//     : _button0(_ts, _tft), _button1(_ts, _tft), _button2(_ts, _tft),
+//       _button3(_ts, _tft), _button4(_ts, _tft), _button5(_ts, _tft),
+//       _button6(_ts, _tft), _button7(_ts, _tft)
+// {
+// }
+// uint8_t buttonArrayTFT::checkPress(TS_Point &p)
+// {
+//   for (uint8_t i = 0; i < _num_items; i++)
+//   {
+//     if (_buttons[i]->checkPress(p))
+//     {
+//       return i;
+//     }
+//   }
+//   return 99;
+// }
+// void buttonArrayTFT::create_array(uint8_t R, uint8_t C, char *but_txt[], uint8_t txt_size, uint16_t face_c, uint16_t border_c, uint16_t text_c)
+// {
+//   _num_items = R * C;
+//   const uint8_t but_space = 5;
+//   const uint8_t but_size_a = (uint8_t)((tft.width() - 50) / C);
+//   const uint8_t but_size_b = (uint8_t)((tft.height() - 50) / R);
+//   const uint8_t x_margin = (int)(tft.width() + (1 - C) * (but_size_a + but_space)) / 2;
+//   const uint8_t y_margin = (int)(tft.height() + (1 - R) * (but_size_b + but_space)) / 2;
 
-  for (uint8_t r = 0; r < R; r++)
-  {
-    for (uint8_t c = 0; c < C; c++)
-    {
-      _buttons[C * r + c]->screen_rotation = screen_rotation;
-      _buttons[C * r + c]->text(but_txt[C * r + c]);
-      _buttons[C * r + c]->txt_size = txt_size;
-      _buttons[C * r + c]->a = but_size_a;
-      _buttons[C * r + c]->b = but_size_b;
-      _buttons[C * r + c]->xc = x_margin + c * (but_size_a + but_space);
-      _buttons[C * r + c]->yc = y_margin + r * (but_size_b + but_space);
-      _buttons[C * r + c]->roundRect = true;
-      _buttons[C * r + c]->latchButton = false;
-      _buttons[C * r + c]->face_color = face_c;
-      _buttons[C * r + c]->border_color = border_c;
-      _buttons[C * r + c]->txt_color = text_c;
-      _buttons[C * r + c]->drawButton();
-    }
-  }
-}
+//   for (uint8_t r = 0; r < R; r++)
+//   {
+//     for (uint8_t c = 0; c < C; c++)
+//     {
+//       _buttons[C * r + c]->screen_rotation = screen_rotation;
+//       _buttons[C * r + c]->text(but_txt[C * r + c]);
+//       _buttons[C * r + c]->txt_size = txt_size;
+//       _buttons[C * r + c]->a = but_size_a;
+//       _buttons[C * r + c]->b = but_size_b;
+//       _buttons[C * r + c]->xc = x_margin + c * (but_size_a + but_space);
+//       _buttons[C * r + c]->yc = y_margin + r * (but_size_b + but_space);
+//       _buttons[C * r + c]->roundRect = true;
+//       _buttons[C * r + c]->latchButton = false;
+//       _buttons[C * r + c]->face_color = face_c;
+//       _buttons[C * r + c]->border_color = border_c;
+//       _buttons[C * r + c]->txt_color = text_c;
+//       _buttons[C * r + c]->drawButton();
+//     }
+//   }
+// }
