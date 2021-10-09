@@ -1,4 +1,3 @@
-#include <myIOT2.h>
 #include <SPI.h>
 #include <Adafruit_GFX.h>
 #include <Adafruit_ILI9341.h>
@@ -10,13 +9,9 @@
 #define TFT_RST -1
 #define TS_CS D3
 
-#define DEV_TOPIC "keypad"
-#define GROUP_TOPIC "none"
-#define PREFIX_TOPIC "myHome"
-
 #define SCREEN_ROT 0
+#define RESET_KEYPAD_TIMEOUT 10 // seconds
 
-myIOT2 iot;
 XPT2046_Touchscreen ts(TS_CS);
 Adafruit_ILI9341 tft = Adafruit_ILI9341(TFT_CS, TFT_DC, TFT_RST);
 
@@ -37,17 +32,18 @@ MessageTFT MessageBox(tft);
 ButtonTFT *buttons[] = {&generic_but_0, &generic_but_1, &generic_but_2, &generic_but_3, &generic_but_4, &generic_but_5,
                         &generic_but_6, &generic_but_7, &generic_but_8, &generic_but_9, &generic_but_10, &generic_but_11};
 
-int window_t = 0;
 int current_menu = 0;
 int keypad_value;
-char pressedvalue[10];
+char stored_keypad_value[15];
 
-void clearScreen(uint8_t c=0)
+void clearScreen(uint8_t c = 0)
 {
-  if(c==0){
-  tft.fillScreen(ILI9341_YELLOW);
+  if (c == 0)
+  {
+    tft.fillScreen(ILI9341_YELLOW);
   }
-  else if (c==1){
+  else if (c == 1)
+  {
     tft.fillScreen(ILI9341_BLACK);
   }
   else if (c == 2)
@@ -108,10 +104,15 @@ void create_msg(char *inmsg, uint8_t a = 200, uint8_t b = 50, uint8_t txt_size =
 void create_keypad()
 {
   current_menu = 0;
+  clearScreen(2);
   char *txt_buttons[] = {"1", "2", "3", "4", "5", "6", "7", "8", "9", "*", "0", "#"};
   create_buttons(4, 3, txt_buttons);
 }
 
+void reset_keypad_values()
+{
+  strcpy(stored_keypad_value, "");
+}
 void loop_keypad(TS_Point &p, uint8_t num_items)
 {
   for (uint8_t i = 0; i < num_items; i++)
@@ -119,76 +120,33 @@ void loop_keypad(TS_Point &p, uint8_t num_items)
     if (buttons[i]->checkPress(p))
     {
       Serial.println(buttons[i]->txt_buf);
-      if (i == 9)
+      if (i == 9) /* Erase buffer */
       {
-        strcpy(pressedvalue, "");
-        clearScreen();
+        reset_keypad_values();
+        clearScreen(1);
         create_msg("Erased");
         delay(1000);
-        clearScreen();
         create_keypad();
       }
-      else if (i == 11)
+      else if (i == 11) /* Send cmd number */
       {
-        create_msg(pressedvalue);
+        create_msg(stored_keypad_value);
         delay(1000);
-        strcpy(pressedvalue, "");
-        clearScreen();
+        reset_keypad_values();
         create_keypad();
       }
       else
       {
-        strcat(pressedvalue, buttons[i]->txt_buf);
-        Serial.println(pressedvalue);
+        strcat(stored_keypad_value, buttons[i]->txt_buf);
+        Serial.println(stored_keypad_value);
       }
     }
   }
 }
 
-void addiotnalMQTT(char *incoming_msg)
-{
-  char msg[150];
-  char msg2[20];
-  if (strcmp(incoming_msg, "status") == 0)
-  {
-    sprintf(msg, "BOOOOO");
-    iot.pub_msg(msg);
-  }
-  else if (strcmp(incoming_msg, "ver2") == 0)
-  {
-    // sprintf(msg, "ver #2: [%s], lib: [%s], boardType[%s]", "espVer", VER, boardType);
-    // iot.pub_msg(msg);
-  }
-  else if (strcmp(incoming_msg, "help2") == 0)
-  {
-    sprintf(msg, "Help2: Commands #2 - [; m; ,x]");
-    iot.pub_msg(msg);
-  }
-}
-void startIOTservices()
-{
-  iot.useSerial = true;
-  iot.useWDT = true;
-  iot.useOTA = true;
-  iot.useResetKeeper = true;
-  iot.useextTopic = false;
-  iot.useDebug = true;
-  iot.debug_level = 0;
-  iot.useNetworkReset = true;
-  iot.noNetwork_reset = 10;
-  iot.useBootClockLog = true;
-  strcpy(iot.deviceTopic, DEV_TOPIC);
-  strcpy(iot.prefixTopic, PREFIX_TOPIC);
-  strcpy(iot.addGroupTopic, GROUP_TOPIC);
-  iot.start_services(addiotnalMQTT);
-}
-
 void setup()
 {
   start_GUI();
-  create_msg("Wait...");
-  startIOTservices();
-  clearScreen(2);
   create_keypad();
 }
 void loop()
@@ -205,6 +163,10 @@ void loop()
         loop_keypad(p, 12);
       }
     }
+    else if (millis() - last_touch > RESET_KEYPAD_TIMEOUT * 1000 && strcmp(stored_keypad_value, "") != 0)
+    {
+      reset_keypad_values();
+      create_keypad();
+    }
   }
-  iot.looper();
 }

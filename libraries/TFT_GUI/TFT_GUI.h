@@ -47,7 +47,7 @@ public:
   uint16_t face_color = ILI9341_GREEN;
   uint16_t border_color = ILI9341_RED;
   uint16_t txt_color = ILI9341_BLACK;
-  
+
   char txt_buf[30];
   bool roundRect = false;
 
@@ -55,6 +55,7 @@ public:
   MessageTFT(Adafruit_ILI9341 &_tft);
   void drawMSG();
   void text(char *txt);
+
 private:
   uint8_t _radius = 15;
 
@@ -100,7 +101,7 @@ public:
   bool checkPress(TS_Point &p);
 
 private:
-  int _tft_x,_tft_y;
+  int _tft_x, _tft_y;
   uint8_t _press_del = 75;
 
 private:
@@ -114,4 +115,72 @@ private:
 
   MessageTFT _MSGwindow;
 };
+
+class keypadTFT
+{
+#define RESET_KEYPAD_TIMEOUT 10 // seconds
+
+public:
+  keypadTFT(XPT2046_Touchscreen &_ts, Adafruit_ILI9341 &_tft);
+  void create_keypad();
+  bool when_pressed(TS_Point &p);
+  void loop();
+
+public:
+  uint8_t screen_rotation = 0;
+  uint16_t face_color = ILI9341_GREEN;
+  uint16_t border_color = ILI9341_RED;
+  uint16_t txt_color = ILI9341_BLACK;
+  char keypad_value[15];
+
+private:
+  ButtonTFT _button0;
+  ButtonTFT _button1;
+  ButtonTFT _button2;
+  ButtonTFT _button3;
+  ButtonTFT _button4;
+  ButtonTFT _button5;
+  ButtonTFT _button6;
+  ButtonTFT _button7;
+  ButtonTFT _button8;
+  ButtonTFT _button9;
+  ButtonTFT _button_10;
+  ButtonTFT _button_11;
+
+  ButtonTFT *_buttons[12] = {&_button0, &_button1, &_button2, &_button3, &_button4, &_button5,
+                             &_button6, &_button7, &_button8, &_button9, &_button_10, &_button_11};
+
+  void _create_buttons(uint8_t R, uint8_t C, char *but_txt[], uint8_t txt_size = 2);
+  void _reset_keypad_values();
+  bool _loop_keypad(TS_Point &p, uint8_t num_items);
+  char _stored_keypad_value[15];
+};
+
+class buttonArrayTFT
+{
+public:
+  buttonArrayTFT(XPT2046_Touchscreen &_ts, Adafruit_ILI9341 &_tft);
+  void create_array(uint8_t R, uint8_t C, char *but_txt[], uint8_t txt_size = 2, uint16_t face_c = ILI9341_GREEN, uint16_t border_c = ILI9341_RED, uint16_t text_c = ILI9341_BLACK);
+  uint8_t checkPress(TS_Point &p);
+
+public:
+  char txt_buf[30];
+  uint8_t screen_rotation = 0;
+
+private:
+  ButtonTFT _button0;
+  ButtonTFT _button1;
+  ButtonTFT _button2;
+  ButtonTFT _button3;
+  ButtonTFT _button4;
+  ButtonTFT _button5;
+  ButtonTFT _button6;
+  ButtonTFT _button7;
+  ButtonTFT *_buttons[8] = {&_button0, &_button1, &_button2, &_button3,
+                             &_button4, &_button5, &_button6, &_button7};
+
+private:
+  uint8_t _num_items = 0;
+};
+
 #endif
