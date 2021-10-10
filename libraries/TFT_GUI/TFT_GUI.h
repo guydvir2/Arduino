@@ -6,30 +6,6 @@
 #include <Adafruit_ILI9341.h>
 #include <XPT2046_Touchscreen.h>
 
-// #define GLCD_CL_BLACK 0x0000
-// #define GLCD_CL_WHITE 0xFFFF
-// #define GLCD_CL_GRAY 0x7BEF
-// #define GLCD_CL_LIGHT_GRAY 0xC618
-// #define GLCD_CL_GREEN 0x07E0
-// #define GLCD_CL_LIME 0x87E0
-// #define GLCD_CL_BLUE 0x001F
-// #define GLCD_CL_RED 0xF800
-// #define GLCD_CL_AQUA 0x5D1C
-// #define GLCD_CL_YELLOW 0xFFE0
-// #define GLCD_CL_MAGENTA 0xF81F
-// #define GLCD_CL_CYAN 0x07FF
-// #define GLCD_CL_DARK_CYAN 0x03EF
-// #define GLCD_CL_ORANGE 0xFCA0
-// #define GLCD_CL_PINK 0xF97F
-// #define GLCD_CL_BROWN 0x8200
-// #define GLCD_CL_VIOLET 0x9199
-// #define GLCD_CL_SILVER 0xA510
-// #define GLCD_CL_GOLD 0xA508
-// #define GLCD_CL_NAVY 0x000F
-// #define GLCD_CL_MAROON 0x7800
-// #define GLCD_CL_PURPLE 0x780F
-// #define GLCD_CL_OLIVE 0x7BE0
-
 extern XPT2046_Touchscreen ts; /* Touch screen */
 extern Adafruit_ILI9341 tft;   /* Graphics */
 
@@ -43,6 +19,13 @@ const uint8_t _pos_corr_factor_y = 4;
 #define TS_MAX_Y 3800
 /* ~~~~~~~~~~~~~~~~~ */
 
+/* For Wemos Mini and TFT screen 2.4" */
+#define TFT_CS D0
+#define TFT_DC D8
+#define TFT_RST -1
+#define TS_CS D3
+/* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
+
 class MessageTFT
 {
 public:
@@ -54,7 +37,7 @@ public:
   Adafruit_ILI9341 *TFT[1];
 
 public:
-  MessageTFT(Adafruit_ILI9341 &_tft);
+  MessageTFT(Adafruit_ILI9341 &_tft = tft);
   void drawMSG(char *txt, uint8_t a, uint8_t b, int xc, int yc, uint8_t txt_size = 2, uint8_t border_thickness = 1, uint16_t face_color = ILI9341_GREEN, uint16_t border_color = ILI9341_RED, uint16_t txt_color = ILI9341_BLACK, bool roundRect = true);
   void clear_screen(uint8_t c = 0);
 
@@ -85,40 +68,35 @@ public:
   MessageTFT MSGwindow;
 
 public:
-  ButtonTFT(XPT2046_Touchscreen &_ts, Adafruit_ILI9341 &_tft);
+  ButtonTFT(XPT2046_Touchscreen &_ts = ts, Adafruit_ILI9341 &_tft = tft);
   void drawButton(char *txt, uint8_t _a, uint8_t _b, int _xc, int _yc, uint8_t _txt_size = 2, uint16_t _face_color = ILI9341_GREEN, uint16_t _border_color = ILI9341_RED, uint16_t _txt_color = ILI9341_BLACK);
   bool wait4press();
   bool checkPress(TS_Point &p);
 
-  private:
-    int _tft_x, _tft_y;
+private:
+  int _tft_x, _tft_y;
 
-  private:
-    void _construct_button();
-    void _put_text();
-    void _press_cb();
-    void _conv_ts_tft(TS_Point & p);
-    bool _check_press_geometry(TS_Point & p);
-    int _TS2TFT_x(int px);
-    int _TS2TFT_y(int py);
-  };
+private:
+  void _construct_button();
+  void _put_text();
+  void _press_cb();
+  void _conv_ts_tft(TS_Point &p);
+  bool _check_press_geometry(TS_Point &p);
+  int _TS2TFT_x(int px);
+  int _TS2TFT_y(int py);
+};
 
 class keypadTFT
 {
 #define RESET_KEYPAD_TIMEOUT 10 // seconds
 
 public:
-  keypadTFT(XPT2046_Touchscreen &_ts, Adafruit_ILI9341 &_tft);
+  keypadTFT(XPT2046_Touchscreen &_ts = ts, Adafruit_ILI9341 &_tft = tft);
   void create_keypad();
-  void loop();
   bool getPasscode(TS_Point &p);
 
 public:
   char keypad_value[15]; /* To reach externally */
-  uint8_t screen_rotation = 0;
-  uint16_t face_color = ILI9341_GREEN;
-  uint16_t border_color = ILI9341_RED;
-  uint16_t txt_color = ILI9341_BLACK;
 
 private:
   ButtonTFT _button0;
@@ -145,31 +123,30 @@ private:
   char _stored_keypad_value[15];
 };
 
-// class buttonArrayTFT
-// {
-// public:
-//   buttonArrayTFT(XPT2046_Touchscreen &_ts, Adafruit_ILI9341 &_tft);
-//   void create_array(uint8_t R, uint8_t C, char *but_txt[], uint8_t txt_size = 2, uint16_t face_c = ILI9341_GREEN, uint16_t border_c = ILI9341_RED, uint16_t text_c = ILI9341_BLACK);
-//   uint8_t checkPress(TS_Point &p);
+class buttonArrayTFT
+{
+public:
+  buttonArrayTFT(XPT2046_Touchscreen &_ts=ts, Adafruit_ILI9341 &_tft=tft);
+  void create_array(uint8_t R, uint8_t C, char *but_txt[], uint8_t txt_size = 2, uint16_t face_c = ILI9341_GREEN, uint16_t border_c = ILI9341_RED, uint16_t text_c = ILI9341_BLACK);
+  uint8_t checkPress(TS_Point &p);
 
-// public:
-//   char txt_buf[30];
-//   uint8_t screen_rotation = 0;
+public:
+  char txt_buf[30];
 
-// private:
-//   ButtonTFT _button0;
-//   ButtonTFT _button1;
-//   ButtonTFT _button2;
-//   ButtonTFT _button3;
-//   ButtonTFT _button4;
-//   ButtonTFT _button5;
-//   ButtonTFT _button6;
-//   ButtonTFT _button7;
-//   ButtonTFT *_buttons[8] = {&_button0, &_button1, &_button2, &_button3,
-//                             &_button4, &_button5, &_button6, &_button7};
+private:
+  ButtonTFT _button0;
+  ButtonTFT _button1;
+  ButtonTFT _button2;
+  ButtonTFT _button3;
+  ButtonTFT _button4;
+  ButtonTFT _button5;
+  ButtonTFT _button6;
+  ButtonTFT _button7;
+  ButtonTFT *_buttons[8] = {&_button0, &_button1, &_button2, &_button3,
+                            &_button4, &_button5, &_button6, &_button7};
 
-// private:
-//   uint8_t _num_items = 0;
-// };
+private:
+  uint8_t _num_items = 0;
+};
 
 #endif

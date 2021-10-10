@@ -230,10 +230,6 @@ void keypadTFT::create_keypad()
   char *txt_buttons[] = {"1", "2", "3", "4", "5", "6", "7", "8", "9", "*", "0", "#"};
   _create_buttons(4, 3, txt_buttons);
 }
-void keypadTFT::loop()
-{
-  static unsigned long lastPress = 0;
-}
 void keypadTFT::_create_buttons(uint8_t R, uint8_t C, char *but_txt[], uint8_t txt_size)
 {
   const uint8_t but_space = 5;
@@ -270,7 +266,7 @@ bool keypadTFT::_check_pressed_in(TS_Point &p, uint8_t num_items)
         create_keypad();
         return false;
       }
-      else if (i == 11) /* Send cmd number */
+      else if (i == 11) /* Send passcode */
       {
         if (strcmp(_stored_keypad_value, "") != 0)
         {
@@ -299,69 +295,52 @@ bool keypadTFT::getPasscode(TS_Point &p)
   static unsigned long last_touch = 0;
   if (millis() - last_touch > 500)
   {
-    if (millis() - last_touch > RESET_KEYPAD_TIMEOUT * 1000 && strcmp(_stored_keypad_value, "") != 0)
+    if (millis() - last_touch > RESET_KEYPAD_TIMEOUT * 1000 && strcmp(_stored_keypad_value, "") != 0) /* Clear buffer after timeout */
     {
       _reset_keypad_values();
     }
     last_touch = millis();
-    return _check_pressed_in(p, 12);
+    return _check_pressed_in(p, 12); /* true only when passcode is delivered ( not only pressed ) */
   }
   else
   {
     return false;
   }
-  // else if (millis() - last_touch > RESET_KEYPAD_TIMEOUT * 1000 && strcmp(_stored_keypad_value, "") != 0)
-  // {
-  //   _reset_keypad_values();
-  //   create_keypad();
-  //   Serial.println("CLEAR");
-  //   return false;
-  // }
 }
 
-// buttonArrayTFT::buttonArrayTFT(XPT2046_Touchscreen &_ts, Adafruit_ILI9341 &_tft)
-//     : _button0(_ts, _tft), _button1(_ts, _tft), _button2(_ts, _tft),
-//       _button3(_ts, _tft), _button4(_ts, _tft), _button5(_ts, _tft),
-//       _button6(_ts, _tft), _button7(_ts, _tft)
-// {
-// }
-// uint8_t buttonArrayTFT::checkPress(TS_Point &p)
-// {
-//   for (uint8_t i = 0; i < _num_items; i++)
-//   {
-//     if (_buttons[i]->checkPress(p))
-//     {
-//       return i;
-//     }
-//   }
-//   return 99;
-// }
-// void buttonArrayTFT::create_array(uint8_t R, uint8_t C, char *but_txt[], uint8_t txt_size, uint16_t face_c, uint16_t border_c, uint16_t text_c)
-// {
-//   _num_items = R * C;
-//   const uint8_t but_space = 5;
-//   const uint8_t but_size_a = (uint8_t)((tft.width() - 50) / C);
-//   const uint8_t but_size_b = (uint8_t)((tft.height() - 50) / R);
-//   const uint8_t x_margin = (int)(tft.width() + (1 - C) * (but_size_a + but_space)) / 2;
-//   const uint8_t y_margin = (int)(tft.height() + (1 - R) * (but_size_b + but_space)) / 2;
+buttonArrayTFT::buttonArrayTFT(XPT2046_Touchscreen &_ts, Adafruit_ILI9341 &_tft)
+    : _button0(_ts, _tft), _button1(_ts, _tft), _button2(_ts, _tft),
+      _button3(_ts, _tft), _button4(_ts, _tft), _button5(_ts, _tft),
+      _button6(_ts, _tft), _button7(_ts, _tft)
+{
+}
+uint8_t buttonArrayTFT::checkPress(TS_Point &p)
+{
+  for (uint8_t i = 0; i < _num_items; i++)
+  {
+    if (_buttons[i]->checkPress(p))
+    {
+      return i;
+    }
+  }
+  return 99;
+}
+void buttonArrayTFT::create_array(uint8_t R, uint8_t C, char *but_txt[], uint8_t txt_size, uint16_t face_c, uint16_t border_c, uint16_t text_c)
+{
+  _num_items = R * C;
+  const uint8_t but_space = 5;
+  const uint8_t but_size_a = (uint8_t)((tft.width() - 50) / C);
+  const uint8_t but_size_b = (uint8_t)((tft.height() - 50) / R);
+  const uint8_t x_margin = (int)(tft.width() + (1 - C) * (but_size_a + but_space)) / 2;
+  const uint8_t y_margin = (int)(tft.height() + (1 - R) * (but_size_b + but_space)) / 2;
 
-//   for (uint8_t r = 0; r < R; r++)
-//   {
-//     for (uint8_t c = 0; c < C; c++)
-//     {
-//       _buttons[C * r + c]->screen_rotation = screen_rotation;
-//       _buttons[C * r + c]->text(but_txt[C * r + c]);
-//       _buttons[C * r + c]->txt_size = txt_size;
-//       _buttons[C * r + c]->a = but_size_a;
-//       _buttons[C * r + c]->b = but_size_b;
-//       _buttons[C * r + c]->xc = x_margin + c * (but_size_a + but_space);
-//       _buttons[C * r + c]->yc = y_margin + r * (but_size_b + but_space);
-//       _buttons[C * r + c]->roundRect = true;
-//       _buttons[C * r + c]->latchButton = false;
-//       _buttons[C * r + c]->face_color = face_c;
-//       _buttons[C * r + c]->border_color = border_c;
-//       _buttons[C * r + c]->txt_color = text_c;
-//       _buttons[C * r + c]->drawButton();
-//     }
-//   }
-// }
+  for (uint8_t r = 0; r < R; r++)
+  {
+    for (uint8_t c = 0; c < C; c++)
+    {
+      _buttons[C * r + c]->MSGwindow.TFT[0] = _button0.MSGwindow.TFT[0];
+      _buttons[C * r + c]->TS[0] = _button0.TS[0];
+      _buttons[C * r + c]->drawButton(but_txt[C * r + c], but_size_a, but_size_b, x_margin + c * (but_size_a + but_space), y_margin + r * (but_size_b + but_space), txt_size, face_c, border_c, text_c);
+    }
+  }
+}
