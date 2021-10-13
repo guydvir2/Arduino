@@ -6,6 +6,8 @@
 #if CASE == 1
 MessageTFT MsgBox;
 #elif CASE == 2
+MessageTFT dataBox;
+MessageTFT dataBox;
 ButtonTFT butt;
 #elif CASE == 3
 keypadTFT keypad;
