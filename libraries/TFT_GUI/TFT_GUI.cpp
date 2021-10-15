@@ -65,14 +65,14 @@ void MessageTFT::_put_text(char *txt)
   TFT[0]->print(txt_buf);
 }
 
-ButtonTFT::ButtonTFT(XPT2046_Touchscreen &_ts, Adafruit_ILI9341 &_tft) : MSGwindow(_tft)
+ButtonTFT::ButtonTFT(XPT2046_Touchscreen &_ts, Adafruit_ILI9341 &_tft)
 {
-  MSGwindow.TFT[0] = &_tft;
+  TFT[0] = &_tft;
   TS[0] = &_ts;
 }
 void ButtonTFT::createButton(char *txt)
 {
-  MSGwindow.createMSG(txt);
+  createMSG(txt);
 }
 bool ButtonTFT::wait4press() /* include getPoint loop - use for simple cases*/
 {
@@ -110,10 +110,10 @@ void ButtonTFT::_press_cb()
     /* to minimize the amount of variables: border_thickness, color of press state, and round rect are consts*/
     uint16_t face_color_t = face_color;
     face_color = ILI9341_RED;
-    MSGwindow.createMSG(txt_buf);
+    createMSG(txt_buf);
     delay(_press_del);
     face_color = face_color_t;
-    MSGwindow.createMSG(txt_buf);
+    createMSG(txt_buf);
     delay(_press_del);
   }
   else
@@ -212,44 +212,87 @@ int ButtonTFT::_TS2TFT_y(int py)
   }
 }
 
-keypadTFT::keypadTFT(XPT2046_Touchscreen &_ts, Adafruit_ILI9341 &_tft)
+buttonArrayTFT::buttonArrayTFT(XPT2046_Touchscreen &_ts, Adafruit_ILI9341 &_tft)
     : _button0(_ts, _tft), _button1(_ts, _tft), _button2(_ts, _tft),
       _button3(_ts, _tft), _button4(_ts, _tft), _button5(_ts, _tft),
       _button6(_ts, _tft), _button7(_ts, _tft), _button8(_ts, _tft),
-      _button9(_ts, _tft), _button_10(_ts, _tft), _button_11(_ts, _tft)
+      _button9(_ts, _tft), _button10(_ts, _tft), _button11(_ts, _tft)
 {
-  _button0.MSGwindow.TFT[0] = &_tft;
+  _button0.TFT[0] = &_tft;
   _button0.TS[0] = &_ts;
 }
-void keypadTFT::create_keypad()
+uint8_t buttonArrayTFT::checkPress(TS_Point &p)
 {
-  char *txt_buttons[] = {"1", "2", "3", "4", "5", "6", "7", "8", "9", "*", "0", "#"};
-  _create_buttons(4, 3, txt_buttons,3);
+  for (uint8_t i = 0; i < _num_items; i++)
+  {
+    if (_buttons[i]->checkPress(p))
+    {
+      return i;
+    }
+  }
+  return 99;
 }
-void keypadTFT::_create_buttons(uint8_t R, uint8_t C, char *but_txt[], uint8_t txt_size)
+void buttonArrayTFT::create_array(uint8_t R, uint8_t C, char *but_txt[])
 {
+  _num_items = R * C;
   const uint8_t but_space = 5;
   const uint8_t marg_clearance = 20;
-  const uint8_t but_size_a = (uint8_t)((tft.width() - marg_clearance) / C);
-  const uint8_t but_size_b = (uint8_t)((tft.height() - marg_clearance) / R);
-  const uint8_t x_margin = (int)(tft.width() + (1 - C) * (but_size_a + but_space)) / 2;
-  const uint8_t y_margin = (int)(tft.height() + (1 - R) * (but_size_b + but_space)) / 2;
+  const uint8_t but_size_a = (uint8_t)((tft.width() * scale_f / 100 - marg_clearance) / C);
+  const uint8_t but_size_b = (uint8_t)((tft.height() * scale_f / 100 - abs(shift_array) - marg_clearance) / R);
+  uint8_t x_margin = 0;
+  uint8_t y_margin = 0;
+  if (shift_x == 255)
+  {
+    x_margin = (int)(tft.width() + (1 - C) * (but_size_a + but_space)) / 2;
+  }
+  else
+  {
+    x_margin = shift_x + but_size_a / 2;
+  }
+  if (shift_y == 255)
+  {
+    y_margin = (int)(tft.height() + (1 - R) * (but_size_b + but_space)) / 2;
+  }
+  else
+  {
+    y_margin = shift_y + but_size_b / 2;
+  }
+  // const uint8_t x_margin = (int)(tft.width() * scale_f/100+ (1 - C) * (but_size_a + but_space)) / 2;
+  // const uint8_t y_margin = (int)(tft.height() * scale_f/100 + (1 - R) * (but_size_b + but_space)) / 2 + shift_array / 2;
 
   for (uint8_t r = 0; r < R; r++)
   {
     for (uint8_t c = 0; c < C; c++)
     {
-      _buttons[C * r + c]->MSGwindow.TFT[0] = _button0.MSGwindow.TFT[0];
+      _buttons[C * r + c]->a = but_size_a; /* Calculated*/
+      _buttons[C * r + c]->b = but_size_b; /* Calculated*/
+      _buttons[C * r + c]->TFT[0] = _button0.TFT[0];
       _buttons[C * r + c]->TS[0] = _button0.TS[0];
-      _buttons[C * r + c]->a = but_size_a;
-      _buttons[C * r + c]->b = but_size_b;
+
       _buttons[C * r + c]->xc = x_margin + c * (but_size_a + but_space);
       _buttons[C * r + c]->yc = y_margin + r * (but_size_b + but_space);
       _buttons[C * r + c]->txt_size = txt_size;
+      _buttons[C * r + c]->txt_color = txt_color;
+      _buttons[C * r + c]->border_color = border_color;
+      _buttons[C * r + c]->face_color = face_color;
+      _buttons[C * r + c]->roundRect = roundRect;
+
       _buttons[C * r + c]->createButton(but_txt[C * r + c]);
     }
   }
 }
+
+keypadTFT::keypadTFT(XPT2046_Touchscreen &_ts, Adafruit_ILI9341 &_tft)
+{
+  _button0.TFT[0] = &_tft;
+  _button0.TS[0] = &_ts;
+}
+void keypadTFT::create_keypad()
+{
+  char *txt_buttons[] = {"1", "2", "3", "4", "5", "6", "7", "8", "9", "*", "0", "#"};
+  create_array(4, 3, txt_buttons);
+}
+
 void keypadTFT::_reset_keypad_values()
 {
   strcpy(_stored_keypad_value, "");
@@ -310,60 +353,12 @@ bool keypadTFT::getPasscode(TS_Point &p)
   }
 }
 
-buttonArrayTFT::buttonArrayTFT(XPT2046_Touchscreen &_ts, Adafruit_ILI9341 &_tft)
-    : _button0(_ts, _tft), _button1(_ts, _tft), _button2(_ts, _tft),
-      _button3(_ts, _tft), _button4(_ts, _tft), _button5(_ts, _tft),
-      _button6(_ts, _tft), _button7(_ts, _tft)
-{
-  _button0.MSGwindow.TFT[0] = &_tft;
-  _button0.TS[0] = &_ts;
-}
-uint8_t buttonArrayTFT::checkPress(TS_Point &p)
-{
-  for (uint8_t i = 0; i < _num_items; i++)
-  {
-    if (_buttons[i]->checkPress(p))
-    {
-      return i;
-    }
-  }
-  return 99;
-}
-void buttonArrayTFT::create_array(uint8_t R, uint8_t C, char *but_txt[])
-{
-  _num_items = R * C;
-  // _buttons[0]->txt_size = txt_size;
-  // Serial.println(txt_size);
-  const uint8_t but_space = 5;
-  const uint8_t marg_clearance = 20;
-  const uint8_t but_size_a = (uint8_t)((tft.width() - marg_clearance) / C);
-  const uint8_t but_size_b = (uint8_t)((tft.height() - abs(shift_array) - marg_clearance) / R);
-  const uint8_t x_margin = (int)(tft.width() + (1 - C) * (but_size_a + but_space)) / 2;
-  const uint8_t y_margin = (int)(tft.height() + (1 - R) * (but_size_b + but_space)) / 2 + shift_array / 2;
-
-  for (uint8_t r = 0; r < R; r++)
-  {
-    for (uint8_t c = 0; c < C; c++)
-    {
-      _buttons[C * r + c]->a = but_size_a; /* Calculated*/
-      _buttons[C * r + c]->b = but_size_b; /* Calculated*/
-      _buttons[C * r + c]->MSGwindow.TFT[0] = _button0.MSGwindow.TFT[0];
-      _buttons[C * r + c]->TS[0] = _button0.TS[0];
-
-      _buttons[C * r + c]->xc = x_margin + c * (but_size_a + but_space);
-      _buttons[C * r + c]->yc = y_margin + r * (but_size_b + but_space);
-      // _buttons[C * r + c]->txt_size = txt_size;
-      _buttons[C * r + c]->createButton(but_txt[C * r + c]);
-    }
-  }
-}
-
 // buttonArrayP_TFT::buttonArrayP_TFT(XPT2046_Touchscreen &_ts, Adafruit_ILI9341 &_tft)
 //     : _button0(_ts, _tft), _button1(_ts, _tft), _button2(_ts, _tft),
 //       _button3(_ts, _tft), _button4(_ts, _tft), _button5(_ts, _tft),
 //       _button6(_ts, _tft), _button7(_ts, _tft)
 // {
-//   _button0.MSGwindow.TFT[0] = &_tft;
+//   _button0.TFT[0] = &_tft;
 //   _button0.TS[0] = &_ts;
 // }
 // uint8_t buttonArrayP_TFT::checkPress(TS_Point &p)

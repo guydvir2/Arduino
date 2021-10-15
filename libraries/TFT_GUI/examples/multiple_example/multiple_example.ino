@@ -2,7 +2,7 @@
 
 #define SCREEN_ROT 0
 
-#define CASE 2
+#define CASE 3
 #if CASE == 1 /* Simple MsgBox - No Touch */
 MessageTFT MsgBox;
 
@@ -72,19 +72,31 @@ void setup()
   butt.b = 60;
   butt.xc = tft.width() / 2;
   butt.yc = tft.height() - butt.b / 2;
-  butt.txt_size = 1;
+  butt.txt_size = 3;
   butt.face_color = ILI9341_CASET;
-  butt.txt_color = ILI9341_DARKGREY;
+  butt.txt_color = ILI9341_WHITE;
   butt.border_color = ILI9341_MAGENTA;
   butt.roundRect = false;
   butt.createButton("Press!");
 
 #elif CASE == 3
+  keypad.scale_f = 80; /* % of max screen size */
+  // keypad.shift_x = 50; /* When not using max screen size, regarding to top left corner. commenting out will center keypad */
+  // keypad.shift_y = 100;
+  keypad.txt_size = 2;
+  keypad.txt_color = ILI9341_WHITE;
+  keypad.face_color = ILI9341_CASET;
+  keypad.border_color = ILI9341_LIGHTGREY;
+  keypad.roundRect = false;
   keypad.create_keypad();
 
 #elif CASE == 4
+  mainWindows.shift_array = -100;
   mainWindows.txt_size = 2;
-  // mainWindows.face_color = ILI9341_DARKGREEN;
+  mainWindows.roundRect = false;
+  mainWindows.txt_color = ILI9341_WHITE;
+  mainWindows.face_color = ILI9341_DARKGREY;
+  mainWindows.border_color = mainWindows.face_color;
   mainWindows.create_array(4, 1, a);
 
 #elif CASE == 5
