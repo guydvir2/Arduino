@@ -79,7 +79,6 @@ private:
   int _TS2TFT_x(int px);
   int _TS2TFT_y(int py);
 };
-
 class buttonArrayTFT
 {
 public:
@@ -88,22 +87,25 @@ public:
   uint8_t checkPress(TS_Point &p);
 
 public:
-  int shift_array = 0;
+  int8_t dx = 5; /* define spacing between buttons */
+  int8_t dy = 5; /* define spacing between buttons */
+  uint8_t scale_f = 100; /* change the cale of array. 100% take entire screen */
+  uint8_t shift_y = 255; /* Shifts in y director*/
+  uint8_t shift_x = 255; /* Shifts in x director*/
+  int shrink_shift = 0;  /* shrink array in pixels, and shifts up/ down (+/-) */
+  uint8_t &a = _button0.a;
+  uint8_t &b = _button0.b;
   uint8_t &txt_size = _button0.txt_size;
   uint16_t &txt_color = _button0.txt_color;
   uint16_t &border_color = _button0.border_color;
   uint16_t &face_color = _button0.face_color;
   bool &roundRect = _button0.roundRect;
-  uint8_t scale_f = 100;
-  uint8_t shift_y = 255;
-  uint8_t shift_x = 255;
-
+  
 protected:
   ButtonTFT _button0;
   ButtonTFT *_buttons[12] = {&_button0, &_button1, &_button2, &_button3,
                              &_button4, &_button5, &_button6, &_button7,
                              &_button8, &_button9, &_button10, &_button11};
-
 private:
   ButtonTFT _button1;
   ButtonTFT _button2;
@@ -117,7 +119,6 @@ private:
   ButtonTFT _button10;
   ButtonTFT _button11;
   
-
 private:
   uint8_t _num_items = 0;
 };
@@ -131,30 +132,9 @@ public:
   bool getPasscode(TS_Point &p);
 
 public:
-  // uint8_t &txt_size = _button0.txt_size;
-  // uint16_t &txt_color = _button0.txt_color;
-  // uint16_t &border_color = _button0.border_color;
-  // uint16_t &face_color = _button0.face_color;
-  // bool &roundRect = _button0.roundRect;
   char keypad_value[15]; /* To reach externally */
 
 private:
-  // ButtonTFT _button0;
-  // ButtonTFT _button1;
-  // ButtonTFT _button2;
-  // ButtonTFT _button3;
-  // ButtonTFT _button4;
-  // ButtonTFT _button5;
-  // ButtonTFT _button6;
-  // ButtonTFT _button7;
-  // ButtonTFT _button8;
-  // ButtonTFT _button9;
-  // ButtonTFT _button_10;
-  // ButtonTFT _button_11;
-
-  // ButtonTFT *_buttons[12] = {&_button0, &_button1, &_button2, &_button3, &_button4, &_button5,
-  //                            &_button6, &_button7, &_button8, &_button9, &_button_10, &_button_11};
-
   void _create_buttons(uint8_t R, uint8_t C, char *but_txt[]);
   void _reset_keypad_values();
   bool _check_pressed_in(TS_Point &p, uint8_t num_items);
@@ -163,39 +143,4 @@ private:
   char _stored_keypad_value[15];
 };
 
-class buttonArrayP_TFT
-{
-public:
-  buttonArrayP_TFT(XPT2046_Touchscreen &_ts = ts, Adafruit_ILI9341 &_tft = tft);
-  void create_array(uint8_t R, uint8_t C, char *but_txt[]);
-  uint8_t checkPress(TS_Point &p);
-
-public:
-  int dx = 0;
-  int dy = 0;
-  uint8_t &a = _button0.a;
-  uint8_t &b = _button0.b;
-  uint8_t &txt_size = _button0.txt_size;
-  uint16_t &face_color = _button0.face_color;
-  uint16_t &txt_color = _button0.txt_color;
-  uint16_t &border_color = _button0.border_color;
-  bool &roundRect = _button0.roundRect;
-
-  int shift_array = 0;
-
-private:
-  ButtonTFT _button0;
-  ButtonTFT _button1;
-  ButtonTFT _button2;
-  ButtonTFT _button3;
-  ButtonTFT _button4;
-  ButtonTFT _button5;
-  ButtonTFT _button6;
-  ButtonTFT _button7;
-  ButtonTFT *_buttons[8] = {&_button0, &_button1, &_button2, &_button3,
-                            &_button4, &_button5, &_button6, &_button7};
-
-private:
-  uint8_t _num_items = 0;
-};
 #endif

@@ -2,7 +2,7 @@
 
 #define SCREEN_ROT 0
 
-#define CASE 3
+#define CASE 5
 #if CASE == 1 /* Simple MsgBox - No Touch */
 MessageTFT MsgBox;
 
@@ -23,9 +23,9 @@ uint8_t stage_level = 0;
 
 #elif CASE == 5 /* Shifted Array and 2 single Buttons */
 char *a[] = {"F1", "F2"};
-buttonArrayP_TFT shiftedArray;
-ButtonTFT butBack;
-ButtonTFT butHome;
+buttonArrayTFT shiftedArray;
+// ButtonTFT butBack;
+// ButtonTFT butHome;
 #endif
 
 XPT2046_Touchscreen ts(TS_CS);
@@ -80,8 +80,8 @@ void setup()
   butt.createButton("Press!");
 
 #elif CASE == 3
-  keypad.scale_f = 80; /* % of max screen size */
-  // keypad.shift_x = 50; /* When not using max screen size, regarding to top left corner. commenting out will center keypad */
+  keypad.scale_f = 95; /* % of max screen size */
+  // keypad.shift_x = 50; /* shift x axis, regarding to top left corner. commenting out will center keypad */
   // keypad.shift_y = 100;
   keypad.txt_size = 2;
   keypad.txt_color = ILI9341_WHITE;
@@ -91,7 +91,10 @@ void setup()
   keypad.create_keypad();
 
 #elif CASE == 4
-  mainWindows.shift_array = -100;
+  // mainWindows.shrink_shift = 240;
+  // mainWindows.shift_y = 100; /* Shift witout resize */
+  // mainWindows.shift_x = 100; /* Shift witout resize */
+  mainWindows.scale_f = 100;
   mainWindows.txt_size = 2;
   mainWindows.roundRect = false;
   mainWindows.txt_color = ILI9341_WHITE;
@@ -100,19 +103,19 @@ void setup()
   mainWindows.create_array(4, 1, a);
 
 #elif CASE == 5
+  /* Define manually button's dimensions and spacings */
   shiftedArray.a = 80;
   shiftedArray.b = 50;
   shiftedArray.dx = 50;
   shiftedArray.dy = 10;
+  shiftedArray.shift_y = 0;
   shiftedArray.txt_size = 2;
-
   shiftedArray.face_color = ILI9341_GREENYELLOW;
   shiftedArray.txt_color = ILI9341_WHITE;
   shiftedArray.border_color = ILI9341_GREENYELLOW;
   shiftedArray.roundRect = false;
-  // char *txt_buf = _button0.txt_buf;
-  shiftedArray.shift_array = -60;
-  shiftedArray.create_array(2, 1, a);
+  // shiftedArray.shrink_shift = -60;
+  shiftedArray.create_array(1,2, a);
 
   // butBack.createButton("Back", 80, 50, 40, 295, 2, ILI9341_CYAN);
   // butHome.createButton("Home", 80, 50, 200, 295, 2, ILI9341_CYAN);
@@ -185,14 +188,14 @@ void loop()
     {
       Serial.println(a[result]);
     }
-    else if (butBack.checkPress(p))
-    {
-      Serial.println(butBack.txt_buf);
-    }
-    else if (butHome.checkPress(p))
-    {
-      Serial.println(butHome.txt_buf);
-    }
+    // else if (butBack.checkPress(p))
+    // {
+    //   Serial.println(butBack.txt_buf);
+    // }
+    // else if (butHome.checkPress(p))
+    // {
+    //   Serial.println(butHome.txt_buf);
+    // }
 #endif
   }
 }
