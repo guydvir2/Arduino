@@ -99,13 +99,19 @@ public:
   uint16_t &face_color = butarray[0].face_color;
   bool &roundRect = butarray[0].roundRect;
 
-protected:
   ButtonTFT butarray[N];
 
 public:
   buttonArray_TFT(XPT2046_Touchscreen &_ts = ts, Adafruit_ILI9341 &_tft = tft);
   void create_array(uint8_t R, uint8_t C, char *but_txt[]);
   uint8_t checkPress(TS_Point &p);
+  ButtonTFT &operator[](uint8_t index)
+  {
+    if (index <N)
+    {
+      return butarray[index];
+    }
+  }
 };
 
 template <uint8_t N>
@@ -194,51 +200,7 @@ uint8_t buttonArray_TFT<N>::checkPress(TS_Point &p)
   return 99;
 }
 
-class buttonArrayTFT
-{
-public:
-  buttonArrayTFT(XPT2046_Touchscreen &_ts = ts, Adafruit_ILI9341 &_tft = tft);
-  void create_array(uint8_t R, uint8_t C, char *but_txt[]);
-  uint8_t checkPress(TS_Point &p);
-
-public:
-  int8_t dx = 5;         /* define spacing between buttons */
-  int8_t dy = 5;         /* define spacing between buttons */
-  uint8_t scale_f = 100; /* change the cale of array. 100% take entire screen */
-  uint8_t shift_y = 255; /* Shifts in y director*/
-  uint8_t shift_x = 255; /* Shifts in x director*/
-  int shrink_shift = 0;  /* shrink array in pixels, and shifts up/ down (+/-) */
-  uint8_t &a = _button0.a;
-  uint8_t &b = _button0.b;
-  uint8_t &txt_size = _button0.txt_size;
-  uint16_t &txt_color = _button0.txt_color;
-  uint16_t &border_color = _button0.border_color;
-  uint16_t &face_color = _button0.face_color;
-  bool &roundRect = _button0.roundRect;
-
-protected:
-  ButtonTFT _button0;
-  ButtonTFT *_buttons[12] = {&_button0, &_button1, &_button2, &_button3,
-                             &_button4, &_button5, &_button6, &_button7,
-                             &_button8, &_button9, &_button10, &_button11};
-
-private:
-  ButtonTFT _button1;
-  ButtonTFT _button2;
-  ButtonTFT _button3;
-  ButtonTFT _button4;
-  ButtonTFT _button5;
-  ButtonTFT _button6;
-  ButtonTFT _button7;
-  ButtonTFT _button8;
-  ButtonTFT _button9;
-  ButtonTFT _button10;
-  ButtonTFT _button11;
-
-private:
-  uint8_t _num_items = 0;
-};
-class keypadTFT : public buttonArrayTFT
+class keypadTFT
 {
 #define RESET_KEYPAD_TIMEOUT 10 // seconds
 
@@ -247,13 +209,15 @@ public:
   void create_keypad();
   bool getPasscode(TS_Point &p);
 
+  buttonArray_TFT<12> _butarray;
+
 public:
   char keypad_value[15]; /* To reach externally */
 
 private:
   void _create_buttons(uint8_t R, uint8_t C, char *but_txt[]);
   void _reset_keypad_values();
-  bool _check_pressed_in(TS_Point &p, uint8_t num_items);
+  bool _check_pressed_in(TS_Point &p);
 
 private:
   char _stored_keypad_value[15];

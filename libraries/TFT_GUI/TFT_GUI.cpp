@@ -211,144 +211,15 @@ int ButtonTFT::_TS2TFT_y(int py)
   }
 }
 
-
-buttonArrayTFT::buttonArrayTFT(XPT2046_Touchscreen &_ts, Adafruit_ILI9341 &_tft)
-    : _button0(_ts, _tft), _button1(_ts, _tft), _button2(_ts, _tft),
-      _button3(_ts, _tft), _button4(_ts, _tft), _button5(_ts, _tft),
-      _button6(_ts, _tft), _button7(_ts, _tft), _button8(_ts, _tft),
-      _button9(_ts, _tft), _button10(_ts, _tft), _button11(_ts, _tft)
-{
-  _button0.TFT[0] = &_tft;
-  _button0.TS[0] = &_ts;
-}
-uint8_t buttonArrayTFT::checkPress(TS_Point &p)
-{
-  for (uint8_t i = 0; i < _num_items; i++)
-  {
-    if (_buttons[i]->checkPress(p))
-    {
-      return i;
-    }
-  }
-  return 99;
-}
-void buttonArrayTFT::create_array(uint8_t R, uint8_t C, char *but_txt[])
-{
-  _num_items = R * C;
-  uint8_t x_margin = 0;
-  uint8_t y_margin = 0;
-  uint8_t but_size_a = 0;
-  uint8_t but_size_b = 0;
-  const uint8_t marg_clearance = 10;
-
-  if (_button0.a != 0 && _button0.b != 0) /* buttons side is defined manually */
-  {
-    but_size_a = _button0.a;
-    but_size_b = _button0.b;
-  }
-  else /* auto size, resize, shifted and scle factored */
-  {
-    but_size_a = (uint8_t)((tft.width() * scale_f / 100 - marg_clearance) / C);
-    but_size_b = (uint8_t)((tft.height() * scale_f / 100 - abs(shrink_shift) - marg_clearance) / R);
-  }
-
-  if (shrink_shift != 0)
-  {
-    y_margin = shrink_shift;
-  }
-  else
-  {
-    if (shift_x == 255)
-    {
-      x_margin = (int)(tft.width() + (1 - C) * (but_size_a + dx)) / 2;
-    }
-    else
-    {
-      x_margin = shift_x + but_size_a / 2;
-    }
-    if (shift_y == 255)
-    {
-      y_margin = (int)(tft.height() + (1 - R) * (but_size_b + dy)) / 2 + shrink_shift;
-    }
-    else
-    {
-      y_margin = shift_y + but_size_b / 2;
-    }
-  }
-
-  for (uint8_t r = 0; r < R; r++)
-  {
-    for (uint8_t c = 0; c < C; c++)
-    {
-      _buttons[C * r + c]->a = but_size_a; /* Calculated*/
-      _buttons[C * r + c]->b = but_size_b; /* Calculated*/
-      _buttons[C * r + c]->TFT[0] = _button0.TFT[0];
-      _buttons[C * r + c]->TS[0] = _button0.TS[0];
-
-      _buttons[C * r + c]->xc = x_margin + c * (but_size_a + dx);
-      _buttons[C * r + c]->yc = y_margin + r * (but_size_b + dy);
-      _buttons[C * r + c]->txt_size = txt_size;
-      _buttons[C * r + c]->txt_color = txt_color;
-      _buttons[C * r + c]->border_color = border_color;
-      _buttons[C * r + c]->face_color = face_color;
-      _buttons[C * r + c]->roundRect = roundRect;
-
-      _buttons[C * r + c]->createButton(but_txt[C * r + c]);
-    }
-  }
-}
-
 keypadTFT::keypadTFT(XPT2046_Touchscreen &_ts, Adafruit_ILI9341 &_tft)
 {
-  _button0.TFT[0] = &_tft;
-  _button0.TS[0] = &_ts;
+  _butarray.butarray[0].TFT[0] = &_tft;
+  _butarray.butarray[0].TS[0] = &_ts;
 }
 void keypadTFT::create_keypad()
 {
   char *txt_buttons[] = {"1", "2", "3", "4", "5", "6", "7", "8", "9", "*", "0", "#"};
-  create_array(4, 3, txt_buttons);
-}
-void keypadTFT::_reset_keypad_values()
-{
-  strcpy(_stored_keypad_value, "");
-}
-bool keypadTFT::_check_pressed_in(TS_Point &p, uint8_t num_items)
-{
-  for (uint8_t i = 0; i < num_items; i++)
-  {
-    if (_buttons[i]->checkPress(p))
-    {
-      Serial.println(_buttons[i]->txt_buf);
-      if (i == 9) /* Erase buffer */
-      {
-        _reset_keypad_values();
-        delay(1000);
-        create_keypad();
-        return false;
-      }
-      else if (i == 11) /* Send passcode */
-      {
-        if (strcmp(_stored_keypad_value, "") != 0)
-        {
-          strcpy(keypad_value, _stored_keypad_value);
-          _reset_keypad_values();
-          create_keypad();
-          return true;
-        }
-        else
-        {
-          return false;
-        }
-      }
-      else
-      {
-        strcat(_stored_keypad_value, _buttons[i]->txt_buf);
-        Serial.println(_stored_keypad_value);
-        return false;
-      }
-    }
-  }
-  return false;
+  _butarray.create_array(4, 3, txt_buttons);
 }
 bool keypadTFT::getPasscode(TS_Point &p)
 {
@@ -360,10 +231,87 @@ bool keypadTFT::getPasscode(TS_Point &p)
       _reset_keypad_values();
     }
     last_touch = millis();
-    return _check_pressed_in(p, 12); /* true only when passcode is delivered ( not only pressed ) */
+    return _check_pressed_in(p); /* true only when passcode is delivered ( not only pressed ) */
   }
   else
   {
     return false;
   }
+}
+void keypadTFT::_reset_keypad_values()
+{
+  strcpy(_stored_keypad_value, "");
+}
+bool keypadTFT::_check_pressed_in(TS_Point &p)
+{
+  uint8_t i = _butarray.checkPress(p);
+  if (i != 99)
+  {
+    if (i == 9) /* Erase buffer */
+    {
+      _reset_keypad_values();
+      delay(1000);
+      create_keypad();
+      return false;
+    }
+    else if (i == 11) /* Send passcode */
+    {
+      if (strcmp(_stored_keypad_value, "") != 0)
+      {
+        strcpy(keypad_value, _stored_keypad_value);
+        _reset_keypad_values();
+        create_keypad();
+        return true;
+      }
+      else
+      {
+        return false;
+      }
+    }
+    else
+    {
+      strcat(_stored_keypad_value, _butarray.butarray[0].txt_buf);
+      Serial.println(_stored_keypad_value);
+      return false;
+    }
+  }
+  else
+  {
+    false;
+  }
+  // for (uint8_t i = 0; i < num_items; i++)
+  // {
+  //   if (_buttons[i]->checkPress(p))
+  //   {
+  //     Serial.println(_buttons[i]->txt_buf);
+  //     if (i == 9) /* Erase buffer */
+  //     {
+  //       _reset_keypad_values();
+  //       delay(1000);
+  //       create_keypad();
+  //       return false;
+  //     }
+  //     else if (i == 11) /* Send passcode */
+  //     {
+  //       if (strcmp(_stored_keypad_value, "") != 0)
+  //       {
+  //         strcpy(keypad_value, _stored_keypad_value);
+  //         _reset_keypad_values();
+  //         create_keypad();
+  //         return true;
+  //       }
+  //       else
+  //       {
+  //         return false;
+  //       }
+  //     }
+  //     else
+  //     {
+  //       strcat(_stored_keypad_value, _buttons[i]->txt_buf);
+  //       Serial.println(_stored_keypad_value);
+  //       return false;
+  //     }
+  //   }
+  // }
+  // return false;
 }
