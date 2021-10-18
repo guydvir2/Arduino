@@ -2,7 +2,7 @@
 
 #define SCREEN_ROT 0
 
-#define CASE 5
+#define CASE 6
 #if CASE == 1 /* Simple MsgBox - No Touch */
 MessageTFT MsgBox;
 
@@ -26,6 +26,9 @@ char *a[] = {"F1", "F2"};
 buttonArrayTFT shiftedArray;
 // ButtonTFT butBack;
 // ButtonTFT butHome;
+#elif CASE==6
+newArray<12> array;
+
 #endif
 
 XPT2046_Touchscreen ts(TS_CS);
@@ -119,7 +122,7 @@ void setup()
 
   // butBack.createButton("Back", 80, 50, 40, 295, 2, ILI9341_CYAN);
   // butHome.createButton("Home", 80, 50, 200, 295, 2, ILI9341_CYAN);
-
+#elif CASE==6
 #endif
 }
 
