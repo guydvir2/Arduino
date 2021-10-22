@@ -2,7 +2,7 @@
 
 #define SCREEN_ROT 0
 
-#define CASE 6
+#define CASE 4
 #if CASE == 1 /* Simple MsgBox - No Touch */
 MessageTFT MsgBox;
 
@@ -14,11 +14,11 @@ keypadTFT keypad;
 
 #elif CASE == 4 /* Button Array - equally spaced buttons */
 char *a[] = {"All Windows", "Saloon", "Room", "Specific"};
-char *operTitle[] = {"Up", "Off", "Down"};
-char *specificTitle[] = {"Family", "Parents", "Kids", "Single", "Dual", "Exit", "Laundry", "X"};
-buttonArrayTFT mainWindows;
-buttonArrayTFT operateWindows;
-buttonArrayTFT specificWindows;
+// char *operTitle[] = {"Up", "Off", "Down"};
+// char *specificTitle[] = {"Family", "Parents", "Kids", "Single", "Dual", "Exit", "Laundry", "X"};
+buttonArrayTFT<4> mainWindows;
+// buttonArrayTFT<3> operateWindows;
+// buttonArrayTFT<8> specificWindows;
 uint8_t stage_level = 0;
 
 #elif CASE == 5 /* Shifted Array and 2 single Buttons */
@@ -83,21 +83,25 @@ void setup()
   butt.createButton("Press!");
 
 #elif CASE == 3
-  keypad.scale_f = 95; /* % of max screen size */
+  // keypad.scale_f = 70; /* % of max screen size */
   // keypad.shift_x = 50; /* shift x axis, regarding to top left corner. commenting out will center keypad */
   // keypad.shift_y = 100;
+  // keypad.shrink_shift = 10;
   keypad.txt_size = 2;
   keypad.txt_color = ILI9341_WHITE;
-  keypad.face_color = ILI9341_CASET;
+  keypad.face_color = ILI9341_LIGHTGREY;
   keypad.border_color = ILI9341_LIGHTGREY;
   keypad.roundRect = false;
   keypad.create_keypad();
 
 #elif CASE == 4
-  // mainWindows.shrink_shift = 240;
-  // mainWindows.shift_y = 100; /* Shift witout resize */
-  // mainWindows.shift_x = 100; /* Shift witout resize */
-  mainWindows.scale_f = 100;
+  // mainWindows.shrink_shift = 200;
+  mainWindows.shift_y = 0; /* Shift witout resize */
+  mainWindows.shift_x = 0; /* Shift witout resize */
+  // mainWindows.scale_f = 80;
+  mainWindows.a = 150; /* define size manually */
+  mainWindows.b = 50;  /* define size manually */
+  mainWindows.dy = 10; /* define y spacing between buttons */
   mainWindows.txt_size = 2;
   mainWindows.roundRect = false;
   mainWindows.txt_color = ILI9341_WHITE;
@@ -147,44 +151,44 @@ void loop()
     if (stage_level == 0) /* mainMenu*/
     {
       uint8_t result = mainWindows.checkPress(p);
-      if (result != 99)
-      {
-        if (result != 3)
-        {
-          stage_level = 50 + result;
-          clearScreen();
-          operateWindows.create_array(3, 1, operTitle);
-        }
-        else
-        {
-          stage_level = 1;
-          clearScreen();
-          specificWindows.create_array(4, 2, specificTitle);
-        }
-      }
+      // if (result != 99)
+      // {
+      //   if (result != 3)
+      //   {
+      //     stage_level = 50 + result;
+      //     clearScreen();
+      //     operateWindows.create_array(3, 1, operTitle);
+      //   }
+      //   else
+      //   {
+      //     stage_level = 1;
+      //     clearScreen();
+      //     specificWindows.create_array(4, 2, specificTitle);
+      //   }
+      // }
     }
-    else if (stage_level == 1) /* Specific */
-    {
-      uint8_t result = specificWindows.checkPress(p);
-      if (result != 99)
-      {
-        stage_level = 60 + result;
-        clearScreen();
-        operateWindows.create_array(3, 1, operTitle);
-      }
-    }
-    else
-    {
-      uint8_t result = operateWindows.checkPress(p);
-      if (result != 99)
-      {
-        Serial.println(stage_level);
-        Serial.println(operTitle[result]);
-        clearScreen();
-        stage_level = 0;
-        mainWindows.create_array(4, 1, a);
-      }
-    }
+    // else if (stage_level == 1) /* Specific */
+    // {
+    //   uint8_t result = specificWindows.checkPress(p);
+    //   if (result != 99)
+    //   {
+    //     stage_level = 60 + result;
+    //     clearScreen();
+    //     operateWindows.create_array(3, 1, operTitle);
+    //   }
+    // }
+    // else
+    // {
+    //   uint8_t result = operateWindows.checkPress(p);
+    //   if (result != 99)
+    //   {
+    //     Serial.println(stage_level);
+    //     Serial.println(operTitle[result]);
+    //     clearScreen();
+    //     stage_level = 0;
+    //     mainWindows.create_array(4, 1, a);
+    //   }
+    // }
 #elif CASE == 5
     uint8_t result = shiftedArray.checkPress(p);
     if (result != 99)

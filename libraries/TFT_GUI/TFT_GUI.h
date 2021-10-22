@@ -33,14 +33,14 @@ public:
   int yc = 0;
   uint8_t a = 0;
   uint8_t b = 0;
-  uint8_t txt_size = 3;
+  uint8_t txt_size = 2;
   uint8_t border_thickness = 1;
   uint8_t screen_rotation = 0;
   uint16_t face_color = ILI9341_GREENYELLOW;
   uint16_t txt_color = ILI9341_BLACK;
   uint16_t border_color = ILI9341_RED;
   char txt_buf[30];
-  bool roundRect = true;
+  bool roundRect = false;
 
   Adafruit_ILI9341 *TFT[1];
 
@@ -80,13 +80,16 @@ private:
   int _TS2TFT_y(int py);
 };
 
+/* Button Array as class template */
 template <uint8_t N>
-class buttonArray_TFT
+class buttonArrayTFT
 {
 public:
   int8_t dx = 5;         /* define spacing between buttons */
   int8_t dy = 5;         /* define spacing between buttons */
   uint8_t scale_f = 100; /* change the cale of array. 100% take entire screen */
+  uint8_t scale_y = 100; /* change the cale of array. 100% take entire screen */
+
   uint8_t shift_y = 255; /* Shifts in y director*/
   uint8_t shift_x = 255; /* Shifts in x director*/
   int shrink_shift = 0;  /* shrink array in pixels, and shifts up/ down (+/-) */
@@ -102,12 +105,12 @@ public:
   ButtonTFT butarray[N];
 
 public:
-  buttonArray_TFT(XPT2046_Touchscreen &_ts = ts, Adafruit_ILI9341 &_tft = tft);
+  buttonArrayTFT(XPT2046_Touchscreen &_ts = ts, Adafruit_ILI9341 &_tft = tft);
   void create_array(uint8_t R, uint8_t C, char *but_txt[]);
   uint8_t checkPress(TS_Point &p);
   ButtonTFT &operator[](uint8_t index)
   {
-    if (index <N)
+    if (index < N)
     {
       return butarray[index];
     }
@@ -115,7 +118,7 @@ public:
 };
 
 template <uint8_t N>
-buttonArray_TFT<N>::buttonArray_TFT(XPT2046_Touchscreen &_ts, Adafruit_ILI9341 &_tft)
+buttonArrayTFT<N>::buttonArrayTFT(XPT2046_Touchscreen &_ts, Adafruit_ILI9341 &_tft)
 {
   for (int i = 0; i < N; i++)
   {
@@ -125,13 +128,13 @@ buttonArray_TFT<N>::buttonArray_TFT(XPT2046_Touchscreen &_ts, Adafruit_ILI9341 &
 }
 
 template <uint8_t N>
-void buttonArray_TFT<N>::create_array(uint8_t R, uint8_t C, char *but_txt[])
+void buttonArrayTFT<N>::create_array(uint8_t R, uint8_t C, char *but_txt[])
 {
   uint8_t x_margin = 0;
   uint8_t y_margin = 0;
   uint8_t but_size_a = 0;
   uint8_t but_size_b = 0;
-  const uint8_t marg_clearance = 10;
+  const uint8_t marg_clearance = 0;
 
   if (butarray[0].a != 0 && butarray[0].b != 0) /* buttons side is defined manually */
   {
@@ -141,18 +144,19 @@ void buttonArray_TFT<N>::create_array(uint8_t R, uint8_t C, char *but_txt[])
   else /* auto size, resize, shifted and scle factored */
   {
     but_size_a = (uint8_t)((tft.width() * scale_f / 100 - marg_clearance) / C);
-    but_size_b = (uint8_t)((tft.height() * scale_f / 100 - abs(shrink_shift) - marg_clearance) / R);
+    but_size_b = (uint8_t)((tft.height() * scale_f * scale_y / 100 / 100 - abs(shrink_shift) - marg_clearance) / R);
   }
 
   if (shrink_shift != 0)
   {
     y_margin = shrink_shift;
+    x_margin = (int)(tft.width() + (1 - C) * (but_size_a + dx)) / 2;
   }
   else
   {
     if (shift_x == 255)
     {
-      x_margin = (int)(tft.width() + (1 - C) * (but_size_a + dx)) / 2;
+      x_margin = (int)(tft.width() * scale_f / 100 + (1 - C) * (but_size_a + dx)) / 2;
     }
     else
     {
@@ -160,7 +164,7 @@ void buttonArray_TFT<N>::create_array(uint8_t R, uint8_t C, char *but_txt[])
     }
     if (shift_y == 255)
     {
-      y_margin = (int)(tft.height() + (1 - R) * (but_size_b + dy)) / 2 + shrink_shift;
+      y_margin = (int)(tft.height() * scale_f * scale_y / 100 / 100 + (1 - R) * (but_size_b + dy)) / 2 + shrink_shift;
     }
     else
     {
@@ -188,7 +192,7 @@ void buttonArray_TFT<N>::create_array(uint8_t R, uint8_t C, char *but_txt[])
 }
 
 template <uint8_t N>
-uint8_t buttonArray_TFT<N>::checkPress(TS_Point &p)
+uint8_t buttonArrayTFT<N>::checkPress(TS_Point &p)
 {
   for (uint8_t i = 0; i < N; i++)
   {
@@ -199,6 +203,7 @@ uint8_t buttonArray_TFT<N>::checkPress(TS_Point &p)
   }
   return 99;
 }
+/* End of template */
 
 class keypadTFT
 {
@@ -209,9 +214,19 @@ public:
   void create_keypad();
   bool getPasscode(TS_Point &p);
 
-  buttonArray_TFT<12> _butarray;
+protected:
+  buttonArrayTFT<12> _butarray;
 
 public:
+  uint8_t &scale_f = _butarray.scale_f;
+  uint8_t &shift_y = _butarray.shift_y;
+  uint8_t &shift_x = _butarray.shift_x;
+  uint8_t &txt_size = _butarray.butarray[0].txt_size;
+  int &shrink_shift = _butarray.shrink_shift;
+  uint16_t &txt_color = _butarray.butarray[0].txt_color;
+  uint16_t &border_color = _butarray.butarray[0].border_color;
+  uint16_t &face_color = _butarray.butarray[0].face_color;
+  bool &roundRect = _butarray.butarray[0].roundRect;
   char keypad_value[15]; /* To reach externally */
 
 private:
