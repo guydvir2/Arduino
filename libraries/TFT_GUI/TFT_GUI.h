@@ -46,13 +46,15 @@ public:
 
 public:
   MessageTFT(Adafruit_ILI9341 &_tft = tft);
-  void createMSG(char *txt);
+  void createMSG(char *txt, bool center_txt = true);
+  void createPage(char *txt[], uint8_t r, bool center_txt = true);
+  void updateTXT(char *txt, bool center_txt = true);
   void clear_screen(uint8_t c = 0);
 
 private:
-  void _put_text(char *txt);
+  void _put_text(char *txt, uint16_t color = NULL, bool center_txt = true);
   void _drawFace();
-  void _drawBorder();
+  void _drawBorder(uint8_t _radius);
 };
 
 class ButtonTFT : public MessageTFT
@@ -60,6 +62,7 @@ class ButtonTFT : public MessageTFT
 public:
   bool latchState = false;
   bool latchButton = false;
+  uint16_t pressedColor = ILI9341_RED;
   XPT2046_Touchscreen *TS[1];
 
 public:
@@ -70,9 +73,11 @@ public:
 
 private:
   int _tft_x, _tft_y;
+  uint16_t _face_color_t;
 
 private:
-  void _put_text();
+  void
+  _put_text();
   void _press_cb();
   void _conv_ts_tft(TS_Point &p);
   bool _check_press_geometry(TS_Point &p);
@@ -143,8 +148,8 @@ void buttonArrayTFT<N>::create_array(uint8_t R, uint8_t C, char *but_txt[])
   }
   else /* auto size, resize, shifted and scle factored */
   {
-    but_size_a = (uint8_t)((tft.width() * scale_f / 100 - marg_clearance) / C);
-    but_size_b = (uint8_t)((tft.height() * scale_f * scale_y / 100 / 100 - abs(shrink_shift) - marg_clearance) / R);
+    but_size_a = (uint8_t)((tft.width() * scale_f / 100 - marg_clearance - dx) / C);
+    but_size_b = (uint8_t)((tft.height() * scale_f * scale_y / 100 / 100 - abs(shrink_shift) - marg_clearance - dy) / R);
   }
 
   if (shrink_shift != 0)
@@ -218,6 +223,7 @@ protected:
   buttonArrayTFT<12> _butarray;
 
 public:
+  uint8_t counter = 0;
   uint8_t &scale_f = _butarray.scale_f;
   uint8_t &shift_y = _butarray.shift_y;
   uint8_t &shift_x = _butarray.shift_x;

@@ -1,26 +1,17 @@
 #include <TFT_GUI.h>
 #include "myIOT_settings.h"
-#define SCREEN_ROT 2
+#define SCREEN_ROT 0
 
 XPT2046_Touchscreen ts(TS_CS);
 Adafruit_ILI9341 tft = Adafruit_ILI9341(TFT_CS, TFT_DC, TFT_RST);
 
-MessageTFT topTitle;
-ButtonTFT homeButton;
-buttonArrayTFT<4> mainWindows;
-buttonArrayTFT<3> operateWindows;
-buttonArrayTFT<8> specificWindows;
+// MessageTFT topTitle;
+// MessageTFT noteTFT;
+ButtonTFT pressButton;
 
-const uint16_t TXT_COLOR = ILI9341_BLACK;
-const uint16_t FACE_COLOR = ILI9341_GREEN;
+const uint16_t TXT_COLOR = ILI9341_WHITE;
+const uint16_t FACE_COLOR = ILI9341_DARKGREY;
 const uint16_t BACKGROUND_COLOR = ILI9341_BLACK;
-
-uint8_t menus_id = 0;
-uint8_t button_id = 0;
-uint8_t last_button_pressed = 0;
-const uint8_t mainWindows_id = 10;
-const uint8_t specificWindows_id = 20;
-const uint8_t operWindows_id = 30;
 
 void clearScreen(int c = 0)
 {
@@ -48,203 +39,143 @@ void start_touchScreen()
   tft.setRotation(SCREEN_ROT); /* 0-3 90 deg each */
 }
 
-void create_mainWindows()
+void create_pressButton()
 {
-  menus_id = mainWindows_id;
-  char *a[] = {"All", "Saloon", "Room", "Specific"};
+  pressButton.a = tft.width() / 2;
+  pressButton.b = 130;
+  pressButton.xc = tft.width() / 2;
+  pressButton.yc = tft.height() / 2;
 
-  mainWindows.scale_y = 72;
-  mainWindows.shift_y = 35;
-  mainWindows.txt_color = TXT_COLOR;
-  mainWindows.face_color = FACE_COLOR;
-  mainWindows.border_color = mainWindows.face_color;
-  mainWindows.create_array(2, 2, a);
-}
-void create_specificWindows()
-{
-  menus_id = specificWindows_id;
-  char *specificTitle[] = {"Family", "Parents", "Kids", "Single", "Dual", "Exit", "Laundry", "X"};
-  specificWindows.scale_y = 72;
-  specificWindows.shift_y = 35;
-  specificWindows.txt_color = TXT_COLOR;
-  specificWindows.face_color = FACE_COLOR;
-  specificWindows.border_color = specificWindows.face_color;
-  specificWindows.create_array(4, 2, specificTitle);
-}
-void create_operWindows()
-{
-  menus_id = operWindows_id;
-  char *operTitle[] = {"Up", "Off", "Down"};
-  operateWindows.scale_y = 72;
-  operateWindows.shift_y = 35;
-  operateWindows.txt_color = TXT_COLOR;
-  operateWindows.face_color = FACE_COLOR;
-  operateWindows.border_color = operateWindows.face_color;
-  operateWindows.create_array(3, 1, operTitle);
-}
-void buttons_cb(uint8_t i)
-{
-  char *top = "myHome/Windows";
-  char *cmds[] = {"up", "off", "down"};
-  char *specif[] = {"familyRoom", "parentsRoom", "kidsRoom", "saloonSingle", "saloonDual", "saloonExit", "Laundry", "X"};
-
-  if (i != 99)
-  {
-    char fultop[30];
-    if (button_id == mainWindows_id)
-    {
-      iot.pub_noTopic(cmds[i], top);
-    }
-    else if (button_id == mainWindows_id + 1)
-    { // Sallon Windows
-      for (uint8_t a = 3; a < 6; a++)
-      {
-        sprintf(fultop, "%s/%s", top, specif[a]);
-        iot.pub_noTopic(cmds[i], fultop);
-      }
-    }
-    else if (button_id == mainWindows_id + 2) // Room Windows
-    {
-      for (uint8_t a = 0; a < 3; a++)
-      {
-        sprintf(fultop, "%s/%s", top, specif[a]);
-        iot.pub_noTopic(cmds[i], fultop);
-      }
-    }
-    else if (button_id >= specificWindows_id && button_id < specificWindows_id + 7) // Room Windows
-    {
-      sprintf(fultop, "%s/%s", top, specif[button_id - specificWindows_id]);
-      iot.pub_noTopic(cmds[i], fultop);
-    }
-    else
-    {
-      yield;
-    }
-  }
-  else
-  {
-    yield;
-  }
+  pressButton.txt_size = 2;
+  pressButton.roundRect = true;
+  pressButton.txt_color = TXT_COLOR;
+  pressButton.face_color = FACE_COLOR;
+  pressButton.border_color = pressButton.face_color;
+  pressButton.latchButton = true;
+  pressButton.createButton("button");
 }
 
-void windows_button_looper(TS_Point &p)
-{
-  if (menus_id == mainWindows_id)
-  {
-    uint8_t i = mainWindows.checkPress(p);
-    if (1 != 99)
-    {
-      if (i != 3)
-      {
-        button_id = mainWindows_id + i;
-        rebuild_screen();
-        create_operWindows();
-      }
-      else
-      {
-        rebuild_screen();
-        create_specificWindows();
-      }
-    }
-  }
-  else if (menus_id == specificWindows_id)
-  {
-    uint8_t i = specificWindows.checkPress(p);
-    if (i != 99)
-    {
-      button_id = specificWindows_id + i;
-      rebuild_screen();
-      create_operWindows();
-    }
-  }
-  else if (menus_id == operWindows_id)
-  {
-    uint8_t i = operateWindows.checkPress(p);
-    buttons_cb(i);
-  }
-}
-void homeButton_looper(TS_Point &p)
-{
-  if (homeButton.checkPress(p))
-  {
-    rebuild_screen();
-    create_mainWindows();
-  }
-}
+// void create_topTitle()
+// {
+//   topTitle.a = tft.width();
+//   topTitle.b = 30;
+//   topTitle.xc = tft.width() / 2;
+//   topTitle.yc = topTitle.b / 2;
 
-void create_topTitle()
-{
-  topTitle.a = tft.width();
-  topTitle.b = 30;
-  topTitle.xc = tft.width() / 2;
-  topTitle.yc = topTitle.b / 2;
+//   topTitle.txt_size = 2;
+//   topTitle.roundRect = false;
+//   topTitle.txt_color = ILI9341_WHITE;
+//   topTitle.face_color = ILI9341_RED;
+//   topTitle.border_color = topTitle.face_color;
+//   topTitle.createMSG("<< wait... >>");
+// }
+// void create_note()
+// {
+//   noteTFT.a = tft.width();
+//   noteTFT.b = 100;
+//   noteTFT.xc = tft.width() / 2;
+//   noteTFT.yc = noteTFT.b / 2 + 35;
 
-  topTitle.txt_size = 1;
-  topTitle.roundRect = false;
-  topTitle.txt_color = ILI9341_WHITE;
-  topTitle.face_color = ILI9341_BLUE;
-  topTitle.border_color = topTitle.face_color;
-  topTitle.createMSG("<< wait... >>");
-}
-void update_topTitle(char *msg)
-{
-  topTitle.createMSG(msg);
-}
-void check_lan()
-{
-  char IPadd[16];
-  char clk[20];
-  static unsigned long lastLoop = 0;
-  static bool lastState = false;
+//   noteTFT.txt_size = 2;
+//   noteTFT.roundRect = false;
+//   noteTFT.txt_color = ILI9341_WHITE;
+//   noteTFT.face_color = FACE_COLOR;
+//   noteTFT.border_color = FACE_COLOR;
 
-  iot.return_clock(clk);
-  if (WiFi.isConnected())
-  {
-    sprintf(IPadd, "%d.%d.%d.%d", WiFi.localIP()[0], WiFi.localIP()[1], WiFi.localIP()[2], WiFi.localIP()[3]);
-  }
-}
-void create_homeButton()
-{
-  homeButton.a = tft.width();
-  homeButton.b = 40;
-  homeButton.xc = tft.width() / 2;
-  homeButton.yc = tft.height() - homeButton.b / 2;
+//   char ipadd[16];
+//   char uptime_clk[20];
+//   char uptime_day[8];
+//   char lines[3][30];
 
-  homeButton.txt_size = 2;
-  homeButton.roundRect = false;
-  homeButton.txt_color = ILI9341_WHITE;
-  homeButton.face_color = ILI9341_RED;
-  homeButton.border_color = homeButton.face_color;
-  homeButton.createButton("<< Home >>");
-}
+//   iot.convert_epoch2clock(millis() / 1000, 0, uptime_clk, uptime_day);
+//   check_lan(ipadd);
+//   sprintf(lines[0], "IP: %s", ipadd);
+//   sprintf(lines[1], "upTime: %s %s", uptime_day, uptime_clk);
+//   sprintf(lines[2], "MQTT: %s", iot.deviceTopic);
+//   char *noteLines[] = {lines[0], lines[1], lines[2]};
+//   noteTFT.createPage(noteLines, 3);
+// }
+// void clkUpdate(MessageTFT &txtBox)
+// {
+//   static unsigned long last_clkUpdate = 0;
+//   static bool wifi_constate = false;
+//   if (millis() - last_clkUpdate > 1000)
+//   {
+//     char a[20];
+//     char b[20];
+//     iot.return_clock(a);
+//     // check_lan(b);
+//     iot.return_date(b);
+
+//     txtBox.updateTXT(a);
+
+//     last_clkUpdate = millis();
+
+//     if (WiFi.isConnected() != wifi_constate)
+//     {
+//       wifi_constate = WiFi.isConnected();
+//       if (wifi_constate == false)
+//       {
+//         txtBox.face_color = ILI9341_RED;
+//         txtBox.border_color = ILI9341_RED;
+//         txtBox.createMSG(txtBox.txt_buf);
+//       }
+//       else
+//       {
+//         txtBox.face_color = ILI9341_BLUE;
+//         txtBox.border_color = ILI9341_BLUE;
+//         txtBox.createMSG(txtBox.txt_buf);
+//       }
+//     }
+//   }
+// }
+// void check_lan(char IPadd[])
+// {
+//   static unsigned long lastLoop = 0;
+//   if (WiFi.isConnected())
+//   {
+//     sprintf(IPadd, "%d.%d.%d.%d", WiFi.localIP()[0], WiFi.localIP()[1], WiFi.localIP()[2], WiFi.localIP()[3]);
+//   }
+//   else
+//   {
+//     sprintf(IPadd, "%d.%d.%d.%d", "x", "x", "x", "x");
+//   }
+// }
+
 void rebuild_screen()
 {
   clearScreen(BACKGROUND_COLOR);
-  create_topTitle();
-  create_homeButton();
+  // create_topTitle();
+  // create_homeButton();
 }
+
 void setup()
 {
   // put your setup code here, to run once:
   start_touchScreen();
   rebuild_screen();
-  create_mainWindows();
-  startIOTservices();
-  update_topTitle("192.168.3.123");
-}
+  create_pressButton();
 
+  // delay(1000);
+  // create_mainWindows();
+  // create_mainAlarm();
+  // create_keypadAlarm();
+  // create_startScreen();
+  startIOTservices();
+  // create_note();
+}
 void loop()
 {
-  // put your main code here, to run repeatedly:
-  static unsigned long lastPress_counter = 0;
+  // clkUpdate(topTitle);
   if (ts.touched())
   {
     TS_Point p = ts.getPoint();
+    if (pressButton.checkPress(p))
     {
-      windows_button_looper(p);
-      homeButton_looper(p);
-      delay(500);
+      Serial.print("HI: ");
+      Serial.println(pressButton.latchState);
     }
+    delay(500);
   }
   iot.looper();
 }

@@ -4,12 +4,26 @@ MessageTFT::MessageTFT(Adafruit_ILI9341 &_tft)
 {
   TFT[0] = &_tft;
 }
-void MessageTFT::createMSG(char *txt)
+void MessageTFT::createMSG(char *txt, bool center_txt)
 {
   screen_rotation = TFT[0]->getRotation();
   _drawFace();
-  _drawBorder();
-  _put_text(txt);
+  _put_text(txt, txt_color, center_txt);
+}
+void MessageTFT::createPage(char *txt[], uint8_t r, bool center_txt)
+{
+  createMSG("", false);
+  const uint8_t shiftxy = 5;
+  for (uint8_t i = 0; i < r; i++)
+  {
+    TFT[0]->setCursor(TFT[0]->getCursorX() + shiftxy, TFT[0]->getCursorY() + shiftxy);
+    TFT[0]->println(txt[i]);
+  }
+}
+void MessageTFT::updateTXT(char *txt, bool center_txt)
+{
+  _put_text(txt_buf, face_color, center_txt);
+  _put_text(txt, txt_color, center_txt);
 }
 void MessageTFT::clear_screen(uint8_t c)
 {
@@ -28,7 +42,7 @@ void MessageTFT::clear_screen(uint8_t c)
 }
 void MessageTFT::_drawFace()
 {
-  const uint8_t _radius = 15;
+  const uint8_t _radius = 5;
 
   if (roundRect == false)
   {
@@ -36,13 +50,16 @@ void MessageTFT::_drawFace()
   }
   else
   {
-    TFT[0]->fillRoundRect(xc - a / 2, yc - b / 2, a, b, a / _radius, face_color);
+    TFT[0]->fillRoundRect(xc - a / 2, yc - b / 2, a, b, _radius, face_color);
+  }
+
+  if (face_color != border_color)
+  {
+    _drawBorder(_radius);
   }
 }
-void MessageTFT::_drawBorder()
+void MessageTFT::_drawBorder(uint8_t _radius)
 {
-  const uint8_t _radius = 15;
-
   for (uint8_t t = 0; t < border_thickness * 2; t++)
   {
     if (roundRect == false)
@@ -51,16 +68,30 @@ void MessageTFT::_drawBorder()
     }
     else
     {
-      TFT[0]->drawRoundRect((xc - a / 2) + t / 2, (yc - b / 2) + t / 2, a - t, b - t, a / _radius, border_color);
+      TFT[0]->drawRoundRect((xc - a / 2) + t / 2, (yc - b / 2) + t / 2, a - t, b - t, _radius, border_color);
     }
   }
 }
-void MessageTFT::_put_text(char *txt)
+void MessageTFT::_put_text(char *txt, uint16_t color, bool center_txt)
 {
   strcpy(txt_buf, txt);
   uint8_t x = strlen(txt_buf);
-  TFT[0]->setCursor(xc - x * _pos_corr_factor_x * txt_size, yc - _pos_corr_factor_y * txt_size);
-  TFT[0]->setTextColor(txt_color);
+  if (center_txt)
+  {
+    TFT[0]->setCursor(xc - x * _pos_corr_factor_x * txt_size, yc - _pos_corr_factor_y * txt_size);
+  }
+  else
+  {
+    TFT[0]->setCursor(xc - a / 2, yc - b / 2);
+  }
+  if (color != NULL)
+  {
+    TFT[0]->setTextColor(color);
+  }
+  else
+  {
+    TFT[0]->setTextColor(txt_color);
+  }
   TFT[0]->setTextSize(txt_size);
   TFT[0]->print(txt_buf);
 }
@@ -104,32 +135,32 @@ bool ButtonTFT::checkPress(TS_Point &p) /* can be called from code outside lib w
 }
 void ButtonTFT::_press_cb()
 {
-  uint8_t _press_del = 80;
+  uint8_t _press_del = 10;
   if (latchButton == false)
   {
-    uint16_t face_color_t = face_color;
-    face_color = ILI9341_RED;
+    _face_color_t = face_color;
+    face_color = pressedColor;
     createMSG(txt_buf);
     delay(_press_del);
-    face_color = face_color_t;
+    face_color = _face_color_t;
     createMSG(txt_buf);
     delay(_press_del);
   }
   else
   {
-    //   if (latchState == true) /* Pressed ON*/
-    //   {
-    //     tempColor = face_color;
-    //     face_color = ILI9341_RED;
-    //     createButton();
-    //     delay(_press_del);
-    //   }
-    //   else /* Pressed Off*/
-    //   {
-    //     face_color = tempColor;
-    //     createButton();
-    //     delay(_press_del);
-    // }
+    if (latchState == true) /* Pressed ON*/
+    {
+      _face_color_t = face_color;
+      face_color = pressedColor;
+      createMSG(txt_buf);
+      delay(_press_del);
+    }
+    else /* Pressed Off*/
+    {
+      face_color = _face_color_t;
+      createMSG(txt_buf);
+      delay(_press_del);
+    }
   }
 }
 bool ButtonTFT::_check_press_geometry(TS_Point &p)
@@ -241,6 +272,7 @@ bool keypadTFT::getPasscode(TS_Point &p)
 void keypadTFT::_reset_keypad_values()
 {
   strcpy(_stored_keypad_value, "");
+  counter = 0;
 }
 bool keypadTFT::_check_pressed_in(TS_Point &p)
 {
@@ -250,8 +282,7 @@ bool keypadTFT::_check_pressed_in(TS_Point &p)
     if (i == 9) /* Erase buffer */
     {
       _reset_keypad_values();
-      delay(1000);
-      create_keypad();
+      delay(100);
       return false;
     }
     else if (i == 11) /* Send passcode */
@@ -260,7 +291,6 @@ bool keypadTFT::_check_pressed_in(TS_Point &p)
       {
         strcpy(keypad_value, _stored_keypad_value);
         _reset_keypad_values();
-        create_keypad();
         return true;
       }
       else
@@ -270,8 +300,8 @@ bool keypadTFT::_check_pressed_in(TS_Point &p)
     }
     else
     {
-      strcat(_stored_keypad_value, _butarray.butarray[0].txt_buf);
-      Serial.println(_stored_keypad_value);
+      strcat(_stored_keypad_value, _butarray.butarray[i].txt_buf);
+      counter = strlen(_stored_keypad_value);
       return false;
     }
   }
@@ -279,39 +309,4 @@ bool keypadTFT::_check_pressed_in(TS_Point &p)
   {
     false;
   }
-  // for (uint8_t i = 0; i < num_items; i++)
-  // {
-  //   if (_buttons[i]->checkPress(p))
-  //   {
-  //     Serial.println(_buttons[i]->txt_buf);
-  //     if (i == 9) /* Erase buffer */
-  //     {
-  //       _reset_keypad_values();
-  //       delay(1000);
-  //       create_keypad();
-  //       return false;
-  //     }
-  //     else if (i == 11) /* Send passcode */
-  //     {
-  //       if (strcmp(_stored_keypad_value, "") != 0)
-  //       {
-  //         strcpy(keypad_value, _stored_keypad_value);
-  //         _reset_keypad_values();
-  //         create_keypad();
-  //         return true;
-  //       }
-  //       else
-  //       {
-  //         return false;
-  //       }
-  //     }
-  //     else
-  //     {
-  //       strcat(_stored_keypad_value, _buttons[i]->txt_buf);
-  //       Serial.println(_stored_keypad_value);
-  //       return false;
-  //     }
-  //   }
-  // }
-  // return false;
 }
