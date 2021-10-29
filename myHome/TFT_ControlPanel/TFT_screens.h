@@ -4,7 +4,7 @@ XPT2046_Touchscreen ts(TS_CS);
 Adafruit_ILI9341 tft = Adafruit_ILI9341(TFT_CS, TFT_DC, TFT_RST);
 
 extern void getIP(char *IPadd);
-extern void update_topTitle(char *msg);
+extern void update_topTitle(char *msg, const uint16_t c = ILI9341_BLUE);
 extern void rebuild_screen(bool a = true, bool b = true);
 extern void clkUpdate(MessageTFT &txtBox);
 
@@ -17,13 +17,13 @@ MessageTFT notePad;
 ButtonTFT homeButton;
 ButtonTFT backButton;
 keypadTFT keypadAlarm;
-buttonArrayTFT<4> startScreen;
+buttonArrayTFT<4> 4butArray;
 buttonArrayTFT<4> mainWindows;
 buttonArrayTFT<3> operateWindows;
 buttonArrayTFT<8> specificWindows;
 buttonArrayTFT<3> mainAlarm;
 buttonArrayTFT<4> mainLights;
-buttonArrayTFT<3> extLights;
+buttonArrayTFT<4> extLights;
 buttonArrayTFT<3> roomLights;
 
 bool use_homeButton = true;
@@ -45,7 +45,6 @@ const uint8_t kidsroomLights_id = 90;
 const uint8_t parentsroomLights_id = 100;
 const uint8_t familyroomLights_id = 110;
 const uint8_t notePad_id = 120;
-// const uint8_t resetButton_id = 130;
 const uint8_t startScreen_id = 200;
 
 const uint16_t TXT_COLOR = ILI9341_WHITE;
@@ -67,10 +66,12 @@ void create_mainAlarm()
 }
 void create_keypadAlarm()
 {
+    rebuild_screen(false, false);
+    update_topTitle("Press # to send");
     menus_id = keypadAlarm_id;
-    keypadAlarm.scale_f = 72;
+    keypadAlarm.scale_f = 85;
     keypadAlarm.shift_y = 35;
-    keypadAlarm.shift_x = 30;
+    keypadAlarm.shift_x = 15;
     keypadAlarm.txt_color = TXT_COLOR;
     keypadAlarm.face_color = FACE_COLOR;
     keypadAlarm.border_color = keypadAlarm.face_color;
@@ -81,6 +82,7 @@ void create_keypadAlarm()
 void create_mainWindows()
 {
     rebuild_screen();
+    update_topTitle("Select Group");
     menus_id = mainWindows_id;
     button_id = 0;
     char *a[] = {"All", "Saloon", "Room", "Specific"};
@@ -95,6 +97,7 @@ void create_mainWindows()
 void create_specificWindows()
 {
     rebuild_screen();
+    update_topTitle("Select a Windows");
     menus_id = specificWindows_id;
     char *specificTitle[] = {"Family", "Parents", "Kids", "Single", "Dual", "Exit", "Laundry", "X"};
     specificWindows.scale_y = 72;
@@ -107,6 +110,7 @@ void create_specificWindows()
 void create_operWindows()
 {
     rebuild_screen();
+    update_topTitle("Press Direction");
     menus_id = operWindows_id;
     char *operTitle[] = {"Up", "Off", "Down"};
     operateWindows.scale_y = 72;
@@ -119,6 +123,8 @@ void create_operWindows()
 
 void create_mainLights()
 {
+    rebuild_screen();
+    update_topTitle("Select Group");
     menus_id = mainLights_id;
     char *a[] = {"External", "Internal", "Rooms", "Specific"};
 
@@ -143,8 +149,8 @@ void create_roomsLights()
 }
 void create_extLights()
 {
-    menus_id = mainLights_id;
-    char *a[] = {"fr. Door", "per.LEDs", "per. Bulb", "Specific"};
+    menus_id = extLights_id;
+    char *a[] = {"fr. Door", "fr.LEDs","per.LEDs","per. Bulb"};
 
     extLights.scale_y = 72;
     extLights.shift_y = 35;
@@ -160,13 +166,13 @@ void create_startScreen()
     menus_id = startScreen_id;
     char *a[] = {"Alarm", "Windows", "Lights", "Setup"};
 
-    startScreen.scale_y = 90;
-    startScreen.shift_y = 35;
-    startScreen.txt_color = TXT_COLOR;
-    startScreen.face_color = FACE_COLOR;
-    startScreen.border_color = startScreen.face_color;
-    startScreen.roundRect = false;
-    startScreen.create_array(2, 2, a);
+    4butArray.scale_y = 90;
+    4butArray.shift_y = 35;
+    4butArray.txt_color = TXT_COLOR;
+    4butArray.face_color = FACE_COLOR;
+    4butArray.border_color = 4butArray.face_color;
+    4butArray.roundRect = false;
+    4butArray.create_array(2, 2, a);
 }
 void create_topTitle()
 {
@@ -180,7 +186,7 @@ void create_topTitle()
     topTitle.txt_color = ILI9341_WHITE;
     topTitle.face_color = ILI9341_BLUE;
     topTitle.border_color = topTitle.face_color;
-    topTitle.createMSG("<< wait... >>");
+    topTitle.createMSG("<< ... >>");
 }
 void create_homeButton()
 {
@@ -192,7 +198,7 @@ void create_homeButton()
     homeButton.txt_size = 2;
     homeButton.roundRect = true;
     homeButton.txt_color = ILI9341_WHITE;
-    homeButton.face_color = ILI9341_GREEN;
+    homeButton.face_color = ILI9341_DARKGREEN;
     homeButton.border_color = homeButton.face_color;
     homeButton.createButton(">>Home<<");
 }
@@ -235,7 +241,7 @@ void create_notePad()
     notePad.a = tft.width();
     notePad.b = 80;
     notePad.xc = notePad.a / 2;
-    notePad.yc = 70;
+    notePad.yc = notePad.b/2 + 35;
 
     notePad.txt_size = 2;
     notePad.roundRect = false;
@@ -367,11 +373,16 @@ bool backButton_looper(TS_Point &p)
         return false;
     }
 }
-void resetButton_looper(TS_Point &p)
+bool resetButton_looper(TS_Point &p)
 {
-    if (backButton.checkPress(p))
+    if (use_resetButton && backButton.checkPress(p))
     {
         iot.sendReset("TFT_Button");
+        return true;
+    }
+    else
+    {
+        return false;
     }
 }
 void topTitle_looper()
@@ -381,11 +392,11 @@ void topTitle_looper()
     {
         clkUpdate(topTitle);
     }
-    else if (menus_id == keypadAlarm_id && enter_once == true)
-    {
-        enter_once = false;
-        update_topTitle("Press # to send");
-    }
+    // else if (menus_id == keypadAlarm_id && enter_once == true)
+    // {
+    //     enter_once = false;
+    //     update_topTitle("Press # to send");
+    // }
 }
 
 void alarm_looper(TS_Point &p)
@@ -395,20 +406,15 @@ void alarm_looper(TS_Point &p)
     {
         if (i == 2)
         {
-            // clearScreen();
-            rebuild_screen();
             create_keypadAlarm();
-            Serial.println(i);
         }
         else if (i == 1)
         {
             iot.pub_noTopic("armed_home", "myHome/alarmMonitor");
-            Serial.println(i);
         }
         else if (i == 0)
         {
             iot.pub_noTopic("armed_away", "myHome/alarmMonitor");
-            Serial.println(i);
         }
     }
 }
@@ -419,14 +425,14 @@ void alarmKeypad_looper(TS_Point &p)
         if (strcmp("1234", keypadAlarm.keypad_value) == 0)
         {
             update_topTitle("PassCode OK");
-            // iot.pub_noTopic("disarmed", "myHome/alarmMonitor");
+            iot.pub_noTopic("disarmed", "myHome/alarmMonitor");
             delay(1000);
             rebuild_screen();
             create_startScreen();
         }
         else
         {
-            update_topTitle("PassCode Fail");
+            update_topTitle("PassCode Fail",ILI9341_RED);
             delay(1000);
             create_keypadAlarm();
         }
@@ -444,7 +450,7 @@ void alarmKeypad_looper(TS_Point &p)
 }
 void startScreen_looper(TS_Point &p)
 {
-    uint8_t i = startScreen.checkPress(p);
+    uint8_t i = 4butArray.checkPress(p);
     if (i != 99)
     {
         if (i == 0)
@@ -457,6 +463,7 @@ void startScreen_looper(TS_Point &p)
         }
         else if (i == 2)
         {
+
             create_mainLights();
         }
         else if (i == 3)

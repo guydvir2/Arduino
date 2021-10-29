@@ -73,8 +73,9 @@ void windowButtons_cb(uint8_t i)
   }
 }
 
-void update_topTitle(char *msg)
+void update_topTitle(char *msg, const uint16_t c)
 {
+  topTitle.face_color = c;
   topTitle.createMSG(msg);
 }
 void getIP(char *IPadd)
@@ -160,16 +161,14 @@ void loop()
       {
         return;
       }
-
       if (backButton_looper(p))
       {
         return;
       }
-
-      // else if (use_resetButton)
-      // {
-      //   resetButton_looper(p);
-      // }
+      if (resetButton_looper(p))
+      {
+        return;
+      }
 
       if (menus_id == startScreen_id)
       {
@@ -198,7 +197,6 @@ void loop()
   if (lastPress_counter != 0 && (millis() - lastPress_counter >= 1000 * backHome_seconds) && menus_id != startScreen_id)
   {
     lastPress_counter = 0;
-    // rebuild_screen();
     create_startScreen();
   }
   // clkUpdate(topTitle);
