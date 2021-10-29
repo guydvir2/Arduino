@@ -106,6 +106,7 @@ public:
   uint16_t &border_color = butarray[0].border_color;
   uint16_t &face_color = butarray[0].face_color;
   bool &roundRect = butarray[0].roundRect;
+  bool &latchButton = butarray[0].latchButton;
 
   ButtonTFT butarray[N];
 
@@ -190,6 +191,7 @@ void buttonArrayTFT<N>::create_array(uint8_t R, uint8_t C, char *but_txt[])
       butarray[C * r + c].border_color = border_color;
       butarray[C * r + c].face_color = face_color;
       butarray[C * r + c].roundRect = roundRect;
+      butarray[C * r + c].latchButton = latchButton;
 
       butarray[C * r + c].createButton(but_txt[C * r + c]);
     }

@@ -32,7 +32,8 @@ void windowButtons_cb(uint8_t i)
 {
   char *top = "myHome/Windows";
   char *cmds[] = {"up", "off", "down"};
-  char *specif[] = {"familyRoom", "parentsRoom", "kidsRoom", "saloonSingle", "saloonDual", "saloonExit", "Laundry", "X"};
+  char *specif[] = {"familyRoom", "parentsRoom", "kidsRoom", "saloonSingle",
+                    "saloonDual", "saloonExit", "Laundry", "X"};
 
   if (i != 99)
   {
@@ -70,6 +71,32 @@ void windowButtons_cb(uint8_t i)
   else
   {
     yield;
+  }
+}
+void roomLights_cb(uint8_t i, uint8_t state, uint8_t a)
+{
+  char *top = "myHome/intLights";
+  char num_on[10];
+  char num_off[10];
+  sprintf(num_on, "%d,on", a);
+  sprintf(num_off, "%d,off", a);
+
+  char *cmds[] = {num_off, num_on};
+  char *specif[] = {"familyRoomLEDs", "parentsClosetLEDs", "parentsClosetLEDs", "shacharCloset", "dotClock",
+                    "parentsBedLEDs", "kidsBed", "kidsBed", "parentsBedLEDs", "Empty"};
+  if (i != 99)
+  {
+    char fultop[50];
+    sprintf(fultop, "%s/%s", top, specif[i]);
+    if (i != 4)
+    {
+      iot.pub_noTopic(cmds[state], fultop);
+    }
+    else
+    {
+      char *cmd[] = {"off", "on"};
+      iot.pub_noTopic(cmd[state], fultop);
+    }
   }
 }
 
@@ -190,6 +217,10 @@ void loop()
       {
         Lights_looper(p);
       }
+      else if (menus_id == roomsLights_id)
+      {
+        roomLights_looper(p);
+      }
       delay(500);
     }
   }
@@ -199,7 +230,6 @@ void loop()
     lastPress_counter = 0;
     create_startScreen();
   }
-  // clkUpdate(topTitle);
   topTitle_looper();
   iot.looper();
 }

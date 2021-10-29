@@ -7,6 +7,7 @@ extern void getIP(char *IPadd);
 extern void update_topTitle(char *msg, const uint16_t c = ILI9341_BLUE);
 extern void rebuild_screen(bool a = true, bool b = true);
 extern void clkUpdate(MessageTFT &txtBox);
+extern void roomLights_cb(uint8_t i, uint8_t state, uint8_t a);
 
 extern void windowButtons_cb(uint8_t i);
 extern void clearScreen(int c = 0);
@@ -17,14 +18,10 @@ MessageTFT notePad;
 ButtonTFT homeButton;
 ButtonTFT backButton;
 keypadTFT keypadAlarm;
-buttonArrayTFT<4> 4butArray;
-buttonArrayTFT<4> mainWindows;
-buttonArrayTFT<3> operateWindows;
-buttonArrayTFT<8> specificWindows;
-buttonArrayTFT<3> mainAlarm;
-buttonArrayTFT<4> mainLights;
-buttonArrayTFT<4> extLights;
-buttonArrayTFT<3> roomLights;
+buttonArrayTFT<4> _4butArray;
+buttonArrayTFT<3> _3butArray;
+buttonArrayTFT<8> _8butArray;
+buttonArrayTFT<10> _10butArray;
 
 bool use_homeButton = true;
 bool use_backButton = true;
@@ -56,13 +53,14 @@ void create_mainAlarm()
     rebuild_screen();
     menus_id = mainAlarm_id;
     char *a[] = {"Arm Home", "Arm Away", "Disarm"};
-
-    mainAlarm.scale_y = 72;
-    mainAlarm.shift_y = 35;
-    mainAlarm.txt_color = TXT_COLOR;
-    mainAlarm.face_color = FACE_COLOR;
-    mainAlarm.border_color = mainAlarm.face_color;
-    mainAlarm.create_array(3, 1, a);
+    _3butArray.a = 0; // for auto size
+    _3butArray.b = 0;
+    _3butArray.scale_y = 72;
+    _3butArray.shift_y = 35;
+    _3butArray.txt_color = TXT_COLOR;
+    _3butArray.face_color = FACE_COLOR;
+    _3butArray.border_color = _3butArray.face_color;
+    _3butArray.create_array(3, 1, a);
 }
 void create_keypadAlarm()
 {
@@ -86,13 +84,15 @@ void create_mainWindows()
     menus_id = mainWindows_id;
     button_id = 0;
     char *a[] = {"All", "Saloon", "Room", "Specific"};
-
-    mainWindows.scale_y = 72;
-    mainWindows.shift_y = 35;
-    mainWindows.txt_color = TXT_COLOR;
-    mainWindows.face_color = FACE_COLOR;
-    mainWindows.border_color = mainWindows.face_color;
-    mainWindows.create_array(2, 2, a);
+    _4butArray.a = 0; // for auto size
+    _4butArray.b = 0;
+    _4butArray.scale_y = 72;
+    _4butArray.shift_y = 35;
+    _4butArray.txt_color = TXT_COLOR;
+    _4butArray.face_color = FACE_COLOR;
+    _4butArray.border_color = _4butArray.face_color;
+    _4butArray.roundRect = false;
+    _4butArray.create_array(2, 2, a);
 }
 void create_specificWindows()
 {
@@ -100,12 +100,14 @@ void create_specificWindows()
     update_topTitle("Select a Windows");
     menus_id = specificWindows_id;
     char *specificTitle[] = {"Family", "Parents", "Kids", "Single", "Dual", "Exit", "Laundry", "X"};
-    specificWindows.scale_y = 72;
-    specificWindows.shift_y = 35;
-    specificWindows.txt_color = TXT_COLOR;
-    specificWindows.face_color = FACE_COLOR;
-    specificWindows.border_color = specificWindows.face_color;
-    specificWindows.create_array(4, 2, specificTitle);
+    _8butArray.a = 0; // for auto size
+    _8butArray.b = 0;
+    _8butArray.scale_y = 72;
+    _8butArray.shift_y = 35;
+    _8butArray.txt_color = TXT_COLOR;
+    _8butArray.face_color = FACE_COLOR;
+    _8butArray.border_color = _8butArray.face_color;
+    _8butArray.create_array(4, 2, specificTitle);
 }
 void create_operWindows()
 {
@@ -113,12 +115,14 @@ void create_operWindows()
     update_topTitle("Press Direction");
     menus_id = operWindows_id;
     char *operTitle[] = {"Up", "Off", "Down"};
-    operateWindows.scale_y = 72;
-    operateWindows.shift_y = 35;
-    operateWindows.txt_color = TXT_COLOR;
-    operateWindows.face_color = FACE_COLOR;
-    operateWindows.border_color = operateWindows.face_color;
-    operateWindows.create_array(3, 1, operTitle);
+    _3butArray.a = 0; // for auto size
+    _3butArray.b = 0;
+    _3butArray.scale_y = 72;
+    _3butArray.shift_y = 35;
+    _3butArray.txt_color = TXT_COLOR;
+    _3butArray.face_color = FACE_COLOR;
+    _3butArray.border_color = _3butArray.face_color;
+    _3butArray.create_array(3, 1, operTitle);
 }
 
 void create_mainLights()
@@ -127,37 +131,49 @@ void create_mainLights()
     update_topTitle("Select Group");
     menus_id = mainLights_id;
     char *a[] = {"External", "Internal", "Rooms", "Specific"};
-
-    mainLights.scale_y = 72;
-    mainLights.shift_y = 35;
-    mainLights.txt_color = TXT_COLOR;
-    mainLights.face_color = FACE_COLOR;
-    mainLights.border_color = mainLights.face_color;
-    mainLights.create_array(2, 2, a);
+    _4butArray.a = 0; // for auto size
+    _4butArray.b = 0;
+    _4butArray.scale_y = 72;
+    _4butArray.shift_y = 35;
+    _4butArray.txt_color = TXT_COLOR;
+    _4butArray.face_color = FACE_COLOR;
+    _4butArray.border_color = _4butArray.face_color;
+    _4butArray.create_array(2, 2, a);
 }
 void create_roomsLights()
 {
+    rebuild_screen();
+    update_topTitle("Select Light");
     menus_id = roomsLights_id;
-    char *a[] = {"fam_Leds", "Par.Bed", "Par.Mirror", "Oz Bed", "Shac.Bed", "Shac.Mirror"};
+    char *a[] = {"LED.table", "Closet.Anna", "Closet.Guy", "Closet.Shachar", "Mirror.Sh",
+                 "Mirror.Anna", "Bed.Shachar", "Bed.Oz", "Bed.Parents", "Empty"};
+    _10butArray.a = 0; // for auto size
+    _10butArray.b = 0;
+    _10butArray.dy = 2;
+    _10butArray.dx = 2;
+    _10butArray.scale_y = 72;
+    _10butArray.shift_y = 35;
+    _10butArray.txt_color = TXT_COLOR;
+    _10butArray.face_color = FACE_COLOR;
+    _10butArray.border_color = _10butArray.face_color;
+    _10butArray.txt_size = 1;
+    _10butArray.latchButton = true;
 
-    roomLights.scale_y = 72;
-    roomLights.shift_y = 35;
-    roomLights.txt_color = TXT_COLOR;
-    roomLights.face_color = FACE_COLOR;
-    roomLights.border_color = roomLights.face_color;
-    roomLights.create_array(3, 2, a);
+    _10butArray.create_array(5, 2, a);
 }
+
 void create_extLights()
 {
     menus_id = extLights_id;
-    char *a[] = {"fr. Door", "fr.LEDs","per.LEDs","per. Bulb"};
-
-    extLights.scale_y = 72;
-    extLights.shift_y = 35;
-    extLights.txt_color = TXT_COLOR;
-    extLights.face_color = FACE_COLOR;
-    extLights.border_color = extLights.face_color;
-    extLights.create_array(2, 2, a);
+    char *a[] = {"fr. Door", "fr.LEDs", "per.LEDs", "per. Bulb"};
+    _4butArray.a = 0; // for auto size
+    _4butArray.b = 0;
+    _4butArray.scale_y = 72;
+    _4butArray.shift_y = 35;
+    _4butArray.txt_color = TXT_COLOR;
+    _4butArray.face_color = FACE_COLOR;
+    _4butArray.border_color = _4butArray.face_color;
+    _4butArray.create_array(2, 2, a);
 }
 
 void create_startScreen()
@@ -165,14 +181,15 @@ void create_startScreen()
     rebuild_screen(false, false);
     menus_id = startScreen_id;
     char *a[] = {"Alarm", "Windows", "Lights", "Setup"};
-
-    4butArray.scale_y = 90;
-    4butArray.shift_y = 35;
-    4butArray.txt_color = TXT_COLOR;
-    4butArray.face_color = FACE_COLOR;
-    4butArray.border_color = 4butArray.face_color;
-    4butArray.roundRect = false;
-    4butArray.create_array(2, 2, a);
+    _4butArray.a = 0; // for auto size
+    _4butArray.b = 0;
+    _4butArray.scale_y = 90;
+    _4butArray.shift_y = 35;
+    _4butArray.txt_color = TXT_COLOR;
+    _4butArray.face_color = FACE_COLOR;
+    _4butArray.border_color = _4butArray.face_color;
+    _4butArray.roundRect = false;
+    _4butArray.create_array(2, 2, a);
 }
 void create_topTitle()
 {
@@ -197,8 +214,8 @@ void create_homeButton()
 
     homeButton.txt_size = 2;
     homeButton.roundRect = true;
-    homeButton.txt_color = ILI9341_WHITE;
-    homeButton.face_color = ILI9341_DARKGREEN;
+    homeButton.txt_color = ILI9341_BLACK;
+    homeButton.face_color = ILI9341_GREEN;
     homeButton.border_color = homeButton.face_color;
     homeButton.createButton(">>Home<<");
 }
@@ -241,7 +258,7 @@ void create_notePad()
     notePad.a = tft.width();
     notePad.b = 80;
     notePad.xc = notePad.a / 2;
-    notePad.yc = notePad.b/2 + 35;
+    notePad.yc = notePad.b / 2 + 35;
 
     notePad.txt_size = 2;
     notePad.roundRect = false;
@@ -266,7 +283,7 @@ void windows_button_looper(TS_Point &p)
 {
     if (menus_id == mainWindows_id)
     {
-        uint8_t i = mainWindows.checkPress(p);
+        uint8_t i = _4butArray.checkPress(p);
         if (i != 99)
         {
             if (i != 3)
@@ -282,7 +299,7 @@ void windows_button_looper(TS_Point &p)
     }
     else if (menus_id == specificWindows_id)
     {
-        uint8_t i = specificWindows.checkPress(p);
+        uint8_t i = _8butArray.checkPress(p);
         if (i != 99)
         {
             button_id = specificWindows_id + i;
@@ -291,7 +308,7 @@ void windows_button_looper(TS_Point &p)
     }
     else if (menus_id == operWindows_id)
     {
-        uint8_t i = operateWindows.checkPress(p);
+        uint8_t i = _3butArray.checkPress(p);
         windowButtons_cb(i);
     }
 }
@@ -299,12 +316,11 @@ void Lights_looper(TS_Point &p)
 {
     if (menus_id == mainLights_id)
     {
-        uint8_t i = mainLights.checkPress(p);
+        uint8_t i = _4butArray.checkPress(p);
         if (i != 99)
         {
             if (i == 0)
             {
-                rebuild_screen();
                 create_extLights();
             }
             else if (i == 1)
@@ -313,9 +329,23 @@ void Lights_looper(TS_Point &p)
             }
             else if (i == 2)
             {
-                rebuild_screen();
                 create_roomsLights();
             }
+        }
+    }
+}
+void roomLights_looper(TS_Point &p)
+{
+    uint8_t i = _10butArray.checkPress(p);
+    if (i != 99)
+    {
+        if (i == 0 || i == 1 || i == 3 || i == 8 || i == 7)
+        {
+            roomLights_cb(i, _10butArray.butarray[i].latchState, 0);
+        }
+        else
+        {
+            roomLights_cb(i, _10butArray.butarray[i].latchState, 1);
         }
     }
 }
@@ -401,7 +431,7 @@ void topTitle_looper()
 
 void alarm_looper(TS_Point &p)
 {
-    uint8_t i = mainAlarm.checkPress(p);
+    uint8_t i = _3butArray.checkPress(p);
     if (i != 99)
     {
         if (i == 2)
@@ -432,7 +462,7 @@ void alarmKeypad_looper(TS_Point &p)
         }
         else
         {
-            update_topTitle("PassCode Fail",ILI9341_RED);
+            update_topTitle("PassCode Fail", ILI9341_RED);
             delay(1000);
             create_keypadAlarm();
         }
@@ -450,7 +480,7 @@ void alarmKeypad_looper(TS_Point &p)
 }
 void startScreen_looper(TS_Point &p)
 {
-    uint8_t i = 4butArray.checkPress(p);
+    uint8_t i = _4butArray.checkPress(p);
     if (i != 99)
     {
         if (i == 0)
