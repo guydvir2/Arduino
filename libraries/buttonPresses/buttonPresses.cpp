@@ -52,7 +52,7 @@ uint8_t buttonPresses::_read_button()
 {
     uint8_t a = _readPin(pin0, _swState0);
 
-    if (a == 1 && _nowPressed == false) /* Press */
+    if (a == 1 && _nowPressed == false) /* Press (short or long) */
     {
         _nowPressed = true;
         return 1;
@@ -62,7 +62,7 @@ uint8_t buttonPresses::_read_button()
         _nowPressed = false;
         return 0;
     }
-    else /* No change or Err */
+    else /* No change or Err - if holding button a==2*/
     {
         return 0;
     }
@@ -70,6 +70,7 @@ uint8_t buttonPresses::_read_button()
 uint8_t buttonPresses::_read_switch(uint8_t _pin, bool &_state, bool &_pinState)
 {
     uint8_t a = _readPin(_pin, _pinState);
+
     if (a != 2 && (a != _state))
     {
         _state = a;
