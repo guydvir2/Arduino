@@ -83,7 +83,7 @@ void roomLights_cb(uint8_t i, uint8_t state, uint8_t a)
 
   char *cmds[] = {num_off, num_on};
   char *specif[] = {"familyRoomLEDs", "parentsClosetLEDs", "parentsClosetLEDs", "shacharCloset", "dotClock",
-                    "parentsBedLEDs", "kidsBed", "kidsBed", "parentsBedLEDs", "Empty"};
+                    "parentsBedLEDs", "kidsBed", "kidsBed", "parentsBedLEDs", "toiletLEDs"};
   if (i != 99)
   {
     char fultop[50];
@@ -97,6 +97,20 @@ void roomLights_cb(uint8_t i, uint8_t state, uint8_t a)
       char *cmd[] = {"off", "on"};
       iot.pub_noTopic(cmd[state], fultop);
     }
+  }
+}
+void internalLights_cb(uint8_t i, uint8_t state)
+{
+  char *top = "myHome/intLights";
+  char *cmds[] = {"0,off", "0,on"};
+  char *specif[] = {"Stove", "KitchenLEDs", "LivingRoom"};
+  if (i != 99)
+  {
+    char fultop[50];
+    sprintf(fultop, "%s/%s", top, specif[i]);
+    iot.pub_noTopic(cmds[state], fultop);
+    Serial.print(fultop);
+    Serial.println(cmds[state]);
   }
 }
 
@@ -221,6 +235,11 @@ void loop()
       {
         roomLights_looper(p);
       }
+      else if (menus_id == internalLights_id)
+      {
+        internalLights_looper(p);
+      }
+
       delay(500);
     }
   }

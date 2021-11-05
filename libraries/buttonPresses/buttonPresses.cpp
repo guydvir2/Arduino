@@ -18,12 +18,10 @@ buttonPresses::buttonPresses(uint8_t _pin0, uint8_t _type, uint8_t _pin1)
 void buttonPresses::start()
 {
     pinMode(pin0, INPUT_PULLUP);
-    // _swState0 = digitalRead(pin0);
     _readPin(pin0, _swState0);
     if (pin1 != 255)
     {
         pinMode(pin1, INPUT_PULLUP);
-        // _swState1 = digitalRead(pin1);
         _readPin(pin1, _swState1);
     }
 }

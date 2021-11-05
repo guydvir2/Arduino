@@ -12,14 +12,15 @@ extern void roomLights_cb(uint8_t i, uint8_t state, uint8_t a);
 extern void windowButtons_cb(uint8_t i);
 extern void clearScreen(int c = 0);
 extern void clearScreen(const uint16_t);
+extern void internalLights_cb(uint8_t i, uint8_t state);
 
 MessageTFT topTitle;
 MessageTFT notePad;
 ButtonTFT homeButton;
 ButtonTFT backButton;
 keypadTFT keypadAlarm;
-buttonArrayTFT<4> _4butArray;
 buttonArrayTFT<3> _3butArray;
+buttonArrayTFT<4> _4butArray;
 buttonArrayTFT<8> _8butArray;
 buttonArrayTFT<10> _10butArray;
 
@@ -38,7 +39,7 @@ const uint8_t keypadAlarm_id = 50;
 const uint8_t mainLights_id = 60;
 const uint8_t extLights_id = 70;
 const uint8_t roomsLights_id = 80;
-const uint8_t kidsroomLights_id = 90;
+const uint8_t internalLights_id = 90;
 const uint8_t parentsroomLights_id = 100;
 const uint8_t familyroomLights_id = 110;
 const uint8_t notePad_id = 120;
@@ -146,7 +147,7 @@ void create_roomsLights()
     update_topTitle("Select Light");
     menus_id = roomsLights_id;
     char *a[] = {"LED.table", "Closet.Anna", "Closet.Guy", "Closet.Shachar", "Mirror.Sh",
-                 "Mirror.Anna", "Bed.Shachar", "Bed.Oz", "Bed.Parents", "Empty"};
+                 "Mirror.Anna", "Bed.Shachar", "Bed.Oz", "Bed.Parents", "toiletLEDs"};
     _10butArray.a = 0; // for auto size
     _10butArray.b = 0;
     _10butArray.dy = 2;
@@ -160,6 +161,26 @@ void create_roomsLights()
     _10butArray.latchButton = true;
 
     _10butArray.create_array(5, 2, a);
+}
+void create_internalLights()
+{
+    rebuild_screen();
+    update_topTitle("Select Light");
+    menus_id = internalLights_id;
+    char *a[] = {"Stove", "Kitchen.LED", "GreenLight"};
+    _3butArray.a = 0; // for auto size
+    _3butArray.b = 0;
+    _3butArray.dy = 2;
+    _3butArray.dx = 2;
+    _3butArray.scale_y = 72;
+    _3butArray.shift_y = 35;
+    _3butArray.txt_color = TXT_COLOR;
+    _3butArray.face_color = FACE_COLOR;
+    _3butArray.border_color = _3butArray.face_color;
+    _3butArray.txt_size = 2;
+    _3butArray.latchButton = true;
+
+    _3butArray.create_array(3, 1, a);
 }
 
 void create_extLights()
@@ -314,23 +335,20 @@ void windows_button_looper(TS_Point &p)
 }
 void Lights_looper(TS_Point &p)
 {
-    if (menus_id == mainLights_id)
+    uint8_t i = _4butArray.checkPress(p);
+    if (i != 99)
     {
-        uint8_t i = _4butArray.checkPress(p);
-        if (i != 99)
+        if (i == 0)
         {
-            if (i == 0)
-            {
-                create_extLights();
-            }
-            else if (i == 1)
-            {
-                rebuild_screen();
-            }
-            else if (i == 2)
-            {
-                create_roomsLights();
-            }
+            create_extLights();
+        }
+        else if (i == 1)
+        {
+            create_internalLights();
+        }
+        else if (i == 2)
+        {
+            create_roomsLights();
         }
     }
 }
@@ -339,7 +357,7 @@ void roomLights_looper(TS_Point &p)
     uint8_t i = _10butArray.checkPress(p);
     if (i != 99)
     {
-        if (i == 0 || i == 1 || i == 3 || i == 8 || i == 7)
+        if (i == 0 || i == 1 || i == 3 || i == 7 || i == 8 || i == 9)
         {
             roomLights_cb(i, _10butArray.butarray[i].latchState, 0);
         }
@@ -347,6 +365,14 @@ void roomLights_looper(TS_Point &p)
         {
             roomLights_cb(i, _10butArray.butarray[i].latchState, 1);
         }
+    }
+}
+void internalLights_looper(TS_Point &p)
+{
+    uint8_t i = _3butArray.checkPress(p);
+    if (i != 99)
+    {
+        internalLights_cb(i, _3butArray.butarray[i].latchState);
     }
 }
 bool homeButton_looper(TS_Point &p)
