@@ -23,9 +23,6 @@ public:
 
 private:
     uint8_t _pCounter = 0;
-    bool _nowPressed = false;
-    bool _swState0 = false;
-    bool _swState1 = false;
     bool _lastState_pin0 = false;
     bool _lastState_pin1 = false;
     unsigned long _lastPress = 0;
@@ -34,14 +31,13 @@ public:
     buttonPresses(uint8_t _pin0, uint8_t _type = 0, uint8_t _pin1 = 255);
     buttonPresses();
     void start();
-    uint8_t getValue();
+    uint8_t read();
 
 private:
-    uint8_t _read_button();
-    uint8_t _read_switch(uint8_t _pin, bool &_state, bool &_pinState);
+    uint8_t _read_switch(uint8_t _pin, bool &_pinState);
     uint8_t _read_rocker();
     uint8_t _read_multiPress();
-    uint8_t _readPin(uint8_t &_pin, bool &_state);
+    uint8_t _readPin();
 };
 
 #endif

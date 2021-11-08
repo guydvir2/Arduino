@@ -18,26 +18,22 @@ buttonPresses::buttonPresses(uint8_t _pin0, uint8_t _type, uint8_t _pin1)
 void buttonPresses::start()
 {
     pinMode(pin0, INPUT_PULLUP);
-    _readPin(pin0, _swState0);
+    _lastState_pin0 = digitalRead(pin0);
     if (pin1 != 255)
     {
         pinMode(pin1, INPUT_PULLUP);
-        _readPin(pin1, _swState1);
+        _lastState_pin1 = digitalRead(pin1);
     }
 }
-uint8_t buttonPresses::getValue()
+uint8_t buttonPresses::read()
 {
-    if (buttonType == 0)
+    if (buttonType == 1 || buttonType == 0)
     {
-        return _read_button();
-    }
-    else if (buttonType == 1)
-    {
-        return _read_switch(pin0, _swState0, _lastState_pin0);
+        return _readPin();
     }
     else if (buttonType == 2) /* 3 state Rocker switch */
     {
-        return _read_rocker();
+        return _readPin();
     }
     else if (buttonType == 3) /* Short & Long Press*/
     {
@@ -48,75 +44,17 @@ uint8_t buttonPresses::getValue()
         return 99;
     }
 }
-uint8_t buttonPresses::_read_button()
+uint8_t buttonPresses::_read_switch(uint8_t _pin, bool &_pinState)
 {
-    uint8_t a = _readPin(pin0, _swState0);
-
-    if (a == 1 && _nowPressed == false) /* Press (short or long) */
-    {
-        _nowPressed = true;
-        return 1;
-    }
-    else if (a == 0 && _nowPressed == true) /*Release from Press */
-    {
-        _nowPressed = false;
-        return 0;
-    }
-    else /* No change or Err - if holding button a==2*/
-    {
-        return 0;
-    }
+    return _readPin();
 }
-uint8_t buttonPresses::_read_switch(uint8_t _pin, bool &_state, bool &_pinState)
-{
-    uint8_t a = _readPin(_pin, _pinState);
-
-    if (a != 2 && (a != _state))
-    {
-        _state = a;
-        if (a == 1)
-        {
-            return 1; /* ON state*/
-        }
-        else
-        {
-            return 2; /* OFF state*/
-        }
-    }
-    else
-    {
-        return 0; /* Err or no change */
-    }
-}
-uint8_t buttonPresses::_read_rocker()
-{
-    uint8_t a = _read_switch(pin0, _swState0, _lastState_pin0);
-    uint8_t b = _read_switch(pin1, _swState1, _lastState_pin1);
-
-    if (a == 2 && b == 2) /* Both are off */
-    {
-        return 0;
-    }
-    else if (a == 2 || b == 2) /* One set to off */
-    {
-        return 3;
-    }
-    else if (a == 1 && b != 1) /* first in ON while other is not */
-    {
-        return 1;
-    }
-    else if (b == 1 && a != 1) /* Second in ON while other is not */
-    {
-        return 2;
-    }
-    else /* Any other state */
-    {
-        return 0;
-    }
-}
+// uint8_t buttonPresses::_read_rocker()
+// {
+//     return _readPin();
+// }
 uint8_t buttonPresses::_read_multiPress()
 {
-    if (_read_button()) /* Pressed */
+    if (_readPin()==1)//_read_switch(pin0, _lastState_pin0)) /* Pressed */
     {
         /* calc press duration */
         unsigned long current_press_duration = millis();
@@ -151,19 +89,21 @@ uint8_t buttonPresses::_read_multiPress()
         return 0;
     }
 }
-uint8_t buttonPresses::_readPin(uint8_t &_pin, bool &_state)
+uint8_t buttonPresses::_readPin()
 {
-    // PRESSED == 1; NOT PRESSED == 0 Err == 2
-    bool curRead = digitalRead(_pin);
-    if (curRead != _state)
+    bool _curReadPin0_1 = digitalRead(pin0);
+    bool _curReadPin1_1 = digitalRead(pin1);
+
+    if (_curReadPin0_1 != _lastState_pin0 || _curReadPin1_1 != _lastState_pin1)
     {
         delay(debounce);
-        bool curRead2 = digitalRead(_pin);
+        bool _curReadPin0_2 = digitalRead(pin0);
+        bool _curReadPin1_2 = digitalRead(pin1);
 
-        if (curRead == curRead2)
+        if (_curReadPin0_1 == _curReadPin0_2 && _curReadPin0_1 !=_lastState_pin0)
         {
-            _state = curRead;
-            if (curRead == BUT_PRESSED)
+            _lastState_pin0 = _curReadPin0_1;
+            if (_curReadPin0_1 == BUT_PRESSED)
             {
                 return 1; /* Pressed */
             }
@@ -174,11 +114,23 @@ uint8_t buttonPresses::_readPin(uint8_t &_pin, bool &_state)
         }
         else
         {
-            return 2;
+            if (pin1 != 255 && _curReadPin1_1 == _curReadPin1_2)
+            {
+                _lastState_pin1 = _curReadPin1_1;
+                if (_curReadPin1_1 == BUT_PRESSED)
+                {
+                    return 2; /* Pressed */
+                }
+                else
+                {
+                    return 0; /* Released */
+                }
+            }
+            return 3; /* Err*/
         }
     }
     else
     {
-        return 2;
+        return 4; /* No change*/
     }
 }

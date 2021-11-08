@@ -15,11 +15,11 @@ void setup()
 
 void loop()
 {
-  uint8_t b = buttB.getValue(); /* Each check take 50 ms */
-  uint8_t c = buttC.getValue();
-  uint8_t d = buttD.getValue();
+  uint8_t b = buttB.read(); /* Each check take 50 ms */
+  uint8_t c = buttC.read();
+  uint8_t d = buttD.read();
 
-  if (buttA.getValue() != 0)
+  if (buttA.read() != 0)
   {
     Serial.println("Button Press");
   }
