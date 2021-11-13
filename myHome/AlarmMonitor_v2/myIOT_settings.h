@@ -1,11 +1,8 @@
 myIOT2 iot;
-extern const uint8_t systemPause, deBounceInt;
-extern void allOff();
-extern void arm_home();
-extern void arm_away();
-extern void disarmed();
 
-extern const uint8_t relays[], inputs[];
+extern void allOff();
+extern uint8_t get_systemState();
+extern void set_armState(uint8_t req_state);
 
 // ~~~~~~~ MQTT Topics ~~~~~~
 #define DEV_TOPIC "alarmMonitor"
@@ -16,30 +13,31 @@ extern const uint8_t relays[], inputs[];
 void giveStatus(char *state)
 {
     char t3[50];
+    uint8_t cstate = get_systemState();
 
     sprintf(t3, "");
     // relays state
-    if (digitalRead(OUTPUT1) == RelayOn && digitalRead(OUTPUT2) == RelayOn)
+    if (cstate == ERROR)
     {
         strcat(t3, "Status: invalid [Armed] and [Away] State");
     }
-    else if (digitalRead(OUTPUT1) == !RelayOn && digitalRead(OUTPUT2) == !RelayOn && digitalRead(INPUT1) == SwitchOn)
+    else if (cstate == ARMED_KEYPAD)
     {
         strcat(t3, "Status: Manual [Armed]");
     }
-    else if (digitalRead(OUTPUT1) == RelayOn && digitalRead(OUTPUT2) == !RelayOn && digitalRead(INPUT1) == SwitchOn)
+    else if (cstate == ARMED_HOME_CODE)
     {
         strcat(t3, "Status: [Code] [Home Armed]");
     }
-    else if (digitalRead(OUTPUT1) == !RelayOn && digitalRead(OUTPUT2) == RelayOn && digitalRead(INPUT1) == SwitchOn)
+    else if (cstate == ARMED_AWAY_CODE)
     {
         strcat(t3, "Status: [Code] [Armed Away]");
     }
-    else if (digitalRead(INPUT1) == SwitchOn && digitalRead(INPUT2) == SwitchOn)
+    else if (cstate == ALARMING)
     {
         strcat(t3, "Status: [Alarm]");
     }
-    else if (digitalRead(INPUT1) == !SwitchOn && digitalRead(OUTPUT1) == !RelayOn && digitalRead(OUTPUT2) == !RelayOn)
+    else if (cstate == DISARMED)
     {
         strcat(t3, "Status: [disarmed]");
     }
@@ -58,17 +56,17 @@ void addiotnalMQTT(char *incoming_msg)
         giveStatus(msg);
         iot.pub_msg(msg);
     }
-    else if (strcmp(incoming_msg, "armed_home") == 0)
+    else if (strcmp(incoming_msg, sys_states[0]) == 0)
     {
-        arm_home();
+        set_armState(ARMED_HOME_CODE);
     }
-    else if (strcmp(incoming_msg, "armed_away") == 0)
+    else if (strcmp(incoming_msg, sys_states[1]) == 0)
     {
-        arm_away();
+        set_armState(ARMED_AWAY_CODE);
     }
-    else if (strcmp(incoming_msg, "disarmed") == 0)
+    else if (strcmp(incoming_msg, sys_states[2]) == 0)
     {
-        disarmed();
+        set_armState(DISARMED);
     }
     else if (strcmp(incoming_msg, "ver2") == 0)
     {
@@ -77,17 +75,19 @@ void addiotnalMQTT(char *incoming_msg)
     }
     else if (strcmp(incoming_msg, "pins") == 0)
     {
-        sprintf(msg, "Switch: input1[%d] input2[%d], Relay: output_home[%d] output_full[%d]", INPUT1, INPUT2, OUTPUT1, OUTPUT2);
+        sprintf(msg, "Switch: SYS_IS_ARMED_INDICATION_PIN[%d] SYS_IS_ALARMING_INDICATION_PIN[%d], Relay: output_home[%d] output_full[%d]",
+                SYS_IS_ARMED_INDICATION_PIN, SYS_IS_ALARMING_INDICATION_PIN, SET_SYSTEM_ARMED_HOME_PIN, SET_SYSTEM_ARMED_AWAY_PIN);
         iot.pub_msg(msg);
     }
-    else if (strcmp(incoming_msg, "reset") == 0)
+    else if (strcmp(incoming_msg, "clear") == 0)
     {
-        for (int i = 0; i < 2; i++)
-        {
-            digitalWrite(relays[i], RelayOn);
-            delay(systemPause);
-            digitalWrite(relays[i], !RelayOn);
-        }
+        digitalWrite(SET_SYSTEM_ARMED_HOME_PIN, STATE_ON);
+        delay(systemPause);
+        digitalWrite(SET_SYSTEM_ARMED_HOME_PIN, !STATE_ON);
+        digitalWrite(SET_SYSTEM_ARMED_AWAY_PIN, STATE_ON);
+        delay(systemPause);
+        digitalWrite(SET_SYSTEM_ARMED_AWAY_PIN, !STATE_ON);
+
         iot.sendReset("Reset via MQTT");
     }
     else if (strcmp(incoming_msg, "all_off") == 0)
@@ -100,18 +100,19 @@ void addiotnalMQTT(char *incoming_msg)
     {
         sprintf(msg, "Help2: Commands #1 - [status, boot, reset, ip, ota, ver2, help, pins]");
         iot.pub_msg(msg);
-        sprintf(msg, "Help2: Commands #2 - [armed_home, armed_away, disarmed, reset, all_off, debug]");
+        sprintf(msg, "Help2: Commands #2 - [armed_home, armed_away, disarmed, clear, all_off, debug]");
         iot.pub_msg(msg);
     }
     else if (strcmp(incoming_msg, "debug") == 0)
     {
-        sprintf(msg, "INPUT1 is [%d], INPUT2 is [%d], OUTPUT1 is [%d], OUTPUT2 is [%d]", digitalRead(INPUT1), digitalRead(INPUT2), digitalRead(OUTPUT1), digitalRead(OUTPUT2));
+        sprintf(msg, "armPin is [%d], AlarmPin is [%d], ArmHome is [%d], ArmAway is [%d]", digitalRead(SYS_IS_ARMED_INDICATION_PIN),
+                digitalRead(SYS_IS_ALARMING_INDICATION_PIN), digitalRead(SET_SYSTEM_ARMED_HOME_PIN), digitalRead(SET_SYSTEM_ARMED_AWAY_PIN));
         iot.pub_msg(msg);
     }
 }
 void startIOTservices()
 {
-    iot.useSerial = false;
+    iot.useSerial = true;
     iot.useWDT = true;
     iot.useOTA = true;
     iot.useResetKeeper = false;
@@ -121,9 +122,12 @@ void startIOTservices()
     iot.useNetworkReset = true;
     iot.noNetwork_reset = 30;
     iot.useBootClockLog = true;
+    iot.useAltermqttServer = false;
+    iot.ignore_boot_msg = false;
 
-    strcpy(iot.deviceTopic, DEV_TOPIC);
-    strcpy(iot.prefixTopic, PREFIX_TOPIC);
-    strcpy(iot.addGroupTopic, GROUP_TOPIC);
+    iot.deviceTopic = DEV_TOPIC;
+    iot.prefixTopic = PREFIX_TOPIC;
+    iot.addGroupTopic = GROUP_TOPIC;
+
     iot.start_services(addiotnalMQTT);
 }

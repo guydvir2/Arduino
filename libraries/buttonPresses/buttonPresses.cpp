@@ -48,10 +48,6 @@ uint8_t buttonPresses::_read_switch(uint8_t _pin, bool &_pinState)
 {
     return _readPin();
 }
-// uint8_t buttonPresses::_read_rocker()
-// {
-//     return _readPin();
-// }
 uint8_t buttonPresses::_read_multiPress()
 {
     if (_readPin()==1)//_read_switch(pin0, _lastState_pin0)) /* Pressed */

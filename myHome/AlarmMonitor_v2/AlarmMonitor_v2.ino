@@ -65,9 +65,9 @@
                 +--------------+-------------+-------------+
                 | Arm-Away CMD |      D5     |     Z8      |
                 +--------------+-------------+-------------+
- 
-                
-                              ------ > PIMA SIDE <------- 
+
+
+                              ------ > PIMA SIDE <-------
                 +---------------------------------------------------+
                 |   *       *       *       *           *     *     |
                 |  ARM    ALARM    12V     GND         KEY   Z8     |
@@ -83,237 +83,190 @@
                 |   *       *                    *      *      *    |
                 |  D3      D4                   D6     D5      GND  |
                 +----------------------------------------------------
-                               ------ > ESP SIDE <------- 
+                               ------ > ESP SIDE <-------
 
 
 
 
 */
-// ~~~~ HW Pins and States ~~~~
-#define INPUT1 D3  //  Indication system is Armed
-#define INPUT2 D4  //  Indication system is Alarmed
-#define OUTPUT1 D6 //   (Set system)  armed_Home
-#define OUTPUT2 D5 //   (Set system)  Armed_Away
 
-#define RelayOn HIGH
-#define SwitchOn LOW
-#define VER "NodeMCU_3.8"
+// ~~~~ HW Pins and States ~~~~
+#define STATE_ON HIGH
+#define INDIC_ON LOW
+#define SYS_IS_ARMED_INDICATION_PIN D3    //  Indication system is Armed
+#define SYS_IS_ALARMING_INDICATION_PIN D4 //  Indication system is Alarmed
+#define SET_SYSTEM_ARMED_HOME_PIN D6      //   (Set system)  armed_Home
+#define SET_SYSTEM_ARMED_AWAY_PIN D5      //   (Set system)  Armed_Away
+
+#define VER "NodeMCU_3.9"
+char *sys_states[] = {"armed_home", "armed_away", "disarmed", "pending", "triggered"};
+enum sys_state : const uint8_t
+{
+        ARMED_HOME_CODE,
+        ARMED_AWAY_CODE,
+        DISARMED,
+        ARMED_KEYPAD,
+        ALARMING,
+        ERROR
+};
+const uint8_t systemPause = 2; // seconds, delay to system react
+bool indication_ARMED_lastState = false;
+bool indication_ALARMED_lastState = false;
 
 #include <myIOT2.h>
 #include "myIOT_settings.h"
-#include <Arduino.h>
-
-const uint8_t relays[] = {OUTPUT1, OUTPUT2};
-const uint8_t inputs[] = {INPUT1, INPUT2};
-const uint8_t systemPause = 2; // seconds, delay to system react
-const uint8_t deBounceInt = 50;
-// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-// GPIO status flags
-bool indication_ARMED_lastState;
-bool indication_ALARMED_lastState;
-
-
 
 void startGPIOs()
 {
-        for (int i = 0; i < 2; i++)
-        {
-                pinMode(relays[i], OUTPUT);
-                pinMode(inputs[i], INPUT_PULLUP);
-        }
-        indication_ARMED_lastState = digitalRead(inputs[0]);
-        indication_ALARMED_lastState = digitalRead(inputs[1]);
-}
+        pinMode(SET_SYSTEM_ARMED_HOME_PIN, OUTPUT);
+        pinMode(SET_SYSTEM_ARMED_AWAY_PIN, OUTPUT);
+        pinMode(SYS_IS_ARMED_INDICATION_PIN, INPUT_PULLUP);
+        pinMode(SYS_IS_ALARMING_INDICATION_PIN, INPUT_PULLUP);
 
+        system_state_changed(SYS_IS_ARMED_INDICATION_PIN, indication_ARMED_lastState);
+        system_state_changed(SYS_IS_ALARMING_INDICATION_PIN, indication_ALARMED_lastState);
+}
 void allOff()
 {
-        for (int i = 0; i < 2; i++)
-        {
-                digitalWrite(relays[i], !RelayOn);
-        }
-        delay(systemPause*1000);
+        digitalWrite(SET_SYSTEM_ARMED_HOME_PIN, !STATE_ON);
+        digitalWrite(SET_SYSTEM_ARMED_AWAY_PIN, !STATE_ON);
+        delay(systemPause * 1000);
 }
-void arm_home()
+uint8_t get_systemState()
 {
-        if (digitalRead(OUTPUT1) == !RelayOn)
-        { // verify it is not in desired state already
-                if (digitalRead(OUTPUT2) == RelayOn)
-                { // in armed away state
-                        digitalWrite(OUTPUT2, !RelayOn);
-                        iot.pub_msg("System change: [Disarmed] [Away] using [Code]");
-                        delay(systemPause*1000);
-                }
-
-                digitalWrite(OUTPUT1, RelayOn); // Now switch to armed_home
-                delay(systemPause*1000);
-
-                if (digitalRead(INPUT1) == SwitchOn)
-                {
-                        iot.pub_msg("System change: [Armed] [Home] using [Code]");
-                        iot.pub_state("armed_home");
-                }
-                else
-                {
-                        allOff();
-                        iot.pub_msg("System change: failed to [Armed] [Home]");
-                }
+        if (digitalRead(SYS_IS_ALARMING_INDICATION_PIN) == INDIC_ON)
+        {
+                return ALARMING;
         }
         else
         {
-                iot.pub_msg("System change: already in [Armed] [Home]");
-        }
-}
-void arm_away()
-{
-        if (digitalRead(OUTPUT2) == !RelayOn)
-        {
-                if (digitalRead(OUTPUT1) == RelayOn)
-                { // armed home
-                        digitalWrite(OUTPUT1, !RelayOn);
-                        iot.pub_msg("System change: [Disarmed] [Home] using [Code]");
-                        delay(systemPause*1000);
-                }
-
-                digitalWrite(OUTPUT2, RelayOn); // now switch to Away
-                delay(systemPause*1000);
-
-                if (digitalRead(INPUT1) == SwitchOn)
+                if (digitalRead(SYS_IS_ARMED_INDICATION_PIN) == INDIC_ON)
                 {
-                        iot.pub_msg("System change: [Armed] [Away] using [Code]");
-                        iot.pub_state("armed_away");
-                }
-                else
-                {
-                        allOff();
-                        iot.pub_msg("System change: failed to [Armed] [Away]");
-                }
-        }
-        else
-        {
-                iot.pub_msg("System change: already in [Armed] [Away]");
-        }
-}
-void disarmed()
-{
-        bool armed_code;
-        char mqttmsg[100];
-
-        if (indication_ARMED_lastState == SwitchOn)
-        { // indicatio n system is armed
-                if (digitalRead(OUTPUT2) == RelayOn || digitalRead(OUTPUT1) == RelayOn)
-                { // case A: armed using code
-                        allOff();
-                        armed_code = true;
-                        delay(systemPause*1000);
-                }
-                else
-                { // case B: armed using keyPad
-                        // initiate any arm state in order to disarm
-                        digitalWrite(OUTPUT1, RelayOn);
-                        delay(systemPause*1000 / 2); // Time for system to react to fake state change
-                        allOff();
-                        armed_code = false;
-                        delay(systemPause*1000 / 2);
-                }
-                if (digitalRead(INPUT1) != SwitchOn)
-                { //&& digitalRead(OUTPUT2) != RelayOn && digitalRead(OUTPUT1) != RelayOn) {
-                        sprintf(mqttmsg, "System change: [Disarmed] using [Code]. Was [Armed] using [%s]", armed_code ? "Code" : "KeyPad");
-                        iot.pub_msg(mqttmsg);
-                        iot.pub_state("disarmed");
-                }
-                else
-                {
-                        sprintf(mqttmsg, "INPUT1 is [%d], INPUT2 is [%d], OUTPUT1 is [%d], OUTPUT2 is [%d]", digitalRead(INPUT1), digitalRead(INPUT2), digitalRead(OUTPUT1), digitalRead(OUTPUT2));
-                        iot.pub_msg(mqttmsg);
-                }
-        }
-}
-
-void check_systemState_armed()
-{ // System OUTPUT 1: arm_state
-        if (digitalRead(INPUT1) != indication_ARMED_lastState)
-        {
-                delay(deBounceInt);
-                if (digitalRead(INPUT1) != indication_ARMED_lastState)
-                {
-                        delay(systemPause*1000);
-
-                        indication_ARMED_lastState = digitalRead(INPUT1);
-                        if (indication_ARMED_lastState == SwitchOn)
-                        { // system is set to armed
-                                if (digitalRead(OUTPUT1) == !RelayOn && digitalRead(OUTPUT2) == !RelayOn)
-                                {
-                                        iot.pub_msg("System state: [Armed] using [KeyPad]");
-                                        iot.pub_state("pending");
-                                }
-                                else if (digitalRead(OUTPUT1) == RelayOn)
-                                {
-                                        iot.pub_msg("System State: [Armed] [Home] using [Code]");
-                                }
-                                else if (digitalRead(OUTPUT2) == RelayOn)
-                                {
-                                        iot.pub_msg("System State: [Armed] [Away] using [Code]");
-                                }
-                                else
-                                {
-                                        iot.pub_log("Error Arming system");
-                                }
+                        if (digitalRead(SET_SYSTEM_ARMED_HOME_PIN) == STATE_ON)
+                        {
+                                return ARMED_HOME_CODE;
+                        }
+                        else if (digitalRead(SET_SYSTEM_ARMED_AWAY_PIN) == STATE_ON)
+                        {
+                                return ARMED_AWAY_CODE;
                         }
                         else
-                        { // system detected a disarmed indication :
-                                if (digitalRead(OUTPUT2) == RelayOn || digitalRead(OUTPUT1) == RelayOn)
-                                { // case A: armed using code, but disarmed by keypad
-                                        allOff();
-                                }
-                                if (digitalRead(OUTPUT1) != RelayOn && digitalRead(OUTPUT2) != RelayOn)
-                                {
-                                        iot.pub_msg("System State: [Disarmed]");
-                                        iot.pub_state("disarmed");
-                                }
+                        {
+                                return ARMED_KEYPAD;
                         }
                 }
+                else
+                {
+                        return DISARMED;
+                }
+        }
+}
+void set_armState(uint8_t req_state)
+{
+        char a[50];
+        // bool armed_code;
+
+        uint8_t curState = get_systemState();
+        if (req_state != curState)
+        {
+                if (req_state == DISARMED)
+                {
+                        if (curState == ARMED_KEYPAD)
+                        {
+                                digitalWrite(SET_SYSTEM_ARMED_HOME_PIN, STATE_ON);
+                                delay(systemPause * 1000 / 2); // Time for system to react to fake state change
+                                allOff();
+                                // armed_code = false;
+                        }
+                        else
+                        {
+                                allOff();
+                                // armed_code = true;
+                        }
+                }
+                else if (req_state == ARMED_HOME_CODE)
+                {
+                        if (curState == DISARMED)
+                        {
+                                digitalWrite(SET_SYSTEM_ARMED_HOME_PIN, STATE_ON); // Now switch to armed_home
+                                delay(systemPause * 1000);
+                        }
+                        else
+                        {
+                                digitalWrite(SET_SYSTEM_ARMED_AWAY_PIN, !STATE_ON);
+                                delay(systemPause * 1000);
+                                digitalWrite(SET_SYSTEM_ARMED_HOME_PIN, STATE_ON); // Now switch to armed_home
+                                sprintf(a, "System change: [Disarmed] using [Code]");
+                                iot.pub_msg(a);
+                        }
+                }
+                else if (req_state == ARMED_AWAY_CODE)
+                {
+                        if (curState == DISARMED)
+                        {
+                                digitalWrite(SET_SYSTEM_ARMED_AWAY_PIN, STATE_ON); // Now switch to armed_home
+                                delay(systemPause * 1000);
+                        }
+                        else
+                        {
+                                digitalWrite(SET_SYSTEM_ARMED_HOME_PIN, !STATE_ON);
+                                delay(systemPause * 1000);
+                                digitalWrite(SET_SYSTEM_ARMED_AWAY_PIN, STATE_ON); // Now switch to armed_home
+                                sprintf(a, "System change: [Disarmed] using [Code]");
+                                iot.pub_msg(a);
+                        }
+                }
+        }
+}
+
+bool system_state_changed(uint8_t _pin, bool &_lastState)
+{
+        const uint8_t deBounceInt = 50;
+        if (digitalRead(_pin) != _lastState)
+        {
+                delay(deBounceInt);
+                if (digitalRead(_pin) != _lastState)
+                {
+                        delay(systemPause * 1000);
+
+                        _lastState = digitalRead(_pin);
+                        return true;
+                }
+                else
+                {
+                        return false;
+                }
+        }
+        else
+        {
+                return false;
+        }
+}
+void check_systemState_armed()
+{
+        if (system_state_changed(SYS_IS_ARMED_INDICATION_PIN, indication_ARMED_lastState))
+        {
+                char a[100];
+                uint8_t curState = get_systemState();
+                sprintf(a, "System state: [%s]", sys_states[curState]);
+                iot.pub_msg(a);
+                iot.pub_state(sys_states[curState]);
         }
 }
 void check_systemState_alarming()
-{ // // System OUTPUT 2: alarm_state
-        if (digitalRead(INPUT2) != indication_ALARMED_lastState)
+{
+        if (system_state_changed(SYS_IS_ALARMING_INDICATION_PIN, indication_ALARMED_lastState))
         {
-                delay(deBounceInt);
-                if (digitalRead(INPUT2) != indication_ALARMED_lastState)
+                uint8_t curstate = get_systemState();
+                iot.pub_state(sys_states[curstate]);
+
+                if (curstate == ALARMING)
                 {
-                        delay(systemPause*1000);
-                        // alarm set off
-                        if (digitalRead(INPUT2) == SwitchOn)
-                        {
-                                iot.pub_msg("[Alarm] is triggered");
-                                iot.pub_state("triggered");
-                        }
-                        // alarm ended
-                        else if (digitalRead(INPUT2) == !SwitchOn)
-                        {
-                                iot.pub_msg("[Alarm] stopped");
-                                if (digitalRead(INPUT1) == SwitchOn)
-                                {
-                                        if (digitalRead(OUTPUT2) == RelayOn)
-                                        {
-                                                iot.pub_state("armed_away");
-                                        }
-                                        else if (digitalRead(OUTPUT1) == RelayOn)
-                                        {
-                                                iot.pub_state("armed_home");
-                                        }
-                                        else
-                                        {
-                                                iot.pub_state("pending");
-                                        }
-                                }
-                                else
-                                {
-                                        iot.pub_state("disarmed");
-                                }
-                        }
-                        indication_ALARMED_lastState = digitalRead(INPUT2);
+                        iot.pub_msg("[Alarm] is triggered");
+                }
+                else
+                {
+                        iot.pub_msg("[Alarm] stopped");
                 }
         }
 }
