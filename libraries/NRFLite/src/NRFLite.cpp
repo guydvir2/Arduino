@@ -1,4 +1,4 @@
-#include <NRFLite.h>
+#include "NRFLite.h"
 
 #define debug(input)   { if (_serial) _serial->print(input);   }
 #define debugln(input) { if (_serial) _serial->println(input); }
@@ -12,7 +12,7 @@
     const static uint8_t USI_DO  = 1; // PB1
     const static uint8_t USI_SCK = 2; // PB2
 #else
-    #include <SPI.h> // Use the normal Arduino hardware SPI library.
+    #include "SPI.h" // Use the normal Arduino hardware SPI library.
 #endif
 
 ////////////////////
@@ -404,7 +404,7 @@ uint8_t NRFLite::initRadio(uint8_t radioId, Bitrates bitrate, uint8_t channel)
     // Assign this radio's address to RX pipe 1.  When another radio sends us data, this is the address
     // it will use.  We use RX pipe 1 to store our address since the address in RX pipe 0 is reserved
     // for use with auto-acknowledgment packets.
-    uint8_t address[5] = { 1, 2, 3, 4, radioId };
+    uint8_t address[5] = { ADDRESS_PREFIX[0], ADDRESS_PREFIX[1], ADDRESS_PREFIX[2], ADDRESS_PREFIX[3], radioId };
     writeRegister(RX_ADDR_P1, &address, 5);
 
     // Enable dynamically sized packets on the 2 RX pipes we use, 0 and 1.
@@ -434,7 +434,7 @@ void NRFLite::prepForTx(uint8_t toRadioId, SendType sendType)
 
         // TX pipe address sets the destination radio for the data.
         // RX pipe 0 is special and needs the same address in order to receive ACK packets from the destination radio.
-        uint8_t address[5] = { 1, 2, 3, 4, toRadioId };
+        uint8_t address[5] = { ADDRESS_PREFIX[0], ADDRESS_PREFIX[1], ADDRESS_PREFIX[2], ADDRESS_PREFIX[3], toRadioId };
         writeRegister(TX_ADDR, &address, 5);
         writeRegister(RX_ADDR_P0, &address, 5);
     }

@@ -1,5 +1,4 @@
-#include "Arduino.h"
-#include "myTimeoutSwitch.h"
+#include <myTimeoutSwitch.h>
 
 timeOUTSwitch::timeOUTSwitch(bool saveCLK) : CLKstore("/ClkStore.json")
 {
@@ -33,11 +32,11 @@ void timeOUTSwitch::start_TO(int _TO, uint8_t src, bool minutes)
     if (onClk() == 0)
     {
         _updateStartClk(_now());
-        _updateEndClk(TO_duration, _now());
+        updateEndClk(TO_duration, _now());
     }
     if (trigType == 2)
     {
-        _updateEndClk(TO_duration, _now());
+        updateEndClk(TO_duration, _now());
     }
     inTO = true;
 }
@@ -102,7 +101,6 @@ uint8_t timeOUTSwitch::getCount()
     CLKstore.getValue(_keyCounter, a);
     return (uint8_t)a;
 }
-
 void timeOUTSwitch::_TOlooper()
 {
     if (TO_start_millis != 0)
@@ -115,7 +113,7 @@ void timeOUTSwitch::_TOlooper()
 }
 void timeOUTSwitch::_input_looper()
 {
-    uint8_t press_to_off = 2; //seconds. after this re-press PWM will set OFF
+    uint8_t press_to_off = 2; // seconds. after this re-press PWM will set OFF
     if (useInput)
     {
         bool currentRead_0 = digitalRead(_IN_io);
@@ -166,7 +164,7 @@ void timeOUTSwitch::_input_looper()
         }
     }
 }
-void timeOUTSwitch::_updateEndClk(int _TO_dur, unsigned long TO_start_clk)
+void timeOUTSwitch::updateEndClk(int _TO_dur, unsigned long TO_start_clk)
 {
     if (TO_start_clk == 0)
     {
@@ -193,11 +191,12 @@ void timeOUTSwitch::_chk_rem_after_boot()
 
     if (record)
     {
-        if (bb > 0 && bb - _now() > 0)
+        time_t NOW = _now();
+        if (bb > 0 && bb - _now() > 0 && NOW > 1627735850)
         {
-            start_TO(bb - _now(), 1, false);
+            start_TO(bb - NOW, 1, false);
         }
-        else if (bb > 0 && bb - _now() < 0)
+        else if (bb > 0 && bb - NOW < 0)
         {
             clearTO();
         }

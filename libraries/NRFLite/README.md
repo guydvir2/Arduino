@@ -1,21 +1,21 @@
 ### Transmitter Example
 See [Basic_TX.ino](https://github.com/dparson55/NRFLite/blob/master/examples/Basic_TX/Basic_TX.ino) for a more complete example.
 ```c++
-#include <SPI.h>
-#include <NRFLite.h>
+#include "SPI.h"
+#include "NRFLite.h"
 
 NRFLite _radio;
 uint8_t _data;
 
 void setup()
 {
-    _radio.init(0, 9, 10); // Set transmitter radio to Id = 0, along with the CE and CSN pins
+    _radio.init(1, 9, 10); // Set radio to Id = 1, along with the CE and CSN pins
 }
 
 void loop()
 {
-    _data++; // Change some data.
-    _radio.send(1, &_data, sizeof(_data)); // Send to the radio with Id = 1
+    _data++;
+    _radio.send(0, &_data, sizeof(_data)); // Send data to the radio with Id = 0
     delay(1000);
 }
 ```
@@ -23,8 +23,8 @@ void loop()
 ### Receiver Example
 See [Basic_RX.ino](https://github.com/dparson55/NRFLite/blob/master/examples/Basic_RX/Basic_RX.ino) for a more complete example.
 ```c++
-#include <SPI.h>
-#include <NRFLite.h>
+#include "SPI.h"
+#include "NRFLite.h"
 
 NRFLite _radio;
 uint8_t _data;
@@ -32,7 +32,7 @@ uint8_t _data;
 void setup()
 {
     Serial.begin(115200);
-    _radio.init(1, 9, 10); // Set this radio's Id = 1, along with its CE and CSN pins
+    _radio.init(0, 9, 10); // Set radio to Id = 0, along with its CE and CSN pins
 }
 
 void loop()
@@ -57,7 +57,7 @@ void loop()
 * View examples in the menu File > Examples > NRFLite.
 
 ### Features
-* 2-pin operation on ATtiny and ATmega microcontrollers thanks to [NerdRalph](http://nerdralph.blogspot.ca/2015/05/nrf24l01-control-with-2-mcu-pins-using.html).
+* 2-pin operation on many ATtiny and ATmega microcontrollers thanks to [NerdRalph](http://nerdralph.blogspot.ca/2015/05/nrf24l01-control-with-2-mcu-pins-using.html).
 * 4-pin operation using shared CE and CSN pins while continuing to use the high-speed SPI and USI peripherals of the supported microcontrollers.
 * Operation with or without interrupts using the radio's IRQ pin.
 * ATtiny84/85 support when used with the [MIT High-Low Tech](http://highlowtech.org/?p=1695) library https://github.com/damellis/attiny.  This library uses much less memory than https://github.com/SpenceKonde/ATTinyCore and is required for the [ATtiny85 sensor example](https://github.com/dparson55/NRFLite/tree/master/examples/Sensor_TX_ATtiny85_2Pin).
@@ -66,6 +66,7 @@ void loop()
 * No need to add delays or implement timeouts.
 * No long radio addresses to manage.
 * No need to set the transmit power (max is enabled by default).
+* [Compatibility with RF24 library](https://github.com/dparson55/NRFLite/issues/54)
 
 ### nRF24L01+ Pin Reference
 
@@ -73,7 +74,8 @@ void loop()
 
 ### 2-Pin Hookup Guide
 * This mode is much slower than the other hookup options which take advantage of the SPI and USI peripherals of the supported microcontrollers.
-* The resistor and capacitor values should only be adjusted if you have an oscilloscope and are comfortable changing the library.
+* The GPIO pins you select on the microcontroller should not share any additional components, e.g. a Digispark board contains an LED on PB1 and USB connections on PB3 and PB4, so do not use these pins.
+* The R2 resistor does not need to be exactly 5K, anything between 4K and 6K is good.
 
 ![2-Pin](https://github.com/dparson55/NRFLite/raw/master/extras/Two_pin_schematic.png)
 

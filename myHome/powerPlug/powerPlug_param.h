@@ -1,4 +1,3 @@
-#include <Arduino.h>
 #include <ArduinoJson.h>
 #include <myJSON.h>
 
@@ -11,7 +10,7 @@ bool readfile_ok = false;
 StaticJsonDocument<JSON_SIZE_IOT> paramJSON;
 StaticJsonDocument<JSON_SIZE_SKETCH> sketchJSON;
 
-extern myIOT iot;
+extern myIOT2 iot;
 
 void update_vars(JsonDocument &DOC)
 {

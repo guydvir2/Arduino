@@ -35,7 +35,7 @@ void addiotnalMQTT(char *incoming_msg)
                 iot.convert_epoch2clock(TOsw[i]->remTime(), 0, s1, s2);
                 simplifyClock(s2, s1, clk2);
                 iot.get_timeStamp(TOsw[i]->onClk());
-                sprintf(clk, "started[%s] remain[%s] ", iot.timeStamp, clk2);
+                sprintf(clk, "started[%s] remain[%s] ", iot.get_timeStamp(), clk2);
             }
             else
             {
@@ -96,7 +96,6 @@ void addiotnalMQTT(char *incoming_msg)
                 if (outputPWM[atoi(iot.inline_param[0])] == false)
                 {
                     TOsw[atoi(iot.inline_param[0])]->start_TO(atoi(iot.inline_param[2]), 2);
-                    Serial.println("HERE");
                 }
                 else
                 {

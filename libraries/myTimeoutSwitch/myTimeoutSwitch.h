@@ -2,7 +2,8 @@
 #ifndef mytimeoutSW_h
 #define mytimeoutSW_h
 #include <Arduino.h>
-#include <TimeLib.h>
+// #include <TimeLib.h>
+#include <time.h>
 #include <myJSON.h>
 
 typedef void (*func_cb)(uint8_t src, uint8_t i);
@@ -38,6 +39,7 @@ public:
     int remTime();
     time_t onClk();
     uint8_t getCount();
+    void updateEndClk(int TO_dur_minutes, unsigned long TO_start_clk = 0);
 
     myJSON CLKstore;
 
@@ -56,7 +58,6 @@ private:
 
     void _TOlooper();
     void _input_looper();
-    void _updateEndClk(int TO_dur_minutes, unsigned long TO_start_clk = 0);
     void _updateStartClk(long TO_start_clk);
     void _chk_rem_after_boot();
     time_t _now();

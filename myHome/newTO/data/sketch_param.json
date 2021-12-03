@@ -1,56 +1,60 @@
 {
-    "numSW": 1,
+    "numSW": 2,
     "OnatBoot": [
-        true,
+        false,
         false
     ],
     "sw_names": [
-        "LEDstrip",
-        "Ledstrip"
+        "Anna",
+        "Guy"
     ],
     "trigType": [
         0,
         1
     ],
     "useInput": [
+        true,
+        true
+    ],
+    "inputPressed": [
+        false,
+        true
+    ],
+    "reverseInput": [
         false,
         false
     ],
-    "inputPressed": [
-        true,
-        false
-    ],
     "inputPin": [
-        12,
-        13
+        14,
+        12
     ],
     "outputPin": [
-        1,
-        5
+        5,
+        4
     ],
     "output_ON": [
         true,
         true
     ],
     "def_TO_minutes": [
-        420,
-        180
+        60,
+        60
     ],
     "maxON_minutes": [
-        720,
-        360
+        180,
+        180
     ],
     "max_pCount": [
-        3,
+        1,
         3
     ],
     "defPWM": [
-        2,
+        1,
         3
     ],
     "limitPWM": [
-        80,
-        60
+        20,
+        20
     ],
     "outputPWM": [
         true,

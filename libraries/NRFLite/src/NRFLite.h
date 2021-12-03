@@ -1,8 +1,8 @@
 #ifndef _NRFLite_h_
 #define _NRFLite_h_
 
-#include <Arduino.h>
-#include <nRF24L01.h>
+#include "Arduino.h"
+#include "nRF24L01.h"
 
 #ifndef _BV
 #define _BV(bit) (1 << (bit))
@@ -75,6 +75,7 @@ class NRFLite {
     
   private:
 
+    constexpr static uint8_t ADDRESS_PREFIX[4] = { 1, 2, 3, 4 }; // 1st 4 bytes of addresses, 5th byte will be RadioId.
     const static uint8_t CONFIG_REG_SETTINGS_FOR_RX_MODE = _BV(PWR_UP) | _BV(PRIM_RX) | _BV(EN_CRC);
     const static uint32_t NRF_SPICLOCK = 4000000; // Speed to use for SPI communication with the transceiver.
 

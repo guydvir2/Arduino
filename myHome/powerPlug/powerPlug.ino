@@ -1,9 +1,8 @@
-#include <myIOT.h>
+#include <myIOT2.h>
 #include "general_settings.h"
 #include "powerPlug_param.h"
 #include "myIOT_settings.h"
-#include "mySwitch_param.h"
-#include <Arduino.h>
+// #include "mySwitch_param.h"
 
 void startGPIO()
 {
@@ -16,17 +15,17 @@ void turnRelay(bool state)
 {
   if (state)
   {
-    digitalWrite(relayPin, relayON);
+    digitalWrite(relayPin, RelayOn);
     digitalWrite(ledPin, !ledON);
-    relayState = relayON;
+    relayState = RelayOn;
     ledState = !ledON;
     iot.pub_msg("Switch: [ON]");
   }
   else
   {
-    digitalWrite(relayPin, !relayON);
+    digitalWrite(relayPin, !RelayOn);
     digitalWrite(ledPin, ledON);
-    relayState = !relayON;
+    relayState = !RelayOn;
     ledState = ledON;
     iot.pub_msg("Switch: [OFF]");
   }
@@ -64,15 +63,12 @@ void setup()
 {
   startGPIO();
   startRead_parameters();
-  // TOswitch_init();
   startIOTservices();
-  // startdTO();
   endRead_parameters();
 }
 void loop()
 {
   iot.looper();
-  // TOswitch_looper();
   SWlooper();
   autoOff(150);
   delay(100);

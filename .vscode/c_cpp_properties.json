@@ -16,7 +16,8 @@
             "cppStandard": "c++17",
             "defines": [
                 "USBCON"
-            ]
+            ],
+            "configurationProvider": "ms-vscode.cmake-tools"
         },
         {
             "name": "Mac",

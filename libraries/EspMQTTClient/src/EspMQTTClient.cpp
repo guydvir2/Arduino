@@ -3,6 +3,14 @@
 
 // =============== Constructor / destructor ===================
 
+// default constructor
+EspMQTTClient::EspMQTTClient(
+  const short mqttServerPort,
+  const char* mqttClientName) :
+  EspMQTTClient(nullptr, mqttServerPort, mqttClientName)
+{
+}
+
 // MQTT only (no wifi connection attempt)
 EspMQTTClient::EspMQTTClient(
   const char* mqttServerIp,
@@ -66,13 +74,14 @@ EspMQTTClient::EspMQTTClient(
   _mqttLastWillMessage = 0;
   _mqttLastWillRetain = false;
   _mqttCleanSession = true;
-  _mqttClient.setCallback([this](char* topic, byte* payload, unsigned int length) {this->mqttMessageReceivedCallback(topic, payload, length);});
+  _mqttClient.setCallback([this](char* topic, uint8_t* payload, unsigned int length) {this->mqttMessageReceivedCallback(topic, payload, length);});
   _failedMQTTConnectionAttemptCount = 0;
 
-  // Web updater
+  // HTTP/OTA update related
   _updateServerAddress = NULL;
   _httpServer = NULL;
   _httpUpdater = NULL;
+  _enableOTA = false;
 
   // other
   _enableSerialLogs = false;
@@ -117,6 +126,22 @@ void EspMQTTClient::enableHTTPWebUpdater(const char* address)
     enableHTTPWebUpdater("", "", address);
   else
     enableHTTPWebUpdater(_mqttUsername, _mqttPassword, address);
+}
+
+void EspMQTTClient::enableOTA(const char *password, const uint16_t port)
+{
+  _enableOTA = true;
+
+  if (_mqttClientName != NULL)
+    ArduinoOTA.setHostname(_mqttClientName);
+
+  if (password != NULL)
+    ArduinoOTA.setPassword(password);
+  else if (_mqttPassword != NULL)
+    ArduinoOTA.setPassword(_mqttPassword);
+
+  if (port)
+    ArduinoOTA.setPort(port);
 }
 
 void EspMQTTClient::enableMQTTPersistence()
@@ -220,6 +245,9 @@ bool EspMQTTClient::handleWiFi()
         MDNS.update(); // We need to do this only for ESP8266
       #endif
     }
+
+    if (_enableOTA)
+      ArduinoOTA.handle();
   }
 
   // Disconnected since at least one loop() call
@@ -246,14 +274,14 @@ bool EspMQTTClient::handleWiFi()
 
 bool EspMQTTClient::handleMQTT()
 {
-  // PubSubClient main lopp() call
+  // PubSubClient main loop() call
   _mqttClient.loop();
 
   // Get the current connextion status
   bool isMqttConnected = (isWifiConnected() && _mqttClient.connected());
   
 
-  /***** Detect ans handle the current MQTT handling state *****/
+  /***** Detect and handle the current MQTT handling state *****/
 
   // Connection established
   if (isMqttConnected && !_mqttConnected)
@@ -289,7 +317,7 @@ bool EspMQTTClient::handleMQTT()
         Serial.printf("MQTT!: Failed MQTT connection count: %i \n", _failedMQTTConnectionAttemptCount);
 
       // When there is too many failed attempt, sometimes it help to reset the WiFi connection or to restart the board.
-      if(_failedMQTTConnectionAttemptCount == 8)
+      if(_handleWiFi && _failedMQTTConnectionAttemptCount == 8)
       {
         if (_enableSerialLogs)
           Serial.println("MQTT!: Can't connect to broker after too many attempt, resetting WiFi ...");
@@ -344,6 +372,9 @@ void EspMQTTClient::onWiFiConnectionEstablished()
       if (_enableSerialLogs)
         Serial.printf("WEB: Updater ready, open http://%s.local in your browser and login with username '%s' and password '%s'.\n", _mqttClientName, _updateServerUsername, _updateServerPassword);
     }
+
+    if (_enableOTA)
+      ArduinoOTA.begin();
 }
 
 void EspMQTTClient::onWiFiConnectionLost()
@@ -430,7 +461,7 @@ bool EspMQTTClient::subscribe(const String &topic, MessageReceivedCallback messa
   {
     // Add the record to the subscription list only if it does not exists.
     bool found = false;
-    for (byte i = 0; i < _topicSubscriptionList.size() && !found; i++)
+    for (std::size_t i = 0; i < _topicSubscriptionList.size() && !found; i++)
       found = _topicSubscriptionList[i].topic.equals(topic);
 
     if(!found)
@@ -469,7 +500,7 @@ bool EspMQTTClient::unsubscribe(const String &topic)
     return false;
   }
 
-  for (int i = 0; i < _topicSubscriptionList.size(); i++)
+  for (std::size_t i = 0; i < _topicSubscriptionList.size(); i++)
   {
     if (_topicSubscriptionList[i].topic.equals(topic))
     {
@@ -497,6 +528,13 @@ bool EspMQTTClient::unsubscribe(const String &topic)
 void EspMQTTClient::setKeepAlive(uint16_t keepAliveSeconds)
 {
   _mqttClient.setKeepAlive(keepAliveSeconds);
+}
+
+void EspMQTTClient::setWifiCredentials(const char* wifiSsid, const char* wifiPassword)
+{
+  _wifiSsid = wifiSsid;
+  _wifiPassword = wifiPassword;
+  _handleWiFi = true;
 }
 
 void EspMQTTClient::executeDelayed(const unsigned long delay, DelayedExecutionCallback callback)
@@ -529,10 +567,28 @@ void EspMQTTClient::connectToWifi()
 // Try to connect to the MQTT broker and return True if the connection is successfull (blocking)
 bool EspMQTTClient::connectToMqttBroker()
 {
-  if (_enableSerialLogs)
-    Serial.printf("MQTT: Connecting to broker \"%s\" with client name \"%s\" ... (%fs)", _mqttServerIp, _mqttClientName, millis()/1000.0);
+  bool success = false;
 
-  bool success = _mqttClient.connect(_mqttClientName, _mqttUsername, _mqttPassword, _mqttLastWillTopic, 0, _mqttLastWillRetain, _mqttLastWillMessage, _mqttCleanSession);
+  if (_mqttServerIp != nullptr && strlen(_mqttServerIp) > 0)
+  {
+    if (_enableSerialLogs)
+    {
+      if (_mqttUsername)
+        Serial.printf("MQTT: Connecting to broker \"%s\" with client name \"%s\" and username \"%s\" ... (%fs)", _mqttServerIp, _mqttClientName, _mqttUsername, millis()/1000.0);
+      else
+        Serial.printf("MQTT: Connecting to broker \"%s\" with client name \"%s\" ... (%fs)", _mqttServerIp, _mqttClientName, millis()/1000.0);
+    }
+
+    // explicitly set the server/port here in case they were not provided in the constructor
+    _mqttClient.setServer(_mqttServerIp, _mqttServerPort);
+    success = _mqttClient.connect(_mqttClientName, _mqttUsername, _mqttPassword, _mqttLastWillTopic, 0, _mqttLastWillRetain, _mqttLastWillMessage, _mqttCleanSession);
+  }
+  else
+  {
+    if (_enableSerialLogs)
+      Serial.printf("MQTT: Broker server ip is not set, not connecting (%fs)\n", millis()/1000.0);
+    success = false;
+  }
 
   if (_enableSerialLogs)
   {
@@ -588,7 +644,7 @@ void EspMQTTClient::processDelayedExecutionRequests()
   {
     unsigned long currentMillis = millis();
 
-    for(int i = 0 ; i < _delayedExecutionList.size() ; i++)
+    for (std::size_t i = 0 ; i < _delayedExecutionList.size() ; i++)
     {
       if (_delayedExecutionList[i].targetMillis <= currentMillis)
       {
@@ -639,7 +695,7 @@ bool EspMQTTClient::mqttTopicMatch(const String &topic1, const String &topic2)
   return false;
 }
 
-void EspMQTTClient::mqttMessageReceivedCallback(char* topic, byte* payload, unsigned int length)
+void EspMQTTClient::mqttMessageReceivedCallback(char* topic, uint8_t* payload, unsigned int length)
 {
   // Convert the payload into a String
   // First, We ensure that we dont bypass the maximum size of the PubSubClient library buffer that originated the payload
@@ -665,7 +721,7 @@ void EspMQTTClient::mqttMessageReceivedCallback(char* topic, byte* payload, unsi
     Serial.printf("MQTT >> [%s] %s\n", topic, payloadStr.c_str());
 
   // Send the message to subscribers
-  for (byte i = 0 ; i < _topicSubscriptionList.size() ; i++)
+  for (std::size_t i = 0 ; i < _topicSubscriptionList.size() ; i++)
   {
     if (mqttTopicMatch(_topicSubscriptionList[i].topic, String(topic)))
     {

@@ -23,14 +23,14 @@ GND   -> GND
 
 */
 
-#include <SPI.h>
-#include <NRFLite.h>
+#include "SPI.h"
+#include "NRFLite.h"
 
 const static uint8_t RADIO_ID = 0;
 const static uint8_t PIN_RADIO_CE = 9;
 const static uint8_t PIN_RADIO_CSN = 10;
 
-NRFLite _radio(Serial); // Provide a serial object so the radio can print to the serial monitor.
+NRFLite _radio;
 
 void setup()
 {

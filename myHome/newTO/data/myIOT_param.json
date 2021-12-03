@@ -9,9 +9,8 @@
     "useNetworkReset": true,
     "noNetwork_reset": 30,
     "useextTopic": false,
-    "deviceTopic": "test",
-    "groupTopic": "extLights",
+    "deviceTopic": "parentsClosetLEDs",
+    "groupTopic": "intLights",
     "prefixTopic": "myHome",
     "ver": 0.2
 }
-

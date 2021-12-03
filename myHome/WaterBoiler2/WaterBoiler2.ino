@@ -1,15 +1,16 @@
 #include <SPI.h>
 #include <Wire.h>
-#include <Arduino.h>
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
-#include "genrel_settings.h"
-#include <myIOT.h>
+
+#include "constants.h"
+#include <myIOT2.h>
 #include "myIOT_settings.h"
 #include "TO_settings.h"
 
-int timeInc_counter = 0; // counts number of presses to TO increments
+// int timeInc_counter = 0; // counts number of presses to TO increments
 unsigned long clock_noref = 0;
+unsigned long onclk = 0;
 
 // ~~~~~~~~~~~~~~ OLED display ~~~~~~~~~~~~~~~~~
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
@@ -96,36 +97,39 @@ void OLED_SideTXT(int char_size, char *line1, char *line2 = "", char *line3 = ""
         display.display();
 }
 
-void sec2clock(int sec, char *text, char *output_text)
+void sec2clock(int sec, char *output_text)
 {
         int h = ((int)(sec) / (60 * 60));
         int m = ((int)(sec)-h * 60 * 60) / (60);
         int s = ((int)(sec)-h * 60 * 60 - m * 60);
-        sprintf(output_text, "%s %01d:%02d:%02d", text, h, m, s);
+        sprintf(output_text, "%01d:%02d:%02d", h, m, s);
 }
 void display_totalOnTime()
 {
-        char msg[150];
-        int totalONtime = now() - TOswitch.TOswitch.getStart_to();
-        sec2clock(totalONtime, "", msg);
+        char msg[50];
+        sec2clock((int)(iot.now() - onclk), msg);
         clock_noref = millis(); // start clock to Frozen msg
         OLED_CenterTXT(2, "Total", "ON time:", msg);
+        Serial.println(msg);
 }
 void display_ON_clock()
 {
         char time_on_char[20];
         char time2Off_char[20];
-        int timeON = now() - TOswitch.TOswitch.getStart_to();
-        int timeLeft = TOswitch.TOswitch.remain();
 
-        sec2clock(timeON, "", time_on_char);
-        if (timeLeft == 0)
+        if (onclk == 0)
+        {
+                onclk = TOswitch.onClk();
+        }
+
+        sec2clock((int)(iot.now() - onclk), time_on_char);
+        if ((int)(iot.now() - onclk) == 0)
         {
                 OLED_SideTXT(2, "On:", time_on_char);
         }
         else
         {
-                sec2clock(timeLeft, "", time2Off_char);
+                sec2clock(TOswitch.remTime(), time2Off_char);
                 OLED_SideTXT(2, "On:", time_on_char, "Remain:", time2Off_char);
         }
 }
@@ -180,52 +184,26 @@ void OLEDlooper()
         }
 }
 
-// ~~~~~~~~~~~~~~ Switching ~~~~~~~~~~~~~~~~~
-void switchOff(char *txt = "Button")
-{
-        if (TOswitch.last_relayState)
-        {
-                // TOswitch.all_off(txt);
-                // TOswitch.switchIt(txt,0);
-                display_totalOnTime();
-                TOswitch.TOswitch.updateStart(0);
-                timeInc_counter = 0;
-        }
-}
-void switchOn(char *txt = "Button")
-{
-        static bool last_relState = false;
-
-        if (timeInc_counter == 0 && last_relState == !RelayOn)
-        { // first press turns on - still not in TO mode
-                TOswitch.switchIt(txt, 1);
-                TOswitch.TOswitch.updateStart(now()); // register when started in FS
-                timeInc_counter += 1;
-        }
-        // CASE of already on, and insde interval of time - to add timer Qouta
-        else if (timeInc_counter < (maxTO / timeIncrements))
-        {
-                char msg[50];
-                char tempstr[20];
-
-                int newTO = TOswitch.TOswitch.remain() + 1 * timeIncrements * 60; // add a timeQoute to on going TO
-                TOswitch.TOswitch.setNewTimeout(newTO, false);
-                sec2clock((timeInc_counter)*timeIncrements * 60, "Added Timeout: +", msg);
-                timeInc_counter += 1; // Adding time Qouta
-                iot.pub_msg(msg);
-        }
-}
+// ~~~~~~~~~~~~~~ Button Press ~~~~~~~~~~~~~~~~~
 void press_cases(int &pressedTime, const int &max_time_pressed)
 {
-        if (pressedTime > max_time_pressed-500)
+        if (pressedTime > max_time_pressed - 500)
         {
-                TOswitch.switchIt("Button",0);
-                // switchOff();
+                TOswitch.finish_TO(0);
+                onclk = 0;
         }
         else
         {
-                // TOswitch.switchIt("Button",1);
-                switchOn();
+                if (TOswitch.remTime() > 0)
+                {
+                        TOswitch.start_TO(TOswitch.remTime() + timeIncrements * 60, 0, false);
+                        TOswitch.updateEndClk(TOswitch.TO_duration, TOswitch.onClk());
+                }
+                else
+                {
+                        TOswitch.start_TO(timeIncrements * 60, 0, false);
+                        onclk = TOswitch.onClk();
+                }
         }
 }
 void checkSwitch_Pressed()
@@ -260,38 +238,29 @@ void checkSwitch_Pressed()
         {
                 still_pressed = false;
         }
-
         digitalWrite(indic_LEDpin, digitalRead(RELAY1));
 }
+
 void startGPIO()
 {
         pinMode(INPUT1, INPUT_PULLUP); // not defined in mySwitch, but here. Locally.
         pinMode(indic_LEDpin, OUTPUT);
+        pinMode(RELAY1, OUTPUT);
         digitalWrite(RELAY1, !RelayOn);
 }
-void a()
-{
-        switchOn();
-}
-void b()
-{
-        switchOff();
-}
+
 void setup()
 {
         startGPIO();
-        TOswitch_init();
         startIOTservices();
+        TOswitch_init();
         startOLED();
-        TOswitch_begin();
-        TOswitch.on_cb(a);
-        TOswitch.off_cb(b);
 }
 void loop()
 {
         iot.looper();
         OLEDlooper();
-        TOswitch_looper();
         checkSwitch_Pressed();
+        TOswitch.looper();
         delay(100);
 }

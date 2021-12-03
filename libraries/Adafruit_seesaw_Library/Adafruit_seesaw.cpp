@@ -27,6 +27,7 @@
  */
 
 #include "Adafruit_seesaw.h"
+#include <Arduino.h>
 
 //#define SEESAW_I2C_DEBUG
 
@@ -167,6 +168,26 @@ uint32_t Adafruit_seesaw::getVersion() {
   uint32_t ret = ((uint32_t)buf[0] << 24) | ((uint32_t)buf[1] << 16) |
                  ((uint32_t)buf[2] << 8) | (uint32_t)buf[3];
   return ret;
+}
+
+/*!
+ *********************************************************************
+ *  @brief        Returns the version of the seesaw
+ *  @param  pid   Pointer to uint16_t for product code result.
+ *  @param  year  Pointer to uint8_t for date code year result.
+ *  @param  mon   Pointer to uint8_t for date code month result.
+ *  @param  day   Pointer to uint8_t for date code day result.
+ *  @return       Always returns true.
+ ********************************************************************/
+bool Adafruit_seesaw::getProdDatecode(uint16_t *pid, uint8_t *year,
+                                      uint8_t *mon, uint8_t *day) {
+  uint32_t vers = getVersion();
+  *pid = vers >> 16;
+
+  *year = vers & 0x3F;
+  *mon = (vers >> 7) & 0xF;
+  *day = (vers >> 11) & 0x1F;
+  return true;
 }
 
 /*!

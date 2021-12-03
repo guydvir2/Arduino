@@ -1,10 +1,10 @@
-#include <myIOT.h>
+#include <myIOT2.h>
 
 #define DEV_TOPIC "multiSensor"
 #define GROUP_TOPIC ""
 #define PREFIX_TOPIC "myHome"
 
-myIOT iot;
+myIOT2 iot;
 
 void addiotnalMQTT(char *incoming_msg)
 {
@@ -12,7 +12,6 @@ void addiotnalMQTT(char *incoming_msg)
     char msg2[20];
     if (strcmp(incoming_msg, "status") == 0)
     {
-        // sprintf(msg, "Status: Time [%s], Date [%s]", timeStamp, dateStamp);
         iot.pub_msg("NOT Sleeping");
     }
 }
@@ -22,7 +21,6 @@ void startIOTservices()
     iot.useWDT = paramJSON["useWDT"];
     iot.useOTA = paramJSON["useOTA"];
     iot.useResetKeeper = paramJSON["useResetKeeper"];
-    iot.resetFailNTP = paramJSON["useFailNTP"];
     iot.useDebug = paramJSON["useDebugLog"];
     iot.debug_level = paramJSON["debug_level"];
     iot.useNetworkReset = paramJSON["useNetworkReset"];
