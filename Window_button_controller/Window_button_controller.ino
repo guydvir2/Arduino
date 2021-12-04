@@ -10,67 +10,88 @@ uint8_t BUTPIN_UP = D1;
 uint8_t LIGHTPIN_UP = D2;
 uint8_t BUTPIN_DOWN = D3;
 uint8_t LIGHTPIN_DOWN = D4;
-uint8_t *outputPins[] = { &LIGHTPIN_UP, &LIGHTPIN_DOWN };
+uint8_t *outputPins[] = {&LIGHTPIN_UP, &LIGHTPIN_DOWN};
 
 buttonPresses buttUP(BUTPIN_UP, 3);
 buttonPresses buttDOWN(BUTPIN_DOWN, 3);
 
-void butcmds(uint8_t i) {
+void butcmds(uint8_t i)
+{
   char *Topic = "myHome/Windows";
 
-  if (i == 1) {
+  if (i == 1)
+  {
     blink_lights(i, 2);
     iot.pub_noTopic("up", Topic);
     iot.pub_msg("All-Windows: Set [Up]");
-  } else if (i == 2) {
+  }
+  else if (i == 2)
+  {
     blink_lights(i, 2);
     iot.pub_noTopic("down", Topic);
     iot.pub_msg("All-Windows: Set [DOWN]");
-  } else {
+  }
+  else
+  {
     blink_lights(1, 4);
     blink_lights(2, 4);
     iot.pub_noTopic("off", Topic);
     iot.pub_msg("All-Windows: Set [STOP]");
   }
 }
-void readButtons() {
+void readButtons()
+{
   /* 1 - short press
            100 - long press
            0 - button released
         */
 
-  uint8_t upButton_readVal = buttUP.getValue();
-  uint8_t downButton_readVal = buttDOWN.getValue();
+  uint8_t upButton_readVal = buttUP.read();
+  uint8_t downButton_readVal = buttDOWN.read();
 
   if (upButton_readVal == 100 || downButton_readVal == 100) /* long press UP or DOWN*/
   {
-    butcmds(0);  // Off
-  } else if (upButton_readVal == 1) {
-    butcmds(1);  // UP
-  } else if (downButton_readVal == 1) {
-    butcmds(2);  // Down
+    butcmds(0); // Off
+  }
+  else if (upButton_readVal == 1)
+  {
+    butcmds(1); // UP
+  }
+  else if (downButton_readVal == 1)
+  {
+    butcmds(2); // Down
   }
 }
-void steady_blink() {
+void steady_blink()
+{
   static unsigned long lastAction = millis();
   const int offTime = 1500;
   const uint8_t onTime = 200;
 
-  if (millis() - lastAction <= offTime) {
+  if (millis() - lastAction <= offTime)
+  {
     digitalWrite(LIGHTPIN_UP, !LIGHT_ON);
     digitalWrite(LIGHTPIN_DOWN, !LIGHT_ON);
-  } else if (millis() - lastAction > offTime && millis() - lastAction <= onTime + offTime) {
+  }
+  else if (millis() - lastAction > offTime && millis() - lastAction <= onTime + offTime)
+  {
     digitalWrite(LIGHTPIN_UP, LIGHT_ON);
     digitalWrite(LIGHTPIN_DOWN, !LIGHT_ON);
-  } else if (millis() - lastAction > offTime + onTime && millis() - lastAction <= offTime + 2 * onTime) {
+  }
+  else if (millis() - lastAction > offTime + onTime && millis() - lastAction <= offTime + 2 * onTime)
+  {
     digitalWrite(LIGHTPIN_UP, !LIGHT_ON);
     digitalWrite(LIGHTPIN_DOWN, LIGHT_ON);
-  } else {
+  }
+  else
+  {
     lastAction = millis();
   }
 }
-void blink_lights(uint8_t i, uint8_t x) {
-  if (blinkNow) {
+void blink_lights(uint8_t i, uint8_t x)
+{
+  if (blinkNow)
+  {
     const uint8_t DELAY = 100;
     // for (int a = 0; a < x; a++)
     // {
@@ -82,14 +103,16 @@ void blink_lights(uint8_t i, uint8_t x) {
     // }
   }
 }
-void setup() {
+void setup()
+{
   buttDOWN.start();
   buttUP.start();
   pinMode(LIGHTPIN_UP, OUTPUT);
   pinMode(LIGHTPIN_DOWN, OUTPUT);
   startIOTservices();
 }
-void loop() {
+void loop()
+{
   iot.looper();
   readButtons(); /* Delay is already here */
   steady_blink();

@@ -27,11 +27,7 @@ void buttonPresses::start()
 }
 uint8_t buttonPresses::read()
 {
-    if (buttonType == 1 || buttonType == 0)
-    {
-        return _readPin();
-    }
-    else if (buttonType == 2) /* 3 state Rocker switch */
+    if (buttonType < 3)
     {
         return _readPin();
     }
@@ -50,7 +46,7 @@ uint8_t buttonPresses::_read_switch(uint8_t _pin, bool &_pinState)
 }
 uint8_t buttonPresses::_read_multiPress()
 {
-    if (_readPin()==1)//_read_switch(pin0, _lastState_pin0)) /* Pressed */
+    if (_readPin() == 1) //_read_switch(pin0, _lastState_pin0)) /* Pressed */
     {
         /* calc press duration */
         unsigned long current_press_duration = millis();
@@ -96,7 +92,7 @@ uint8_t buttonPresses::_readPin()
         bool _curReadPin0_2 = digitalRead(pin0);
         bool _curReadPin1_2 = digitalRead(pin1);
 
-        if (_curReadPin0_1 == _curReadPin0_2 && _curReadPin0_1 !=_lastState_pin0)
+        if (_curReadPin0_1 == _curReadPin0_2 && _curReadPin0_1 != _lastState_pin0)
         {
             _lastState_pin0 = _curReadPin0_1;
             if (_curReadPin0_1 == BUT_PRESSED)
@@ -108,20 +104,20 @@ uint8_t buttonPresses::_readPin()
                 return 0; /* Released */
             }
         }
+        else if (pin1 != 255 && _curReadPin1_1 == _curReadPin1_2 && _curReadPin1_1 != _lastState_pin1)
+        {
+            _lastState_pin1 = _curReadPin1_1;
+            if (_curReadPin1_1 == BUT_PRESSED)
+            {
+                return 2; /* Pressed */
+            }
+            else
+            {
+                return 0; /* Released */
+            }
+        }
         else
         {
-            if (pin1 != 255 && _curReadPin1_1 == _curReadPin1_2)
-            {
-                _lastState_pin1 = _curReadPin1_1;
-                if (_curReadPin1_1 == BUT_PRESSED)
-                {
-                    return 2; /* Pressed */
-                }
-                else
-                {
-                    return 0; /* Released */
-                }
-            }
             return 3; /* Err*/
         }
     }

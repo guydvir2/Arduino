@@ -8,7 +8,7 @@
 #include "myIOT_settings.h"
 #include "TO_settings.h"
 
-// int timeInc_counter = 0; // counts number of presses to TO increments
+int timeInc_counter = 0; // counts number of presses to TO increments
 unsigned long clock_noref = 0;
 unsigned long onclk = 0;
 
@@ -110,7 +110,6 @@ void display_totalOnTime()
         sec2clock((int)(iot.now() - onclk), msg);
         clock_noref = millis(); // start clock to Frozen msg
         OLED_CenterTXT(2, "Total", "ON time:", msg);
-        Serial.println(msg);
 }
 void display_ON_clock()
 {
@@ -190,18 +189,20 @@ void press_cases(int &pressedTime, const int &max_time_pressed)
         if (pressedTime > max_time_pressed - 500)
         {
                 TOswitch.finish_TO(0);
+                timeInc_counter = 0;
                 onclk = 0;
         }
         else
         {
                 if (TOswitch.remTime() > 0)
                 {
-                        TOswitch.start_TO(TOswitch.remTime() + timeIncrements * 60, 0, false);
+                        timeInc_counter++;
+                        TOswitch.start_TO(timeIncrements *60 +TOswitch.remTime(), 0, false);
                         TOswitch.updateEndClk(TOswitch.TO_duration, TOswitch.onClk());
                 }
                 else
                 {
-                        TOswitch.start_TO(timeIncrements * 60, 0, false);
+                        TOswitch.start_TO(timeIncrements, 0, true);
                         onclk = TOswitch.onClk();
                 }
         }

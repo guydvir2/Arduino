@@ -3,6 +3,7 @@
 timeOUTSwitch TOswitch;
 extern void display_totalOnTime();
 extern unsigned long onclk;
+extern int timeInc_counter;
 
 void turnON_cb(uint8_t src, uint8_t i)
 {
@@ -36,6 +37,7 @@ void turnOFF_cb(uint8_t src, uint8_t i)
         iot.pub_msg(m);
         digitalWrite(RELAY1, !RelayOn);
         onclk = 0;
+        timeInc_counter = 0;
     }
 }
 
