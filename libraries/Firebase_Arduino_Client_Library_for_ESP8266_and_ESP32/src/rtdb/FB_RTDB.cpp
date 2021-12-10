@@ -1,9 +1,9 @@
 /**
- * Google's Firebase Realtime Database class, FB_RTDB.cpp version 1.2.7
+ * Google's Firebase Realtime Database class, FB_RTDB.cpp version 1.2.9
  * 
  * This library supports Espressif ESP8266 and ESP32
  * 
- * Created November 2, 2021
+ * Created December 2, 2021
  * 
  * This work is a part of Firebase ESP Client library
  * Copyright (c) 2021 K. Suwatchai (Mobizt)
@@ -102,6 +102,29 @@ bool FB_RTDB::mSetRules(FirebaseData *fbdo, const char *rules)
     return ret;
 }
 
+void FB_RTDB::storeToken(MBSTRING &atok, const char *databaseSecret)
+{
+    atok = Signer.config->_int.auth_token;
+    Signer.setTokenType(token_type_legacy_token);
+    Signer.config->signer.tokens.legacy_token = databaseSecret;
+    ut->storeS(Signer.config->_int.auth_token, Signer.config->signer.tokens.legacy_token, false);
+    Signer.config->_int.ltok_len = strlen(databaseSecret);
+    Signer.config->_int.rtok_len = 0;
+    Signer.config->_int.atok_len = 0;
+    Signer.handleToken();
+}
+
+void FB_RTDB::restoreToken(MBSTRING &atok, fb_esp_auth_token_type tk)
+{
+    ut->storeS(Signer.config->_int.auth_token, atok.c_str(), false);
+    ut->clearS(atok);
+    Signer.config->signer.tokens.legacy_token = "";
+    Signer.config->signer.tokens.token_type = tk;
+    Signer.config->_int.atok_len = Signer.config->_int.auth_token.length();
+    Signer.config->_int.ltok_len = 0;
+    Signer.handleToken();
+}
+
 bool FB_RTDB::mSetQueryIndex(FirebaseData *fbdo, const char *path, const char *node, const char *databaseSecret)
 {
     if (fbdo->_ss.rtdb.pause)
@@ -117,16 +140,7 @@ bool FB_RTDB::mSetQueryIndex(FirebaseData *fbdo, const char *path, const char *n
     fb_esp_auth_token_type tk = Signer.getTokenType();
 
     if (strlen(databaseSecret) && tk != token_type_oauth2_access_token && tk != token_type_legacy_token)
-    {
-        atok = Signer.config->_int.auth_token;
-        Signer.setTokenType(token_type_legacy_token);
-        Signer.config->signer.tokens.legacy_token = databaseSecret;
-        ut->storeS(Signer.config->_int.auth_token, Signer.config->signer.tokens.legacy_token, false);
-        Signer.config->_int.ltok_len = strlen(databaseSecret);
-        Signer.config->_int.rtok_len = 0;
-        Signer.config->_int.atok_len = 0;
-        Signer.handleToken();
-    }
+        storeToken(atok, databaseSecret);
 
     if (getRules(fbdo))
     {
@@ -171,15 +185,7 @@ bool FB_RTDB::mSetQueryIndex(FirebaseData *fbdo, const char *path, const char *n
     }
 
     if (strlen(databaseSecret) && tk != token_type_oauth2_access_token && tk != token_type_legacy_token)
-    {
-        ut->storeS(Signer.config->_int.auth_token, atok.c_str(), false);
-        ut->clearS(atok);
-        Signer.config->signer.tokens.legacy_token = "";
-        Signer.config->signer.tokens.token_type = tk;
-        Signer.config->_int.atok_len = Signer.config->_int.auth_token.length();
-        Signer.config->_int.ltok_len = 0;
-        Signer.handleToken();
-    }
+        restoreToken(atok, tk);
 
     ut->clearS(s);
     return ret;
@@ -195,15 +201,12 @@ bool FB_RTDB::mSetReadWriteRules(FirebaseData *fbdo, const char *path, const cha
 
     MBSTRING s;
     bool ret = false;
+    MBSTRING atok;
 
     fb_esp_auth_token_type tk = Signer.getTokenType();
 
     if (strlen(databaseSecret) && tk != token_type_oauth2_access_token && tk != token_type_legacy_token)
-    {
-        Signer.config->signer.tokens.legacy_token = databaseSecret;
-        Signer.config->signer.tokens.token_type = token_type_legacy_token;
-        Signer.handleToken();
-    }
+        storeToken(atok, databaseSecret);
 
     if (getRules(fbdo))
     {
@@ -267,10 +270,7 @@ bool FB_RTDB::mSetReadWriteRules(FirebaseData *fbdo, const char *path, const cha
     }
 
     if (strlen(databaseSecret) && tk != token_type_oauth2_access_token && tk != token_type_legacy_token)
-    {
-        Signer.config->signer.tokens.token_type = tk;
-        Signer.handleToken();
-    }
+        restoreToken(atok, tk);
 
     ut->clearS(s);
     return ret;
@@ -1057,6 +1057,7 @@ bool FB_RTDB::mSaveErrorQueue(FirebaseData *fbdo, const char *filename, fb_esp_m
 {
     if (storageType == mem_storage_type_sd)
     {
+#if defined SD_FS
         if (!ut->sdTest(Signer.getCfg()->_int.fb_file))
             return false;
 
@@ -1064,9 +1065,11 @@ bool FB_RTDB::mSaveErrorQueue(FirebaseData *fbdo, const char *filename, fb_esp_m
             SD_FS.remove(filename);
 
         Signer.getCfg()->_int.fb_file = SD_FS.open(filename, FILE_WRITE);
+#endif
     }
     else if (storageType == mem_storage_type_flash)
     {
+#if defined FLASH_FS
         if (!Signer.getCfg()->_int.fb_flash_rdy)
             ut->flashTest();
 
@@ -1074,6 +1077,7 @@ bool FB_RTDB::mSaveErrorQueue(FirebaseData *fbdo, const char *filename, fb_esp_m
             FLASH_FS.remove(filename);
 
         Signer.getCfg()->_int.fb_file = FLASH_FS.open(filename, (const char *)FPSTR("w"));
+#endif
     }
 
     if ((storageType == mem_storage_type_flash || storageType == mem_storage_type_sd) && !Signer.getCfg()->_int.fb_file)
@@ -1114,15 +1118,23 @@ bool FB_RTDB::mDeleteStorageFile(const char *filename, fb_esp_mem_storage_type s
 
     if (storageType == mem_storage_type_sd)
     {
+#if defined SD_FS
         if (!ut->sdTest(Signer.getCfg()->_int.fb_file))
             return false;
         return SD_FS.remove(filename);
+#else
+        return false;
+#endif
     }
     else
     {
+#if defined FLASH_FS
         if (!Signer.getCfg()->_int.fb_flash_rdy)
             ut->flashTest();
         return FLASH_FS.remove(filename);
+#else
+        return false;
+#endif
     }
 }
 
@@ -1133,15 +1145,21 @@ uint8_t FB_RTDB::openErrorQueue(FirebaseData *fbdo, const char *filename, fb_esp
 
     if (storageType == mem_storage_type_sd)
     {
+#if defined SD_FS
         if (!ut->sdTest(Signer.getCfg()->_int.fb_file))
             return 0;
         Signer.getCfg()->_int.fb_file = SD_FS.open(filename, FILE_READ);
+#else
+        return 0;
+#endif
     }
     else if (storageType == mem_storage_type_flash)
     {
+#if defined FLASH_FS
         if (!Signer.getCfg()->_int.fb_flash_rdy)
             ut->flashTest();
         Signer.getCfg()->_int.fb_file = FLASH_FS.open(filename, (const char *)FPSTR("r"));
+#endif
     }
 
     if ((storageType == mem_storage_type_flash || storageType == mem_storage_type_sd) && !Signer.getCfg()->_int.fb_file)
@@ -1397,9 +1415,17 @@ bool FB_RTDB::processRequest(FirebaseData *fbdo, struct fb_esp_rtdb_request_info
                 ut->sdTest(Signer.getCfg()->_int.fb_file);
 
             if (Signer.getCfg()->_int.fb_flash_rdy)
+            {
+#if defined FLASH_FS
                 Signer.getCfg()->_int.fb_file = FLASH_FS.open(fbdo->_ss.rtdb.file_name.c_str(), (const char *)FPSTR("w"));
+#endif
+            }
             else if (Signer.getCfg()->_int.fb_sd_rdy)
+            {
+#if defined SD_FS
                 Signer.getCfg()->_int.fb_file = SD_FS.open(fbdo->_ss.rtdb.file_name.c_str(), FILE_WRITE);
+#endif
+            }
         }
     }
 
@@ -1696,22 +1722,36 @@ int FB_RTDB::sendRequest(FirebaseData *fbdo, struct fb_esp_rtdb_request_info_t *
             {
                 if (fbdo->_ss.rtdb.storage_type == mem_storage_type_flash)
                 {
+#if defined FLASH_FS
                     FLASH_FS.remove(fbdo->_ss.rtdb.backup_filename.c_str());
                     Signer.getCfg()->_int.fb_file = FLASH_FS.open(fbdo->_ss.rtdb.backup_filename.c_str(), (const char *)FPSTR("w"));
+#endif
                 }
                 else if (fbdo->_ss.rtdb.storage_type == mem_storage_type_sd)
                 {
+#if defined SD_FS
                     SD_FS.remove(fbdo->_ss.rtdb.backup_filename.c_str());
                     Signer.getCfg()->_int.fb_file = SD_FS.open(fbdo->_ss.rtdb.backup_filename.c_str(), FILE_WRITE);
+#endif
                 }
             }
             else if (req->method == m_restore)
             {
 
-                if (fbdo->_ss.rtdb.storage_type == mem_storage_type_flash && FLASH_FS.exists(fbdo->_ss.rtdb.backup_filename.c_str()))
-                    Signer.getCfg()->_int.fb_file = FLASH_FS.open(fbdo->_ss.rtdb.backup_filename.c_str(), (const char *)FPSTR("r"));
-                else if (fbdo->_ss.rtdb.storage_type == mem_storage_type_sd && SD_FS.exists(fbdo->_ss.rtdb.backup_filename.c_str()))
-                    Signer.getCfg()->_int.fb_file = SD_FS.open(fbdo->_ss.rtdb.backup_filename.c_str(), FILE_READ);
+                if (fbdo->_ss.rtdb.storage_type == mem_storage_type_flash)
+                {
+#if defined FLASH_FS
+                    if (FLASH_FS.exists(fbdo->_ss.rtdb.backup_filename.c_str()))
+                        Signer.getCfg()->_int.fb_file = FLASH_FS.open(fbdo->_ss.rtdb.backup_filename.c_str(), (const char *)FPSTR("r"));
+#endif
+                }
+                else if (fbdo->_ss.rtdb.storage_type == mem_storage_type_sd)
+                {
+#if defined SD_FS
+                    if (SD_FS.exists(fbdo->_ss.rtdb.backup_filename.c_str()))
+                        Signer.getCfg()->_int.fb_file = SD_FS.open(fbdo->_ss.rtdb.backup_filename.c_str(), FILE_READ);
+#endif
+                }
                 else
                 {
                     ut->appendP(fbdo->_ss.error, fb_esp_pgm_str_83, true);
@@ -1730,6 +1770,7 @@ int FB_RTDB::sendRequest(FirebaseData *fbdo, struct fb_esp_rtdb_request_info_t *
             {
                 if (fbdo->_ss.rtdb.storage_type == mem_storage_type_flash)
                 {
+#if defined FLASH_FS
                     if (FLASH_FS.exists(fbdo->_ss.rtdb.file_name.c_str()))
                         Signer.getCfg()->_int.fb_file = FLASH_FS.open(fbdo->_ss.rtdb.file_name.c_str(), (const char *)FPSTR("r"));
                     else
@@ -1737,9 +1778,13 @@ int FB_RTDB::sendRequest(FirebaseData *fbdo, struct fb_esp_rtdb_request_info_t *
                         ut->appendP(fbdo->_ss.error, fb_esp_pgm_str_83, true);
                         return FIREBASE_ERROR_FILE_IO_ERROR;
                     }
+#else
+                    return FIREBASE_ERROR_FILE_IO_ERROR;
+#endif
                 }
                 else if (fbdo->_ss.rtdb.storage_type == mem_storage_type_sd)
                 {
+#if defined SD_FS
                     if (SD_FS.exists(fbdo->_ss.rtdb.file_name.c_str()))
                         Signer.getCfg()->_int.fb_file = SD_FS.open(fbdo->_ss.rtdb.file_name.c_str(), FILE_READ);
                     else
@@ -1747,6 +1792,9 @@ int FB_RTDB::sendRequest(FirebaseData *fbdo, struct fb_esp_rtdb_request_info_t *
                         ut->appendP(fbdo->_ss.error, fb_esp_pgm_str_83, true);
                         return FIREBASE_ERROR_FILE_IO_ERROR;
                     }
+#else
+                    return FIREBASE_ERROR_FILE_IO_ERROR;
+#endif
                 }
                 len = (4 * ceil(Signer.getCfg()->_int.fb_file.size() / 3.0)) + strlen_P(fb_esp_pgm_str_93) + 1;
             }
@@ -1762,17 +1810,20 @@ int FB_RTDB::sendRequest(FirebaseData *fbdo, struct fb_esp_rtdb_request_info_t *
 
                 if (fbdo->_ss.rtdb.storage_type == mem_storage_type_flash)
                 {
+#if defined FLASH_FS
                     Signer.getCfg()->_int.fb_file = FLASH_FS.open(fbdo->_ss.rtdb.file_name.c_str(), (const char *)FPSTR("w"));
+#endif
                 }
                 else if (fbdo->_ss.rtdb.storage_type == mem_storage_type_sd)
                 {
-
+#if defined SD_FS
                     if (!SD_FS.exists(folder.c_str()))
                         ut->createDirs(folder, (fb_esp_mem_storage_type)fbdo->_ss.rtdb.storage_type);
 
                     SD_FS.remove(fbdo->_ss.rtdb.file_name.c_str());
 
                     Signer.getCfg()->_int.fb_file = SD_FS.open(fbdo->_ss.rtdb.file_name.c_str(), FILE_WRITE);
+#endif
                 }
                 ut->clearS(folder);
             }
@@ -2358,6 +2409,7 @@ bool FB_RTDB::handleResponse(FirebaseData *fbdo)
                                 {
                                     if (!Signer.getCfg()->_int.fb_file)
                                     {
+#if defined FLASH_FS
                                         fbdo->_ss.rtdb.storage_type = mem_storage_type_flash;
                                         tmp = ut->strP(fb_esp_pgm_str_184);
                                         if (!Signer.getCfg()->_int.fb_flash_rdy)
@@ -2367,6 +2419,7 @@ bool FB_RTDB::handleResponse(FirebaseData *fbdo)
                                             Signer.getCfg()->_int.fb_file = FLASH_FS.open(tmp, (const char *)FPSTR("w"));
                                             ut->delP(&tmp);
                                         }
+#endif
                                         readLen = payloadLen - response.payloadOfs;
                                         ofs = response.payloadOfs;
                                     }
@@ -2576,9 +2629,20 @@ bool FB_RTDB::handleResponse(FirebaseData *fbdo)
             }
         }
     }
-
     if (fbdo->_ss.rtdb.no_content_req || response.noContent)
     {
+        //This issue has been fixed on Google side.
+        //https://github.com/mobizt/Firebase-ESP-Client/discussions/165#discussioncomment-1561941
+        //#ifdef FIX_FIRERBASE_RTDB_PRINT_SILENT
+        //if (ut->stringCompare(fbdo->_ss.rtdb.resp_etag.c_str(), 0, fb_esp_pgm_str_151) && fbdo->_ss.rtdb.no_content_req && fbdo->_ss.rtdb.req_method != m_delete)
+        //{
+        //fbdo->_ss.http_code = FIREBASE_ERROR_PATH_NOT_EXIST;
+        //fbdo->_ss.rtdb.path_not_found = true;
+        //}
+        //else
+        //fbdo->_ss.rtdb.path_not_found = false;
+        //#else
+
         if (ut->stringCompare(fbdo->_ss.rtdb.resp_etag.c_str(), 0, fb_esp_pgm_str_151) && response.noContent)
         {
             fbdo->_ss.http_code = FIREBASE_ERROR_PATH_NOT_EXIST;
@@ -2586,6 +2650,7 @@ bool FB_RTDB::handleResponse(FirebaseData *fbdo)
         }
         else
             fbdo->_ss.rtdb.path_not_found = false;
+        //#endif
 
         if (fbdo->_ss.http_code == FIREBASE_ERROR_HTTP_CODE_NO_CONTENT)
         {
@@ -3097,10 +3162,12 @@ int FB_RTDB::sendHeader(FirebaseData *fbdo, struct fb_esp_rtdb_request_info_t *r
         header += fbdo->_ss.rtdb.file_name;
     }
 
-#ifndef FIX_FIRERBASE_RTDB_PRINT_SILENT
+    //This issue has been fixed on Google side.
+    //https://github.com/mobizt/Firebase-ESP-Client/discussions/165#discussioncomment-1561941
+    //#ifndef FIX_FIRERBASE_RTDB_PRINT_SILENT
     if (req->async || req->method == m_get_nocontent || req->method == m_restore || req->method == m_put_nocontent || req->method == m_patch_nocontent)
         ut->appendP(header, fb_esp_pgm_str_29);
-#endif
+    //#endif
 
     ut->appendP(header, fb_esp_pgm_str_30);
     ut->appendP(header, fb_esp_pgm_str_31);

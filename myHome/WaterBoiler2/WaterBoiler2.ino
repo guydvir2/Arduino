@@ -186,7 +186,7 @@ void OLEDlooper()
 // ~~~~~~~~~~~~~~ Button Press ~~~~~~~~~~~~~~~~~
 void press_cases(int &pressedTime, const int &max_time_pressed)
 {
-        if (pressedTime > max_time_pressed - 500)
+        if (pressedTime > max_time_pressed - 500) /* Long press - turning off */
         {
                 TOswitch.finish_TO(0);
                 timeInc_counter = 0;
@@ -194,16 +194,16 @@ void press_cases(int &pressedTime, const int &max_time_pressed)
         }
         else
         {
-                if (TOswitch.remTime() > 0)
-                {
-                        timeInc_counter++;
-                        TOswitch.start_TO(timeIncrements *60 +TOswitch.remTime(), 0, false);
-                        TOswitch.updateEndClk(TOswitch.TO_duration, TOswitch.onClk());
-                }
-                else
+                if (TOswitch.remTime() == 0) /* Turning ON, minimal timer */
                 {
                         TOswitch.start_TO(timeIncrements, 0, true);
                         onclk = TOswitch.onClk();
+                }
+                else /* Add time to timer*/
+                {
+                        timeInc_counter++;
+                        TOswitch.start_TO(timeIncrements * 60 + TOswitch.remTime(), 0, false);
+                        TOswitch.updateEndClk(TOswitch.TO_duration, TOswitch.onClk());
                 }
         }
 }

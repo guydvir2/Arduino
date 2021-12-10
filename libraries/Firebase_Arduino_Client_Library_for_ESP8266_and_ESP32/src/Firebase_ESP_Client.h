@@ -1,17 +1,18 @@
 #ifndef FIREBASE_CLIENT_VERSION
-#define FIREBASE_CLIENT_VERSION "2.6.4"
+#define FIREBASE_CLIENT_VERSION "2.7.1"
 #endif
 
 /**
- * Google's Firebase ESP Client Main class, Firebase_ESP_Client.h v2.6.4
+ * Google's Firebase ESP Client Main class, Firebase_ESP_Client.h v2.7.1
  * 
  * This library supports Espressif ESP8266 and ESP32 MCUs
  * 
- * Created November 5, 2021
+ * Created December 2, 2021
  *
  *   Updates:
- * - Fix anonymous authentication in ESP8266.
- * - Fix compilation error in ESP32 core v2.0.1-RC1
+ * - Fixed UID accidently changed after auth token expired issue #202.
+ * - Fixed access denied in Firebase.RTDB.setReadWriteRules.
+ * 
  * 
  * This work is a part of Firebase ESP Client library
  * Copyright (c) 2021 K. Suwatchai (Mobizt)

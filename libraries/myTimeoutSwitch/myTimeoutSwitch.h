@@ -2,7 +2,6 @@
 #ifndef mytimeoutSW_h
 #define mytimeoutSW_h
 #include <Arduino.h>
-// #include <TimeLib.h>
 #include <time.h>
 #include <myJSON.h>
 
