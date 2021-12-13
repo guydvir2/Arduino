@@ -118,7 +118,7 @@ enum sys_state : const uint8_t
 const uint8_t systemPause = 2; // seconds, delay to system react
 bool indication_ARMED_lastState = false;
 bool indication_ALARMED_lastState = false;
-
+#include<Arduino.h>
 #include <myIOT2.h>
 #include "myIOT_settings.h"
 

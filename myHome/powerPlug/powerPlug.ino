@@ -2,11 +2,10 @@
 #include "general_settings.h"
 #include "powerPlug_param.h"
 #include "myIOT_settings.h"
-// #include "mySwitch_param.h"
+#include "mySwitch_param.h"
 
 void startGPIO()
 {
-  pinMode(swPin, INPUT);
   pinMode(ledPin, OUTPUT);
   pinMode(relayPin, OUTPUT);
   turnRelay(false);
@@ -62,6 +61,7 @@ void autoOff(int time2off)
 void setup()
 {
   startGPIO();
+  TOsw_init();
   startRead_parameters();
   startIOTservices();
   endRead_parameters();
@@ -69,7 +69,8 @@ void setup()
 void loop()
 {
   iot.looper();
-  SWlooper();
-  autoOff(150);
+  // SWlooper();
+  // autoOff(150);
+  TOswitch.looper();
   delay(100);
 }

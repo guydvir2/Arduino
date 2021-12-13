@@ -2,8 +2,7 @@
 #include <FastLED.h>
 
 // ********** Sketch Services  ***********
-#define VER "WEMOS_1.3"
-#define USE_IR_REMOTE false
+#define VER "WEMOS_1.4"
 #define COLOR 1
 #define LED_DELAY 2        // ms
 #define BRIGHTNESS 5       // [0,100]
@@ -11,22 +10,20 @@
 #define MAX_BRIGHT 100
 #define MIN_BRIGHT 5
 #define JUMP_BRIGHT 15
-#define IR_SENSOR_PIN D5
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~
 //  ~~~~~~ LEDS ~~~~~~~~~~~~
-#define NUM_LEDS 150
+#define NUM_LEDS 300
 #define LED_DATA_PIN D4
 
 // ~~~~~~~ MQTT Topics ~~~~~~
-#define DEVICE_TOPIC "kidsColorLEDs"
+#define DEVICE_TOPIC "CorridorLEDs"
 #define MQTT_PREFIX "myHome"
 #define MQTT_GROUP "intLights"
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 #define ADD_MQTT_FUNC addiotnalMQTT
 myIOT2 iot;
-
 
 //  ~~~~~ LEDS ~~~~~
 CRGB leds[NUM_LEDS];
@@ -41,15 +38,13 @@ bool Cylon_flag = false;
    https://github.com/FastLED/FastLED/wiki/Pixel-reference
  */
 
-CRGB colors[] = {0x000000, 0xFFFFFF, 0xFF0000, 0x008000, 0x0000FF,
-                 0xF0F8FF, 0x9966CC,0xFAEBD7, 0x7FFF00,0x8B0000,
-                 0x696969,0xFF1493,0x90EE90,0x87CEEB,0xFF6347};
+CRGB colors[] = {0x000000, 0xFFFFFF, 0xFF0000, 0x008000, 0x0000FF, 0xFFA500, 0xFFFF00,
+                 0xEE82EE, 0x00FF7F, 0xFA8072, 0x808000};
 
-const char *color_names[] = {"Black", "White", "Red", "Green", "Blue",
-                             "AliceBlue","Amethyst","AntiqueWhite","Chartreuse","DarkRed"
-                             "DimGray","DeepPink","LightGreen","SkyBlue","Tomato"};
+const char *color_names[] = {"Black", "White", "Green", "Red", "Blue", "Orange", "Yellow",
+                             "Violet", "SpringGreen", "Salmon", "Olive"};
 
-const int tot_colors = int(sizeof(colors) / sizeof(colors[0]));
+const uint8_t tot_colors = sizeof(colors) / sizeof(colors[0]);
 
 // #############################################################################
 
@@ -70,13 +65,13 @@ void startIOTservices()
         iot.deviceTopic = DEVICE_TOPIC;
         iot.prefixTopic = MQTT_PREFIX;
         iot.addGroupTopic = MQTT_GROUP;
-}
 
+        iot.start_services(addiotnalMQTT);
+}
 
 // ~~~~~~ LED Operations ~~~~~~~~~~
 void turn_leds_off()
 {
-
         for (int i = 0; i < NUM_LEDS; i++)
         {
                 leds[i] = colors[0];
@@ -91,7 +86,6 @@ void turn_leds_off()
 }
 void turn_leds_on(int col_indx = COLOR, int bright_1 = BRIGHTNESS, int del_1 = LED_DELAY, bool dir_1 = LED_DIRECTION)
 {
-
         ledBrightness = bright_1;
         if (col_indx <= tot_colors && bright_1 <= MAX_BRIGHT && del_1 <= 1000 && dir_1 <= 1)
         {
@@ -101,7 +95,8 @@ void turn_leds_on(int col_indx = COLOR, int bright_1 = BRIGHTNESS, int del_1 = L
                         for (int i = 0; i < NUM_LEDS; i++)
                         {
                                 leds[i] = colors[col_indx];
-                                // delay(del_1);
+                                delay(del_1);
+                                FastLED.show();
                         }
                 }
                 else
@@ -109,20 +104,18 @@ void turn_leds_on(int col_indx = COLOR, int bright_1 = BRIGHTNESS, int del_1 = L
                         for (int i = NUM_LEDS - 1; i >= 0; i = i - 1)
                         {
                                 leds[i] = colors[col_indx];
-                                // FastLED.show();
-                                // delay(del_1);
+                                delay(del_1);
+                                FastLED.show();
                         }
                 }
         }
-        FastLED.show();
+        
 }
 void set_bright(byte val)
 {
         char msg[50];
-
         ledBrightness = val;
         turn_leds_on(ledColor, ledBrightness, 0);
-
         sprintf(msg, "Brightness: Changed to [%d], range:[%d/%d]", val, MIN_BRIGHT, MAX_BRIGHT);
         iot.pub_msg(msg);
 }
@@ -130,7 +123,7 @@ void set_color(byte col_i)
 {
         char msg[50];
 
-        if (col_i < tot_colors - 1 && col_i >= 0)
+        if (col_i < tot_colors && col_i >= 0)
         {
                 ledColor = col_i;
                 // turn_leds_off();
@@ -182,7 +175,6 @@ void fadeall()
 }
 void LEDS_looper()
 {
-        // static uint8_t hue = 0;
         uint8_t hue = 0;
 
         for (int i = 0; i < NUM_LEDS; i++)
@@ -220,18 +212,6 @@ void addiotnalMQTT(char *incoming_msg)
                         iot.pub_msg(msg);
                 }
         }
-        // else if (strcmp(incoming_msg, "ver") == 0)
-        // {
-        //         sprintf(msg, "ver #1: [%s], lib: [%s], WDT: [%d], OTA: [%d], SERIAL: [%d], ResetKeeper[%d], FailNTP[%d]", VER, iot.ver, USE_WDT, USE_OTA, USE_SERIAL, USE_RESETKEEPER, USE_FAILNTP);
-        //         iot.pub_msg(msg);
-        // }
-        // else if (strcmp(incoming_msg, "help") == 0)
-        // {
-        //         sprintf(msg, "Help: Commands #1 - [status, boot, reset, ip, ota, ver, help]");
-        //         iot.pub_msg(msg);
-        //         sprintf(msg, "Help: Commands #2 - [on, off, bright, color]");
-        //         iot.pub_msg(msg);
-        // }
         else if (strcmp(incoming_msg, "off") == 0)
         {
                 turn_leds_off();
@@ -259,12 +239,11 @@ void addiotnalMQTT(char *incoming_msg)
         }
 }
 
-
 void setup()
 {
         startIOTservices();
         start_LEDS();
-        turn_leds_on();
+        turn_leds_on(3, 20, 1);
 }
 void loop()
 {

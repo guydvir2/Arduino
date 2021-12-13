@@ -1,6 +1,6 @@
 #include <myIOT2.h>
 
-#define DEV_TOPIC "multiSensor"
+#define                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          hhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhh "multiSensor"
 #define GROUP_TOPIC ""
 #define PREFIX_TOPIC "myHome"
 
@@ -25,8 +25,11 @@ void startIOTservices()
     iot.debug_level = paramJSON["debug_level"];
     iot.useNetworkReset = paramJSON["useNetworkReset"];
     iot.noNetwork_reset = paramJSON["noNetwork_reset"];
+    iot.useextTopic = paramJSON["useextTopic"];
+    iot.useBootClockLog = paramJSON["useBootClockLog"];
     strcpy(iot.deviceTopic, paramJSON["deviceTopic"]);
     strcpy(iot.prefixTopic, paramJSON["prefixTopic"]);
     strcpy(iot.addGroupTopic, paramJSON["groupTopic"]);
+
     iot.start_services(addiotnalMQTT);
 }

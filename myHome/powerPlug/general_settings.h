@@ -4,22 +4,11 @@
 #define RelayOn HIGH /* Relay contacts . Red Led turns on ( in hardware ) */
 #define swON LOW     /* Press Button */
 #define ledON LOW    /* green led will be on when Relay is off */
+#define VER "powerPlug_V0.2"
 
 bool relayState = !RelayOn;
 bool ledState = !ledON;
-
-// ********** Sketch Services  ***********
-#define VER "powerPlug_V0.1"
-static const int maxSW = 2;
-
-bool usePWM;
-bool useExtTrig;
-int numSW;
-int outputPin[maxSW];
-int inputPin[maxSW];
-int extTrigPin;
-int hRebbots[maxSW];
-char SW_Names[maxSW][30];
+bool OnatBoot = false;
 
 /*
  ~~~~~ SONOFF HARDWARE ~~~~~
@@ -29,5 +18,3 @@ char SW_Names[maxSW][30];
  #define INPUT2 14 // 14 for extButton
  #define indic_LEDpin 13
  */
-
-

@@ -1,4 +1,5 @@
 myIOT2 iot;
+#include <Arduino.h>
 
 extern void allOff();
 extern uint8_t get_systemState();

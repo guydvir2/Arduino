@@ -10,7 +10,7 @@ typedef void (*func_cb)(uint8_t src, uint8_t i);
 class timeOUTSwitch
 {
 public:
-    const char *VER = "TOsw_v0.9";
+    const char *Ver = "TOsw_v0.9";
     bool useInput = false;
     bool inTO = false;
     uint8_t trigType = 0; /* 
