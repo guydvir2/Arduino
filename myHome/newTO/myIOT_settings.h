@@ -37,8 +37,7 @@ void addiotnalMQTT(char *incoming_msg)
             {
                 iot.convert_epoch2clock(TOsw[i]->remTime(), 0, s1, s2);
                 simplifyClock(s2, s1, clk2);
-                iot.get_timeStamp(TOsw[i]->onClk());
-                sprintf(clk, "started[%s] remain[%s] ", iot.get_timeStamp(), clk2);
+                sprintf(clk, "started[%s] remain[%s] ", iot.get_timeStamp(TOsw[i]->onClk()), clk2);
             }
             else
             {
@@ -119,9 +118,16 @@ void addiotnalMQTT(char *incoming_msg)
                         TOsw[atoi(iot.inline_param[0])]->start_TO(atoi(iot.inline_param[0]), 2); /* define time in minutes */
                     }
                 }
-                else /* Define power level */
+                else /* Define PWM level */
                 {
-                    TOsw[atoi(iot.inline_param[0])]->pCounter = atoi(iot.inline_param[2]); // Power Level
+                    if (num_parameters == 2)
+                    {
+                        TOsw[atoi(iot.inline_param[0])]->pCounter = 2;
+                    }
+                    else
+                    {
+                        TOsw[atoi(iot.inline_param[0])]->pCounter = atoi(iot.inline_param[2]); // Power Level
+                    }
                     TOsw[atoi(iot.inline_param[0])]->start_TO(TOsw[atoi(iot.inline_param[0])]->maxON_minutes, 2);
                 }
             }

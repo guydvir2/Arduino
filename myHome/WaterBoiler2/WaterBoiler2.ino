@@ -189,7 +189,6 @@ void press_cases(int &pressedTime, const int &max_time_pressed)
         if (pressedTime > max_time_pressed - 500) /* Long press - turning off */
         {
                 TOswitch.finish_TO(0);
-                timeInc_counter = 0;
                 onclk = 0;
         }
         else
@@ -201,9 +200,7 @@ void press_cases(int &pressedTime, const int &max_time_pressed)
                 }
                 else /* Add time to timer*/
                 {
-                        timeInc_counter++;
-                        TOswitch.start_TO(timeIncrements * 60 + TOswitch.remTime(), 0, false);
-                        TOswitch.updateEndClk(TOswitch.TO_duration, TOswitch.onClk());
+                        TOswitch.add_TO(timeIncrements, 0, true);
                 }
         }
 }

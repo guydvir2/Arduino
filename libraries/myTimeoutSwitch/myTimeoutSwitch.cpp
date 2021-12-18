@@ -22,24 +22,20 @@ void timeOUTSwitch::def_funcs(func_cb startF, func_cb endF)
 }
 void timeOUTSwitch::start_TO(int _TO, uint8_t src, bool minutes)
 {
+    TO_duration = _TO; // given in seconds
+    if (minutes)
+    {
+        TO_duration *= 60; // in case given in minutes
+    }
+
     if (!inTO || trigType == 3)
     {
-        TO_duration = _TO; // given in seconds
-        if (minutes)
-        {
-            TO_duration *= 60; // in case given in minutes
-        }
-
         TO_start_millis = millis();
-        _startf(src, icount);
         _updateStartClk(_now());
-        updateEndClk(TO_duration, _now());
-        inTO = true;
     }
-    else
-    {
-        updateEndClk(TO_duration, _now());
-    }
+    updateEndClk(TO_duration, _now());
+    _startf(src, icount);
+    inTO = true;
 }
 void timeOUTSwitch::add_TO(int _TO, uint8_t src, bool minutes)
 {

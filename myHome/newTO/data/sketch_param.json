@@ -9,7 +9,7 @@
         "Guy"
     ],
     "trigType": [
-        3,
+        1,
         1
     ],
     "useInput": [
@@ -57,7 +57,7 @@
         20
     ],
     "outputPWM": [
-        true,
+        false,
         true
     ],
     "PWM_res": 1023,
