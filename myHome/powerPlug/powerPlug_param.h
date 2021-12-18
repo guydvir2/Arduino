@@ -2,9 +2,8 @@
 #include <myJSON.h>
 #include <myTimeoutSwitch.h>
 
-
-#define JSON_SIZE_IOT 400
-#define JSON_SIZE_SKETCH 1200
+#define JSON_SIZE_IOT 450
+#define JSON_SIZE_SKETCH 450
 
 char *sketch_paramfile = "/sketch_param.json";
 bool readfile_ok = false;
@@ -25,7 +24,8 @@ void startRead_parameters()
 {
   String myIOT_defs = "{\"useSerial\":true,\"useWDT\":false,\"useOTA\":true,\"useResetKeeper\" : false,\
                         \"useDebugLog\" : true,\"useNetworkReset\":true, \"deviceTopic\" : \"devTopic\",\
-                        \"groupTopic\" : \"group\",\"prefixTopic\" : \"myHome\",\"debug_level\":0,\"noNetwork_reset\":1}";
+                        \"groupTopic\" : \"group\",\"prefixTopic\" : \"myHome\",\"debug_level\":0,\
+                        \"noNetwork_reset\":1,\"useBootClockLog\": false}";
 
   String sketch_defs = "{\"def_TO_minutes\":120,\"maxON_minutes\":300,\"OnatBoot\":true}";
 
@@ -36,7 +36,7 @@ void startRead_parameters()
   // serializeJsonPretty(sketchJSON, Serial);
   // serializeJsonPretty(paramJSON, Serial);
   // Serial.flush();
-  // update_vars(sketchJSON);
+  update_vars(sketchJSON);
 }
 void endRead_parameters()
 {

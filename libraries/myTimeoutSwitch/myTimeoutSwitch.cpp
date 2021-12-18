@@ -22,23 +22,43 @@ void timeOUTSwitch::def_funcs(func_cb startF, func_cb endF)
 }
 void timeOUTSwitch::start_TO(int _TO, uint8_t src, bool minutes)
 {
-    TO_duration = _TO; // given in seconds
-    if (minutes)
+    if (!inTO || trigType == 3)
     {
-        TO_duration *= 60; // in case given in minutes
-    }
-    TO_start_millis = millis();
-    _startf(src, icount);
-    if (onClk() == 0)
-    {
+        TO_duration = _TO; // given in seconds
+        if (minutes)
+        {
+            TO_duration *= 60; // in case given in minutes
+        }
+
+        TO_start_millis = millis();
+        _startf(src, icount);
         _updateStartClk(_now());
         updateEndClk(TO_duration, _now());
+        inTO = true;
     }
-    if (trigType == 2)
+    else
     {
         updateEndClk(TO_duration, _now());
     }
-    inTO = true;
+}
+void timeOUTSwitch::add_TO(int _TO, uint8_t src, bool minutes)
+{
+    if (!inTO)
+    {
+        start_TO(_TO, src, minutes);
+    }
+    else
+    {
+        if (minutes)
+        {
+            _TO *= 60; // in case given in minutes
+        }
+        int oldT = TO_duration;
+        TO_duration = _TO; // Passing the right amount of time added to _startf
+        _startf(src, icount);
+        TO_duration = _TO + oldT; // update timeout
+        updateEndClk(TO_duration, onClk());
+    }
 }
 void timeOUTSwitch::finish_TO(uint8_t src)
 {
@@ -113,54 +133,68 @@ void timeOUTSwitch::_TOlooper()
 }
 void timeOUTSwitch::_input_looper()
 {
-    uint8_t press_to_off = 2; // seconds. after this re-press PWM will set OFF
     if (useInput)
     {
         bool currentRead_0 = digitalRead(_IN_io);
         delay(50);
         bool currentRead_1 = digitalRead(_IN_io);
+        bool validInput = currentRead_0 == currentRead_1;
 
-        if (currentRead_0 == currentRead_1 && currentRead_0 != _lastinput)
+        if (trigType == 0 && validInput && currentRead_0 == _inputstatOn) /* Button - NO PWM output*/
         {
-            if (trigType == 0 && currentRead_0 == _inputstatOn) /* momnetary button is pressed */
+            if (inTO) /* Trun OFF*/
             {
-                bool cond_a = (pCounter == 0) || (pCounter < max_pCount && millis() - _lastPress < 1000 * press_to_off); /* first press on, or inc intensity */
-                bool cond_b = (pCounter >= max_pCount) || (millis() - _lastPress > 1000 * press_to_off);                 /* when press is far from last - turn off */
-
-                if (cond_a || !inTO)
-                {
-                    pCounter++;
-                    start_TO(def_TO_minutes, 0);
-                    _lastPress = millis();
-                }
-                else if (inTO == true || cond_b)
-                {
-                    finish_TO(0);
-                    pCounter = 0;
-                    _lastPress = 0;
-                }
-                else
-                {
-                    Serial.println("State not defined");
-                }
+                finish_TO(0);
             }
-            else if (trigType == 1) /* Switch is set ON or OFF */
-            {
-                if (currentRead_0 == _inputstatOn)
-                {
-                    start_TO(def_TO_minutes, 0);
-                }
-                else
-                {
-                    finish_TO(0);
-                }
-            }
-            else if (trigType == 2 && currentRead_0 == _inputstatOn && (_lastPress == 0 || millis() - _lastPress > 1000 * 60UL)) /* Case of sensor that each detection restarts its timeout */
+            else // Turn ON
             {
                 start_TO(def_TO_minutes, 0);
-                _lastPress = millis(); /* Avoid frequent write to flash */
+            }
+
+            while (digitalRead(_IN_io) == _inputstatOn) // Avoid long press
+            {
+                delay(10);
+            }
+        }
+        else if (trigType == 1 && validInput && _lastinput != currentRead_0) /* Rocker Switch */
+        {
+            if (currentRead_0 == _inputstatOn)
+            {
+                start_TO(def_TO_minutes, 0);
+            }
+            else
+            {
+                finish_TO(0);
             }
             _lastinput = currentRead_0;
+        }
+        else if (trigType == 2 && validInput && currentRead_0 == _inputstatOn) // sensor input
+        {
+            if (_lastPress == 0 || (millis() - _lastPress > 1000 * 60UL)) /* Case of sensor that each detection restarts its timeout */
+                {
+                    add_TO(def_TO_minutes, 0);
+                    _lastPress = millis(); /* Avoid frequent write to flash */
+                }
+        }
+        else if (trigType == 3 && validInput && currentRead_0 == _inputstatOn)
+        {
+            const uint8_t press_to_off = 3; // seconds. after this re-press PWM will set OFF
+
+            bool cond_a = (pCounter == 0) || (pCounter < max_pCount && millis() - _lastPress < 1000 * press_to_off);      /* first press on, or inc intensity */
+            bool cond_b = (pCounter >= max_pCount) || (_lastPress != 0 && (millis() - _lastPress > 1000 * press_to_off)); /* when press is far from last - turn off */
+
+            if (cond_a) /* Turn ON*/
+            {
+                pCounter++;
+                _lastPress = millis();
+                start_TO(def_TO_minutes, 0);
+            }
+            else if (cond_b) /* Trun OFF*/
+            {
+                finish_TO(0);
+                pCounter = 0;
+                _lastPress = 0;
+            }
         }
     }
 }

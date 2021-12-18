@@ -1,8 +1,11 @@
-#include <ArduinoJson.h>
+#include <Arduino.h>
 #include <myJSON.h>
+#include <myIOT2.h>
 
 #define JSON_SIZE_IOT 500
 #define JSON_SIZE_SKETCH 1500
+
+extern myIOT2 iot;
 
 char *sketch_paramfile = "/sketch_param.json";
 bool readfile_ok = false;

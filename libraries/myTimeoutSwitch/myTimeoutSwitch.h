@@ -13,13 +13,14 @@ public:
     const char *Ver = "TOsw_v0.9";
     bool useInput = false;
     bool inTO = false;
-    uint8_t trigType = 0; /* 
-                          0: momentary button + in PWM pulse counter / PWM
-                          1:O-OFF switch; 
-                          2:trigger/ sensor; 
+    uint8_t trigType = 0; /*
+                          0: momentary button
+                          1: O-OFF switch;
+                          2: trigger/ sensor;
+                          3: PWM pulse counter / PWM
                           */
 
-    int def_TO_minutes = 1;           // time when input pressed
+    int def_TO_minutes = 5;           // time when input pressed
     unsigned int maxON_minutes = 100; // Max ON-time
     unsigned int TO_duration = 0;
     unsigned long TO_start_millis = 0;
@@ -31,6 +32,7 @@ public:
     timeOUTSwitch(bool saveCLK = true);
     void def_funcs(func_cb startF, func_cb endF);
     void start_TO(int _TO, uint8_t src, bool minutes = true);
+    void add_TO(int _TO, uint8_t src, bool minutes = true);
     void finish_TO(uint8_t src);
     void startIO(int _in_IO, bool _instate = HIGH);
     void looper();

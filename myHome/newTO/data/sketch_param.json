@@ -1,5 +1,5 @@
 {
-    "numSW": 2,
+    "numSW": 1,
     "OnatBoot": [
         false,
         false
@@ -9,7 +9,7 @@
         "Guy"
     ],
     "trigType": [
-        0,
+        3,
         1
     ],
     "useInput": [
@@ -25,7 +25,7 @@
         false
     ],
     "inputPin": [
-        14,
+        4,
         12
     ],
     "outputPin": [
@@ -37,7 +37,7 @@
         true
     ],
     "def_TO_minutes": [
-        60,
+        1,
         60
     ],
     "maxON_minutes": [
@@ -45,15 +45,15 @@
         180
     ],
     "max_pCount": [
-        1,
+        3,
         3
     ],
     "defPWM": [
-        1,
+        2,
         3
     ],
     "limitPWM": [
-        20,
+        80,
         20
     ],
     "outputPWM": [
