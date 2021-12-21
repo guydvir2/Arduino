@@ -5,44 +5,56 @@
         false
     ],
     "sw_names": [
-        "Anna",
+        "Plug2",
         "Guy"
     ],
     "trigType": [
-        1,
-        1
+        0,
+        0
     ],
     "useInput": [
         true,
         true
     ],
+    "useIndicLED": [
+        true,
+        false
+    ],
     "inputPressed": [
         false,
-        true
+        false
     ],
     "reverseInput": [
         false,
         false
     ],
     "inputPin": [
-        4,
-        12
+        0,
+        0
     ],
     "outputPin": [
-        5,
-        4
+        12,
+        13
     ],
-    "output_ON": [
+    "indicPin": [
+        13,
+        11
+    ],
+    "indic_ON": [
         true,
         true
     ],
+    "output_ON": [
+        true,
+        false
+    ],
     "def_TO_minutes": [
-        1,
-        60
+        120,
+        120
     ],
     "maxON_minutes": [
-        180,
-        180
+        600,
+        600
     ],
     "max_pCount": [
         3,
@@ -61,5 +73,5 @@
         true
     ],
     "PWM_res": 1023,
-    "v_file": 0.7
+    "v_file": 0.8
 }

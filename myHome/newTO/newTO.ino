@@ -8,17 +8,21 @@ int PWM_res = 1023;
 bool inputPressed[] = {LOW, LOW}; /* High or LOW on button press */
 bool output_ON[] = {HIGH, HIGH};  /* OUTPUT when ON is HIGH or LOW */
 bool OnatBoot[] = {false, false}; /* After reboot- On or Off */
+bool outputPWM[] = {false, false};
+bool useIndicLED[] = {false, false}; /* use indication leds when ON*/
+bool indic_ON[] = {true, true};
 
-uint8_t numSW = 2;             /* Num of switches: 1 or 2 */
-uint8_t inputPin[] = {3, 0};   /* IO for inputs */
-uint8_t outputPin[] = {1, 2};  /* IO for outputs */
+uint8_t numSW = 2;            /* Num of switches: 1 or 2 */
+uint8_t inputPin[] = {3, 0};  /* IO for inputs */
+uint8_t outputPin[] = {1, 2}; /* IO for outputs */
+uint8_t indicPin[] = {1, 2};  /* IO for idication LEDS */
+
 uint8_t defPWM[] = {2, 2};     /* Default PWM value for some cases not specified */
 uint8_t limitPWM[] = {80, 80}; /* Limit total intensity, 1-100 */
-bool outputPWM[] = {false, false};
-char sw_names[2][20]; /* Name of each Switch, as shown on MQTT msg */
+char sw_names[2][20];          /* Name of each Switch, as shown on MQTT msg */
 /* ~~~~~~~~~~~~~~~~~~ End ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 
-const char *VER = "TOswitch_v1.0";
+const char *VER = "TOswitch_v1.1";
 
 #include "myTO_param.h"
 #include "myIOT_settings.h"
@@ -37,6 +41,11 @@ void startIO()
                 else
                 {
                         digitalWrite(outputPin[x], !output_ON[x]);
+                }
+
+                if (useIndicLED[x])
+                {
+                        pinMode(indicPin[x], OUTPUT);
                 }
         }
 }
@@ -72,12 +81,16 @@ bool switchIt(bool state, uint8_t i)
                 if (state == HIGH) // High reffered as ON
                 {
                         digitalWrite(outputPin[i], output_ON[i]);
+                        if (useIndicLED[i])
+                        {
+                                digitalWrite(indicPin[i], indic_ON[i]);
+                        }
                 }
                 else
                 {
                         digitalWrite(outputPin[i], !output_ON[i]);
+                        digitalWrite(indicPin[i], !indic_ON[i]);
                 }
-
                 return 1;
         }
         else

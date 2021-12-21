@@ -1,5 +1,5 @@
 {
-    "useSerial": false,
+    "useSerial": true,
     "useWDT": true,
     "useOTA": true,
     "useResetKeeper": true,
@@ -10,7 +10,7 @@
     "noNetwork_reset": 30,
     "useextTopic": false,
     "deviceTopic": "test",
-    "groupTopic": "nogroup",
+    "groupTopic": "powerPlugs",
     "prefixTopic": "myHome",
     "ver": 0.2
 }
