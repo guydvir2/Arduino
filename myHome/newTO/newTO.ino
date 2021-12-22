@@ -136,11 +136,19 @@ void switchON_cb(uint8_t src, uint8_t i)
                 {
                         switchIt(HIGH, i);
                         sprintf(msg, "%s: [%s] Switched [ON] for [%s]", srcs[src], sw_names[i], clk);
+<<<<<<< HEAD
                 }
                 else
                 {
                         sprintf(msg, "%s: [%s] add-Time [%s]", srcs[src], sw_names[i], clk);
                 }
+=======
+                }
+                else
+                {
+                        sprintf(msg, "%s: [%s] add-Time [%s]", srcs[src], sw_names[i], clk);
+                }
+>>>>>>> 7bcb8b165c1b5cafecffc914ee07789478cc4c88
                 iot.pub_msg(msg);
         }
         else
