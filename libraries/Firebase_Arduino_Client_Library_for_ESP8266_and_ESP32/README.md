@@ -1,7 +1,7 @@
 # Firebase Arduino Client Library for ESP8266 and ESP32
 
 
-Google's Firebase Arduino Client Library for ESP8266 and ESP32 v2.7.1
+Google's Firebase Arduino Client Library for ESP8266 and ESP32 v2.7.3
 
 
 This library supports ESP8266 and ESP32 MCU from Espressif. The following are platforms in which the libraries are also available (RTDB only).
@@ -40,7 +40,7 @@ The library focused on WiFi and Ethernet operations, adding the ability for mobi
 
 To make this library to support all-in-one module that has ESP32 and GSM modem on board, devided this library into small variant which is not compatible with native connectivity and can make the library too complicated. 
  
-In addition, some mobile modem can’t handle the SSL certificate and out date TLS supported. 
+In addition, some mobile modem can’t handle the SSL certificate and out dated TLS supported. 
 
 Creating the new Firebase library that specific to only GSM connectivity concerns the scope of supported MCUs and the SSL library to use on that device and memory available which are most important.
 
@@ -61,7 +61,9 @@ Creating the new Firebase library that specific to only GSM connectivity concern
 
 * **Supports Cloud Functions for Firebase**
 
-* **Built-in JSON parser and builder.**
+* **Built-in JSON editor and deserializer.**
+
+* **Support external Heap via SRAM/PSRAM in ESP8266 and ESP32.**
 
 * **Supports ethernet in ESP32 using LAN8720, TLK110 and IP101 Ethernet modules and ESP8266 using ENC28J60, W5100 and W5500 Ethernet modules.**
 
@@ -117,9 +119,9 @@ For Arduino IDE, download zip file from the repository (Github page) by select *
 
 From Arduino IDE, select menu **Sketch** -> **Include Library** -> **Add .ZIP Library...**.
 
-Choose **Firebase-ESP8266-master.zip** that previously downloaded.
+Choose **Firebase-ESP-Client-main.zip** that previously downloaded.
 
-Go to menu **Files** -> **Examples** -> **Firebase-ESP-Client-master** and choose one from examples.
+Go to menu **Files** -> **Examples** -> **Firebase-ESP-Client-main** and choose one from examples.
 
 
 
@@ -137,9 +139,7 @@ See [function description](/src/README.md) for all available functions.
 
 ```cpp
 
-
 //Include WiFi library
-#include <FirebaseESP8266.h>
 #if defined(ESP32)
 #include <WiFi.h>
 #elif defined(ESP8266)
@@ -232,10 +232,6 @@ MISO (Pin 2)                        GPIO12
 Vcc (Pin 8)                         3V3
 Vcc (Pin 4)                         GND
 ```
-
-More about MMU settings.
-https://arduino-esp8266.readthedocs.io/en/latest/mmu.html
-
 
 
 ### PlatformIO IDE
@@ -342,130 +338,6 @@ Since v2.6.0, this library supports PSRAM for internal memory allocation which y
 ```
 
 
-## IDE Configuaration for ESP8266 MMU - Adjust the Ratio of ICACHE to IRAM
-
-
-
-### Arduino IDE
-
-When you update the ESP8266 Arduino Core SDK to v3.0.0, the memory can be configurable from Arduino IDE board settings.
-
-By default MMU **option 1** was selected, the free Heap can be low and may not suitable for the SSL client usage in this library.
-
-To increase the Heap, choose the MMU **option 3**, 16KB cache + 48KB IRAM and 2nd Heap (shared).
-
-![Arduino IDE config](/media/images/ArduinoIDE.png)
-
-
-More about MMU settings.
-https://arduino-esp8266.readthedocs.io/en/latest/mmu.html
-
-
-
-### PlatformIO IDE
-
-When Core SDK v3.0.0 becomes available in PlatformIO,
-
-By default the balanced ratio (32KB cache + 32KB IRAM) configuration is used.
-
-To increase the heap, **PIO_FRAMEWORK_ARDUINO_MMU_CACHE16_IRAM48_SECHEAP_SHARED** build flag should be assigned in platformio.ini.
-
-At the time of writing, to update SDK to v3.0.0 you can follow these steps.
-
-1. In platformio.ini, edit the config as the following
-
-```ini
-[env:d1_mini]
-platform = https://github.com/platformio/platform-espressif8266.git
-build_flags = -D PIO_FRAMEWORK_ARDUINO_MMU_CACHE16_IRAM48_SECHEAP_SHARED
-board = d1_mini
-framework = arduino
-monitor_speed = 115200
-```
-
-2. Delete this folder **C:\Users\UserName\\.platformio\platforms\espressif8266@src-?????????????**
-3. Delete .pio and .vscode folders in your project.
-4. Clean and Compile the project.
-
-
-
-The supportedd MMU build flags in PlatformIO.
-
-- **PIO_FRAMEWORK_ARDUINO_MMU_CACHE16_IRAM48**
-
-   16KB cache + 48KB IRAM (IRAM)
-
-- **PIO_FRAMEWORK_ARDUINO_MMU_CACHE16_IRAM48_SECHEAP_SHARED**
-
-   16KB cache + 48KB IRAM and 2nd Heap (shared)
-
-- **PIO_FRAMEWORK_ARDUINO_MMU_CACHE16_IRAM32_SECHEAP_NOTSHARED**
-
-   16KB cache + 32KB IRAM + 16KB 2nd Heap (not shared)
-
-- **PIO_FRAMEWORK_ARDUINO_MMU_EXTERNAL_128K**
-
-   128K External 23LC1024
-
-- **PIO_FRAMEWORK_ARDUINO_MMU_EXTERNAL_1024K**
-
-   1M External 64 MBit PSRAM
-
-- **PIO_FRAMEWORK_ARDUINO_MMU_CUSTOM**
-
-   Disables default configuration and expects user-specified flags
-
-
-
-### Test code for MMU
-
-```cpp
-
-#include <Arduino.h>
-#include <umm_malloc/umm_heap_select.h>
-
-void setup() 
-{
-  Serial.begin(74880);
-  HeapSelectIram ephemeral;
-  Serial.printf("IRAM free: %6d bytes\r\n", ESP.getFreeHeap());
-  {
-    HeapSelectDram ephemeral;
-    Serial.printf("DRAM free: %6d bytes\r\n", ESP.getFreeHeap());
-  }
-}
-
-void loop() {
-  // put your main code here, to run repeatedly:
-}
-
-```
-
-
-### Use PSRAM on ESP32
-
-
-To enable PSRAM in ESP32 module with on-board PSRAM chip, in Arduino IDE
-
-![Enable PSRAM in ESP32](/media/images/ESP32-PSRAM.png)
-
-
-In PlatformIO in VSCode IDE, add the following build_flags in your project's platformio.ini file
-
-```ini
-build_flags = -DBOARD_HAS_PSRAM -mfix-esp32-psram-cache-issue
-```
-
-*When config the IDE or add the build flags to use PSRAM in the ESP32 dev boards that do not have on-board PSRAM chip, your device will be crashed (reset).
-
-
-Since v2.6.0, this library supports PSRAM for internal memory allocation which you can config to use it via [**FirebaseFS.h**](src/FirebaseFS.h) with this macro.
-
-```cpp
-#define FIREBASE_USE_PSRAM
-```
-
-
 ## Authentication
 
 This library supports many types of authentications.
@@ -493,9 +365,6 @@ The authenticate using the legacy token (database secret) does not have these de
 
 
 This library focuses on the user privacy and user data protection which follows Google authentication processes. Setting the security rules to allow public access read and write, is not recommended even the data transmision time in this case was significantly reduced as it does not require any auth token then the overall data size was reduced, but anyone can steal, modify, or delete data in your database.
-
-
-Some users may have the question why the time for sending/receiving data with this library was increased when using the different authentication methods which someone compares this with other libraries and platforms which some claims to be fast or has low latency in operation as it does not use any auth token and always requires public read/write allowance security rules which is not good for your privacy and data.
 
 
 Once the auth token is importance and when it was created and ready for authentication process, the data transmission time will depend on the time used in SSL/TLS handshake process (only for new session opening), the size of http header (included auth token size) and payload to be transmitted and the SSL client buffer reserved size especially in ESP8266.
@@ -541,6 +410,25 @@ For post (push) or put (set) request in RTDB, to speed up the data transfer, use
 
 With pushAsync and setAsync, the payload response will be ignored and the next data will be processed immediately.
 
+
+
+### Access in Test Mode (No Auth)
+
+In Test Mode, token generation will be ignored and no authentication applied to the request.
+
+For RTDB, you can access RTDB database in Test Mode by set the security rules like this.
+
+```json
+{
+  "rules": {
+    ".read": true, 
+    ".write": true
+  }
+}
+```
+And set the `config.signer.test_mode = true;`, see [TestMode.ino](/examples/Authentications/TestMode/TestMode.ino) example.
+
+For Cloud Firestore and Firebase Storage, also set `config.signer.test_mode = true;` and modify the rules for the public access to test.
 
 
 ### The authenication credentials and prerequisites

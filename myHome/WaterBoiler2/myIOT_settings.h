@@ -5,7 +5,7 @@ extern timeOUTSwitch TOswitch;
 extern void turnON_cb(uint8_t src, uint8_t i);
 extern void turnOFF_cb(uint8_t src, uint8_t i);
 extern void sec2clock(int sec, char *output_text);
-extern unsigned long onclk;
+// extern unsigned long onclk;
 
 void giveStatus(char *outputmsg)
 {
@@ -55,7 +55,7 @@ void addiotnalMQTT(char *income_msg)
     else if (strcmp(income_msg, "on") == 0)
     {
         TOswitch.start_TO(maxTO, 2);
-        onclk = TOswitch.onClk();
+        // onclk = TOswitch.onClk();
     }
     else
     {
@@ -65,7 +65,7 @@ void addiotnalMQTT(char *income_msg)
             if (strcmp(iot.inline_param[0], "timeout") == 0)
             {
                 TOswitch.start_TO(atoi(iot.inline_param[1]), 2);
-                onclk = TOswitch.onClk();
+                // onclk = TOswitch.onClk();
             }
         }
     }

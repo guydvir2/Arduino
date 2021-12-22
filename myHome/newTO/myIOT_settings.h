@@ -1,3 +1,6 @@
+#include <myIOT2.h>
+myIOT2 iot;
+
 extern void simplifyClock(char *days, char *clk, char retVal[25]);
 
 void addiotnalMQTT(char *incoming_msg)
@@ -34,8 +37,7 @@ void addiotnalMQTT(char *incoming_msg)
             {
                 iot.convert_epoch2clock(TOsw[i]->remTime(), 0, s1, s2);
                 simplifyClock(s2, s1, clk2);
-                iot.get_timeStamp(TOsw[i]->onClk());
-                sprintf(clk, "started[%s] remain[%s] ", iot.get_timeStamp(), clk2);
+                sprintf(clk, "started[%s] remain[%s] ", iot.get_timeStamp(TOsw[i]->onClk()), clk2);
             }
             else
             {
@@ -64,7 +66,7 @@ void addiotnalMQTT(char *incoming_msg)
     }
     else if (strcmp(incoming_msg, "ver2") == 0)
     {
-        sprintf(msg, "ver #2: [%s], lib: [%s], timeoutSw[%s]", VER, iot.ver, TOsw[0]->VER);
+        sprintf(msg, "ver #2: [%s], lib: [%s], timeoutSw[%s]", VER, iot.ver, TOsw[0]->Ver);
         iot.pub_msg(msg);
     }
     else if (strcmp(incoming_msg, "all_off") == 0)
@@ -83,7 +85,7 @@ void addiotnalMQTT(char *incoming_msg)
     }
     else if (strcmp(incoming_msg, "help2") == 0)
     {
-        sprintf(msg, "Help2: Commands #3 - [{on,i}, {off,i}, all_off, all_on, {timeout,minutes,i}, {remain,i}, {show_flash_param}]");
+        sprintf(msg, "Help2: Commands #3 - [{i,on}, {i,off}, {i,remain}, all_off, all_on, {i, timeout,minutes,_pwm}, show_flash_param]");
         iot.pub_msg(msg);
     }
     else
@@ -93,7 +95,7 @@ void addiotnalMQTT(char *incoming_msg)
         {
             if (strcmp(iot.inline_param[1], "timeout") == 0)
             {
-                if (outputPWM[atoi(iot.inline_param[0])] == false)
+                if (!outputPWM[atoi(iot.inline_param[0])])
                 {
                     TOsw[atoi(iot.inline_param[0])]->start_TO(atoi(iot.inline_param[2]), 2);
                 }
@@ -105,7 +107,7 @@ void addiotnalMQTT(char *incoming_msg)
             }
             else if (strcmp(iot.inline_param[1], "on") == 0)
             {
-                if (outputPWM[atoi(iot.inline_param[0])] == false)
+                if (!outputPWM[atoi(iot.inline_param[0])])
                 {
                     if (num_parameters == 2)
                     {
@@ -116,9 +118,16 @@ void addiotnalMQTT(char *incoming_msg)
                         TOsw[atoi(iot.inline_param[0])]->start_TO(atoi(iot.inline_param[0]), 2); /* define time in minutes */
                     }
                 }
-                else /* Define power level */
+                else /* Define PWM level */
                 {
-                    TOsw[atoi(iot.inline_param[0])]->pCounter = atoi(iot.inline_param[2]); // Power Level
+                    if (num_parameters == 2)
+                    {
+                        TOsw[atoi(iot.inline_param[0])]->pCounter = 2;
+                    }
+                    else
+                    {
+                        TOsw[atoi(iot.inline_param[0])]->pCounter = atoi(iot.inline_param[2]); // Power Level
+                    }
                     TOsw[atoi(iot.inline_param[0])]->start_TO(TOsw[atoi(iot.inline_param[0])]->maxON_minutes, 2);
                 }
             }
@@ -132,13 +141,17 @@ void addiotnalMQTT(char *incoming_msg)
                     iot.convert_epoch2clock(TOsw[i]->remTime(), 0, s1, s2);
                     simplifyClock(s2, s1, clk2);
                     iot.get_timeStamp(TOsw[i]->onClk());
-                    sprintf(clk, "remain[%s] ", clk2);
+                    sprintf(clk, "MQTT: remain [%s] ", clk2);
                     iot.pub_msg(clk);
                 }
             }
             else if (strcmp(iot.inline_param[1], "off") == 0)
             {
                 TOsw[atoi(iot.inline_param[0])]->finish_TO(2);
+            }
+            else if (strcmp(iot.inline_param[1], "addTO") == 0)
+            {
+                TOsw[atoi(iot.inline_param[0])]->add_TO(atoi(iot.inline_param[2]), 2);
             }
         }
     }

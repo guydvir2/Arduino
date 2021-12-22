@@ -77,7 +77,9 @@
  * USE_STANDARD_SPI_LIBRARY is two, the SPI port can be selected with the
  * constructors SdFat(SPIClass* spiPort) and SdFatEX(SPIClass* spiPort).
  */
+#ifndef USE_STANDARD_SPI_LIBRARY
 #define USE_STANDARD_SPI_LIBRARY 0
+#endif
 //------------------------------------------------------------------------------
 /**
  * If the symbol ENABLE_SOFTWARE_SPI_CLASS is nonzero, the class SdFatSoftSpi
@@ -91,16 +93,16 @@
  * will be defined by including the system file fcntl.h.
  */
 #if defined(__AVR__)
-// AVR fcntl.h does not define open flags.
-#define USE_FCNTL_H 0
+  // AVR fcntl.h does not define open flags.
+  #define USE_FCNTL_H 0
 #elif defined(PLATFORM_ID)
-// Particle boards - use fcntl.h.
-#define USE_FCNTL_H 1
-#elif defined(__arm__)
-// ARM gcc defines open flags.
-#define USE_FCNTL_H 1
+  // Particle boards - use fcntl.h.
+  #define USE_FCNTL_H 1
+#elif defined(__arm__) || defined(ARDUINO_ARCH_ESP32)
+  // ARM and ESP32 gcc defines open flags.
+  #define USE_FCNTL_H 1
 #else  // defined(__AVR__)
-#define USE_FCNTL_H 0
+  #define USE_FCNTL_H 0
 #endif  // defined(__AVR__)
 //------------------------------------------------------------------------------
 /**

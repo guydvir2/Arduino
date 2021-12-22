@@ -1,25 +1,28 @@
-#include <myIOT2.h>
+#include <Arduino.h>
 #include <myTimeoutSwitch.h>
 
-myIOT2 iot;
 timeOUTSwitch *TOsw[2] = {}; /* Support up to 2 TOsw */
 
 /* ~~~~~~~~~~~ Values get updated from parameter file ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
 int PWM_res = 1023;
-bool inputPressed[] = {LOW, LOW};     /* High or LOW on button press */
-bool output_ON[] = {HIGH, HIGH};      /* OUTPUT when ON is HIGH or LOW */
-bool OnatBoot[] = {false, false};     /* After reboot- On or Off */
- 
-uint8_t numSW = 2;                    /* Num of switches: 1 or 2 */
-uint8_t inputPin[] = {3, 0};          /* IO for inputs */
-uint8_t outputPin[] = {1, 2};         /* IO for outputs */
-uint8_t defPWM[] = {2, 2};            /* Default PWM value for some cases not specified */
-uint8_t limitPWM[] = {80, 80};        /* Limit total intensity, 1-100 */
+bool inputPressed[] = {LOW, LOW}; /* High or LOW on button press */
+bool output_ON[] = {HIGH, HIGH};  /* OUTPUT when ON is HIGH or LOW */
+bool OnatBoot[] = {false, false}; /* After reboot- On or Off */
 bool outputPWM[] = {false, false};
-char sw_names[2][10]; /* Name of each Switch, as shown on MQTT msg */
+bool useIndicLED[] = {false, false}; /* use indication leds when ON*/
+bool indic_ON[] = {true, true};
+
+uint8_t numSW = 2;            /* Num of switches: 1 or 2 */
+uint8_t inputPin[] = {3, 0};  /* IO for inputs */
+uint8_t outputPin[] = {1, 2}; /* IO for outputs */
+uint8_t indicPin[] = {1, 2};  /* IO for idication LEDS */
+
+uint8_t defPWM[] = {2, 2};     /* Default PWM value for some cases not specified */
+uint8_t limitPWM[] = {80, 80}; /* Limit total intensity, 1-100 */
+char sw_names[2][20];          /* Name of each Switch, as shown on MQTT msg */
 /* ~~~~~~~~~~~~~~~~~~ End ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 
-const char *VER = "TOswitch_v0.71";
+const char *VER = "TOswitch_v1.1";
 
 #include "myTO_param.h"
 #include "myIOT_settings.h"
@@ -27,6 +30,7 @@ const char *VER = "TOswitch_v0.71";
 /* Controlling IOs */
 void startIO()
 {
+        analogWriteRange(PWM_res); /* PWM at ESP8266 */
         for (int x = 0; x < numSW; x++)
         {
                 pinMode(outputPin[x], OUTPUT);
@@ -38,46 +42,41 @@ void startIO()
                 {
                         digitalWrite(outputPin[x], !output_ON[x]);
                 }
+
+                if (useIndicLED[x])
+                {
+                        pinMode(indicPin[x], OUTPUT);
+                }
         }
 }
 bool get_SWstate(uint8_t i = 0)
 {
-        if (outputPWM[i] == false)
+        if (!outputPWM[i])
         {
-                if (digitalRead(outputPin[i]) == output_ON[i])
-                {
-                        return 1;
-                }
-                else
-                {
-                        return 0;
-                }
+                return digitalRead(outputPin[i]) == output_ON[i];
         }
         else /* PWM */
         {
-                if (TOsw[i]->pCounter > 0)
-                {
-                        return 1;
-                }
-                else
-                {
-                        return 0;
-                }
+                return TOsw[i]->pCounter > 0;
         }
 }
 bool switchIt(bool state, uint8_t i)
 {
         if (state != get_SWstate(i))
         {
-                if (state == HIGH)
+                if (state == HIGH) // High reffered as ON
                 {
                         digitalWrite(outputPin[i], output_ON[i]);
+                        if (useIndicLED[i])
+                        {
+                                digitalWrite(indicPin[i], indic_ON[i]);
+                        }
                 }
                 else
                 {
                         digitalWrite(outputPin[i], !output_ON[i]);
+                        digitalWrite(indicPin[i], !indic_ON[i]);
                 }
-
                 return 1;
         }
         else
@@ -92,7 +91,7 @@ int convDim(uint8_t dim_step, uint8_t i)
 void PWMdim(int dim_step, uint8_t i)
 {
         int C_val = 1;
-        const uint8_t delay_step = 2;
+        const uint8_t delay_step = 1;
         static int _last_dimVal[] = {0, 0};
         int desiredval = convDim(dim_step, i);
 
@@ -126,54 +125,36 @@ void switchON_cb(uint8_t src, uint8_t i)
         char s1[25];
         char s2[7];
         char clk[25];
-        char orig[10];
 
-        if (src == 0)
-        {
-                strcpy(orig, "Button");
-        }
-        else if (src == 1)
-        {
-                strcpy(orig, "Resume");
-        }
-        else if (src == 2)
-        {
-                strcpy(orig, "MQTT");
-        }
-        else if (src == 3)
-        {
-                strcpy(orig, "PowenOn");
-        }
+        char *srcs[] = {"Button", "Resume", "MQTT", "PowenOn"};
 
-        if (outputPWM[i] == false)
+        if (!outputPWM[i])
         {
+                iot.convert_epoch2clock(TOsw[i]->TO_duration, 0, s1, s2);
+                simplifyClock(s2, s1, clk);
                 if (get_SWstate(i) == 0 || millis() < 15000) /* millis() added in case of power-on boot*/
                 {
-                        iot.convert_epoch2clock(TOsw[i]->TO_duration, 0, s1, s2);
-                        simplifyClock(s2, s1, clk);
                         switchIt(HIGH, i);
-                        sprintf(msg, "%s: [%s] Switched [ON] for [%s]", orig, sw_names[i], clk);
-                        iot.pub_msg(msg);
+                        sprintf(msg, "%s: [%s] Switched [ON] for [%s]", srcs[src], sw_names[i], clk);
                 }
+                else
+                {
+                        sprintf(msg, "%s: [%s] add-Time [%s]", srcs[src], sw_names[i], clk);
+                }
+                iot.pub_msg(msg);
         }
         else
         {
                 bool msg_a = false;
-                if (src == 1) /* Resume after boot */
+                // ~~~~~~~~~ Setting internsity ~~~~~~~
+                if (src == 1) /* Resume after boot - and time remain */
                 {
                         TOsw[i]->pCounter = TOsw[i]->getCount();
                 }
-                else if ((TOsw[i]->trigType == 1 && src == 0) || (TOsw[i]->pCounter == 0)) /* case of activate ONLY by Switch - use DEF value */
+                // else if ((TOsw[i]->trigType <=1 && src == 0) || (TOsw[i]->pCounter == 0)) /* When setting Switch or button to use DEF value only */
+                else if ((TOsw[i]->trigType <= 1)) /* When setting Switch or button to use DEF value only */
                 {
                         TOsw[i]->pCounter = defPWM[i];
-                }
-                else if (TOsw[i]->trigType == 0) /* Case of Button */
-                {
-                        if (TOsw[i]->inTO == true)
-                        {
-                                sprintf(msg, "%s: [%s] Power change[%d%%]", orig, sw_names[i], (int)(100 * TOsw[i]->pCounter / TOsw[i]->max_pCount));
-                                msg_a = true;
-                        }
                 }
                 else if (TOsw[i]->trigType == 2) /* Case of Sensor - extend duration */
                 {
@@ -182,13 +163,22 @@ void switchON_cb(uint8_t src, uint8_t i)
                                 return;
                         }
                 }
+                else if (TOsw[i]->trigType == 3) /* Case of Button */
+                {
+                        if (TOsw[i]->inTO == true)
+                        {
+                                sprintf(msg, "%s: [%s] Power change[%d%%]", srcs[src], sw_names[i], (int)(100 * TOsw[i]->pCounter / TOsw[i]->max_pCount));
+                                msg_a = true;
+                        }
+                }
+
                 PWMdim(TOsw[i]->pCounter, i);
 
                 if (msg_a == false) /* Valid for power on */
                 {
                         iot.convert_epoch2clock(TOsw[i]->TO_duration, 0, s1, s2);
                         simplifyClock(s2, s1, clk);
-                        sprintf(msg, "%s: [%s] Switched [ON] Power[%d%%] for [%s]", orig, sw_names[i], (int)(100 * TOsw[i]->pCounter / TOsw[i]->max_pCount), clk);
+                        sprintf(msg, "%s: [%s] Switched [ON] Power[%d%%] for [%s]", srcs[src], sw_names[i], (int)(100 * TOsw[i]->pCounter / TOsw[i]->max_pCount), clk);
                 }
                 iot.pub_msg(msg);
         }
@@ -200,24 +190,12 @@ void switchOFF_cb(uint8_t src, uint8_t i)
         char s2[7];
         char clk[25];
         char clk2[25];
-        char orig[10];
 
-        if (src == 0)
-        {
-                strcpy(orig, "Button");
-        }
-        else if (src == 1)
-        {
-                strcpy(orig, "Timeout");
-        }
-        else if (src == 2)
-        {
-                strcpy(orig, "MQTT");
-        }
+        char *srcs[] = {"Button", "Timeout", "MQTT"};
 
         if (get_SWstate(i) == 1 && TOsw[i]->onClk() != 0)
         {
-                if (outputPWM[i] == false)
+                if (!outputPWM[i])
                 {
                         switchIt(LOW, i);
                 }
@@ -234,20 +212,14 @@ void switchOFF_cb(uint8_t src, uint8_t i)
                 {
                         iot.convert_epoch2clock(TOsw[i]->remTime(), 0, s1, s2);
                         simplifyClock(s2, s1, clk2);
-                        sprintf(msg, "%s: [%s] Switched [OFF] after [%s], remained [%s]", orig, sw_names[i], clk, clk2);
+                        sprintf(msg, "%s: [%s] Switched [OFF] after [%s], remained [%s]", srcs[src], sw_names[i], clk, clk2);
                 }
                 else /* End by timeout */
                 {
-                        sprintf(msg, "%s: [%s] Switched [OFF] ended after [%s]", orig, sw_names[i], clk);
+                        sprintf(msg, "%s: [%s] Switched [OFF] ended after [%s]", srcs[src], sw_names[i], clk);
                 }
                 iot.pub_msg(msg);
         }
-
-        // else
-        // {
-        //         sprintf(msg, "Error: [%s] not ON or not in timeout", sw_names[i]);
-        //         iot.pub_msg(msg);
-        // }
 }
 void init_timeOUT()
 {
@@ -287,7 +259,6 @@ void setup()
 {
         init_timeOUT();
         startRead_parameters();
-        analogWriteRange(1023); /* PWM at ESP8266 */
         startIO();
         startIOTservices();
         start_timeOUT();
@@ -297,5 +268,4 @@ void loop()
 {
         iot.looper();
         loop_timeOUT();
-        delay(50);
 }

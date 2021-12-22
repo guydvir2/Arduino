@@ -1,6 +1,6 @@
 {
-    "OnatBoot": false,
-    "def_TO_minutes": 60,
+    "OnatBoot": true,
+    "def_TO_minutes": 150,
     "maxON_minutes":600,
     "v_file": 0.1
 }

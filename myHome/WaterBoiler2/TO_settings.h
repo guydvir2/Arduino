@@ -2,7 +2,7 @@
 
 timeOUTSwitch TOswitch;
 extern void display_totalOnTime();
-extern unsigned long onclk;
+// extern unsigned long onclk;
 extern int timeInc_counter;
 
 void turnON_cb(uint8_t src, uint8_t i)
@@ -10,9 +10,16 @@ void turnON_cb(uint8_t src, uint8_t i)
     char m[100];
     char c[40];
     char *srcs[] = {"Button", "Timeout", "MQTT"};
+    
     sec2clock(TOswitch.TO_duration, c);
-
-    sprintf(m, "[%s]: Timeout started [%s]", srcs[src], c);
+    if (!TOswitch.inTO)
+    {
+        sprintf(m, "[%s]: Timeout started [%s]", srcs[src], c);
+    }
+    else
+    {
+        sprintf(m, "[%s]: Timeout update [%s]", srcs[src], c);
+    }
     iot.pub_msg(m);
     digitalWrite(RELAY1, RelayOn);
 }
@@ -36,8 +43,6 @@ void turnOFF_cb(uint8_t src, uint8_t i)
         }
         iot.pub_msg(m);
         digitalWrite(RELAY1, !RelayOn);
-        onclk = 0;
-        timeInc_counter = 0;
     }
 }
 
