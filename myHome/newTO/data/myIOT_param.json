@@ -10,7 +10,7 @@
     "noNetwork_reset": 30,
     "useextTopic": false,
     "deviceTopic": "test",
-    "groupTopic": "powerPlugs",
+    "groupTopic": "",
     "prefixTopic": "myHome",
     "ver": 0.2
 }

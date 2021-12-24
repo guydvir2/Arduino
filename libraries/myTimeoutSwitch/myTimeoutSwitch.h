@@ -1,4 +1,3 @@
-
 #ifndef mytimeoutSW_h
 #define mytimeoutSW_h
 #include <Arduino.h>
@@ -18,6 +17,7 @@ public:
                           1: O-OFF switch;
                           2: trigger/ sensor;
                           3: PWM pulse counter / PWM
+                          4: Add time each press
                           */
 
     int def_TO_minutes = 5;           // time when input pressed

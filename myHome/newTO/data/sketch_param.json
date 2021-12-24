@@ -5,11 +5,11 @@
         false
     ],
     "sw_names": [
-        "Plug2",
+        "t2",
         "Guy"
     ],
     "trigType": [
-        0,
+        4,
         0
     ],
     "useInput": [
@@ -29,15 +29,15 @@
         false
     ],
     "inputPin": [
-        0,
+        5,
         0
     ],
     "outputPin": [
-        12,
+        4,
         13
     ],
     "indicPin": [
-        13,
+        0,
         11
     ],
     "indic_ON": [
@@ -49,7 +49,7 @@
         false
     ],
     "def_TO_minutes": [
-        120,
+        15,
         120
     ],
     "maxON_minutes": [

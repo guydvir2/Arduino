@@ -167,12 +167,12 @@ void timeOUTSwitch::_input_looper()
         else if (trigType == 2 && validInput && currentRead_0 == _inputstatOn) // sensor input
         {
             if (_lastPress == 0 || (millis() - _lastPress > 1000 * 60UL)) /* Case of sensor that each detection restarts its timeout */
-                {
-                    add_TO(def_TO_minutes, 0);
-                    _lastPress = millis(); /* Avoid frequent write to flash */
-                }
+            {
+                start_TO(def_TO_minutes, 0);
+                _lastPress = millis(); /* Avoid frequent write to flash */
+            }
         }
-        else if (trigType == 3 && validInput && currentRead_0 == _inputstatOn)
+        else if (trigType == 3 && validInput && currentRead_0 == _inputstatOn) // PWM input
         {
             const uint8_t press_to_off = 3; // seconds. after this re-press PWM will set OFF
 
@@ -191,6 +191,25 @@ void timeOUTSwitch::_input_looper()
                 pCounter = 0;
                 _lastPress = 0;
             }
+        }
+        else if (trigType == 4 && validInput && currentRead_0 == _inputstatOn) // sensor input
+        {
+            _lastPress=millis();
+            while (digitalRead(_IN_io) == _inputstatOn) // Avoid long press
+            {
+                delay(10);
+            }
+            if (millis() - _lastPress < 750)
+            {
+                add_TO(def_TO_minutes, 0);
+                Serial.println("here");
+            }
+            else
+            {
+                finish_TO(0);
+                Serial.println("here2");
+            }
+            Serial.println(millis() - _lastPress);
         }
     }
 }
