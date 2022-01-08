@@ -9,7 +9,7 @@ typedef void (*func_cb)(uint8_t src, uint8_t i);
 class timeOUTSwitch
 {
 public:
-    const char *Ver = "TOsw_v0.9";
+    const char *Ver = "TOsw_v0.95";
     bool useInput = false;
     bool inTO = false;
     uint8_t trigType = 0; /*
@@ -17,7 +17,7 @@ public:
                           1: O-OFF switch;
                           2: trigger/ sensor;
                           3: PWM pulse counter / PWM
-                          4: Add time each press
+                          4: Add time each press + long press to end
                           */
 
     int def_TO_minutes = 5;           // time when input pressed

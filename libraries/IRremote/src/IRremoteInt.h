@@ -1,8 +1,7 @@
 /**
  * @file IRremoteInt.h
  * @brief Contains all declarations required for the interface to IRremote.
- * Could not be named IRremote.h, since this has another semantic for old example code found in the wild,
- * because it must include all *.hpp files.
+ * Could not be named IRremote.h, since this has another semantic (it must include all *.hpp files) for old example code found in the wild.
  *
  * This file is part of Arduino-IRremote https://github.com/Arduino-IRremote/Arduino-IRremote.
  *
@@ -36,26 +35,13 @@
 
 #include <Arduino.h>
 
-/*
- * !!! 3 macros which are evaluated in this file and must be consistent with the definitions in the ino file if they are not already defined !!!
- * RAW_BUFFER_LENGTH and IR_SEND_PIN and SEND_PWM_BY_TIMER
- * Modify or keep the 3 values below, if you use #include IRremoteInt.h in a file not containing main().
- * !!! RAW_BUFFER_LENGTH must have the same value for ALL compilation units !!!
- * Otherwise you will see warnings like: "warning: type 'struct irparams_struct' violates the C++ One Definition Rule"
- */
-#if !defined(RAW_BUFFER_LENGTH)
-//#define RAW_BUFFER_LENGTH  100 // 100 is default
-//#define RAW_BUFFER_LENGTH  112 //  MagiQuest requires 112 bytes. enable this if DECODE_MAGIQUEST is enabled
-#endif
-#if !defined(IR_SEND_PIN)
-//#define IR_SEND_PIN            // here it is only interesting if it is defined, the value does not matter here
-#endif
-#if !defined(SEND_PWM_BY_TIMER)
-//#define SEND_PWM_BY_TIMER      // here it is only interesting if it is defined, there is no value anyway
-#endif
 #if !defined(RAW_BUFFER_LENGTH)
 #error Seems you use #include IRremoteInt.h in a file not containing main(). Please define RAW_BUFFER_LENGTH with the same value as in the main program and check if the macros IR_SEND_PIN and SEND_PWM_BY_TIMER are defined in the main program.
 #endif
+//#define RAW_BUFFER_LENGTH  100 // 100 is default
+//#define RAW_BUFFER_LENGTH  112 //  MagiQuest requires 112 bytes. enable this if DECODE_MAGIQUEST is enabled
+//#define SEND_PWM_BY_TIMER
+//#define IR_SEND_PIN            // here it is only interesting if it is defined, the value does not matter here
 
 #define MARK   1
 #define SPACE  0
@@ -134,42 +120,42 @@ struct irparams_struct {
  * Can be disabled to save program space
  */
 #ifdef INFO
-#  define INFO_PRINT(...)    Serial.print(__VA_ARGS__)
-#  define INFO_PRINTLN(...)  Serial.println(__VA_ARGS__)
+#  define IR_INFO_PRINT(...)    Serial.print(__VA_ARGS__)
+#  define IR_INFO_PRINTLN(...)  Serial.println(__VA_ARGS__)
 #else
 /**
  * If INFO, print the arguments, otherwise do nothing.
  */
-#  define INFO_PRINT(...) void()
+#  define IR_INFO_PRINT(...) void()
 /**
  * If INFO, print the arguments as a line, otherwise do nothing.
  */
-#  define INFO_PRINTLN(...) void()
+#  define IR_INFO_PRINTLN(...) void()
 #endif
 
 /*
  * Debug directives
  */
 #ifdef DEBUG
-#  define DEBUG_PRINT(...)    Serial.print(__VA_ARGS__)
-#  define DEBUG_PRINTLN(...)  Serial.println(__VA_ARGS__)
+#  define IR_DEBUG_PRINT(...)    Serial.print(__VA_ARGS__)
+#  define IR_DEBUG_PRINTLN(...)  Serial.println(__VA_ARGS__)
 #else
 /**
  * If DEBUG, print the arguments, otherwise do nothing.
  */
-#  define DEBUG_PRINT(...) void()
+#  define IR_DEBUG_PRINT(...) void()
 /**
  * If DEBUG, print the arguments as a line, otherwise do nothing.
  */
-#  define DEBUG_PRINTLN(...) void()
+#  define IR_DEBUG_PRINTLN(...) void()
 #endif
 
 #ifdef TRACE
-#  define TRACE_PRINT(...)    Serial.print(__VA_ARGS__)
-#  define TRACE_PRINTLN(...)  Serial.println(__VA_ARGS__)
+#  define IR_TRACE_PRINT(...)    Serial.print(__VA_ARGS__)
+#  define IR_TRACE_PRINTLN(...)  Serial.println(__VA_ARGS__)
 #else
-#  define TRACE_PRINT(...) void()
-#  define TRACE_PRINTLN(...) void()
+#  define IR_TRACE_PRINT(...) void()
+#  define IR_TRACE_PRINTLN(...) void()
 #endif
 
 /****************************************************
@@ -203,16 +189,7 @@ struct IRData {
     irparams_struct *rawDataPtr; ///< Pointer of the raw timing data to be decoded. Mainly the data buffer filled by receiving ISR.
 };
 
-/**
- * Just for better readability of code
- */
-#define USE_DEFAULT_FEEDBACK_LED_PIN 0
 
-/*
- * Activating this saves 60 bytes program space and 14 bytes RAM
- */
-//#define NO_LEGACY_COMPATIBILITY
-#if !defined(NO_LEGACY_COMPATIBILITY)
 /**
  * Results returned from old decoders !!!deprecated!!!
  */
@@ -229,7 +206,6 @@ struct decode_results {
     uint16_t rawlen;            // deprecated, moved to decodedIRData.rawDataPtr->rawlen ///< Number of records in rawbuf
     bool overflow;              // deprecated, moved to decodedIRData.flags ///< true if IR raw code too long
 };
-#endif
 
 /**
  * Main class for receiving IR signals
@@ -314,6 +290,7 @@ public:
     bool decodeSamsung();
     bool decodeSharp(); // redirected to decodeDenon()
     bool decodeSony();
+    bool decodeWhynter();
 
     bool decodeDistance();
 
@@ -325,7 +302,6 @@ public:
     /*
      * Old functions
      */
-#if !defined(NO_LEGACY_COMPATIBILITY)
     bool decodeDenonOld(decode_results *aResults);
     bool decodeJVCMSB(decode_results *aResults);
     bool decodeLGMSB(decode_results *aResults);
@@ -338,8 +314,6 @@ public:
     bool decode(
             decode_results *aResults)
                     __attribute__ ((deprecated ("Please use IrReceiver.decode() without a parameter and IrReceiver.decodedIRData.<fieldname> ."))); // deprecated
-#endif
-    bool decodeWhynter();
 
     // for backward compatibility. Now in IRFeedbackLED.hpp
     void blink13(bool aEnableLEDFeedback)
@@ -463,8 +437,10 @@ public:
 #endif
 
     void begin(bool aEnableLEDFeedback, uint8_t aFeedbackLEDPin = USE_DEFAULT_FEEDBACK_LED_PIN);
+    void begin(uint8_t aSendPin);
+
     // Not guarded for backward compatibility
-    void begin(uint8_t aSendPin, bool aEnableLEDFeedback = true, uint8_t aFeedbackLEDPin = USE_DEFAULT_FEEDBACK_LED_PIN);
+    void begin(uint8_t aSendPin, bool aEnableLEDFeedback, uint8_t aFeedbackLEDPin = USE_DEFAULT_FEEDBACK_LED_PIN);
 
     size_t write(IRData *aIRSendData, uint_fast8_t aNumberOfRepeats = NO_REPEATS);
 

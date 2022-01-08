@@ -96,6 +96,7 @@
 
 
 */
+#include <Arduino.h>
 
 // ~~~~ HW Pins and States ~~~~
 #define STATE_ON HIGH
@@ -118,7 +119,7 @@ enum sys_state : const uint8_t
 const uint8_t systemPause = 2; // seconds, delay to system react
 bool indication_ARMED_lastState = false;
 bool indication_ALARMED_lastState = false;
-#include<Arduino.h>
+
 #include <myIOT2.h>
 #include "myIOT_settings.h"
 
@@ -140,19 +141,19 @@ void allOff()
 }
 uint8_t get_systemState()
 {
-        if (digitalRead(SYS_IS_ALARMING_INDICATION_PIN) == INDIC_ON)
+        if (digitalRead(SYS_IS_ALARMING_INDICATION_PIN) == INDIC_ON)  /* Check if alarm pin is ON */
         {
                 return ALARMING;
         }
         else
         {
-                if (digitalRead(SYS_IS_ARMED_INDICATION_PIN) == INDIC_ON)
+                if (digitalRead(SYS_IS_ARMED_INDICATION_PIN) == INDIC_ON) /* Check if Armed pin is ON */
                 {
-                        if (digitalRead(SET_SYSTEM_ARMED_HOME_PIN) == STATE_ON)
+                        if (digitalRead(SET_SYSTEM_ARMED_HOME_PIN) == STATE_ON) /* set by code TO home_Armed ?*/
                         {
                                 return ARMED_HOME_CODE;
                         }
-                        else if (digitalRead(SET_SYSTEM_ARMED_AWAY_PIN) == STATE_ON)
+                        else if (digitalRead(SET_SYSTEM_ARMED_AWAY_PIN) == STATE_ON) /* set by code TO away_Armed ?*/
                         {
                                 return ARMED_AWAY_CODE;
                         }
@@ -188,27 +189,20 @@ void set_armState(uint8_t req_state)
                         {
                                 armstates[0] = SET_SYSTEM_ARMED_HOME_PIN;
                                 armstates[1] = SET_SYSTEM_ARMED_AWAY_PIN;
-                                // iot.pub_msg("A");
                         }
                         else
                         {
                                 armstates[1] = SET_SYSTEM_ARMED_HOME_PIN;
                                 armstates[0] = SET_SYSTEM_ARMED_AWAY_PIN;
-                                // iot.pub_msg("B");
                         }
 
                         if (curState == DISARMED)
                         {
                                 digitalWrite(armstates[0], STATE_ON); // Switch to desired arm state
                                 delay(systemPause * 1000);
-                                // iot.pub_msg("C");
                         }
-                        // else if (curState == ARMED_KEYPAD)
-                        // {
-                        // }
                         else
                         {
-                                // iot.pub_msg("D");
                                 char a[50];
                                 digitalWrite(armstates[1], !STATE_ON); // verify not in that state
                                 delay(systemPause * 1000);

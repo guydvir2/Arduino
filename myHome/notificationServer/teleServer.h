@@ -115,12 +115,10 @@ void getTelecmd(String &inmsg, String &from, String &id)
     }
     else if (inmsg == command_set[10])
     {
-        iot.get_timeStamp();
-        sprintf(t, "status: On from %s", iot.timeStamp);
+        sprintf(t, "status: On from %s", iot.get_timeStamp());
     }
     char Msg[300];
-    iot.get_timeStamp();
-    formatted_SMS(from.c_str(), "Commands", t, iot.timeStamp, Msg);
+    formatted_SMS(from.c_str(), "Commands", t, iot.get_timeStamp(), Msg);
     send_SMS(Msg);
 }
 bool check_user(String &new_id)
@@ -216,6 +214,5 @@ void check_telegramServer()
 
 void formatted_SMS(const char *from, const char *subj, const char *msg, const char *time, char Msg[])
 {
-    iot.get_timeStamp();
     sprintf(Msg, ">> From: @%s\n>> Subject: %s\n>> Message: %s\n>> Time: %s \n\n~~ sent: @%s %s", from, subj, msg, time, DEV_TOPIC, mserver_ver);
 }

@@ -49,17 +49,35 @@
 IRsend IrSender;
 
 IRsend::IRsend() {
+#if !defined(NO_LED_FEEDBACK_CODE)
     setLEDFeedback(0, false);
+#endif
 }
 
 #if !defined(IR_SEND_PIN) && !defined(SEND_PWM_BY_TIMER)
+// there is no sendPin variable if IR_SEND_PIN or SEND_PWM_BY_TIMER is defined
 IRsend::IRsend(uint8_t aSendPin) {
     sendPin = aSendPin;
+#if !defined(NO_LED_FEEDBACK_CODE)
+    setLEDFeedback(0, false);
+#endif
 }
 
 void IRsend::setSendPin(uint8_t aSendPin) {
     sendPin = aSendPin;
 }
+
+/**
+ * Initializes the send pin and enable LED feedback with board specific FEEDBACK_LED_ON() and FEEDBACK_LED_OFF() functions
+ * @param aSendPin The Arduino pin number, where a IR sender diode is connected.
+ */
+void IRsend::begin(uint8_t aSendPin) {
+    sendPin = aSendPin;
+#if !defined(NO_LED_FEEDBACK_CODE)
+    setLEDFeedback(USE_DEFAULT_FEEDBACK_LED_PIN, true);
+#endif
+}
+
 #endif
 
 #if defined(IR_SEND_PIN)
@@ -67,30 +85,37 @@ void IRsend::setSendPin(uint8_t aSendPin) {
  * Simple start with defaults for constant send pin
  */
 void IRsend::begin(){
+#  if !defined(NO_LED_FEEDBACK_CODE)
     setLEDFeedback(USE_DEFAULT_FEEDBACK_LED_PIN, true);
+#  endif
 }
 #endif
 
 /**
  * Initializes the send and feedback pin
  * @param aSendPin The Arduino pin number, where a IR sender diode is connected.
- * @param aLEDFeedbackPin if 0, then take board specific FEEDBACK_LED_ON() and FEEDBACK_LED_OFF() functions
+ * @param aFeedbackLEDPin if 0, then take board specific FEEDBACK_LED_ON() and FEEDBACK_LED_OFF() functions
  */
-void IRsend::begin(uint8_t aSendPin, bool aEnableLEDFeedback, uint8_t aLEDFeedbackPin) {
-#if !defined(IR_SEND_PIN)
+void IRsend::begin(uint8_t aSendPin, bool aEnableLEDFeedback, uint8_t aFeedbackLEDPin) {
+#if !defined(IR_SEND_PIN) && !defined(SEND_PWM_BY_TIMER)
     sendPin = aSendPin;
 #else
-    (void) aSendPin;
+    (void) aSendPin; // there is no sendPin variable if IR_SEND_PIN or SEND_PWM_BY_TIMER is defined
 #endif
-    setLEDFeedback(aLEDFeedbackPin, aEnableLEDFeedback);
+#if !defined(NO_LED_FEEDBACK_CODE)
+    setLEDFeedback(aFeedbackLEDPin, aEnableLEDFeedback);
+#else
+    (void) aEnableLEDFeedback;
+    (void) aFeedbackLEDPin;
+#endif
 }
 
-__attribute((error("Error: You must use begin(<sendPin>, <EnableLEDFeedback>, <LEDFeedbackPin>) if IR_SEND_PIN and SEND_PWM_BY_TIMER are not defined or USE_NO_SEND_PWM is defined. To suppress this error, enable lto or activate the line #define SUPPRESS_ERROR_MESSAGE_FOR_BEGIN in IRremote.hpp."))) void beginUsageError();
+__attribute((error("Error: You must use begin(<sendPin>, <EnableLEDFeedback>, <aFeedbackLEDPin>) if IR_SEND_PIN and SEND_PWM_BY_TIMER are not defined or USE_NO_SEND_PWM is defined. To suppress this error, enable lto or activate the line #define SUPPRESS_ERROR_MESSAGE_FOR_BEGIN in IRremote.hpp."))) void beginUsageError();
 
 /**
- * @param aLEDFeedbackPin if 0, then take board specific FEEDBACK_LED_ON() and FEEDBACK_LED_OFF() functions
+ * @param aFeedbackLEDPin if 0, then take board specific FEEDBACK_LED_ON() and FEEDBACK_LED_OFF() functions
  */
-void IRsend::begin(bool aEnableLEDFeedback, uint8_t aLEDFeedbackPin) {
+void IRsend::begin(bool aEnableLEDFeedback, uint8_t aFeedbackLEDPin) {
 #if !defined(IR_SEND_PIN)
 
     // must exclude cores by MCUdude, MEGATINYCORE, NRF5, SAMD and ESP32 because they do not use the -flto flag for compile
@@ -110,7 +135,12 @@ void IRsend::begin(bool aEnableLEDFeedback, uint8_t aLEDFeedbackPin) {
     beginUsageError();
 #  endif
 #endif
-    setLEDFeedback(aLEDFeedbackPin, aEnableLEDFeedback);
+#if !defined(NO_LED_FEEDBACK_CODE)
+    setLEDFeedback(aFeedbackLEDPin, aEnableLEDFeedback);
+#else
+    (void) aEnableLEDFeedback;
+    (void) aFeedbackLEDPin;
+#endif
 }
 
 /**
@@ -321,11 +351,11 @@ void IRsend::sendPulseDistanceWidthData(unsigned int aOneMarkMicros, unsigned in
         // send data from MSB to LSB until mask bit is shifted out
         for (uint32_t tMask = 1UL << (aNumberOfBits - 1); tMask; tMask >>= 1) {
             if (aData & tMask) {
-                TRACE_PRINT('1');
+                IR_TRACE_PRINT('1');
                 mark(aOneMarkMicros);
                 space(aOneSpaceMicros);
             } else {
-                TRACE_PRINT('0');
+                IR_TRACE_PRINT('0');
                 mark(aZeroMarkMicros);
                 space(aZeroSpaceMicros);
             }
@@ -333,20 +363,20 @@ void IRsend::sendPulseDistanceWidthData(unsigned int aOneMarkMicros, unsigned in
     } else {  // Send the Least Significant Bit (LSB) first / MSB last.
         for (uint_fast8_t bit = 0; bit < aNumberOfBits; bit++, aData >>= 1)
             if (aData & 1) {  // Send a 1
-                TRACE_PRINT('1');
+                IR_TRACE_PRINT('1');
                 mark(aOneMarkMicros);
                 space(aOneSpaceMicros);
             } else {  // Send a 0
-                TRACE_PRINT('0');
+                IR_TRACE_PRINT('0');
                 mark(aZeroMarkMicros);
                 space(aZeroSpaceMicros);
             }
     }
     if (aSendStopBit) {
-        TRACE_PRINT('S');
+        IR_TRACE_PRINT('S');
         mark(aZeroMarkMicros); // seems like this is used for stop bits
     }
-    TRACE_PRINTLN("");
+    IR_TRACE_PRINTLN("");
 }
 
 /*
@@ -361,19 +391,19 @@ void IRsend::sendBiphaseData(unsigned int aBiphaseTimeUnit, uint32_t aData, uint
 // do not send the trailing space of the start bit
     mark(aBiphaseTimeUnit);
 
-    TRACE_PRINT('S');
+    IR_TRACE_PRINT('S');
     uint8_t tLastBitValue = 1; // Start bit is a 1
 
 // Data - Biphase code MSB first
     for (uint32_t tMask = 1UL << (aNumberOfBits - 1); tMask; tMask >>= 1) {
         if (aData & tMask) {
-            TRACE_PRINT('1');
+            IR_TRACE_PRINT('1');
             space(aBiphaseTimeUnit);
             mark(aBiphaseTimeUnit);
             tLastBitValue = 1;
 
         } else {
-            TRACE_PRINT('0');
+            IR_TRACE_PRINT('0');
 #if defined(SEND_PWM_BY_TIMER) || defined(USE_NO_SEND_PWM)
             if (tLastBitValue) {
                 // Extend the current mark in order to generate a continuous signal without short breaks
@@ -389,7 +419,7 @@ void IRsend::sendBiphaseData(unsigned int aBiphaseTimeUnit, uint32_t aData, uint
             tLastBitValue = 0;
         }
     }
-    TRACE_PRINTLN("");
+    IR_TRACE_PRINTLN("");
 }
 
 /**
@@ -401,14 +431,20 @@ void IRsend::sendBiphaseData(unsigned int aBiphaseTimeUnit, uint32_t aData, uint
 void IRsend::mark(unsigned int aMarkMicros) {
 
 #if defined(SEND_PWM_BY_TIMER)
+#  if !defined(NO_LED_FEEDBACK_CODE)
     setFeedbackLED(true);
+#  endif
     ENABLE_SEND_PWM_BY_TIMER; // Enable timer or ledcWrite() generated PWM output
     customDelayMicroseconds(aMarkMicros);
     IRLedOff();
+#  if !defined(NO_LED_FEEDBACK_CODE)
     setFeedbackLED(false);
+#  endif
 
 #elif defined(USE_NO_SEND_PWM)
+#  if !defined(NO_LED_FEEDBACK_CODE)
     setFeedbackLED(true);
+#  endif
 #  if defined(USE_OPEN_DRAIN_OUTPUT_FOR_SEND_PIN) && !defined(OUTPUT_OPEN_DRAIN)
     pinModeFast(sendPin, OUTPUT); // active state for mimicking open drain
 #  else
@@ -417,13 +453,17 @@ void IRsend::mark(unsigned int aMarkMicros) {
 
     customDelayMicroseconds(aMarkMicros);
     IRLedOff();
+#  if !defined(NO_LED_FEEDBACK_CODE)
     setFeedbackLED(false);
+#  endif
 
 #else
     unsigned long startMicros = micros();
     unsigned long nextPeriodEnding = startMicros;
     unsigned long tMicros;
+#  if !defined(NO_LED_FEEDBACK_CODE)
     bool FeedbackLedIsActive = false;
+#  endif
 
     do {
 //        digitalToggleFast(_IR_TIMING_TEST_PIN);
@@ -457,6 +497,7 @@ void IRsend::mark(unsigned int aMarkMicros) {
 #  endif
         interrupts(); // Enable interrupts -to keep micros correct- for the longer off period 3.4 us until receive ISR is active (for 7 us + pop's)
 
+#  if !defined(NO_LED_FEEDBACK_CODE)
         /*
          * Delayed call of setFeedbackLED() to get better timing
          */
@@ -464,7 +505,7 @@ void IRsend::mark(unsigned int aMarkMicros) {
             FeedbackLedIsActive = true;
             setFeedbackLED(true);
         }
-
+#  endif
         /*
          * Pause timing
          */
@@ -475,10 +516,12 @@ void IRsend::mark(unsigned int aMarkMicros) {
             unsigned int tDeltaMicros = tMicros - startMicros;
 #if defined(__AVR__)
 //            tDeltaMicros += (160 / CLOCKS_PER_MICRO); // adding this once increases program size !
+#  if !defined(NO_LED_FEEDBACK_CODE)
             if (tDeltaMicros >= aMarkMicros - (30 + (112 / CLOCKS_PER_MICRO))) { // 30 to be constant. Using periodTimeMicros increases program size too much.
             // reset feedback led in the last pause before end
                 setFeedbackLED(false);
             }
+#  endif
             if (tDeltaMicros >= aMarkMicros - (112 / CLOCKS_PER_MICRO)) { // To compensate for call duration - 112 is an empirical value
 #else
             if (tDeltaMicros >= aMarkMicros) {
@@ -517,8 +560,9 @@ void IRsend::IRLedOff() {
     digitalWriteFast(sendPin, LOW);
 #  endif
 #endif
-
+#if !defined(NO_LED_FEEDBACK_CODE)
     setFeedbackLED(false);
+#endif
 }
 
 /**
@@ -558,9 +602,7 @@ void IRsend::customDelayMicroseconds(unsigned long aMicroseconds) {
  */
 void IRsend::enableIROut(uint8_t aFrequencyKHz) {
 #if defined(SEND_PWM_BY_TIMER)
-#  if defined(SEND_PWM_BY_TIMER)
-    TIMER_DISABLE_RECEIVE_INTR;
-#  endif
+    TIMER_DISABLE_RECEIVE_INTR; // Just in case receiving was active
     timerConfigForSend(aFrequencyKHz);
 
 #elif defined(USE_NO_SEND_PWM)

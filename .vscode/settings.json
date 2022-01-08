@@ -19,6 +19,7 @@
         "regex": "cpp",
         "fstream": "cpp",
         "ranges": "cpp",
-        "ostream": "cpp"
+        "ostream": "cpp",
+        "chrono": "cpp"
     }
 }

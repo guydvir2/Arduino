@@ -49,6 +49,7 @@
 //#define EXCLUDE_EXOTIC_PROTOCOLS
 //#define SEND_PWM_BY_TIMER
 //#define USE_NO_SEND_PWM
+//#define NO_LED_FEEDBACK_CODE // saves 500 bytes program space
 //#define DEBUG // Activate this for lots of lovely debug output from the decoders.
 #define INFO // To see valuable informations from universal decoder for pulse width or pulse distance protocols
 
@@ -70,7 +71,7 @@ void setup() {
     Serial.println(F("START " __FILE__ " from " __DATE__ "\r\nUsing library version " VERSION_IRREMOTE));
 
     /*
-     * Start the receiver, enable feedback LED and (if not 3. parameter specified) take LED feedback pin from the internal boards definition
+     * Start the receiver, enable feedback LED and take LED feedback pin from the internal boards definition
      */
     IrReceiver.begin(IR_RECEIVE_PIN);
 #if defined(IR_SEND_PIN)

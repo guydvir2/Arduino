@@ -1,9 +1,9 @@
 /**
- * Google's Cloud Functions Config class, FunctionsConfig.h version 1.0.5
+ * Google's Cloud Functions Config class, FunctionsConfig.h version 1.0.6
  * 
  * This library supports Espressif ESP8266 and ESP32
  * 
- * Created December 10, 2021
+ * Created January 1, 2022
  * 
  * This work is a part of Firebase ESP Client library
  * Copyright (c) 2020, 2021 K. Suwatchai (Mobizt)
@@ -42,6 +42,8 @@
 #include "session/FB_Session.h"
 #include "PolicyBuilder.h"
 
+using namespace mb_string;
+
 class FunctionsConfig
 {
     friend class FB_Functions;
@@ -62,7 +64,7 @@ private:
 
     void addUpdateMasks(const char *key);
     void removeUpdateMasks(const char *key);
-    void mFunctionsConfig(const char* projectId, const char* locationId, const char *bucketId);
+    void mFunctionsConfig(const char *projectId, const char *locationId, const char *bucketId);
     void mSetProjectId(const char *projectId);
     void mSetLocationId(const char *locationId);
     void mSetBucketId(const char *bucketId);
@@ -70,9 +72,9 @@ private:
     void mSetDescription(const char *description);
     void mSetEntryPoint(const char *entry);
     void mSetRuntime(const char *runtime);
-    void mSetTimeout(const char* seconds);
-    void mSetAvailableMemoryMb(const char* mb);
-    void mSetMaxInstances(const char* maxInstances);
+    void mSetTimeout(const char *seconds);
+    void mSetAvailableMemoryMb(const char *mb);
+    void mSetMaxInstances(const char *maxInstances);
     void mSetSource(const char *path, fb_esp_functions_sources_type sourceType, fb_esp_mem_storage_type storageType = mem_storage_type_undefined);
     void mAddLabel(const char *key, const char *value);
     void mAddEnvironmentVariable(const char *key, const char *value);
@@ -92,8 +94,8 @@ public:
      * @param locationId The project location.
      * @param bucketId The Firebase storage bucket ID in the project.
     */
-    template <typename T1 = const char*, typename T2= const char*, typename T3= const char*>
-    FunctionsConfig(T1 projectId, T2 locationId, T3 bucketId){mFunctionsConfig(toString(projectId), toString(locationId), toString(bucketId));}
+    template <typename T1 = const char *, typename T2 = const char *, typename T3 = const char *>
+    FunctionsConfig(T1 projectId, T2 locationId, T3 bucketId) { mFunctionsConfig(toString(projectId), toString(locationId), toString(bucketId)); }
 
     ~FunctionsConfig();
 
@@ -170,7 +172,7 @@ public:
      * @param seconds The number of seconds for timeout.
     */
     template <typename T = size_t>
-    void setTimeout(T seconds) { mSetTimeout(NUM2S(seconds).get()); }
+    void setTimeout(T seconds) { mSetTimeout(num2Str(seconds, -1)); }
 
     /**
      * Set the amount of memory in MB available for a function.
@@ -180,7 +182,7 @@ public:
      * @param mb The number of MB.
     */
     template <typename T = size_t>
-    void setAvailableMemoryMb(T mb) { mSetAvailableMemoryMb(NUM2S(mb).get()); }
+    void setAvailableMemoryMb(T mb) { mSetAvailableMemoryMb(num2Str(mb, -1)); }
 
     /**
      * Set the limit on the maximum number of function instances that may coexist at a given time.
@@ -192,7 +194,7 @@ public:
      * @param maxInstances The number of instances.
     */
     template <typename T = size_t>
-    void setMaxInstances(T maxInstances) { mSetMaxInstances(NUM2S(maxInstances).get()); }
+    void setMaxInstances(T maxInstances) { mSetMaxInstances(num2Str(maxInstances, -1)); }
 
     /**
      * Set the location of the function source code.
@@ -211,7 +213,7 @@ public:
      * mem_storage_type_flash
      * mem_storage_type_sd
     */
-    template <typename T = const char*>
+    template <typename T = const char *>
     void setSource(T path, fb_esp_functions_sources_type sourceType, fb_esp_mem_storage_type storageType = mem_storage_type_undefined) { mSetSource(path, sourceType, storageType); }
 
     /**
@@ -358,16 +360,16 @@ public:
 
 protected:
     template <typename T>
-    auto toString(const T &val) -> typename FB_JS::enable_if<FB_JS::is_std_string<T>::value || FB_JS::is_arduino_string<T>::value || FB_JS::is_mb_string<T>::value || FB_JS::is_same<T, StringSumHelper>::value, const char *>::type { return val.c_str(); }
+    auto toString(const T &val) -> typename enable_if<is_std_string<T>::value || is_arduino_string<T>::value || is_mb_string<T>::value || is_same<T, StringSumHelper>::value, const char *>::type { return val.c_str(); }
 
     template <typename T>
-    auto toString(T val) -> typename FB_JS::enable_if<FB_JS::is_const_chars<T>::value, const char *>::type { return val; }
+    auto toString(T val) -> typename enable_if<is_const_chars<T>::value, const char *>::type { return val; }
 
     template <typename T>
-    auto toString(T val) -> typename FB_JS::enable_if<FB_JS::fs_t<T>::value, const char *>::type { return (const char *)val; }
+    auto toString(T val) -> typename enable_if<fs_t<T>::value, const char *>::type { return (const char *)val; }
 
     template <typename T>
-    auto toString(T val) -> typename FB_JS::enable_if<FB_JS::is_same<T, std::nullptr_t>::value, const char *>::type { return ""; }
+    auto toString(T val) -> typename enable_if<is_same<T, std::nullptr_t>::value, const char *>::type { return ""; }
 };
 
 #endif

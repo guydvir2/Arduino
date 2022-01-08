@@ -40,7 +40,7 @@
 #include <Arduino.h>
 
 #include "TinyIRReceiver.h" // If not defined, it defines IR_INPUT_PIN, IR_FEEDBACK_LED_PIN and TINY_RECEIVER_USE_ARDUINO_ATTACH_INTERRUPT
-//#define DO_NOT_USE_FEEDBACK_LED   // Activate this if you want to suppress LED feedback or if you do not have a LED.
+//#define NO_LED_FEEDBACK_CODE   // Activate this if you want to suppress LED feedback or if you do not have a LED. This saves 2 bytes code and 2 clock cycles per interrupt.
 
 #include "digitalWriteFast.h"
 /** \addtogroup TinyReceiver Minimal receiver for NEC protocol
@@ -48,7 +48,8 @@
  */
 
 //#define DEBUG // to see if attachInterrupt used
-//#define TRACE
+//#define TRACE // to see the state of the ISR state machine
+
 //#define _IR_MEASURE_TIMING        // Activate this if you want to enable internal hardware timing measurement.
 //#define _IR_TIMING_TEST_PIN 7
 TinyIRReceiverStruct TinyIRReceiverControl;
@@ -69,7 +70,6 @@ TinyIRReceiverStruct TinyIRReceiverControl;
 #if !defined(IR_FEEDBACK_LED_PIN) && defined(LED_BUILTIN)
 #define IR_FEEDBACK_LED_PIN    LED_BUILTIN
 #endif
-//#define DO_NOT_USE_FEEDBACK_LED // Activate it if you do not want the feedback LED function. This saves 2 bytes code and 2 clock cycles per interrupt.
 
 #if !( \
    (defined(__AVR_ATtiny25__) || defined(__AVR_ATtiny45__) || defined(__AVR_ATtiny85__)) /* ATtinyX5 */ \
@@ -117,7 +117,7 @@ void IRPinChangeInterruptHandler(void)
      */
     uint_fast8_t tIRLevel = digitalReadFast(IR_INPUT_PIN);
 
-#if !defined(DO_NOT_USE_FEEDBACK_LED) && defined(IR_FEEDBACK_LED_PIN)
+#if !defined(NO_LED_FEEDBACK_CODE) && defined(IR_FEEDBACK_LED_PIN)
     digitalWriteFast(IR_FEEDBACK_LED_PIN, !tIRLevel);
 #endif
 
@@ -315,12 +315,17 @@ void initPCIInterruptForTinyReceiver()
 {
     pinModeFast(IR_INPUT_PIN, INPUT_PULLUP);
 
-#if !defined(DO_NOT_USE_FEEDBACK_LED) && defined(IR_FEEDBACK_LED_PIN)
+#if !defined(NO_LED_FEEDBACK_CODE) && defined(IR_FEEDBACK_LED_PIN)
     pinModeFast(IR_FEEDBACK_LED_PIN, OUTPUT);
 #endif
     enablePCIInterruptForTinyReceiver();
 }
 
+#if defined (DEBUG) && !defined(STR)
+// Helper macro for getting a macro definition as string
+#define STR_HELPER(x) #x
+#define STR(x) STR_HELPER(x)
+#endif
 /**
  * Initializes hardware interrupt generation according to IR_INPUT_PIN or use attachInterrupt() function.
  */

@@ -5,8 +5,7 @@
 // ********** Sketch Services  ***********
 #define VER "telegramSever_v0.1"
 
-
-myIOT iot;
+myIOT2 iot;
 
 void startIOTservices()
 {
@@ -14,7 +13,6 @@ void startIOTservices()
         iot.useWDT = paramJSON["useWDT"];
         iot.useOTA = paramJSON["useOTA"];
         iot.useResetKeeper = paramJSON["useResetKeeper"];
-        iot.resetFailNTP = paramJSON["useFailNTP"];
         iot.useDebug = paramJSON["useDebugLog"];
         iot.debug_level = paramJSON["debug_level"];
         iot.useNetworkReset = paramJSON["useNetworkReset"];
@@ -23,7 +21,7 @@ void startIOTservices()
         strcpy(iot.deviceTopic, paramJSON["deviceTopic"]);
         strcpy(iot.prefixTopic, paramJSON["prefixTopic"]);
         strcpy(iot.addGroupTopic, paramJSON["groupTopic"]);
-        strcpy(iot.extTopic, paramJSON["extTopic"]);
+        // strcpy(iot.extTopic, paramJSON["extTopic"]);
 
         iot.start_services(addiotnalMQTT);
 }

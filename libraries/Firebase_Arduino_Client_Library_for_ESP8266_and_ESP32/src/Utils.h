@@ -1,9 +1,9 @@
 /**
- * Google's Firebase Util class, Utils.h version 1.1.8
+ * Google's Firebase Util class, Utils.h version 1.1.12
  * 
  * This library supports Espressif ESP8266 and ESP32
  * 
- * Created December 19, 2021
+ * Created January 1, 2022
  * 
  * This work is a part of Firebase ESP Client library
  * Copyright (c) 2021 K. Suwatchai (Mobizt)
@@ -37,6 +37,8 @@
 #include "common.h"
 #include "addons/fastcrc/FastCRC.h"
 
+using namespace mb_string;
+
 class UtilsClass
 {
     friend class FirebaseSession;
@@ -56,26 +58,15 @@ public:
 
     ~UtilsClass(){};
 
-    char *strP(PGM_P pgm)
-    {
-        size_t len = strlen_P(pgm) + 5;
-        char *buf = (char *)newP(len);
-        strcpy_P(buf, pgm);
-        buf[strlen_P(pgm)] = 0;
-        return buf;
-    }
-
     int strposP(const char *buf, PGM_P beginH, int ofs)
     {
-        char *tmp = strP(beginH);
-        int p = strpos(buf, tmp, ofs);
-        delP(&tmp);
+        int p = strpos(buf, pgm2Str(beginH), ofs);
         return p;
     }
 
     bool strcmpP(const char *buf, int ofs, PGM_P beginH)
     {
-        char *tmp = nullptr;
+        
         if (ofs < 0)
         {
             int p = strposP(buf, beginH, 0);
@@ -83,12 +74,12 @@ public:
                 return false;
             ofs = p;
         }
-        tmp = strP(beginH);
+       
         char *tmp2 = (char *)newP(strlen_P(beginH) + 1);
         memcpy(tmp2, &buf[ofs], strlen_P(beginH));
         tmp2[strlen_P(beginH)] = 0;
-        bool ret = (strcasecmp(tmp, tmp2) == 0);
-        delP(&tmp);
+        bool ret = (strcasecmp(pgm2Str(beginH), tmp2) == 0);
+
         delP(&tmp2);
         return ret;
     }
@@ -114,15 +105,6 @@ public:
         }
 
         return nullptr;
-    }
-
-    void appendP(MBSTRING &buf, PGM_P p, bool empty = false)
-    {
-        if (empty)
-            buf.clear();
-        char *b = strP(p);
-        buf += b;
-        delP(&b);
     }
 
     void strcat_c(char *str, char c)
@@ -377,40 +359,26 @@ public:
         char *auth = (char *)newP(url.length() + 5);
 
         int p1 = 0;
-        char *tmp = strP(fb_esp_pgm_str_441);
-        int x = sscanf(url.c_str(), tmp, host, uri);
-        delP(&tmp);
-        tmp = strP(fb_esp_pgm_str_442);
-        x ? p1 = 8 : x = sscanf(url.c_str(), tmp, host, uri);
-        delP(&tmp);
-        tmp = strP(fb_esp_pgm_str_443);
-        x ? p1 = 7 : x = sscanf(url.c_str(), tmp, host, uri);
-        delP(&tmp);
+        int x = sscanf(url.c_str(), pgm2Str(fb_esp_pgm_str_441), host, uri);
+        x ? p1 = 8 : x = sscanf(url.c_str(), pgm2Str(fb_esp_pgm_str_442), host, uri);
+        x ? p1 = 7 : x = sscanf(url.c_str(), pgm2Str(fb_esp_pgm_str_443), host, uri);
 
         int p2 = 0;
         if (x > 0)
         {
-            tmp = strP(fb_esp_pgm_str_173);
-            p2 = strpos(host, tmp, 0);
-            delP(&tmp);
+            p2 = strpos(host, pgm2Str(fb_esp_pgm_str_173), 0);
             if (p2 > -1)
             {
-                tmp = strP(fb_esp_pgm_str_444);
-                x = sscanf(url.c_str() + p1, tmp, host, uri);
-                delP(&tmp);
+                x = sscanf(url.c_str() + p1, pgm2Str(fb_esp_pgm_str_444), host, uri);
             }
         }
 
         if (strlen(uri) > 0)
         {
-            tmp = strP(fb_esp_pgm_str_445);
-            p2 = strpos(uri, tmp, 0);
-            delP(&tmp);
+            p2 = strpos(uri, pgm2Str(fb_esp_pgm_str_445), 0);
             if (p2 > -1)
             {
-                tmp = strP(fb_esp_pgm_str_446);
-                x = sscanf(uri + p2 + 5, tmp, auth);
-                delP(&tmp);
+                x = sscanf(uri + p2 + 5, pgm2Str(fb_esp_pgm_str_446), auth);
             }
         }
 
@@ -652,14 +620,10 @@ public:
             int readLen = readLine(stream, buf, bufLen);
             if (readLen)
             {
-                tmp = strP(fb_esp_pgm_str_79);
-                p1 = strpos(buf, tmp, 0);
-                delP(&tmp);
+                p1 = strpos(buf, pgm2Str(fb_esp_pgm_str_79), 0);
                 if (p1 == -1)
                 {
-                    tmp = strP(fb_esp_pgm_str_21);
-                    p1 = strpos(buf, tmp, 0);
-                    delP(&tmp);
+                    p1 = strpos(buf, pgm2Str(fb_esp_pgm_str_21), 0);
                 }
 
                 if (p1 != -1)
@@ -733,14 +697,10 @@ public:
             int readLen = readLine(stream, s);
             if (readLen)
             {
-                tmp = strP(fb_esp_pgm_str_79);
-                p1 = strpos(s.c_str(), tmp, 0);
-                delP(&tmp);
+                p1 = strpos(s.c_str(), pgm2Str(fb_esp_pgm_str_79), 0);
                 if (p1 == -1)
                 {
-                    tmp = strP(fb_esp_pgm_str_21);
-                    p1 = strpos(s.c_str(), tmp, 0);
-                    delP(&tmp);
+                    p1 = strpos(s.c_str(), pgm2Str(fb_esp_pgm_str_21), 0);
                 }
 
                 if (p1 != -1)
@@ -796,21 +756,20 @@ public:
 
     char *getHeader(const char *buf, PGM_P beginH, PGM_P endH, int &beginPos, int endPos)
     {
+        char *tmp = nullptr;
 
-        char *tmp = strP(beginH);
-        int p1 = strpos(buf, tmp, beginPos);
+        int p1 = strpos(buf, pgm2Str(beginH), beginPos);
         int ofs = 0;
-        delP(&tmp);
         if (p1 != -1)
         {
-            tmp = strP(endH);
+           
             int p2 = -1;
             if (endPos > 0)
                 p2 = endPos;
             else if (endPos == 0)
             {
                 ofs = strlen_P(endH);
-                p2 = strpos(buf, tmp, p1 + strlen_P(beginH) + 1);
+                p2 = strpos(buf, pgm2Str(endH), p1 + strlen_P(beginH) + 1);
             }
             else if (endPos == -1)
             {
@@ -819,8 +778,6 @@ public:
 
             if (p2 == -1)
                 p2 = strlen(buf);
-
-            delP(&tmp);
 
             if (p2 != -1)
             {
@@ -838,21 +795,19 @@ public:
     void getHeaderStr(const MBSTRING &in, MBSTRING &out, PGM_P beginH, PGM_P endH, int &beginPos, int endPos)
     {
         MBSTRING _in = in;
-
-        char *tmp = strP(beginH);
-        int p1 = strpos(in.c_str(), tmp, beginPos);
+        int p1 = strpos(in.c_str(), pgm2Str(beginH), beginPos);
         int ofs = 0;
-        delP(&tmp);
+
         if (p1 != -1)
         {
-            tmp = strP(endH);
+
             int p2 = -1;
             if (endPos > 0)
                 p2 = endPos;
             else if (endPos == 0)
             {
                 ofs = strlen_P(endH);
-                p2 = strpos(in.c_str(), tmp, p1 + strlen_P(beginH) + 1);
+                p2 = strpos(in.c_str(), pgm2Str(endH), p1 + strlen_P(beginH) + 1);
             }
             else if (endPos == -1)
             {
@@ -861,8 +816,6 @@ public:
 
             if (p2 == -1)
                 p2 = in.length();
-
-            delP(&tmp);
 
             if (p2 != -1)
             {
@@ -943,9 +896,7 @@ public:
                 FirebaseJson js;
                 FirebaseJsonData d;
                 js.setJsonData(buf);
-                tmp = strP(fb_esp_pgm_str_176);
-                js.get(d, tmp);
-                delP(&tmp);
+                js.get(d, pgm2Str(fb_esp_pgm_str_176));
                 if (d.success)
                     response.fbError = d.stringValue.c_str();
             }
@@ -995,9 +946,7 @@ public:
             }
             else
             {
-                tmp = strP(fb_esp_pgm_str_4);
-                int p1 = strpos(buf, tmp, payloadOfs);
-                delP(&tmp);
+                int p1 = strpos(buf, pgm2Str(fb_esp_pgm_str_4), payloadOfs);
                 setNumDataType(buf, payloadOfs, response, p1 != -1);
             }
         }
@@ -1006,9 +955,19 @@ public:
     void setNumDataType(const char *buf, int ofs, struct server_response_data_t &response, bool dec)
     {
 
+        if (!buf || ofs < 0)
+            return;
+
+        if (ofs >= (int)strlen(buf))
+            return;
+
         if (response.payloadLen > 0 && response.payloadLen <= (int)strlen(buf) && ofs < (int)strlen(buf) && ofs + response.payloadLen <= (int)strlen(buf))
         {
             char *tmp = (char *)newP(response.payloadLen + 1);
+
+            if (!tmp)
+                return;
+
             memcpy(tmp, &buf[ofs], response.payloadLen);
             tmp[response.payloadLen] = 0;
             double d = atof(tmp);
@@ -1169,83 +1128,7 @@ public:
         return false;
     }
 
-    bool decodeBase64Flash(const char *src, size_t len, fs::File &file)
-    {
-        unsigned char *dtable = (unsigned char *)newP(256);
-        memset(dtable, 0x80, 256);
-        for (size_t i = 0; i < sizeof(fb_esp_base64_table) - 1; i++)
-            dtable[fb_esp_base64_table[i]] = (unsigned char)i;
-        dtable['='] = 0;
-
-        unsigned char *block = (unsigned char *)newP(4);
-        unsigned char tmp;
-        size_t i, count;
-        int pad = 0;
-        size_t extra_pad;
-        count = 0;
-
-        for (i = 0; i < len; i++)
-        {
-            if (dtable[(uint8_t)src[i]] != 0x80)
-                count++;
-        }
-
-        if (count == 0)
-            goto exit;
-
-        extra_pad = (4 - count % 4) % 4;
-
-        count = 0;
-        for (i = 0; i < len + extra_pad; i++)
-        {
-            unsigned char val;
-
-            if (i >= len)
-                val = '=';
-            else
-                val = src[i];
-            tmp = dtable[val];
-            if (tmp == 0x80)
-                continue;
-
-            if (val == '=')
-                pad++;
-
-            block[count] = tmp;
-            count++;
-            if (count == 4)
-            {
-                file.write((block[0] << 2) | (block[1] >> 4));
-                count = 0;
-                if (pad)
-                {
-                    if (pad == 1)
-                        file.write((block[1] << 4) | (block[2] >> 2));
-                    else if (pad > 2)
-                        goto exit;
-                    break;
-                }
-                else
-                {
-                    file.write((block[1] << 4) | (block[2] >> 2));
-                    file.write((block[2] << 6) | block[3]);
-                }
-            }
-        }
-
-        delP(&block);
-        delP(&dtable);
-
-        return true;
-
-    exit:
-        delP(&block);
-        delP(&dtable);
-
-        return false;
-    }
-
-    void sendBase64Stream(WiFiClient *client, const MBSTRING &filePath, uint8_t storageType, fs::File &file)
+    void sendBase64File(size_t bufSize, WiFiClient *client, const MBSTRING &filePath, uint8_t storageType, fs::File &file)
     {
 
         if (storageType == mem_storage_type_flash)
@@ -1264,7 +1147,7 @@ public:
         if (!file)
             return;
 
-        size_t chunkSize = 512;
+        size_t chunkSize = bufSize;
         size_t fbuffSize = 3;
         size_t byteAdd = 0;
         size_t byteSent = 0;
@@ -1346,7 +1229,7 @@ public:
         delP(&fbuff);
     }
 
-    bool decodeBase64Stream(const char *src, size_t len, fs::File &file)
+    bool decodeBase64Stream(const char *src, size_t len, Stream &s)
     {
         unsigned char *dtable = (unsigned char *)newP(256);
         memset(dtable, 0x80, 256);
@@ -1393,12 +1276,12 @@ public:
             count++;
             if (count == 4)
             {
-                file.write((block[0] << 2) | (block[1] >> 4));
+                s.write((block[0] << 2) | (block[1] >> 4));
                 count = 0;
                 if (pad)
                 {
                     if (pad == 1)
-                        file.write((block[1] << 4) | (block[2] >> 2));
+                        s.write((block[1] << 4) | (block[2] >> 2));
                     else if (pad > 2)
                         goto exit;
 
@@ -1406,8 +1289,8 @@ public:
                 }
                 else
                 {
-                    file.write((block[1] << 4) | (block[2] >> 2));
-                    file.write((block[2] << 6) | block[3]);
+                    s.write((block[1] << 4) | (block[2] >> 2));
+                    s.write((block[2] << 6) | block[3]);
                 }
             }
         }
@@ -1425,14 +1308,169 @@ public:
         return false;
     }
 
+    //trim double quotes and return pad length
+    int trimLastChunkBase64(MBSTRING &s, size_t len)
+    {
+        int padLen = -1;
+        if (len > 1)
+        {
+            if (s[len - 1] == '"')
+            {
+                padLen = 0;
+                if (len > 2)
+                {
+                    if (s[len - 2] == '=')
+                        padLen++;
+                }
+                if (len > 3)
+                {
+                    if (s[len - 3] == '=')
+                        padLen++;
+                }
+                s[len - 1] = 0;
+            }
+        }
+        return padLen;
+    }
+
+    bool writeOTA(uint8_t *buf, size_t len, int &code)
+    {
+
+#if defined(ENABLE_OTA_FIRMWARE_UPDATE)
+        if (Update.write(buf, len) != len)
+        {
+            code = FIREBASE_ERROR_FW_UPDATE_WRITE_FAILED;
+            return false;
+        }
+        return true;
+#else
+        return false;
+#endif
+    }
+
+    bool addBuffer(uint8_t *buf, uint8_t value, int &index, int chunkSize, int &code)
+    {
+        if (index < chunkSize)
+        {
+            buf[index] = value;
+            index++;
+        }
+        else
+        {
+            index = 0;
+            if (!writeOTA(buf, chunkSize, code))
+                return false;
+            memset(buf, 0, chunkSize);
+            buf[index] = value;
+            index++;
+        }
+
+        return true;
+    }
+
+    bool decodeBase64OTA(const char *src, size_t len, int &code)
+    {
+
+        unsigned char *dtable = (unsigned char *)newP(256);
+        memset(dtable, 0x80, 256);
+        for (size_t i = 0; i < sizeof(fb_esp_base64_table) - 1; i++)
+            dtable[fb_esp_base64_table[i]] = (unsigned char)i;
+        dtable['='] = 0;
+
+        unsigned char *block = (unsigned char *)newP(4);
+        unsigned char tmp;
+        size_t i, count;
+        int pad = 0;
+        size_t extra_pad;
+
+        int chunkSize = 1024;
+        uint8_t *buf = (uint8_t *)newP(chunkSize);
+        int index = 0;
+
+        count = 0;
+
+        for (i = 0; i < len; i++)
+        {
+            if (dtable[(uint8_t)src[i]] != 0x80)
+                count++;
+        }
+
+        if (count == 0)
+            goto exit;
+
+        extra_pad = (4 - count % 4) % 4;
+
+        count = 0;
+        for (i = 0; i < len + extra_pad; i++)
+        {
+            unsigned char val;
+
+            if (i >= len)
+                val = '=';
+            else
+                val = src[i];
+            tmp = dtable[val];
+            if (tmp == 0x80)
+                continue;
+
+            if (val == '=')
+                pad++;
+
+            block[count] = tmp;
+            count++;
+            if (count == 4)
+            {
+                if (!addBuffer(buf, (block[0] << 2) | (block[1] >> 4), index, chunkSize, code))
+                    break;
+
+                count = 0;
+                if (pad)
+                {
+                    if (pad == 1)
+                    {
+                        if (!addBuffer(buf, (block[1] << 4) | (block[2] >> 2), index, chunkSize, code))
+                            break;
+                    }
+                    else if (pad > 2)
+                        goto exit;
+
+                    break;
+                }
+                else
+                {
+                    if (!addBuffer(buf, (block[1] << 4) | (block[2] >> 2), index, chunkSize, code))
+                        break;
+
+                    if (!addBuffer(buf, (block[2] << 6) | block[3], index, chunkSize, code))
+                        break;
+                }
+            }
+        }
+
+        if (index > 0)
+            writeOTA(buf, index, code);
+
+        delP(&block);
+        delP(&dtable);
+        delP(&buf);
+
+        return true;
+
+    exit:
+
+        delP(&block);
+        delP(&dtable);
+        delP(&buf);
+
+        return false;
+    }
+
     bool stringCompare(const char *buf, int ofs, PGM_P beginH)
     {
-        char *tmp = strP(beginH);
         char *tmp2 = (char *)newP(strlen_P(beginH) + 1);
         memcpy(tmp2, &buf[ofs], strlen_P(beginH));
         tmp2[strlen_P(beginH)] = 0;
-        bool ret = (strcmp(tmp, tmp2) == 0);
-        delP(&tmp);
+        bool ret = (strcmp(pgm2Str(beginH), tmp2) == 0);
         delP(&tmp2);
         return ret;
     }
@@ -1511,7 +1549,7 @@ public:
         delP(&b64enc);
     }
 
-    bool sendBase64(uint8_t *data, size_t len, bool flashMem, FB_TCP_Client *client)
+    bool sendBase64(size_t bufSize, uint8_t *data, size_t len, bool flashMem, FB_TCP_Client *client)
     {
         bool ret = false;
         const unsigned char *end, *in;
@@ -1519,7 +1557,7 @@ public:
         end = data + len;
         in = data;
 
-        size_t chunkSize = 256;
+        size_t chunkSize = bufSize;
         size_t byteAdded = 0;
         size_t byteSent = 0;
 
@@ -1820,7 +1858,7 @@ public:
 
     MBSTRING getBoundary(size_t len)
     {
-        char *tmp = strP(fb_esp_boundary_table);
+        const char *tmp = pgm2Str(fb_esp_boundary_table);
         char *buf = (char *)newP(len);
         if (len)
         {
@@ -1836,7 +1874,6 @@ public:
         }
         MBSTRING s = buf;
         delP(&buf);
-        delP(&tmp);
         return s;
     }
 
@@ -1919,13 +1956,11 @@ public:
     {
         bool ret = false;
 #if defined(ESP32)
-        char *ip = strP(fb_esp_pgm_str_548);
-        if (strcmp(ETH.localIP().toString().c_str(), ip) != 0)
+        if (strcmp(ETH.localIP().toString().c_str(), pgm2Str(fb_esp_pgm_str_548)) != 0)
         {
             ret = true;
             ETH.linkUp();
         }
-        delP(&ip);
 #elif defined(ESP8266) && defined(ESP8266_CORE_SDK_V3_X_X)
 
         if (!spi_ethernet_module)
@@ -2041,6 +2076,51 @@ public:
     void idle()
     {
         delay(0);
+    }
+
+    int beginUpdate(WiFiClient *tcp, int len, bool verify = true)
+    {
+        int code = 0;
+#if defined(ESP8266)
+        if (len > (int)ESP.getFreeSketchSpace())
+        {
+            code = FIREBASE_ERROR_FW_UPDATE_TOO_LOW_FREE_SKETCH_SPACE;
+        }
+        else if (verify)
+        {
+            uint8_t buf[4];
+            if (tcp->peekBytes(&buf[0], 4) != 4)
+                code = FIREBASE_ERROR_FW_UPDATE_INVALID_FIRMWARE;
+            else
+            {
+
+                // check for valid first magic byte
+                if (buf[0] != 0xE9 && buf[0] != 0x1f)
+                {
+                    code = FIREBASE_ERROR_FW_UPDATE_INVALID_FIRMWARE;
+                }
+                else if (buf[0] == 0xe9)
+                {
+                    uint32_t bin_flash_size = ESP.magicFlashChipSize((buf[3] & 0xf0) >> 4);
+
+                    // check if new bin fits to SPI flash
+                    if (bin_flash_size > ESP.getFlashChipRealSize())
+                    {
+                        code = FIREBASE_ERROR_FW_UPDATE_BIN_SIZE_NOT_MATCH_SPI_FLASH_SPACE;
+                    }
+                }
+            }
+        }
+
+        if (code == 0)
+        {
+            if (!Update.begin(len, 0, -1, 0))
+            {
+                code = FIREBASE_ERROR_FW_UPDATE_BEGIN_FAILED;
+            }
+        }
+#endif
+        return code;
     }
 
 private:

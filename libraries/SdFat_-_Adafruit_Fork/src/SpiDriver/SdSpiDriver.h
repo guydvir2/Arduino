@@ -372,6 +372,11 @@ typedef SdFatSpiDriver SdSpiDriver;
 //==============================================================================
 // Use of in-line for AVR to save flash.
 #ifdef __AVR__
+#if defined (__AVR_ATmega4809__)
+#define SPDR SPI0_DATA
+#define SPSR SPI0_INTFLAGS
+#define SPIF 7
+#endif // __AVR_ATmega4809__
 //------------------------------------------------------------------------------
 inline void SdSpiAltDriver::begin(uint8_t csPin) {
   m_csPin = csPin;

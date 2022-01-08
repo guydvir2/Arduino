@@ -1,7 +1,7 @@
 # Firebase Arduino Client Library for ESP8266 and ESP32
 
 
-Google's Firebase Arduino Client Library for ESP8266 and ESP32 v2.7.3
+Google's Firebase Arduino Client Library for ESP8266 and ESP32 v2.7.7
 
 
 This library supports ESP8266 and ESP32 MCU from Espressif. The following are platforms in which the libraries are also available (RTDB only).
@@ -59,11 +59,15 @@ Creating the new Firebase library that specific to only GSM connectivity concern
 
 * **Supports Firebase Cloud Messaging**
 
+* **Supports Test Mode (No Auth)**
+
+* **Supports Firmware OTA updates via RTDB, Firebase Storage and Google Cloud Storage**
+
 * **Supports Cloud Functions for Firebase**
 
 * **Built-in JSON editor and deserializer.**
 
-* **Support external Heap via SRAM/PSRAM in ESP8266 and ESP32.**
+* **Supports external Heap via SRAM/PSRAM in ESP8266 and ESP32.**
 
 * **Supports ethernet in ESP32 using LAN8720, TLK110 and IP101 Ethernet modules and ESP8266 using ENC28J60, W5100 and W5500 Ethernet modules.**
 
@@ -338,6 +342,7 @@ Since v2.6.0, this library supports PSRAM for internal memory allocation which y
 ```
 
 
+
 ## Authentication
 
 This library supports many types of authentications.
@@ -551,8 +556,7 @@ The classes e.g. RTDB, Firestore, FCM, Storage, Cloud Storage, and Cloud Functio
 
 By comment the following macros.
 
-
-
+```
 ENABLE_RTDB
 
 ENABLE_FIRESTORE
@@ -564,7 +568,13 @@ ENABLE_FB_STORAGE
 ENABLE_GC_STORAGE
 
 ENABLE_FB_FUNCTIONS
+```
 
+To disable OTA update via RTDB , Firebase Storage and Google Cloud Storage, comment this macro.
+
+```
+ENABLE_OTA_FIRMWARE_UPDATE
+```
 
 
 ## Realtime Database
@@ -1411,6 +1421,8 @@ This [Google document](https://firebase.google.com/docs/firestore/security/get-s
 
 The Firebase Storage bucket file upload, download, read its meta data and listing are supported. 
 
+The [OTA firmware update](/examples/Storage/FirebaseStorage/DownloadFileOTA/DownloadFileOTA.ino) via the Strage bucket is supported.
+
 See the [Firebase Storage examples](/examples/Storage/FirebaseStorage) for the usages.
 
 
@@ -1419,7 +1431,9 @@ See the [Firebase Storage examples](/examples/Storage/FirebaseStorage) for the u
 
 The Firebase or Google Cloud Storage bucket file upload, download, read its meta data and listing are supported.
 
-This Google Cloud Storage supported allows large files upload which upload the large file via the Firebase Storage functions is not allowable.
+This Google Cloud Storage allows large files upload which upload the large file via the Firebase Storage functions is not allowable.
+
+The [OTA firmware update](/examples/Storage/GoogleCloudStorage/DownloadFileOTA/DownloadFileOTA.ino) via the Google Strage bucket is supported.
 
 
 See the [Google Cloud Storage examples](/examples/Storage/GoogleCloudStorage) for the usages.
@@ -1886,7 +1900,7 @@ The result of the above code
 
 The MIT License (MIT)
 
-Copyright (C) 2021 K. Suwatchai (Mobizt)
+Copyright (C) 2022 K. Suwatchai (Mobizt)
 
 
 Permission is hereby granted, free of charge, to any person returning a copy of

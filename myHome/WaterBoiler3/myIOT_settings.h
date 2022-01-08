@@ -90,7 +90,7 @@ void addiotnalMQTT(char *income_msg)
 
 void startIOTservices()
 {
-    iot.useSerial = true;
+    iot.useSerial = false;
     iot.useWDT = true;
     iot.useOTA = true;
     iot.useResetKeeper = true;
@@ -98,7 +98,7 @@ void startIOTservices()
     iot.useDebug = true;
     iot.debug_level = 0;
     iot.useNetworkReset = true;
-    iot.noNetwork_reset = 30;
+    iot.noNetwork_reset = 10;
     iot.useBootClockLog = true;
     iot.useAltermqttServer = false;
     iot.ignore_boot_msg = false;

@@ -39,26 +39,24 @@ void addiotnalMQTT(char *incoming_msg)
     {
         int num_parameters = iot.inline_read(incoming_msg);
 
-        if (strcmp(iot.inline_param[0], EMAIL_PREFIX) == 0)
+        if (strcmp("iot.inline_param[0]", "EMAIL_PREFIX") == 0)
         {
             DynamicJsonDocument DOC(500);
-            iot.get_timeStamp();
             formatted_email(iot.inline_param[3], // from
                             iot.inline_param[2], // subj
                             iot.inline_param[1], // msg
-                            iot.timeStamp,       // time  <--- not entered by user
+                            iot.get_timeStamp(),// time  <--- not entered by user
                             DOC);
             sendEmail(DOC["sub"], DOC["body"]);
         }
         else if (strcmp(iot.inline_param[0], SMS_PREFIX) == 0)
         {
             char Msg[200];
-            iot.get_timeStamp();
             formatted_SMS(iot.inline_param[3], // from
-                           iot.inline_param[2], // subj
-                           iot.inline_param[1], // msg
-                           iot.timeStamp,       // time  <--- not entered by user
-                           Msg);
+                          iot.inline_param[2], // subj
+                          iot.inline_param[1], // msg
+                          iot.get_timeStamp(), // time  <--- not entered by user
+                          Msg);
             send_SMS(Msg);
         }
         for (int i = 0; i < iot.num_param; i++)
@@ -74,7 +72,6 @@ void startIOTservices()
     iot.useOTA = true;
     iot.useResetKeeper = false;
     iot.useextTopic = true;
-    iot.resetFailNTP = true;
     iot.useDebug = false;
     iot.debug_level = 0;
     iot.useNetworkReset = true;

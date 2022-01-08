@@ -3,7 +3,7 @@
 
 timeOUTSwitch *TOsw[2] = {}; /* Support up to 2 TOsw */
 
-/* ~~~~~~~~~~~ Values get updated from parameter file ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
+/* ~~~~~~~~~~~~~~~~~~~~~~ Values get updated from parameter file ~~~~~~~~~~~~~~~~~~ */
 int PWM_res = 1023;
 bool inputPressed[] = {LOW, LOW}; /* High or LOW on button press */
 bool output_ON[] = {HIGH, HIGH};  /* OUTPUT when ON is HIGH or LOW */
@@ -20,9 +20,9 @@ uint8_t indicPin[] = {1, 2};  /* IO for idication LEDS */
 uint8_t defPWM[] = {2, 2};     /* Default PWM value for some cases not specified */
 uint8_t limitPWM[] = {80, 80}; /* Limit total intensity, 1-100 */
 char sw_names[2][20];          /* Name of each Switch, as shown on MQTT msg */
-/* ~~~~~~~~~~~~~~~~~~ End ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
+/* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ End ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 
-const char *VER = "TOswitch_v1.1";
+const char *VER = "TOswitch_v1.2";
 
 #include "myTO_param.h"
 #include "myIOT_settings.h"
@@ -75,7 +75,10 @@ bool switchIt(bool state, uint8_t i)
                 else
                 {
                         digitalWrite(outputPin[i], !output_ON[i]);
-                        digitalWrite(indicPin[i], !indic_ON[i]);
+                        if (useIndicLED[i])
+                        {
+                                digitalWrite(indicPin[i], !indic_ON[i]);
+                        }
                 }
                 return 1;
         }
@@ -137,6 +140,13 @@ void switchON_cb(uint8_t src, uint8_t i)
                         switchIt(HIGH, i);
                         sprintf(msg, "%s: [%s] Switched [ON] for [%s]", srcs[src], sw_names[i], clk);
                 }
+                else if (TOsw[i]->trigType == 2) /* Case of Sensor - extend duration */
+                {
+                        if (TOsw[i]->inTO == true)
+                        {
+                                return; /* To avoid posting mqtt msg. Timeout was updated in library */
+                        }
+                }
                 else
                 {
                         sprintf(msg, "%s: [%s] add-Time [%s]", srcs[src], sw_names[i], clk);
@@ -151,13 +161,13 @@ void switchON_cb(uint8_t src, uint8_t i)
                 {
                         TOsw[i]->pCounter = TOsw[i]->getCount();
                 }
-                // else if ((TOsw[i]->trigType <=1 && src == 0) || (TOsw[i]->pCounter == 0)) /* When setting Switch or button to use DEF value only */
                 else if ((TOsw[i]->trigType <= 1)) /* When setting Switch or button to use DEF value only */
                 {
                         TOsw[i]->pCounter = defPWM[i];
                 }
                 else if (TOsw[i]->trigType == 2) /* Case of Sensor - extend duration */
                 {
+                        TOsw[i]->pCounter = defPWM[i];
                         if (TOsw[i]->inTO == true)
                         {
                                 return;
@@ -182,6 +192,7 @@ void switchON_cb(uint8_t src, uint8_t i)
                 }
                 iot.pub_msg(msg);
         }
+        iot.pub_state("[ON]", i);
 }
 void switchOFF_cb(uint8_t src, uint8_t i)
 {
@@ -219,6 +230,7 @@ void switchOFF_cb(uint8_t src, uint8_t i)
                         sprintf(msg, "%s: [%s] Switched [OFF] ended after [%s]", srcs[src], sw_names[i], clk);
                 }
                 iot.pub_msg(msg);
+                iot.pub_state("[OFF]", i);
         }
 }
 void init_timeOUT()

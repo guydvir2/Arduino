@@ -1,9 +1,9 @@
 /**
- * Google's Firebase Storage class, FCS.h version 1.1.8
+ * Google's Firebase Storage class, FCS.h version 1.1.11
  * 
  * This library supports Espressif ESP8266 and ESP32
  * 
- * Created December 20, 2021
+ * Created January 1, 2022
  * 
  * This work is a part of Firebase ESP Client library
  * Copyright (c) 2021 K. Suwatchai (Mobizt)
@@ -40,6 +40,8 @@
 #include <Arduino.h>
 #include "Utils.h"
 #include "session/FB_Session.h"
+
+using namespace mb_string;
 
 class FB_Storage
 {
@@ -98,6 +100,19 @@ public:
     template <typename T1 = const char *, typename T2 = const char *, typename T3 = const char *>
     bool download(FirebaseData *fbdo, T1 bucketID, T2 remoteFileName, T3 localFileName, fb_esp_mem_storage_type storageType) { return mDownload(fbdo, toString(bucketID), toString(remoteFileName), toString(localFileName), storageType); }
 
+    /** Download a firmware file from the Firebase Storage data bucket for OTA updates.
+     * 
+     * @param fbdo The pointer to Firebase Data Object.
+     * @param bucketID The Firebase storage bucket ID in the project.
+     * @param remotetFileName The firmware file path includes its name of file in the data bucket to download.
+     * @return Boolean value, indicates the success of the operation.
+     * 
+     * @note: In ESP8266, this function will allocate 16k+ memory for internal SSL client.
+     * 
+    */
+    template <typename T1 = const char *, typename T2 = const char *>
+    bool downloadOTA(FirebaseData *fbdo, T1 bucketID, T2 remoteFileName) { return mDownloadOTA(fbdo, toString(bucketID), toString(remoteFileName)); }
+
     /** Get the meta data of file in Firebase Storage data bucket
      * 
      * @param fbdo The pointer to Firebase Data Object.
@@ -149,22 +164,23 @@ private:
     bool mUpload(FirebaseData *fbdo, const char *bucketID, const char *localFileName, fb_esp_mem_storage_type storageType, const char *remotetFileName, const char *mime);
     bool mUpload(FirebaseData *fbdo, const char *bucketID, const uint8_t *data, size_t len, const char *remoteFileName, const char *mime);
     bool mDownload(FirebaseData *fbdo, const char *bucketID, const char *remoteFileName, const char *localFileName, fb_esp_mem_storage_type storageType);
+    bool mDownloadOTA(FirebaseData *fbdo, const char *bucketID, const char *remoteFileName);
     bool mGetMetadata(FirebaseData *fbdo, const char *bucketID, const char *remoteFileName);
     bool mDeleteFile(FirebaseData *fbdo, const char *bucketID, const char *fileName);
     bool mListFiles(FirebaseData *fbdo, const char *bucketID);
 
 protected:
     template <typename T>
-    auto toString(const T &val) -> typename FB_JS::enable_if<FB_JS::is_std_string<T>::value || FB_JS::is_arduino_string<T>::value || FB_JS::is_mb_string<T>::value || FB_JS::is_same<T, StringSumHelper>::value, const char *>::type { return val.c_str(); }
+    auto toString(const T &val) -> typename enable_if<is_std_string<T>::value || is_arduino_string<T>::value || is_mb_string<T>::value || is_same<T, StringSumHelper>::value, const char *>::type { return val.c_str(); }
 
     template <typename T>
-    auto toString(T val) -> typename FB_JS::enable_if<FB_JS::is_const_chars<T>::value, const char *>::type { return val; }
+    auto toString(T val) -> typename enable_if<is_const_chars<T>::value, const char *>::type { return val; }
 
     template <typename T>
-    auto toString(T val) -> typename FB_JS::enable_if<FB_JS::fs_t<T>::value, const char *>::type { return (const char *)val; }
+    auto toString(T val) -> typename enable_if<fs_t<T>::value, const char *>::type { return (const char *)val; }
 
     template <typename T>
-    auto toString(T val) -> typename FB_JS::enable_if<FB_JS::is_same<T, std::nullptr_t>::value, const char *>::type { return ""; }
+    auto toString(T val) -> typename enable_if<is_same<T, std::nullptr_t>::value, const char *>::type { return ""; }
 };
 
 #endif

@@ -9,7 +9,7 @@
 #define ledON HIGH
 
 // ~~~~~~~TimeOut Constants ~~~~~~
-#define maxTO 180         //minutes to timeout even in ON state
+#define maxTO 150         //minutes to timeout even in ON state
 #define timeIncrements 15 //minutes each button press
 #define time_NOref_OLED 5 // seconds to stop refresh OLED
 
@@ -23,6 +23,6 @@
 
 
 // ~~~~~~~ MQTT Topics ~~~~~~
-#define DEVICE_TOPIC "WaterBoiler2"
+#define DEVICE_TOPIC "WaterBoiler"
 #define MQTT_PREFIX "myHome"
 #define MQTT_GROUP ""

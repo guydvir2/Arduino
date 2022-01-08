@@ -33,6 +33,10 @@ void timeOUTSwitch::start_TO(int _TO, uint8_t src, bool minutes)
         TO_start_millis = millis();
         _updateStartClk(_now());
     }
+    if (trigType == 2)
+    {
+        TO_start_millis = millis();
+    }
     updateEndClk(TO_duration, _now());
     _startf(src, icount);
     inTO = true;
@@ -194,22 +198,19 @@ void timeOUTSwitch::_input_looper()
         }
         else if (trigType == 4 && validInput && currentRead_0 == _inputstatOn) // sensor input
         {
-            _lastPress=millis();
+            _lastPress = millis();
             while (digitalRead(_IN_io) == _inputstatOn) // Avoid long press
             {
                 delay(10);
             }
-            if (millis() - _lastPress < 750)
+            if (millis() - _lastPress < 700)
             {
                 add_TO(def_TO_minutes, 0);
-                Serial.println("here");
             }
             else
             {
                 finish_TO(0);
-                Serial.println("here2");
             }
-            Serial.println(millis() - _lastPress);
         }
     }
 }

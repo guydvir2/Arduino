@@ -1,40 +1,40 @@
 {
-    "numSW": 1,
+    "numSW": 2,
     "OnatBoot": [
         false,
         false
     ],
     "sw_names": [
-        "t2",
+        "Anna",
         "Guy"
     ],
     "trigType": [
-        4,
-        0
+        0,
+        1
     ],
     "useInput": [
         true,
         true
     ],
     "useIndicLED": [
-        true,
+        false,
         false
     ],
     "inputPressed": [
         false,
-        false
+        true
     ],
     "reverseInput": [
         false,
         false
     ],
     "inputPin": [
-        5,
-        0
+        14,
+        12
     ],
     "outputPin": [
-        4,
-        13
+        5,
+        4
     ],
     "indicPin": [
         0,
@@ -46,15 +46,15 @@
     ],
     "output_ON": [
         true,
-        false
+        true
     ],
     "def_TO_minutes": [
-        15,
-        120
+        60,
+        60
     ],
     "maxON_minutes": [
-        600,
-        600
+        120,
+        300
     ],
     "max_pCount": [
         3,
@@ -65,11 +65,11 @@
         3
     ],
     "limitPWM": [
-        80,
+        20,
         20
     ],
     "outputPWM": [
-        false,
+        true,
         true
     ],
     "PWM_res": 1023,

@@ -2,8 +2,7 @@
 #include <myTimeoutSwitch.h>
 
 timeOUTSwitch TOswitch;
-// extern void display_totalOnTime();
-// extern int timeInc_counter;
+extern unsigned long onclk;
 
 void switchON_cb(uint8_t src, uint8_t i)
 {
@@ -24,6 +23,11 @@ void switchON_cb(uint8_t src, uint8_t i)
         sprintf(msg, "%s: add-Time [%s]", srcs[src], s2);
     }
     iot.pub_msg(msg);
+    if (onclk == 0)
+    {
+        onclk = iot.now();
+        iot.pub_state("[ON]");
+    }
 }
 void switchOFF_cb(uint8_t src, uint8_t i)
 {
@@ -54,9 +58,12 @@ void switchOFF_cb(uint8_t src, uint8_t i)
         }
         iot.pub_msg(msg);
     }
+    onclk = 0;
+    iot.pub_state("[OFF]");
 }
 void TOswitch_init()
 {
+    TOswitch.icount = 0;
     TOswitch.useInput = true;
     TOswitch.trigType = 4;
     TOswitch.maxON_minutes = maxTO;

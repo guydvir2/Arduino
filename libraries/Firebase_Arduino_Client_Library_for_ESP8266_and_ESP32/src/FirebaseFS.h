@@ -61,5 +61,7 @@
 #define FIREBASE_USE_PSRAM
 #endif
 
+// To enable OTA updates via RTDB, Firebase Storage and Google Cloud Storage buckets
+#define ENABLE_OTA_FIRMWARE_UPDATE
 
 #endif

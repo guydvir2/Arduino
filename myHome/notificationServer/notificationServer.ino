@@ -3,7 +3,7 @@
 #include "myIOT_settings.h"
 
 /* Select Services */
-#define USE_EMAIL_NOTIF 1
+#define USE_EMAIL_NOTIF 0
 #define USE_SMS_NOTIF 1
 /* ~~~~~~~~~~~~~~~ */
 
@@ -35,57 +35,57 @@ void incomeMQTT_2JSON(char *inmsg, JsonDocument &DOC)
 }
 bool extTopics_looper()
 {
-    if (strcmp(iot.extTopic_msg.msg, "") != 0)
-    {
-        DynamicJsonDocument DOC(500);
-        if (strcmp(iot.extTopic_msg.from_topic, NOTIF_MQTT_TOPIC) == 0)
-        {
-            incomeMQTT_2JSON(iot.extTopic_msg.msg, DOC);
-            if (strcmp(DOC["type"], EMAIL_PREFIX) == 0)
-            {
-#if USE_EMAIL_NOTIF
-                formatted_email(DOC["from"], DOC["sub"], DOC["body"], DOC["time"], DOC);
-                if (sendEmail(DOC["sub"], DOC["body"]))
-                {
-                    Serial.println("Email sent OK");
-                    iot.pub_log("[eMail]: sent successfully");
-                    iot.clear_ExtTopicbuff();
-                    return 1;
-                }
-                else
-                {
-                    Serial.println("Email sent failed");
-                    iot.pub_log("[eMail]: failed sent");
-                    iot.clear_ExtTopicbuff();
-                    return 0;
-                }
-#endif
-            }
-            else if (strcmp(DOC["type"], SMS_PREFIX) == 0)
-            {
-                char Msg[300];
-#if USE_SMS_NOTIF
-                formatted_SMS(DOC["from"], DOC["sub"], DOC["body"], DOC["time"], Msg);
-                if (send_SMS(Msg))
-                {
-                    iot.pub_log("[SMS]: sent successfully");
-                    iot.clear_ExtTopicbuff();
-                    return 1;
-                }
-                else{
-                    iot.pub_log("[SMS]: sent failed");
-                    iot.clear_ExtTopicbuff();
-                    return 0;
-                }
-#endif
-            }
-        }
-        return 0;
-    }
-    else
-    {
-        return 0;
-    }
+//     if (strcmp(iot.extTopic_msg.msg, "") != 0)
+//     {
+//         DynamicJsonDocument DOC(500);
+//         if (strcmp(iot.extTopic_msg.from_topic, NOTIF_MQTT_TOPIC) == 0)
+//         {
+//             incomeMQTT_2JSON(iot.extTopic_msg.msg, DOC);
+//             if (strcmp(DOC["type"], EMAIL_PREFIX) == 0)
+//             {
+// #if USE_EMAIL_NOTIF
+//                 formatted_email(DOC["from"], DOC["sub"], DOC["body"], DOC["time"], DOC);
+//                 if (sendEmail(DOC["sub"], DOC["body"]))
+//                 {
+//                     Serial.println("Email sent OK");
+//                     iot.pub_log("[eMail]: sent successfully");
+//                     iot.clear_ExtTopicbuff();
+//                     return 1;
+//                 }
+//                 else
+//                 {
+//                     Serial.println("Email sent failed");
+//                     iot.pub_log("[eMail]: failed sent");
+//                     iot.clear_ExtTopicbuff();
+//                     return 0;
+//                 }
+// #endif
+//             }
+//             else if (strcmp(DOC["type"], SMS_PREFIX) == 0)
+//             {
+//                 char Msg[300];
+// #if USE_SMS_NOTIF
+//                 formatted_SMS(DOC["from"], DOC["sub"], DOC["body"], DOC["time"], Msg);
+//                 if (send_SMS(Msg))
+//                 {
+//                     iot.pub_log("[SMS]: sent successfully");
+//                     iot.clear_ExtTopicbuff();
+//                     return 1;
+//                 }
+//                 else{
+//                     iot.pub_log("[SMS]: sent failed");
+//                     iot.clear_ExtTopicbuff();
+//                     return 0;
+//                 }
+// #endif
+//             }
+//         }
+//         return 0;
+//     }
+//     else
+//     {
+//         return 0;
+//     }
 }
 
 /* Constructing a JSON fromat and sending to MQTT Topic */
@@ -129,13 +129,13 @@ void setup()
 {
     startIO();
     startIOTservices();
-#if USE_SMS_NOTIF
-    startTelegram();
-#endif
-    iot.get_timeStamp();
-    pub_MSG(SMS_PREFIX, DEV_TOPIC, "בדיקה", "Boot!", iot.timeStamp);
-    pub_MSG(EMAIL_PREFIX, "FROM", "SUBJECT", "MSG", iot.timeStamp);
-    Users.start(10, 10);
+// #if USE_SMS_NOTIF
+//     startTelegram();
+// #endif
+//     iot.get_timeStamp();
+//     pub_MSG(SMS_PREFIX, DEV_TOPIC, "בדיקה", "Boot!", iot.get_timeStamp());
+//     pub_MSG(EMAIL_PREFIX, "FROM", "SUBJECT", "MSG", iot.get_timeStamp());
+//     Users.start(10, 10);
 }
 void loop()
 {
