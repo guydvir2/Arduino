@@ -182,6 +182,7 @@ void clkUpdate(MessageTFT &txtBox)
     }
   }
 }
+
 void setup()
 {
   start_touchScreen();

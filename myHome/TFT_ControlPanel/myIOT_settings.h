@@ -3,7 +3,7 @@
 myIOT2 iot;
 
 #define DEV_TOPIC "ControlPanel"
-#define GROUP_TOPIC ""
+#define GROUP_TOPIC "TFT"
 #define PREFIX_TOPIC "myHome"
 
 void addiotnalMQTT(char *incoming_msg)

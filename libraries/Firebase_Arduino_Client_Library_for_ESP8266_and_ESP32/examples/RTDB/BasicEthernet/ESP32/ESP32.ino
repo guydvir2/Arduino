@@ -4,7 +4,7 @@
  * 
  * Email: k_suwatchai@hotmail.com
  * 
- * Github: https://github.com/mobizt
+ * Github: https://github.com/mobizt/Firebase-ESP-Client
  * 
  * Copyright (c) 2022 mobizt
  *
@@ -211,6 +211,8 @@ void setupFirebase()
     //config.database_url = DATABASE_URL;
     //config.signer.tokens.legacy_token = "<database secret>";
 
+    //To connect without auth in Test Mode, see Authentications/TestMode/TestMode.ino
+
     Firebase.begin(&config, &auth);
 
     //Comment or pass false value when Ethernet reconnection will control by your code or third party library
@@ -221,9 +223,6 @@ void setupFirebase()
 
 void testFirebase()
 {
-
-    //Flash string (PROGMEM and FPSTR), Arduino String, C++ string, const char, char array, string literal are supported
-    //in all Firebase and FirebaseJson functions, unless F() macro is not supported.
 
     sendDataPrevMillis = millis();
 
@@ -253,13 +252,13 @@ void testFirebase()
 
     Serial.printf("Get string... %s\n", Firebase.RTDB.getString(&fbdo, "/test/string") ? fbdo.to<const char *>() : fbdo.errorReason().c_str());
 
-    //For the usage of FirebaseJson, see examples/FirebaseJson/BasicUsage/Create.ino
+    //For the usage of FirebaseJson, see examples/FirebaseJson/BasicUsage/Create_Edit_Parse.ino
     FirebaseJson json;
 
     if (count == 0)
     {
         json.set("value/round/" + String(count), "cool!");
-        json.set("vaue/ts/.sv", "timestamp");
+        json.set("value/ts/.sv", "timestamp");
         Serial.printf("Set json... %s\n", Firebase.RTDB.set(&fbdo, "/test/json", &json) ? "ok" : fbdo.errorReason().c_str());
     }
     else
@@ -351,6 +350,8 @@ void loop()
     {
         sendDataPrevMillis = millis();
         setupFirebase();
+        
+        //Firebase.ready works for authentication management and should be called repeatedly in the loop.
         if (Firebase.ready())
             testFirebase();
     }

@@ -4,7 +4,7 @@
  * 
  * Email: k_suwatchai@hotmail.com
  * 
- * Github: https://github.com/mobizt
+ * Github: https://github.com/mobizt/Firebase-ESP-Client
  * 
  * Copyright (c) 2022 mobizt
  *
@@ -68,6 +68,8 @@ unsigned long dataMillis = 0;
 int count = 0;
 bool signupOK = false;
 
+bool mailSent = false;
+
 void setup()
 {
 
@@ -106,11 +108,14 @@ void setup()
 
     /* Initialize the library with the Firebase authen and config */
     Firebase.begin(&config, &auth);
-
-    Serial.printf("Send Email verification... %s\n", Firebase.sendEmailVerification(&config) ? "ok" : config.signer.verificationError.message.c_str());
 }
 
 void loop()
 {
 
+    if (Firebase.ready() && !mailSent)
+    {
+        mailSent = true;
+        Serial.printf("Send Email verification... %s\n", Firebase.sendEmailVerification(&config) ? "ok" : config.signer.verificationError.message.c_str());
+    }
 }

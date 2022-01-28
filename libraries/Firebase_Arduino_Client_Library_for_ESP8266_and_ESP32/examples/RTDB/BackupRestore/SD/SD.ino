@@ -3,7 +3,7 @@
  * 
  * Email: k_suwatchai@hotmail.com
  * 
- * Github: https://github.com/mobizt
+ * Github: https://github.com/mobizt/Firebase-ESP-Client
  * 
  * Copyright (c) 2022 mobizt
  *
@@ -21,6 +21,9 @@
 
 //Provide the token generation process info.
 #include <addons/TokenHelper.h>
+
+//Provide the SD card interfaces setting and mounting
+#include <addons/SDHelper.h>
 
 /* 1. Define the WiFi credentials */
 #define WIFI_SSID "WIFI_AP"
@@ -82,6 +85,8 @@ void setup()
   //config.database_url = DATABASE_URL;
   //config.signer.tokens.legacy_token = "<database secret>";
 
+  //To connect without auth in Test Mode, see Authentications/TestMode/TestMode.ino
+
   Firebase.begin(&config, &auth);
 
   Firebase.reconnectWiFi(true);
@@ -90,12 +95,55 @@ void setup()
   //required for large file data, increase Rx size as needed.
   fbdo.setBSSLBufferSize(4096 /* Rx buffer size in bytes from 512 - 16384 */, 1024 /* Tx buffer size in bytes from 512 - 16384 */);
 #endif
+
+
+  SD_Card_Mounting(); //See src/addons/SDHelper.h
+}
+
+//The Firebase download callback function
+void rtdbDownloadCallback(RTDB_DownloadStatusInfo info)
+{
+  if (info.status == fb_esp_rtdb_download_status_init)
+  {
+    Serial.printf("Downloading file %s (%d) to %s\n", info.remotePath.c_str(), info.size, info.localFileName.c_str());
+  }
+  else if (info.status == fb_esp_rtdb_download_status_download)
+  {
+    Serial.printf("Downloaded %d%s\n", (int)info.progress, "%");
+  }
+  else if (info.status == fb_esp_rtdb_download_status_complete)
+  {
+    Serial.println("Backup completed\n");
+  }
+  else if (info.status == fb_esp_rtdb_download_status_error)
+  {
+    Serial.printf("Download failed, %s\n", info.errorMsg.c_str());
+  }
+}
+
+//The Firebase upload callback function
+void rtdbUploadCallback(RTDB_UploadStatusInfo info)
+{
+  if (info.status == fb_esp_rtdb_upload_status_init)
+  {
+    Serial.printf("Uploading file %s (%d) to %s\n", info.localFileName.c_str(), info.size, info.remotePath.c_str());
+  }
+  else if (info.status == fb_esp_rtdb_upload_status_upload)
+  {
+    Serial.printf("Uploaded %d%s\n", (int)info.progress, "%");
+  }
+  else if (info.status == fb_esp_rtdb_upload_status_complete)
+  {
+    Serial.println("Restore completed\n");
+  }
+  else if (info.status == fb_esp_rtdb_upload_status_error)
+  {
+    Serial.printf("Upload failed, %s\n", info.errorMsg.c_str());
+  }
 }
 
 void loop()
 {
-  //Flash string (PROGMEM and FPSTR), Arduino String, C++ string, const char, char array, string literal are supported
-  //in all Firebase and FirebaseJson functions, unless F() macro is not supported.
 
   if (Firebase.ready() && !taskCompleted)
   {
@@ -105,22 +153,24 @@ void loop()
     //<target node> is the full path of database to backup and restore.
     //<file name> is file name in 8.3 DOS format (max. 8 bytes file name and 3 bytes file extension)
 
-    Serial.printf("Backup... %s\n", Firebase.RTDB.backup(&fbdo, mem_storage_type_sd, "/<target node>" /* node path to backup*/, "/<file name>" /* file name included path to save */) ? "ok" : fbdo.fileTransferError().c_str());
+    Serial.println("\nBackup... \n");
 
-    if (fbdo.httpCode() == FIREBASE_ERROR_HTTP_CODE_OK)
+    if (Firebase.RTDB.backup(&fbdo, mem_storage_type_sd, "/<target node>" /* node path to backup*/, "/<file name>" /* file name included path to save */, rtdbDownloadCallback /* callback function */))
     {
       Serial.printf("backup file, %s\n", fbdo.getBackupFilename().c_str());
       Serial.printf("file size, %d\n", fbdo.getBackupFileSize());
     }
+    else
+      fbdo.fileTransferError().c_str();
 
     //Restore data to defined database path using backup file on Flash memory.
     //<target node> is the full path of database to restore
     //<file name> is file name included path of backed up file.
     //The file systems for flash and SD/SDMMC can be changed in FirebaseFS.h.
 
-    Serial.printf("Restore... %s\n", Firebase.RTDB.restore(&fbdo, mem_storage_type_sd, "/<target node>" /* node path to restore */, "/<file name>" /* backup file to restore */) ? "ok" : fbdo.fileTransferError().c_str());
+    Serial.println("\nRestore... \n");
 
-    if (fbdo.httpCode() == FIREBASE_ERROR_HTTP_CODE_OK)
-      Serial.printf("backup file, %s\n", fbdo.getBackupFilename().c_str());
+    if (!Firebase.RTDB.restore(&fbdo, mem_storage_type_sd, "/<target node>" /* node path to restore */, "/<file name>" /* backup file to restore */, rtdbUploadCallback /* callback function */))
+      fbdo.fileTransferError().c_str();
   }
 }

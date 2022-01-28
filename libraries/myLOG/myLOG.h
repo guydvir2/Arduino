@@ -19,7 +19,7 @@
 class flashLOG
 {
 /* Following definitions are only for buffer's size, It has nothing to do with actual LOG on flash*/
-#define TEMP_LOG_SIZE 6
+#define TEMP_LOG_SIZE 8
 #define TEMP_LOG_LEN 250
 
 private:
@@ -33,7 +33,7 @@ private:
     const char _EOL = '\n';
 
 public:
-    char *VeR = "flashLOG v1.2";
+    char *VeR = "flashLOG v1.3";
     unsigned long lastUpdate = 0;
 
 private:

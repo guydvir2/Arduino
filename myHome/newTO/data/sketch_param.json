@@ -1,20 +1,20 @@
 {
     "numSW": 2,
     "OnatBoot": [
-        false,
-        false
+        true,
+        true
     ],
     "sw_names": [
-        "Anna",
-        "Guy"
+        "Projector",
+        "Ledstrip"
     ],
     "trigType": [
         0,
         1
     ],
     "useInput": [
-        true,
-        true
+        false,
+        false
     ],
     "useIndicLED": [
         false,
@@ -24,17 +24,13 @@
         false,
         true
     ],
-    "reverseInput": [
-        false,
-        false
-    ],
     "inputPin": [
         14,
-        12
+        13
     ],
     "outputPin": [
-        5,
-        4
+        12,
+        5
     ],
     "indicPin": [
         0,
@@ -49,12 +45,12 @@
         true
     ],
     "def_TO_minutes": [
-        60,
-        60
+        120,
+        180
     ],
     "maxON_minutes": [
-        120,
-        300
+        240,
+        360
     ],
     "max_pCount": [
         3,
@@ -69,9 +65,9 @@
         20
     ],
     "outputPWM": [
-        true,
-        true
+        false,
+        false
     ],
     "PWM_res": 1023,
-    "v_file": 0.8
+    "v_file": 0.81
 }

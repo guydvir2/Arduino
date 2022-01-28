@@ -3,7 +3,7 @@
  * 
  * Email: k_suwatchai@hotmail.com
  * 
- * Github: https://github.com/mobizt
+ * Github: https://github.com/mobizt/Firebase-ESP-Client
  * 
  * Copyright (c) 2022 mobizt
  *
@@ -102,6 +102,7 @@ void loop()
             Serial.printf("CRC32: %s\n", meta.crc32.c_str());
             Serial.printf("Token: %s\n", meta.downloadTokens.c_str());
             Serial.printf("Media Link: %s\n", meta.mediaLink.c_str());
+            //No download url is available for file uploaded with gcs_upload_type_simple upload.
             Serial.printf("Download URL: %s\n", fbdo.downloadURL().c_str());
         }
         else

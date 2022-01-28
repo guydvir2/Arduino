@@ -102,9 +102,9 @@ void startIOTservices()
     iot.useBootClockLog = true;
     iot.useAltermqttServer = false;
     iot.ignore_boot_msg = false;
-    iot.deviceTopic = DEVICE_TOPIC;
-    iot.prefixTopic = MQTT_PREFIX;
-    iot.addGroupTopic = MQTT_GROUP;
+    strcpy(iot.deviceTopic, DEVICE_TOPIC);
+    strcpy(iot.prefixTopic, MQTT_PREFIX);
+    strcpy(iot.addGroupTopic, MQTT_GROUP);
 
     iot.start_services(addiotnalMQTT);
 }

@@ -47,7 +47,7 @@ public:
 public:
   MessageTFT(Adafruit_ILI9341 &_tft = tft);
   void createMSG(char *txt, bool center_txt = true);
-  void createPage(char *txt[], uint8_t r, bool center_txt = true);
+  void createPage(char *txt[], uint8_t r, bool center_txt = true); // Multiple Lines in MSG
   void updateTXT(char *txt, bool center_txt = true);
   void clear_screen(uint8_t c = 0);
 
@@ -201,14 +201,21 @@ void buttonArrayTFT<N>::create_array(uint8_t R, uint8_t C, char *but_txt[])
 template <uint8_t N>
 uint8_t buttonArrayTFT<N>::checkPress(TS_Point &p)
 {
-  for (uint8_t i = 0; i < N; i++)
+  if (butarray[0].TS[0]->touched()) // check in any press occured
   {
-    if (butarray[i].checkPress(p))
+    for (uint8_t i = 0; i < N; i++)
     {
-      return i;
+      if (butarray[i].checkPress(p))
+      {
+        return i;
+      }
     }
+    return 99;
   }
-  return 99;
+  else
+  {
+    return 99;
+  }
 }
 /* End of template */
 

@@ -14,7 +14,7 @@ void MessageTFT::createPage(char *txt[], uint8_t r, bool center_txt)
 {
   createMSG("", false);
   const uint8_t shiftxy = 5;
-  for (uint8_t i = 0; i < r; i++)
+  for (uint8_t i = 0; i < r; i++) // multiple lines
   {
     TFT[0]->setCursor(TFT[0]->getCursorX() + shiftxy, TFT[0]->getCursorY() + shiftxy);
     TFT[0]->println(txt[i]);
@@ -22,7 +22,7 @@ void MessageTFT::createPage(char *txt[], uint8_t r, bool center_txt)
 }
 void MessageTFT::updateTXT(char *txt, bool center_txt)
 {
-  _put_text(txt_buf, face_color, center_txt);
+  _put_text(txt_buf, face_color, center_txt); // faster to change color txt to face color, than redraw (mostly for clks)
   _put_text(txt, txt_color, center_txt);
 }
 void MessageTFT::clear_screen(uint8_t c)
@@ -135,7 +135,7 @@ bool ButtonTFT::checkPress(TS_Point &p) /* can be called from code outside lib w
 }
 void ButtonTFT::_press_cb()
 {
-  uint8_t _press_del = 10;
+  uint8_t _press_del = 500; // slow down re-triggerring
   if (latchButton == false)
   {
     _face_color_t = face_color;

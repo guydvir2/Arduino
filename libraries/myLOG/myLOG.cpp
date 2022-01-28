@@ -30,7 +30,8 @@ bool flashLOG::start(uint8_t max_entries, uint8_t max_entry_len, bool delyedSave
 void flashLOG::looper(uint8_t savePeriod)
 {
     bool timeCondition = lastUpdate > 0 && millis() - lastUpdate > savePeriod * 1000UL;
-    bool overSize_Condition = _buff_i > (int)(0.7 * _logSize);
+    bool overSize_Condition = _buff_i > (int)(0.7 * TEMP_LOG_SIZE);
+
     if (timeCondition || overSize_Condition)
     {
         _write2file();
@@ -39,15 +40,20 @@ void flashLOG::looper(uint8_t savePeriod)
 }
 void flashLOG::write(const char *message, bool NOW)
 {
-    sprintf(_logBuffer[_buff_i], "%s", message);
-
-    _buff_i++;
-    lastUpdate = millis();
-
-    if (!_useDelayedSave || NOW == true)
+    if (_buff_i < TEMP_LOG_SIZE - 1) /* Avoid overFlow */
     {
-        _write2file();
-        // _printDebug("immediate save");
+        sprintf(_logBuffer[_buff_i], "%s", message);
+        if (_buff_i == 0)
+        {
+            lastUpdate = millis();
+        }
+        _buff_i++;
+
+        if (!_useDelayedSave || NOW == true)
+        {
+            _write2file();
+            // _printDebug("immediate save");
+        }
     }
 }
 void flashLOG::rawPrintfile()

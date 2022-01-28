@@ -51,13 +51,13 @@ void addiotnalMQTT(char *incoming_msg)
     }
     else if (strcmp(incoming_msg, "show_flash_param") == 0)
     {
-        char temp[300];
-        char temp3[350];
+        char temp[400];
+        char temp3[450];
         char *a[] = {iot.myIOT_paramfile, sketch_paramfile};
         iot.pub_debug("~~~Start~~~");
         for (int e = 0; e < sizeof(a) / sizeof(a[0]); e++)
         {
-            strcpy(temp, iot.export_fPars(a[e], sketchJSON, 1000)); /* select the bigger file */
+            strcpy(temp, iot.export_fPars(a[e], sketchJSON, JSON_SIZE_SKETCH)); /* select the bigger file */
             sprintf(temp3, "%s: %s", a[e], temp);
             iot.pub_debug(temp3);
             sketchJSON.clear();

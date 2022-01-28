@@ -1,5 +1,5 @@
 {
-    "useSerial": false,
+    "useSerial": true,
     "useWDT": true,
     "useOTA": true,
     "useResetKeeper": true,
@@ -9,8 +9,8 @@
     "useNetworkReset": true,
     "noNetwork_reset": 5,
     "useextTopic": false,
-    "deviceTopic": "parentsClosetLEDs",
-    "groupTopic": "intLights",
+    "deviceTopic": "PergolaLEDsS",
+    "groupTopic": "extLights",
     "prefixTopic": "myHome",
     "ver": 0.2
 }
