@@ -1,5 +1,7 @@
 #include <myIOT2.h>
-#include <myTimeoutSwitch.h>
+// #include <myTimeoutSwitch.h> // Temp
+#include <buttonPresses.h> // New
+
 #include <TimeLib.h>
 #include <MD_Parola.h>  /* Display */
 #include <MD_MAX72xx.h> /* Display */
@@ -25,7 +27,9 @@
 #define HARDWARE_TYPE MD_MAX72XX::FC16_HW
 
 myIOT2 iot;
-timeOUTSwitch TOsw;
+// timeOUTSwitch TOsw;
+buttonPresses Button(BUTTON_PIN, 0);
+unsigned long timeout_counter = 0;
 MD_Parola dotMatrix = MD_Parola(HARDWARE_TYPE, CS_PIN, MAX_DEVICES);
 
 char dispText[10];
@@ -40,6 +44,7 @@ void on_cb(uint8_t src, uint8_t i = 0)
 {
   if (digitalRead(LED_PIN) == !OUTPUT_ON)
   {
+    timeout_counter = millis();
     digitalWrite(LED_PIN, OUTPUT_ON);
     postMSG("ON", srcs[src]);
     iot.pub_state("on");
@@ -49,6 +54,7 @@ void off_cb(uint8_t src, uint8_t i = 0)
 {
   if (digitalRead(LED_PIN) == OUTPUT_ON)
   {
+    timeout_counter = 0;
     digitalWrite(LED_PIN, !OUTPUT_ON);
     postMSG("OFF", srcs[src]);
     iot.pub_state("off");
@@ -56,13 +62,13 @@ void off_cb(uint8_t src, uint8_t i = 0)
 }
 void start_timeOUT()
 {
-  TOsw.max_pCount = 1; /* Single ON/ OFF (notPWM)*/
-  TOsw.trigType = 0;
-  TOsw.useInput = true;
-  TOsw.maxON_minutes = 180;
-  TOsw.def_TO_minutes = LIGHT_ON_TIMEOUT;
-  TOsw.startIO(BUTTON_PIN, SWITCH_PRESSED);
-  TOsw.def_funcs(on_cb, off_cb);
+  // TOsw.max_pCount = 1; /* Single ON/ OFF (notPWM)*/
+  // TOsw.trigType = 0;
+  // TOsw.useInput = true;
+  // TOsw.maxON_minutes = 180;
+  // TOsw.def_TO_minutes = LIGHT_ON_TIMEOUT;
+  // TOsw.startIO(BUTTON_PIN, SWITCH_PRESSED);
+  // TOsw.def_funcs(on_cb, off_cb);
 }
 void postMSG(char *state, char *source)
 {
@@ -102,7 +108,7 @@ void addiotnalMQTT(char *incoming_msg)
   }
   else if (strcmp(incoming_msg, "ver2") == 0)
   {
-    sprintf(msg, "Ver: Ver:%s", VER);
+    sprintf(msg, "Ver2: %s", VER);
     iot.pub_msg(msg);
   }
   else if (strcmp(incoming_msg, "gpio") == 0)
@@ -195,11 +201,21 @@ void setup()
   startIOTservices();
   start_dotMatrix();
   start_gpio();
-  start_timeOUT();
+  // start_timeOUT();
+  Button.start();
 }
 void loop()
 {
   iot.looper();
-  TOsw.looper();
+  // TOsw.looper();
+  if (Button.read() == 1)
+  {
+    digitalRead(LED_PIN) == !OUTPUT_ON ? on_cb(0) : off_cb(0);
+    delay(500);
+  }
+  if (timeout_counter != 0 && (millis()-timeout_counter) >= 1000 * 60 * LIGHT_ON_TIMEOUT)
+  {
+    off_cb(1);
+  }
   updateDisplay();
 }

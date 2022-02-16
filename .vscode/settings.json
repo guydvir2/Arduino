@@ -20,6 +20,7 @@
         "fstream": "cpp",
         "ranges": "cpp",
         "ostream": "cpp",
-        "chrono": "cpp"
+        "chrono": "cpp",
+        "new": "cpp"
     }
 }

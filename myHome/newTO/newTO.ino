@@ -22,7 +22,7 @@ uint8_t limitPWM[] = {80, 80}; /* Limit total intensity, 1-100 */
 char sw_names[2][20];          /* Name of each Switch, as shown on MQTT msg */
 /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ End ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 
-const char *VER = "TOswitch_v1.3";
+const char *VER = "TOswitch_v1.34";
 
 #include "myTO_param.h"
 #include "myIOT_settings.h"
@@ -279,7 +279,5 @@ void setup()
 void loop()
 {
         iot.looper();
-        // Serial.println(iot.flog.VeR);
-        // delay(100);
         loop_timeOUT(); // contains 50 ms delay in loop to avoid dbounce.
 }
