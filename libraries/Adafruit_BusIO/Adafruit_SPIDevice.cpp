@@ -88,8 +88,10 @@ Adafruit_SPIDevice::~Adafruit_SPIDevice() {
  * init
  */
 bool Adafruit_SPIDevice::begin(void) {
-  pinMode(_cs, OUTPUT);
-  digitalWrite(_cs, HIGH);
+  if (_cs != -1) {
+    pinMode(_cs, OUTPUT);
+    digitalWrite(_cs, HIGH);
+  }
 
   if (_spi) { // hardware SPI
     _spi->begin();
@@ -299,7 +301,7 @@ bool Adafruit_SPIDevice::write(uint8_t *buffer, size_t len,
     _spi->beginTransaction(*_spiSetting);
   }
 
-  digitalWrite(_cs, LOW);
+  setChipSelect(LOW);
   // do the writing
 #if defined(ARDUINO_ARCH_ESP32)
   if (_spi) {
@@ -308,6 +310,22 @@ bool Adafruit_SPIDevice::write(uint8_t *buffer, size_t len,
     }
     if (len > 0) {
       _spi->transferBytes(buffer, nullptr, len);
+    }
+  } else
+#elif defined(ARDUINO_ARCH_SAMD) && defined(_ADAFRUIT_ZERODMA_H_)
+  // The variant of transfer() used below currently only exists in the Adafruit
+  // core. It causes a build failure when building against the main Arduino SAMD
+  // core. Unfortunately there doesn't seem to be a supported #define that this
+  // code can use to tell which core it's building against. This hack (checking
+  // for the include guard that gets defined when the Adafruit core's SPI.h
+  // includes Adafruit_ZeroDMA.h) works for now, but it should be improved when
+  // possible.
+  if (_spi) {
+    if (prefix_len > 0) {
+      _spi->transfer(prefix_buffer, nullptr, prefix_len);
+    }
+    if (len > 0) {
+      _spi->transfer(buffer, nullptr, len);
     }
   } else
 #endif
@@ -319,7 +337,7 @@ bool Adafruit_SPIDevice::write(uint8_t *buffer, size_t len,
       transfer(buffer[i]);
     }
   }
-  digitalWrite(_cs, HIGH);
+  setChipSelect(HIGH);
 
   if (_spi) {
     _spi->endTransaction();
@@ -362,9 +380,10 @@ bool Adafruit_SPIDevice::read(uint8_t *buffer, size_t len, uint8_t sendvalue) {
   if (_spi) {
     _spi->beginTransaction(*_spiSetting);
   }
-  digitalWrite(_cs, LOW);
+
+  setChipSelect(LOW);
   transfer(buffer, len);
-  digitalWrite(_cs, HIGH);
+  setChipSelect(HIGH);
 
   if (_spi) {
     _spi->endTransaction();
@@ -406,12 +425,25 @@ bool Adafruit_SPIDevice::write_then_read(uint8_t *write_buffer,
     _spi->beginTransaction(*_spiSetting);
   }
 
-  digitalWrite(_cs, LOW);
+  setChipSelect(LOW);
   // do the writing
 #if defined(ARDUINO_ARCH_ESP32)
   if (_spi) {
     if (write_len > 0) {
       _spi->transferBytes(write_buffer, nullptr, write_len);
+    }
+  } else
+#elif defined(ARDUINO_ARCH_SAMD) && defined(_ADAFRUIT_ZERODMA_H_)
+  // The variant of transfer() used below currently only exists in the Adafruit
+  // core. It causes a build failure when building against the main Arduino SAMD
+  // core. Unfortunately there doesn't seem to be a supported #define that this
+  // code can use to tell which core it's building against. This hack (checking
+  // for the include guard that gets defined when the Adafruit core's SPI.h
+  // includes Adafruit_ZeroDMA.h) works for now, but it should be improved when
+  // possible.
+  if (_spi) {
+    if (write_len > 0) {
+      _spi->transfer(write_buffer, nullptr, write_len);
     }
   } else
 #endif
@@ -452,7 +484,7 @@ bool Adafruit_SPIDevice::write_then_read(uint8_t *write_buffer,
   DEBUG_SERIAL.println();
 #endif
 
-  digitalWrite(_cs, HIGH);
+  setChipSelect(HIGH);
 
   if (_spi) {
     _spi->endTransaction();
@@ -476,17 +508,21 @@ bool Adafruit_SPIDevice::write_and_read(uint8_t *buffer, size_t len) {
     _spi->beginTransaction(*_spiSetting);
   }
 
-  digitalWrite(_cs, LOW);
-
+  setChipSelect(LOW);
   transfer(buffer, len);
-
-  digitalWrite(_cs, HIGH);
+  setChipSelect(HIGH);
 
   if (_spi) {
     _spi->endTransaction();
   }
 
   return true;
+}
+
+void Adafruit_SPIDevice::setChipSelect(int value) {
+  if (_cs == -1)
+    return;
+  digitalWrite(_cs, value);
 }
 
 #endif // SPI exists

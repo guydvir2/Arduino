@@ -13,7 +13,7 @@ void addiotnalMQTT(char *incoming_msg)
         for (int i = 0; i < numSW; i++)
         {
             char s1[15], s2[7];
-            char clk[60], clk2[25];
+            char clk[60], clk2[25], clk3[25];
             char state[15];
             if (outputPWM[i] == false)
             {
@@ -35,9 +35,10 @@ void addiotnalMQTT(char *incoming_msg)
 
             if (TOsw[i]->remTime() > 0)
             {
+                char clk[25];
                 iot.convert_epoch2clock(TOsw[i]->remTime(), 0, s1, s2);
                 simplifyClock(s2, s1, clk2);
-                sprintf(clk, "started[%s] remain[%s] ", iot.get_timeStamp(TOsw[i]->onClk()), clk2);
+                sprintf(clk, "started[%s] remain[%s] ", iot.get_timeStamp(clk3, TOsw[i]->onClk()), clk2);
             }
             else
             {
@@ -57,16 +58,18 @@ void addiotnalMQTT(char *incoming_msg)
         iot.pub_debug("~~~Start~~~");
         for (int e = 0; e < sizeof(a) / sizeof(a[0]); e++)
         {
-            strcpy(temp, iot.export_fPars(a[e], sketchJSON, JSON_SIZE_SKETCH)); /* select the bigger file */
+            char *fParams = iot.export_fPars(a[e], sketchJSON, JSON_SIZE_SKETCH);
+            strcpy(temp, fParams); /* select the bigger file */
             sprintf(temp3, "%s: %s", a[e], temp);
             iot.pub_debug(temp3);
             sketchJSON.clear();
+            delete[] fParams;
         }
         iot.pub_debug("~~~End~~~");
     }
     else if (strcmp(incoming_msg, "ver2") == 0)
     {
-        sprintf(msg, "ver #2: [%s], lib: [%s], timeoutSw[%s]", VER, iot.ver, TOsw[0]->Ver);
+        sprintf(msg, "ver #2: [%s], timeoutSw[%s]", VER, TOsw[0]->Ver);
         iot.pub_msg(msg);
     }
     else if (strcmp(incoming_msg, "all_off") == 0)
@@ -134,13 +137,13 @@ void addiotnalMQTT(char *incoming_msg)
             else if (strcmp(iot.inline_param[1], "remain") == 0)
             {
                 char s1[15], s2[7];
-                char clk[60], clk2[25];
+                char clk[60], clk2[25], clk3[25];
                 int i = atoi(iot.inline_param[0]);
                 if (TOsw[i]->remTime() > 0)
                 {
                     iot.convert_epoch2clock(TOsw[i]->remTime(), 0, s1, s2);
                     simplifyClock(s2, s1, clk2);
-                    iot.get_timeStamp(TOsw[i]->onClk());
+                    // iot.get_timeStamp(clk3, TOsw[i]->onClk());
                     sprintf(clk, "MQTT: remain [%s] ", clk2);
                     iot.pub_msg(clk);
                 }

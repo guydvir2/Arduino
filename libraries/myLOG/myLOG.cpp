@@ -29,10 +29,7 @@ bool flashLOG::start(uint8_t max_entries, uint8_t max_entry_len, bool delyedSave
 }
 void flashLOG::looper(uint8_t savePeriod)
 {
-    bool timeCondition = lastUpdate > 0 && millis() - lastUpdate > savePeriod * 1000UL;
-    bool overSize_Condition = _buff_i > (int)(0.7 * TEMP_LOG_SIZE);
-
-    if (timeCondition || overSize_Condition)
+    if (_delayed_save(savePeriod))
     {
         _write2file();
         // _printDebug("loop_save");
@@ -40,20 +37,14 @@ void flashLOG::looper(uint8_t savePeriod)
 }
 void flashLOG::write(const char *message, bool NOW)
 {
-    if (_buff_i < TEMP_LOG_SIZE - 1) /* Avoid overFlow */
+    if (NOW == true || !_useDelayedSave)
     {
-        sprintf(_logBuffer[_buff_i], "%s", message);
-        if (_buff_i == 0)
-        {
-            lastUpdate = millis();
-        }
-        _buff_i++;
-
-        if (!_useDelayedSave || NOW == true)
-        {
-            _write2file();
-            // _printDebug("immediate save");
-        }
+        _write2file();
+    }
+    else
+    {
+        _insert_record_to_buffer(message);
+        lastUpdate = millis();
     }
 }
 void flashLOG::rawPrintfile()
@@ -153,6 +144,7 @@ bool flashLOG::readline(uint8_t r, char retLog[])
             row_counter++;
         }
     }
+    file.close();
     return 0;
 }
 bool flashLOG::delog()
@@ -193,6 +185,12 @@ uint8_t flashLOG::sizelog()
     file.close();
     return f;
 }
+bool flashLOG::_delayed_save(uint8_t _savePeriod)
+{
+    bool timeCondition = lastUpdate > 0 && millis() - lastUpdate > _savePeriod * 1000UL;
+    bool overSize_Condition = _logBuff.length() > 600;
+    return timeCondition || overSize_Condition;
+}
 
 bool flashLOG::_chkFileOK(File &_file)
 {
@@ -209,13 +207,69 @@ bool flashLOG::_chkFileOK(File &_file)
         return 1;
     }
 }
+void flashLOG::_emptyBuffer()
+{
+    _logBuff = "";
+}
+void flashLOG::_insert_record_to_buffer(const char *inmsg)
+{
+    _logBuff += String(inmsg);
+    _logBuff += _EOL;
+}
+int flashLOG::_getBuffer_records()
+{
+    bool x = true;
+    int _end = 0;
+    int _start = 0;
+    int lineCounter = 0;
+
+    if (_logBuff.length() > 0)
+    {
+        while (x == true)
+        {
+            _end = _logBuff.indexOf(_EOL, _start);
+            _start = _end + 1;
+            lineCounter++;
+            if (_end == _logBuff.length() - 1)
+            {
+                return lineCounter;
+            }
+        }
+    }
+    else
+    {
+        return 0;
+    }
+}
+String flashLOG::_getBuffer_line(int requested_line)
+{
+    int _start = 0;
+    int _end = 0;
+    int lineCounter = 0;
+
+    while (lineCounter <= requested_line)
+    {
+        _end = _logBuff.indexOf(_EOL, _start);
+        if (lineCounter == requested_line)
+        {
+            return _logBuff.substring(_start, _end);
+        }
+        _start = _end + 1;
+        if (_end == _logBuff.length() - 1)
+        {
+            return "Error";
+        }
+        lineCounter++;
+    }
+}
 bool flashLOG::_write2file()
 {
     bool _line_added = false;
-    uint8_t num_lines = getnumlines();
-    if (_logSize - 1 < num_lines + _buff_i)
+    int _m = _getBuffer_records(); // Lines stored in buffer
+    uint8_t num_lines = getnumlines(); // entries stored 
+    if (_logSize - 1 < num_lines + _m)
     {
-        _del_lines(num_lines + _buff_i + 1 - _logSize);
+        _del_lines(num_lines + _m + 1 - _logSize);
     }
 #if isESP8266
     File file1 = LittleFS.open(_logfilename, "a+");
@@ -225,12 +279,12 @@ bool flashLOG::_write2file()
 
     if (_chkFileOK(file1))
     {
-        for (int x = 0; x < _buff_i; x++)
+        for (int x = 0; x < _m; x++)
         {
-            file1.println(_logBuffer[x]);
+            file1.println(_getBuffer_line(x));
             _line_added = true;
         }
-        _buff_i = 0;
+        _emptyBuffer();
         lastUpdate = 0;
     }
     file1.close();
