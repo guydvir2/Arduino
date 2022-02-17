@@ -60,7 +60,7 @@ void addiotnalMQTT(char *income_msg)
         if (TOswitch.remTime() > 0)
         {
             iot.convert_epoch2clock(TOswitch.remTime(), 0, s1, s2);
-            iot.get_timeStamp(TOswitch.onClk());
+            // iot.get_timeStamp(TOswitch.onClk());
             sprintf(clk, "MQTT: remain [%s] ", s1);
             iot.pub_msg(clk);
         }
