@@ -99,6 +99,10 @@ bool flashLOG::del_line(uint8_t line_index)
             {
                 file2.println(line);
             }
+            else
+            {
+                line_deleted = true;
+            }
             row_counter++;
         }
     }
@@ -113,11 +117,6 @@ bool flashLOG::del_line(uint8_t line_index)
     LITTLEFS.rename(tfile, _logfilename);
 #endif
     return line_deleted;
-}
-bool flashLOG::del_last_record()
-{
-    uint8_t i = getnumlines();
-    return del_line(i - 1);
 }
 bool flashLOG::readline(uint8_t r, char retLog[])
 {
@@ -154,9 +153,9 @@ bool flashLOG::delog()
     return LITTLEFS.remove(_logfilename);
 #endif
 }
-uint8_t flashLOG::getnumlines()
+int flashLOG::getnumlines()
 {
-    uint8_t row_counter = 0;
+    int row_counter = 0;
 #if isESP8266
     File file = LittleFS.open(_logfilename, "r");
 #elif isESP32
@@ -173,21 +172,21 @@ uint8_t flashLOG::getnumlines()
     file.close();
     return row_counter;
 }
-uint8_t flashLOG::sizelog()
+unsigned long flashLOG::sizelog()
 {
 #if isESP8266
     File file = LittleFS.open(_logfilename, "r");
 #elif isESP32
     File file = LITTLEFS.open(_logfilename, "r");
 #endif
-    int f = file.size();
+    unsigned long f = file.size();
     file.close();
     return f;
 }
 bool flashLOG::_delayed_save(uint8_t _savePeriod)
 {
     bool timeCondition = lastUpdate > 0 && millis() - lastUpdate > _savePeriod * 1000UL;
-    bool overSize_Condition = _logBuff.length() > 600; // About 4-5 entries
+    bool overSize_Condition = _logBuff.length() > 800; // About 6 entries
     return timeCondition || overSize_Condition;
 }
 
@@ -281,7 +280,7 @@ bool flashLOG::_write2file()
 {
     bool _line_added = false;
     int _m = _getBuffer_records();     // Lines stored in buffer
-    uint8_t num_lines = getnumlines(); // entries stored
+    int num_lines = getnumlines(); // entries stored
     if (_logSize - 1 < num_lines + _m)
     {
         _del_lines(num_lines + _m + 1 - _logSize);

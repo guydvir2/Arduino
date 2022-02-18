@@ -18,28 +18,26 @@
 
 class flashLOG
 {
-/* Following definitions are only for buffer's size, It has nothing to do with actual LOG on flash*/
-
-
 private:
+    const char _EOL = '\n';
     char *_logfilename = "/logfile.txt";
     uint8_t _logSize;
-    bool _useDelayedSave = true;
     bool _useDebug = false;
+    bool _useDelayedSave = true;
     String _logBuff = "";
-    const char _EOL = '\n';
+    
 
 public:
     char *VeR = "flashLOG v2.0";
     unsigned long lastUpdate = 0;
 
 private:
-    bool _chkFileOK(File &_file);
     bool _write2file();
+    bool _chkFileOK(File &_file);
     bool _del_lines(uint8_t line_index);
-    void _printDebug(char *msg);
     bool _delayed_save(uint8_t _savePeriod);
     void _emptyBuffer();
+    void _printDebug(char *msg);
     void _insert_record_to_buffer(const char *inmsg);
     int _getBuffer_records();
     String _getBuffer_line(int requested_line);
@@ -50,12 +48,10 @@ public:
     void write(const char *message, bool NOW = false);
     bool readline(uint8_t r, char *retLog);
     void looper(uint8_t savePeriod = 10);
-
     void rawPrintfile();
     bool delog();
-    bool del_last_record();
     bool del_line(uint8_t line_index);
-    uint8_t sizelog();
-    uint8_t getnumlines();
+    unsigned long sizelog();
+    int getnumlines();
 };
 #endif
