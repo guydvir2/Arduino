@@ -10,10 +10,13 @@
 #include <LITTLEFS.h>
 #define isESP32 true
 #define isESP8266 false
+#define LITFS LITTLEFS
 #elif defined(ARDUINO_ARCH_ESP8266)
 #include <LittleFS.h>
 #define isESP32 false
 #define isESP8266 true
+#define LITFS LittleFS
+
 #endif
 
 class flashLOG
@@ -28,7 +31,7 @@ private:
     
 
 public:
-    char *VeR = "flashLOG v2.0";
+    char *VeR = "flashLOG v2.1";
     unsigned long lastUpdate = 0;
 
 private:

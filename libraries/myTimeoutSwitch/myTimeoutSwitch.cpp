@@ -28,12 +28,12 @@ void timeOUTSwitch::start_TO(int _TO, uint8_t src, bool minutes)
         TO_duration *= 60; // in case given in minutes
     }
 
-    if (!inTO || trigType == 3)
+    if (!inTO || trigType == 3) /* Start New */
     {
         TO_start_millis = millis();
         _updateStartClk(_now());
     }
-    if (trigType == 2)
+    if (trigType == 2) /* Tirgger/Sendsor restart TO withou reseting initial start time */
     {
         TO_start_millis = millis();
     }

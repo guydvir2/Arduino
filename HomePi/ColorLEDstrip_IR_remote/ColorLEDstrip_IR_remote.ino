@@ -13,11 +13,11 @@
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~
 //  ~~~~~~ LEDS ~~~~~~~~~~~~
-#define NUM_LEDS 300
+#define NUM_LEDS 150
 #define LED_DATA_PIN D4
 
 // ~~~~~~~ MQTT Topics ~~~~~~
-#define DEVICE_TOPIC "CorridorLEDs"
+#define DEVICE_TOPIC "kidColorLEDs"
 #define MQTT_PREFIX "myHome"
 #define MQTT_GROUP "intLights"
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -55,16 +55,16 @@ void startIOTservices()
         iot.useOTA = true;
         iot.useResetKeeper = true;
         iot.useextTopic = false;
-        iot.useDebug = false;
+        iot.useDebug = true;
         iot.debug_level = 0;
         iot.useNetworkReset = true;
         iot.noNetwork_reset = 10;
-        iot.useBootClockLog = false;
+        iot.useBootClockLog = true;
         iot.useAltermqttServer = false;
         iot.ignore_boot_msg = false;
-        iot.deviceTopic = DEVICE_TOPIC;
-        iot.prefixTopic = MQTT_PREFIX;
-        iot.addGroupTopic = MQTT_GROUP;
+        strcpy(iot.deviceTopic,DEVICE_TOPIC);
+        strcpy(iot.prefixTopic,MQTT_PREFIX);
+        strcpy(iot.addGroupTopic,MQTT_GROUP);
 
         iot.start_services(addiotnalMQTT);
 }
@@ -243,7 +243,7 @@ void setup()
 {
         startIOTservices();
         start_LEDS();
-        turn_leds_on(3, 20, 1);
+        turn_leds_on(4, 20, 1);
 }
 void loop()
 {

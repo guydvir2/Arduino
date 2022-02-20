@@ -46,22 +46,7 @@ public:
     void setValue(const char *key, int value);
     void setValue(const char *key, long value);
     void setValue(const char *key, bool value);
-
-    // void add2Array(char *array_key, char *val);
-    // void add2Array(char *array_key, int val);
-    // void add2Array(char *array_key, long val);
-
-    // void setArrayVal(char *array_key, int i, char *val);
-    // void setArrayVal(char *array_key, int i, long val);
-    // void setArrayVal(char *array_key, int i, int val);
-
-    // bool getArrayVal(char *array_key, int i, int &retval);
-    // bool getArrayVal(char *array_key, int i, long &retval);
-    // bool getArrayVal(char *array_key, int i, char value[20] = "0");
-
-    // void nestedArray(char *array_key, long val);
-    // void eraseArray(char *array_key);
-
+    
     void printFile();
     void removeValue(const char *key);
 
