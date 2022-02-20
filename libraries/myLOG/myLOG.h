@@ -16,7 +16,6 @@
 #define isESP32 false
 #define isESP8266 true
 #define LITFS LittleFS
-
 #endif
 
 class flashLOG
