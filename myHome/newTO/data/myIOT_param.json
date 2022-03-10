@@ -1,7 +1,8 @@
 {
-    "useSerial": false,
     "useWDT": true,
     "useOTA": true,
+    "useSerial": true,
+    "useFlashP": true,
     "useResetKeeper": true,
     "debug_level": 0,
     "useDebugLog": true,
@@ -9,8 +10,9 @@
     "useNetworkReset": true,
     "noNetwork_reset": 5,
     "useextTopic": false,
-    "deviceTopic": "Latop",
-    "groupTopic": "powerPlugs",
+    "ignore_boot_msg": false,
+    "deviceTopic": "test",
+    "groupTopic": "intLights",
     "prefixTopic": "myHome",
-    "ver": 0.2
+    "ver": 0.5
 }

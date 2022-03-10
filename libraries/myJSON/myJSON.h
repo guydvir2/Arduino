@@ -24,7 +24,7 @@ private:
     char _filename[15];
 
 public:
-    const char *ver = "myJSON_v2.0";
+    const char *ver = "myJSON_v2.0a";
     int DOC_SIZE;
     myJSON(const char *filename = "/jfile.json", bool useserial = false, int doc_size = 400);
 

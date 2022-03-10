@@ -1,9 +1,9 @@
 /*
- * FirebaseJson, version 2.6.10
+ * FirebaseJson, version 2.6.14
  *
  * The Easiest Arduino library to parse, create and edit JSON object using a relative path.
  *
- * Created February 11, 2022
+ * Created March 5, 2022
  *
  * Features
  * - Using path to access node element in search style e.g. json.get(result,"a/b/c")
@@ -46,7 +46,14 @@
 #undef max
 #endif
 #if __has_include(<FS.h>)
+
+#if defined(ESP8266)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif
+
 #include <FS.h>
+
 #define MB_JSON_FS_H
 #endif
 #endif
@@ -118,15 +125,15 @@ extern "C"
 
 #elif defined(ARDUINO_ARCH_RP2040) || defined(ARDUINO_ARCH_SAMD) || defined(ARDUINO_ARCH_STM32) || defined(ARDUINO_ARCH_STM32F1) || defined(ARDUINO_ARCH_STM32F4) || defined(__AVR__)
 
-#include "extras/print/printf.h"
+#include "extras/print/fb_json_print.h"
 
 extern "C" __attribute__((weak)) void
-_putchar(char c)
+fb_json_putchar(char c)
 {
     Serial.print(c);
 }
 
-#define Serial_Printf printf
+#define Serial_Printf fb_json_printf
 
 #endif
 
@@ -172,7 +179,10 @@ static void *fb_js_malloc(size_t len)
     size_t newLen = getReservedLen(len);
 
 #if defined(BOARD_HAS_PSRAM) && defined(MB_STRING_USE_PSRAM)
-    p = (void *)ps_malloc(newLen);
+    if (ESP.getPsramSize() > 0)
+        p = (void *)ps_malloc(newLen);
+    else
+        p = (void *)malloc(newLen);
     if (!p)
         return NULL;
 #else
@@ -204,7 +214,10 @@ static void *fb_js_realloc(void *ptr, size_t sz)
 {
     size_t newLen = getReservedLen(sz);
 #if defined(BOARD_HAS_PSRAM) && defined(MB_STRING_USE_PSRAM)
-    ptr = (void *)ps_realloc(ptr, newLen);
+    if (ESP.getPsramSize() > 0)
+        ptr = (void *)ps_realloc(ptr, newLen);
+    else
+        ptr = (void *)realloc(ptr, newLen);
 #else
 
 #if defined(ESP8266_USE_EXTERNAL_HEAP)
@@ -291,9 +304,9 @@ public:
     template <typename T>
     bool getArray(T source, FirebaseJsonArray &jsonArray)
     {
-        char *s = NULL;
-        bool ret = mGetArray(getStr(source, s), jsonArray);
-        delP(&s);
+        uint32_t addr = 0;
+        bool ret = mGetArray(getStr(source, addr), jsonArray);
+        delAddr(addr);
         return ret;
     }
 
@@ -318,9 +331,9 @@ public:
     template <typename T>
     bool getJSON(T source, FirebaseJson &json)
     {
-        char *s = NULL;
-        bool ret = mGetJSON(getStr(source, s), json);
-        delP(&s);
+        uint32_t addr = 0;
+        bool ret = mGetJSON(getStr(source, addr), json);
+        delAddr(addr);
         return ret;
     }
 
@@ -461,26 +474,38 @@ private:
     void *newP(size_t len);
 
     template <typename T>
-    auto getStr(const T &val, char *out) -> typename MB_ENABLE_IF<is_std_string<T>::value || is_arduino_string<T>::value || is_mb_string<T>::value || MB_IS_SAME<T, StringSumHelper>::value, const char *>::type
+    auto getStr(const T &val, uint32_t &addr) -> typename MB_ENABLE_IF<is_std_string<T>::value || is_arduino_string<T>::value || is_mb_string<T>::value || MB_IS_SAME<T, StringSumHelper>::value, const char *>::type
     {
+        addr = 0;
         return val.c_str();
     }
 
     template <typename T>
-    auto getStr(T val, char *out) -> typename MB_ENABLE_IF<is_arduino_flash_string_helper<T>::value, const char *>::type
+    auto getStr(T val, uint32_t &addr) -> typename MB_ENABLE_IF<is_arduino_flash_string_helper<T>::value, const char *>::type
     {
-        return getStr(reinterpret_cast<PGM_P>(val), out);
+        return getStr(reinterpret_cast<PGM_P>(val), addr);
     }
 
     template <typename T>
-    auto getStr(T val, char *out) -> typename MB_ENABLE_IF<is_const_chars<T>::value, const char *>::type
+    auto getStr(T val, uint32_t &addr) -> typename MB_ENABLE_IF<is_const_chars<T>::value, const char *>::type
     {
         int len = strlen_P((PGM_P)val) + 1;
-        out = (char *)newP(len);
+        char *out = (char *)newP(len);
         uint8_t *d = reinterpret_cast<uint8_t *>(out);
         while (len-- > 0)
             *d++ = pgm_read_byte(val++);
-        return out;
+        addr = toAddr(*out);
+        return (const char *)out;
+    }
+
+    void delAddr(uint32_t addr)
+    {
+        if (addr > 0)
+        {
+            char *s = addrTo<char *>(addr);
+            delP(&s);
+            s = NULL;
+        }
     }
 };
 
@@ -635,26 +660,28 @@ protected:
     MB_String buf;
 
     template <typename T>
-    auto getStr(const T &val, char *out) -> typename MB_ENABLE_IF<is_std_string<T>::value || is_arduino_string<T>::value || is_mb_string<T>::value || MB_IS_SAME<T, StringSumHelper>::value, const char *>::type
+    auto getStr(const T &val, uint32_t &addr) -> typename MB_ENABLE_IF<is_std_string<T>::value || is_arduino_string<T>::value || is_mb_string<T>::value || MB_IS_SAME<T, StringSumHelper>::value, const char *>::type
     {
+        addr = 0;
         return val.c_str();
     }
 
     template <typename T>
-    auto getStr(T val, char *out) -> typename MB_ENABLE_IF<is_arduino_flash_string_helper<T>::value, const char *>::type
+    auto getStr(T val, uint32_t &addr) -> typename MB_ENABLE_IF<is_arduino_flash_string_helper<T>::value, const char *>::type
     {
-        return getStr(reinterpret_cast<PGM_P>(val), out);
+        return getStr(reinterpret_cast<PGM_P>(val), addr);
     }
 
     template <typename T>
-    auto getStr(T val, char *out) -> typename MB_ENABLE_IF<is_const_chars<T>::value, const char *>::type
+    auto getStr(T val, uint32_t &addr) -> typename MB_ENABLE_IF<is_const_chars<T>::value, const char *>::type
     {
         int len = strlen_P((PGM_P)val) + 1;
-        out = (char *)newP(len);
+        char *out = (char *)newP(len);
         uint8_t *d = reinterpret_cast<uint8_t *>(out);
         while (len-- > 0)
             *d++ = pgm_read_byte(val++);
-        return out;
+        addr = toAddr(*out);
+        return (const char *)out;
     }
 
     template <typename T>
@@ -778,8 +805,10 @@ protected:
         void *p;
         size_t newLen = getReservedLen(len);
 #if defined(BOARD_HAS_PSRAM) && defined(MB_STRING_USE_PSRAM)
-
-        p = (void *)ps_malloc(newLen);
+        if (ESP.getPsramSize() > 0)
+            p = (void *)ps_malloc(newLen);
+        else
+            p = (void *)malloc(newLen);
         if (!p)
             return NULL;
 
@@ -1737,9 +1766,9 @@ public:
     template <typename T>
     bool setJsonArrayData(T data)
     {
-        char *s = NULL;
-        bool ret = setRaw(getStr(data, s));
-        delP(&s);
+        uint32_t addr = 0;
+        bool ret = setRaw(getStr(data, addr));
+        delAddr(addr);
         return ret;
     }
 
@@ -1846,9 +1875,9 @@ public:
     template <typename T>
     bool isMember(T path)
     {
-        char *s = NULL;
-        bool ret = mGet(root, NULL, getStr(path, s));
-        delP(&s);
+        uint32_t addr = 0;
+        bool ret = mGet(root, NULL, getStr(path, addr));
+        delAddr(addr);
         return ret;
     }
 
@@ -1994,9 +2023,9 @@ private:
     template <typename T>
     auto dataGetHandler(T arg, FirebaseJsonData &result, bool prettify) -> typename MB_ENABLE_IF<is_string<T>::value, bool>::type
     {
-        char *s = NULL;
-        bool ret = mGet(root, &result, getStr(arg, s), prettify);
-        delP(&s);
+        uint32_t addr = 0;
+        bool ret = mGet(root, &result, getStr(arg, addr), prettify);
+        delAddr(addr);
         return ret;
     }
 
@@ -2009,10 +2038,10 @@ private:
     template <typename T>
     auto dataRemoveHandler(T arg) -> typename MB_ENABLE_IF<is_string<T>::value, bool>::type
     {
-        char *s = NULL;
-        mRemove(getStr(arg, s));
-        delP(&s);
-        return *this;
+        uint32_t addr = 0;
+        bool ret = mRemove(getStr(arg, addr));
+        delAddr(addr);
+        return ret;
     }
 
     template <typename T>
@@ -2052,9 +2081,9 @@ private:
     template <typename T>
     auto dataAddHandler(T arg) -> typename MB_ENABLE_IF<is_string<T>::value, FirebaseJsonArray &>::type
     {
-        char *s = NULL;
-        nAdd(MB_JSON_CreateString(getStr(arg, s)));
-        delP(&s);
+        uint32_t addr = 0;
+        nAdd(MB_JSON_CreateString(getStr(arg, addr)));
+        delAddr(addr);
         return *this;
     }
 
@@ -2062,9 +2091,9 @@ private:
     template <typename T1, typename T2>
     auto dataSetHandler(T1 arg1, T2 arg2) -> typename MB_ENABLE_IF<is_string<T1>::value && MB_IS_SAME<T2, std::nullptr_t>::value>::type
     {
-        char *s = NULL;
-        mSet(getStr(arg1, s), MB_JSON_CreateNull());
-        delP(&s);
+        uint32_t addr = 0;
+        mSet(getStr(arg1, addr), MB_JSON_CreateNull());
+        delAddr(addr);
     }
 
     template <typename T1, typename T2>
@@ -2077,9 +2106,9 @@ private:
     template <typename T1, typename T2>
     auto dataSetHandler(T1 arg1, T2 arg2) -> typename MB_ENABLE_IF<is_string<T1>::value && is_bool<T2>::value>::type
     {
-        char *s = NULL;
-        mSet(getStr(arg1, s), MB_JSON_CreateBool(arg2));
-        delP(&s);
+        uint32_t addr = 0;
+        mSet(getStr(arg1, addr), MB_JSON_CreateBool(arg2));
+        delAddr(addr);
     }
 
     template <typename T1, typename T2>
@@ -2091,9 +2120,9 @@ private:
     template <typename T1, typename T2>
     auto dataSetHandler(T1 arg1, T2 arg2) -> typename MB_ENABLE_IF<is_string<T1>::value && is_num_int<T2>::value>::type
     {
-        char *s = NULL;
-        mSet(getStr(arg1, s), MB_JSON_CreateRaw(num2Str(arg2, -1)));
-        delP(&s);
+        uint32_t addr = 0;
+        mSet(getStr(arg1, addr), MB_JSON_CreateRaw(num2Str(arg2, -1)));
+        delAddr(addr);
     }
 
     template <typename T1, typename T2>
@@ -2105,9 +2134,9 @@ private:
     template <typename T1, typename T2>
     auto dataSetHandler(T1 arg1, T2 arg2) -> typename MB_ENABLE_IF<is_string<T1>::value && MB_IS_SAME<T2, float>::value>::type
     {
-        char *s = NULL;
-        mSet(getStr(arg1, s), MB_JSON_CreateRaw(num2Str(arg2, floatDigits)));
-        delP(&s);
+        uint32_t addr = 0;
+        mSet(getStr(arg1, addr), MB_JSON_CreateRaw(num2Str(arg2, floatDigits)));
+        delAddr(addr);
     }
 
     template <typename T1, typename T2>
@@ -2119,9 +2148,9 @@ private:
     template <typename T1, typename T2>
     auto dataSetHandler(T1 arg1, T2 arg2) -> typename MB_ENABLE_IF<is_string<T1>::value && MB_IS_SAME<T2, double>::value>::type
     {
-        char *s = NULL;
-        mSet(getStr(arg1, s), MB_JSON_CreateRaw(num2Str(arg2, doubleDigits)));
-        delP(&s);
+        uint32_t addr = 0;
+        mSet(getStr(arg1, addr), MB_JSON_CreateRaw(num2Str(arg2, doubleDigits)));
+        delAddr(addr);
     }
 
     template <typename T1, typename T2>
@@ -2133,28 +2162,28 @@ private:
     template <typename T1, typename T2>
     auto dataSetHandler(T1 arg1, T2 arg2) -> typename MB_ENABLE_IF<is_string<T1>::value && is_string<T2>::value>::type
     {
-        char *s1 = NULL;
-        char *s2 = NULL;
-        mSet(getStr(arg1, s1), MB_JSON_CreateString(getStr(arg2, s2)));
-        delP(&s1);
-        delP(&s2);
+        uint32_t addr1 = 0;
+        uint32_t addr2 = 0;
+        mSet(getStr(arg1, addr1), MB_JSON_CreateString(getStr(arg2, addr2)));
+        delAddr(addr1);
+        delAddr(addr2);
     }
 
     template <typename T1, typename T2>
     auto dataSetHandler(T1 arg1, T2 arg2) -> typename MB_ENABLE_IF<is_num_int<T1>::value && is_string<T2>::value>::type
     {
-        char *s = NULL;
-        mSetIdx(arg1, MB_JSON_CreateString(getStr(arg2, s)));
-        delP(&s);
+        uint32_t addr = 0;
+        mSetIdx(arg1, MB_JSON_CreateString(getStr(arg2, addr)));
+        delAddr(addr);
     }
 
     template <typename T1, typename T2>
     auto dataSetHandler(T1 arg1, T2 &arg2) -> typename MB_ENABLE_IF<is_string<T1>::value && MB_IS_SAME<T2, FirebaseJson>::value>::type
     {
         MB_JSON *e = MB_JSON_Duplicate(arg2.root, true);
-        char *s = NULL;
-        mSet(getStr(arg1, s), e);
-        delP(&s);
+        uint32_t addr = 0;
+        mSet(getStr(arg1, addr), e);
+        delAddr(addr);
     }
 
     template <typename T1, typename T2>
@@ -2168,9 +2197,9 @@ private:
     auto dataSetHandler(T1 arg1, T2 &arg2) -> typename MB_ENABLE_IF<is_string<T1>::value && MB_IS_SAME<T2, FirebaseJsonArray>::value>::type
     {
         MB_JSON *e = MB_JSON_Duplicate(arg2.root, true);
-        char *s = NULL;
-        mSet(getStr(arg1, s), e);
-        delP(&s);
+        uint32_t addr = 0;
+        mSet(getStr(arg1, addr), e);
+        delAddr(addr);
     }
 
     template <typename T1, typename T2>
@@ -2178,6 +2207,16 @@ private:
     {
         MB_JSON *e = MB_JSON_Duplicate(arg2.root, true);
         mSetIdx(arg1, e);
+    }
+
+    void delAddr(uint32_t addr)
+    {
+        if (addr > 0)
+        {
+            char *s = addrTo<char *>(addr);
+            delP(&s);
+            s = NULL;
+        }
     }
 };
 
@@ -2223,9 +2262,9 @@ public:
     template <typename T>
     bool setJsonData(T data)
     {
-        char *s = NULL;
-        bool ret = setRaw(getStr(data, s));
-        delP(&s);
+        uint32_t addr = 0;
+        bool ret = setRaw(getStr(data, addr));
+        delAddr(addr);
         return ret;
     }
 
@@ -2273,9 +2312,9 @@ public:
     template <typename T>
     FirebaseJson &add(T key)
     {
-        char *s = NULL;
-        nAdd(getStr(key, s), NULL);
-        delP(&s);
+        uint32_t addr = 0;
+        nAdd(getStr(key, addr), NULL);
+        delAddr(addr);
         return *this;
     }
 
@@ -2342,9 +2381,9 @@ public:
     template <typename T>
     bool get(FirebaseJsonData &result, T path, bool prettify = false)
     {
-        char *s = NULL;
-        bool ret = mGet(root, &result, getStr(path, s), prettify);
-        delP(&s);
+        uint32_t addr = 0;
+        bool ret = mGet(root, &result, getStr(path, addr), prettify);
+        delAddr(addr);
         return ret;
     }
 
@@ -2357,9 +2396,9 @@ public:
     template <typename T>
     bool isMember(T path)
     {
-        char *s = NULL;
-        bool ret = mGet(root, NULL, getStr(path, s));
-        delP(&s);
+        uint32_t addr = 0;
+        bool ret = mGet(root, NULL, getStr(path, addr));
+        delAddr(addr);
         return ret;
     }
 
@@ -2412,9 +2451,9 @@ public:
     template <typename T>
     void set(T key)
     {
-        char *s = NULL;
-        mSet(getStr(key, s), NULL);
-        delP(&s);
+        uint32_t addr = 0;
+        mSet(getStr(key, addr), NULL);
+        delAddr(addr);
     }
 
     /**
@@ -2448,9 +2487,9 @@ public:
     template <typename T>
     bool remove(T path)
     {
-        char *s = NULL;
-        bool ret = mRemove(getStr(path, s));
-        delP(&s);
+        uint32_t addr = 0;
+        bool ret = mRemove(getStr(path, addr));
+        delAddr(addr);
         return ret;
     }
 
@@ -2497,62 +2536,62 @@ private:
     template <typename T1, typename T2>
     auto dataHandler(T1 arg1, T2 arg2, fb_json_func_type_t type) -> typename MB_ENABLE_IF<is_string<T1>::value && is_bool<T2>::value, FirebaseJson &>::type
     {
-        char *s = NULL;
+        uint32_t addr = 0;
         if (type == fb_json_func_type_add)
-            nAdd(getStr(arg1, s), MB_JSON_CreateBool(arg2));
+            nAdd(getStr(arg1, addr), MB_JSON_CreateBool(arg2));
         else if (type == fb_json_func_type_set)
-            mSet(getStr(arg1, s), MB_JSON_CreateBool(arg2));
-        delP(&s);
+            mSet(getStr(arg1, addr), MB_JSON_CreateBool(arg2));
+        delAddr(addr);
         return *this;
     }
 
     template <typename T1, typename T2>
     auto dataHandler(T1 arg1, T2 arg2, fb_json_func_type_t type) -> typename MB_ENABLE_IF<is_string<T1>::value && is_num_int<T2>::value, FirebaseJson &>::type
     {
-        char *s = NULL;
+        uint32_t addr = 0;
         if (type == fb_json_func_type_add)
-            nAdd(getStr(arg1, s), MB_JSON_CreateRaw(num2Str(arg2, -1)));
+            nAdd(getStr(arg1, addr), MB_JSON_CreateRaw(num2Str(arg2, -1)));
         else if (type == fb_json_func_type_set)
-            mSet(getStr(arg1, s), MB_JSON_CreateRaw(num2Str(arg2, -1)));
-        delP(&s);
+            mSet(getStr(arg1, addr), MB_JSON_CreateRaw(num2Str(arg2, -1)));
+        delAddr(addr);
         return *this;
     }
 
     template <typename T1, typename T2>
     auto dataHandler(T1 arg1, T2 arg2, fb_json_func_type_t type) -> typename MB_ENABLE_IF<is_string<T1>::value && MB_IS_SAME<T2, float>::value, FirebaseJson &>::type
     {
-        char *s = NULL;
+        uint32_t addr = 0;
         if (type == fb_json_func_type_add)
-            nAdd(getStr(arg1, s), MB_JSON_CreateRaw(num2Str(arg2, floatDigits)));
+            nAdd(getStr(arg1, addr), MB_JSON_CreateRaw(num2Str(arg2, floatDigits)));
         else if (type == fb_json_func_type_set)
-            mSet(getStr(arg1, s), MB_JSON_CreateRaw(num2Str(arg2, floatDigits)));
-        delP(&s);
+            mSet(getStr(arg1, addr), MB_JSON_CreateRaw(num2Str(arg2, floatDigits)));
+        delAddr(addr);
         return *this;
     }
 
     template <typename T1, typename T2>
     auto dataHandler(T1 arg1, T2 arg2, fb_json_func_type_t type) -> typename MB_ENABLE_IF<is_string<T1>::value && MB_IS_SAME<T2, double>::value, FirebaseJson &>::type
     {
-        char *s = NULL;
+        uint32_t addr = 0;
         if (type == fb_json_func_type_add)
-            nAdd(getStr(arg1, s), MB_JSON_CreateRaw(num2Str(arg2, doubleDigits)));
+            nAdd(getStr(arg1, addr), MB_JSON_CreateRaw(num2Str(arg2, doubleDigits)));
         else if (type == fb_json_func_type_set)
-            mSet(getStr(arg1, s), MB_JSON_CreateRaw(num2Str(arg2, doubleDigits)));
-        delP(&s);
+            mSet(getStr(arg1, addr), MB_JSON_CreateRaw(num2Str(arg2, doubleDigits)));
+        delAddr(addr);
         return *this;
     }
 
     template <typename T1, typename T2>
     auto dataHandler(T1 arg1, T2 arg2, fb_json_func_type_t type) -> typename MB_ENABLE_IF<is_string<T1>::value && is_string<T2>::value, FirebaseJson &>::type
     {
-        char *s1 = NULL;
-        char *s2 = NULL;
+        uint32_t addr1 = 0;
+        uint32_t addr2 = 0;
         if (type == fb_json_func_type_add)
-            nAdd(getStr(arg1, s1), MB_JSON_CreateString(getStr(arg2, s2)));
+            nAdd(getStr(arg1, addr1), MB_JSON_CreateString(getStr(arg2, addr2)));
         else if (type == fb_json_func_type_set)
-            mSet(getStr(arg1, s1), MB_JSON_CreateString(getStr(arg2, s2)));
-        delP(&s1);
-        delP(&s2);
+            mSet(getStr(arg1, addr1), MB_JSON_CreateString(getStr(arg2, addr2)));
+        delAddr(addr1);
+        delAddr(addr2);
         return *this;
     }
 
@@ -2560,12 +2599,12 @@ private:
     auto dataHandler(T arg, FirebaseJson &json, fb_json_func_type_t type) -> typename MB_ENABLE_IF<is_string<T>::value, FirebaseJson &>::type
     {
         MB_JSON *e = MB_JSON_Duplicate(json.root, true);
-        char *s = NULL;
+        uint32_t addr = 0;
         if (type == fb_json_func_type_add)
-            nAdd(getStr(arg, s), e);
+            nAdd(getStr(arg, addr), e);
         else if (type == fb_json_func_type_set)
-            mSet(getStr(arg, s), e);
-        delP(&s);
+            mSet(getStr(arg, addr), e);
+        delAddr(addr);
         return *this;
     }
 
@@ -2573,13 +2612,23 @@ private:
     auto dataHandler(T arg, FirebaseJsonArray &arr, fb_json_func_type_t type) -> typename MB_ENABLE_IF<is_string<T>::value, FirebaseJson &>::type
     {
         MB_JSON *e = MB_JSON_Duplicate(arr.root, true);
-        char *s = NULL;
+        uint32_t addr = 0;
         if (type == fb_json_func_type_add)
-            nAdd(getStr(arg, s), e);
+            nAdd(getStr(arg, addr), e);
         else if (type == fb_json_func_type_set)
-            mSet(getStr(arg, s), e);
-        delP(&s);
+            mSet(getStr(arg, addr), e);
+        delAddr(addr);
         return *this;
+    }
+
+    void delAddr(uint32_t addr)
+    {
+        if (addr > 0)
+        {
+            char *s = addrTo<char *>(addr);
+            delP(&s);
+            s = NULL;
+        }
     }
 };
 

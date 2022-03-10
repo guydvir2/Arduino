@@ -9,7 +9,7 @@ typedef void (*func_cb)(uint8_t src, uint8_t i);
 class timeOUTSwitch
 {
 public:
-    const char *Ver = "TOsw_v0.95";
+    const char *Ver = "TOsw_v1.0a";
     bool useInput = false;
     bool inTO = false;
     uint8_t trigType = 0; /*
@@ -24,7 +24,6 @@ public:
     unsigned int maxON_minutes = 100; // Max ON-time
     unsigned int TO_duration = 0;
     unsigned long TO_start_millis = 0;
-    unsigned long TO_endclk = 0;
     uint8_t max_pCount = 3;
     uint8_t pCounter = 0;
     uint8_t icount = 0;
@@ -59,7 +58,7 @@ private:
 
     void _TOlooper();
     void _input_looper();
-    void _updateStartClk(long TO_start_clk);
+    void _updateStartClk(unsigned long TO_start_clk);
     void _chk_rem_after_boot();
     time_t _now();
 };

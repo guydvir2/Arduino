@@ -1,15 +1,15 @@
 {
     "numSW": 1,
     "OnatBoot": [
-        true,
+        false,
         true
     ],
     "sw_names": [
-        "Plug1",
+        "LED",
         "Ledstrip"
     ],
     "trigType": [
-        0,
+        3,
         1
     ],
     "useInput": [
@@ -17,7 +17,7 @@
         false
     ],
     "useIndicLED": [
-        true,
+        false,
         false
     ],
     "inputPressed": [
@@ -29,8 +29,8 @@
         13
     ],
     "outputPin": [
-        12,
-        5
+        4,
+        4
     ],
     "indicPin": [
         0,
@@ -45,11 +45,11 @@
         true
     ],
     "def_TO_minutes": [
-        120,
+        300,
         180
     ],
     "maxON_minutes": [
-        240,
+        960,
         360
     ],
     "max_pCount": [
@@ -61,11 +61,11 @@
         3
     ],
     "limitPWM": [
-        20,
+        80,
         20
     ],
     "outputPWM": [
-        false,
+        true,
         false
     ],
     "PWM_res": 1023,

@@ -1,9 +1,9 @@
 /**
- * Google's Firebase Util class, Utils.h version 1.1.15
+ * Google's Firebase Util class, FB_Utils.h version 1.1.15
  *
  * This library supports Espressif ESP8266 and ESP32
  *
- * Created February 10, 2022
+ * Created February 28, 2022
  *
  * This work is a part of Firebase ESP Client library
  * Copyright (c) 2022 K. Suwatchai (Mobizt)
@@ -34,7 +34,7 @@
 #define FB_UTILS_H
 
 #include <Arduino.h>
-#include "common.h"
+#include "FB_Const.h"
 using namespace mb_string;
 
 class UtilsClass

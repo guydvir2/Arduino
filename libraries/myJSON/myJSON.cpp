@@ -61,17 +61,14 @@ bool myJSON::FS_ok()
 void myJSON::_saveJSON2file(JsonDocument &_doc)
 {
         File writeFile = LITFS.open(_filename, "w");
-        if (writeFile)
-        {
-                serializeJson(_doc, writeFile);
-        }
+        serializeJson(_doc, writeFile);
         writeFile.close();
 }
 bool myJSON::readJSON_file(JsonDocument &_doc)
 {
         File readFile = LITFS.open(_filename, "r");
-
         DeserializationError error = deserializeJson(_doc, readFile);
+        readFile.close();
         if (error)
         {
                 if (_useSerial)
@@ -80,11 +77,12 @@ bool myJSON::readJSON_file(JsonDocument &_doc)
                         Serial.println(_filename);
                         Serial.println(error.c_str());
                 }
-                readFile.close();
                 return 0;
         }
-        readFile.close();
-        return 1;
+        else
+        {
+                return 1;
+        }
 }
 void myJSON::_PrettyprintJSON(JsonDocument &_doc)
 {
@@ -102,10 +100,12 @@ bool myJSON::getValue(const char *key, char *value)
         {
                 const char *val = _tempJDOC[key];
                 sprintf(value, "%s", val);
+                _tempJDOC.clear();
                 return 1;
         }
         else
         {
+                _tempJDOC.clear();
                 return 0; // when key is not present
         }
 }
@@ -117,10 +117,12 @@ bool myJSON::getValue(const char *key, int &retval)
         if (hasKey)
         {
                 retval = _tempJDOC[key];
+                _tempJDOC.clear();
                 return 1;
         }
         else
         {
+                _tempJDOC.clear();
                 return 0; // when key is not present
         }
 }
@@ -132,10 +134,12 @@ bool myJSON::getValue(const char *key, long &retval)
         if (hasKey)
         {
                 retval = _tempJDOC[key];
+                _tempJDOC.clear();
                 return 1;
         }
         else
         {
+                _tempJDOC.clear();
                 return 0; // when key is not present
         }
 }
@@ -147,10 +151,12 @@ bool myJSON::getValue(const char *key, bool &retval)
         if (hasKey)
         {
                 retval = _tempJDOC[key];
+                _tempJDOC.clear();
                 return 1;
         }
         else
         {
+                _tempJDOC.clear();
                 return 0; // when key is not present
         }
 }
@@ -161,6 +167,7 @@ void myJSON::setValue(const char *key, char *value)
         readJSON_file(_tempJDOC);
         _tempJDOC[key] = value;
         _saveJSON2file(_tempJDOC);
+        _tempJDOC.clear();
 }
 void myJSON::setValue(const char *key, int value)
 {
@@ -168,6 +175,7 @@ void myJSON::setValue(const char *key, int value)
         readJSON_file(_tempJDOC);
         _tempJDOC[key] = value;
         _saveJSON2file(_tempJDOC);
+        _tempJDOC.clear();
 }
 void myJSON::setValue(const char *key, long value)
 {
@@ -175,6 +183,7 @@ void myJSON::setValue(const char *key, long value)
         readJSON_file(_tempJDOC);
         _tempJDOC[key] = value;
         _saveJSON2file(_tempJDOC);
+        _tempJDOC.clear();
 }
 void myJSON::setValue(const char *key, bool value)
 {
@@ -182,6 +191,7 @@ void myJSON::setValue(const char *key, bool value)
         readJSON_file(_tempJDOC);
         _tempJDOC[key] = value;
         _saveJSON2file(_tempJDOC);
+        _tempJDOC.clear();
 }
 void myJSON::removeValue(const char *key)
 {
@@ -189,12 +199,14 @@ void myJSON::removeValue(const char *key)
         readJSON_file(_tempJDOC);
         _tempJDOC.remove(key);
         _saveJSON2file(_tempJDOC);
+        _tempJDOC.clear();
 }
 void myJSON::retAllJSON(char *value)
 {
         DynamicJsonDocument _tempJDOC(DOC_SIZE);
         readJSON_file(_tempJDOC);
         serializeJson(_tempJDOC, value, measureJson(_tempJDOC) + 1);
+        _tempJDOC.clear();
 }
 void myJSON::printFile()
 {
@@ -206,5 +218,6 @@ void myJSON::printFile()
                 serializeJsonPretty(_tempJDOC, Serial);
                 Serial.println();
         }
+        _tempJDOC.clear();
 }
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

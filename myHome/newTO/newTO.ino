@@ -1,9 +1,10 @@
 #include <Arduino.h>
 #include <myTimeoutSwitch.h>
 
-timeOUTSwitch *TOsw[2] = {}; /* Support up to 2 TOsw */
+timeOUTSwitch timeoutSW_0(true);
+timeOUTSwitch *TOsw[] = {&timeoutSW_0, nullptr}; /* Support up to 2 TOsw */
 
-/* ~~~~~~~~~~~~~~~~~~~~~~ Values get updated from parameter file ~~~~~~~~~~~~~~~~~~ */
+// /* ~~~~~~~~~~~~~~~~~~~~~~ Values get updated from parameter file ~~~~~~~~~~~~~~~~~~ */
 int PWM_res = 1023;
 bool inputPressed[] = {LOW, LOW}; /* High or LOW on button press */
 bool output_ON[] = {HIGH, HIGH};  /* OUTPUT when ON is HIGH or LOW */
@@ -12,22 +13,21 @@ bool outputPWM[] = {false, false};
 bool useIndicLED[] = {false, false}; /* use indication leds when ON*/
 bool indic_ON[] = {true, true};
 
-uint8_t numSW = 2;            /* Num of switches: 1 or 2 */
+uint8_t numSW = 1;            /* Num of switches: 1 or 2 */
 uint8_t inputPin[] = {3, 0};  /* IO for inputs */
-uint8_t outputPin[] = {1, 2}; /* IO for outputs */
-uint8_t indicPin[] = {1, 2};  /* IO for idication LEDS */
+uint8_t outputPin[] = {5, 2}; /* IO for outputs */
+uint8_t indicPin[] = {4, 2};  /* IO for idication LEDS */
 
 uint8_t defPWM[] = {2, 2};     /* Default PWM value for some cases not specified */
 uint8_t limitPWM[] = {80, 80}; /* Limit total intensity, 1-100 */
 char sw_names[2][20];          /* Name of each Switch, as shown on MQTT msg */
-/* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ End ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
+// /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ End ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 
-const char *VER = "TOswitch_v1.34";
-
+const char *VER = "TOswitch_v1.42";
 #include "myTO_param.h"
 #include "myIOT_settings.h"
 
-/* Controlling IOs */
+// /* Controlling IOs */
 void startIO()
 {
         analogWriteRange(PWM_res); /* PWM at ESP8266 */
@@ -67,18 +67,10 @@ bool switchIt(bool state, uint8_t i)
                 if (state == HIGH) // High reffered as ON
                 {
                         digitalWrite(outputPin[i], output_ON[i]);
-                        if (useIndicLED[i])
-                        {
-                                digitalWrite(indicPin[i], indic_ON[i]);
-                        }
                 }
                 else
                 {
                         digitalWrite(outputPin[i], !output_ON[i]);
-                        if (useIndicLED[i])
-                        {
-                                digitalWrite(indicPin[i], !indic_ON[i]);
-                        }
                 }
                 return 1;
         }
@@ -110,8 +102,8 @@ void PWMdim(int dim_step, uint8_t i)
         }
 }
 
-/* Config Switches instances */
-void simplifyClock(char *days, char *clk, char retVal[25])
+// /* Config Switches instances */
+void simplifyClock(char *days, char *clk, char *retVal)
 {
         if (strcmp(days, "0d") != 0)
         {
@@ -124,7 +116,7 @@ void simplifyClock(char *days, char *clk, char retVal[25])
 }
 void switchON_cb(uint8_t src, uint8_t i)
 {
-        char msg[100];
+        char msg[150];
         char s1[25];
         char s2[7];
         char clk[25];
@@ -156,7 +148,7 @@ void switchON_cb(uint8_t src, uint8_t i)
         else
         {
                 bool msg_a = false;
-                // ~~~~~~~~~ Setting internsity ~~~~~~~
+                // ~~~~~~~~~ Setting intensity ~~~~~~~
                 if (src == 1) /* Resume after boot - and time remain */
                 {
                         TOsw[i]->pCounter = TOsw[i]->getCount();
@@ -196,7 +188,7 @@ void switchON_cb(uint8_t src, uint8_t i)
 }
 void switchOFF_cb(uint8_t src, uint8_t i)
 {
-        char msg[100];
+        char msg[150];
         char s1[15];
         char s2[7];
         char clk[25];
@@ -235,8 +227,6 @@ void switchOFF_cb(uint8_t src, uint8_t i)
 }
 void init_timeOUT()
 {
-        static timeOUTSwitch timeoutSW_0;
-        TOsw[0] = &timeoutSW_0;
         if (numSW == 2)
         {
                 static timeOUTSwitch timeoutSW_1;
@@ -250,12 +240,9 @@ void start_timeOUT()
                 TOsw[i]->icount = i;
                 TOsw[i]->startIO(inputPin[i], inputPressed[i]);
                 TOsw[i]->def_funcs(switchON_cb, switchOFF_cb);
-                if (OnatBoot[i])
+                if (OnatBoot[i] && TOsw[i]->remTime() == 0) /* Turn on*/
                 {
-                        if (TOsw[i]->remTime() == 0) /* last oper was ended prior to reboot */
-                        {
-                                TOsw[i]->start_TO(TOsw[i]->def_TO_minutes, 3);
-                        }
+                        TOsw[i]->start_TO(TOsw[i]->def_TO_minutes, 3);
                 }
         }
 }
@@ -264,17 +251,26 @@ void loop_timeOUT()
         for (int i = 0; i < numSW; i++)
         {
                 TOsw[i]->looper();
+                if (useIndicLED[i])
+                {
+                        if (digitalRead(outputPin[i]) == output_ON[i])
+                        {
+                                digitalWrite(indicPin[i], indic_ON[i]);
+                        }
+                        else
+                        {
+                                digitalWrite(indicPin[i], !indic_ON[i]);
+                        }
+                }
         }
 }
 
 void setup()
 {
-        init_timeOUT();
-        startRead_parameters();
+        read_flashParameter();
         startIO();
         startIOTservices();
         start_timeOUT();
-        endRead_parameters();
 }
 void loop()
 {
