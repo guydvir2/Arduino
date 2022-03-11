@@ -96,6 +96,7 @@ void startIOTservices()
     iot.useResetKeeper = true;
     iot.useextTopic = false;
     iot.useDebug = true;
+    iot.useFlashP = false;
     iot.debug_level = 0;
     iot.useNetworkReset = true;
     iot.noNetwork_reset = 10;

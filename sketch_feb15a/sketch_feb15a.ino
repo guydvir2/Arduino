@@ -8,8 +8,8 @@ void setup()
 
   Serial.begin(115200);
   Serial.println("Start");
-  pinMode(outputPin, OUTPUT);
-//  pinMode(inputPin, INPUT_PULLUP);
+//  pinMode(outputPin, OUTPUT);
+  pinMode(inputPin, INPUT_PULLUP);
 //    digitalWrite(outputPin, LOW);
   //analogWrite(outputPin,0);
 }
@@ -26,5 +26,6 @@ void loop()
 //    delay(10);
 //    digitalWrite(outputPin, LOW);
 //    delay(1000);
-Serial.println(digitalRead(D5));
+Serial.println(digitalRead(inputPin));
+delay(100);
 }

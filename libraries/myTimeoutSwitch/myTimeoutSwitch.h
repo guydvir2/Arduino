@@ -38,8 +38,9 @@ public:
     void clearTO();
     int remTime();
     time_t onClk();
-    uint8_t getCount();
+    uint8_t getCount(bool forceF=false); // forceF to force read Flash stored value (case of reboot)
     void updateEndClk(int TO_dur_minutes, unsigned long TO_start_clk = 0);
+    void updatePcount(uint8_t val);
 
     myJSON CLKstore;
 

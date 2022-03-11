@@ -46,6 +46,7 @@ void addiotnalMQTT(char *incoming_msg)
             sprintf(msg2, "[%s] %s %s", sw_names[i], state, clk);
             strcat(msg, msg2);
         }
+        Serial.println(msg);
         iot.pub_msg(msg);
     }
     else if (strcmp(incoming_msg, "ver2") == 0)
@@ -58,35 +59,18 @@ void addiotnalMQTT(char *incoming_msg)
         for (int i = 0; i < numSW; i++)
         {
             TOsw[i]->finish_TO(2);
-            Serial.println(i);
         }
     }
     else if (strcmp(incoming_msg, "all_on") == 0)
     {
-        // File writeFile = LittleFS.open("/fnams.json", "w");
-        // _tempJDOC["timeNow"] = (long)iot.now();
-        // serializeJson(_tempJDOC, writeFile);
-        // serializeJson(_tempJDOC, Serial);
-        // writeFile.close();
-        // sprintf(value, "%s", val);
-
-        // for (int i = 0; i < numSW; i++)
-        // {
-        //     TOsw[i]->start_TO(TOsw[i]->def_TO_minutes, 2);
-        // }
-        // CLKstore.setValue("dummy", (long)iot.now());
-        // CLKstore.printFile();
-        // Serial.println("ONNNNNNNNNNNN");
+        for (int i = 0; i < numSW; i++)
+        {
+            TOsw[i]->start_TO(TOsw[i]->def_TO_minutes, 2);
+        }
     }
     else if (strcmp(incoming_msg, "help2") == 0)
     {
         sprintf(msg, "Help2: Commands #3 - [{i,on}, {i,off}, {i,remain}, all_off, all_on, {i, timeout,minutes,_pwm}, show_flashParam]");
-        iot.pub_msg(msg);
-    }
-    else if (strcmp(incoming_msg, "format") == 0)
-    {
-        LittleFS.format();
-        sprintf(msg, "format");
         iot.pub_msg(msg);
     }
     else if (strcmp(incoming_msg, "show_flashParam") == 0)
@@ -187,19 +171,5 @@ void addiotnalMQTT(char *incoming_msg)
 void startIOTservices()
 {
     iot.useFlashP = true;
-    // iot.useSerial = true;
-    // iot.useWDT = true;
-    // iot.useOTA = true;
-    // iot.useResetKeeper = true;
-    // iot.useextTopic = false;
-    // iot.useDebug = false;
-    // iot.debug_level = 0;
-    // iot.useNetworkReset = true;
-    // iot.noNetwork_reset = 10;
-    // iot.useBootClockLog = false;
-    // iot.ignore_boot_msg = false;
-    // strcpy(iot.deviceTopic, "TEST");
-    // strcpy(iot.prefixTopic, "myHome");
-    // strcpy(iot.addGroupTopic, "intLights");
     iot.start_services(addiotnalMQTT);
 }

@@ -1,6 +1,6 @@
 #include <myTimeoutSwitch.h>
 
-timeOUTSwitch::timeOUTSwitch(bool saveCLK) : CLKstore("/ClkStore.json", true, 100)
+timeOUTSwitch::timeOUTSwitch(bool saveCLK) : CLKstore("/ClkStore.json", true, 150)
 {
     _useSavedCLK = saveCLK;
     // _counter++;
@@ -55,15 +55,13 @@ void timeOUTSwitch::start_TO(int _TO, uint8_t src, bool minutes)
     {
         TO_duration *= 60; // in case given in minutes
     }
-    TO_duration /= 10; // for test purposes
 
     if (!inTO || src == 2)
     {
         TO_start_millis = millis();
         _updateStartClk(_now());
-        delay(50);
         updateEndClk(TO_duration, _now());
-        delay(50);
+        updatePcount(pCounter);
         _startf(src, icount);
         inTO = true;
     }
@@ -71,6 +69,7 @@ void timeOUTSwitch::start_TO(int _TO, uint8_t src, bool minutes)
     {
         if (trigType == 3) /* PWM update to inc intensity */
         {
+            updatePcount(pCounter);
             _startf(src, icount);
         }
         else if (trigType == 2)
@@ -110,13 +109,10 @@ void timeOUTSwitch::clearTO()
     inTO = false;
     TO_start_millis = 0;
     pCounter = 0; /* Relevant PWM only */
-    if (_useSavedCLK)
-    {
-        CLKstore.setValue(_keyEnd, 0);   // Update endClk
-        CLKstore.setValue(_keyStart, 0); // update startClk
-        CLKstore.setValue(_keyCounter, 0); // update startClk
-        CLKstore.printFile();
-    }
+    _lastPress = 0;
+    updatePcount(0);
+    updateEndClk(0, 0);
+    _updateStartClk(0);
 }
 int timeOUTSwitch::remTime()
 {
@@ -159,9 +155,9 @@ time_t timeOUTSwitch::onClk()
         return _now() - (long)((millis() - TO_start_millis) / 1000);
     }
 }
-uint8_t timeOUTSwitch::getCount()
+uint8_t timeOUTSwitch::getCount(bool forceF)
 {
-    if (_useSavedCLK)
+    if (_useSavedCLK || forceF)
     {
         int a = 0;
         CLKstore.getValue(_keyCounter, a);
@@ -221,8 +217,10 @@ void timeOUTSwitch::_input_looper()
         }
         else if (trigType == 2 && validInput && currentRead_0 == _inputstatOn) // sensor input
         {
+            Serial.println("HERE");
             if (_lastPress == 0 || (millis() - _lastPress > 1000 * 60UL)) /* Case of sensor that each detection restarts its timeout */
             {
+                Serial.println("HERE2");
                 start_TO(def_TO_minutes, 0);
                 _lastPress = millis(); /* Avoid frequent write to flash */
             }
@@ -266,7 +264,7 @@ void timeOUTSwitch::_input_looper()
 }
 void timeOUTSwitch::updateEndClk(int _TO_dur, unsigned long TO_start_clk)
 {
-    if (TO_start_clk == 0)
+    if (TO_start_clk == 0 && _TO_dur != 0)
     {
         TO_start_clk = _now();
     }
@@ -274,8 +272,13 @@ void timeOUTSwitch::updateEndClk(int _TO_dur, unsigned long TO_start_clk)
     if (_useSavedCLK)
     {
         CLKstore.setValue(_keyEnd, (long)(TO_start_clk + _TO_dur));
-        CLKstore.setValue(_keyCounter, (int)pCounter);
-        CLKstore.printFile();
+    }
+}
+void timeOUTSwitch::updatePcount(uint8_t val)
+{
+    if (_useSavedCLK)
+    {
+        CLKstore.setValue(_keyCounter, val);
     }
 }
 void timeOUTSwitch::_updateStartClk(unsigned long TO_start_clk)
@@ -283,21 +286,21 @@ void timeOUTSwitch::_updateStartClk(unsigned long TO_start_clk)
     if (_useSavedCLK)
     {
         CLKstore.setValue(_keyStart, (long)TO_start_clk);
-        CLKstore.printFile();
     }
 }
 void timeOUTSwitch::_chk_rem_after_boot()
 {
-    long bb = 0;
     if (_useSavedCLK)
     {
-        bool record = CLKstore.getValue(_keyEnd, bb);
-
-        if (record)
+        long bb = 0;
+        if (CLKstore.getValue(_keyEnd, bb))
         {
             time_t NOW = _now();
-            if (bb > 0 && bb - _now() > 0 && NOW > 1627735850)
+            if (bb > 0 && bb - NOW() > 0 && NOW > 1627735850)
             {
+                int x = 0;
+                CLKstore.getValue(_keyCounter, x);
+                pCounter = (uint8_t)x;
                 start_TO(bb - NOW, 1, false);
             }
             else if (bb > 0 && bb - NOW < 0)

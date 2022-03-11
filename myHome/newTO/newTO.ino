@@ -1,8 +1,9 @@
 #include <Arduino.h>
 #include <myTimeoutSwitch.h>
 
-timeOUTSwitch timeoutSW_0(true);
-timeOUTSwitch *TOsw[] = {&timeoutSW_0, nullptr}; /* Support up to 2 TOsw */
+timeOUTSwitch timeoutSW_0;
+// timeOUTSwitch timeoutSW_1;
+timeOUTSwitch *TOsw[2] = {&timeoutSW_0, nullptr}; /* Support up to 2 TOsw */
 
 // /* ~~~~~~~~~~~~~~~~~~~~~~ Values get updated from parameter file ~~~~~~~~~~~~~~~~~~ */
 int PWM_res = 1023;
@@ -23,7 +24,7 @@ uint8_t limitPWM[] = {80, 80}; /* Limit total intensity, 1-100 */
 char sw_names[2][20];          /* Name of each Switch, as shown on MQTT msg */
 // /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ End ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 
-const char *VER = "TOswitch_v1.42";
+const char *VER = "TOswitch_v1.43";
 #include "myTO_param.h"
 #include "myIOT_settings.h"
 
@@ -105,14 +106,7 @@ void PWMdim(int dim_step, uint8_t i)
 // /* Config Switches instances */
 void simplifyClock(char *days, char *clk, char *retVal)
 {
-        if (strcmp(days, "0d") != 0)
-        {
-                sprintf(retVal, "%s %s", days, clk);
-        }
-        else
-        {
-                sprintf(retVal, "%s", clk);
-        }
+        sprintf(retVal, "%s%s", strcmp(days, "0d") != 0 ? strcat(days, " ") : "", clk);
 }
 void switchON_cb(uint8_t src, uint8_t i)
 {
@@ -149,10 +143,23 @@ void switchON_cb(uint8_t src, uint8_t i)
         {
                 bool msg_a = false;
                 // ~~~~~~~~~ Setting intensity ~~~~~~~
-                if (src == 1) /* Resume after boot - and time remain */
+                if (src == 0)
                 {
-                        TOsw[i]->pCounter = TOsw[i]->getCount();
+                        if (TOsw[i]->pCounter == 0)
+                        {
+                                TOsw[i]->pCounter = defPWM[i];
+                        }
                 }
+                else if (src == 1) /* Resume after boot - and time remain */
+                {
+                        TOsw[i]->pCounter = TOsw[i]->getCount(true);
+
+                        if (TOsw[i]->pCounter == 0)
+                        {
+                                TOsw[i]->pCounter = defPWM[i];
+                        }
+                }
+
                 else if ((TOsw[i]->trigType <= 1)) /* When setting Switch or button to use DEF value only */
                 {
                         TOsw[i]->pCounter = defPWM[i];

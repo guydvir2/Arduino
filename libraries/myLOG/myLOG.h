@@ -28,7 +28,6 @@ private:
     bool _useDelayedSave = true;
     String _logBuff = "";
     
-
 public:
     char *VeR = "flashLOG v2.1";
     unsigned long lastUpdate = 0;

@@ -79,7 +79,7 @@ bool flashLOG::del_line(uint8_t line_index)
     File file1 = LITFS.open(_logfilename, "r");
     File file2 = LITFS.open(tfile, "w");
 
-    if (_chkFileOK(file1) && _chkFileOK(file2))
+    if (file1 && file2)
     {
         while (file1.available())
         {
@@ -95,6 +95,10 @@ bool flashLOG::del_line(uint8_t line_index)
             row_counter++;
         }
     }
+    else
+    {
+        Serial.println("Fail open files");
+    }
 
     file1.close();
     file2.close();
@@ -107,7 +111,7 @@ bool flashLOG::readline(uint8_t r, char retLog[])
     uint8_t row_counter = 0;
     File file = LITFS.open(_logfilename, "r");
 
-    if (_chkFileOK(file))
+    if (file)
     {
         while (file.available() || row_counter != r)
         {
@@ -122,8 +126,12 @@ bool flashLOG::readline(uint8_t r, char retLog[])
             row_counter++;
         }
     }
-    file.close();
-    return 0;
+    else
+    {
+        Serial.println("Fail open file");
+        file.close();
+        return 0;
+    }
 }
 bool flashLOG::delog()
 {
