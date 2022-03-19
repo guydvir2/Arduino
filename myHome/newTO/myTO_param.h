@@ -1,9 +1,10 @@
-#include <Arduino.h>
+#define SKETCH_JSON_SIZE 1250
+#define sketch_paramfile "/sketch_param.json"
+
 #include <myIOT2.h>
 
 extern myIOT2 iot;
 extern void init_timeOUT();
-char *sketch_paramfile = "/sketch_param.json";
 
 void update_vars(JsonDocument &DOC)
 {
@@ -35,8 +36,8 @@ void update_vars(JsonDocument &DOC)
 }
 void read_flashParameter()
 {
-  DynamicJsonDocument sketchJSON(1250);
-  String sketch_defs = "{\"useInput\":[true,true],\"trigType\":[3,3], \
+  DynamicJsonDocument sketchJSON(SKETCH_JSON_SIZE);
+  char sketch_defs[] = "{\"useInput\":[true,true],\"trigType\":[3,3], \
                         \"def_TO_minutes\":[120,100],\"maxON_minutes\":[720,360], \
                         \"inputPressed\":[true, false],\"inputPin\":[5,6], \
                         \"outputPin\":[4,3],\"output_ON\":[true,true],\

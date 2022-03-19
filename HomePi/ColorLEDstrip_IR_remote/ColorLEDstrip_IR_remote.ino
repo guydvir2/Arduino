@@ -13,11 +13,11 @@
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~
 //  ~~~~~~ LEDS ~~~~~~~~~~~~
-#define NUM_LEDS 150
+#define NUM_LEDS 300
 #define LED_DATA_PIN D4
 
 // ~~~~~~~ MQTT Topics ~~~~~~
-#define DEVICE_TOPIC "kidColorLEDs"
+#define DEVICE_TOPIC "CorridorLEDs"
 #define MQTT_PREFIX "myHome"
 #define MQTT_GROUP "intLights"
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~

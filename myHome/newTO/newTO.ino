@@ -2,10 +2,9 @@
 #include <myTimeoutSwitch.h>
 
 timeOUTSwitch timeoutSW_0;
-// timeOUTSwitch timeoutSW_1;
 timeOUTSwitch *TOsw[2] = {&timeoutSW_0, nullptr}; /* Support up to 2 TOsw */
 
-// /* ~~~~~~~~~~~~~~~~~~~~~~ Values get updated from parameter file ~~~~~~~~~~~~~~~~~~ */
+/* ~~~~~~~~~~~~~~~~~~~~~~ Values get updated from parameter file ~~~~~~~~~~~~~~~~~~ */
 int PWM_res = 1023;
 bool inputPressed[] = {LOW, LOW}; /* High or LOW on button press */
 bool output_ON[] = {HIGH, HIGH};  /* OUTPUT when ON is HIGH or LOW */
@@ -22,9 +21,9 @@ uint8_t indicPin[] = {4, 2};  /* IO for idication LEDS */
 uint8_t defPWM[] = {2, 2};     /* Default PWM value for some cases not specified */
 uint8_t limitPWM[] = {80, 80}; /* Limit total intensity, 1-100 */
 char sw_names[2][20];          /* Name of each Switch, as shown on MQTT msg */
-// /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ End ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
+/* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ End ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 
-const char *VER = "TOswitch_v1.43";
+const char *VER = "TOswitch_v1.44";
 #include "myTO_param.h"
 #include "myIOT_settings.h"
 
@@ -284,3 +283,4 @@ void loop()
         iot.looper();
         loop_timeOUT(); // contains 50 ms delay in loop to avoid dbounce.
 }
+

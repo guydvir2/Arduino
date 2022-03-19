@@ -1,28 +1,28 @@
 {
-    "numSW": 2,
+    "numSW": 1,
     "OnatBoot": [
         true,
-        true
+        false
     ],
     "sw_names": [
-        "Projector",
-        "Ledstrip"
+        "bulb",
+        "Mirror"
     ],
     "trigType": [
-        0,
-        1
+        1,
+        0
     ],
     "useInput": [
-        false,
-        false
+        true,
+        true
     ],
     "useIndicLED": [
         false,
         false
     ],
     "inputPressed": [
-        false,
-        true
+        true,
+        false
     ],
     "inputPin": [
         14,
@@ -30,7 +30,7 @@
     ],
     "outputPin": [
         12,
-        5
+        0
     ],
     "indicPin": [
         0,
@@ -45,12 +45,12 @@
         true
     ],
     "def_TO_minutes": [
-        120,
-        180
+        300,
+        120
     ],
     "maxON_minutes": [
-        240,
-        360
+        600,
+        600
     ],
     "max_pCount": [
         3,
@@ -61,7 +61,7 @@
         3
     ],
     "limitPWM": [
-        20,
+        80,
         20
     ],
     "outputPWM": [
