@@ -6,6 +6,7 @@ timeOUTSwitch *TOsw[2] = {&timeoutSW_0, nullptr}; /* Support up to 2 TOsw */
 
 /* ~~~~~~~~~~~~~~~~~~~~~~ Values get updated from parameter file ~~~~~~~~~~~~~~~~~~ */
 int PWM_res = 1023;
+int sketch_JSON_Psize = 1250; /* Pass JSON size for Flash Parameter*/
 bool inputPressed[] = {LOW, LOW}; /* High or LOW on button press */
 bool output_ON[] = {HIGH, HIGH};  /* OUTPUT when ON is HIGH or LOW */
 bool OnatBoot[] = {false, false}; /* After reboot- On or Off */
@@ -17,18 +18,17 @@ uint8_t numSW = 1;            /* Num of switches: 1 or 2 */
 uint8_t inputPin[] = {3, 0};  /* IO for inputs */
 uint8_t outputPin[] = {5, 2}; /* IO for outputs */
 uint8_t indicPin[] = {4, 2};  /* IO for idication LEDS */
-
 uint8_t defPWM[] = {2, 2};     /* Default PWM value for some cases not specified */
 uint8_t limitPWM[] = {80, 80}; /* Limit total intensity, 1-100 */
 char sw_names[2][20];          /* Name of each Switch, as shown on MQTT msg */
 /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ End ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 
-const char *VER = "TOswitch_v1.44";
+const char *VER = "TOswitch_v1.45";
 #include "myTO_param.h"
 #include "myIOT_settings.h"
 
 // /* Controlling IOs */
-void startIO()
+void startOUTPUTio()
 {
         analogWriteRange(PWM_res); /* PWM at ESP8266 */
         for (int x = 0; x < numSW; x++)
@@ -274,7 +274,7 @@ void loop_timeOUT()
 void setup()
 {
         read_flashParameter();
-        startIO();
+        startOUTPUTio();
         startIOTservices();
         start_timeOUT();
 }

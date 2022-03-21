@@ -1,6 +1,3 @@
-#define SKETCH_JSON_SIZE 1250
-#define sketch_paramfile "/sketch_param.json"
-
 #include <myIOT2.h>
 
 extern myIOT2 iot;
@@ -10,6 +7,7 @@ void update_vars(JsonDocument &DOC)
 {
   numSW = DOC["numSW"];
   PWM_res = DOC["PWM_res"];
+  sketch_JSON_Psize = DOC["sketch_JSON_Psize"];
   init_timeOUT();
 
   for (int i = 0; i < numSW; i++)
@@ -36,7 +34,7 @@ void update_vars(JsonDocument &DOC)
 }
 void read_flashParameter()
 {
-  DynamicJsonDocument sketchJSON(SKETCH_JSON_SIZE);
+  DynamicJsonDocument sketchJSON(sketch_JSON_Psize);
   char sketch_defs[] = "{\"useInput\":[true,true],\"trigType\":[3,3], \
                         \"def_TO_minutes\":[120,100],\"maxON_minutes\":[720,360], \
                         \"inputPressed\":[true, false],\"inputPin\":[5,6], \
@@ -45,10 +43,11 @@ void read_flashParameter()
                         \"limitPWM\":[80,80],\"OnatBoot\":[true,false],\
                         \"numSW\":1, \"sw_names\":[\"sw0\",\"sw1\"],\
                         \"useIndicLED\":[false, false],\"indic_ON\":[false,false],\
-                        \"indicPin\":[12,2]}";
+                        \"indicPin\":[12,2],\"sketch_JSON_Psize\":1000}";
 
-  bool a = iot.read_fPars(sketch_paramfile, sketchJSON, sketch_defs); /* Read sketch defs */
+  bool a = iot.read_fPars(iot.sketch_paramfile, sketchJSON, sketch_defs); /* Read sketch defs */
   // serializeJson(sketchJSON, Serial);
+  // Serial.flush();
   update_vars(sketchJSON);
   sketchJSON.clear();
 }

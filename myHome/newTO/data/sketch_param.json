@@ -13,7 +13,7 @@
         0
     ],
     "useInput": [
-        true,
+        false,
         true
     ],
     "useIndicLED": [
@@ -69,5 +69,6 @@
         false
     ],
     "PWM_res": 1023,
-    "v_file": 0.81
+    "sketch_JSON_Psize":1250,
+    "v_file": 0.82
 }

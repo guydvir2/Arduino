@@ -70,27 +70,8 @@ void addiotnalMQTT(char *incoming_msg)
     }
     else if (strcmp(incoming_msg, "help2") == 0)
     {
-        sprintf(msg, "Help2: Commands #3 - [{i,on}, {i,off}, {i,remain}, all_off, all_on, {i, timeout,minutes,_pwm}, show_flashParam]");
+        sprintf(msg, "Help2: Commands #3 - [{i,on}, {i,off}, {i,remain}, all_off, all_on, {i, timeout,minutes,_pwm}]");
         iot.pub_msg(msg);
-    }
-    else if (strcmp(incoming_msg, "show_flashParam") == 0)
-    {
-        char clk[25];
-        iot.get_timeStamp(clk);
-        char *filenames[] = {sketch_paramfile, iot.myIOT_paramfile};
-        sprintf(msg, "\n<<~~~~~~ [%s] [%s] On-Flash Parameters ~~~~~>>", clk, iot.deviceTopic);
-        iot.pub_debug(msg);
-
-        for (uint8_t i = 0; i < 2; i++)
-        {
-            iot.pub_debug(filenames[i]);
-            String tempstr1 = iot.readFile(filenames[i]);
-            char buff[tempstr1.length() + 1];
-            tempstr1.toCharArray(buff, tempstr1.length()+1);
-            iot.pub_debug(buff);
-        }
-        iot.pub_msg("[On-Flash Parameters]: extracted");
-        iot.pub_debug("<<~~~~~~~~~~ End ~~~~~~~~~~>>");
     }
 
     else

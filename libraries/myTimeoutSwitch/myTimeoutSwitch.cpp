@@ -7,19 +7,21 @@ timeOUTSwitch::timeOUTSwitch(bool saveCLK) : CLKstore("/ClkStore.json", true, 15
 }
 void timeOUTSwitch::startIO(int _in_IO, bool _instate)
 {
-    _IN_io = _in_IO;
-    _inputstatOn = _instate;
-    useInput = true;
+    if (useInput)
+    {
+        _IN_io = _in_IO;
+        _inputstatOn = _instate;
 
-    if (_inputstatOn == LOW)
-    {
-        pinMode(_IN_io, INPUT_PULLUP); /* Input that trigers LOW, shuch as buttons that have pullups*/
+        if (_inputstatOn == LOW)
+        {
+            pinMode(_IN_io, INPUT_PULLUP); /* Input that trigers LOW, shuch as buttons that have pullups*/
+        }
+        else
+        {
+            pinMode(_IN_io, INPUT); /* Inputs that triger HIGH , as PIR sensors*/
+        }
+        _lastinput = digitalRead(_IN_io);
     }
-    else
-    {
-        pinMode(_IN_io, INPUT); /* Inputs that triger HIGH , as PIR sensors*/
-    }
-    _lastinput = digitalRead(_IN_io);
 }
 void timeOUTSwitch::looper()
 {
@@ -182,6 +184,7 @@ void timeOUTSwitch::_input_looper()
 {
     if (useInput)
     {
+        Serial.println(_IN_io);
         bool currentRead_0 = digitalRead(_IN_io);
         delay(50);
         bool currentRead_1 = digitalRead(_IN_io);
@@ -217,10 +220,8 @@ void timeOUTSwitch::_input_looper()
         }
         else if (trigType == 2 && validInput && currentRead_0 == _inputstatOn) // sensor input
         {
-            Serial.println("HERE");
             if (_lastPress == 0 || (millis() - _lastPress > 1000 * 60UL)) /* Case of sensor that each detection restarts its timeout */
             {
-                Serial.println("HERE2");
                 start_TO(def_TO_minutes, 0);
                 _lastPress = millis(); /* Avoid frequent write to flash */
             }
