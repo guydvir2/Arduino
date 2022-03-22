@@ -4,9 +4,10 @@
 timeOUTSwitch timeoutSW_0;
 timeOUTSwitch *TOsw[2] = {&timeoutSW_0, nullptr}; /* Support up to 2 TOsw */
 
+
 /* ~~~~~~~~~~~~~~~~~~~~~~ Values get updated from parameter file ~~~~~~~~~~~~~~~~~~ */
 int PWM_res = 1023;
-int sketch_JSON_Psize = 1250; /* Pass JSON size for Flash Parameter*/
+int sketch_JSON_Psize = 1250;     /* Pass JSON size for Flash Parameter*/
 bool inputPressed[] = {LOW, LOW}; /* High or LOW on button press */
 bool output_ON[] = {HIGH, HIGH};  /* OUTPUT when ON is HIGH or LOW */
 bool OnatBoot[] = {false, false}; /* After reboot- On or Off */
@@ -22,6 +23,7 @@ uint8_t defPWM[] = {2, 2};     /* Default PWM value for some cases not specified
 uint8_t limitPWM[] = {80, 80}; /* Limit total intensity, 1-100 */
 char sw_names[2][20];          /* Name of each Switch, as shown on MQTT msg */
 /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ End ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
+
 
 const char *VER = "TOswitch_v1.45";
 #include "myTO_param.h"
