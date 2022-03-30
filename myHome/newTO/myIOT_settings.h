@@ -76,8 +76,7 @@ void addiotnalMQTT(char *incoming_msg)
 
     else
     {
-        int num_parameters = iot.inline_read(incoming_msg);
-        if (num_parameters > 1)
+        if (iot.num_p > 1)
         {
             if (strcmp(iot.inline_param[1], "timeout") == 0)
             {
@@ -87,7 +86,7 @@ void addiotnalMQTT(char *incoming_msg)
                 }
                 else
                 {
-                    if (num_parameters > 3)
+                    if (iot.num_p > 3)
                     {
                         TOsw[atoi(iot.inline_param[0])]->pCounter = atoi(iot.inline_param[3]);
                     }
@@ -102,7 +101,7 @@ void addiotnalMQTT(char *incoming_msg)
             {
                 if (!outputPWM[atoi(iot.inline_param[0])])
                 {
-                    if (num_parameters == 2)
+                    if (iot.num_p == 2)
                     {
                         TOsw[atoi(iot.inline_param[0])]->start_TO(TOsw[atoi(iot.inline_param[0])]->maxON_minutes, 2); /* max time*/
                     }
@@ -113,7 +112,7 @@ void addiotnalMQTT(char *incoming_msg)
                 }
                 else /* Define PWM level */
                 {
-                    if (num_parameters == 2)
+                    if (iot.num_p == 2)
                     {
                         TOsw[atoi(iot.inline_param[0])]->pCounter = 2;
                     }

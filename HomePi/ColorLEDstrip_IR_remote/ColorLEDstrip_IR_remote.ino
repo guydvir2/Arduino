@@ -60,7 +60,6 @@ void startIOTservices()
         iot.useNetworkReset = true;
         iot.noNetwork_reset = 10;
         iot.useBootClockLog = true;
-        iot.useAltermqttServer = false;
         iot.ignore_boot_msg = false;
         strcpy(iot.deviceTopic,DEVICE_TOPIC);
         strcpy(iot.prefixTopic,MQTT_PREFIX);
@@ -226,8 +225,6 @@ void addiotnalMQTT(char *incoming_msg)
         }
         else
         {
-                iot.inline_read(incoming_msg);
-
                 if (strcmp(iot.inline_param[0], "bright") == 0)
                 {
                         set_bright(atoi(iot.inline_param[1]));

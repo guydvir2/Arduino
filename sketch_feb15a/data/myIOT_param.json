@@ -1,0 +1,18 @@
+{
+    "useWDT": true,
+    "useOTA": true,
+    "useSerial": true,
+    "useFlashP": true,
+    "useResetKeeper": true,
+    "debug_level": 0,
+    "useDebugLog": true,
+    "useBootClockLog": true,
+    "useNetworkReset": true,
+    "noNetwork_reset": 5,
+    "useextTopic": false,
+    "ignore_boot_msg": false,
+    "deviceTopic": "test",
+    "groupTopic": "intLights",
+    "prefixTopic": "myHome",
+    "ver": 0.5
+}

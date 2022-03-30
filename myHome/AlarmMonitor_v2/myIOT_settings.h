@@ -80,7 +80,6 @@ void startIOTservices()
     iot.useNetworkReset = true;
     iot.noNetwork_reset = 30;
     iot.useBootClockLog = true;
-    iot.useAltermqttServer = false;
     iot.ignore_boot_msg = false;
 
     strcpy(iot.deviceTopic, DEV_TOPIC);

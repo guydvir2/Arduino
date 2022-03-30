@@ -27,7 +27,6 @@ void giveStatus(char *outputmsg)
 void addiotnalMQTT(char *income_msg)
 {
     char msg_MQTT[150];
-    char msg2[20];
 
     if (strcmp(income_msg, "status") == 0)
     {
@@ -60,7 +59,6 @@ void addiotnalMQTT(char *income_msg)
         if (TOswitch.remTime() > 0)
         {
             iot.convert_epoch2clock(TOswitch.remTime(), 0, s1, s2);
-            // iot.get_timeStamp(TOswitch.onClk());
             sprintf(clk, "MQTT: remain [%s] ", s1);
             iot.pub_msg(clk);
         }
@@ -72,8 +70,7 @@ void addiotnalMQTT(char *income_msg)
     }
     else
     {
-        int num_parameters = iot.inline_read(income_msg);
-        if (num_parameters > 1)
+        if (iot.num_p > 1)
         {
             if (strcmp(iot.inline_param[0], "timeout") == 0)
             {
@@ -101,7 +98,6 @@ void startIOTservices()
     iot.useNetworkReset = true;
     iot.noNetwork_reset = 10;
     iot.useBootClockLog = true;
-    iot.useAltermqttServer = false;
     iot.ignore_boot_msg = false;
     strcpy(iot.deviceTopic, DEVICE_TOPIC);
     strcpy(iot.prefixTopic, MQTT_PREFIX);
