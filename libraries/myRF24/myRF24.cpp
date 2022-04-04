@@ -1,11 +1,11 @@
 #include "myRF24.h"
 
-myRF24::myRF24(int CE_PIN, int CSN_PIN) : radio(CE_PIN, CSN_PIN)
+myRF24::myRF24(uint8_t CE_PIN, uint8_t CSN_PIN) : radio(CE_PIN, CSN_PIN)
 {
 }
-bool myRF24::startRF24(const byte &w_addr, const byte &r_addr, const char *devname, uint8_t PA_level, rf24_datarate_e Data_rate, int ch)
+bool myRF24::startRF24(const uint8_t &w_addr, const uint8_t &r_addr, char *devname, uint8_t PA_level, rf24_datarate_e Data_rate, uint8_t ch)
 {
-  strcpy(_devname, devname);
+  _devname = devname;
   _w_addr = w_addr;
   _r_addr = r_addr;
   _PA_level = PA_level;
@@ -18,35 +18,39 @@ bool myRF24::_RFwrite_nosplit(const char *msg)
   char _msg[32];
   radio.stopListening();
   strcpy(_msg, msg);
-  if (!radio.write(&_msg, sizeof(_msg)))
-  {
-    return 0;
-  }
-  else
-  {
-    return 1;
-  }
+  return radio.write(&_msg, sizeof(_msg));
+  // if (!radio.write(&_msg, sizeof(_msg)))
+  // {
+  //   return 0;
+  // }
+  // else
+  // {
+  //   return 1;
+  // }
 }
-bool myRF24::RFwrite(const char *msg, const int arraySize, const int len)
+bool myRF24::RFwrite(const char *msg)
 {
   RFmsg payload;
-  byte P_iterator = 0;
   radio.stopListening();
-
-  byte numPackets = (int)(arraySize / len);
-  if (arraySize % len > 0)
+  uint8_t P_iterator = 0;
+  
+  payload.tot_len = strlen(msg);
+  payload.tot_msgs = (int)(payload.tot_len / MSG_LEN);
+  
+  if (payload.tot_len % MSG_LEN > 0)
   {
-    numPackets++;
+    payload.tot_msgs++;
   }
 
-  payload.tot_msgs = numPackets;
-  payload.tot_len = arraySize;
-  strcpy(payload.dev_name, _devname); /* who is sending the message */
-  while (P_iterator < numPackets)
+  // payload.tot_msgs = numPackets;
+  // payload.tot_len = arraySize;
+  strncpy(payload.dev_name, _devname, DEVNAME_LEN); /* who is sending the message */
+
+  while (P_iterator < payload.tot_msgs)
   {
-    const char *ptr1 = msg + P_iterator * (len);
-    strncpy(payload.payload, ptr1, len);
-    payload.payload[len] = '\0';
+    const char *ptr1 = msg + P_iterator * (MSG_LEN);
+    strncpy(payload.payload, ptr1, MSG_LEN);
+    payload.payload[MSG_LEN] = '\0';
     payload.msg_num = P_iterator;
     if (radio.write(&payload, sizeof(payload)))
     {
@@ -64,15 +68,15 @@ bool myRF24::RFwrite(const char *msg, const int arraySize, const int len)
       return 0;
     }
   }
-  if (payload.msg_num == numPackets - 1 && payload.tot_len == strlen(msg))
+  if (payload.msg_num == payload.tot_msgs - 1 && payload.tot_len == strlen(msg))
   {
     if (debug_mode)
     {
       Serial.print("Sent ");
-      Serial.print(arraySize);
+      Serial.print(payload.tot_len);
       Serial.print(" bytes");
       Serial.print(" as ");
-      Serial.print(numPackets);
+      Serial.print(payload.tot_msgs);
       Serial.print("/");
       Serial.print(P_iterator);
       Serial.println(" packets.");

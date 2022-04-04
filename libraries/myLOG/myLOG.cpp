@@ -97,9 +97,11 @@ bool flashLOG::del_line(uint8_t line_index)
     }
     else
     {
-        Serial.println("Fail open files");
+        if (_useDebug)
+        {
+            Serial.println("Fail open files");
+        }
     }
-
     file1.close();
     file2.close();
     LITFS.remove(_logfilename);
@@ -128,7 +130,10 @@ bool flashLOG::readline(uint8_t r, char retLog[])
     }
     else
     {
-        Serial.println("Fail open file");
+        if (_useDebug)
+        {
+            Serial.println("Fail open file");
+        }
         file.close();
         return 0;
     }

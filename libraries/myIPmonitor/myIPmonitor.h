@@ -20,18 +20,17 @@ class IPmonitoring
 #define MAXPING_TIME 30  /* Max time between pings, sec */
 #define MINPING_TIME 10  /* Min time between pings, sec */
 #define RESET_BOOT_ERR 2 /* Time to wait until reset due to NO-internet or NO-NTP failure */
-#define LOG_ENTRIES 50   /* Entries saved in LOG */
+#define LOG_ENTRIES 200   /* Entries saved in LOG */
 #define ENTRY_LENGTH 15  /* Length of each entry - 12 chars */
 
     typedef bool (*cb_func)(char *externalSite, uint8_t pings);
 
 public:
     char *nick;
-    time_t bootClk = 0;
     time_t currentstateClk = 0;
     int dCounter = 0;
-    bool isConnected = false;
-    const char *libVer = "NETmon_v0.2";
+    bool connState = false;
+    const char *libVer = "NETmon_v0.3";
 
 private:
     char *_IP;
@@ -46,7 +45,7 @@ private:
     time_t reset_delay = 0;
     time_t _lastCheck = 0;
 
-    flashLOG _conFlog;
+    flashLOG _ConnectLOG;
     cb_func _ping_cb;
     cb_func _msgout_cb;
 
@@ -78,8 +77,8 @@ private:
     // ~~~~~~~~~~FlashLOGS
     void _LOGconnection();
     void _LOGdisconnection();
-    void _readFlog_2row(flashLOG &LOG, int numLine, time_t &retTime, uint8_t &retType);
-    void _writeFlog_2row(flashLOG &LOG, uint8_t Reason, time_t value, bool writenow = false);
+    void _readLOG(flashLOG &LOG, int numLine, time_t &retTime, uint8_t &retType);
+    void _writeLOG(flashLOG &LOG, uint8_t Reason, time_t value, bool writenow = false);
     uint8_t _inline_read(char *inputstr);
     bool _startFlogs();
     void _loopFlogs();
