@@ -1,9 +1,7 @@
 #include <myRF24.h>
-#include <ArduinoJson.h>
 
-#define ROLE 1 /* 0:Reciever (Arduino with RF24 log range anttenna) */
-               /* 1: Sender  (Arduino with RF24 log range anttenna)*/
-#define PRINT_MESSAGES true
+#define ROLE 0 /* 0:Reciever 1: Sender */
+#define BOTH_TX_RX false
 
 // ~~~~~~~~~~~~ myRF24 lib ~~~~~~~~~~~~
 #define DEBUG_MODE true;
@@ -14,55 +12,54 @@ const uint8_t r_address = 0;
 const uint8_t CE_PIN = 9;
 const uint8_t CSN_PIN = 10;
 
+char *dev_name = "Rdu_1";
+const int time_resend = 2500;
+
 #elif ROLE == 0
 const uint8_t w_address = 0;
 const uint8_t r_address = 1;
 const uint8_t CE_PIN = 9;
 const uint8_t CSN_PIN = 10;
+
+const char *dev_name = "Rdu_0";
+const int time_resend = 23456;
 #endif
 
 myRF24 radio(CE_PIN, CSN_PIN);
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-#if ROLE == 1
-char *dev_name = "Rdu_1";
-const int time_resend = 250;
 
-#elif ROLE == 0
-const char *dev_name = "Rdu_0";
-const int time_resend = 23456;
-#endif
-
-void recvMSG_cb(char *incomeMSG)
-{
-  Serial.println(incomeMSG);
-}
 void send_timely_msgs()
 {
+  char qwerty[60];
   static long last_msg = 0;
   static unsigned int counter = 0;
-  while (millis() - last_msg > time_resend)
+
+  while (millis() - last_msg > random(2500, 7500))
   {
-    char qwerty[60];
-    sprintf(qwerty, "msg #%d: time: %s", counter++, "ABCDEFGRHNRTEHNREWGTBGBSFGB");
     last_msg = millis();
+    sprintf(qwerty, "msg #%d", counter++);
     radio.RFwrite(qwerty);
   }
 }
 void recv_msg()
 {
-  char inmsg_buff[250];
+  char from[10];
+  char msg[200];
+  char inmsg_buff[150];
+
   const uint8_t delay_read = 100;
-  if (radio.RFread2(inmsg_buff, delay_read))
+  if (radio.RFread2(inmsg_buff, from, delay_read))
   {
-    recvMSG_cb(inmsg_buff);
-    // answer_incoming(inmsg_buff);
+    yield;
   }
 }
- 
+
 void start_generic()
 {
   Serial.begin(115200);
+  while (!Serial)
+    ;
   radio.use_ack = USE_ACK;
   radio.debug_mode = DEBUG_MODE;
 }
@@ -96,9 +93,17 @@ void setup()
 void loop()
 {
   recv_msg();
-  // radio.failDetect();
+  radio.failDetect();
+  radio.wellness_Watchdog();
+
+  if (BOTH_TX_RX)
+  {
+    send_timely_msgs();
+  }
+  else
+  {
 #if ROLE == 1
-  send_timely_msgs();
+    send_timely_msgs();
 #endif
-  // radio.wellness_Watchdog();
+  }
 }

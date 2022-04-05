@@ -5,81 +5,69 @@ myRF24::myRF24(uint8_t CE_PIN, uint8_t CSN_PIN) : radio(CE_PIN, CSN_PIN)
 }
 bool myRF24::startRF24(const uint8_t &w_addr, const uint8_t &r_addr, char *devname, uint8_t PA_level, rf24_datarate_e Data_rate, uint8_t ch)
 {
-  _devname = devname;
+  _ch = ch;
   _w_addr = w_addr;
   _r_addr = r_addr;
+  _devname = devname;
   _PA_level = PA_level;
   _Data_rate = Data_rate;
-  _ch = ch;
+
   return _start();
-}
-bool myRF24::_RFwrite_nosplit(const char *msg)
-{
-  char _msg[32];
-  radio.stopListening();
-  strcpy(_msg, msg);
-  return radio.write(&_msg, sizeof(_msg));
-  // if (!radio.write(&_msg, sizeof(_msg)))
-  // {
-  //   return 0;
-  // }
-  // else
-  // {
-  //   return 1;
-  // }
 }
 bool myRF24::RFwrite(const char *msg)
 {
-  RFmsg payload;
+  RFmsg _payload;
   radio.stopListening();
-  uint8_t P_iterator = 0;
-  
-  payload.tot_len = strlen(msg);
-  payload.tot_msgs = (int)(payload.tot_len / MSG_LEN);
-  
-  if (payload.tot_len % MSG_LEN > 0)
+  _erase_struct(_payload);
+
+  if (debug_mode)
   {
-    payload.tot_msgs++;
+    char msg2[200];
+    sprintf(msg2, "out_msg: from[%s] msg[%s]", _devname, msg);
+    Serial.println(msg2);
   }
 
-  // payload.tot_msgs = numPackets;
-  // payload.tot_len = arraySize;
-  strncpy(payload.dev_name, _devname, DEVNAME_LEN); /* who is sending the message */
-
-  while (P_iterator < payload.tot_msgs)
+  _payload.tot_len = strlen(msg);
+  _payload.tot_msgs = _payload.tot_len / MSG_LEN;
+  if (_payload.tot_len % MSG_LEN > 0)
   {
-    const char *ptr1 = msg + P_iterator * (MSG_LEN);
-    strncpy(payload.payload, ptr1, MSG_LEN);
-    payload.payload[MSG_LEN] = '\0';
-    payload.msg_num = P_iterator;
-    if (radio.write(&payload, sizeof(payload)))
+    _payload.tot_msgs++;
+  }
+  strncpy(_payload.dev_name, _devname, DEVNAME_LEN);
+
+  for (uint8_t i = 0; i < _payload.tot_msgs; i++)
+  {
+    strcpy(_payload.payload, "");
+    for (uint8_t n = 0; n < MSG_LEN; n++)
     {
-      P_iterator++;
+      _payload.payload[n] = (char)msg[n + i * MSG_LEN];
+    }
+    _payload.payload[MSG_LEN] = '\0';
+    if (radio.write(&_payload, sizeof(_payload)))
+    {
+      _payload.msg_num++;
     }
     else
     {
       if (debug_mode)
       {
-        Serial.print("Error sending packet #");
-        Serial.print(payload.msg_num);
-        Serial.print("/");
-        Serial.println(payload.tot_msgs - 1);
+        Serial.print("[SENT_FAIL]. ");
+        Serial.print(" packet [#");
+        Serial.print(_payload.msg_num);
+        Serial.println("]");
       }
       return 0;
     }
   }
-  if (payload.msg_num == payload.tot_msgs - 1 && payload.tot_len == strlen(msg))
+  if (_payload.msg_num == _payload.tot_msgs && _payload.tot_len == strlen(msg))
   {
     if (debug_mode)
     {
-      Serial.print("Sent ");
-      Serial.print(payload.tot_len);
-      Serial.print(" bytes");
-      Serial.print(" as ");
-      Serial.print(payload.tot_msgs);
-      Serial.print("/");
-      Serial.print(P_iterator);
-      Serial.println(" packets.");
+      Serial.print("[SENT_OK] [");
+      Serial.print(_payload.tot_len);
+      Serial.print(" bytes] [");
+      Serial.print(_payload.tot_msgs);
+      Serial.println(" packets]");
     }
     return 1;
   }
@@ -88,36 +76,29 @@ bool myRF24::RFwrite(const char *msg)
     return 0;
   }
 }
-bool myRF24::RFread(char out[], int fail_micros)
-{
-  radio.startListening();
 
-  if (!_wait4Rx(fail_micros)) /* wait 200ms for incoming message */
-  {
-    return 0;
-  }
-  else
-  {
-    char _readmsg[32];
-    radio.read(&_readmsg, sizeof(_readmsg));
-    strcpy(out, _readmsg); /* now using JSON, return all message */
-    return 1;
-  }
-}
-bool myRF24::RFread2(char out[], int del)
+bool myRF24::RFread(char out[], char from[], int del)
 {
   radio.startListening();
   if (_wait4Rx(del))
   {
     RFmsg payload;
     strcpy(out, "");
+    strcpy(from, payload.dev_name);
+
     while (radio.available())
     {
       radio.read(&payload, sizeof(payload));
       strcat(out, payload.payload);
       delay(2); // <---- Change. withouy delay, it fails.
     }
-
+    if (debug_mode)
+    {
+      char msg[200];
+      sprintf(msg, "in_msg: from[%s] msg[%s]", from, out);
+      Serial.println(msg);
+    }
+    
     if (payload.tot_len == strlen(out))
     {
       return 1;
@@ -159,9 +140,9 @@ void myRF24::failDetect()
 }
 bool myRF24::resetRF24()
 {
-  // radio.powerDown();
-  // delay(10);
-  // radio.powerUp();
+  radio.powerDown();
+  delay(10);
+  radio.powerUp();
   return _start();
 }
 void myRF24::wellness_Watchdog()
@@ -224,4 +205,12 @@ void myRF24::_printStruct(RFmsg &msg)
   Serial.println(msg.payload);
   Serial.print("dev_name: ");
   Serial.println(msg.dev_name);
+}
+void myRF24::_erase_struct(RFmsg &_payload)
+{
+  _payload.tot_len = 0;
+  _payload.tot_msgs = 0;
+  _payload.msg_num = 0;
+  strcpy(_payload.payload, "");
+  strcpy(_payload.dev_name, "");
 }

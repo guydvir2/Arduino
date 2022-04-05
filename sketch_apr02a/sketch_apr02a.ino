@@ -1,30 +1,76 @@
-    #include <SPI.h>
-    #include <nRF24L01.h>
-    #include <RF24.h>
-    RF24 radio(9, 10); // CE, CSN         
-    const byte address[6] = "00001";     //Byte of array representing the address. This is the address where we will send the data. This should be same on the receiving side.
-    int button_pin = 2;
-    boolean button_state = 0;
-    void setup() {
-    pinMode(button_pin, INPUT);
-    radio.begin();                  //Starting the Wireless communication
-    radio.openWritingPipe(address); //Setting the address where we will send the data
-    radio.setPALevel(RF24_PA_MIN);  //You can set it as minimum or maximum depending on the distance between the transmitter and receiver.
-    radio.stopListening();          //This sets the module as transmitter
-    }
-    void loop()
+#include <Arduino.h>
+#define MSG_LEN 10
+#define DEVNAME_LEN 8
+
+const char *devName = "TEST1234567890";
+
+struct RFmsg
+{
+    int msg_num;
+    int tot_msgs;
+    int tot_len;
+    char payload[MSG_LEN + 1];
+    char dev_name[DEVNAME_LEN + 1];
+};
+
+void newMSG(char *msg)
+{
+    RFmsg _payload;
+    erase_struct(_payload);
+
+    _payload.tot_len = strlen(msg);
+    strncpy(_payload.dev_name, devName, DEVNAME_LEN - 1);
+    _payload.tot_msgs = _payload.tot_len / MSG_LEN;
+
+    if (_payload.tot_len % MSG_LEN > 0)
     {
-    button_state = digitalRead(button_pin);
-    if(button_state == HIGH)
+        _payload.tot_msgs++;
+    }
+
+    for (uint8_t i = 0; i < _payload.tot_msgs; i++)
     {
-    const char text[] = "Your Button State is HIGH";
-    radio.write(&text, sizeof(text));                  //Sending the message to receiver
+        strcpy(_payload.payload, "");
+        for (uint8_t n = 0; n < MSG_LEN; n++)
+        {
+            _payload.payload[n] = (char)msg[n + i * MSG_LEN];
+        }
+        _payload.payload[MSG_LEN] = '\0';
+
+        Serial.print("chunk #");
+        Serial.print(i);
+        Serial.print(": ");
+        Serial.println(_payload.payload);
     }
-    else
-    {
-    const char text[] = "Your Button State is LOW";
-    radio.write(&text, sizeof(text));                  //Sending the message to receiver 
-    }
-    radio.write(&button_state, sizeof(button_state));  //Sending the message to receiver 
-    delay(1000);
-    }
+    printStrcut_content(_payload);
+}
+void printStrcut_content(RFmsg &_payload)
+{
+    Serial.print("LEN: ");
+    Serial.println(_payload.tot_len);
+    Serial.print("PAyLOAD: ");
+    Serial.println(_payload.payload);
+    Serial.print("name: ");
+    Serial.println(_payload.dev_name);
+    Serial.print("tot_msgs: ");
+    Serial.println(_payload.tot_msgs);
+}
+void erase_struct(RFmsg &_payload)
+{
+    _payload.tot_len = 0;
+    _payload.tot_msgs = 0;
+    strcpy(_payload.payload, "");
+    strcpy(_payload.dev_name, "");
+}
+
+void setup()
+{
+    Serial.begin(115200);
+    while (!Serial)
+        ;
+    Serial.println("\nStart");
+}
+void loop()
+{
+    newMSG("1234567890ABCDEFGHIJKLMNOPQRSTUVWXYZ_1234567890ABCDEFGHIJKLMNOPQRSTUVWXYZ");
+    delay(5000);
+}
