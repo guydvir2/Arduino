@@ -44,7 +44,6 @@
 #include "FirebaseFS.h"
 #include "./mbfs/MB_FS.h"
 
-
 #if defined(FIREBASE_USE_PSRAM)
 #define FIREBASEJSON_USE_PSRAM
 #endif
@@ -762,6 +761,7 @@ struct fb_esp_token_signer_resources_t
     unsigned long preRefreshSeconds = 60;
     unsigned long expiredSeconds = 3600;
     unsigned long reqTO = 2000;
+    MB_String customHeaders;
     MB_String pk;
     size_t hashSize = 32; // SHA256 size (256 bits or 32 bytes)
     size_t signatureSize = 256;

@@ -6,17 +6,19 @@ myIOT2 iot;
 
 bool MQTToutbox(char *msg, uint8_t msg_t)
 {
-        if (msg_t == 0)
+        switch (msg_t)
         {
+        case 0:
                 iot.pub_msg(msg);
-        }
-        else if (msg_t == 1)
-        {
+                break;
+        case 1:
                 iot.pub_log(msg);
-        }
-        else if (msg_t == 2)
-        {
+                break;
+        case 2:
                 iot.pub_debug(msg);
+                break;
+        default:
+                break;
         }
         return 1;
 }
@@ -115,12 +117,12 @@ void startIOTservices()
         iot.useBootClockLog = true;
         iot.useResetKeeper = false;
         iot.useNetworkReset = false; // <-- only for this device
-        iot.debug_level = 0;
-        iot.noNetwork_reset = 5;
+        iot.debug_level = 0;         // All Messages
+        iot.noNetwork_reset = 5;     // Irrelevant since it won't reboot
 
         strcpy(iot.deviceTopic, DEV_TOPIC);
         strcpy(iot.prefixTopic, PREFIX_TOPIC);
         strcpy(iot.addGroupTopic, GROUP_TOPIC);
-        
+
         iot.start_services(addiotnalMQTT);
 }

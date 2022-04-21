@@ -232,9 +232,9 @@ void IPmonitoring::getStatus(int h)
 
         _conv_epoch_duration(cum_cTime, 0, connect_duration);
         _conv_epoch_duration(cum_dTime, 0, disco_duration);
-        sprintf(a, "Records: Total/ Disconnects/ Reconnects/ Reboots:[%d/ %d/ %d/ %d]", total_records, total_disc, total_c, total_boots);
+        sprintf(a, "**Records: Total:[%d]; Disconnects:[%d]; Reconnects:[%d]; Reboots:[%d]", total_records, total_disc, total_c, total_boots);
         _post_msg(a, 0);
-        sprintf(a, "Durations: Disconnected/Connected:[%s/ %s]", disco_duration, connect_duration);
+        sprintf(a, "**Durations: Disconnected:[%s]; Connected:[%s]", disco_duration, connect_duration);
         _post_msg(a, 0);
 }
 void IPmonitoring::_post_msg(char *inmsg, uint8_t msg_type)

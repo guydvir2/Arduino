@@ -1,6 +1,8 @@
 # Firebase Arduino Client Library for ESP8266 and ESP32
 
-Google's Firebase Arduino Client Library for ESP8266 and ESP32 v3.1.5
+![Compile](https://github.com/mobizt/Firebase-ESP-Client/actions/workflows/compile_library.yml/badge.svg) ![Examples](https://github.com/mobizt/Firebase-ESP-Client/actions/workflows/compile_examples.yml/badge.svg)  [![Github Stars](https://img.shields.io/github/stars/mobizt/Firebase-ESP-Client?logo=github)](https://github.com/mobizt/Firebase-ESP-Client/stargazers) ![Github Issues](https://img.shields.io/github/issues/mobizt/Firebase-ESP-Client?logo=github)
+
+![arduino-library-badge](https://www.ardu-badge.com/badge/Firebase%20Arduino%20Client%20Library%20for%20ESP8266%20and%20ESP32.svg) ![PlatformIO](https://badges.registry.platformio.org/packages/mobizt/library/Firebase%20Arduino%20Client%20Library%20for%20ESP8266%20and%20ESP32.svg)
 
 
 This library supports ESP8266 and ESP32 MCU from Espressif. The following are platforms in which the libraries are also available (RTDB only).
@@ -11,9 +13,8 @@ This library supports ESP8266 and ESP32 MCU from Espressif. The following are pl
 * [Arduino WiFi Shield 101 and Arduino MKR1000 WIFI](https://github.com/mobizt/Firebase-Arduino-WiFi101)
 
 
-
  
-## Other Arduino Devices supported using external Clients.
+## Other Arduino devices supported using external Clients.
 
 Since version 3.0.0, library allows you to use external Arduino Clients network interfaces e.g. WiFiClient, EthernetClient and GSMClient, the Arduino supported devices that have enough flash size (> 128k) and memory can now use this library.
 
@@ -116,18 +117,31 @@ For PlatformIO IDE, using the following command.
 Or at **PIO Home** -> **Library** -> **Registry** then search **Firebase ESP Client**.
 
 
+If you ever installed this library in Global storage in PlatformIO version prior to v2.0.0 and you have updated the PlatformIO to v2.0.0 and later, the global library installation was not available, the sources files of old library version still be able to search by the library dependency finder (LDF), you needed to remove the library from folder **C:\Users\\<UserName\>\\.platformio\lib** to prevent unexpected behavior when compile and run.
+
+
 
 ### Manual installation
 
-For Arduino IDE, download zip file from the repository (Github page) by select **Clone or download** dropdown at the top of repository, select **Download ZIP** 
+For Arduino IDE, download zip file from the repository (Github page) by select **Code** dropdown at the top of repository, select **Download ZIP** 
 
 From Arduino IDE, select menu **Sketch** -> **Include Library** -> **Add .ZIP Library...**.
 
 Choose **Firebase-ESP-Client-main.zip** that previously downloaded.
 
+Rename **Firebase-ESP-Client-main** folder to **Firebase_Arduino_Client_Library_for_ESP8266_and_ESP32**.
+
 Go to menu **Files** -> **Examples** -> **Firebase-ESP-Client-main** and choose one from examples.
 
+### Important Note for Manual Installation in Arduino IDE
 
+Folder renaming to **Firebase_Arduino_Client_Library_for_ESP8266_and_ESP32** was required for making the library can be updated via Library Manager without problems.
+
+Without folder renaming, when you update the library via Library Manager, library will be updated to the another folder named  **Firebase_Arduino_Client_Library_for_ESP8266_and_ESP32** which leads to compilation error when there are two different versions of library found in the libraries folder and can cause the conflicts when file structures and functions changed in the newer version. 
+
+For example, the library version 2.7.7 and earlier were installed manually by downloading ZIP file and extracted to **Firebase-ESP-Client-main** folder. If the library was later updated to v2.8.2 and newer via Library Manager, the compilation error will take place because the newer version files structures and functions changed and compiler is trying to compile these two versions of source files together. 
+
+In this case, you need to delete **Firebase-ESP-Client-main** folder from libraries folder.
 
 ## Usages
 
