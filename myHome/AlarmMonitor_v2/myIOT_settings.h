@@ -63,8 +63,8 @@ void addiotnalMQTT(char *incoming_msg)
     }
     else if (strcmp(incoming_msg, "debug") == 0)
     {
-        sprintf(msg, "armPin is [%d], AlarmPin is [%d], ArmHome is [%d], ArmAway is [%d]", digitalRead(SYS_IS_ARMED_INDICATION_PIN),
-                digitalRead(SYS_IS_ALARMING_INDICATION_PIN), digitalRead(SET_SYSTEM_ARMED_HOME_PIN), digitalRead(SET_SYSTEM_ARMED_AWAY_PIN));
+        sprintf(msg, "armPin is [%d], AlarmPin is [%d], ArmHome is [%d], ArmAway is [%d]", digitalRead(SYSTEM_STATE_ARM_PIN),
+                digitalRead(SYSTEM_STATE_ALARM_PIN), digitalRead(SET_SYSTEM_ARMED_HOME_PIN), digitalRead(SET_SYSTEM_ARMED_AWAY_PIN));
         iot.pub_msg(msg);
     }
 }

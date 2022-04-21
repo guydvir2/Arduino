@@ -100,13 +100,13 @@
 
 // ~~~~ HW Pins and States ~~~~
 #define STATE_ON HIGH
-#define INDIC_ON LOW
-#define SYS_IS_ARMED_INDICATION_PIN D3    //  Indication system is Armed
-#define SYS_IS_ALARMING_INDICATION_PIN D4 //  Indication system is Alarmed
-#define SET_SYSTEM_ARMED_HOME_PIN D6      //   (Set system)  armed_Home
-#define SET_SYSTEM_ARMED_AWAY_PIN D5      //   (Set system)  Armed_Away
+#define SYSTEM_STATE_ON LOW
+#define SYSTEM_STATE_ARM_PIN D3      //  Indication system is Armed
+#define SYSTEM_STATE_ALARM_PIN D4    //  Indication system is Alarmed
+#define SET_SYSTEM_ARMED_HOME_PIN D6 //   (Set system)  armed_Home
+#define SET_SYSTEM_ARMED_AWAY_PIN D5 //   (Set system)  Armed_Away
 
-#define VER "NodeMCU_3.9"
+#define VER "alarmMon_4.0"
 char *sys_states[] = {"armed_home", "armed_away", "disarmed", "pending", "triggered"};
 enum sys_state : const uint8_t
 {
@@ -127,27 +127,39 @@ void startGPIOs()
 {
         pinMode(SET_SYSTEM_ARMED_HOME_PIN, OUTPUT);
         pinMode(SET_SYSTEM_ARMED_AWAY_PIN, OUTPUT);
-        pinMode(SYS_IS_ARMED_INDICATION_PIN, INPUT_PULLUP);
-        pinMode(SYS_IS_ALARMING_INDICATION_PIN, INPUT_PULLUP);
+        pinMode(SYSTEM_STATE_ARM_PIN, INPUT_PULLUP);
+        pinMode(SYSTEM_STATE_ALARM_PIN, INPUT_PULLUP);
 
-        check_systemState_change(SYS_IS_ARMED_INDICATION_PIN, indication_ARMED_lastState);
-        check_systemState_change(SYS_IS_ALARMING_INDICATION_PIN, indication_ALARMED_lastState);
+        _detect_state_change(SYSTEM_STATE_ARM_PIN, indication_ARMED_lastState);
+        _detect_state_change(SYSTEM_STATE_ALARM_PIN, indication_ALARMED_lastState);
 }
 void allOff()
 {
-        digitalWrite(SET_SYSTEM_ARMED_HOME_PIN, !STATE_ON);
-        digitalWrite(SET_SYSTEM_ARMED_AWAY_PIN, !STATE_ON);
-        delay(systemPause * 1000);
+        uint8_t retries = 0;
+        const uint8_t max_retries = 3;
+        while (digitalRead(SYSTEM_STATE_ARM_PIN) == SYSTEM_STATE_ON && retries < max_retries)
+        {
+                digitalWrite(SET_SYSTEM_ARMED_HOME_PIN, !STATE_ON);
+                digitalWrite(SET_SYSTEM_ARMED_AWAY_PIN, !STATE_ON);
+                delay(systemPause * 1000);
+                retries++;
+        }
+
+        if (retries == max_retries || get_systemState() != DISARMED)
+        {
+                iot.pub_log("[System]:failed to disarm. Reset sent");
+                iot.sendReset("OFF_FAIL");
+        }
 }
 uint8_t get_systemState()
 {
-        if (digitalRead(SYS_IS_ALARMING_INDICATION_PIN) == INDIC_ON)  /* Check if alarm pin is ON */
+        if (digitalRead(SYSTEM_STATE_ALARM_PIN) == SYSTEM_STATE_ON) /* Check if alarm pin is ON */
         {
                 return ALARMING;
         }
         else
         {
-                if (digitalRead(SYS_IS_ARMED_INDICATION_PIN) == INDIC_ON) /* Check if Armed pin is ON */
+                if (digitalRead(SYSTEM_STATE_ARM_PIN) == SYSTEM_STATE_ON) /* Check if Armed pin is ON */
                 {
                         if (digitalRead(SET_SYSTEM_ARMED_HOME_PIN) == STATE_ON) /* set by code TO home_Armed ?*/
                         {
@@ -178,7 +190,7 @@ void set_armState(uint8_t req_state)
                         if (curState == ARMED_KEYPAD)
                         {
                                 digitalWrite(SET_SYSTEM_ARMED_HOME_PIN, STATE_ON);
-                                delay(systemPause * 1000 / 2); // Time for system to react to fake state change
+                                delay(systemPause * 1000); // Time for system to react to fake state change
                         }
                         allOff();
                 }
@@ -220,7 +232,7 @@ void set_armState(uint8_t req_state)
         }
 }
 
-bool check_systemState_change(uint8_t _pin, bool &_lastState)
+bool _detect_state_change(uint8_t _pin, bool &_lastState)
 {
         const uint8_t deBounceInt = 50;
         if (digitalRead(_pin) != _lastState)
@@ -244,18 +256,23 @@ bool check_systemState_change(uint8_t _pin, bool &_lastState)
 }
 void check_systemState_armed()
 {
-        if (check_systemState_change(SYS_IS_ARMED_INDICATION_PIN, indication_ARMED_lastState))
+        if (_detect_state_change(SYSTEM_STATE_ARM_PIN, indication_ARMED_lastState))
         {
                 char a[100];
                 uint8_t curState = get_systemState();
                 sprintf(a, "System state: [%s]", sys_states[curState]);
                 iot.pub_msg(a);
                 iot.pub_state(sys_states[curState]);
+
+                if (curState == DISARMED) /* Verify all inputs are OFF */
+                {
+                        allOff();
+                }
         }
 }
 void check_systemState_alarming()
 {
-        if (check_systemState_change(SYS_IS_ALARMING_INDICATION_PIN, indication_ALARMED_lastState))
+        if (_detect_state_change(SYSTEM_STATE_ALARM_PIN, indication_ALARMED_lastState))
         {
                 uint8_t curstate = get_systemState();
                 iot.pub_state(sys_states[curstate]);
@@ -281,5 +298,4 @@ void loop()
         iot.looper();
         check_systemState_armed();
         check_systemState_alarming();
-        delay(100);
 }

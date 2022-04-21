@@ -397,6 +397,20 @@
                 "__ATOMIC_RELEASE=3",
                 "USBCON"
             ]
+        },
+        {
+            "name": "Windows",
+            "includePath": [
+                "${workspaceFolder}/**"
+            ],
+            "defines": [
+                "_DEBUG",
+                "UNICODE",
+                "_UNICODE"
+            ],
+            "cStandard": "c17",
+            "cppStandard": "c++17",
+            "intelliSenseMode": "windows-msvc-x64"
         }
     ]
 }

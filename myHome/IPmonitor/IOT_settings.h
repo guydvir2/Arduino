@@ -107,19 +107,20 @@ void addiotnalMQTT(char *incoming_msg)
 }
 void startIOTservices()
 {
-        iot.useSerial = true;
         iot.useWDT = true;
         iot.useOTA = true;
-        iot.useextTopic = true;
-        iot.useResetKeeper = false;
-        iot.useextTopic = false;
         iot.useDebug = true;
-        iot.debug_level = 0;
-        iot.useNetworkReset = false; // <-- only for this device
-        iot.noNetwork_reset = 5;
+        iot.useSerial = true;
+        iot.useextTopic = false;
         iot.useBootClockLog = true;
-        // strcpy(iot.deviceTopic, DEV_TOPIC);
+        iot.useResetKeeper = false;
+        iot.useNetworkReset = false; // <-- only for this device
+        iot.debug_level = 0;
+        iot.noNetwork_reset = 5;
+
+        strcpy(iot.deviceTopic, DEV_TOPIC);
         strcpy(iot.prefixTopic, PREFIX_TOPIC);
         strcpy(iot.addGroupTopic, GROUP_TOPIC);
+        
         iot.start_services(addiotnalMQTT);
 }

@@ -14,11 +14,12 @@ class myRF24
 private:
     struct RFmsg
     {
+        uint8_t tot_len;
         uint8_t msg_num;
         uint8_t tot_msgs;
-        uint8_t tot_len;
         char payload[MSG_LEN + 1];
         char dev_name[DEVNAME_LEN + 1];
+        /* total max size 32 */
     };
 
     char *_devname;
@@ -37,15 +38,14 @@ public:
 public:
     myRF24(uint8_t CE_PIN, uint8_t CSN_PIN);
     bool startRF24(const uint8_t &w_addr, const uint8_t &r_addr, char *devname, uint8_t PA_level = RF24_PA_MIN, rf24_datarate_e Data_rate = RF24_1MBPS, uint8_t ch = 1);
-    bool RFwrite(const char *msg);                  /* long & splitted messages */
-    bool RFread2(char out[], int fail_micros = 200); /*plain read*/
-    bool RFread(char out[], char from[], int del=100);
     bool resetRF24();
+    bool RFwrite(const char *msg);                  /* long & splitted messages */
+    bool RFread(char out[], char from[], int del=100);
+    void wellness_Watchdog();
+    void failDetect();
 
 private:
     bool _start();
-    void _failDetect();
-    void _wellness_Watchdog();
     void _printStruct(RFmsg &msg);
     bool _wait4Rx(int timeFrame = 200);
     void _erase_struct(RFmsg &_payload);

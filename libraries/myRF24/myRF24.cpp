@@ -84,7 +84,6 @@ bool myRF24::RFread(char out[], char from[], int del)
   {
     RFmsg payload;
     strcpy(out, "");
-    strcpy(from, payload.dev_name);
 
     while (radio.available())
     {
@@ -92,6 +91,8 @@ bool myRF24::RFread(char out[], char from[], int del)
       strcat(out, payload.payload);
       delay(2); // <---- Change. withouy delay, it fails.
     }
+    strcpy(from, payload.dev_name);
+
     if (debug_mode)
     {
       char msg[200];

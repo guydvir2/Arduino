@@ -1,34 +1,29 @@
-#include <myRF24.h>
-
 #define ROLE 0 /* 0:Reciever 1: Sender */
 #define BOTH_TX_RX false
 
-// ~~~~~~~~~~~~ myRF24 lib ~~~~~~~~~~~~
-#define DEBUG_MODE true;
-#define USE_ACK false;
-#if ROLE == 1
-const uint8_t w_address = 1;
-const uint8_t r_address = 0;
-const uint8_t CE_PIN = 9;
-const uint8_t CSN_PIN = 10;
+#include <myRF24.h>
+#include "RF24_DEFS.h"
 
-char *dev_name = "Rdu_1";
-const int time_resend = 2500;
+void convert_epoch2clock(char time_str[])
+{
+  uint8_t days = 0;
+  uint8_t hours = 0;
+  uint8_t minutes = 0;
+  uint8_t seconds = 0;
 
-#elif ROLE == 0
-const uint8_t w_address = 0;
-const uint8_t r_address = 1;
-const uint8_t CE_PIN = 9;
-const uint8_t CSN_PIN = 10;
+  const uint8_t sec2minutes = 60;
+  const int sec2hours = (sec2minutes * 60);
+  const int sec2days = (sec2hours * 24);
 
-const char *dev_name = "Rdu_0";
-const int time_resend = 23456;
-#endif
+  long time_delta = millis() / 1000;
 
-myRF24 radio(CE_PIN, CSN_PIN);
-// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  days = (int)(time_delta / sec2days);
+  hours = (int)((time_delta - days * sec2days) / sec2hours);
+  minutes = (int)((time_delta - days * sec2days - hours * sec2hours) / sec2minutes);
+  seconds = (int)(time_delta - days * sec2days - hours * sec2hours - minutes * sec2minutes);
 
-
+  sprintf(time_str, "%01dd %02d:%02d:%02d", days, hours, minutes, seconds);
+}
 void send_timely_msgs()
 {
   char qwerty[60];
@@ -37,51 +32,22 @@ void send_timely_msgs()
 
   while (millis() - last_msg > random(2500, 7500))
   {
+    char a[30];
     last_msg = millis();
-    sprintf(qwerty, "msg #%d", counter++);
+    // convert_epoch2clock(a);
+    sprintf(qwerty, "Tx #%d", ++counter);
+
+    // sprintf(qwerty, "Tx #%d; upTime:%s", counter++, a);
     radio.RFwrite(qwerty);
   }
 }
-void recv_msg()
+void incomeMSG_cb(char *from, char *msg)
 {
-  char from[10];
-  char msg[200];
-  char inmsg_buff[150];
-
-  const uint8_t delay_read = 100;
-  if (radio.RFread2(inmsg_buff, from, delay_read))
-  {
-    yield;
-  }
-}
-
-void start_generic()
-{
-  Serial.begin(115200);
-  while (!Serial)
-    ;
-  radio.use_ack = USE_ACK;
-  radio.debug_mode = DEBUG_MODE;
-}
-void setup_sender()
-{
-#if ROLE == 1
-  start_generic();
-  bool startOK = radio.startRF24(w_address, r_address, dev_name, RF24_PA_MIN, RF24_1MBPS, 1);
-  Serial.println("Im a Sender");
-  Serial.print("start: ");
-  Serial.println(startOK);
-#endif
-}
-void setup_reciever()
-{
-#if ROLE == 0
-  start_generic();
-  bool startOK = radio.startRF24(w_address, r_address, dev_name, RF24_PA_MIN, RF24_1MBPS, 1);
-  Serial.println("Im Reciver");
-  Serial.print("started: ");
-  Serial.println(startOK);
-#endif
+  Serial.print("INmsg>> From[");
+  Serial.print(from);
+  Serial.print("] MSG[");
+  Serial.print(msg);
+  Serial.println("]");
 }
 
 void setup()
@@ -92,18 +58,20 @@ void setup()
 
 void loop()
 {
-  recv_msg();
-  radio.failDetect();
-  radio.wellness_Watchdog();
-
   if (BOTH_TX_RX)
   {
+    RF24_Rx_looper();
     send_timely_msgs();
   }
-  else
+  else if (ROLE == 0)
   {
-#if ROLE == 1
-    send_timely_msgs();
-#endif
+    RF24_Rx_looper();
   }
+  else if (ROLE == 1)
+  {
+    send_timely_msgs();
+  }
+
+  // radio.failDetect();
+  // radio.wellness_Watchdog();
 }
