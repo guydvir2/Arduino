@@ -17,9 +17,8 @@ void IPmonitoring::start(cb_func ping, cb_func outmsg)
                 _msgOUT = true;
                 _msgout_cb = outmsg;
         }
-        if (_verify_internet_ok())
+        if (_boot_chk_internet_ntp())
         {
-                // bootClk = time(nullptr);
                 sprintf(a, "pings %s", _IP);
                 _post_msg(a, 1);
                 if (!_startFlogs())
@@ -39,7 +38,7 @@ void IPmonitoring::loop()
         _ping_looper();
         _loopFlogs();
 }
-bool IPmonitoring::_verify_internet_ok()
+bool IPmonitoring::_boot_chk_internet_ntp()
 {
         time_t t = time(nullptr);
         struct tm *tm = localtime(&t);

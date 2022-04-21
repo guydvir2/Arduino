@@ -67,7 +67,7 @@ private:
     void _reconnect_cb();
     bool _ping_client();
     void _ping_looper();
-    bool _verify_internet_ok();
+    bool _boot_chk_internet_ntp();
     void _reset_bootFailure();
     void _conv_epoch(time_t &t, char *retDate);
     void _conv_epoch_duration(long t1, long t2, char *clk);
