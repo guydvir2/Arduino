@@ -30,8 +30,8 @@ void timeOUTSwitch::looper()
 }
 void timeOUTSwitch::def_funcs(func_cb startF, func_cb endF)
 {
+    _endf = endF; /*External function to be executed when triggered */
     _startf = startF; /*External function to be executed when triggered */
-    _endf = endF;     /*External function to be executed when triggered */
 
     if (_useSavedCLK)
     {
@@ -184,81 +184,85 @@ void timeOUTSwitch::_input_looper()
 {
     if (useInput)
     {
-        Serial.println(_IN_io);
         bool currentRead_0 = digitalRead(_IN_io);
         delay(50);
         bool currentRead_1 = digitalRead(_IN_io);
-        bool validInput = currentRead_0 == currentRead_1;
 
-        if (trigType == 0 && validInput && currentRead_0 == _inputstatOn) /* Button - NO PWM output*/
+        if (currentRead_0 == currentRead_1)
         {
-            if (inTO) /* Trun OFF*/
+            if (trigType != 1 && currentRead_0 == _inputstatOn)
             {
-                finish_TO(0);
-            }
-            else // Turn ON
-            {
-                start_TO(def_TO_minutes, 0);
-            }
+                if (trigType == 0) /* Button - NO PWM output*/
+                {
+                    if (inTO) /* Trun OFF*/
+                    {
+                        finish_TO(0);
+                    }
+                    else // Turn ON
+                    {
+                        start_TO(def_TO_minutes, 0);
+                    }
 
-            while (digitalRead(_IN_io) == _inputstatOn) // Avoid long press
-            {
-                delay(10);
-            }
-        }
-        else if (trigType == 1 && validInput && _lastinput != currentRead_0) /* Rocker Switch */
-        {
-            if (currentRead_0 == _inputstatOn)
-            {
-                start_TO(def_TO_minutes, 0);
-            }
-            else
-            {
-                finish_TO(0);
-            }
-            _lastinput = currentRead_0;
-        }
-        else if (trigType == 2 && validInput && currentRead_0 == _inputstatOn) // sensor input
-        {
-            if (_lastPress == 0 || (millis() - _lastPress > 1000 * 60UL)) /* Case of sensor that each detection restarts its timeout */
-            {
-                start_TO(def_TO_minutes, 0);
-                _lastPress = millis(); /* Avoid frequent write to flash */
-            }
-        }
-        else if (trigType == 3 && validInput && currentRead_0 == _inputstatOn) // PWM input
-        {
-            const uint8_t press_to_off = 3; // seconds. after this re-press PWM will set OFF
+                    while (digitalRead(_IN_io) == _inputstatOn) // Avoid long press
+                    {
+                        delay(10);
+                    }
+                }
+                else if (trigType == 2) // sensor input
+                {
+                    if (_lastPress == 0 || (millis() - _lastPress > 1000 * 60UL)) /* Case of sensor that each detection restarts its timeout */
+                    {
+                        start_TO(def_TO_minutes, 0);
+                        _lastPress = millis(); /* Avoid frequent write to flash */
+                    }
+                }
+                else if (trigType == 3) // PWM input
+                {
+                    const uint8_t press_to_off = 3; // seconds. after this re-press PWM will set OFF
 
-            bool cond_a = (pCounter == 0) || (pCounter < max_pCount && millis() - _lastPress < 1000 * press_to_off);              /* first press on, or inc intensity */
-            bool cond_b = (inTO || pCounter >= max_pCount) || (_lastPress != 0 && (millis() - _lastPress > 1000 * press_to_off)); /* when press is far from last - turn off */
+                    bool cond_a = (pCounter == 0) || (pCounter < max_pCount && millis() - _lastPress < 1000 * press_to_off);              /* first press on, or inc intensity */
+                    bool cond_b = (inTO || pCounter >= max_pCount) || (_lastPress != 0 && (millis() - _lastPress > 1000 * press_to_off)); /* when press is far from last - turn off */
 
-            if (cond_a) /* Turn ON*/
-            {
-                pCounter++;
-                _lastPress = millis();
-                start_TO(def_TO_minutes, 0);
+                    if (cond_a) /* Turn ON*/
+                    {
+                        pCounter++;
+                        _lastPress = millis();
+                        start_TO(def_TO_minutes, 0);
+                    }
+                    else if (cond_b) /* Trun OFF*/
+                    {
+                        finish_TO(0);
+                        _lastPress = 0;
+                    }
+                }
+                else if (trigType == 4) // multiPress + Long press
+                {
+                    _lastPress = millis();
+                    while (digitalRead(_IN_io) == _inputstatOn) // Avoid long press
+                    {
+                        delay(10);
+                    }
+                    if (millis() - _lastPress < 700)
+                    {
+                        add_TO(def_TO_minutes, 0);
+                    }
+                    else
+                    {
+                        finish_TO(0);
+                    }
+                }
             }
-            else if (cond_b) /* Trun OFF*/
+            else if (trigType == 1 && _lastinput != currentRead_0) /* Rocker Switch */
             {
-                finish_TO(0);
-                _lastPress = 0;
-            }
-        }
-        else if (trigType == 4 && validInput && currentRead_0 == _inputstatOn) // multiPress + Long press
-        {
-            _lastPress = millis();
-            while (digitalRead(_IN_io) == _inputstatOn) // Avoid long press
-            {
-                delay(10);
-            }
-            if (millis() - _lastPress < 700)
-            {
-                add_TO(def_TO_minutes, 0);
-            }
-            else
-            {
-                finish_TO(0);
+                if (currentRead_0 == _inputstatOn)
+                {
+                    start_TO(def_TO_minutes, 0);
+                }
+                else
+                {
+                    finish_TO(0);
+                }
+                _lastinput = currentRead_0;
             }
         }
     }

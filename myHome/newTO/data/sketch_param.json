@@ -13,7 +13,7 @@
         0
     ],
     "useInput": [
-        false,
+        true,
         true
     ],
     "useIndicLED": [
@@ -21,7 +21,7 @@
         false
     ],
     "inputPressed": [
-        true,
+        false,
         false
     ],
     "inputPin": [

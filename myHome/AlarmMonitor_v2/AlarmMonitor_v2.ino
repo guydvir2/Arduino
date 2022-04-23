@@ -42,6 +42,11 @@
 3. know bug when arm_home using code, it arm_away.
 */
 
+/*Update 04/2022
+1. Fixing main issue of armed_home and armed_away.
+2. swap D5 and D6 - Zone8 is now responsible for armed_home and KEY for armed_away.
+3. version 4
+*/
 /*
 
                 +==========+=============+============+============+===============+
@@ -68,9 +73,9 @@
                 +--------------+-------------+-------------+
                 | Armed IND    | D3 PULL_UP  |    ON/OFF   |
                 +--------------+-------------+-------------+
-                | Arm-Home CMD |      D6     |     KEY     |
+                | Arm-Home CMD |      D5     |     KEY     |
                 +--------------+-------------+-------------+
-                | Arm-Away CMD |      D5     |     Z8      |
+                | Arm-Away CMD |      D6     |     Z8      |
                 +--------------+-------------+-------------+
 
 
@@ -103,8 +108,8 @@
 #define SYSTEM_STATE_ON LOW
 #define SYSTEM_STATE_ARM_PIN D3      //  Indication system is Armed
 #define SYSTEM_STATE_ALARM_PIN D4    //  Indication system is Alarmed
-#define SET_SYSTEM_ARMED_HOME_PIN D6 //   (Set system)  armed_Home
-#define SET_SYSTEM_ARMED_AWAY_PIN D5 //   (Set system)  Armed_Away
+#define SET_SYSTEM_ARMED_HOME_PIN D5 //   (Set system)  armed_Home
+#define SET_SYSTEM_ARMED_AWAY_PIN D6 //   (Set system)  Armed_Away
 
 #define VER "alarmMon_4.0"
 char *sys_states[] = {"armed_home", "armed_away", "disarmed", "pending", "triggered"};
@@ -135,17 +140,11 @@ void startGPIOs()
 }
 void allOff()
 {
-        uint8_t retries = 0;
-        const uint8_t max_retries = 3;
-        while (digitalRead(SYSTEM_STATE_ARM_PIN) == SYSTEM_STATE_ON && retries < max_retries)
-        {
                 digitalWrite(SET_SYSTEM_ARMED_HOME_PIN, !STATE_ON);
                 digitalWrite(SET_SYSTEM_ARMED_AWAY_PIN, !STATE_ON);
-                delay(systemPause * 1000);
-                retries++;
-        }
+                delay(systemPause * 1000); // time to system to react.
 
-        if (retries == max_retries || get_systemState() != DISARMED)
+        if (get_systemState() != DISARMED)
         {
                 iot.pub_log("[System]:failed to disarm. Reset sent");
                 iot.sendReset("OFF_FAIL");
@@ -267,6 +266,7 @@ void check_systemState_armed()
                 if (curState == DISARMED) /* Verify all inputs are OFF */
                 {
                         allOff();
+                        iot.pub_msg("DISARMED;");
                 }
         }
 }

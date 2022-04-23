@@ -46,8 +46,10 @@ void read_flashParameter()
                         \"indicPin\":[12,2],\"sketch_JSON_Psize\":1000}";
 
   bool a = iot.read_fPars(iot.sketch_paramfile, sketchJSON, sketch_defs); /* Read sketch defs */
+  // Serial.begin(115200);
   // serializeJson(sketchJSON, Serial);
   // Serial.flush();
+  // delay(1000);
   update_vars(sketchJSON);
   sketchJSON.clear();
 }

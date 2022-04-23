@@ -1,9 +1,9 @@
 /**
- * Google's Firebase Token Generation class, Signer.cpp version 1.2.20
+ * Google's Firebase Token Generation class, Signer.cpp version 1.2.22
  *
  * This library supports Espressif ESP8266 and ESP32
  *
- * Created April 15, 2022
+ * Created April 23, 2022
  *
  * This work is a part of Firebase ESP Client library
  * Copyright (c) 2022 K. Suwatchai (Mobizt)
@@ -429,31 +429,34 @@ void Firebase_Signer::tokenProcessingTask()
     {
         delay(0);
 
+        if (!config->internal.fb_clock_rdy &&config->internal.fb_clock_set && config->signer.tokens.status == token_status_on_initialize)
+        {
+            if (millis() - config->internal.fb_last_clock_set_millis > config->timeout.ntpServerRequest)
+            {
+
+                config->signer.tokens.error.message.clear();
+                setTokenError(FIREBASE_ERROR_NTP_REQUEST_TIMED_OUT);
+                sendTokenStatusCB();
+                config->signer.tokens.status = token_status_on_initialize;
+                config->internal.fb_last_jwt_generation_error_cb_millis = 0;
+                config->internal.fb_last_clock_set_millis = millis();
+                config->internal.fb_clock_set = false;
+                ut->setClock(config->time_zone);
+            }
+
+            config->signer.tokenTaskRunning = false;
+            return;
+        }
+
         if (config->signer.tokens.token_type == token_type_id_token)
         {
             config->signer.lastReqMillis = millis();
 
-            if (getIdToken(false, toStringPtr(_EMPTY_STR), toStringPtr(_EMPTY_STR)))
-            {
-                _token_processing_task_enable = false;
-                config->signer.attempts = 0;
-                ret = true;
-            }
-            else
-            {
-                if (config->signer.attempts < config->max_token_generation_retry)
-                    config->signer.attempts++;
-                else
-                {
-                    config->signer.tokens.error.message.clear();
-                    setTokenError(FIREBASE_ERROR_TOKEN_EXCHANGE_MAX_RETRY_REACHED);
-                    config->internal.fb_last_jwt_generation_error_cb_millis = 0;
-                    sendTokenStatusCB();
-                    _token_processing_task_enable = false;
-                    config->signer.attempts = 0;
-                    ret = true;
-                }
-            }
+            getIdToken(false, toStringPtr(_EMPTY_STR), toStringPtr(_EMPTY_STR));
+
+            _token_processing_task_enable = false;
+            config->signer.attempts = 0;
+            ret = true;
         }
         else
         {
@@ -481,28 +484,13 @@ void Firebase_Signer::tokenProcessingTask()
             {
                 if (millis() - config->internal.fb_last_request_token_cb_millis > 5000)
                 {
-                    if (requestTokens())
-                    {
-                        config->signer.attempts = 0;
-                        _token_processing_task_enable = false;
-                        config->signer.step = fb_esp_jwt_generation_step_begin;
-                        ret = true;
-                    }
-                    else
-                    {
-                        if (config->signer.attempts < config->max_token_generation_retry)
-                            config->signer.attempts++;
-                        else
-                        {
-                            config->signer.tokens.error.message.clear();
-                            setTokenError(FIREBASE_ERROR_TOKEN_EXCHANGE_MAX_RETRY_REACHED);
-                            config->internal.fb_last_jwt_generation_error_cb_millis = 0;
-                            sendTokenStatusCB();
-                            config->signer.attempts = 0;
-                            config->signer.step = fb_esp_jwt_generation_step_begin;
-                            ret = true;
-                        }
-                    }
+                    requestTokens();
+
+                    config->signer.attempts = 0;
+                    _token_processing_task_enable = false;
+                    config->signer.step = fb_esp_jwt_generation_step_begin;
+                    ret = true;
+                   
                 }
             }
         }
@@ -2028,9 +2016,6 @@ void Firebase_Signer::errorToString(int httpCode, MB_String &buff)
     case FIREBASE_ERROR_TOKEN_EXCHANGE:
         buff += fb_esp_pgm_str_177;
         break;
-    case FIREBASE_ERROR_TOKEN_EXCHANGE_MAX_RETRY_REACHED:
-        buff += fb_esp_pgm_str_547;
-        break;
 
 #if defined(MBFS_FLASH_FS) || defined(MBFS_SD_FS)
 
@@ -2059,6 +2044,9 @@ void Firebase_Signer::errorToString(int httpCode, MB_String &buff)
         return;
     case FIREBASE_ERROR_EXTERNAL_CLIENT_NOT_INITIALIZED:
         buff += fb_esp_pgm_str_597;
+        return;
+    case FIREBASE_ERROR_NTP_REQUEST_TIMED_OUT:
+        buff += fb_esp_pgm_str_547;
         return;
 
     default:

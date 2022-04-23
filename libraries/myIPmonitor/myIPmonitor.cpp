@@ -249,6 +249,7 @@ void IPmonitoring::_post_msg(char *inmsg, uint8_t msg_type)
         {
                 sprintf(msg, "[%s] %s", nick, inmsg);
                 _msgout_cb(msg, msg_type);
+                Serial.println(msg);
         }
 }
 
@@ -267,6 +268,10 @@ void IPmonitoring::printFlog(int i)
                 char clock[25];
                 const char *logTypes[] = {"Disconnect", "Reconnect", "Boot"};
                 int x = _ConnectLOG.getnumlines();
+                Serial.print("nick: ");
+                Serial.println(nick);
+                Serial.print("log_lines: ");
+                Serial.println(x);
 
                 for (int a = 0; a < x; a++)
                 {
@@ -274,6 +279,7 @@ void IPmonitoring::printFlog(int i)
                         _conv_epoch(return_logTime, clock);
                         sprintf(msg, "[#%03d] [%s] [%s]", a, clock, logTypes[return_reason]);
                         _post_msg(msg, 2);
+                        Serial.println(msg);
                 }
         }
 }
@@ -285,7 +291,7 @@ void IPmonitoring::enter_fake_LOGentry(time_t t, uint8_t reason)
 }
 bool IPmonitoring::_startFlogs()
 {
-        return _ConnectLOG.start(ENTRY_LENGTH, LOG_ENTRIES);
+        return _ConnectLOG.start(LOG_ENTRIES);
 }
 void IPmonitoring::_loopFlogs()
 {

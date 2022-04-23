@@ -25,7 +25,7 @@ char sw_names[2][20];          /* Name of each Switch, as shown on MQTT msg */
 /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ End ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 
 
-const char *VER = "TOswitch_v1.46";
+const char *VER = "TOswitch_v1.47";
 #include "myTO_param.h"
 #include "myIOT_settings.h"
 

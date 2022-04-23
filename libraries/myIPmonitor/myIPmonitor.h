@@ -21,7 +21,6 @@ class IPmonitoring
 #define MINPING_TIME 10  /* Min time between pings, sec */
 #define RESET_BOOT_ERR 2 /* Time to wait until reset due to NO-internet or NO-NTP failure */
 #define LOG_ENTRIES 200   /* Entries saved in LOG */
-#define ENTRY_LENGTH 15  /* Length of each entry - 12 chars */
 
     typedef bool (*cb_func)(char *externalSite, uint8_t pings);
 

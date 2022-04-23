@@ -1,6 +1,6 @@
 
 /**
- * Created February 28, 2022
+ * Created April 23, 2022
  *
  * This work is a part of Firebase ESP Client library
  * Copyright (c) 2022 K. Suwatchai (Mobizt)
@@ -100,12 +100,13 @@ class QueryFilter;
 
 #define MIN_TOKEN_GENERATION_ERROR_INTERVAL 5 * 1000
 
+#define MIN_NTP_SERVER_REQUEST_TIME_OUT 30 * 1000
+
 #define SD_CS_PIN 15
 
 #define STREAM_TASK_STACK_SIZE 8192
 #define QUEUE_TASK_STACK_SIZE 8192
 #define MAX_BLOB_PAYLOAD_SIZE 1024
-#define MAX_EXCHANGE_TOKEN_ATTEMPTS 5
 #define ESP_DEFAULT_TS 1618971013
 #define ESP_REPORT_PROGRESS_INTERVAL 2
 
@@ -824,8 +825,9 @@ struct fb_esp_cfg_int_t
     unsigned long fb_last_jwt_generation_error_cb_millis = 0;
     unsigned long fb_last_request_token_cb_millis = 0;
     unsigned long fb_last_stream_timeout_cb_millis = 0;
+    unsigned long fb_last_clock_set_millis = 0;
     bool fb_clock_rdy = false;
-    bool fb_clock_checked = false;
+    bool fb_clock_set = false;
     float fb_gmt_offset = 0;
     uint8_t fb_float_digits = 5;
     uint8_t fb_double_digits = 9;
@@ -1024,6 +1026,9 @@ struct fb_esp_client_timeout_t
     uint16_t tokenGenerationBeginStep = MIN_TOKEN_GENERATION_BEGIN_STEP_INTERVAL;
 
     uint16_t tokenGenerationError = MIN_TOKEN_GENERATION_ERROR_INTERVAL;
+
+    // NTP server request timeout in ms
+    uint16_t ntpServerRequest = MIN_NTP_SERVER_REQUEST_TIME_OUT;
 };
 
 struct fb_esp_cfg_t
@@ -1040,7 +1045,8 @@ struct fb_esp_cfg_t
     struct fb_esp_token_signer_resources_t signer;
     struct fb_esp_cfg_int_t internal;
     TokenStatusCallback token_status_callback = NULL;
-    int8_t max_token_generation_retry = MAX_EXCHANGE_TOKEN_ATTEMPTS;
+    // deprecated
+    int8_t max_token_generation_retry = 0;
     struct fb_esp_rtdb_config_t rtdb;
 #if defined(ENABLE_GC_STORAGE)
     struct fb_esp_gcs_config_t gcs;
@@ -2272,7 +2278,7 @@ static const char fb_esp_pgm_str_543[] PROGMEM = "The ID token or registration t
 
 static const char fb_esp_pgm_str_545[] PROGMEM = "create message digest";
 static const char fb_esp_pgm_str_546[] PROGMEM = "tokenProcessingTask";
-static const char fb_esp_pgm_str_547[] PROGMEM = "max token generation retry reached";
+static const char fb_esp_pgm_str_547[] PROGMEM = "NTP server sending request timed out";
 static const char fb_esp_pgm_str_548[] PROGMEM = "0.0.0.0";
 static const char fb_esp_pgm_str_549[] PROGMEM = "error";
 static const char fb_esp_pgm_str_550[] PROGMEM = "rules";

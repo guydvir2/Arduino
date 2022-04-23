@@ -1,19 +1,17 @@
 #ifndef FIREBASE_CLIENT_VERSION
-#define FIREBASE_CLIENT_VERSION "3.1.7"
+#define FIREBASE_CLIENT_VERSION "3.1.10"
 #endif
 
 /**
- * Google's Firebase ESP Client Main class, Firebase_ESP_Client.h v3.1.7
+ * Google's Firebase ESP Client Main class, Firebase_ESP_Client.h v3.1.10
  *
  * This library supports Espressif ESP8266 and ESP32 MCUs
  *
- * Created April 19, 2022
+ * Created April 23, 2022
  *
  *   Updates:
- * - Fixed FirebaseJson double to string conversion issue.
- * - Fixed FirebaseJson array's set by index issue.
- * - Add support FirebaseJson non-object type data via setJsonData and setJsonArrayData functions.
- * - Remove Nagle disable from TCP client.
+ * - Remove token generation retry.
+ * - Fixed NTP time synching blocking issue.
  *
  *
  * This work is a part of Firebase ESP Client library

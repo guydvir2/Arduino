@@ -1,7 +1,7 @@
 #include <myIOT2.h>
 #include <myIPmonitor.h>
 
-#define CHECK_MQTT true
+#define CHECK_MQTT false
 #define CHECK_HASS false
 #define CHECK_WIFI true
 #define CHECK_INTERNET true
@@ -28,3 +28,4 @@ void loop()
         read_button();
 #endif
 }
+

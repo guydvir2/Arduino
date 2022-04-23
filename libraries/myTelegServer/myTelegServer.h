@@ -14,15 +14,16 @@ typedef void (*cb_func2)(String &msg1, String &msg2, String &msg3, String &msg4)
 class myTelegram
 {
 public:
-    char *chatID;
+    char chatID[15];
 
 private:
     WiFiClientSecure client;
     UniversalTelegramBot bot;
+    X509List cert;
     cb_func2 _ext_func;
 
 private:
-    char *_botTok;
+    String _botTok;
     uint8_t _Bot_mtbs = 2;           // mean time between scan messages in sec
     unsigned long _Bot_lasttime = 0; // last time messages' scan has been done
 

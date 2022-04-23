@@ -1,14 +1,15 @@
 #include "Arduino.h"
 #include "myTelegServer.h"
 
-myTelegram::myTelegram(char *botTok, uint8_t checkServer_interval) : bot(botTok, client)
+myTelegram::myTelegram(char *botTok, uint8_t checkServer_interval) : bot("123232", client), cert(TELEGRAM_CERTIFICATE_ROOT)
 {
-	_botTok = botTok;
+	_botTok = String(botTok);
+	bot.updateToken(_botTok);
 	_Bot_mtbs = checkServer_interval;
 }
 void myTelegram::handleNewMessages(int numNewMessages)
 {
-	String sendmsg="";
+	String sendmsg = "";
 
 	for (int i = 0; i < numNewMessages; i++)
 	{
@@ -27,7 +28,8 @@ void myTelegram::handleNewMessages(int numNewMessages)
 }
 void myTelegram::begin()
 {
-	client.setInsecure();
+	// client.setInsecure();
+	client.setTrustAnchors(&cert);
 }
 void myTelegram::begin(cb_func2 funct)
 {
@@ -44,7 +46,7 @@ void myTelegram::send_msg(String &msg)
 }
 void myTelegram::looper()
 {
-	if (millis() > _Bot_lasttime + _Bot_mtbs * 1000)
+	if (millis() > _Bot_lasttime + _Bot_mtbs * 1000UL)
 	{
 		int numNewMessages = bot.getUpdates(bot.last_message_received + 1);
 
