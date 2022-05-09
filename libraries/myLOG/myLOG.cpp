@@ -168,7 +168,7 @@ unsigned long flashLOG::sizelog()
 }
 bool flashLOG::_delayed_save(uint8_t _savePeriod)
 {
-    bool timeCondition = lastUpdate > 0 && millis() - lastUpdate > _savePeriod * 1000UL;
+    bool timeCondition = lastUpdate > 0 && millis() > _savePeriod * 1000UL + lastUpdate;
     bool overSize_Condition = _logBuff.length() > 800; // About 6 entries in buffer
     return timeCondition || overSize_Condition;
 }

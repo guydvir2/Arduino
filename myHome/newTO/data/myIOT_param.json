@@ -11,8 +11,8 @@
     "noNetwork_reset": 5,
     "useextTopic": false,
     "ignore_boot_msg": false,
-    "deviceTopic": "Stove",
-    "groupTopic": "intLights",
+    "deviceTopic": "frontDoor",
+    "groupTopic": "extLights",
     "prefixTopic": "myHome",
     "ver": 0.5
 }

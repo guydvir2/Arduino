@@ -69,18 +69,13 @@ Adafruit_SPIDevice::Adafruit_SPIDevice(int8_t cspin, int8_t sckpin,
   _dataMode = dataMode;
   _begun = false;
   _spiSetting = new SPISettings(freq, dataOrder, dataMode);
-  _spi = NULL;
+  _spi = nullptr;
 }
 
 /*!
  *    @brief  Release memory allocated in constructors
  */
-Adafruit_SPIDevice::~Adafruit_SPIDevice() {
-  if (_spiSetting) {
-    delete _spiSetting;
-    _spiSetting = nullptr;
-  }
-}
+Adafruit_SPIDevice::~Adafruit_SPIDevice() { delete _spiSetting; }
 
 /*!
  *    @brief  Initializes SPI bus and sets CS pin high
@@ -119,7 +114,8 @@ bool Adafruit_SPIDevice::begin(void) {
 }
 
 /*!
- *    @brief  Transfer (send/receive) one byte over hard/soft SPI
+ *    @brief  Transfer (send/receive) a buffer over hard/soft SPI, without
+ * transaction management
  *    @param  buffer The buffer to send and receive at the same time
  *    @param  len    The number of bytes to transfer
  */
@@ -128,7 +124,7 @@ void Adafruit_SPIDevice::transfer(uint8_t *buffer, size_t len) {
     // hardware SPI is easy
 
 #if defined(SPARK)
-    _spi->transfer(buffer, buffer, len, NULL);
+    _spi->transfer(buffer, buffer, len, nullptr);
 #elif defined(STM32)
     for (size_t i = 0; i < len; i++) {
       _spi->transfer(buffer[i]);
@@ -256,7 +252,8 @@ void Adafruit_SPIDevice::transfer(uint8_t *buffer, size_t len) {
 }
 
 /*!
- *    @brief  Transfer (send/receive) one byte over hard/soft SPI
+ *    @brief  Transfer (send/receive) one byte over hard/soft SPI, without
+ * transaction management
  *    @param  send The byte to send
  *    @return The byte received while transmitting
  */
@@ -286,7 +283,8 @@ void Adafruit_SPIDevice::endTransaction(void) {
 }
 
 /*!
- *    @brief  Write a buffer or two to the SPI device.
+ *    @brief  Write a buffer or two to the SPI device, with transaction
+ * management.
  *    @param  buffer Pointer to buffer of data to write
  *    @param  len Number of bytes from buffer to write
  *    @param  prefix_buffer Pointer to optional array of data to write before
@@ -330,7 +328,7 @@ bool Adafruit_SPIDevice::write(const uint8_t *buffer, size_t len,
 
 #ifdef DEBUG_SERIAL
   DEBUG_SERIAL.print(F("\tSPIDevice Wrote: "));
-  if ((prefix_len != 0) && (prefix_buffer != NULL)) {
+  if ((prefix_len != 0) && (prefix_buffer != nullptr)) {
     for (uint16_t i = 0; i < prefix_len; i++) {
       DEBUG_SERIAL.print(F("0x"));
       DEBUG_SERIAL.print(prefix_buffer[i], HEX);
@@ -352,7 +350,8 @@ bool Adafruit_SPIDevice::write(const uint8_t *buffer, size_t len,
 }
 
 /*!
- *    @brief  Read from SPI into a buffer from the SPI device.
+ *    @brief  Read from SPI into a buffer from the SPI device, with transaction
+ * management.
  *    @param  buffer Pointer to buffer of data to read into
  *    @param  len Number of bytes from buffer to read.
  *    @param  sendvalue The 8-bits of data to write when doing the data read,
@@ -391,9 +390,9 @@ bool Adafruit_SPIDevice::read(uint8_t *buffer, size_t len, uint8_t sendvalue) {
 }
 
 /*!
- *    @brief  Write some data, then read some data from SPI into another buffer.
- * The buffers can point to same/overlapping locations. This does not
- * transmit-receive at the same time!
+ *    @brief  Write some data, then read some data from SPI into another buffer,
+ * with transaction management. The buffers can point to same/overlapping
+ * locations. This does not transmit-receive at the same time!
  *    @param  write_buffer Pointer to buffer of data to write from
  *    @param  write_len Number of bytes from buffer to write.
  *    @param  read_buffer Pointer to buffer of data to read into.
@@ -467,9 +466,9 @@ bool Adafruit_SPIDevice::write_then_read(const uint8_t *write_buffer,
 
 /*!
  *    @brief  Write some data and read some data at the same time from SPI
- * into the same buffer. This is basicaly a wrapper for transfer() with
- * CS-pin and transaction management.
- * This /does/ transmit-receive at the same time!
+ * into the same buffer, with transaction management. This is basicaly a wrapper
+ * for transfer() with CS-pin and transaction management. This /does/
+ * transmit-receive at the same time!
  *    @param  buffer Pointer to buffer of data to write/read to/from
  *    @param  len Number of bytes from buffer to write/read.
  *    @return Always returns true because there's no way to test success of SPI
@@ -491,6 +490,10 @@ bool Adafruit_SPIDevice::write_and_read(uint8_t *buffer, size_t len) {
   return true;
 }
 
+/*!
+ *    @brief  Assert/Deassert the CS pin if it is defined
+ *    @param  value The state the CS is set to
+ */
 void Adafruit_SPIDevice::setChipSelect(int value) {
   if (_cs == -1)
     return;

@@ -8,7 +8,7 @@ IPmonitoring::~IPmonitoring()
 {
         delete[] _conlog_filename;
 }
-void IPmonitoring::start(cb_func ping, cb_func outmsg)
+void IPmonitoring::start(F_cb ping, F_cb outmsg)
 {
         char a[60];
         _ping_cb = ping;
@@ -189,7 +189,7 @@ void IPmonitoring::getStatus(int h)
                 /* return_logTime2 is log entry after return_logTime1 */
                 time_t t = time(nullptr);
                 _readLOG(_ConnectLOG, i, return_logTime1, return_reason1);
-                
+
                 if (t - return_logTime1 <= hrs2sec) /* Meets time interval critetia */
                 {
                         _readLOG(_ConnectLOG, i + 1, return_logTime2, return_reason2);
@@ -343,7 +343,7 @@ void IPmonitoring::_writeLOG(flashLOG &LOG, uint8_t Reason, time_t value, bool w
         else
         {
                 sprintf(msg, "%d,%d", (unsigned long)value, Reason);
-                LOG.write(msg, writenow); 
+                LOG.write(msg, writenow);
         }
 }
 

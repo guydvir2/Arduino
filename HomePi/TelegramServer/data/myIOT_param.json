@@ -4,7 +4,7 @@
         "useOTA": true,
         "useFlashP": true,
         "useResetKeeper": true,
-        "useDebugLog": true,
+        "useDebugLog": false,
         "useNetworkReset": true,
         "useBootClockLog": true,
         "useextTopic": true,

@@ -40,11 +40,14 @@ void addiotnalMQTT(char *incoming_msg)
     else if (strcmp(incoming_msg, "clear") == 0)
     {
         digitalWrite(SET_SYSTEM_ARMED_HOME_PIN, STATE_ON);
-        delay(systemPause);
+        delay(DELAY_TO_REACT);
         digitalWrite(SET_SYSTEM_ARMED_HOME_PIN, !STATE_ON);
+        delay(DELAY_TO_REACT);
+
         digitalWrite(SET_SYSTEM_ARMED_AWAY_PIN, STATE_ON);
-        delay(systemPause);
+        delay(DELAY_TO_REACT);
         digitalWrite(SET_SYSTEM_ARMED_AWAY_PIN, !STATE_ON);
+        delay(DELAY_TO_REACT);
 
         iot.sendReset("Reset via MQTT");
     }

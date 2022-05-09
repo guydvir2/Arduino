@@ -2,26 +2,29 @@
 #include <myTelegServer.h>
 
 // ********** Sketch Services  ***********
-#define USE_MSG_BOT 0
-#define USE_LOG_BOT 0
-#define USE_LISTEN_BOT 1
-#define time_check_messages 10
-#define VER "telegramSever_v0.3"
+#define USE_MSG_BOT 1
+#define USE_LOG_BOT 1
+#define USE_LISTEN_BOT 0
+#define time_check_messages 5
+#define VER "telegramServer_v0.3"
 
-char *LOG_TOPIC = "myHome/log";
-char *MSG_TOPIC = "myHome/Messages";
+char LOG_TOPIC[] = "myHome/log";
+char MSG_TOPIC[] = "myHome/Messages";
+
+const char cmd_1[] PROGMEM = "/status_all";
+const char cmd_2[] PROGMEM = "/windows_up";
+const char cmd_3[] PROGMEM = "/windows_down";
+const char cmd_4[] PROGMEM = "/windows_stop";
+const char cmd_5[] PROGMEM = "/armed_away";
+const char cmd_6[] PROGMEM = "/disarmed";
+const char cmd_7[] PROGMEM = "/saloon_up";
+const char cmd_8[] PROGMEM = "/saloon_down";
+const char cmd_9[] PROGMEM = "/help";
+const char *const command_set[] PROGMEM = {cmd_1, cmd_2, cmd_3, cmd_4, cmd_5, cmd_6, cmd_7, cmd_8, cmd_9};
+
+const int bufsize = 700; // Max Buffer ~1200 chars long
 
 myIOT2 iot;
-#if USE_MSG_BOT
-myTelegram MQTT_MSG_TELEGRAM(BOT_TOKEN, time_check_messages);
-#endif
-#if USE_LOG_BOT
-myTelegram MQTT_LOG_TELEGRAM(BOT_TOKEN_2, time_check_messages);
-#endif
-#if USE_LISTEN_BOT
-myTelegram LISTEN_TO_TELEGRAM(BOT_TOKEN_3, time_check_messages);
-#endif
-
 MQTT_msg incoming_mqtt;
 
 void startIOTservices()
@@ -57,12 +60,37 @@ void addiotnalMQTT(char *incoming_msg)
     iot.pub_msg(msg);
   }
 }
+
+#define MSG_BOT BOT1
+#define LOG_BOT BOT1
+#define LISTEN_BOT BOT1
+
+#if USE_MSG_BOT
+String MSG_buf = "";
+unsigned long MSG_clk = 0;
+#endif
+
+#if USE_LOG_BOT
+String LOG_buf = "";
+unsigned long LOG_clk = 0;
+#endif
+
+#if USE_LISTEN_BOT
+#endif
+
+// #ifdef BOT1 
+myTelegram BOT1(BOT_TOKEN, time_check_messages);
+// #endif
+// myTelegram BOT2(BOT_TOKEN_2, time_check_messages);
+// myTelegram BOT3(BOT_TOKEN_3, time_check_messages);
+
+
+
 void telecmds(String &in_msg, String &from, String &chat_id, String &snd_msg)
 {
-  String command_set[] = {"/status_all", "/windows_up", "/windows_down", "/windows_stop",
-                          "/armed_away", "/disarmed", "/saloon_up", "/saloon_down", "/help"};
+  // const char *command_set[] = {"/status_all", "/windows_up", "/windows_down", "/windows_stop", "/armed_away", "/disarmed", "/saloon_up", "/saloon_down", "/help"};
 
-  uint8_t num_commands = sizeof(command_set) / sizeof(command_set[0]);
+  uint8_t num_commands = 9;
 
   if (in_msg == command_set[0])
   {
@@ -109,24 +137,16 @@ void telecmds(String &in_msg, String &from, String &chat_id, String &snd_msg)
     snd_msg = "Available Commands:\n";
     for (uint8_t t = 0; t < num_commands; t++)
     {
-      snd_msg += command_set[t] + String("\n");
+      char buffer[20];
+      // strcpy_P(buffer, (char *)pgm_read_word(&(command_set[t]))); // Necessary casts and dereferencing, just copy.
+      Serial.println(buffer);
+      // snd_msg += String(buffer) + String("\n");
     }
   }
 }
 void MQTT_to_telegramBOTS()
 {
-  const int bufsize = 0.8 * 1024; // Max Buffer ~1200 chars long
-  const uint8_t timeout = 3;      // sec
-  if (USE_MSG_BOT)
-  {
-    static unsigned long MSG_clk = 0;
-    static String MSG_buf = "";
-  }
-  if (USE_LOG_BOT)
-  {
-    static unsigned long LOG_clk = 0;
-    static String LOG_buf = "";
-  }
+  const uint8_t timeout = 3; // sec
 
   if (iot.extTopic_newmsg_flag)
   {
@@ -135,6 +155,7 @@ void MQTT_to_telegramBOTS()
     {
       LOG_clk = millis();
       LOG_buf += String('\n') + String(incoming_mqtt.msg) + String('\n');
+      iot.clear_ExtTopicbuff();
     }
 #endif
 #if USE_MSG_BOT
@@ -142,58 +163,73 @@ void MQTT_to_telegramBOTS()
     {
       MSG_clk = millis();
       MSG_buf += String('\n') + String(incoming_mqtt.msg) + String('\n');
-    }
-    iot.clear_ExtTopicbuff();
-#endif
-
-#if USE_LOG_BOT
-    if (LOG_clk != 0 && (millis() - LOG_clk) > timeout * 1000 || LOG_buf.length() > bufsize)
-    {
-      MQTT_LOG_TELEGRAM.send_msg(LOG_buf);
-      LOG_clk = 0;
-      LOG_buf = "";
-    }
-#endif
-#if USE_MSG_BOT
-    if (MSG_clk != 0 && (millis() - MSG_clk) > timeout * 1000 || MSG_buf.length() > bufsize)
-    {
-      MQTT_MSG_TELEGRAM.send_msg(MSG_buf);
-      Serial.print("size:");
-      Serial.println(MSG_buf.length());
-      MSG_clk = 0;
-      MSG_buf = "";
+      iot.clear_ExtTopicbuff();
     }
 #endif
   }
+
+#if USE_MSG_BOT
+  if (MSG_clk != 0 && ((millis() - MSG_clk) > timeout * 1000 || MSG_buf.length() > bufsize))
+  {
+    MSG_BOT.send_msg(MSG_buf);
+    Serial.print("size:");
+    Serial.println(MSG_buf.length());
+    MSG_clk = 0;
+    MSG_buf = "";
+  }
+
+#endif
+
+#if USE_LOG_BOT
+  if (LOG_clk != 0 && (millis() - LOG_clk) > timeout * 1000 || LOG_buf.length() > bufsize)
+  {
+    LOG_BOT.send_msg(LOG_buf);
+    LOG_clk = 0;
+    LOG_buf = "";
+  }
+#endif
 }
 void startTelegramBOTS()
 {
-
 #if USE_LOG_BOT
-  MQTT_LOG_TELEGRAM.begin();
-  MQTT_LOG_TELEGRAM.chatID = CHAT_ID;
+  LOG_BOT.begin();
+  strcpy(LOG_BOT.chatID, CHAT_ID);
 #endif
 
 #if USE_MSG_BOT
-  MQTT_MSG_TELEGRAM.begin();
-  MQTT_MSG_TELEGRAM.chatID = CHAT_ID;
+  MSG_BOT.begin();
+  strcpy(MSG_BOT.chatID, CHAT_ID);
 #endif
+
 #if USE_LISTEN_BOT
-  LISTEN_TO_TELEGRAM.begin(telecmds);
-  strcpy(LISTEN_TO_TELEGRAM.chatID, CHAT_ID);
-#endif
+  LISTEN_BOT.begin(telecmds);
+  strcpy(LISTEN_BOT.chatID, CHAT_ID);
+
   char clk[25];
   char msg[50];
   iot.get_timeStamp(clk);
   sprintf(msg, "Telegram Boot %s", clk);
-
-#if USE_LISTEN_BOT
-  LISTEN_TO_TELEGRAM.send_msg(msg);
+  LISTEN_BOT.send_msg(msg);
 #endif
 }
 
+void HeapCheck()
+{
+  static unsigned int freeHeap = 0;
+  unsigned int tHeap = ESP.getFreeHeap();
+  if (tHeap != freeHeap)
+  {
+    Serial.print(F("Last Heap:\t"));
+    Serial.println((float)freeHeap / 1000, 2);
+    Serial.print(F("Current Heap:\t"));
+    Serial.println((float)tHeap / 1000, 2);
+    freeHeap = tHeap;
+    Serial.println(F("~~~~~~~~~~~~~~~~~~~~"));
+  }
+}
 void setup()
 {
+
   startIOTservices();
   startTelegramBOTS();
 }
@@ -201,7 +237,9 @@ void loop()
 {
   iot.looper();
 #if USE_LISTEN_BOT
-  LISTEN_TO_TELEGRAM.looper();
+  LISTEN_BOT.looper();
 #endif
-  // MQTT_to_telegramBOTS();
+  MQTT_to_telegramBOTS();
+  delay(50);
+  HeapCheck();
 }
