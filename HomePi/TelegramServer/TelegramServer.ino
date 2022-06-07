@@ -78,13 +78,11 @@ unsigned long LOG_clk = 0;
 #if USE_LISTEN_BOT
 #endif
 
-// #ifdef BOT1 
+// #ifdef BOT1
 myTelegram BOT1(BOT_TOKEN, time_check_messages);
 // #endif
 // myTelegram BOT2(BOT_TOKEN_2, time_check_messages);
 // myTelegram BOT3(BOT_TOKEN_3, time_check_messages);
-
-
 
 void telecmds(String &in_msg, String &from, String &chat_id, String &snd_msg)
 {
@@ -181,7 +179,7 @@ void MQTT_to_telegramBOTS()
 #endif
 
 #if USE_LOG_BOT
-  if (LOG_clk != 0 && (millis() - LOG_clk) > timeout * 1000 || LOG_buf.length() > bufsize)
+  if (LOG_clk != 0 && ((millis() - LOG_clk) > timeout * 1000 || LOG_buf.length() > bufsize))
   {
     LOG_BOT.send_msg(LOG_buf);
     LOG_clk = 0;

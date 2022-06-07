@@ -27,5 +27,6 @@
     "editor.suggest.localityBonus": true,
     "arduino.enableUSBDetection": true,
     "arduino.path": "C:\\Program Files (x86)\\Arduino",
-    "C_Cpp.autocompleteAddParentheses": true
+    "C_Cpp.autocompleteAddParentheses": true,
+    "C_Cpp.errorSquiggles": "Disabled"
 }

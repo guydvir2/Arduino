@@ -8,7 +8,6 @@
             "intelliSenseMode": "linux-gcc-x64",
             "includePath": [
                 "/home/guy/Documents/Dropbox/Arduino/libraries/**",
-                "/home/guy/Documents/Dropbox/Arduino/**",
                 "${workspaceFolder}/**"
             ],
             "forcedInclude": [],
@@ -429,6 +428,17 @@
             "cppStandard": "c++17",
             "intelliSenseMode": "windows-clang-x64",
             "compilerPath": "e:\\Dropbox\\Arduino\\**"
+        },
+        {
+            "name": "LIN_TRY",
+            "includePath": [
+                "${workspaceFolder}/**"
+            ],
+            "defines": [],
+            "compilerPath": "/usr/bin/cpp",
+            "cStandard": "c17",
+            "cppStandard": "c++17",
+            "intelliSenseMode": "linux-gcc-x64"
         }
     ]
 }

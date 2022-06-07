@@ -39,10 +39,10 @@ public:
     myRF24(uint8_t CE_PIN, uint8_t CSN_PIN);
     bool startRF24(const uint8_t &w_addr, const uint8_t &r_addr, char *devname, uint8_t PA_level = RF24_PA_MIN, rf24_datarate_e Data_rate = RF24_1MBPS, uint8_t ch = 1);
     bool resetRF24();
-    bool RFwrite(const char *msg);                  /* long & splitted messages */
-    bool RFread(char out[], char from[], int del=100);
+    bool RFwrite(const char *msg); /* long & splitted messages */
+    bool RFread(char out[], char from[], int del = 100);
+    bool failDetect();
     void wellness_Watchdog();
-    void failDetect();
 
 private:
     bool _start();

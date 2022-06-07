@@ -99,7 +99,7 @@ bool myRF24::RFread(char out[], char from[], int del)
       sprintf(msg, "in_msg: from[%s] msg[%s]", from, out);
       Serial.println(msg);
     }
-    
+
     if (payload.tot_len == strlen(out))
     {
       return 1;
@@ -123,7 +123,7 @@ bool myRF24::RFread(char out[], char from[], int del)
     return 0;
   }
 }
-void myRF24::failDetect()
+bool myRF24::failDetect()
 {
   if (radio.failureDetected)
   {
@@ -132,11 +132,17 @@ void myRF24::failDetect()
     if (_start())
     {
       Serial.println("Rx Restored");
+      return 0;
     }
     else
     {
       Serial.println("Rx Fail Restored");
+      return 1;
     }
+  }
+  else
+  {
+    return 0;
   }
 }
 bool myRF24::resetRF24()
@@ -148,8 +154,7 @@ bool myRF24::resetRF24()
 }
 void myRF24::wellness_Watchdog()
 {
-  failDetect();
-  if (!radio.isChipConnected())
+  if (!radio.isChipConnected()&&failDetect())
   {
     Serial.println("NOT_CONNECTED");
     _start();

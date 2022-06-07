@@ -1,59 +1,57 @@
-#define ROLE 0 /* 0:Reciever 1: Sender */
-#define BOTH_TX_RX false
+#include <Arduino.h>
 
-#include <myRF24.h>
+#define ROLE 1 /* 0:Reciever 1: Sender */
+#define BOTH_TX_RX false
+#define DEBUG_MODE false
+#define MAX_PAYLOAD_SIZE 150 //
+
+#if defined(ARDUINO_ARCH_ESP8266)
+#define isESP8266 true
+#endif
+
 #include "RF24_DEFS.h"
 
-void convert_epoch2clock(char time_str[])
-{
-  uint8_t days = 0;
-  uint8_t hours = 0;
-  uint8_t minutes = 0;
-  uint8_t seconds = 0;
+uint8_t Tx_fails_counter = 0;
+unsigned int totTx = 0;
+unsigned int totRx = 0;
+char sendBuffer[3][MAX_PAYLOAD_SIZE];
 
-  const uint8_t sec2minutes = 60;
-  const int sec2hours = (sec2minutes * 60);
-  const int sec2days = (sec2hours * 24);
+void (*resetFunc)(void) = 0;
 
-  long time_delta = millis() / 1000;
-
-  days = (int)(time_delta / sec2days);
-  hours = (int)((time_delta - days * sec2days) / sec2hours);
-  minutes = (int)((time_delta - days * sec2days - hours * sec2hours) / sec2minutes);
-  seconds = (int)(time_delta - days * sec2days - hours * sec2hours - minutes * sec2minutes);
-
-  sprintf(time_str, "%01dd %02d:%02d:%02d", days, hours, minutes, seconds);
-}
 void send_timely_msgs()
 {
   char qwerty[60];
-  static long last_msg = 0;
   static unsigned int counter = 0;
+  static unsigned long last_msg = 0;
 
-  while (millis() - last_msg > random(2500, 7500))
+  int randnum = random(5000, 15000);
+
+  while (millis() - last_msg > randnum)
   {
-    char a[30];
     last_msg = millis();
-    // convert_epoch2clock(a);
-    sprintf(qwerty, "Tx #%d", ++counter);
-
-    // sprintf(qwerty, "Tx #%d; upTime:%s", counter++, a);
-    radio.RFwrite(qwerty);
+    sprintf(qwerty, "Tx[#%d /failed:#%d]>> MSG:%d[sec]", ++totTx, Tx_fails_counter, millis() / 1000);
+    bool sent_OK = radio.RFwrite(qwerty);
+    if (!sent_OK)
+    {
+      sprintf(qwerty, "Tx[#%d /failed:#%d]>> MSG:%d[sec]", ++totTx, ++Tx_fails_counter);
+      Serial.println(qwerty);
+    }
+#if DEBUG_MODE && sent_OK
+    Serial.println(qwerty);
+#endif
   }
 }
 void incomeMSG_cb(char *from, char *msg)
 {
-  Serial.print("INmsg>> From[");
-  Serial.print(from);
-  Serial.print("] MSG[");
-  Serial.print(msg);
-  Serial.println("]");
+  char qwerty[MAX_PAYLOAD_SIZE];
+  sprintf(qwerty, "Rx[#%d]: from[%s]; msg[%s]", ++totRx, from, msg);
+  Serial.println(qwerty);
 }
 
 void setup()
 {
-  setup_sender();
-  setup_reciever();
+  Serial.begin(115200);
+  RF24_init();
 }
 
 void loop()
@@ -72,6 +70,10 @@ void loop()
     send_timely_msgs();
   }
 
-  // radio.failDetect();
-  // radio.wellness_Watchdog();
+  if (millis() > 30000)
+  {
+    resetFunc();
+  }
+
+  radio.wellness_Watchdog();
 }

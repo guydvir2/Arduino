@@ -1,7 +1,7 @@
 {
     "useWDT": true,
     "useOTA": true,
-    "useSerial": true,
+    "useSerial": false,
     "useFlashP": true,
     "useResetKeeper": true,
     "debug_level": 0,
@@ -11,8 +11,8 @@
     "noNetwork_reset": 5,
     "useextTopic": false,
     "ignore_boot_msg": false,
-    "deviceTopic": "frontDoor",
-    "groupTopic": "extLights",
+    "deviceTopic": "iPhone",
+    "groupTopic": "powerPlugs",
     "prefixTopic": "myHome",
     "ver": 0.5
 }

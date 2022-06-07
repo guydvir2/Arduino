@@ -2,38 +2,38 @@
     "numSW": 1,
     "OnatBoot": [
         true,
-        false
-    ],
-    "sw_names": [
-        "bulb",
-        "Mirror"
-    ],
-    "trigType": [
-        1,
-        0
-    ],
-    "useInput": [
-        false,
         true
     ],
+    "sw_names": [
+        "Plug1",
+        "Ledstrip"
+    ],
+    "trigType": [
+        0,
+        1
+    ],
+    "useInput": [
+        true,
+        false
+    ],
     "useIndicLED": [
-        false,
+        true,
         false
     ],
     "inputPressed": [
         false,
-        false
+        true
     ],
     "inputPin": [
-        14,
+        0,
         13
     ],
     "outputPin": [
         12,
-        0
+        5
     ],
     "indicPin": [
-        0,
+        13,
         11
     ],
     "indic_ON": [
@@ -45,12 +45,12 @@
         true
     ],
     "def_TO_minutes": [
-        700,
-        120
+        180,
+        180
     ],
     "maxON_minutes": [
-        900,
-        600
+        240,
+        360
     ],
     "max_pCount": [
         3,
@@ -61,7 +61,7 @@
         3
     ],
     "limitPWM": [
-        80,
+        20,
         20
     ],
     "outputPWM": [

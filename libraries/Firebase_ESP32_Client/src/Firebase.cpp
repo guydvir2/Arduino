@@ -1,7 +1,7 @@
 /**
- * The Firebase class, Firebase.cpp v1.0.22
+ * The Firebase class, Firebase.cpp v1.1.0
  *
- *  Created April 25, 2022
+ *  Created May 17, 2022
  *
  * The MIT License (MIT)
  * Copyright (c) 2022 K. Suwatchai (Mobizt)
@@ -271,9 +271,9 @@ void Firebase_ESP_Client::setDoubleDigits(uint8_t digits)
 
 #if defined(MBFS_SD_FS) && defined(MBFS_CARD_TYPE_SD)
 
-bool Firebase_ESP_Client::sdBegin(int8_t ss, int8_t sck, int8_t miso, int8_t mosi)
+bool Firebase_ESP_Client::sdBegin(int8_t ss, int8_t sck, int8_t miso, int8_t mosi, uint32_t frequency)
 {
-    return mbfs->sdBegin(ss, sck, miso, mosi);
+    return mbfs->sdBegin(ss, sck, miso, mosi, frequency);
 }
 
 #if defined(ESP8266)
@@ -285,9 +285,9 @@ bool Firebase_ESP_Client::sdBegin(SDFSConfig *sdFSConfig)
 
 #if defined(ESP32)
 
-bool Firebase_ESP_Client::sdBegin(int8_t ss, SPIClass *spiConfig)
+bool Firebase_ESP_Client::sdBegin(int8_t ss, SPIClass *spiConfig, uint32_t frequency)
 {
-    return mbfs->sdSPIBegin(ss, spiConfig);
+    return mbfs->sdSPIBegin(ss, spiConfig, frequency);
 }
 #endif
 
@@ -300,7 +300,7 @@ bool Firebase_ESP_Client::sdBegin(SdSpiConfig *sdFatSPIConfig, int8_t ss, int8_t
 
 #endif
 
-#if defined(ESP8266) && defined(MBFS_SD_FS) && defined(MBFS_CARD_TYPE_SD_MMC)
+#if defined(ESP32) && defined(MBFS_SD_FS) && defined(MBFS_CARD_TYPE_SD_MMC)
 
 bool Firebase_ESP_Client::sdMMCBegin(const char *mountpoint, bool mode1bit, bool format_if_mount_failed)
 {
@@ -634,9 +634,9 @@ bool FIREBASE_CLASS::sendTopic(FirebaseData &fbdo)
 
 #if defined(MBFS_SD_FS) && defined(MBFS_CARD_TYPE_SD)
 
-bool FIREBASE_CLASS::sdBegin(int8_t ss, int8_t sck, int8_t miso, int8_t mosi)
+bool FIREBASE_CLASS::sdBegin(int8_t ss, int8_t sck, int8_t miso, int8_t mosi, uint32_t frequency)
 {
-    return mbfs->sdBegin(ss, sck, miso, mosi);
+    return mbfs->sdBegin(ss, sck, miso, mosi, frequency);
 }
 
 #if defined(ESP8266)
@@ -648,9 +648,9 @@ bool FIREBASE_CLASS::sdBegin(SDFSConfig *sdFSConfig)
 
 #if defined(ESP32)
 
-bool FIREBASE_CLASS::sdBegin(int8_t ss, SPIClass *spiConfig)
+bool FIREBASE_CLASS::sdBegin(int8_t ss, SPIClass *spiConfig, uint32_t frequency)
 {
-    return mbfs->sdSPIBegin(ss, spiConfig);
+    return mbfs->sdSPIBegin(ss, spiConfig, frequency);
 }
 #endif
 

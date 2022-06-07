@@ -1,26 +1,32 @@
+#include <myRF24.h>
+
+#if isESP8266
+#define _CE_PIN D4
+#define _CSN_PIN D2
+#else
+#define _CE_PIN 9
+#define _CSN_PIN 10
+#endif
+
+
+
 // ~~~~~~~~~~~~ myRF24 lib ~~~~~~~~~~~~
-#define DEBUG_MODE true;
 #define USE_ACK false;
-#define MAX_PAYLOAD_SIZE 150 //
 
 #if ROLE == 1
+char *dev_name = "DEV1";
+const uint8_t CE_PIN = _CE_PIN;
+const uint8_t CSN_PIN = _CSN_PIN;
 const uint8_t w_address = 1;
 const uint8_t r_address = 0;
-const uint8_t CE_PIN = 9;
-const uint8_t CSN_PIN = 10;
-
-char *dev_name = "DEV1";
 const int time_resend = 2500;
 
 #elif ROLE == 0
+char *dev_name = "DEV0";
+const uint8_t CE_PIN = _CE_PIN;
+const uint8_t CSN_PIN = _CSN_PIN;
 const uint8_t w_address = 0;
 const uint8_t r_address = 1;
-const uint8_t CE_PIN = D2;
-const uint8_t CSN_PIN = D4;
-// const uint8_t CE_PIN = D2;
-// const uint8_t CSN_PIN = D4;
-
-char *dev_name = "DEV2";
 const int time_resend = 23456;
 #endif
 
@@ -41,32 +47,19 @@ void RF24_Rx_looper()
     }
 }
 
-void start_generic()
+void RF24_init()
 {
-    Serial.begin(115200);
-    while (!Serial)
-        ;
+    char a[20];
+    char *b[]={"Reciever","Sender"};
     radio.use_ack = USE_ACK;
     radio.debug_mode = DEBUG_MODE;
-    delay(1000);
-}
-void setup_sender()
-{
-#if ROLE == 1
-    start_generic();
+    delay(200);
     bool startOK = radio.startRF24(w_address, r_address, dev_name, RF24_PA_MIN, RF24_1MBPS, 1);
-    Serial.println("Im a Sender");
-    Serial.print("start: ");
-    Serial.println(startOK);
-#endif
+    sprintf(a, "RF24 started [%s]", startOK ? "OK" : "FAIL");
+    Serial.print(a);
+    Serial.print("\t ROLE:");
+    Serial.print(b[ROLE]);
+    Serial.print("\t Name:");
+    Serial.println(dev_name);
 }
-void setup_reciever()
-{
-#if ROLE == 0
-    start_generic();
-    bool startOK = radio.startRF24(w_address, r_address, dev_name, RF24_PA_MIN, RF24_1MBPS, 1);
-    Serial.println("Im Reciver");
-    Serial.print("started: ");
-    Serial.println(startOK);
-#endif
-}
+

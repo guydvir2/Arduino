@@ -54,9 +54,7 @@ void setup(void) {
   ImageReturnCode stat; // Status from image-reading functions
 
   Serial.begin(9600);
-#if !defined(ESP32)
   while(!Serial);       // Wait for Serial Monitor before continuing
-#endif
 
   tft.init(172, 320);           // Init ST7789 172x320
 
@@ -87,11 +85,12 @@ void setup(void) {
   // Fill screen blue. Not a required step, this just shows that we're
   // successfully communicating with the screen.
   tft.fillScreen(ST77XX_BLUE);
+  tft.setRotation(3);
 
-  // Load full-screen BMP file 'purple.bmp' at position (0,0) (top left).
+  // Load full-screen BMP file 'adabot.bmp' at position (0,0) (top left).
   // Notice the 'reader' object performs this, with 'tft' as an argument.
-  Serial.print(F("Loading purple.bmp to screen..."));
-  stat = reader.drawBMP("/purple.bmp", tft, 0, 0);
+  Serial.print(F("Loading adabot.bmp to screen..."));
+  stat = reader.drawBMP("/adabot.bmp", tft, 0, 0);
   reader.printStatus(stat);   // How'd we do?
 
   // Query the dimensions of image 'miniwoof.bmp' WITHOUT loading to screen:
