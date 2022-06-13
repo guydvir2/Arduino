@@ -1,7 +1,7 @@
 #include <myIOT2.h>
 #include <sleepyESP.h>
 
-#define DEV_TOPIC "esp32"
+#define DEV_TOPIC "esp8266_2"
 #define GROUP_TOPIC "sleepy"
 #define PREFIX_TOPIC "myHome"
 #define IGNORE_MQTT_BOOT_MSG true
