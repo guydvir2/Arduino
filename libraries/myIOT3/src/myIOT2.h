@@ -1,22 +1,6 @@
 #ifndef myIOT2_h
 #define myIOT2_h
 
-#if defined(ARDUINO_ARCH_ESP8266)
-#define isESP8266 true
-#define isESP32 false
-#define isIOT33 false
-#elif defined(ESP32)
-#define isESP32 true
-#define isESP8266 false
-#define isIOT33 false
-#elif defined(ARDUINO_ARCH_SAMD)
-#define isESP32 false
-#define isESP8266 false
-#define isIOT33 true
-#else
-#error Architecture unrecognized by this code.
-#endif
-
 #include <Arduino.h>
 #include <Ticker.h>       //WDT
 #include <PubSubClient.h> // MQTT
@@ -26,27 +10,28 @@
 #include "secretsIOT8266.h"
 #include <myLOG.h>
 
-#if isESP8266
+#if defined(ESP8266)
 #include <ESP8266WiFi.h>
 #include <ESP8266mDNS.h> // OTA libraries
 #include <TZ.h>
 #define LITFS LittleFS
 
-#elif isESP32
+#elif defined(ESP32)
 #include <WiFi.h>
 #include <ESPmDNS.h> // OTA libraries
 #include <ESP32Ping.h>
 #define LITFS LITTLEFS
 #define TZ_Asia_Jerusalem PSTR("IST-2IDT,M3.4.4/26,M10.5.0")
 
-#elif isIOT33
-#include <SPI.h>
-#include <WiFiNINA.h>
-#define TZ_Asia_Jerusalem PSTR("IST-2IDT,M3.4.4/26,M10.5.0")
+// #elif defined(ARDUINO_ARCH_SAMD)
+// #include <SPI.h>
+// #include <WiFiNINA.h>
+// #define TZ_Asia_Jerusalem PSTR("IST-2IDT,M3.4.4/26,M10.5.0")
 #endif
 
 class myIOT2
 {
+#define MAX_NUM_TOPICS 5
 #define MS2MINUTES 60000UL
 #define MY_IOT_JSON_SIZE 624
 #define SKETCH_JSON_SIZE 1250
@@ -54,22 +39,14 @@ class myIOT2
 public:
     WiFiClient espClient;
     PubSubClient mqttClient;
+    flashLOG flog;   /* Stores Activity LOG */
+    flashLOG clklog; /* Stores Boot clock records */
 #if isESP8266
     Ticker wdt;
 #endif
 
-    flashLOG flog;   /* Stores Activity LOG */
-    flashLOG clklog; /* Stores Boot clock records */
-
     // ~~~~define generic cb function~~~~
-    typedef void (*cb_func)(char msg1[50]);
-    struct MQTT_msg
-    {
-        char msg[200];
-        char from_topic[40];
-        char device_topic[40];
-    };
-    MQTT_msg *extTopic_msgArray[1] = {nullptr};
+    typedef void (*cb_func)(char *msg1, char *_topic);
 
 public:
     char ver[12] = "iot_v1.60a";
@@ -83,30 +60,24 @@ public:
     bool useDebug = false;
     bool useSerial = false;
     bool useFlashP = false;
-    bool useextTopic = false;
     bool useResetKeeper = false;
     bool useNetworkReset = true; // allow reset due to no-network timeout
     bool useBootClockLog = false;
     bool ignore_boot_msg = false;
-
     uint8_t debug_level = 0;      // 0- All, 1- system states; 2- log only
-    uint8_t noNetwork_reset = 30; // minutes
+    uint8_t noNetwork_reset = 10; // minutes
+    // ~~~~~~~ end Services ~~~~~~~
+
+    uint8_t num_p = 0; // number parameters got in MQTT message
     uint8_t mqtt_detect_reset = 2;
 
     static const uint8_t num_param = 4; // MQTT parameter count
-    static const uint8_t _size_extTopic = 2;
-    static const uint8_t MaxTopicLength = 15;                  // topics
-    static const uint8_t MaxTopicLength2 = 3 * MaxTopicLength; // topics
-    char inline_param[num_param][20];                          // values from user
-    uint8_t num_p = 0;
+    char inline_param[num_param][20];   // values from user
 
     // MQTT Topic variables
-    char prefixTopic[MaxTopicLength];
-    char addGroupTopic[MaxTopicLength];
-    char deviceTopic[MaxTopicLength + 5];
-
-    bool extTopic_newmsg_flag = false;
-    char *extTopic[_size_extTopic] = {nullptr, nullptr};
+    const char *sub_topics[MAX_NUM_TOPICS] = {};
+    const char *pub_topics[MAX_NUM_TOPICS] = {};
+    const char *sub_data_topics[MAX_NUM_TOPICS] = {};
 
 private:
     // WiFi MQTT broker parameters
@@ -146,7 +117,6 @@ public: /* Functions */
     void pub_msg(char *inmsg);
     void pub_noTopic(char *inmsg, char *Topic, bool retain = false);
     void pub_log(char *inmsg);
-    void pub_ext(char *inmsg, char *name = nullptr, bool retain = false, uint8_t i = 0);
     void pub_debug(char *inmsg);
     // void pub_sms(String &inmsg, char *name = nullptr);
     // void pub_sms(char *inmsg, char *name = nullptr);
@@ -172,6 +142,7 @@ public: /* Functions */
 private:
     // ~~~~~~~~~~~~~~WIFI ~~~~~~~~~~~~~~~~~~~~~
     bool _startWifi(const char *ssid, const char *password);
+    void _shutdown_wifi();
     bool _network_looper();
     bool _start_network_services();
     bool _startNTP(const char *ntpServer = "pool.ntp.org", const char *ntpServer2 = "il.pool.ntp.org");
@@ -179,11 +150,12 @@ private:
 
     // ~~~~~~~ MQTT ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     bool _startMQTT();
-    bool _subscribeMQTT();
+    void _subArray(const char *arr[], uint8_t n);
+    bool _subMQTT();
     void _MQTTcb(char *topic, uint8_t *payload, unsigned int length);
     void _getBootReason_resetKeeper(char *msg);
     void _write_log(char *inmsg, uint8_t x, const char *topic = "_deviceName");
-    void _pub_generic(char *topic, char *inmsg, bool retain = false, char *devname = nullptr, bool bare = false);
+    void _pub_generic(const char *topic, char *inmsg, bool retain = false, char *devname = nullptr, bool bare = false);
     const char *_devName(char ret[]);
     const char *_availName(char ret[]);
 

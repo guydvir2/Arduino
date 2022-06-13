@@ -1,7 +1,7 @@
 #include <Arduino.h>
 #include "myIOT2.h"
 
-#if defined(ARDUINO_ARCH_ESP8266)
+#if defined(ESP8266)
 #include <ESP8266Ping.h>
 #endif
 
@@ -108,6 +108,25 @@ bool myIOT2::_network_looper()
 	bool cur_wifi_status = WiFi.isConnected();
 	bool cur_mqtt_status = mqttClient.connected();
 
+	if (cur_NTP_status == false && cur_wifi_status == true) /* Wifi connected NTP failed */
+	{
+		if (NTP_err_clk == 0)
+		{
+			NTP_err_clk = millis();
+		}
+		else if (millis() - NTP_err_clk > 60 * MS2MINUTES)
+		{
+			sendReset("NTP_RESET");
+		}
+		else if (millis() - _lastNTP_try > 10 * MS2MINUTES)
+		{
+			_lastNTP_try = millis();
+			if (_startNTP())
+			{
+				NTP_err_clk = 0;
+			}
+		}
+	}
 	if (cur_mqtt_status && cur_wifi_status) /* All good */
 	{
 		mqttClient.loop();
@@ -116,25 +135,6 @@ bool myIOT2::_network_looper()
 	}
 	else
 	{
-		if (cur_NTP_status == false && cur_wifi_status == true) /* Wifi connected NTP failed */
-		{
-			if (NTP_err_clk == 0)
-			{
-				NTP_err_clk = millis();
-			}
-			else if (millis() - NTP_err_clk > 60 * MS2MINUTES)
-			{
-				sendReset("NTP_RESET");
-			}
-			else if (millis() - _lastNTP_try > 10 * MS2MINUTES)
-			{
-				_lastNTP_try = millis();
-				if (_startNTP())
-				{
-					NTP_err_clk = 0;
-				}
-			}
-		}
 		if (cur_wifi_status == false) /* No WiFi Connected */
 		{
 			if (noNetwork_Clock == 0) /* First Time */
@@ -159,18 +159,15 @@ bool myIOT2::_network_looper()
 		{
 			if (millis() - _lastReco_try > 1000 * time_retry_mqtt) /* Retry timeout */
 			{
-				static int ret_counter = 0;
 				_lastReco_try = millis();
-				ret_counter++;
 				if (_Wifi_and_mqtt_OK == false) /* Case of fail at boot */
 				{
 					return _start_network_services();
 				}
 				else
 				{
-					if (_subscribeMQTT()) /* succeed to reconnect */
+					if (_subMQTT()) /* succeed to reconnect */
 					{
-						ret_counter++;
 						mqttClient.loop();
 						if (noNetwork_Clock != 0)
 						{
@@ -181,14 +178,7 @@ bool myIOT2::_network_looper()
 								sprintf(b, "MQTT reconnect after [%d] sec", not_con_period);
 								pub_log(b);
 							}
-							if (ret_counter > 3)
-							{
-								char b[50];
-								sprintf(b, "MQTT reconnect after [%d] retries", ret_counter);
-								pub_log(b);
-							}
 						}
-						ret_counter = 0;
 						_lastReco_try = 0;
 						noNetwork_Clock = 0;
 						return 1;
@@ -199,7 +189,13 @@ bool myIOT2::_network_looper()
 						{
 							noNetwork_Clock = millis();
 						}
-						mqttClient.disconnect();
+						// mqttClient.disconnect();
+						// delay(1000);
+						if (millis() - noNetwork_Clock > 60000)
+						{
+							flog.write("network shutdown", true);
+							_shutdown_wifi();
+						}
 						return 0;
 					}
 				}
@@ -235,11 +231,7 @@ bool myIOT2::_startWifi(const char *ssid, const char *password)
 		Serial.print(F("Connecting to "));
 		Serial.println(ssid);
 	}
-	// WiFi.mode(WIFI_OFF); // <---- NEW
-	// delay(100);
-	WiFi.mode(WIFI_STA);
-	WiFi.disconnect(true);
-	delay(100);
+	_shutdown_wifi();
 	WiFi.begin(ssid, password);
 
 	// in case of reboot - timeOUT to wifi
@@ -281,16 +273,23 @@ bool myIOT2::_startWifi(const char *ssid, const char *password)
 		return 1;
 	}
 }
-
+void myIOT2::_shutdown_wifi()
+{
+	WiFi.mode(WIFI_OFF); // <---- NEW
+	delay(200);
+	WiFi.mode(WIFI_STA);
+	WiFi.disconnect(true);
+	delay(200);
+}
 // ~~~~~~~ NTP & Clock  ~~~~~~~~
 bool myIOT2::_startNTP(const char *ntpServer, const char *ntpServer2)
 {
 	unsigned long startLoop = millis();
 	while (!_NTP_updated() && (millis() - startLoop < 20000))
 	{
-#if isESP8266
+#if defined(ESP8266)
 		configTime(TZ_Asia_Jerusalem, ntpServer2, ntpServer); // configuring time offset and an NTP server
-#elif isESP32
+#elif defined(ESP32)
 		configTzTime(TZ_Asia_Jerusalem, ntpServer2, ntpServer);
 #endif
 		delay(250);
@@ -363,71 +362,40 @@ bool myIOT2::_startMQTT()
 		Serial.println(_mqtt_server);
 	}
 	mqttClient.setCallback(std::bind(&myIOT2::_MQTTcb, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
-	return _subscribeMQTT();
+	return _subMQTT();
 }
-bool myIOT2::_subscribeMQTT()
+void myIOT2::_subArray(const char *arr[], uint8_t n)
+{
+	for (uint8_t i = 0; i < n; i++)
+	{
+		if (arr[i] != nullptr)
+		{
+			mqttClient.subscribe(arr[i]);
+			if (useSerial)
+			{
+				// DEBUG
+				Serial.println(arr[i]);
+				// DEBUG
+			}
+		}
+	}
+}
+bool myIOT2::_subMQTT()
 {
 	if (!mqttClient.connected())
 	{
-		if (useSerial)
-		{
-			Serial.print(F("Attempting MQTT connection..."));
-		}
 		char tempname[15];
-#if isESP8266
+#if defined(ESP8266)
 		sprintf(tempname, "ESP_%s", String(ESP.getChipId()).c_str());
-#elif isESP32
+#elif defined(ESP32)
 		uint64_t chipid = ESP.getEfuseMac();
 		sprintf(tempname, "ESP32_%04X", (uint16_t)(chipid >> 32));
 #endif
-		char DEV[MaxTopicLength2];
-		char NAME[MaxTopicLength2];
-		char _ALLtopic[strlen(prefixTopic) + 5];
-		char _addgroupTopic[2 * MaxTopicLength];
-
-		snprintf(_ALLtopic, MaxTopicLength + 4, "%s/All", prefixTopic);
-
-		if (strcmp(addGroupTopic, "") != 0)
+		if (mqttClient.connect(tempname, _mqtt_user, _mqtt_pwd, sub_topics[2], 1, true, "offline"))
 		{
-			snprintf(_addgroupTopic, 2 * MaxTopicLength, "%s/%s", prefixTopic, addGroupTopic);
-		}
-		else
-		{
-			strcpy(_addgroupTopic, "");
-		}
+			_subArray(sub_topics, 5);
+			_subArray(sub_data_topics, 3);
 
-		_devName(DEV);
-		_availName(NAME);
-
-		const char *topicArry[4] = {DEV, _ALLtopic, NAME, _addgroupTopic}; /* Subscribe to these topics (listen)*/
-
-		if (mqttClient.connect(tempname, _mqtt_user, _mqtt_pwd, topicArry[2], 1, true, "offline"))
-		{
-			// Connecting sequence
-			for (uint8_t i = 0; i < sizeof(topicArry) / sizeof(char *); i++)
-			{
-				if (strcmp(topicArry[i], "") != 0)
-				{
-					mqttClient.subscribe(topicArry[i]);
-					if (useSerial)
-					{
-						// DEBUG
-						Serial.println();
-						Serial.print(topicArry[i]);
-						// DEBUG
-					}
-				}
-			}
-			if (useextTopic)
-			{
-				for (uint8_t i = 0; i < sizeof(extTopic) / sizeof(char *); i++)
-				{
-					if (extTopic[i] != nullptr)
-					{
-						mqttClient.subscribe(extTopic[i]);
-					}
-				}
-			}
 			if (useSerial)
 			{
 				Serial.println(F("connected"));
@@ -446,8 +414,8 @@ bool myIOT2::_subscribeMQTT()
 					mqtt_detect_reset = 0;
 				}
 			}
-			notifyOnline();
 
+			notifyOnline();
 			return 1;
 		}
 		else
@@ -496,23 +464,7 @@ void myIOT2::_MQTTcb(char *topic, uint8_t *payload, unsigned int length)
 	{
 		Serial.println("");
 	}
-	if (useextTopic)
-	{
-		for (uint8_t i = 0; i < _size_extTopic; i++)
-		{
-			if (extTopic[i] != nullptr && strcmp(extTopic[i], topic) == 0)
-			{
-				strcpy(extTopic_msgArray[0]->msg, incoming_msg);
-				strcpy(extTopic_msgArray[0]->device_topic, deviceTopic);
-				strcpy(extTopic_msgArray[0]->from_topic, topic);
-				extTopic_newmsg_flag = true;
-			}
-		}
-	}
-
-	char NAME[MaxTopicLength2];
-	_availName(NAME);
-	if (strcmp(topic, NAME) == 0 && useResetKeeper && firstRun)
+	if (strcmp(topic, sub_topics[2]) == 0 && useResetKeeper && firstRun)
 	{
 		_getBootReason_resetKeeper(incoming_msg);
 	}
@@ -538,8 +490,8 @@ void myIOT2::_MQTTcb(char *topic, uint8_t *payload, unsigned int length)
 				useWDT, useOTA, useSerial, useResetKeeper, useDebug, useNetworkReset, noNetwork_reset);
 		pub_msg(msg);
 
-		sprintf(msg, "Services[#2]: useBootLog[%d], extTopic[%d], ignore_boot_msg[%d], debug_level[%d], useFlashP[%d]",
-				useBootClockLog, useextTopic, ignore_boot_msg, debug_level, useFlashP);
+		sprintf(msg, "Services[#2]: useBootLog[%d] , ignore_boot_msg[%d], debug_level[%d], useFlashP[%d]",
+				useBootClockLog, ignore_boot_msg, debug_level, useFlashP);
 		pub_msg(msg);
 	}
 	else if (strcmp(incoming_msg, "help") == 0)
@@ -551,18 +503,13 @@ void myIOT2::_MQTTcb(char *topic, uint8_t *payload, unsigned int length)
 	}
 	else if (strcmp(incoming_msg, "MCU_type") == 0)
 	{
-		if (isESP8266)
-		{
-			sprintf(msg, "[MCU]: ESP8266");
-		}
-		else if (isESP32)
-		{
-			sprintf(msg, "[MCU]: ESP32");
-		}
-		else
-		{
-			sprintf(msg, "[MCU]: unKnown");
-		}
+#if defined(ESP8266)
+		sprintf(msg, "[MCU]: ESP8266");
+#elif defined(ESP32)
+		sprintf(msg, "[MCU]: ESP32");
+#else
+		sprintf(msg, "[MCU]: unKnown");
+#endif
 		pub_msg(msg);
 	}
 	else if (strcmp(incoming_msg, "show_debuglog") == 0)
@@ -571,9 +518,9 @@ void myIOT2::_MQTTcb(char *topic, uint8_t *payload, unsigned int length)
 		{
 			char clk[25];
 			get_timeStamp(clk);
-			int x = flog.getnumlines();
+			int x = flog.get_num_saved_records();
 			sprintf(msg, " \n<<~~~~~~[%s] %s Debuglog : entries [#%d], file-size[%.2f kb] ~~~~~~~~~~>>\n ",
-					clk, deviceTopic, flog.getnumlines(), (float)(flog.sizelog() / 1000.0));
+					clk, sub_topics[0], flog.get_num_saved_records(), (float)(flog.sizelog() / 1000.0));
 			pub_debug(msg);
 			for (int a = 0; a < x; a++)
 			{
@@ -586,7 +533,7 @@ void myIOT2::_MQTTcb(char *topic, uint8_t *payload, unsigned int length)
 				delay(20);
 			}
 			pub_msg("[debug_log]: extracted");
-			sprintf(msg, " \n<<~~~~~~ %s Debuglog End ~~~~~~~~~~>> ", deviceTopic);
+			sprintf(msg, " \n<<~~~~~~ %s Debuglog End ~~~~~~~~~~>> ", sub_topics[0]);
 			pub_debug(msg);
 		}
 	}
@@ -597,7 +544,7 @@ void myIOT2::_MQTTcb(char *topic, uint8_t *payload, unsigned int length)
 			char clk[25];
 			get_timeStamp(clk);
 			char *filenames[] = {sketch_paramfile, myIOT_paramfile};
-			sprintf(msg, "\n<<~~~~~~ [%s] [%s] On-Flash Parameters ~~~~~>>", clk, deviceTopic);
+			sprintf(msg, "\n<<~~~~~~ [%s] [%s] On-Flash Parameters ~~~~~>>", clk, sub_topics[0]);
 			pub_debug(msg);
 
 			for (uint8_t i = 0; i < 2; i++)
@@ -638,9 +585,9 @@ void myIOT2::_MQTTcb(char *topic, uint8_t *payload, unsigned int length)
 		{
 			char clk[25];
 			get_timeStamp(clk);
-			int x = clklog.getnumlines();
+			int x = clklog.get_num_saved_records();
 			sprintf(msg, " \n<<~~~~~~[%s] %s bootlog : entries [#%d], file-size[%.2f kb] ~~~~~~~~~~>>",
-					clk, deviceTopic, x, (float)(clklog.sizelog() / 1000.0));
+					clk, sub_topics[0], x, (float)(clklog.sizelog() / 1000.0));
 			pub_debug(msg);
 
 			for (uint8_t i = 0; i < x; i++)
@@ -649,7 +596,7 @@ void myIOT2::_MQTTcb(char *topic, uint8_t *payload, unsigned int length)
 				get_timeStamp(clk, atol(msg));
 				pub_debug(clk);
 			}
-			sprintf(msg, "<<~~~~~~ %s bootlog End ~~~~~~~~~~>> ", deviceTopic);
+			sprintf(msg, "<<~~~~~~ %s bootlog End ~~~~~~~~~~>> ", sub_topics[0]);
 			pub_debug(msg);
 			pub_msg("[BootLog]: Extracted");
 		}
@@ -744,25 +691,23 @@ void myIOT2::_MQTTcb(char *topic, uint8_t *payload, unsigned int length)
 		}
 		else
 		{
-			ext_mqtt(incoming_msg);
+			ext_mqtt(incoming_msg, topic);
 		}
 	}
 }
-void myIOT2::_pub_generic(char *topic, char *inmsg, bool retain, char *devname, bool bare)
+void myIOT2::_pub_generic(const char *topic, char *inmsg, bool retain, char *devname, bool bare)
 {
 	char clk[25];
 	get_timeStamp(clk, 0);
 	const uint8_t mqtt_overhead_size = 23;
 	const int mqtt_defsize = mqttClient.getBufferSize();
 
-	char DEV[MaxTopicLength2];
-	_devName(DEV);
-	int x = devname == nullptr ? strlen(DEV) + 1 : 0;
+	int x = devname == nullptr ? strlen(sub_topics[0]) + 1 : 0;
 	char tmpmsg[strlen(inmsg) + x + 8 + 25];
 
 	if (!bare)
 	{
-		sprintf(tmpmsg, "[%s] [%s] %s", clk, DEV, inmsg);
+		sprintf(tmpmsg, "[%s] [%s] %s", clk, sub_topics[0], inmsg);
 	}
 	else
 	{
@@ -783,11 +728,8 @@ void myIOT2::_pub_generic(char *topic, char *inmsg, bool retain, char *devname, 
 }
 void myIOT2::pub_msg(char *inmsg)
 {
-	char _msgTopic[strlen(prefixTopic) + 10];
-	snprintf(_msgTopic, strlen(prefixTopic) + 10, "%s/Messages", prefixTopic);
-
-	_pub_generic(_msgTopic, inmsg);
-	_write_log(inmsg, 0, _msgTopic);
+	_pub_generic(pub_topics[0], inmsg);
+	_write_log(inmsg, 0, pub_topics[0]);
 }
 void myIOT2::pub_noTopic(char *inmsg, char *Topic, bool retain)
 {
@@ -796,39 +738,29 @@ void myIOT2::pub_noTopic(char *inmsg, char *Topic, bool retain)
 }
 void myIOT2::pub_state(char *inmsg, uint8_t i)
 {
-	char DEV[MaxTopicLength2];
-	_devName(DEV);
-	char _stateTopic[strlen(DEV) + 9];
+	char _stateTopic[strlen(sub_topics[3]) + 4];
 
 	if (i == 0)
 	{
-		snprintf(_stateTopic, strlen(DEV) + 7, "%s/State", DEV);
+		sprintf(_stateTopic, "%s", sub_topics[3]);
 	}
-	else if (i == 1)
+	else
 	{
-		snprintf(_stateTopic, strlen(DEV) + 9, "%s/State_2", DEV);
+		sprintf(_stateTopic, "%s_%d", sub_topics[3], i);
 	}
 	mqttClient.publish(_stateTopic, inmsg, true);
 	_write_log(inmsg, 2, _stateTopic);
 }
 void myIOT2::pub_log(char *inmsg)
 {
-	char _logTopic[strlen(prefixTopic) + 5];
-	snprintf(_logTopic, strlen(prefixTopic) + 5, "%s/log", prefixTopic);
-
-	_pub_generic(_logTopic, inmsg);
-	_write_log(inmsg, 1, _logTopic);
-}
-void myIOT2::pub_ext(char *inmsg, char *name, bool retain, uint8_t i)
-{
-	_pub_generic(extTopic[i], inmsg, retain, name);
-	_write_log(inmsg, 0, extTopic[i]);
+	_pub_generic(pub_topics[1], inmsg);
+	_write_log(inmsg, 1, pub_topics[1]);
 }
 void myIOT2::pub_debug(char *inmsg)
 {
-	char _debugTopic[strlen(prefixTopic) + 7];
-	snprintf(_debugTopic, strlen(prefixTopic) + 7, "%s/debug", prefixTopic);
-	_pub_generic(_debugTopic, inmsg, false, nullptr, true);
+	// char _debugTopic[strlen(sub_topics[0]) + 7];
+	// snprintf(_debugTopic, strlen(sub_topics[0]) + 7, "%s/debug", sub_topics[0]);
+	_pub_generic(pub_topics[2], inmsg, false, nullptr, true);
 }
 // void myIOT2::pub_sms(String &inmsg, char *name)
 // {
@@ -883,32 +815,12 @@ void myIOT2::pub_debug(char *inmsg)
 // 	// _write_log(email_char, 0, _emailTopic);
 // }
 
-const char *myIOT2::_devName(char ret[])
-{
-	if (strcmp(addGroupTopic, "") != 0)
-	{
-		snprintf(ret, strlen(prefixTopic) + strlen(addGroupTopic) + strlen(deviceTopic) + 5, "%s/%s/%s", prefixTopic, addGroupTopic, deviceTopic);
-	}
-	else
-	{
-		snprintf(ret, strlen(prefixTopic) + strlen(deviceTopic) + 3, "%s/%s", prefixTopic, deviceTopic);
-	}
-	return ret;
-}
-const char *myIOT2::_availName(char ret[])
-{
-	char DEV[MaxTopicLength2 + 6];
-	_devName(DEV);
-	snprintf(ret, strlen(DEV) + 7, "%s/Avail", DEV);
-	return ret;
-}
-
 void myIOT2::notifyOnline()
 {
-	char NAME[MaxTopicLength2 + 6];
-	_availName(NAME);
-	mqttClient.publish(NAME, "online", true);
-	_write_log("online", 2, NAME);
+	// char NAME[MaxTopicLength2 + 6];
+	// _availName(NAME);
+	mqttClient.publish(sub_topics[2], "online", true);
+	_write_log("online", 2, sub_topics[2]);
 }
 void myIOT2::_getBootReason_resetKeeper(char *msg)
 {
@@ -921,13 +833,6 @@ void myIOT2::_getBootReason_resetKeeper(char *msg)
 		mqtt_detect_reset = 0; // ordinary boot
 	}
 	firstRun = false;
-}
-void myIOT2::clear_ExtTopicbuff()
-{
-	strcpy(extTopic_msgArray[0]->msg, "");
-	strcpy(extTopic_msgArray[0]->device_topic, "");
-	strcpy(extTopic_msgArray[0]->from_topic, "");
-	extTopic_newmsg_flag = false;
 }
 uint8_t myIOT2::inline_read(char *inputstr)
 {
@@ -1002,9 +907,9 @@ void myIOT2::_write_log(char *inmsg, uint8_t x, const char *topic)
 void myIOT2::_update_bootclockLOG()
 {
 	char clk_char[25];
-#if isESP8266
+#if defined(ESP8266)
 	sprintf(clk_char, "%lld", now());
-#elif isESP32
+#elif defined(ESP32)
 	sprintf(clk_char, "%d", now());
 #endif
 	clklog.write(clk_char, true);
@@ -1048,15 +953,12 @@ void myIOT2::update_fPars()
 	useFlashP = myIOT_P["useFlashP"];
 	useDebug = myIOT_P["useDebugLog"];
 	debug_level = myIOT_P["debug_level"];
-	useextTopic = myIOT_P["useextTopic"];
 	useResetKeeper = myIOT_P["useResetKeeper"];
 	useNetworkReset = myIOT_P["useNetworkReset"];
 	noNetwork_reset = myIOT_P["noNetwork_reset"];
 	useBootClockLog = myIOT_P["useBootClockLog"];
 	ignore_boot_msg = myIOT_P["ignore_boot_msg"];
-	strcpy(deviceTopic, myIOT_P["deviceTopic"]);
-	strcpy(prefixTopic, myIOT_P["prefixTopic"]);
-	strcpy(addGroupTopic, myIOT_P["groupTopic"]);
+
 	strcpy(sketch_paramfile, "/sketch_param.json");
 	myIOT_P.clear();
 
@@ -1084,10 +986,10 @@ String myIOT2::readFile(char *fileName)
 }
 void myIOT2::_startFS()
 {
-#if isESP8266
-	LittleFS.begin();
-#elif isESP32
-	LITTLEFS.begin(true);
+#if defined(ESP8266)
+	LITFS.begin();
+#elif defined(ESP32)
+	LITFS.begin(true);
 #endif
 }
 
@@ -1097,9 +999,7 @@ void myIOT2::sendReset(char *header)
 	char temp[17 + strlen(header)];
 
 	sprintf(temp, "[%s] - Reset sent", header);
-	char DEV[MaxTopicLength2];
-	_devName(DEV);
-	_write_log(temp, 2, DEV);
+	_write_log(temp, 2, sub_topics[0]);
 	if (useSerial)
 	{
 		Serial.println(temp);
@@ -1109,21 +1009,21 @@ void myIOT2::sendReset(char *header)
 		pub_msg(temp);
 	}
 	delay(1000);
-#if isESP8266
+#if defined(ESP8266)
 	ESP.reset();
-#elif isESP32
+#elif defined(ESP32)
 	ESP.restart();
 #endif
 }
 void myIOT2::_feedTheDog()
 {
 	wdtResetCounter++;
-#if isEPS8266
+#if defined (ESP8266)
 	if (wdtResetCounter >= wdtMaxRetries)
 	{
 		sendReset("Dog goes woof");
 	}
-#elif isESP32
+#elif defined(ESP32)
 
 #endif
 }
@@ -1138,7 +1038,7 @@ void myIOT2::startOTA()
 {
 	allowOTA_clock = millis();
 	ArduinoOTA.setPort(8266);
-	ArduinoOTA.setHostname(deviceTopic);
+	ArduinoOTA.setHostname(sub_topics[0]);
 	ArduinoOTA.onStart([]()
 					   {
 						   String type;
@@ -1185,9 +1085,9 @@ void myIOT2::startOTA()
 }
 void myIOT2::_startWDT()
 {
-#if isESP8266
+#if defined(ESP8266)
 	wdt.attach(1, std::bind(&myIOT2::_feedTheDog, this)); // Start WatchDog
-#elif isESP32
+#elif defined(ESP32)
 	// wdt.attach(1,_feedTheDog); // Start WatchDog
 #endif
 }
