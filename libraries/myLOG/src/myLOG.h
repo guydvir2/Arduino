@@ -13,7 +13,6 @@
 
 #if defined(ESP32)
 #include "LITTLEFS.h"
-#define isESP32 true
 #define LITFS LITTLEFS
 #elif defined(ARDUINO_ARCH_ESP8266)
 #include <LittleFS.h>
