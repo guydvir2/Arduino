@@ -10,9 +10,9 @@ bool flashLOG::start(int max_entries, bool delyedSave, bool debugmode)
     _useDelayedSave = delyedSave;
     _useDebug = debugmode;
 
-#if isESP32
+#if defined(ESP32)
     bool a = LITFS.begin(true);
-#elif isESP8266
+#elif defined(ESP8266)
     bool a = LITFS.begin();
 #endif
 
@@ -167,8 +167,6 @@ int flashLOG::get_num_saved_records()
             {
                 row_counter++;
             }
-            // file.readStringUntil(_EOL);
-            // row_counter++;
         }
     }
     file.close();

@@ -8,15 +8,11 @@
 #include <Arduino.h>
 #include <FS.h>
 
-#define isESP32 false
-#define isESP8266 false
-
 #if defined(ESP32)
 #include "LITTLEFS.h"
 #define LITFS LITTLEFS
-#elif defined(ARDUINO_ARCH_ESP8266)
+#elif defined(ESP8266)
 #include <LittleFS.h>
-#define isESP8266 true
 #define LITFS LittleFS
 #endif
 

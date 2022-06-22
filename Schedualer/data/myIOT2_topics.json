@@ -1,0 +1,21 @@
+{
+    "pub_gen_topics": [
+        "myHome/Messages",
+        "myHome/log",
+        "myHome/debug"
+    ],
+    "pub_topics": [
+        "myHome/timeout/test/Avail",
+        "myHome/timeout/test/State",
+        "myHome/timeout/test/cmd",
+        "myHome/timeout/test/ex_info"
+    ],
+    "sub_topics": [
+        "myHome/timeout/test",
+        "myHome/timeout"
+    ],
+    "sub_data_topics": [
+        "myHome/alarmMonitor"
+    ],
+    "ver": 0.1
+}
