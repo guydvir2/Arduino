@@ -1,4 +1,4 @@
-#include "Arduino.h"
+#include <Arduino.h>
 #include "buttonPresses.h"
 
 buttonPresses::buttonPresses()
@@ -17,7 +17,7 @@ buttonPresses::buttonPresses(uint8_t _pin0, uint8_t _type, uint8_t _pin1)
 }
 void buttonPresses::start()
 {
-    pinMode(pin0, INPUT_PULLUP);
+    pinMode(pin0, INPUT_PULLUP); /* INPUT_PULLUP*/ 
     _lastState_pin0 = digitalRead(pin0);
     if (pin1 != 255)
     {
@@ -40,13 +40,10 @@ uint8_t buttonPresses::read()
         return 99;
     }
 }
-uint8_t buttonPresses::_read_switch(uint8_t _pin, bool &_pinState)
-{
-    return _readPin();
-}
+
 uint8_t buttonPresses::_read_multiPress()
 {
-    if (_readPin() == 1) //_read_switch(pin0, _lastState_pin0)) /* Pressed */
+    if (_readPin() == 1)
     {
         /* calc press duration */
         unsigned long current_press_duration = millis();
@@ -92,9 +89,10 @@ uint8_t buttonPresses::_readPin()
         bool _curReadPin0_2 = digitalRead(pin0);
         bool _curReadPin1_2 = digitalRead(pin1);
 
-        if (_curReadPin0_1 == _curReadPin0_2 && _curReadPin0_1 != _lastState_pin0)
+        if (_curReadPin0_1 == _curReadPin0_2 && _curReadPin0_1 != _lastState_pin0) /* Change in pin0 */
         {
             _lastState_pin0 = _curReadPin0_1;
+            // return _lastState_pin0;
             if (_curReadPin0_1 == BUT_PRESSED)
             {
                 return 1; /* Pressed */

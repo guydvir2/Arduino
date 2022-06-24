@@ -34,8 +34,6 @@ public:
     uint8_t read();
 
 private:
-    uint8_t _read_switch(uint8_t _pin, bool &_pinState);
-    uint8_t _read_rocker();
     uint8_t _read_multiPress();
     uint8_t _readPin();
 };
