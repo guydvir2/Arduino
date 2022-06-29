@@ -48,9 +48,9 @@
         240,
         360
     ],
-    "max_pCount": [
-        3,
-        3
+    "trigType": [
+        0,
+        0
     ],
     "defPWM": [
         2,
@@ -63,6 +63,10 @@
     "outputPWM": [
         false,
         false
+    ],
+    "maxPWMpresses": [
+        3,
+        3
     ],
     "PWM_res": 1023,
     "sketch_JSON_Psize": 1250,

@@ -1,108 +1,132 @@
 #include <myIOT2.h>
+#include <Button2.h>
 #include <Chrono.h>
-#include <buttonPresses.h>
 
-#define NUM_CHRONOS 2
-Chrono chron_0(Chrono::SECONDS);
-Chrono chron_1(Chrono::SECONDS);
-Chrono *chronVector[NUM_CHRONOS] = {&chron_0, &chron_1};
-buttonPresses inputButton;
-
-/* ~~~~~~~~~~~~~~~~~~~~~~ Values get updated from parameter file ~~~~~~~~~~~~~~~~~~ */
-uint8_t numSW = 1; /* Num of switches: 1 or 2 */
-int PWM_res = 1023;
-int sketch_JSON_Psize = 1250; /* Pass JSON size for Flash Parameter*/
-
-bool useInputs[NUM_CHRONOS] = {false, false};
-bool useIndicLED[NUM_CHRONOS] = {false, false}; /* use indication leds when ON*/
-
-bool indic_ON[NUM_CHRONOS] = {true, true};
-bool output_ON[NUM_CHRONOS] = {HIGH, HIGH};  /* OUTPUT when ON is HIGH or LOW */
-bool inputPressed[NUM_CHRONOS] = {LOW, LOW}; /* High or LOW on button press */
-bool OnatBoot[NUM_CHRONOS] = {false, false}; /* After reboot- On or Off */
-bool outputPWM[NUM_CHRONOS] = {false, false};
-
-uint8_t inputPin[NUM_CHRONOS] = {D6, 5};         /* IO for inputs */
-uint8_t outputPin[NUM_CHRONOS] = {2, 2};         /* IO for outputs */
-uint8_t indicPin[NUM_CHRONOS] = {4, 2};          /* IO for idication LEDS */
-uint8_t defPWM[NUM_CHRONOS] = {2, 2};            /* Default PWM value for some cases not specified */
-uint8_t limitPWM[NUM_CHRONOS] = {80, 80};        /* Limit total intensity, 1-100 */
-char sw_names[NUM_CHRONOS][20] = {"SW1", "SW2"}; /* Name of each Switch, as shown on MQTT msg */
-
-int maxTimeout[NUM_CHRONOS] = {600, 600};
-int defaultTimeout[NUM_CHRONOS] = {30, 120};
-
-/* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ End ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
-
+#include "Scheduler.h"
+#include "Chronos.h"
 #include "myIOT_settings.h"
-#include "Schedualer_param.h"
+#include "getFlashParameters.h"
+#include "Buttons.h"
+#include "HWswitch.h"
 
-int timeouts[NUM_CHRONOS] = {0, 0};
+class PWMlight
+{
+public:
+  int PWMval = 0;
+  int PWMres = 1023;
+  int defPWMvalue = (int)(PWMres * 0.7);
 
-void startWatch(uint8_t i = 0)
-{
-  chronVector[i]->restart();
-}
-void stopWatch(uint8_t i = 0)
-{
-  chronVector[i]->restart();
-  chronVector[i]->stop();
-  timeouts[i] = 0;
-}
-long remainWatch(uint8_t i = 0)
-{
-  if (chronVector[i]->isRunning())
+  uint8_t pwmPin = 255;
+  uint8_t defStep = 2;
+  uint8_t maxSteps = 3;
+  uint8_t currentStep = 0;
+
+public:
+  PWMlight()
   {
-    return chronVector[i]->elapsed() / 1000;
   }
-  else
+  void init(uint8_t pin, int res)
   {
-    return 0;
+    pwmPin = pin;
+    PWMres = res;
+    analogWriteRange(PWMres);
+    pinMode(pwmPin, OUTPUT);
   }
-}
-void addWatch(uint8_t i, int _add, const char *trigger)
-{
-  timeouts[i] += _add;
-  notifyAdd(i, _add, trigger);
 
-  if (!chronVector[i]->isRunning()) /* Case not ON */
+  void turnOFF()
   {
-    ONcmd(i, timeouts[i]);
+    currentStep = 0;
+    _setPWM(0);
   }
-}
-void stopAllWatches()
-{
-  for (uint8_t i = 0; i < NUM_CHRONOS; i++)
+  void turnON(int val = 0)
   {
-    stopWatch(i);
+    if (val == 0)
+    {
+      _setPWM(defPWMvalue);
+    }
+    else
+    {
+      if (_validatePWM(val))
+      {
+        _setPWM(val);
+      }
+    }
   }
-}
+  void turnONstep(int8_t step)
+  {
+    if (_validateStep(step))
+    {
+      currentStep = step;
+      _setPWM(_step2Value(step));
+    }
+  }
 
-void notifyAdd(uint8_t &i, int &_add, const char *trigger)
-{
-  char a[50];
-  sprintf(a, "%s: [%s] Added [%d] seconds, total [%d] seconds", trigger, sw_names[i], _add, timeouts[i]);
-  iot.pub_msg(a);
-  Serial.println(a);
-}
-void notifyOFF(uint8_t &i, int &_elapsed, const char *trigger)
-{
-  char a[50];
-  sprintf(a, "%s: [%s] Switched [Off] after [%d] seconds", trigger, sw_names[i], _elapsed);
-  iot.pub_msg(a);
-  Serial.println(a);
-}
-void notifyON(uint8_t &i, const char *trigger)
-{
-  char a[50];
-  sprintf(a, "%s: [%s] Switched [On] for [%d] seconds", trigger, sw_names[i], timeouts[i]);
-  iot.pub_msg(a);
-  Serial.println(a);
-}
+  void turnDim(int val)
+  {
+    int PWMstep_change = 1;
 
-void ONcmd(uint8_t i, uint8_t _TO, const char *trigger)
+    val > PWMval ? PWMstep_change = PWMstep_change : PWMstep_change = -PWMstep_change;
+    while (abs(val - PWMval) >= abs(PWMstep_change))
+    {
+      _setPWM(PWMval + PWMstep_change);
+      delay(1);
+    }
+  }
+  void turnDimstep(int8_t step)
+  {
+    if (_validateStep(step))
+    {
+      turnDim(_step2Value(step));
+      currentStep = step;
+    }
+  }
+  bool isON()
+  {
+    return PWMval > 0;
+  }
+
+private:
+  void _setPWM(int val)
+  {
+    if (_validatePWM(val))
+    {
+      PWMval = val;
+      analogWrite(pwmPin, val);
+    }
+  }
+  bool _validatePWM(int val)
+  {
+    if (val >= 0 && val <= PWMres)
+    {
+      return 1;
+    }
+    else
+    {
+      return 0;
+    }
+  }
+  bool _validateStep(int step)
+  {
+    if (step >= 0 && step <= maxSteps)
+    {
+      return 1;
+    }
+    else
+    {
+      return 0;
+    }
+  }
+  int _step2Value(uint8_t step)
+  {
+    return (int)(step * PWMres / maxSteps);
+  }
+};
+
+PWMlight PWMled;
+
+void ONcmd(uint8_t i, uint8_t _TO, const char *trigger, uint8_t _pwmVal)
 {
-  if (!getHWstate(i))
+  if (!getHWstate(i) || (outputPWM[i] && _pwmVal != lastPWMvalue[i])) /* Enter when off or at PWM different PWM value */
   {
     if (_TO == 0)
     {
@@ -114,7 +138,7 @@ void ONcmd(uint8_t i, uint8_t _TO, const char *trigger)
     }
     startWatch(i);
     notifyON(i, trigger);
-    HWswitch(i, true);
+    HWswitch(i, true, _pwmVal);
   }
 }
 void OFFcmd(uint8_t i, const char *trigger)
@@ -124,113 +148,105 @@ void OFFcmd(uint8_t i, const char *trigger)
     int x = chronVector[i]->elapsed();
     notifyOFF(i, x, trigger);
     stopWatch(i);
-    HWswitch(i, false);
+    HWswitch(i, false, 0);
   }
 }
 
-void Chrono_looper()
+void bootSummary()
 {
-  for (uint8_t i = 0; i < NUM_CHRONOS; i++)
-  {
-    if (chronVector[i]->isRunning() && chronVector[i]->hasPassed(timeouts[i]))
-    {
-      OFFcmd(i);
-    }
-  }
-}
+  Serial.print("NumSW:\t");
+  Serial.println(numSW);
+  Serial.print("PWM_res:\t");
+  Serial.println(sketch_JSON_Psize);
 
-void Button_looper()
-{
-  if (useInputs[0])
+  for (uint8_t i = 0; i < numSW; i++)
   {
-    uint8_t _read = inputButton.read();
-    if (_read != 4)
-    {
-      if (_read == 0)
-      {
-        OFFcmd(0);
-      }
-      else if (_read == 1)
-      {
-        ONcmd(0);
-      }
-      else
-      {
-        yield();
-      }
-    }
-  }
-}
-void startOUTPUTSio()
-{
-  analogWriteRange(PWM_res); /* PWM at ESP8266 */
+    Serial.print(">>> ~~~~ Schedualer #");
+    Serial.print(i);
+    Serial.println(" ~~~~ <<<");
 
-  for (uint8_t x = 0; x < numSW; x++)
-  {
-    pinMode(outputPin[x], OUTPUT);
-    if (OnatBoot[x])
-    {
-      digitalWrite(outputPin[x], output_ON[x]);
-    }
-    else
-    {
-      digitalWrite(outputPin[x], !output_ON[x]);
-    }
+    Serial.print("useInputs:\t");
+    Serial.println(useInputs[i]);
 
-    if (useIndicLED[x])
-    {
-      pinMode(indicPin[x], OUTPUT);
-    }
-  }
-}
-bool getHWstate(uint8_t &i)
-{
-  if (!outputPWM[i])
-  {
-    if (digitalRead(outputPin[i]) == output_ON[i]) // check if output's ON
-    {
-      return true; // mean ON regardless if on is low or high
-    }
-    else
-    {
-      return false; // return off
-    }
-  }
-}
-void HWswitch(uint8_t &i, bool state)
-{
-  if (!outputPWM[i])
-  {
-    if (state)
-    {
-      digitalWrite(outputPin[i], output_ON[i]);
-    }
-    else
-    {
-      digitalWrite(outputPin[i], !output_ON[i]);
-    }
-  }
-}
-void startINPUTSio()
-{
-  if (useInputs[0])
-  {
-    inputButton.pin0 = inputPin[0];
-    inputButton.start();
+    Serial.print("useIndicLED:\t");
+    Serial.println(useIndicLED[i]);
+
+    Serial.print("indic_ON:\t");
+    Serial.println(indic_ON[i]);
+
+    Serial.print("output_ON:\t");
+    Serial.println(output_ON[i]);
+
+    Serial.print("inputPressed:\t");
+    Serial.println(inputPressed[i]);
+
+    Serial.print("OnatBoot:\t");
+    Serial.println(OnatBoot[i]);
+
+    Serial.print("outputPWM:\t");
+    Serial.println(outputPWM[i]);
+
+    Serial.print("trigType:\t");
+    Serial.println(trigType[i]);
+
+    Serial.print("inputPin:\t");
+    Serial.println(inputPin[i]);
+
+    Serial.print("outputPWM:\t");
+    Serial.println(outputPWM[i]);
+
+    Serial.print("outputPin:\t");
+    Serial.println(outputPin[i]);
+
+    Serial.print("indicPin:\t");
+    Serial.println(indicPin[i]);
+
+    Serial.print("defPWM:\t");
+    Serial.println(defPWM[i]);
+
+    Serial.print("indicPin:\t");
+    Serial.println(indicPin[i]);
+
+    Serial.print("limitPWM:\t");
+    Serial.println(limitPWM[i]);
+
+    Serial.print("sw_names:\t");
+    Serial.println(sw_names[i]);
+
+    Serial.print("maxTimeout:\t");
+    Serial.println(maxTimeout[i]);
+
+    Serial.print("defaultTimeout:\t");
+    Serial.println(defaultTimeout[i]);
   }
 }
 
 void setup()
 {
-  read_flashParameter();
-  startOUTPUTSio();
-  startINPUTSio();
-  stopAllWatches();
-  startIOTservices();
+  PWMled.init(D1, 1023);
+
+  Serial.begin(115200);
+  PWMled.maxSteps = 10;
+  // read_flashParameter();
+  // startOUTPUTSio();
+  // startButtons();
+  // startIOTservices();
+  // bootSummary();
 }
 void loop()
 {
-  iot.looper();
-  Chrono_looper();
-  Button_looper();
+  for (uint8_t i = 0; i <= PWMled.maxSteps; i++)
+  {
+    Serial.println(i);
+    Serial.print("on: ");
+    Serial.println(PWMled.isON());
+    PWMled.turnDimstep(i);
+    delay(1000);
+  }
+
+  // PWMled.turnOFF();
+  // delay(1500);
+  // iot.looper();
+  // loopAllWatches();
+  // Button_looper();
 }
