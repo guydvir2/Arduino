@@ -1,12 +1,6 @@
 #define MAX_NUM_SCHEDS 2
 #define FlashParameters 1 // <----- Code Parameters or Flash
 
-#define TURN_ON(x) digitalWrite(outputPin[x], output_ON[x])
-#define TURN_OFF(x) digitalWrite(outputPin[x], !output_ON[x])
-#define IS_OUTPUT_ON(x) digitalRead(outputPin[x]) == output_ON[x]
-#define SET_PWM_VALUE(x, val) analogWrite(outputPin[x], val)
-#define CONV_TO_PWM_VALUE(x, step) (int)(step * PWM_res * limitPWM[x] * 100 / maxPWMpresses[i])
-
 myIOT2 iot;
 
 Chrono chron_0(Chrono::SECONDS);
@@ -16,6 +10,10 @@ Chrono *chronVector[MAX_NUM_SCHEDS] = {&chron_0, &chron_1};
 Button2 button_0;
 Button2 button_1;
 Button2 *buttonVector[MAX_NUM_SCHEDS] = {&button_0, &button_1};
+
+TurnLightsON light_0;
+TurnLightsON light_1;
+TurnLightsON *lightVector[MAX_NUM_SCHEDS] = {&light_0, &light_1};
 
 enum TRIG_SRC : const uint8_t
 {
@@ -70,6 +68,6 @@ int timeouts[MAX_NUM_SCHEDS] = {0, 0};
 void notifyAdd(uint8_t &i, int &_add, const char *trigger);
 void notifyOFF(uint8_t &i, int &_elapsed, const char *trigger);
 void notifyON(uint8_t &i, const char *trigger);
-void ONcmd(uint8_t i, uint8_t _TO = 0, const char *trigger = nullptr, uint8_t _pwmVal = 0);
+void ONcmd(uint8_t i, uint8_t _TO = 0, const char *trigger = nullptr, uint8_t _PWMstep = 0);
 void OFFcmd(uint8_t i, const char *trigger = nullptr);
 bool getHWstate(uint8_t &i);

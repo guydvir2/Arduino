@@ -10,7 +10,7 @@ void ON_OFF_off_handle(Button2 &b)
 void Momentary_handle(Button2 &b)
 {
   uint8_t i = b.getID();
-  if (getHWstate(i) == true) /* Turn OFF if ON */
+  if (lightVector[i]->isON()) /* Turn OFF if ON */
   {
     OFFcmd(i, SRCS[BTN]);
   }
