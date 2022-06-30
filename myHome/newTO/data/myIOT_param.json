@@ -1,7 +1,8 @@
 {
-    "useSerial": true,
     "useWDT": true,
     "useOTA": true,
+    "useSerial": false,
+    "useFlashP": true,
     "useResetKeeper": true,
     "debug_level": 0,
     "useDebugLog": true,
@@ -9,8 +10,9 @@
     "useNetworkReset": true,
     "noNetwork_reset": 5,
     "useextTopic": false,
-    "deviceTopic": "PergolaLEDsS",
-    "groupTopic": "extLights",
+    "ignore_boot_msg": false,
+    "deviceTopic": "iPhone",
+    "groupTopic": "powerPlugs",
     "prefixTopic": "myHome",
-    "ver": 0.2
+    "ver": 0.5
 }

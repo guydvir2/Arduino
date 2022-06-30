@@ -40,11 +40,14 @@ void addiotnalMQTT(char *incoming_msg)
     else if (strcmp(incoming_msg, "clear") == 0)
     {
         digitalWrite(SET_SYSTEM_ARMED_HOME_PIN, STATE_ON);
-        delay(systemPause);
+        delay(DELAY_TO_REACT);
         digitalWrite(SET_SYSTEM_ARMED_HOME_PIN, !STATE_ON);
+        delay(DELAY_TO_REACT);
+
         digitalWrite(SET_SYSTEM_ARMED_AWAY_PIN, STATE_ON);
-        delay(systemPause);
+        delay(DELAY_TO_REACT);
         digitalWrite(SET_SYSTEM_ARMED_AWAY_PIN, !STATE_ON);
+        delay(DELAY_TO_REACT);
 
         iot.sendReset("Reset via MQTT");
     }
@@ -63,8 +66,11 @@ void addiotnalMQTT(char *incoming_msg)
     }
     else if (strcmp(incoming_msg, "debug") == 0)
     {
-        sprintf(msg, "armPin is [%d], AlarmPin is [%d], ArmHome is [%d], ArmAway is [%d]", digitalRead(SYS_IS_ARMED_INDICATION_PIN),
-                digitalRead(SYS_IS_ALARMING_INDICATION_PIN), digitalRead(SET_SYSTEM_ARMED_HOME_PIN), digitalRead(SET_SYSTEM_ARMED_AWAY_PIN));
+        sprintf(msg, "armPin is [%s], AlarmPin is [%s], ArmHome is [%s], ArmAway is [%s]",
+                digitalRead(SYSTEM_STATE_ARM_PIN) ? "OFF" : "ON",
+                digitalRead(SYSTEM_STATE_ALARM_PIN) ? "OFF" : "ON",
+                digitalRead(SET_SYSTEM_ARMED_HOME_PIN) ? "ON" : "OFF",
+                digitalRead(SET_SYSTEM_ARMED_AWAY_PIN) ? "ON" : "OFF");
         iot.pub_msg(msg);
     }
 }
@@ -78,9 +84,8 @@ void startIOTservices()
     iot.useDebug = true;
     iot.debug_level = 0;
     iot.useNetworkReset = true;
-    iot.noNetwork_reset = 30;
+    iot.noNetwork_reset = 10;
     iot.useBootClockLog = true;
-    iot.useAltermqttServer = false;
     iot.ignore_boot_msg = false;
 
     strcpy(iot.deviceTopic, DEV_TOPIC);

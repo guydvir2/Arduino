@@ -1,0 +1,49 @@
+{
+	"folders": [
+		{
+			"path": "."
+		},
+		{
+			"name": "FIRST_LIB_PLTFMIO",
+			"path": "../../PlatformIO/Projects/FIRST_LIB_PLTFMIO"
+		},
+		{
+			"name": "test1123",
+			"path": "../../PlatformIO/Projects/test1123"
+		},
+		{
+			"name": "test456",
+			"path": "../../PlatformIO/Projects/test456"
+		},
+		{
+			"name": "ADGFSDF",
+			"path": "../../PlatformIO/Projects/ADGFSDF"
+		}
+	],
+	"settings": {
+		"files.associations": {
+			"array": "cpp",
+			"deque": "cpp",
+			"list": "cpp",
+			"string": "cpp",
+			"unordered_map": "cpp",
+			"vector": "cpp",
+			"initializer_list": "cpp",
+			"string_view": "cpp",
+			"*.tcc": "cpp",
+			"system_error": "cpp",
+			"*.sh": "cpp",
+			"*.md": "cpp",
+			"*.properties": "cpp",
+			"*.ini": "cpp",
+			"random": "cpp",
+			"cstddef": "cpp",
+			"regex": "cpp",
+			"fstream": "cpp",
+			"ranges": "cpp",
+			"ostream": "cpp",
+			"chrono": "cpp",
+			"new": "cpp"
+		}
+	}
+}

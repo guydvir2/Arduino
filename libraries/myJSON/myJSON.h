@@ -7,15 +7,16 @@
 #include <LITTLEFS.h>
 #define isESP32 true
 #define isESP8266 false
+#define LITFS LITTLEFS
 #elif defined(ARDUINO_ARCH_ESP8266)
 #include <LittleFS.h>
 #define isESP32 false
 #define isESP8266 true
+#define LITFS LittleFS
 #endif
 
 class myJSON
 {
-#define _def_dsize 400
 
 private:
     bool _useSerial = false;
@@ -23,9 +24,9 @@ private:
     char _filename[15];
 
 public:
-    const char *ver = "myJSON_v1.95";
+    const char *ver = "myJSON_v2.0a";
     int DOC_SIZE;
-    myJSON(const char *filename = "/jfile.json", bool useserial = false, int doc_size = _def_dsize);
+    myJSON(const char *filename = "/jfile.json", bool useserial = false, int doc_size = 400);
 
     void start();
     bool FS_ok();
@@ -33,7 +34,7 @@ public:
     bool file_exists();
     bool file_remove();
 
-    void retAllJSON(char value[]);
+    void retAllJSON(char *value);
     bool readJSON_file(JsonDocument &_doc);
     bool replaceValue(const char *key, char *value);
 
@@ -46,22 +47,7 @@ public:
     void setValue(const char *key, int value);
     void setValue(const char *key, long value);
     void setValue(const char *key, bool value);
-
-    // void add2Array(char *array_key, char *val);
-    // void add2Array(char *array_key, int val);
-    // void add2Array(char *array_key, long val);
-
-    // void setArrayVal(char *array_key, int i, char *val);
-    // void setArrayVal(char *array_key, int i, long val);
-    // void setArrayVal(char *array_key, int i, int val);
-
-    // bool getArrayVal(char *array_key, int i, int &retval);
-    // bool getArrayVal(char *array_key, int i, long &retval);
-    // bool getArrayVal(char *array_key, int i, char value[20] = "0");
-
-    // void nestedArray(char *array_key, long val);
-    // void eraseArray(char *array_key);
-
+    
     void printFile();
     void removeValue(const char *key);
 

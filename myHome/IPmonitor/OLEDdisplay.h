@@ -1,3 +1,8 @@
+#if USE_DISPLAY
+#include <myDisplay.h>
+#include "OLEDdisplay.h"
+#endif
+
 #define BUTTON_PIN 5
 #define BUTTON_PRESSED LOW
 #define MAX_BUTTON_PRESSES 4

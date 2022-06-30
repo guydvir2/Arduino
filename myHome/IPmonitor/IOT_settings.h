@@ -2,31 +2,50 @@
 #define GROUP_TOPIC ""
 #define PREFIX_TOPIC "myHome"
 
-char *str_services(IPmonitoring &s)
+myIOT2 iot;
+
+bool MQTToutbox(char *msg, uint8_t msg_t)
 {
-        char *str = new char[30];
-        sprintf(str, "%s[%s] ", s.nick, s.isConnected ? "V" : "X");
-        return str;
+        switch (msg_t)
+        {
+        case 0:
+                iot.pub_msg(msg);
+                break;
+        case 1:
+                iot.pub_log(msg);
+                break;
+        case 2:
+                iot.pub_debug(msg);
+                break;
+        default:
+                break;
+        }
+        return 1;
 }
 void addiotnalMQTT(char *incoming_msg)
 {
         char msg[150];
         if (strcmp(incoming_msg, "status") == 0)
         {
+                char t[30];
                 sprintf(msg, "[Status]: ");
 #if CHECK_MQTT
-                strcat(msg, str_services(MQTT_service));
+                get_serviceStatus(MQTT_service, t);
+                strcat(msg, t);
 #endif
 #if CHECK_WIFI
-                strcat(msg, str_services(WiFi_service));
-
+                Serial.println("WIFI");
+                get_serviceStatus(WiFi_service, t);
+                strcat(msg, t);
+                Serial.println(t);
 #endif
 #if CHECK_INTERNET
-                strcat(msg, str_services(Internet_service));
-
+                get_serviceStatus(Internet_service, t);
+                strcat(msg, t);
 #endif
 #if CHECK_HASS
-                strcat(msg, str_services(HASS_service));
+                get_serviceStatus(HASS_service, t);
+                strcat(msg, t);
 #endif
                 iot.pub_msg(msg);
         }
@@ -67,7 +86,7 @@ void addiotnalMQTT(char *incoming_msg)
         }
         else if (strcmp(incoming_msg, "help2") == 0)
         {
-                sprintf(msg, "Help #2: Commands #3 - [report, printLOG, del_logs]");
+                sprintf(msg, "Help2: Commands #3 - [report, printLOG, del_logs]");
                 iot.pub_msg(msg);
         }
         else if (strcmp(incoming_msg, "del_logs") == 0)
@@ -90,20 +109,20 @@ void addiotnalMQTT(char *incoming_msg)
 }
 void startIOTservices()
 {
-        iot.useSerial = true;
         iot.useWDT = true;
         iot.useOTA = true;
-        iot.extDefine = true;
-        iot.useResetKeeper = false;
-        iot.useextTopic = false;
         iot.useDebug = true;
-        iot.debug_level = 0;
-        iot.useNetworkReset = false; // <-- only for this device
-        iot.noNetwork_reset = 5;
+        iot.useSerial = true;
+        iot.useextTopic = false;
         iot.useBootClockLog = true;
-        iot.useAltermqttServer = false;
+        iot.useResetKeeper = false;
+        iot.useNetworkReset = false; // <-- only for this device
+        iot.debug_level = 0;         // All Messages
+        iot.noNetwork_reset = 5;     // Irrelevant since it won't reboot
+
         strcpy(iot.deviceTopic, DEV_TOPIC);
         strcpy(iot.prefixTopic, PREFIX_TOPIC);
         strcpy(iot.addGroupTopic, GROUP_TOPIC);
+
         iot.start_services(addiotnalMQTT);
 }

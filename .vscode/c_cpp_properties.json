@@ -7,9 +7,8 @@
             "compilerArgs": [],
             "intelliSenseMode": "linux-gcc-x64",
             "includePath": [
-                "/home/guy/.arduino15/packages/esp8266/tools/**",
-                "/home/guy/.arduino15/packages/esp8266/hardware/esp8266/**",
-                "/home/guy/Documents/Dropbox/Arduino/libraries/**"
+                "/home/guy/Documents/Dropbox/Arduino/libraries/**",
+                "${workspaceFolder}/**"
             ],
             "forcedInclude": [],
             "cStandard": "c17",
@@ -27,13 +26,14 @@
             "includePath": [
                 "/Users/guydvir/Library/Arduino15/packages/esp8266/tools/**",
                 "/Users/guydvir/Library/Arduino15/packages/esp8266/hardware/esp8266/**/**",
-                "/Users/guydvir/Documents/Arduino/libraries/**"
+                "/Users/guydvir/Dropbox/Arduino/libraries/**"
             ],
             "forcedInclude": [],
             "cStandard": "c17",
             "cppStandard": "c++17",
             "defines": [],
-            "configurationProvider": "ms-vscode.cmake-tools"
+            "configurationProvider": "ms-vscode.cmake-tools",
+            "mergeConfigurations": false
         },
         {
             "name": "Arduino",
@@ -147,7 +147,10 @@
                 "/home/guy/.arduino15/packages/esp32/tools/xtensa-esp32-elf-gcc/1.22.0-97-gc752ad5-5.2.0/lib/gcc/xtensa-esp32-elf/5.2.0/include",
                 "/home/guy/.arduino15/packages/esp32/tools/xtensa-esp32-elf-gcc/1.22.0-97-gc752ad5-5.2.0/lib/gcc/xtensa-esp32-elf/5.2.0/include-fixed",
                 "/home/guy/.arduino15/packages/esp32/tools/xtensa-esp32-elf-gcc/1.22.0-97-gc752ad5-5.2.0/xtensa-esp32-elf/include",
-                "/home/guy/.arduino15/packages/esp32/tools/xtensa-esp32-elf-gcc/1.22.0-97-gc752ad5-5.2.0/xtensa-esp32-elf/sysroot/usr/include"
+                "/home/guy/.arduino15/packages/esp32/tools/xtensa-esp32-elf-gcc/1.22.0-97-gc752ad5-5.2.0/xtensa-esp32-elf/sysroot/usr/include",
+                "${workspaceFolder}/libraries/myIOT2",
+                "${workspaceFolder}/libraries/myTelegServer",
+                "${workspaceFolder}/libraries/Universal-Arduino-Telegram-Bot/src"
             ],
             "forcedInclude": [
                 "/home/guy/.arduino15/packages/esp32/hardware/esp32/1.0.6/cores/esp32/Arduino.h"
@@ -396,6 +399,46 @@
                 "__ATOMIC_RELEASE=3",
                 "USBCON"
             ]
+        },
+        {
+            "name": "Windows",
+            "includePath": [
+                "${workspaceFolder}/**"
+            ],
+            "defines": [
+                "_DEBUG",
+                "UNICODE",
+                "_UNICODE"
+            ],
+            "cStandard": "c17",
+            "cppStandard": "c++17",
+            "intelliSenseMode": "windows-msvc-x64"
+        },
+        {
+            "name": "win",
+            "includePath": [
+                "${workspaceFolder}/**"
+            ],
+            "defines": [
+                "_DEBUG",
+                "UNICODE",
+                "_UNICODE"
+            ],
+            "cStandard": "c17",
+            "cppStandard": "c++17",
+            "intelliSenseMode": "windows-clang-x64",
+            "compilerPath": "e:\\Dropbox\\Arduino\\**"
+        },
+        {
+            "name": "LIN_TRY",
+            "includePath": [
+                "${workspaceFolder}/**"
+            ],
+            "defines": [],
+            "compilerPath": "/usr/bin/cpp",
+            "cStandard": "c17",
+            "cppStandard": "c++17",
+            "intelliSenseMode": "linux-gcc-x64"
         }
     ]
 }

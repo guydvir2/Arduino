@@ -1,0 +1,74 @@
+{
+    "numSW": 1,
+    "OnatBoot": [
+        false,
+        false
+    ],
+    "sw_names": [
+        "switch1",
+        "switch1"
+    ],
+    "useInputs": [
+        true,
+        false
+    ],
+    "useIndicLED": [
+        false,
+        false
+    ],
+    "inputPressed": [
+        false,
+        false
+    ],
+    "inputPin": [
+        12,
+        4
+    ],
+    "outputPin": [
+        2,
+        5
+    ],
+    "indicPin": [
+        13,
+        11
+    ],
+    "indic_ON": [
+        true,
+        true
+    ],
+    "output_ON": [
+        false,
+        true
+    ],
+    "defaultTimeout": [
+        10,
+        15
+    ],
+    "maxTimeout": [
+        240,
+        360
+    ],
+    "trigType": [
+        0,
+        0
+    ],
+    "defPWM": [
+        2,
+        3
+    ],
+    "limitPWM": [
+        90,
+        90
+    ],
+    "outputPWM": [
+        false,
+        false
+    ],
+    "maxPWMpresses": [
+        3,
+        3
+    ],
+    "PWM_res": 1023,
+    "sketch_JSON_Psize": 1250,
+    "v_file": 0.9
+}

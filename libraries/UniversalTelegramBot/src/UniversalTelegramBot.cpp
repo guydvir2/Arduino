@@ -776,6 +776,7 @@ void UniversalTelegramBot::closeClient() {
     #endif
     client->stop();
   }
+  client->stop(); // added by guyDvir
 }
 
 bool UniversalTelegramBot::getFile(String& file_path, long& file_size, const String& file_id)

@@ -133,8 +133,8 @@ void display_ON_clock()
 }
 void display_OFF_clock()
 {
-        char timeStamp[50];
-        char dateStamp[50];
+        char timeStamp[15];
+        char dateStamp[15];
         static long swapLines_counter = 0;
 
         iot.return_clock(timeStamp);

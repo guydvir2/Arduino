@@ -1,11 +1,11 @@
 {
-    "numSW": 2,
+    "numSW": 1,
     "OnatBoot": [
         true,
         true
     ],
     "sw_names": [
-        "Projector",
+        "Plug1",
         "Ledstrip"
     ],
     "trigType": [
@@ -13,11 +13,11 @@
         1
     ],
     "useInput": [
-        false,
+        true,
         false
     ],
     "useIndicLED": [
-        false,
+        true,
         false
     ],
     "inputPressed": [
@@ -25,7 +25,7 @@
         true
     ],
     "inputPin": [
-        14,
+        0,
         13
     ],
     "outputPin": [
@@ -33,7 +33,7 @@
         5
     ],
     "indicPin": [
-        0,
+        13,
         11
     ],
     "indic_ON": [
@@ -45,7 +45,7 @@
         true
     ],
     "def_TO_minutes": [
-        120,
+        180,
         180
     ],
     "maxON_minutes": [
@@ -69,5 +69,6 @@
         false
     ],
     "PWM_res": 1023,
-    "v_file": 0.81
+    "sketch_JSON_Psize": 1250,
+    "v_file": 0.82
 }

@@ -1,16 +1,16 @@
 
 /**
  * Created by K. Suwatchai (Mobizt)
- * 
+ *
  * Email: k_suwatchai@hotmail.com
- * 
+ *
  * Github: https://github.com/mobizt/Firebase-ESP-Client
- * 
+ *
  * Copyright (c) 2022 mobizt
  *
-*/
+ */
 
-//This example shows how to get the documents in a document collection. This operation required Email/password, custom or OAUth2.0 authentication.
+// This example shows how to get the documents in a document collection. This operation required Email/password, custom or OAUth2.0 authentication.
 
 #if defined(ESP32)
 #include <WiFi.h>
@@ -20,7 +20,7 @@
 
 #include <Firebase_ESP_Client.h>
 
-//Provide the token generation process info.
+// Provide the token generation process info.
 #include <addons/TokenHelper.h>
 
 /* 1. Define the WiFi credentials */
@@ -37,7 +37,7 @@
 #define USER_EMAIL "USER_EMAIL"
 #define USER_PASSWORD "USER_PASSWORD"
 
-//Define Firebase Data object
+// Define Firebase Data object
 FirebaseData fbdo;
 
 FirebaseAuth auth;
@@ -72,26 +72,36 @@ void setup()
     auth.user.password = USER_PASSWORD;
 
     /* Assign the callback function for the long running token generation task */
-    config.token_status_callback = tokenStatusCallback; //see addons/TokenHelper.h
+    config.token_status_callback = tokenStatusCallback; // see addons/TokenHelper.h
+
+#if defined(ESP8266)
+    // In ESP8266 required for BearSSL rx/tx buffer for large data handle, increase Rx size as needed.
+    fbdo.setBSSLBufferSize(2048 /* Rx buffer size in bytes from 512 - 16384 */, 2048 /* Tx buffer size in bytes from 512 - 16384 */);
+#endif
+
+    // Limit the size of response payload to be collected in FirebaseData
+    fbdo.setResponseSize(2048);
 
     Firebase.begin(&config, &auth);
-    
+
     Firebase.reconnectWiFi(true);
 }
 
 void loop()
 {
 
+    // Firebase.ready() should be called repeatedly to handle authentication tasks.
+
     if (Firebase.ready() && !taskCompleted)
     {
         taskCompleted = true;
-        //Should run the Create_Documents.ino prior to test this example to create the documents in the collection Id at a0/b0/c0
+        // Should run the Create_Documents.ino prior to test this example to create the documents in the collection Id at a0/b0/c0
 
-        //a0 is the collection id, b0 is the document id in collection a0 and c0 is the collection id id in the document b0.
+        // a0 is the collection id, b0 is the document id in collection a0 and c0 is the collection id id in the document b0.
         String collectionId = "a0/b0/c0";
 
-        //If the collection Id path contains space e.g. "a b/c d/e f"
-        //It should encode the space as %20 then the collection Id will be "a%20b/c%20d/e%20f"
+        // If the collection Id path contains space e.g. "a b/c d/e f"
+        // It should encode the space as %20 then the collection Id will be "a%20b/c%20d/e%20f"
 
         Serial.print("List the documents in a collection... ");
 

@@ -19,7 +19,7 @@
 #define OLED_RESET LED_BUILTIN
 
 // ********** Sketch Services  ***********
-#define VEr "theDude_v3"
+#define VEr "theDude_v3.1"
 
 
 // ~~~~~~~ MQTT Topics ~~~~~~

@@ -55,16 +55,15 @@ void startIOTservices()
         iot.useOTA = true;
         iot.useResetKeeper = true;
         iot.useextTopic = false;
-        iot.useDebug = false;
+        iot.useDebug = true;
         iot.debug_level = 0;
         iot.useNetworkReset = true;
         iot.noNetwork_reset = 10;
-        iot.useBootClockLog = false;
-        iot.useAltermqttServer = false;
+        iot.useBootClockLog = true;
         iot.ignore_boot_msg = false;
-        iot.deviceTopic = DEVICE_TOPIC;
-        iot.prefixTopic = MQTT_PREFIX;
-        iot.addGroupTopic = MQTT_GROUP;
+        strcpy(iot.deviceTopic,DEVICE_TOPIC);
+        strcpy(iot.prefixTopic,MQTT_PREFIX);
+        strcpy(iot.addGroupTopic,MQTT_GROUP);
 
         iot.start_services(addiotnalMQTT);
 }
@@ -226,8 +225,6 @@ void addiotnalMQTT(char *incoming_msg)
         }
         else
         {
-                iot.inline_read(incoming_msg);
-
                 if (strcmp(iot.inline_param[0], "bright") == 0)
                 {
                         set_bright(atoi(iot.inline_param[1]));
@@ -243,7 +240,7 @@ void setup()
 {
         startIOTservices();
         start_LEDS();
-        turn_leds_on(3, 20, 1);
+        turn_leds_on(4, 20, 1);
 }
 void loop()
 {

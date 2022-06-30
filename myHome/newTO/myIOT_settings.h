@@ -6,14 +6,15 @@ extern void simplifyClock(char *days, char *clk, char retVal[25]);
 void addiotnalMQTT(char *incoming_msg)
 {
     char msg[150];
-    char msg2[60];
+
     if (strcmp(incoming_msg, "status") == 0)
     {
+        char msg2[100];
         sprintf(msg, "Status: ");
         for (int i = 0; i < numSW; i++)
         {
-            char s1[15], s2[7];
-            char clk[60], clk2[25], clk3[25];
+            char s1[15], s2[10];
+            char clk[100], clk2[20], clk3[25];
             char state[15];
             if (outputPWM[i] == false)
             {
@@ -24,18 +25,15 @@ void addiotnalMQTT(char *incoming_msg)
             {
                 if (TOsw[i]->remTime() > 0)
                 {
-                    sprintf(clk2, "Power[%d/%d]", TOsw[i]->pCounter, (int)TOsw[i]->max_pCount);
-                    strcpy(state, clk2);
+                    sprintf(state, "Power[%d/%d]", TOsw[i]->pCounter, (int)TOsw[i]->max_pCount);
                 }
                 else
                 {
                     sprintf(state, "[%s]", "OFF");
                 }
             }
-
             if (TOsw[i]->remTime() > 0)
             {
-                char clk[25];
                 iot.convert_epoch2clock(TOsw[i]->remTime(), 0, s1, s2);
                 simplifyClock(s2, s1, clk2);
                 sprintf(clk, "started[%s] remain[%s] ", iot.get_timeStamp(clk3, TOsw[i]->onClk()), clk2);
@@ -48,28 +46,12 @@ void addiotnalMQTT(char *incoming_msg)
             sprintf(msg2, "[%s] %s %s", sw_names[i], state, clk);
             strcat(msg, msg2);
         }
+        Serial.println(msg);
         iot.pub_msg(msg);
-    }
-    else if (strcmp(incoming_msg, "show_flash_param") == 0)
-    {
-        char temp[400];
-        char temp3[450];
-        char *a[] = {iot.myIOT_paramfile, sketch_paramfile};
-        iot.pub_debug("~~~Start~~~");
-        for (int e = 0; e < sizeof(a) / sizeof(a[0]); e++)
-        {
-            char *fParams = iot.export_fPars(a[e], sketchJSON, JSON_SIZE_SKETCH);
-            strcpy(temp, fParams); /* select the bigger file */
-            sprintf(temp3, "%s: %s", a[e], temp);
-            iot.pub_debug(temp3);
-            sketchJSON.clear();
-            delete[] fParams;
-        }
-        iot.pub_debug("~~~End~~~");
     }
     else if (strcmp(incoming_msg, "ver2") == 0)
     {
-        sprintf(msg, "ver #2: [%s], timeoutSw[%s]", VER, TOsw[0]->Ver);
+        sprintf(msg, "ver2: [%s], timeoutSw[%s]", VER, TOsw[0]->Ver);
         iot.pub_msg(msg);
     }
     else if (strcmp(incoming_msg, "all_off") == 0)
@@ -88,13 +70,13 @@ void addiotnalMQTT(char *incoming_msg)
     }
     else if (strcmp(incoming_msg, "help2") == 0)
     {
-        sprintf(msg, "Help2: Commands #3 - [{i,on}, {i,off}, {i,remain}, all_off, all_on, {i, timeout,minutes,_pwm}, show_flash_param]");
+        sprintf(msg, "Help2: Commands #3 - [{i,on}, {i,off}, {i,remain}, all_off, all_on, {i, timeout,minutes,_pwm}]");
         iot.pub_msg(msg);
     }
+
     else
     {
-        int num_parameters = iot.inline_read(incoming_msg);
-        if (num_parameters > 1)
+        if (iot.num_p > 1)
         {
             if (strcmp(iot.inline_param[1], "timeout") == 0)
             {
@@ -104,7 +86,14 @@ void addiotnalMQTT(char *incoming_msg)
                 }
                 else
                 {
-                    TOsw[atoi(iot.inline_param[0])]->pCounter = atoi(iot.inline_param[3]);
+                    if (iot.num_p > 3)
+                    {
+                        TOsw[atoi(iot.inline_param[0])]->pCounter = atoi(iot.inline_param[3]);
+                    }
+                    else
+                    {
+                        TOsw[atoi(iot.inline_param[0])]->pCounter = defPWM[atoi(iot.inline_param[0])];
+                    }
                     TOsw[atoi(iot.inline_param[0])]->start_TO(atoi(iot.inline_param[2]), 2);
                 }
             }
@@ -112,7 +101,7 @@ void addiotnalMQTT(char *incoming_msg)
             {
                 if (!outputPWM[atoi(iot.inline_param[0])])
                 {
-                    if (num_parameters == 2)
+                    if (iot.num_p == 2)
                     {
                         TOsw[atoi(iot.inline_param[0])]->start_TO(TOsw[atoi(iot.inline_param[0])]->maxON_minutes, 2); /* max time*/
                     }
@@ -123,7 +112,7 @@ void addiotnalMQTT(char *incoming_msg)
                 }
                 else /* Define PWM level */
                 {
-                    if (num_parameters == 2)
+                    if (iot.num_p == 2)
                     {
                         TOsw[atoi(iot.inline_param[0])]->pCounter = 2;
                     }
@@ -161,18 +150,6 @@ void addiotnalMQTT(char *incoming_msg)
 }
 void startIOTservices()
 {
-    iot.useSerial = paramJSON["useSerial"];
-    iot.useWDT = paramJSON["useWDT"];
-    iot.useOTA = paramJSON["useOTA"];
-    iot.useResetKeeper = paramJSON["useResetKeeper"];
-    iot.useDebug = paramJSON["useDebugLog"];
-    iot.debug_level = paramJSON["debug_level"];
-    iot.useNetworkReset = paramJSON["useNetworkReset"];
-    iot.noNetwork_reset = paramJSON["noNetwork_reset"];
-    iot.useextTopic = paramJSON["useextTopic"];
-    iot.useBootClockLog = paramJSON["useBootClockLog"];
-    strcpy(iot.deviceTopic, paramJSON["deviceTopic"]);
-    strcpy(iot.prefixTopic, paramJSON["prefixTopic"]);
-    strcpy(iot.addGroupTopic, paramJSON["groupTopic"]);
+    iot.useFlashP = true;
     iot.start_services(addiotnalMQTT);
 }

@@ -1,25 +1,24 @@
 #include <myIPmonitor.h>
 
 IPmonitoring::IPmonitoring(char *IP, char *nick)
-    : _IP(IP), nick(nick), _conlog_filename(_str_concat(nick, "_connlog.txt")), _conFlog(_conlog_filename)
+    : _IP(IP), nick(nick), _conlog_filename(_str_concat(nick, "_connlog.txt")), _ConnectLOG(_conlog_filename)
 {
 }
 IPmonitoring::~IPmonitoring()
 {
         delete[] _conlog_filename;
 }
-void IPmonitoring::start(cb_func ping, cb_func outmsg)
+void IPmonitoring::start(F_cb ping, F_cb outmsg)
 {
-        char a[80];
+        char a[60];
         _ping_cb = ping;
         if (outmsg != NULL)
         {
                 _msgOUT = true;
                 _msgout_cb = outmsg;
         }
-        if (_verify_internet_ok())
+        if (_boot_chk_internet_ntp())
         {
-                bootClk = time(nullptr);
                 sprintf(a, "pings %s", _IP);
                 _post_msg(a, 1);
                 if (!_startFlogs())
@@ -39,12 +38,12 @@ void IPmonitoring::loop()
         _ping_looper();
         _loopFlogs();
 }
-bool IPmonitoring::_verify_internet_ok()
+bool IPmonitoring::_boot_chk_internet_ntp()
 {
         time_t t = time(nullptr);
         struct tm *tm = localtime(&t);
 
-        if (WiFi.status() == WL_CONNECTED && tm->tm_year != 1970)
+        if (WiFi.status() == WL_CONNECTED && tm->tm_year > 120)
         {
                 _needRESET = false;
                 return 1;
@@ -58,20 +57,20 @@ bool IPmonitoring::_ping_client()
 {
         const uint8_t retries = 3;
         uint8_t retCounter = 0;
-        bool pingOK = false;
+        bool pingState = false;
 
-        while (pingOK == false && retCounter < retries) /* Ping retires until success or retries */
+        while (pingState == false && retCounter < retries) /* Ping retires until success or retries */
         {
                 if (WiFi.status() == WL_CONNECTED)
                 {
-                        pingOK = _ping_cb(_IP, 3);
+                        pingState = _ping_cb(_IP, 3);
                 }
                 retCounter++;
         }
 
-        if (pingOK != isConnected || _firstPing == true) /* Change of connection state or first time */
+        if (pingState != connState || _firstPing == true) /* Change of connection state or first time */
         {
-                if (pingOK == true)
+                if (pingState)
                 {
                         _reconnect_cb();
                 }
@@ -79,10 +78,10 @@ bool IPmonitoring::_ping_client()
                 {
                         _disconnect_cb();
                 }
-                isConnected = pingOK;
+                connState = pingState;
                 _firstPing = false;
         }
-        return isConnected;
+        return connState;
 }
 void IPmonitoring::_ping_looper()
 {
@@ -92,12 +91,18 @@ void IPmonitoring::_ping_looper()
                 _lastCheck = millis();
                 if (_ping_client()) /* Ping OK*/
                 {
-                        if (_pingCounter <= pingsOK)
+                        if (_pingCounter == pingsOK)
+                        {
+                                _adaptive_ping_val = MAXPING_TIME;
+                                _post_msg("Max_PING", 2);
+                                _pingCounter++;
+                        }
+                        else
                         {
                                 _pingCounter++;
                         }
                 }
-                else                /* Ping fails */
+                else /* Ping fails */
                 {
                         if (_pingCounter != 0)
                         {
@@ -106,36 +111,25 @@ void IPmonitoring::_ping_looper()
                                 _post_msg("Min_PING", 2);
                         }
                 }
-
-                if (_pingCounter == pingsOK)
-                {
-                        _adaptive_ping_val = MAXPING_TIME;
-                        _post_msg("Max_PING", 2);
-                }
         }
 }
 void IPmonitoring::_disconnect_cb()
 {
         char a[50];
-        time_t t = time(nullptr);
-
-        currentstateClk = t;
-        dCounter++;
         _LOGdisconnection();
-        sprintf(a, "%s disconnect [#%d]", nick, dCounter);
+        currentstateClk = time(nullptr);
+        sprintf(a, "%s disconnect [#%d]", nick, ++dCounter);
         _post_msg(a, 0);
 }
 void IPmonitoring::_reconnect_cb()
 {
         time_t t = time(nullptr);
-        if (currentstateClk >= MINPING_TIME)
+        if ((t - currentstateClk) >= MINPING_TIME && currentstateClk != 0)
         {
-                char a[50];
-                char b[20];
-
+                char a[50], b[20];
                 _conv_epoch_duration(t, currentstateClk, b);
                 sprintf(a, "reconnect [#%d] after [%s]", dCounter, b);
-                _post_msg(a, 0);
+                _post_msg(a, 1);
                 _LOGconnection();
                 currentstateClk = t;
         }
@@ -159,6 +153,7 @@ void IPmonitoring::_reset_bootFailure()
                         if (millis() >= 1000UL * RESET_BOOT_ERR + reset_delay)
                         {
                                 _post_msg("No internet on Boot", 1);
+                                delay(500);
 #if isESP8266
                                 ESP.reset();
 #elif isESP32
@@ -188,27 +183,28 @@ void IPmonitoring::getStatus(int h)
         unsigned int total_disc = 0;
         unsigned int total_boots = 0;
 
-        const unsigned int total_records = _conFlog.getnumlines();
+        const unsigned int total_records = _ConnectLOG.getnumlines();
         for (int i = 0; i < total_records - 1; i++)
         {
                 /* return_logTime2 is log entry after return_logTime1 */
                 time_t t = time(nullptr);
-                _readFlog_2row(_conFlog, i, return_logTime1, return_reason1);
+                _readLOG(_ConnectLOG, i, return_logTime1, return_reason1);
+
                 if (t - return_logTime1 <= hrs2sec) /* Meets time interval critetia */
                 {
-                        _readFlog_2row(_conFlog, i + 1, return_logTime2, return_reason2);
+                        _readLOG(_ConnectLOG, i + 1, return_logTime2, return_reason2);
 
-                        if (return_reason1 == 0 && return_reason2 != 0)               /* Disconnect record */
+                        if (return_reason1 == 0 && return_reason2 != 0) /* Disconnect record */
                         {
                                 cum_dTime += return_logTime2 - return_logTime1;
                                 total_disc++;
                         }
-                        else if (return_reason1 == 1 && return_reason2 != 1)          /* Reconnect record */
+                        else if (return_reason1 == 1 && return_reason2 != 1) /* Reconnect record */
                         {
                                 cum_cTime += return_logTime2 - return_logTime1;
                                 total_c++;
                         }
-                        else if (return_reason1 == 2)                                 /* Reboot Record */
+                        else if (return_reason1 == 2) /* Reboot Record */
                         {
                                 cum_cTime += return_logTime2 - return_logTime1;
                                 total_boots++;
@@ -216,7 +212,7 @@ void IPmonitoring::getStatus(int h)
                 }
         }
 
-        _readFlog_2row(_conFlog, total_records - 1, return_logTime1, return_reason1); /* last record and present state */ 
+        _readLOG(_ConnectLOG, total_records - 1, return_logTime1, return_reason1); /* last record and present state */
         time_t t = time(nullptr);
         if (return_reason1 == 2)
         {
@@ -236,9 +232,9 @@ void IPmonitoring::getStatus(int h)
 
         _conv_epoch_duration(cum_cTime, 0, connect_duration);
         _conv_epoch_duration(cum_dTime, 0, disco_duration);
-        sprintf(a, "Records: Total/ Disconnects/ Reconnects/ Reboots:[%d/ %d/ %d/ %d]", total_records, total_disc, total_c, total_boots);
+        sprintf(a, "**Records: Total:[%d]; Disconnects:[%d]; Reconnects:[%d]; Reboots:[%d]", total_records, total_disc, total_c, total_boots);
         _post_msg(a, 0);
-        sprintf(a, "Durations: Disconnected/Connected:[%s/ %s]", disco_duration, connect_duration);
+        sprintf(a, "**Durations: Disconnected:[%s]; Connected:[%s]", disco_duration, connect_duration);
         _post_msg(a, 0);
 }
 void IPmonitoring::_post_msg(char *inmsg, uint8_t msg_type)
@@ -249,18 +245,18 @@ void IPmonitoring::_post_msg(char *inmsg, uint8_t msg_type)
 
         _conv_epoch(t, Clk);
         sprintf(msg, "[%s] [%s] %s", Clk, nick, inmsg);
-        Serial.println(msg);
         if (_msgOUT)
         {
                 sprintf(msg, "[%s] %s", nick, inmsg);
                 _msgout_cb(msg, msg_type);
+                Serial.println(msg);
         }
 }
 
 // ~~~~~~~~~~FlashLOGS~~~~~~~~~~~
 void IPmonitoring::deleteLOG()
 {
-        _conFlog.delog();
+        _ConnectLOG.delog();
 }
 void IPmonitoring::printFlog(int i)
 {
@@ -271,14 +267,19 @@ void IPmonitoring::printFlog(int i)
                 char msg[80];
                 char clock[25];
                 const char *logTypes[] = {"Disconnect", "Reconnect", "Boot"};
-                int x = _conFlog.getnumlines();
+                int x = _ConnectLOG.getnumlines();
+                Serial.print("nick: ");
+                Serial.println(nick);
+                Serial.print("log_lines: ");
+                Serial.println(x);
 
                 for (int a = 0; a < x; a++)
                 {
-                        _readFlog_2row(_conFlog, a, return_logTime, return_reason);
+                        _readLOG(_ConnectLOG, a, return_logTime, return_reason);
                         _conv_epoch(return_logTime, clock);
-                        sprintf(msg, "log entry:[#%03d] Clk:[%s] Type:[%s]", a, clock, logTypes[return_reason]);
+                        sprintf(msg, "[#%03d] [%s] [%s]", a, clock, logTypes[return_reason]);
                         _post_msg(msg, 2);
+                        Serial.println(msg);
                 }
         }
 }
@@ -286,34 +287,34 @@ void IPmonitoring::enter_fake_LOGentry(time_t t, uint8_t reason)
 {
         char c[20];
         sprintf(c, "%d,%d", t, reason);
-        _conFlog.write(c, true);
+        _ConnectLOG.write(c, true);
 }
 bool IPmonitoring::_startFlogs()
 {
-        return _conFlog.start(ENTRY_LENGTH, LOG_ENTRIES);
+        return _ConnectLOG.start(LOG_ENTRIES);
 }
 void IPmonitoring::_loopFlogs()
 {
-        _conFlog.looper();
+        _ConnectLOG.looper();
 }
 void IPmonitoring::_LOGconnection()
 {
         time_t t = time(nullptr);
         if (currentstateClk != 0)
         {
-                _writeFlog_2row(_conFlog, 1, t, true); /* 1==reconnect */
+                _writeLOG(_ConnectLOG, 1, t, true); /* 1==reconnect */
         }
         else
         {
-                _writeFlog_2row(_conFlog, 2, t, true); /* 2== boot & Pןing OK*/
+                _writeLOG(_ConnectLOG, 2, t, true); /* 2== boot & Pןing OK*/
         }
 }
 void IPmonitoring::_LOGdisconnection()
 {
         time_t t = time(nullptr);
-        _writeFlog_2row(_conFlog, 0, t, true);
+        _writeLOG(_ConnectLOG, 0, t, true);
 }
-void IPmonitoring::_readFlog_2row(flashLOG &LOG, int numLine, time_t &retTime, uint8_t &retType)
+void IPmonitoring::_readLOG(flashLOG &LOG, int numLine, time_t &retTime, uint8_t &retType)
 {
         char a[20];
         if (LOG.readline(numLine, a))
@@ -327,22 +328,22 @@ void IPmonitoring::_readFlog_2row(flashLOG &LOG, int numLine, time_t &retTime, u
                 Serial.println("BAd read");
         }
 }
-void IPmonitoring::_writeFlog_2row(flashLOG &LOG, uint8_t Reason, time_t value, bool writenow)
+void IPmonitoring::_writeLOG(flashLOG &LOG, uint8_t Reason, time_t value, bool writenow)
 {
         /* Reason can be: 0: disconnect, 1: Reconnect, 2:Boot */
-        char c[20];
+        char msg[20];
 
         time_t t = time(nullptr);
         struct tm *tm = localtime(&t);
 
-        if (tm->tm_year + 1900 == 1970)
+        if (tm->tm_year < 120)
         {
                 _post_msg("NTP is not set - not entering logs entries", 1);
         }
         else
         {
-                sprintf(c, "%d,%d", value, Reason);
-                LOG.write(c, writenow);
+                sprintf(msg, "%d,%d", (unsigned long)value, Reason);
+                LOG.write(msg, writenow);
         }
 }
 
