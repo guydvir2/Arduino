@@ -17,17 +17,46 @@ void notifyON(uint8_t &i, const char *trigger)
     iot.pub_msg(a);
 }
 
+void status_mqtt()
+{
+    for (uint8_t i = 0; i < numSW; i++)
+    {
+        char a[200];
+        char b[50];
+        char pwmstep[25];
+        unsigned int rem = remainWatch(i);
+
+        sprintf(a, "Status: [%s] [%s]", sw_names[i], lightVector[i]->isON() ? "ON" : "OFF");
+
+        if (outputPWM[i] && rem > 0)
+        {
+            sprintf(pwmstep, " Power [%d/%d]", lightVector[i]->currentStep, lightVector[i]->maxSteps);
+            strcat(a, pwmstep);
+        }
+
+        if (rem > 0)
+        {
+            char clk[25];
+            char clk2[25];
+            iot.convert_epoch2clock(rem, 0, clk);
+            iot.convert_epoch2clock(timeouts[i] - rem, 0, clk2);
+            sprintf(b, " on-Time [%s], Remain[%s]", clk, clk2);
+            strcat(a, b);
+        }
+
+        iot.pub_msg(a);
+    }
+}
 void addiotnalMQTT(char *incoming_msg, char *_topic)
 {
     char msg[150];
     if (strcmp(incoming_msg, "status") == 0)
     {
-        sprintf(msg, "BOOOOO");
-        iot.pub_msg(msg);
+        status_mqtt();
     }
     else if (strcmp(incoming_msg, "help2") == 0)
     {
-        sprintf(msg, "help #2:No other functions");
+        sprintf(msg, "help #2:{[i],[on/off],optional-[duration],optional-[pwm_intense]}, {[i],remain}, {[i],[add_time]}");
         iot.pub_msg(msg);
     }
     else if (strcmp(incoming_msg, "ver2") == 0)

@@ -2,21 +2,27 @@ class TurnLightsON
 {
 #define TURN_ON digitalWrite(Pin, _isON)
 #define TURN_OFF digitalWrite(Pin, !_isON)
+#define INDIC_ON _useAuxFlag ? digitalWrite(auxPin, HIGH) : yield()
+#define INDIC_OFF _useAuxFlag ? digitalWrite(auxPin, LOW) : yield()
 #define IS_OUTPUT_ON digitalRead(Pin) == _isON
 
 private:
-    bool _isON = HIGH;
-    bool _PWMmode = true;
-    bool _useDim = false; /* PWM only */
+    bool _isON = HIGH;        /* GPIO only */
+    bool _PWMmode = true;     /* select PWM or GPIO */
+    bool _useDim = false;     /* PWM only */
+    bool _useAuxFlag = false; /* PWM & GPIO */
 
 public:
     int PWMval = 0;
     int PWMres = 1023;
-    int defPWMvalue = (int)(PWMres * 0.7);
 
     uint8_t Pin = 255;
+    uint8_t auxPin = 255;
     uint8_t defStep = 2;
+    uint8_t dimStep = 2;
+    uint8_t dimDelay = 1;
     uint8_t maxSteps = 3;
+    uint8_t limitPWM = 100; /* Percentage of total power */
     uint8_t currentStep = 0;
 
 protected:
@@ -48,6 +54,12 @@ public:
         _isON = isON;
         pinMode(Pin, OUTPUT);
     }
+    void auxFlag(uint8_t pin)
+    {
+        auxPin = pin;
+        pinMode(auxPin, OUTPUT);
+        _useAuxFlag = true;
+    }
 
     void turnOFF() /* PWM & GPIO */
     {
@@ -60,17 +72,20 @@ public:
         {
             TURN_OFF;
         }
+        INDIC_OFF;
     }
     void turnON(uint8_t step = 0) /* PWM & GPIO */
     {
         if (_PWMmode)
         {
-            step == 0 ? _setPWM(defPWMvalue) : _setPWM(_step2Value(step));
+            step == 0 ? currentStep = defStep : currentStep = step;
+            _setPWM(_step2Value(currentStep));
         }
         else
         {
             TURN_ON;
         }
+        INDIC_ON;
     }
     void PWMvalue(int val)
     {
@@ -106,20 +121,21 @@ private:
             }
             else
             {
-                analogWrite(Pin, val);
+                analogWrite(Pin, (val*limitPWM)/100);
+                PWMval = val;
             }
-            PWMval = val;
         }
     }
     void _Dim2Value(int &val)
     {
-        int PWMstep_change = 1;
+        int PWMstep_change = dimDelay;
 
         val > PWMval ? PWMstep_change = PWMstep_change : PWMstep_change = -PWMstep_change;
         while (abs(val - PWMval) >= abs(PWMstep_change))
         {
-            analogWrite(Pin, PWMval + PWMstep_change);
-            delay(1);
+            PWMval += PWMstep_change;
+            analogWrite(Pin, (PWMval*limitPWM)/100);
+            delay(dimDelay);
         }
     }
     bool _isValidPWM(int val)

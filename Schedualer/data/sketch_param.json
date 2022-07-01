@@ -64,11 +64,15 @@
         false,
         false
     ],
+    "dimPWM": [
+        false,
+        false
+    ],
     "maxPWMpresses": [
         3,
         3
     ],
     "PWM_res": 1023,
     "sketch_JSON_Psize": 1250,
-    "v_file": 0.9
+    "v_file": 0.91
 }

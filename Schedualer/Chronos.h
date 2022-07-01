@@ -12,7 +12,7 @@ unsigned int remainWatch(uint8_t i = 0)
 {
     if (chronVector[i]->isRunning())
     {
-        return chronVector[i]->elapsed() / 1000;
+        return chronVector[i]->elapsed();
     }
     else
     {
