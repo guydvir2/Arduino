@@ -40,7 +40,7 @@ void loopAllWatches()
 {
     for (uint8_t i = 0; i < numSW; i++)
     {
-        if (chronVector[i]->isRunning() && chronVector[i]->hasPassed(timeouts[i]))
+        if (chronVector[i]->isRunning() && chronVector[i]->hasPassed(timeouts[i]*60))
         {
             OFFcmd(i, SRCS[TIMEOUT]);
         }

@@ -15,6 +15,7 @@ void startOUTPUTSio()
   {
     outputPWM[x] == true ? lightVector[x]->init(outputPin[x], PWM_res, dimPWM[x]) : lightVector[x]->init(outputPin[x], output_ON[x]);
     OnatBoot[x] == true ? lightVector[x]->turnON() : lightVector[x]->turnOFF();
+    lightVector[x]->limitPWM = limitPWM[x];
 
     if (useIndicLED[x])
     {
@@ -29,8 +30,8 @@ void ONcmd(uint8_t i, uint8_t _TO, const char *trigger, uint8_t _PWMstep)
   {
     _TO == 0 ? timeouts[i] = defaultTimeout[i] : timeouts[i] = _TO;
     startWatch(i);
-    notifyON(i, trigger);
     lightVector[i]->turnON(_PWMstep);
+    notifyON(i, trigger);
   }
 }
 void OFFcmd(uint8_t i, const char *trigger)
@@ -64,7 +65,6 @@ void bootSummary()
     Serial.print("sw_names:\t");
     Serial.println(sw_names[i]);
 
-
     Serial.print("useInputs:\t");
     Serial.println(useInputs[i]);
 
@@ -76,7 +76,6 @@ void bootSummary()
 
     Serial.print("trigType:\t");
     Serial.println(trigType[i]);
-
 
     Serial.print("useIndicLED:\t");
     Serial.println(useIndicLED[i]);
@@ -124,8 +123,8 @@ void setup()
   read_flashParameter();
   startOUTPUTSio();
   startButtons();
-  startIOTservices();
   stopAllWatches();
+  startIOTservices();
   bootSummary();
 }
 void loop()
