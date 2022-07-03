@@ -2,7 +2,7 @@
 
 flashLOG::flashLOG(char *filename)
 {
-    strcpy(_logfilename,filename);
+    _logfilename = filename;
 }
 bool flashLOG::start(int max_entries, bool delyedSave, bool debugmode)
 {

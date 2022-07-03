@@ -24,7 +24,7 @@ private:
     const char _EOL = '\n';
     bool _useDebug = false;
     bool _useDelayedSave = true;
-    char _logfilename[20] = {"/logfile.txt"};
+    char *_logfilename = "/logfile1234567.txt";
 
 public:
     char *VeR = "flashLOG v2.3";

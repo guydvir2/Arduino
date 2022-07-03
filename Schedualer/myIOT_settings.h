@@ -140,6 +140,7 @@ void startIOTservices()
 
     iot.TOPICS_JSON["pub_gen_topics"][0] = "myHome/Messages";
     iot.TOPICS_JSON["pub_gen_topics"][1] = "myHome/log";
+    iot.TOPICS_JSON["pub_gen_topics"][2] = "myHome/debug";
 
     iot.TOPICS_JSON["pub_topics"][0] = "myHome/intlights/test/Avail";
     iot.TOPICS_JSON["pub_topics"][1] = "myHome/intlights/test/State";

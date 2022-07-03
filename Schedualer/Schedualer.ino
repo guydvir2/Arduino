@@ -1,3 +1,4 @@
+#include<Arduino.h>
 #include <myIOT2.h>
 #include <Button2.h>
 #include <Chrono.h>
@@ -118,6 +119,8 @@ void bootSummary()
   }
 }
 
+#include <timeoutButton.h>
+timeoutButton TOB;
 void setup()
 {
   read_flashParameter();
@@ -132,5 +135,4 @@ void loop()
   iot.looper();
   loopAllWatches();
   Button_looper();
-  delay(100);
 }
