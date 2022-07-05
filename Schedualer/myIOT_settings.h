@@ -1,33 +1,81 @@
 void notifyAdd(uint8_t &i, int &_add, const char *trigger)
 {
     char a[50];
-    sprintf(a, "%s: [%s] Added [%d] seconds, total [%d] seconds", trigger, sw_names[i], _add, timeouts[i]);
+    sprintf(a, "%s: [%s] Added [%d] minutes, total [%d] minutes", trigger, sw_names[i], _add, timeouts[i]);
     iot.pub_msg(a);
 }
 void notifyOFF(uint8_t &i, int &_elapsed, const char *trigger)
 {
     char a[50];
-    sprintf(a, "%s: [%s] Switched [Off] after [%d] seconds", trigger, sw_names[i], _elapsed);
+    char clk[25];
+    iot.convert_epoch2clock(_elapsed, 0, clk);
+    sprintf(a, "%s: [%s] Switched [Off] after [%s]", trigger, sw_names[i], clk);
+    if (remainWatch(i) <= 1)
+    {
+        char b[20];
+        iot.convert_epoch2clock(timeouts[i] * 60 - _elapsed, 0, clk);
+        sprintf(b, " Remain [%s]", clk);
+        strcat(a, b);
+    }
     iot.pub_msg(a);
 }
 void notifyON(uint8_t &i, const char *trigger)
 {
     char a[50];
-    sprintf(a, "%s: [%s] Switched [On] for [%d] seconds", trigger, sw_names[i], timeouts[i]);
+    char b[30];
+    char clk[25];
+    iot.convert_epoch2clock(timeouts[i] * 60, 0, clk);
+    sprintf(a, "%s: [%s] Switched [On] for [%s]", trigger, sw_names[i], clk);
+
+    if (outputPWM[i])
+    {
+        sprintf(b, " Power [%d/%d]", lightVector[i]->currentStep, lightVector[i]->maxSteps);
+        strcat(a, b);
+    }
+
     iot.pub_msg(a);
 }
 
+void status_mqtt()
+{
+    for (uint8_t i = 0; i < numSW; i++)
+    {
+        char a[200];
+        char b[50];
+        char pwmstep[25];
+        unsigned int rem = remainWatch(i);
+
+        sprintf(a, "Status: [%s] [%s]", sw_names[i], lightVector[i]->isON() ? "ON" : "OFF");
+
+        if (outputPWM[i] && rem > 0)
+        {
+            sprintf(pwmstep, " Power [%d/%d]", lightVector[i]->currentStep, lightVector[i]->maxSteps);
+            strcat(a, pwmstep);
+        }
+
+        if (rem > 0)
+        {
+            char clk[25];
+            char clk2[25];
+            iot.convert_epoch2clock(rem, 0, clk);
+            iot.convert_epoch2clock(timeouts[i] * 60 - rem, 0, clk2);
+            sprintf(b, " on-Time [%s], Remain[%s]", clk, clk2);
+            strcat(a, b);
+        }
+
+        iot.pub_msg(a);
+    }
+}
 void addiotnalMQTT(char *incoming_msg, char *_topic)
 {
     char msg[150];
     if (strcmp(incoming_msg, "status") == 0)
     {
-        sprintf(msg, "BOOOOO");
-        iot.pub_msg(msg);
+        status_mqtt();
     }
     else if (strcmp(incoming_msg, "help2") == 0)
     {
-        sprintf(msg, "help #2:No other functions");
+        sprintf(msg, "help #2:{[i],on,optional-[duration],optional-[pwm_intense]}, {[i],off}, {[i],remain}, {[i],add}");
         iot.pub_msg(msg);
     }
     else if (strcmp(incoming_msg, "ver2") == 0)
@@ -63,7 +111,7 @@ void addiotnalMQTT(char *incoming_msg, char *_topic)
 
                 if (chronVector[m]->isRunning())
                 {
-                    int _rem = timeouts[m] - chronVector[m]->elapsed();
+                    int _rem = timeouts[m] * 60 - chronVector[m]->elapsed();
                     iot.convert_epoch2clock(_rem, 0, s1);
                     sprintf(clk, "MQTT: remain [%s] ", s1);
                     iot.pub_msg(clk);
@@ -92,6 +140,7 @@ void startIOTservices()
 
     iot.TOPICS_JSON["pub_gen_topics"][0] = "myHome/Messages";
     iot.TOPICS_JSON["pub_gen_topics"][1] = "myHome/log";
+    iot.TOPICS_JSON["pub_gen_topics"][2] = "myHome/debug";
 
     iot.TOPICS_JSON["pub_topics"][0] = "myHome/intlights/test/Avail";
     iot.TOPICS_JSON["pub_topics"][1] = "myHome/intlights/test/State";

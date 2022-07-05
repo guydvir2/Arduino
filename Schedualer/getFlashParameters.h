@@ -18,6 +18,7 @@ void update_vars(JsonDocument &DOC)
     defPWM[i] = DOC["defPWM"][i];
     limitPWM[i] = DOC["limitPWM"][i];
     outputPWM[i] = DOC["outputPWM"][i];
+    dimPWM[i] = DOC["dimPWM"][i];
 
     indic_ON[i] = DOC["indic_ON"][i];
     indicPin[i] = DOC["indicPin"][i];
@@ -26,9 +27,6 @@ void update_vars(JsonDocument &DOC)
     maxTimeout[i] = DOC["maxTimeout"][i];
     defaultTimeout[i] = DOC["defaultTimeout"][i];
     maxPWMpresses[i] = DOC["maxPWMpresses"][i];
-
-    // TOsw[i]->trigType = DOC["trigType"][i];
-    // TOsw[i]->max_pCount = DOC["max_pCount"][i];
     strcpy(sw_names[i], DOC["sw_names"][i].as<const char *>());
   }
 }

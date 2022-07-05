@@ -5,14 +5,13 @@
         "myHome/debug"
     ],
     "pub_topics": [
-        "myHome/timeout/test/Avail",
-        "myHome/timeout/test/State",
-        "myHome/timeout/test/cmd",
-        "myHome/timeout/test/ex_info"
+        "myHome/intLights/familyRoomLEDs/Avail",
+        "myHome/intLights/familyRoomLEDs/State"
     ],
     "sub_topics": [
-        "myHome/timeout/test",
-        "myHome/timeout"
+        "myHome/intLights/familyRoomLEDs",
+        "myHome/intLights/familyRoomLEDs/lastcmd",
+        "myHome/intLights"
     ],
     "sub_data_topics": [
         "myHome/alarmMonitor"

@@ -5,7 +5,7 @@
         false
     ],
     "sw_names": [
-        "switch1",
+        "LEDstrip",
         "switch1"
     ],
     "useInputs": [
@@ -21,11 +21,11 @@
         false
     ],
     "inputPin": [
-        12,
+        14,
         4
     ],
     "outputPin": [
-        2,
+        5,
         5
     ],
     "indicPin": [
@@ -37,15 +37,15 @@
         true
     ],
     "output_ON": [
-        false,
+        true,
         true
     ],
     "defaultTimeout": [
-        10,
+        180,
         15
     ],
     "maxTimeout": [
-        240,
+        720,
         360
     ],
     "trigType": [
@@ -64,11 +64,15 @@
         false,
         false
     ],
+    "dimPWM": [
+        false,
+        false
+    ],
     "maxPWMpresses": [
         3,
         3
     ],
     "PWM_res": 1023,
-    "sketch_JSON_Psize": 1250,
-    "v_file": 0.9
+    "sketch_JSON_Psize": 1350,
+    "v_file": 0.91
 }
