@@ -20,20 +20,20 @@ void timeoutButton::begin(uint8_t pin, uint8_t trigType, uint8_t id)
   _init_chrono();
 }
 
-void timeoutButton::ON_cb(uint8_t _TO) //, const char *trigger, uint8_t _PWMstep)
+void timeoutButton::ON_cb(int _TO, uint8_t reason) //, const char *trigger, uint8_t _PWMstep)
 {
   if (!chrono.isRunning()) /* Enter when off or at PWM different PWM value */
   {
     _TO == 0 ? timeout = defaultTimeout : timeout = _TO;
     _startWatch();
-    _extOn_cb();
+    _extOn_cb(reason);
   }
 }
-void timeoutButton::OFF_cb() // const char *trigger)
+void timeoutButton::OFF_cb(uint8_t reason) // const char *trigger)
 {
   if (chrono.isRunning())
   {
-    _extOff_cb();
+    _extOff_cb(reason);
     _stopWatch();
   }
 }
@@ -55,13 +55,13 @@ bool timeoutButton::getState()
   return chrono.isRunning();
 }
 
-void timeoutButton::addWatch(int _add, const char *trigger)
+void timeoutButton::addWatch(int _add, uint8_t &reason)
 {
   timeout += _add;
 
   if (!chrono.isRunning()) /* Case not ON */
   {
-    ON_cb(timeout); //, trigger);
+    ON_cb(timeout, reason); //, trigger);
   }
 }
 void timeoutButton::_init_button()
@@ -94,22 +94,22 @@ void timeoutButton::_init_button()
 }
 void timeoutButton::_ON_OFF_on_handle(Button2 &b)
 {
-  ON_cb(timeout);
+  ON_cb(timeout, BUTTON);
 }
 void timeoutButton::_ON_OFF_off_handle(Button2 &b)
 {
-  OFF_cb();
+  OFF_cb(BUTTON);
 }
 void timeoutButton::_Momentary_handle(Button2 &b)
 {
-  chrono.isRunning() ? OFF_cb() : ON_cb(timeout);
+  chrono.isRunning() ? OFF_cb(BUTTON) : ON_cb(timeout, BUTTON);
 }
 void timeoutButton::_TrigSensor_handler(Button2 &b)
 {
   const uint8_t update_timeout = 30; // must have passed this amount of seconds to updates timeout
   unsigned int _remaintime = remainWatch();
 
-  if (_remaintime != 0 && timeout - _remaintime > update_timeout)
+  if (_remaintime != 0 && timeout*60 - _remaintime > update_timeout)
   {
     _startWatch(); /* Restart timeout after 30 sec */
   }
@@ -139,7 +139,7 @@ unsigned int timeoutButton::remainWatch()
 {
   if (chrono.isRunning())
   {
-    return timeout - chrono.elapsed();
+    return timeout*60 - chrono.elapsed();
   }
   else
   {
@@ -149,5 +149,5 @@ unsigned int timeoutButton::remainWatch()
 
 void timeoutButton::_loopWatch()
 {
-  chrono.hasPassed(timeout) ? OFF_cb() : yield();
+  chrono.hasPassed(timeout*60) ? OFF_cb(TIMEOUT) : yield();
 }
