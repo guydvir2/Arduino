@@ -1,9 +1,9 @@
 /**
- * Google's Firebase Realtime Database class, FB_RTDB.cpp version 2.0.0
+ * Google's Firebase Realtime Database class, FB_RTDB.cpp version 1.3.3
  *
  * This library supports Espressif ESP8266 and ESP32
  *
- * Created June 3, 2022
+ * Created February 10, 2022
  *
  * This work is a part of Firebase ESP Client library
  * Copyright (c) 2022 K. Suwatchai (Mobizt)
@@ -761,6 +761,18 @@ void FB_RTDB::setStreamCallback(FirebaseData *fbdo, FirebaseData::StreamEventCal
 
     removeMultiPathStreamCallback(fbdo);
 
+    int index = fbdo->session.rtdb.Idx;
+    bool hasHandle = false;
+
+    if (fbdo->session.rtdb.Idx != -1 || fbdo->session.rtdb.queue_Idx != -1)
+        hasHandle = true;
+    else
+    {
+        index = cfg->internal.fb_stream_idx;
+        cfg->internal.fb_stream_idx++;
+    }
+
+    fbdo->session.rtdb.Idx = index;
     fbdo->_dataAvailableCallback = dataAvailableCallback;
     fbdo->_timeoutCallback = timeoutCallback;
 
@@ -769,15 +781,23 @@ void FB_RTDB::setStreamCallback(FirebaseData *fbdo, FirebaseData::StreamEventCal
 #if defined(ESP32)
     MB_String taskName = fb_esp_pgm_str_72;
     taskName += fb_esp_pgm_str_113;
-    taskName += fbdo->so_addr;
+    taskName += index;
 
     if (streamTaskStackSize > STREAM_TASK_STACK_SIZE)
-        cfg->internal.stream_task_stack_size = streamTaskStackSize;
+        fbdo->session.rtdb.stream_task_stack_size = streamTaskStackSize;
     else
-        cfg->internal.stream_task_stack_size = STREAM_TASK_STACK_SIZE;
+        fbdo->session.rtdb.stream_task_stack_size = STREAM_TASK_STACK_SIZE;
 
     fbdo->session.rtdb.stream_task_enable = true;
 #endif
+
+    // object created
+
+    uint32_t addr = toAddr(*fbdo);
+    if (hasHandle)
+        cfg->internal.fbdo_addr[index] = addr;
+    else
+        cfg->internal.fbdo_addr.push_back(addr);
 
 #if defined(ESP32)
     runStreamTask(fbdo, taskName.c_str());
@@ -806,6 +826,19 @@ void FB_RTDB::setMultiPathStreamCallback(FirebaseData *fbdo, FirebaseData::Multi
 
     removeStreamCallback(fbdo);
 
+    int index = fbdo->session.rtdb.Idx;
+
+    bool hasHandle = false;
+
+    if (fbdo->session.rtdb.Idx != -1 || fbdo->session.rtdb.queue_Idx != -1)
+        hasHandle = true;
+    else
+    {
+        index = cfg->internal.fb_stream_idx;
+        cfg->internal.fb_stream_idx++;
+    }
+
+    fbdo->session.rtdb.Idx = index;
     fbdo->_multiPathDataCallback = multiPathDataCallback;
     fbdo->_timeoutCallback = timeoutCallback;
 
@@ -814,16 +847,22 @@ void FB_RTDB::setMultiPathStreamCallback(FirebaseData *fbdo, FirebaseData::Multi
 #if defined(ESP32)
     MB_String taskName = fb_esp_pgm_str_72;
     taskName += fb_esp_pgm_str_113;
-    taskName += fbdo->so_addr;
+    taskName += index;
 
     if (streamTaskStackSize > STREAM_TASK_STACK_SIZE)
-        cfg->internal.stream_task_stack_size = streamTaskStackSize;
+        fbdo->session.rtdb.stream_task_stack_size = streamTaskStackSize;
     else
-        cfg->internal.stream_task_stack_size = STREAM_TASK_STACK_SIZE;
+        fbdo->session.rtdb.stream_task_stack_size = STREAM_TASK_STACK_SIZE;
 
     fbdo->session.rtdb.stream_task_enable = true;
 #endif
 
+    // object created
+    uint32_t addr = toAddr(*fbdo);
+    if (hasHandle)
+        cfg->internal.fbdo_addr[index] = addr;
+    else
+        cfg->internal.fbdo_addr.push_back(addr);
 #if defined(ESP32)
     runStreamTask(fbdo, taskName.c_str());
 #elif defined(ESP8266)
@@ -842,17 +881,34 @@ void FB_RTDB::removeMultiPathStreamCallback(FirebaseData *fbdo)
         return;
     }
 
-    fbdo->_multiPathDataCallback = NULL;
-    fbdo->_timeoutCallback = NULL;
-    fbdo->removeSO();
+    int index = fbdo->session.rtdb.Idx;
+
+    if (index != -1)
+    {
+        fbdo->_multiPathDataCallback = NULL;
+        fbdo->_timeoutCallback = NULL;
 
 #if defined(ESP32)
-    if (cfg->internal.so_addr_list.size() == 0)
-    {
-        if (cfg->internal.stream_task_handle)
-            vTaskDelete(cfg->internal.stream_task_handle);
+        bool hasOherHandles = false;
 
-        cfg->internal.stream_task_handle = NULL;
+        if (fbdo->session.rtdb.queue_task_handle)
+            hasOherHandles = true;
+
+        if (!hasOherHandles)
+            fbdo->session.rtdb.Idx = -1;
+
+        if (fbdo->session.rtdb.stream_task_handle)
+            vTaskDelete(fbdo->session.rtdb.stream_task_handle);
+
+        fbdo->session.rtdb.stream_task_handle = NULL;
+
+        if (!hasOherHandles)
+            cfg->internal.fbdo_addr.erase(cfg->internal.fbdo_addr.begin() + index);
+
+#elif defined(ESP8266) || defined(FB_ENABLE_EXTERNAL_CLIENT)
+        fbdo->session.rtdb.Idx = -1;
+        cfg->internal.fbdo_addr.erase(cfg->internal.fbdo_addr.begin() + index);
+#endif
     }
 #endif
 }
@@ -869,41 +925,37 @@ void FB_RTDB::runStreamTask()
 #if defined(ESP32)
 
     static FB_RTDB *_this = this;
+    static int id = cfg->internal.fb_stream_idx - 1;
     MB_String name = taskName;
 
     TaskFunction_t taskCode = [](void *param)
     {
-        const TickType_t xDelay = Signer.getCfg()->internal.stream_task_delay_ms / portTICK_PERIOD_MS;
+        FirebaseData *_fbdo = addrTo<FirebaseData *>(Signer.getCfg()->internal.fbdo_addr[id]);
 
-        for (;;)
+        if (_fbdo)
         {
-            for (size_t i = 0; i < Signer.getCfg()->internal.so_addr_list.size(); i++)
+
+            const TickType_t xDelay = _fbdo->session.rtdb.stream_task_delay_ms / portTICK_PERIOD_MS;
+            while (_fbdo->session.rtdb.stream_task_enable)
             {
-                FirebaseData *_fbdo = addrTo<FirebaseData *>(Signer.getCfg()->internal.so_addr_list[i]);
-
-                if (_fbdo)
+                if ((_fbdo->_dataAvailableCallback || _fbdo->_timeoutCallback))
                 {
-                    if (_fbdo->session.rtdb.stream_task_enable && (_fbdo->_dataAvailableCallback || _fbdo->_timeoutCallback))
-                    {
 
-                        _this->readStream(_fbdo);
+                    _this->readStream(_fbdo);
 
-                        if (_fbdo->streamTimeout() && _fbdo->_timeoutCallback)
-                            _fbdo->sendStreamToCB(_fbdo->session.response.code);
-
-                        vTaskDelay(xDelay);
-                    }
+                    if (_fbdo->streamTimeout() && _fbdo->_timeoutCallback)
+                        _fbdo->_timeoutCallback(true);
                 }
+                vTaskDelay(xDelay);
             }
 
-            vTaskDelay(xDelay);
+            _fbdo->session.rtdb.stream_task_handle = NULL;
         }
-
-        Signer.getCfg()->internal.stream_task_handle = NULL;
+        
         vTaskDelete(NULL);
     };
 
-    xTaskCreatePinnedToCore(taskCode, name.c_str(), cfg->internal.stream_task_stack_size, NULL, cfg->internal.stream_task_priority, &cfg->internal.stream_task_handle, cfg->internal.stream_task_cpu_core);
+    xTaskCreatePinnedToCore(taskCode, name.c_str(), fbdo->session.rtdb.stream_task_stack_size, NULL, fbdo->session.rtdb.stream_task_priority, &fbdo->session.rtdb.stream_task_handle, fbdo->session.rtdb.stream_task_cpu_core);
 
 #elif defined(ESP8266) || defined(FB_ENABLE_EXTERNAL_CLIENT)
     stream();
@@ -921,10 +973,10 @@ void FB_RTDB::stream()
     if (!cfg)
         return;
 
-    for (size_t id = 0; id < cfg->internal.so_addr_list.size(); id++)
+    for (size_t id = 0; id < cfg->internal.fbdo_addr.size(); id++)
     {
 
-        FirebaseData *fbdo = addrTo<FirebaseData *>(cfg->internal.so_addr_list[id]);
+        FirebaseData *fbdo = addrTo<FirebaseData*>(cfg->internal.fbdo_addr[id]);
 
         if (fbdo)
         {
@@ -933,7 +985,7 @@ void FB_RTDB::stream()
                 readStream(fbdo);
 
                 if (fbdo->streamTimeout() && fbdo->_timeoutCallback)
-                    fbdo->sendStreamToCB(fbdo->session.response.code);
+                    fbdo->_timeoutCallback(true);
             }
         }
     }
@@ -984,13 +1036,13 @@ void FB_RTDB::addQueueData(FirebaseData *fbdo, struct fb_esp_rtdb_request_info_t
 void FB_RTDB::runErrorQueueTask()
 {
     FirebaseConfig *cfg = Signer.getCfg();
-
+    
     if (!cfg)
         return;
 
-    for (size_t id = 0; id < cfg->internal.queue_addr_list.size(); id++)
+    for (size_t id = 0; id < cfg->internal.fbdo_addr.size(); id++)
     {
-        FirebaseData *fbdo = addrTo<FirebaseData *>(cfg->internal.queue_addr_list[id]);
+        FirebaseData *fbdo = addrTo<FirebaseData*>(cfg->internal.fbdo_addr[id]);
 
         if (fbdo)
         {
@@ -1086,55 +1138,73 @@ void FB_RTDB::beginAutoRunErrorQueue(FirebaseData *fbdo, FirebaseData::QueueInfo
         return;
     }
 
+    static int index = fbdo->session.rtdb.queue_Idx;
+
+    bool hasHandle = false;
+#if defined(ESP32)
+    if (fbdo->session.rtdb.stream_task_handle || fbdo->session.rtdb.queue_task_handle)
+#elif defined(ESP8266)
+    if (fbdo->session.rtdb.Idx != -1 || fbdo->session.rtdb.queue_Idx != -1)
+#endif
+        hasHandle = true;
+    else
+    {
+        index = cfg->internal.fb_stream_idx;
+        cfg->internal.fb_stream_idx++;
+    }
+
+    fbdo->session.rtdb.queue_Idx = index;
+    fbdo->session.rtdb.Idx = index;
+
     if (callback)
         fbdo->_queueInfoCallback = callback;
     else
         fbdo->_queueInfoCallback = NULL;
 
-    fbdo->addQueueAddr();
+    // object created
+    uint32_t addr = toAddr(*fbdo);
+    if (hasHandle)
+        cfg->internal.fbdo_addr[index] = addr;
+    else
+        cfg->internal.fbdo_addr.push_back(addr);
 
 #if defined(ESP32)
 
     MB_String taskName = fb_esp_pgm_str_72;
     taskName += fb_esp_pgm_str_114;
-    taskName += fbdo->so_addr;
+    taskName += index;
 
     if (queueTaskStackSize > QUEUE_TASK_STACK_SIZE)
-        cfg->internal.queue_task_stack_size = queueTaskStackSize;
+        fbdo->session.rtdb.queue_task_stack_size = queueTaskStackSize;
     else
-        cfg->internal.queue_task_stack_size = QUEUE_TASK_STACK_SIZE;
+        fbdo->session.rtdb.queue_task_stack_size = QUEUE_TASK_STACK_SIZE;
 
     static FB_RTDB *_this = this;
 
     TaskFunction_t taskCode = [](void *param)
     {
-        const TickType_t xDelay = Signer.getCfg()->internal.queue_task_delay_ms / portTICK_PERIOD_MS;
-        for (;;)
+        FirebaseData *_fbdo = addrTo<FirebaseData *>(Signer.getCfg()->internal.fbdo_addr[index]);
+
+        if (_fbdo)
         {
-            for (size_t i = 0; i < Signer.getCfg()->internal.queue_addr_list.size(); i++)
+
+            const TickType_t xDelay = _fbdo->session.rtdb.queue_task_delay_ms / portTICK_PERIOD_MS;
+            for (;;)
             {
-                FirebaseData *_fbdo = addrTo<FirebaseData *>(Signer.getCfg()->internal.queue_addr_list[i]);
-
-                if (_fbdo)
-                {
-
-                    if (_fbdo->_queueInfoCallback)
-                        _this->processErrorQueue(_fbdo, _fbdo->_queueInfoCallback);
-                    else
-                        _this->processErrorQueue(_fbdo, NULL);
-                }
+                if (_fbdo->_queueInfoCallback)
+                    _this->processErrorQueue(_fbdo, _fbdo->_queueInfoCallback);
+                else
+                    _this->processErrorQueue(_fbdo, NULL);
 
                 vTaskDelay(xDelay);
             }
-
-            vTaskDelay(xDelay);
         }
 
-        Signer.getCfg()->internal.queue_task_handle = NULL;
+        _fbdo->session.rtdb.queue_task_handle = NULL;
         vTaskDelete(NULL);
     };
 
-    xTaskCreatePinnedToCore(taskCode, taskName.c_str(), cfg->internal.queue_task_stack_size, NULL, cfg->internal.queue_task_priority, &cfg->internal.queue_task_handle, cfg->internal.queue_task_cpu_core);
+    xTaskCreatePinnedToCore(taskCode, taskName.c_str(), fbdo->session.rtdb.queue_task_stack_size, NULL, fbdo->session.rtdb.queue_task_priority, &fbdo->session.rtdb.queue_task_handle, fbdo->session.rtdb.queue_task_cpu_core);
 
 #elif defined(ESP8266)
     ut->set_scheduled_callback(std::bind(&FB_RTDB::runErrorQueueTask, this));
@@ -1150,14 +1220,13 @@ void FB_RTDB::endAutoRunErrorQueue(FirebaseData *fbdo)
         return;
     }
 
-    fbdo->_queueInfoCallback = NULL;
-    fbdo->removeQueueAddr();
-#if defined(ESP32)
-    if (Signer.getCfg()->internal.queue_addr_list.size() == 0)
+    int index = fbdo->session.rtdb.Idx;
+
+    if (index != -1)
     {
-        if (Signer.getCfg()->internal.queue_task_handle)
-            vTaskDelete(Signer.getCfg()->internal.queue_task_handle);
-        Signer.getCfg()->internal.queue_task_handle = NULL;
+        fbdo->session.rtdb.Idx = -1;
+        fbdo->_queueInfoCallback = NULL;
+        cfg->internal.fbdo_addr.erase(cfg->internal.fbdo_addr.begin() + index);
     }
 #endif
 }
@@ -2109,7 +2178,7 @@ bool FB_RTDB::sendRequest(FirebaseData *fbdo, struct fb_esp_rtdb_request_info_t 
         ret = sendHeader(fbdo, req);
     }
 
-    if (req->method == m_get_nocontent || req->method == m_patch_nocontent || (req->method == m_put_nocontent && (req->data.type == d_blob || req->data.type == d_file)))
+    if (req->method == m_get_nocontent || req->method == m_patch_nocontent || (req->method == m_put_nocontent && req->data.type == d_blob))
         fbdo->session.rtdb.no_content_req = true;
 
     if (req->data.type == d_blob)
@@ -2687,11 +2756,6 @@ bool FB_RTDB::handleResponse(FirebaseData *fbdo, fb_esp_rtdb_request_info_t *req
 
                         fbdo->session.rtdb.resp_etag = response.etag;
 
-                        if (response.httpCode == 401)
-                            Signer.authenticated = false;
-                        else if (response.httpCode < 300)
-                            Signer.authenticated = true;
-
                         if (ut->strposP(response.contentType.c_str(), fb_esp_pgm_str_9, 0) > -1)
                         {
                             chunkBufSize = fbdo->tcpClient.available();
@@ -2719,6 +2783,11 @@ bool FB_RTDB::handleResponse(FirebaseData *fbdo, fb_esp_rtdb_request_info_t *req
                         }
 
                         header.clear();
+
+                        if (response.httpCode == 401)
+                            Signer.authenticated = false;
+                        else if (response.httpCode < 300)
+                            Signer.authenticated = true;
 
                         // error in request or server
                         if (response.httpCode >= 400)
@@ -3325,12 +3394,6 @@ bool FB_RTDB::handleResponse(FirebaseData *fbdo, fb_esp_rtdb_request_info_t *req
         }
     }
 
-    if (response.httpCode >= 400)
-    {
-        fbdo->session.error = response.fbError;
-        fbdo->session.response.code = response.httpCode;
-    }
-
     return fbdo->session.response.code == FIREBASE_ERROR_HTTP_CODE_OK;
 }
 
@@ -3702,10 +3765,7 @@ bool FB_RTDB::sendHeader(FirebaseData *fbdo, struct fb_esp_rtdb_request_info_t *
         if (Signer.getTokenType() == token_type_oauth2_access_token || cfg->signer.test_mode)
             header += fb_esp_pgm_str_238;
         else
-        {
             header += fb_esp_pgm_str_2;
-            hasQueryParams = true;
-        }
 
         fbdo->tcpClient.send(header.c_str());
         header.clear();
@@ -3722,9 +3782,6 @@ bool FB_RTDB::sendHeader(FirebaseData *fbdo, struct fb_esp_rtdb_request_info_t *
 
     if (fbdo->session.rtdb.read_tmo > 0)
     {
-        header += hasQueryParams ? fb_esp_pgm_str_172 : fb_esp_pgm_str_173;
-        hasQueryParams = true;
-
         header += fb_esp_pgm_str_158;
         header += fbdo->session.rtdb.read_tmo;
         header += fb_esp_pgm_str_159;
@@ -3732,18 +3789,12 @@ bool FB_RTDB::sendHeader(FirebaseData *fbdo, struct fb_esp_rtdb_request_info_t *
 
     if (fbdo->session.rtdb.write_limit.length() > 0)
     {
-        header += hasQueryParams ? fb_esp_pgm_str_172 : fb_esp_pgm_str_173;
-        hasQueryParams = true;
-
         header += fb_esp_pgm_str_160;
         header += fbdo->session.rtdb.write_limit;
     }
 
     if (req->method == m_get_shallow)
     {
-        header += hasQueryParams ? fb_esp_pgm_str_172 : fb_esp_pgm_str_173;
-        hasQueryParams = true;
-
         header += fb_esp_pgm_str_155;
         fbdo->session.rtdb.shallow_flag = true;
     }
@@ -3757,10 +3808,6 @@ bool FB_RTDB::sendHeader(FirebaseData *fbdo, struct fb_esp_rtdb_request_info_t *
         if (query->_orderBy.length() > 0)
         {
             hasQuery = true;
-
-            header += hasQueryParams ? fb_esp_pgm_str_172 : fb_esp_pgm_str_173;
-            hasQueryParams = true;
-
             header += fb_esp_pgm_str_96;
             header += query->_orderBy;
 
@@ -3801,9 +3848,6 @@ bool FB_RTDB::sendHeader(FirebaseData *fbdo, struct fb_esp_rtdb_request_info_t *
 
     if (req->method == m_download)
     {
-        header += hasQueryParams ? fb_esp_pgm_str_172 : fb_esp_pgm_str_173;
-        hasQueryParams = true;
-
         header += fb_esp_pgm_str_162;
         header += fb_esp_pgm_str_28;
         MB_String filename;
@@ -3822,28 +3866,18 @@ bool FB_RTDB::sendHeader(FirebaseData *fbdo, struct fb_esp_rtdb_request_info_t *
 
     if (req->method == m_get && req->filename.length() > 0)
     {
-        header += hasQueryParams ? fb_esp_pgm_str_172 : fb_esp_pgm_str_173;
-        hasQueryParams = true;
-
         header += fb_esp_pgm_str_28;
         header += fbdo->session.rtdb.filename;
     }
 
     if (req->async || req->method == m_get_nocontent || req->method == m_restore || req->method == m_put_nocontent || req->method == m_patch_nocontent)
-    {
-        header += hasQueryParams ? fb_esp_pgm_str_172 : fb_esp_pgm_str_173;
-        hasQueryParams = true;
-
         header += fb_esp_pgm_str_29;
-    }
 
     header += fb_esp_pgm_str_30;
     header += fb_esp_pgm_str_31;
     header += cfg->database_url;
     header += fb_esp_pgm_str_21;
     header += fb_esp_pgm_str_32;
-
-    ut->getCustomHeaders(header);
 
     if (Signer.getTokenType() == token_type_oauth2_access_token)
     {
@@ -3928,7 +3962,7 @@ bool FB_RTDB::sendHeader(FirebaseData *fbdo, struct fb_esp_rtdb_request_info_t *
 
     return true;
 }
-
+#if defined(ESP32) || defined(ESP8266)
 void FB_RTDB::removeStreamCallback(FirebaseData *fbdo)
 {
     FirebaseConfig *cfg = Signer.getCfg();
@@ -3939,19 +3973,34 @@ void FB_RTDB::removeStreamCallback(FirebaseData *fbdo)
     }
     fbdo->removeSO();
 
-    fbdo->_dataAvailableCallback = NULL;
-    fbdo->_timeoutCallback = NULL;
+    int index = fbdo->session.rtdb.Idx;
 
     if (cfg->internal.so_addr_list.size() == 0)
     {
 #if defined(ESP32)
-        if (cfg->internal.stream_task_handle)
-            vTaskDelete(cfg->internal.stream_task_handle);
+        bool hasOherHandles = false;
 
-        cfg->internal.stream_task_handle = NULL;
+        if (fbdo->session.rtdb.queue_task_handle)
+            hasOherHandles = true;
+
+        if (!hasOherHandles)
+            fbdo->session.rtdb.Idx = -1;
+
+        if (fbdo->session.rtdb.stream_task_handle)
+            vTaskDelete(fbdo->session.rtdb.stream_task_handle);
+
+        fbdo->session.rtdb.stream_task_handle = NULL;
+
+        if (!hasOherHandles)
+            cfg->internal.fbdo_addr.erase(cfg->internal.fbdo_addr.begin() + index);
+
+#elif defined(ESP8266)
+        fbdo->session.rtdb.Idx = -1;
+        cfg->internal.fbdo_addr.erase(cfg->internal.fbdo_addr.begin() + index);
 #endif
     }
 }
+#endif
 
 void FB_RTDB::clearDataStatus(FirebaseData *fbdo)
 {

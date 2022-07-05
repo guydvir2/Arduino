@@ -1,9 +1,9 @@
 /**
- * Google's Firebase Data class, FB_Session.cpp version 1.2.22
+ * Google's Firebase Data class, FB_Session.cpp version 1.2.16
  *
  * This library supports Espressif ESP8266 and ESP32
  *
- * Created May 11, 2022
+ * Created February 10, 2022
  *
  * This work is a part of Firebase ESP Client library
  * Copyright (c) 2022 K. Suwatchai (Mobizt)
@@ -90,67 +90,6 @@ void FirebaseData::setNetworkStatus(bool status)
     Signer.setNetworkStatus(status);
     tcpClient.setNetworkStatus(status);
 #endif
-}
-
-void FirebaseData::addSO()
-{
-    if (!Signer.getCfg())
-        return;
-
-    if (so_addr == 0)
-    {
-        so_addr = toAddr(*this);
-        Signer.getCfg()->internal.so_addr_list.push_back(so_addr);
-        session.con_mode = fb_esp_con_mode_rtdb_stream;
-    }
-}
-
-void FirebaseData::removeSO()
-{
-    if (!Signer.getCfg())
-        return;
-
-    if (so_addr > 0)
-    {
-        for (size_t i = 0; i < Signer.getCfg()->internal.so_addr_list.size(); i++)
-        {
-            if (so_addr > 0 && Signer.getCfg()->internal.so_addr_list[i] == so_addr)
-            {
-                session.con_mode = fb_esp_con_mode_undefined;
-                Signer.getCfg()->internal.so_addr_list.erase(Signer.getCfg()->internal.so_addr_list.begin() + i);
-                so_addr = 0;
-                break;
-            }
-        }
-    }
-}
-
-void FirebaseData::addQueueAddr()
-{
-    if (queue_addr == 0)
-    {
-        queue_addr = toAddr(*this);
-        Signer.getCfg()->internal.queue_addr_list.push_back(queue_addr);
-    }
-}
-
-void FirebaseData::removeQueueAddr()
-{
-    if (!Signer.getCfg())
-        return;
-
-    if (queue_addr > 0)
-    {
-        for (size_t i = 0; i < Signer.getCfg()->internal.queue_addr_list.size(); i++)
-        {
-            if (queue_addr > 0 && Signer.getCfg()->internal.queue_addr_list[i] == queue_addr)
-            {
-                Signer.getCfg()->internal.queue_addr_list.erase(Signer.getCfg()->internal.queue_addr_list.begin() + i);
-                queue_addr = 0;
-                break;
-            }
-        }
-    }
 }
 
 bool FirebaseData::init()
@@ -763,20 +702,13 @@ void FirebaseData::sendStreamToCB(int code)
     session.rtdb.data_millis = 0;
     session.rtdb.data_tmo = true;
     session.response.code = code;
-    if (Signer.getCfg())
-    {
-        if (_timeoutCallback && millis() - Signer.getCfg()->internal.fb_last_stream_timeout_cb_millis > 3000)
-        {
-            Signer.getCfg()->internal.fb_last_stream_timeout_cb_millis = millis();
-            _timeoutCallback(code < 0);
-        }
-    }
+    if (_timeoutCallback)
+        _timeoutCallback(true);
 }
 #endif
 
 void FirebaseData::closeSession()
 {
-
     init();
     bool status = tcpClient.networkReady();
 
@@ -962,8 +894,16 @@ void FirebaseData::setSecure()
 
         if (!Signer.getCfg()->internal.fb_clock_rdy && (Signer.getCAFile().length() > 0 || Signer.getCfg()->cert.data != NULL || session.cert_addr > 0) && init())
         {
-            ut->syncClock(Signer.getCfg()->internal.fb_gmt_offset);
-            tcpClient.clockReady = Signer.getCfg()->internal.fb_clock_rdy;
+
+#if defined(ESP8266)
+            int retry = 0;
+            while (!tcpClient.clockReady && retry < 5)
+            {
+                ut->setClock(Signer.getCfg()->internal.fb_gmt_offset);
+                tcpClient.clockReady = Signer.getCfg()->internal.fb_clock_rdy;
+                retry++;
+            }
+#endif
         }
 
         if (Signer.getCAFile().length() == 0)
@@ -996,18 +936,6 @@ void FirebaseData::setCert(const char *ca)
 
 bool FirebaseData::tokenReady()
 {
-    if (Signer.getCfg())
-    {
-        if (Signer.getCfg()->signer.test_mode || (Signer.getCfg()->signer.tokens.token_type == token_type_legacy_token && Signer.getCfg()->signer.tokens.status == token_status_ready))
-            return true;
-    }
-
-    if (Signer.isExpired())
-    {
-        closeSession();
-        return false;
-    }
-
     if (!Signer.tokenReady())
     {
         session.response.code = FIREBASE_ERROR_TOKEN_NOT_READY;
@@ -1042,8 +970,8 @@ void FirebaseData::clear()
 
     if (session.jsonPtr)
         session.jsonPtr->clear();
-
-    if (session.dataPtr)
+    
+    if(session.dataPtr)
         session.dataPtr->clear();
 
 #ifdef ENABLE_RTDB

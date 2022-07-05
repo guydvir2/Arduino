@@ -166,27 +166,6 @@ int16_t Adafruit_ADXL343::getZ(void) { return read16(ADXL3XX_REG_DATAZ0); }
 
 /**************************************************************************/
 /*!
-    @brief  Reads 3x16-bits from the x, y, and z data register
-    @param x reference to return x acceleration data
-    @param y reference to return y acceleration data
-    @param z reference to return z acceleration data
-    @return True if the operation was successful, otherwise false.
-*/
-/**************************************************************************/
-bool Adafruit_ADXL343::getXYZ(int16_t &x, int16_t &y, int16_t &z) {
-  int16_t buffer[] = {0, 0, 0};
-  Adafruit_BusIO_Register reg_obj = Adafruit_BusIO_Register(
-      i2c_dev, spi_dev, AD8_HIGH_TOREAD_AD7_HIGH_TOINC, ADXL3XX_REG_DATAX0, 6);
-  if (!reg_obj.read((uint8_t *)&buffer, 6))
-    return false;
-  x = buffer[0];
-  y = buffer[1];
-  z = buffer[2];
-  return true;
-}
-
-/**************************************************************************/
-/*!
  *   @brief  Instantiates a new ADXL343 class
  *
  *   @param sensorID  An optional ID # so you can track this sensor, it will
@@ -236,24 +215,6 @@ Adafruit_ADXL343::Adafruit_ADXL343(uint8_t clock, uint8_t miso, uint8_t mosi,
 
 /**************************************************************************/
 /*!
-    @brief  Instantiates a new ADXL343 class in hardware SPI mode
-
-    @param cs The CS/SSEL pin
-    @param theSPI SPIClass instance to use for SPI communication.
-    @param sensorID An optional ID # so you can track this sensor, it will tag
-           sensorEvents you create.
-*/
-/**************************************************************************/
-Adafruit_ADXL343::Adafruit_ADXL343(uint8_t cs, SPIClass *theSPI,
-                                   int32_t sensorID) {
-  _sensorID = sensorID;
-  _cs = cs;
-  _spi = theSPI;
-  _wire = NULL;
-}
-
-/**************************************************************************/
-/*!
     @brief  Setups the HW (reads coefficients values, etc.)
     @param  i2caddr The 7-bit I2C address to find the ADXL on
     @return True if the sensor was successfully initialised.
@@ -262,7 +223,6 @@ Adafruit_ADXL343::Adafruit_ADXL343(uint8_t cs, SPIClass *theSPI,
 bool Adafruit_ADXL343::begin(uint8_t i2caddr) {
 
   if (_wire) {
-    //-- I2C --------------
     if (i2c_dev) {
       delete i2c_dev; // remove old interface
     }

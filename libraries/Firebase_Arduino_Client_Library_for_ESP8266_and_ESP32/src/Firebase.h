@@ -1,8 +1,8 @@
 
 /**
- * The Firebase class, Firebase.h v1.1.0
+ * The Firebase class, Firebase.h v1.0.18
  *
- *  Created May 17, 2022
+ *  Created February 10, 2022
  *
  * The MIT License (MIT)
  * Copyright (c) 2022 K. Suwatchai (Mobizt)
@@ -60,8 +60,8 @@ extern char *__brkval;
 #endif
 
 
-#include "FB_Utils.h"
-#include "wcs/FB_Clients.h"
+#include "Utils.h"
+#include "wcs/clients.h"
 #include "signer/Signer.h"
 #include "session/FB_Session.h"
 
@@ -300,7 +300,7 @@ public:
    * @param frequency The SPI frequency
    * @return Boolean type status indicates the success of the operation.
    */
-  bool sdBegin(int8_t ss = -1, int8_t sck = -1, int8_t miso = -1, int8_t mosi = -1, uint32_t frequency = 4000000);
+  bool sdBegin(int8_t ss = -1, int8_t sck = -1, int8_t miso = -1, int8_t mosi = -1);
 
 #if defined(ESP8266)
 
@@ -322,7 +322,7 @@ public:
    * @param frequency The SPI frequency (ESP32 only)
    * @return Boolean type status indicates the success of the operation.
    */
-  bool sdBegin(int8_t ss, SPIClass *spiConfig = nullptr, uint32_t frequency = 4000000);
+  bool sdBegin(int8_t ss, SPIClass *spiConfig = nullptr);
 #endif
 
 #if defined(MBFS_ESP32_SDFAT_ENABLED) || defined(MBFS_SDFAT_ENABLED)
@@ -2347,7 +2347,7 @@ public:
    * @param frequency The SPI frequency
    * @return Boolean type status indicates the success of the operation.
    */
-  bool sdBegin(int8_t ss = -1, int8_t sck = -1, int8_t miso = -1, int8_t mosi = -1, uint32_t frequency = 4000000);
+  bool sdBegin(int8_t ss = -1, int8_t sck = -1, int8_t miso = -1, int8_t mosi = -1);
 
 #if defined(ESP8266)
 
@@ -2368,7 +2368,7 @@ public:
    * @param frequency The SPI frequency (ESP32 only)
    * @return Boolean type status indicates the success of the operation.
    */
-  bool sdBegin(int8_t ss, SPIClass *spiConfig = nullptr, uint32_t frequency = 4000000);
+  bool sdBegin(int8_t ss, SPIClass *spiConfig = nullptr);
 #endif
 
 #if defined(MBFS_ESP32_SDFAT_ENABLED) || defined(MBFS_SDFAT_ENABLED)

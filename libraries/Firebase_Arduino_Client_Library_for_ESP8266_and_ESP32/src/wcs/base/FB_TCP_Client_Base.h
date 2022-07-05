@@ -1,7 +1,7 @@
 /*
- * TCP Client Base class, version 1.0.4
+ * TCP Client Base class, version 1.0.0
  *
- * Created May 22, 2022
+ * Created February 10, 2022
  *
  * The MIT License (MIT)
  * Copyright (c) 2022 K. Suwatchai (Mobizt)
@@ -26,10 +26,10 @@
  */
 
 #ifndef FB_TCP_CLIENT_BASE_H
-#define FB_TCP_CLIENT_BASE_H
+#define TCP_CLIENT_BASE_H
 
 #include <Arduino.h>
-#include "FB_Utils.h"
+#include "Utils.h"
 #include <IPAddress.h>
 #include <Client.h>
 
@@ -136,6 +136,7 @@ public:
 
             if (!ret)
             {
+                setError(FIREBASE_ERROR_TCP_ERROR_CONNECTION_REFUSED);
                 client->stop();
                 client->flush();
             }
@@ -148,16 +149,13 @@ public:
 
     virtual int write(uint8_t *data, int len)
     {
-        if (!data || !client)
+        if (!data)
             return setError(FIREBASE_ERROR_TCP_ERROR_SEND_REQUEST_FAILED);
 
         if (len == 0)
             return setError(FIREBASE_ERROR_TCP_ERROR_SEND_REQUEST_FAILED);
 
-        if (!networkReady())
-            return setError(FIREBASE_ERROR_TCP_ERROR_NOT_CONNECTED);
-
-        // call base or derived connect.
+        // call base or derved connect.
         if (!connect())
             return setError(FIREBASE_ERROR_TCP_ERROR_CONNECTION_REFUSED);
 
@@ -168,9 +166,6 @@ public:
             if (sent + toSend > len)
                 toSend = len - sent;
 
-#if defined(ESP8266)
-            delay(0);
-#endif
             int res = client->write(data + sent, toSend);
 
             if (res != toSend)
@@ -281,10 +276,6 @@ public:
         {
             if (!client)
                 break;
-
-#if defined(ESP8266)
-            delay(0);
-#endif
             res = client->read();
             if (res > -1)
             {
@@ -312,10 +303,6 @@ public:
         {
             if (!client)
                 break;
-
-#if defined(ESP8266)
-            delay(0);
-#endif
             res = client->read();
             if (res > -1)
             {
@@ -412,7 +399,10 @@ public:
     bool sendBase64(size_t bufSize, uint8_t *data, size_t len, bool flashMem)
     {
         if (!client)
-            return setError(FIREBASE_ERROR_TCP_ERROR_CONNECTION_REFUSED);
+        {
+            setError(FIREBASE_ERROR_TCP_ERROR_CONNECTION_REFUSED);
+            return false;
+        }
 
         bool ret = false;
         const unsigned char *end, *in;
@@ -431,11 +421,6 @@ public:
 
         while (end - in >= 3)
         {
-
-#if defined(ESP8266)
-            delay(0);
-#endif
-
             memset(tmp, 0, 3);
             if (flashMem)
                 memcpy_P(tmp, in, 3);
@@ -687,7 +672,7 @@ protected:
     // In esp8266, this is actually Arduino base Stream (char read) timeout.
     //  This will override internally by WiFiClientSecureCtx::_connectSSL
     //  to 5000 after SSL handshake was done with success.
-    int timeoutMs = 120000; // 120 sec
+    int timeoutMs = 40000; // 40 sec
     bool clockReady = false;
     time_t now = 0;
     int *response_code = nullptr;

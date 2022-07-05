@@ -26,8 +26,8 @@
  * GPIO16 (D0) - CS                          CS
  * GND                                       GND
  * 3V3                                       VCC
- *
- */
+ * 
+*/
 
 #include <ENC28J60lwIP.h>
 //#include <W5100lwIP.h>
@@ -35,7 +35,7 @@
 
 #include <Firebase_ESP_Client.h>
 
-// Provide the token generation process info.
+//Provide the token generation process info.
 #include <addons/TokenHelper.h>
 
 // Provide the RTDB payload printing info and other helper functions.

@@ -13,8 +13,8 @@ void addiotnalMQTT(char *incoming_msg)
         sprintf(msg, "Status: ");
         for (int i = 0; i < numSW; i++)
         {
-            char s1[15], s2[10];
-            char clk[100], clk2[20], clk3[25];
+            char s1[15], s2[7];
+            char clk[60], clk2[25], clk3[25];
             char state[15];
             if (outputPWM[i] == false)
             {
@@ -34,6 +34,7 @@ void addiotnalMQTT(char *incoming_msg)
             }
             if (TOsw[i]->remTime() > 0)
             {
+                char clk[25];
                 iot.convert_epoch2clock(TOsw[i]->remTime(), 0, s1, s2);
                 simplifyClock(s2, s1, clk2);
                 sprintf(clk, "started[%s] remain[%s] ", iot.get_timeStamp(clk3, TOsw[i]->onClk()), clk2);
@@ -49,9 +50,26 @@ void addiotnalMQTT(char *incoming_msg)
         Serial.println(msg);
         iot.pub_msg(msg);
     }
+    else if (strcmp(incoming_msg, "show_flash_param") == 0)
+    {
+        char temp[400];
+        char temp3[450];
+        char *a[] = {iot.myIOT_paramfile, sketch_paramfile};
+        iot.pub_debug("~~~Start~~~");
+        for (int e = 0; e < sizeof(a) / sizeof(a[0]); e++)
+        {
+            char *fParams = iot.export_fPars(a[e], sketchJSON, JSON_SIZE_SKETCH);
+            strcpy(temp, fParams); /* select the bigger file */
+            sprintf(temp3, "%s: %s", a[e], temp);
+            iot.pub_debug(temp3);
+            sketchJSON.clear();
+            delete[] fParams;
+        }
+        iot.pub_debug("~~~End~~~");
+    }
     else if (strcmp(incoming_msg, "ver2") == 0)
     {
-        sprintf(msg, "ver2: [%s], timeoutSw[%s]", VER, TOsw[0]->Ver);
+        sprintf(msg, "ver #2: [%s], timeoutSw[%s]", VER, TOsw[0]->Ver);
         iot.pub_msg(msg);
     }
     else if (strcmp(incoming_msg, "all_off") == 0)

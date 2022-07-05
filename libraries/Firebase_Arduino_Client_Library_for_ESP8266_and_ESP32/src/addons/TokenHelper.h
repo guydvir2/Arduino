@@ -36,7 +36,7 @@ const char *getTokenType(struct token_info_t info)
         return "custom token";
 
     case token_type_oauth2_access_token:
-        return "OAuth2.0 access token";
+        return (const char *)FPSTR("OAuth2.0 access token");
 
     default:
         break;
@@ -50,25 +50,25 @@ const char *getTokenStatus(struct token_info_t info)
     switch (info.status)
     {
     case token_status_uninitialized:
-        return "uninitialized";
+        return (const char *)FPSTR("uninitialized");
 
     case token_status_on_initialize:
-        return "on initializing";
+        return (const char *)FPSTR("on initializing");
 
     case token_status_on_signing:
-        return "on signing";
+        return (const char *)FPSTR("on signing");
 
     case token_status_on_request:
-        return "on request";
+        return (const char *)FPSTR("on request");
 
     case token_status_on_refresh:
-        return "on refreshing";
+        return (const char *)FPSTR("on refreshing");
 
     case token_status_ready:
-        return "ready";
+        return (const char *)FPSTR("ready");
 
     case token_status_error:
-        return "error";
+        return (const char *)FPSTR("error");
 
     default:
         break;
@@ -99,12 +99,12 @@ void tokenStatusCallback(TokenInfo info)
      */
     if (info.status == token_status_error)
     {
-        Serial_Printf("Token info: type = %s, status = %s\n", getTokenType(info), getTokenStatus(info));
-        Serial_Printf("Token error: %s\n", getTokenError(info).c_str());
+        Serial_Printf((const char *)FPSTR("Token info: type = %s, status = %s\n"), getTokenType(info).c_str(), getTokenStatus(info).c_str());
+        Serial_Printf((const char *)FPSTR("Token error: %s\n"), getTokenError(info).c_str());
     }
     else
     {
-        Serial_Printf("Token info: type = %s, status = %s\n", getTokenType(info), getTokenStatus(info));
+        Serial_Printf((const char *)FPSTR("Token info: type = %s, status = %s\n"), getTokenType(info).c_str(), getTokenStatus(info).c_str());
     }
 }
 

@@ -1,9 +1,9 @@
 /**
- * Google's Cloud Storage class, GCS.cpp version 1.1.17
+ * Google's Cloud Storage class, GCS.cpp version 1.1.13
  *
  * This library supports Espressif ESP8266 and ESP32
  *
- * Created May 13, 2022
+ * Created February 10, 2022
  *
  * This work is a part of Firebase ESP Client library
  * Copyright (c) 2022 K. Suwatchai (Mobizt)
@@ -81,7 +81,7 @@ bool GG_CloudStorage::mUpload(FirebaseData *fbdo, MB_StringPtr bucketID, MB_Stri
 bool GG_CloudStorage::sendRequest(FirebaseData *fbdo, struct fb_esp_gcs_req_t *req)
 {
     fbdo->session.http_code = 0;
-
+    
     if (!Signer.getCfg())
     {
         fbdo->session.response.code = FIREBASE_ERROR_UNINITIALIZED;
@@ -321,7 +321,16 @@ bool GG_CloudStorage::gcs_sendRequest(FirebaseData *fbdo, struct fb_esp_gcs_req_
 
     int ret = 0;
 
-    if (req->requestType != fb_esp_gcs_request_type_download)
+    if (req->requestType == fb_esp_gcs_request_type_download)
+    {
+        ret = ut->mbfs->open(req->localFileName, mbfs_type req->storageType, mb_fs_open_mode_write);
+        if (ret < 0)
+        {
+            fbdo->session.response.code = ret;
+            return false;
+        }
+    }
+    else
     {
         if (req->requestType == fb_esp_gcs_request_type_upload_simple || req->requestType == fb_esp_gcs_request_type_upload_multipart || req->requestType == fb_esp_gcs_request_type_upload_resumable_init)
         {
@@ -540,8 +549,8 @@ bool GG_CloudStorage::gcs_sendRequest(FirebaseData *fbdo, struct fb_esp_gcs_req_
         setRequestproperties(req, fbdo->session.jsonPtr, hasProps);
 
         multipart_header += fbdo->session.jsonPtr->raw();
-        multipart_header += fb_esp_pgm_str_21;
-        multipart_header += fb_esp_pgm_str_21;
+        multipart_header.appendP(fb_esp_pgm_str_21);
+        multipart_header.appendP(fb_esp_pgm_str_21);
 
         multipart_header += fb_esp_pgm_str_529;
         multipart_header += boundary;
@@ -582,7 +591,7 @@ bool GG_CloudStorage::gcs_sendRequest(FirebaseData *fbdo, struct fb_esp_gcs_req_
         header += fb_esp_pgm_str_12;
 
         header += strlen(fbdo->session.jsonPtr->raw());
-        header += fb_esp_pgm_str_21;
+        header.appendP(fb_esp_pgm_str_21);
     }
     else if (req->requestType == fb_esp_gcs_request_type_upload_resumable_run)
     {
@@ -660,7 +669,7 @@ bool GG_CloudStorage::gcs_sendRequest(FirebaseData *fbdo, struct fb_esp_gcs_req_
             {
                 fbdo->tcpClient.send(multipart_header.c_str());
                 multipart_header.clear();
-
+                
                 if (fbdo->session.response.code < 0)
                     return false;
             }
@@ -676,10 +685,6 @@ bool GG_CloudStorage::gcs_sendRequest(FirebaseData *fbdo, struct fb_esp_gcs_req_
 
             uint8_t *buf = (uint8_t *)ut->newP(bufLen + 1);
             int read = 0;
-
-            // This is inefficient unless less memory usage than keep file opened
-            // which causes the issue in ESP32 core 2.0.x
-            ut->mbfs->open(req->localFileName, mbfs_type req->storageType, mb_fs_open_mode_read);
 
             while (available)
             {
@@ -1632,16 +1637,6 @@ bool GG_CloudStorage::handleResponse(FirebaseData *fbdo, struct fb_esp_gcs_req_t
     if (!fbdo->tcpClient.connected())
         fbdo->session.response.code = FIREBASE_ERROR_TCP_ERROR_NOT_CONNECTED;
 
-    if (req->requestType == fb_esp_gcs_request_type_download && strlen(ut->mbfs->name(mbfs_type req->storageType)) == 0)
-    {
-        int ret = ut->mbfs->open(req->localFileName, mbfs_type req->storageType, mb_fs_open_mode_write);
-        if (ret < 0)
-        {
-            fbdo->session.response.code = ret;
-            return false;
-        }
-    }
-
     int availablePayload = chunkBufSize;
 
     dataTime = millis();
@@ -2009,7 +2004,7 @@ bool GG_CloudStorage::handleResponse(FirebaseData *fbdo, struct fb_esp_gcs_req_t
                         }
                         else
                         {
-                            // read all the rest data
+                            //read all the rest data
                             fbdo->tcpClient.flush();
                             break;
                         }

@@ -1,7 +1,7 @@
 /**
- * The Firebase class, Firebase.cpp v1.1.0
+ * The Firebase class, Firebase.cpp v1.0.18
  *
- *  Created May 17, 2022
+ *  Created February 10, 2022
  *
  * The MIT License (MIT)
  * Copyright (c) 2022 K. Suwatchai (Mobizt)
@@ -255,7 +255,7 @@ void Firebase_ESP_Client::setFloatDigits(uint8_t digits)
 {
     if (!cfg)
         return;
-
+        
     if (digits < 7 && cfg)
         cfg->internal.fb_float_digits = digits;
 }
@@ -287,7 +287,7 @@ bool Firebase_ESP_Client::sdBegin(SDFSConfig *sdFSConfig)
 
 bool Firebase_ESP_Client::sdBegin(int8_t ss, SPIClass *spiConfig, uint32_t frequency)
 {
-    return mbfs->sdSPIBegin(ss, spiConfig, frequency);
+    return mbfs->sdSPIBegin(ss, spiConfig);
 }
 #endif
 
@@ -300,7 +300,7 @@ bool Firebase_ESP_Client::sdBegin(SdSpiConfig *sdFatSPIConfig, int8_t ss, int8_t
 
 #endif
 
-#if defined(ESP32) && defined(MBFS_SD_FS) && defined(MBFS_CARD_TYPE_SD_MMC)
+#if defined(ESP8266) && defined(MBFS_SD_FS) && defined(MBFS_CARD_TYPE_SD_MMC)
 
 bool Firebase_ESP_Client::sdMMCBegin(const char *mountpoint, bool mode1bit, bool format_if_mount_failed)
 {
@@ -650,7 +650,7 @@ bool FIREBASE_CLASS::sdBegin(SDFSConfig *sdFSConfig)
 
 bool FIREBASE_CLASS::sdBegin(int8_t ss, SPIClass *spiConfig, uint32_t frequency)
 {
-    return mbfs->sdSPIBegin(ss, spiConfig, frequency);
+    return mbfs->sdSPIBegin(ss, spiConfig);
 }
 #endif
 

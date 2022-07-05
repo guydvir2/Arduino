@@ -12,7 +12,8 @@
 
 /** This example shows the basic RTDB usage with external Client.
  * This example used SAMD21 device and WiFiNINA as the client.
- */
+*/
+
 
 #if defined(ARDUINO_ARCH_SAMD)
 #include <WiFiNINA.h>
@@ -149,7 +150,7 @@ void setup()
 void loop()
 {
 
-    // Firebase.ready() should be called repeatedly to handle authentication tasks.
+    // Firebase.ready works for authentication management and should be called repeatedly in the loop.
 
     if (Firebase.ready() && (millis() - sendDataPrevMillis > 15000 || sendDataPrevMillis == 0))
     {

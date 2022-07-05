@@ -24,6 +24,7 @@ uint8_t limitPWM[] = {80, 80}; /* Limit total intensity, 1-100 */
 char sw_names[2][20];          /* Name of each Switch, as shown on MQTT msg */
 /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ End ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 
+const char *VER = "TOswitch_v1.34";
 
 const char *VER = "TOswitch_v1.47";
 #include "myTO_param.h"

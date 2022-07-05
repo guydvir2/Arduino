@@ -3,6 +3,8 @@
 #ifndef FirebaseFS_H
 #define FirebaseFS_H
 
+#pragma once
+
 #include <Arduino.h>
 
 #define FIREBASE_ESP_CLIENT 1
@@ -71,7 +73,7 @@ static SdFat sd_fat_fs;   //should declare as static here
 
 #define ENABLE_ERROR_QUEUE
 
-// Comment to exclude Cloud Firestore
+//Comment to exclude Cloud Firestore
 #define ENABLE_FIRESTORE
 
 // Comment to exclude Firebase Cloud Messaging

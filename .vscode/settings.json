@@ -22,11 +22,5 @@
         "ostream": "cpp",
         "chrono": "cpp",
         "new": "cpp"
-    },
-    "diffEditor.codeLens": true,
-    "editor.suggest.localityBonus": true,
-    "arduino.enableUSBDetection": true,
-    "arduino.path": "C:\\Program Files (x86)\\Arduino",
-    "C_Cpp.autocompleteAddParentheses": true,
-    "C_Cpp.errorSquiggles": "Disabled"
+    }
 }

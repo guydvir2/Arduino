@@ -2,6 +2,10 @@
  * Created by K. Suwatchai (Mobizt)
  *
  * Email: k_suwatchai@hotmail.com
+ * 
+ * Github: https://github.com/mobizt
+ * 
+ * Copyright (c) 2021 mobizt
  *
  * Github: https://github.com/mobizt
  *
@@ -16,9 +20,10 @@
 #include <ESP8266WiFi.h>
 #endif
 
-// This example is for ESP8266 and ESP32
+//This example is for ESP8266 and ESP32
 
 #include <WiFiClient.h>
+
 
 #include <FirebaseJson.h>
 

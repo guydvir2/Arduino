@@ -1,9 +1,9 @@
 /**
- * Google's Cloud Storage class, GCS.h version 1.1.17
+ * Google's Cloud Storage class, GCS.h version 1.1.13
  *
  * This library supports Espressif ESP8266 and ESP32
  *
- * Created May 13, 2022
+ * Created February 10, 2022
  *
  * This work is a part of Firebase ESP Client library
  * Copyright (c) 2022 K. Suwatchai (Mobizt)
@@ -195,7 +195,7 @@ private:
     bool parseJsonResponse(FirebaseData *fbdo, PGM_P key_path);
 
 #if defined(ESP32)
-    void runResumableUploadTask(const char *taskName);
+        void runResumableUploadTask(const char *taskName);
 #elif defined(ESP8266) || defined(FB_ENABLE_EXTERNAL_CLIENT)
     void runResumableUploadTask();
 #endif

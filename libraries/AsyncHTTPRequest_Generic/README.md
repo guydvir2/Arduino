@@ -6,8 +6,7 @@
 [![contributions welcome](https://img.shields.io/badge/contributions-welcome-brightgreen.svg?style=flat)](#Contributing)
 [![GitHub issues](https://img.shields.io/github/issues/khoih-prog/AsyncHTTPRequest_Generic.svg)](http://github.com/khoih-prog/AsyncHTTPRequest_Generic/issues)
 
-<a href="https://www.buymeacoffee.com/khoihprog6" title="Donate to my libraries using BuyMeACoffee"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Donate to my libraries using BuyMeACoffee" style="height: 50px !important;width: 181px !important;" ></a>
-<a href="https://www.buymeacoffee.com/khoihprog6" title="Donate to my libraries using BuyMeACoffee"><img src="https://img.shields.io/badge/buy%20me%20a%20coffee-donate-orange.svg?logo=buy-me-a-coffee&logoColor=FFDD00" style="height: 20px !important;width: 200px !important;" ></a>
+<a href="https://www.buymeacoffee.com/khoihprog6" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" style="height: 50px !important;width: 181px !important;" ></a>
 
 ---
 ---
@@ -79,7 +78,6 @@
   * [8. AsyncHTTPRequest_WT32_ETH01 on ESP32_DEV with ETH_PHY_LAN8720](#8-asynchttprequest_wt32_eth01-on-esp32_dev-with-eth_phy_lan8720)
   * [9. AsyncHTTPRequest_ESP_WiFiManager running on ESP32C3_DEV](#9-asynchttprequest_esp_wifimanager-running-on-ESP32C3_DEV) **New**
   * [10. AsyncHTTPRequest_ESP_WiFiManager running on ESP32S3_DEV](#10-asynchttprequest_esp_wifimanager-running-on-ESP32S3_DEV) **New**
-  * [11. AsyncHTTPRequest_ESP_Multi running on ESP32_DEV](#11-AsyncHTTPRequest_ESP_Multi-running-on-ESP32_DEV) **New**
 * [Debug](#debug)
 * [Troubleshooting](#troubleshooting)
 * [Issues](#issues)
@@ -464,7 +462,11 @@ Please take a look at other examples, as well.
 
 #### 1. File [AsyncHTTPRequest_STM32.ino](examples/AsyncHTTPRequest_STM32/AsyncHTTPRequest_STM32.ino)
 
-https://github.com/khoih-prog/AsyncHTTPRequest_Generic/blob/98733a6c4a1906ff53f6de0d19a239c672c4569a/examples/AsyncHTTPRequest_STM32/AsyncHTTPRequest_STM32.ino#L1-L144
+```cpp
+#include "defines.h"
+
+#define ASYNC_HTTP_REQUEST_GENERIC_VERSION_MIN_TARGET      "AsyncHTTPRequest_Generic v1.7.0"
+#define ASYNC_HTTP_REQUEST_GENERIC_VERSION_MIN             1007000
 
 
 ---
@@ -483,7 +485,7 @@ https://github.com/khoih-prog/AsyncHTTPRequest_Generic/blob/98733a6c4a1906ff53f6
 
 ```
 Start AsyncHTTPRequest_STM32 on NUCLEO_F767ZI
-AsyncHTTPRequest_Generic v1.7.1
+AsyncHTTPRequest_Generic v1.7.0
 AsyncHTTPRequest @ IP : 192.168.2.178
 
 **************************************
@@ -528,7 +530,7 @@ week_number: 3
 
 ```
 Starting AsyncHTTPRequest_ESP_WiFiManager using LittleFS on ESP8266_NODEMCU
-AsyncHTTPRequest_Generic v1.7.1
+AsyncHTTPRequest_Generic v1.7.0
 Stored: SSID = HueNet1, Pass = 12345678
 Got stored Credentials. Timeout 120s
 ConnectMultiWiFi in setup
@@ -560,7 +562,7 @@ HHHHHH
 
 ```
 Starting AsyncHTTPRequest_ESP_WiFiManager using SPIFFS on ESP32_DEV
-AsyncHTTPRequest_Generic v1.7.1
+AsyncHTTPRequest_Generic v1.7.0
 Stored: SSID = HueNet1, Pass = 12345678
 Got stored Credentials. Timeout 120s
 ConnectMultiWiFi in setup
@@ -610,7 +612,7 @@ HHHHHHHHH HHHHHHHHHH HHHHHHHHHH
 
 ```
 Starting AsyncHTTPRequest_ESP using ESP8266_NODEMCU
-AsyncHTTPRequest_Generic v1.7.1
+AsyncHTTPRequest_Generic v1.7.0
 Connecting to WiFi SSID: HueNet1
 ...........
 HTTP WebServer is @ IP : 192.168.2.81
@@ -643,7 +645,7 @@ HHHHHHHHH HHHHHHHHHH HHHHHHHHHH H
 
 ```
 Start AsyncWebClientRepeating_STM32 on NUCLEO_F767ZI
-AsyncHTTPRequest_Generic v1.7.1
+AsyncHTTPRequest_Generic v1.7.0
 AsyncHTTPRequest @ IP : 192.168.2.72
 
 **************************************
@@ -696,7 +698,7 @@ AsyncHTTPRequest @ IP : 192.168.2.72
 
 ```
 Start AsyncWebClientRepeating_STM32_LAN8720 on BLACK_F407VE
-AsyncHTTPRequest_Generic v1.7.1
+AsyncHTTPRequest_Generic v1.7.0
 AsyncHTTPRequest @ IP : 192.168.2.150
 
 
@@ -752,7 +754,7 @@ AsyncHTTPRequest @ IP : 192.168.2.150
 ```
 Starting AsyncHTTPRequest_WT32_ETH01 on ESP32_DEV with ETH_PHY_LAN8720
 WebServer_WT32_ETH01 v1.4.1
-AsyncHTTPRequest_Generic v1.7.1
+AsyncHTTPRequest_Generic v1.7.0
 ETH MAC: A8:03:2A:A1:61:73, IPv4: 192.168.2.232, FULL_DUPLEX, 100Mbps
 AsyncHTTPRequest @ IP : 192.168.2.232
 
@@ -778,7 +780,7 @@ H
 ```
 Starting AsyncHTTPRequest_WT32_ETH01 on ESP32_DEV with ETH_PHY_LAN8720
 WebServer_WT32_ETH01 v1.4.1
-AsyncHTTPRequest_Generic v1.7.1
+AsyncHTTPRequest_Generic v1.7.0
 ETH MAC: A8:03:2A:A1:61:73, IPv4: 192.168.2.232, FULL_DUPLEX, 100Mbps
 AsyncHTTPRequest @ IP : 192.168.2.232
 
@@ -809,7 +811,7 @@ week_number: 52
 ```
 Starting AsyncHTTPRequest_ESP_WiFiManager using LittleFS on ESP32C3_DEV
 ESPAsync_WiFiManager v1.12.1
-AsyncHTTPRequest_Generic v1.7.1
+AsyncHTTPRequest_Generic v1.7.0
 Stored: SSID = HueNet1, Pass = password
 Got stored Credentials. Timeout 120s
 ConnectMultiWiFi in setup
@@ -860,7 +862,7 @@ week_number: 6
 ```
 Starting AsyncHTTPRequest_ESP_WiFiManager using LittleFS on ESP32S3_DEV
 ESPAsync_WiFiManager v1.12.1
-AsyncHTTPRequest_Generic v1.7.1
+AsyncHTTPRequest_Generic v1.7.0
 Stored: SSID = HueNet1, Pass = password
 Got stored Credentials. Timeout 120s
 ConnectMultiWiFi in setup
@@ -902,67 +904,6 @@ utc_datetime: 2022-02-12T03:59:45.988493+00:00
 utc_offset: -05:00
 week_number: 6
 **************************************
-```
-
----
-
-#### 11. [AsyncHTTPRequest_ESP_Multi](examples/AsyncHTTPRequest_ESP_Multi) running on ESP32_DEV
-
-The terminal output of [AsyncHTTPRequest_ESP_Multi example](examples/AsyncHTTPRequest_ESP_Multi) running on `ESP32_DEV` to demonstrate how to send requests to multiple addresses and receive responses from them. 
-
-```
-Starting AsyncHTTPRequest_ESP_Multi using ESP32_DEV
-AsyncHTTPRequest_Generic v1.7.1
-Connecting to WiFi SSID: HueNet1
-.......
-AsyncHTTPSRequest @ IP : 192.168.2.88
-
-Sending request: http://worldtimeapi.org/api/timezone/Europe/Prague.txt
-
-Sending request: http://www.myexternalip.com/raw
-
-**************************************
-abbreviation: CET
-client_ip: aaa.bbb.ccc.ddd
-datetime: 2022-02-26T01:54:15.753826+01:00
-day_of_week: 6
-day_of_year: 57
-dst: false
-dst_from: 
-dst_offset: 0
-dst_until: 
-raw_offset: 3600
-timezone: Europe/Prague
-unixtime: 1645836855
-utc_datetime: 2022-02-26T00:54:15.753826+00:00
-utc_offset: +01:00
-week_number: 8
-**************************************
-
-**************************************
-aaa.bbb.ccc.ddd
-**************************************
-
-Sending request: http://worldtimeapi.org/api/timezone/America/Toronto.txt
-
-**************************************
-abbreviation: EST
-client_ip: aaa.bbb.ccc.ddd
-datetime: 2022-02-25T19:54:15.822746-05:00
-day_of_week: 5
-day_of_year: 56
-dst: false
-dst_from: 
-dst_offset: 0
-dst_until: 
-raw_offset: -18000
-timezone: America/Toronto
-unixtime: 1645836855
-utc_datetime: 2022-02-26T00:54:15.822746+00:00
-utc_offset: -05:00
-week_number: 8
-**************************************
-HHH
 ```
 
 ---
@@ -1021,7 +962,6 @@ Submit issues to: [AsyncHTTPRequest_Generic issues](https://github.com/khoih-pro
 12. Add support to **ESP32-S3 (ESP32S3_DEV, ESP32_S3_BOX, UM TINYS3, UM PROS3, UM FEATHERS3, etc.) using EEPROM, SPIFFS or LittleFS**
 13. Add `LittleFS` support to **ESP32-C3**
 14. Use `ESP32-core's LittleFS` library instead of `Lorol's LITTLEFS` library for ESP32 core v2.0.0+
-15. Add example [AsyncHTTPRequest_ESP_Multi](https://github.com/khoih-prog/AsyncHTTPRequest_Generic/tree/master/examples/AsyncHTTPRequest_ESP_Multi) to demonstrate how to send requests to multiple addresses and receive responses from them.
 
 
 ---

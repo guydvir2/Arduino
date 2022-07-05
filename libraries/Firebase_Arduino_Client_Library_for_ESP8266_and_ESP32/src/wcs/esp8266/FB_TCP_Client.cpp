@@ -1,7 +1,7 @@
 /**
- * Firebase TCP Client v1.1.21
+ * Firebase TCP Client v1.1.19
  *
- * Created June 2, 2022
+ * Created February 10, 2022
  *
  * The MIT License (MIT)
  * Copyright (c) 2022 K. Suwatchai (Mobizt)
@@ -64,6 +64,8 @@ void FB_TCP_Client::setCACert(const char *caCert)
   }
 
   wcs->setBufferSizes(bsslRxSize, bsslTxSize);
+
+  wcs->setNoDelay(true);
 }
 
 bool FB_TCP_Client::setCertFile(const char *caCertFile, mb_fs_mem_storage_type storageType)
@@ -96,6 +98,7 @@ bool FB_TCP_Client::setCertFile(const char *caCertFile, mb_fs_mem_storage_type s
   }
 
   wcs->setBufferSizes(bsslRxSize, bsslTxSize);
+  wcs->setNoDelay(true);
 
   return getCertType() == fb_cert_type_file;
 }
@@ -138,11 +141,13 @@ void FB_TCP_Client::setTimeout(uint32_t timeoutmSec)
   if (wcs)
     wcs->setTimeout(timeoutmSec);
 
-  baseSetTimeout(timeoutmSec / 1000);
+  baseSetTimeout(timeoutmSec);
 }
 
 bool FB_TCP_Client::begin(const char *host, uint16_t port, int *response_code)
 {
+  if (!eth && config)
+    eth = &(config->spi_ethernet_module);
 
   this->host = host;
   this->port = port;
@@ -151,6 +156,8 @@ bool FB_TCP_Client::begin(const char *host, uint16_t port, int *response_code)
   ethDNSWorkAround();
 
   wcs->setBufferSizes(bsslRxSize, bsslTxSize);
+
+  wcs->setNoDelay(true);
 
   return true;
 }
@@ -187,6 +194,7 @@ int FB_TCP_Client::beginUpdate(int len, bool verify)
       }
     }
   }
+#endif
 
   if (code == 0)
   {

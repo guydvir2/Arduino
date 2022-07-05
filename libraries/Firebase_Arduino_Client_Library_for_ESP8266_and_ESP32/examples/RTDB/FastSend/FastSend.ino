@@ -117,7 +117,7 @@ void loop()
 
       // The purpose for this async function is to set, push and update data instantly but...
 
-      // The async function is implemented by the library and not supported by Firebase.
+      //The async function is implemented by the library and not supported by Firebase.
 
       // When use this async function, the response will be ignored, then sometimes server may reject the subsequence requests or
       // full of receive buffer can be interrupted the async continuous operation.

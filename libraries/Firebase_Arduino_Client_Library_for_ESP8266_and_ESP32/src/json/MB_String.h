@@ -1,26 +1,17 @@
 
 /**
- * Mobizt's SRAM/PSRAM supported String, version 1.2.6
- *
- * Created May 18, 2022
- *
+ * Mobizt's SRAM/PSRAM supported String, version 1.2.3
+ * 
+ * Created February 11, 2022
+ * 
  * Changes Log
  * 
- * v1.2.6
- * - Update trim() function
- *
- * v1.2.5
- * - Fixed double string issue and add support long double
- *
- * v1.2.4
- * - Check PSRAM availability before allocating the memory
- *
  * v1.2.3
  * - Fixed flash string F and PSTR handle
- *
+ * 
  * v1.2.2
  * - Add supports more MCUs.
- *
+ * 
  * v1.2.1
  * - Add flash string manipulation functions.
  *
@@ -77,7 +68,7 @@
 
 #define MB_STRING_MAJOR 1
 #define MB_STRING_MINOR 2
-#define MB_STRING_PATCH 5
+#define MB_STRING_PATCH 3
 
 #if defined(ESP8266) && defined(MMU_EXTERNAL_HEAP) && defined(MB_STRING_USE_PSRAM)
 #include <umm_malloc/umm_malloc.h>
@@ -245,7 +236,7 @@ namespace mb_string
     template <typename T>
     struct is_num_float
     {
-        static bool const value = MB_IS_SAME<T, float>::value || MB_IS_SAME<T, double>::value || MB_IS_SAME<T, long double>::value;
+        static bool const value = MB_IS_SAME<T, float>::value || MB_IS_SAME<T, double>::value;
     };
 
     template <typename T>
@@ -377,16 +368,10 @@ namespace mb_string
 
 #if defined(__AVR__)
     template <typename T>
-    T addrTo(int address)
-    {
-        return reinterpret_cast<T>(address);
-    }
+    T addrTo(int address) { return reinterpret_cast<T>(address); }
 #else
     template <typename T>
-    auto addrTo(int address) -> typename MB_ENABLE_IF<!MB_IS_SAME<T, nullptr_t>::value, T>::type
-    {
-        return reinterpret_cast<T>(address);
-    }
+    auto addrTo(int address) -> typename MB_ENABLE_IF<!MB_IS_SAME<T, nullptr_t>::value, T>::type { return reinterpret_cast<T>(address); }
 #endif
 
     template <typename T>
@@ -607,7 +592,6 @@ public:
             }
         }
     }
-
 #if !defined(__AVR__)
     MB_String &operator=(const std::string &rhs)
     {
@@ -1436,6 +1420,22 @@ private:
         return t;
     }
 
+#if defined(ARDUINO_ARCH_SAMD) || defined(__AVR_ATmega4809__) || defined(ARDUINO_NANO_RP2040_CONNECT)
+
+    char *int32Str(signed long value)
+    {
+        char *t = (char *)newP(64);
+        sprintf(t, (const char *)MBSTRING_FLASH_MCR("%ld"), value);
+        return t;
+    }
+
+    char *uint32Str(unsigned long value)
+    {
+        char *t = (char *)newP(64);
+        sprintf(t, (const char *)MBSTRING_FLASH_MCR("%lu"), value);
+        return t;
+    }
+
 #endif
 
     char *int64Str(signed long long value)
@@ -1518,10 +1518,8 @@ private:
         void *p;
         size_t newLen = getReservedLen(len);
 #if defined(BOARD_HAS_PSRAM) && defined(MB_STRING_USE_PSRAM)
-        if (ESP.getPsramSize() > 0)
-            p = (void *)ps_malloc(newLen);
-        else
-            p = (void *)malloc(newLen);
+
+        p = (void *)ps_malloc(newLen);
         if (!p)
             return NULL;
 
@@ -1685,10 +1683,7 @@ private:
             else
             {
 #if defined(BOARD_HAS_PSRAM) && defined(MB_STRING_USE_PSRAM)
-                if (ESP.getPsramSize() > 0)
-                    buf = (char *)ps_malloc(len);
-                else
-                    buf = (char *)malloc(len);
+                buf = (char *)ps_malloc(len);
 #else
                 buf = (char *)malloc(len);
 #endif
@@ -1714,7 +1709,7 @@ private:
             clear();
             return *this;
         }
-
+        
         memcpy_P(buf, (PGM_P)cstr, length);
         buf[length] = '\0';
 

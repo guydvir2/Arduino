@@ -2,7 +2,7 @@
 
 ![Compile](https://github.com/mobizt/Firebase-ESP-Client/actions/workflows/compile_library.yml/badge.svg) ![Examples](https://github.com/mobizt/Firebase-ESP-Client/actions/workflows/compile_examples.yml/badge.svg)  [![Github Stars](https://img.shields.io/github/stars/mobizt/Firebase-ESP-Client?logo=github)](https://github.com/mobizt/Firebase-ESP-Client/stargazers) ![Github Issues](https://img.shields.io/github/issues/mobizt/Firebase-ESP-Client?logo=github)
 
-![arduino-library-badge](https://www.ardu-badge.com/badge/Firebase%20Arduino%20Client%20Library%20for%20ESP8266%20and%20ESP32.svg) ![PlatformIO](https://badges.registry.platformio.org/packages/mobizt/library/Firebase%20Arduino%20Client%20Library%20for%20ESP8266%20and%20ESP32.svg)
+Google's Firebase Arduino Client Library for ESP8266 and ESP32 v3.0.1
 
 
 This library supports ESP8266 and ESP32 MCU from Espressif. The following are platforms in which the libraries are also available (RTDB only).
@@ -15,6 +15,9 @@ This library supports ESP8266 and ESP32 MCU from Espressif. The following are pl
 
  
 ## Other Arduino devices supported using external Clients.
+
+ 
+## Other Arduino Devices supported using external Clients.
 
 Since version 3.0.0, library allows you to use external Arduino Clients network interfaces e.g. WiFiClient, EthernetClient and GSMClient, the Arduino supported devices that have enough flash size (> 128k) and memory can now use this library.
 
