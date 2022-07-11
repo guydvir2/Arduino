@@ -6,6 +6,7 @@
 
 #include <ArduinoJson/Array/ArrayFunctions.hpp>
 #include <ArduinoJson/Array/ArrayIterator.hpp>
+#include <ArduinoJson/Variant/VariantAttorney.hpp>
 #include <ArduinoJson/Variant/VariantData.hpp>
 
 // Returns the size (in bytes) of an array with n elements.
@@ -23,13 +24,7 @@ template <typename TData>
 class ArrayRefBase {
  public:
   operator VariantConstRef() const {
-    const void* data = _data;  // prevent warning cast-align
-    return VariantConstRef(reinterpret_cast<const VariantData*>(data));
-  }
-
-  template <typename TVisitor>
-  FORCE_INLINE typename TVisitor::result_type accept(TVisitor& visitor) const {
-    return arrayAccept(_data, visitor);
+    return VariantConstRef(collectionToVariant(_data));
   }
 
   FORCE_INLINE bool isNull() const {
@@ -45,7 +40,7 @@ class ArrayRefBase {
   }
 
   FORCE_INLINE size_t nesting() const {
-    return _data ? _data->nesting() : 0;
+    return variantNesting(collectionToVariant(_data));
   }
 
   FORCE_INLINE size_t size() const {
@@ -58,7 +53,7 @@ class ArrayRefBase {
 };
 
 class ArrayConstRef : public ArrayRefBase<const CollectionData>,
-                      public Visitable {
+                      public VariantOperators<ArrayConstRef> {
   friend class ArrayRef;
   typedef ArrayRefBase<const CollectionData> base_type;
 
@@ -79,22 +74,39 @@ class ArrayConstRef : public ArrayRefBase<const CollectionData>,
   FORCE_INLINE ArrayConstRef(const CollectionData* data) : base_type(data) {}
 
   FORCE_INLINE bool operator==(ArrayConstRef rhs) const {
-    return arrayEquals(_data, rhs._data);
+    if (_data == rhs._data)
+      return true;
+    if (!_data || !rhs._data)
+      return false;
+
+    iterator it1 = begin();
+    iterator it2 = rhs.begin();
+
+    for (;;) {
+      bool end1 = it1 == end();
+      bool end2 = it2 == rhs.end();
+      if (end1 && end2)
+        return true;
+      if (end1 || end2)
+        return false;
+      if (*it1 != *it2)
+        return false;
+      ++it1;
+      ++it2;
+    }
   }
 
   FORCE_INLINE VariantConstRef operator[](size_t index) const {
-    return getElement(index);
-  }
-
-  FORCE_INLINE VariantConstRef getElement(size_t index) const {
     return VariantConstRef(_data ? _data->getElement(index) : 0);
   }
 };
 
 class ArrayRef : public ArrayRefBase<CollectionData>,
                  public ArrayShortcuts<ArrayRef>,
-                 public Visitable {
+                 public VariantOperators<ArrayRef> {
   typedef ArrayRefBase<CollectionData> base_type;
+
+  friend class VariantAttorney;
 
  public:
   typedef ArrayIterator iterator;
@@ -112,9 +124,11 @@ class ArrayRef : public ArrayRefBase<CollectionData>,
     return ArrayConstRef(_data);
   }
 
-  VariantRef addElement() const {
+  VariantRef add() const {
     return VariantRef(_pool, arrayAdd(_data, _pool));
   }
+
+  using ArrayShortcuts<ArrayRef>::add;
 
   FORCE_INLINE iterator begin() const {
     if (!_data)
@@ -134,17 +148,7 @@ class ArrayRef : public ArrayRefBase<CollectionData>,
   }
 
   FORCE_INLINE bool operator==(ArrayRef rhs) const {
-    return arrayEquals(_data, rhs._data);
-  }
-
-  // Internal use
-  FORCE_INLINE VariantRef getOrAddElement(size_t index) const {
-    return VariantRef(_pool, _data ? _data->getOrAddElement(index, _pool) : 0);
-  }
-
-  // Gets the value at the specified index.
-  FORCE_INLINE VariantRef getElement(size_t index) const {
-    return VariantRef(_pool, _data ? _data->getElement(index) : 0);
+    return ArrayConstRef(_data) == ArrayConstRef(rhs._data);
   }
 
   // Removes element at specified position.
@@ -167,18 +171,32 @@ class ArrayRef : public ArrayRefBase<CollectionData>,
     _data->clear();
   }
 
+ protected:
+  MemoryPool* getPool() const {
+    return _pool;
+  }
+
+  VariantData* getData() const {
+    return collectionToVariant(_data);
+  }
+
+  VariantData* getOrCreateData() const {
+    return collectionToVariant(_data);
+  }
+
  private:
   MemoryPool* _pool;
 };
 
 template <>
-struct Converter<ArrayConstRef> {
+struct Converter<ArrayConstRef> : private VariantAttorney {
   static void toJson(VariantConstRef src, VariantRef dst) {
     variantCopyFrom(getData(dst), getData(src), getPool(dst));
   }
 
   static ArrayConstRef fromJson(VariantConstRef src) {
-    return ArrayConstRef(variantAsArray(getData(src)));
+    const VariantData* data = getData(src);
+    return data ? data->asArray() : 0;
   }
 
   static bool checkJson(VariantConstRef src) {
@@ -188,7 +206,7 @@ struct Converter<ArrayConstRef> {
 };
 
 template <>
-struct Converter<ArrayRef> {
+struct Converter<ArrayRef> : private VariantAttorney {
   static void toJson(VariantConstRef src, VariantRef dst) {
     variantCopyFrom(getData(dst), getData(src), getPool(dst));
   }

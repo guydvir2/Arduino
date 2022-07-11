@@ -1,14 +1,14 @@
 /*
- * FirebaseJson, version 2.6.10
+ * FirebaseJson, version 3.0.0
  *
  * The Easiest Arduino library to parse, create and edit JSON object using a relative path.
  *
- * Created February 11, 2022
+ * Created May 6, 2022
  *
  * Features
  * - Using path to access node element in search style e.g. json.get(result,"a/b/c")
- * - Serializing to writable objects e.g. String, C/C++ string, Client (WiFi and Ethernet), File and Hardware Serial.
- * - Deserializing from const char, char array, string literal and stream e.g. Client (WiFi and Ethernet), File and
+ * - Serializing to writable objects e.g. String, C/C++ string, Clients (WiFi, Ethernet, and GSM), File and Hardware Serial.
+ * - Deserializing from const char, char array, string literal and stream e.g. Clients (WiFi, Ethernet, and GSM), File and
  *   Hardware Serial.
  * - Use managed class, FirebaseJsonData to keep the deserialized result, which can be casted to any primitive data types.
  *
@@ -46,7 +46,14 @@
 #undef max
 #endif
 #if __has_include(<FS.h>)
+
+#if defined(ESP8266)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif
+
 #include <FS.h>
+
 #define MB_JSON_FS_H
 #endif
 #endif
@@ -80,13 +87,7 @@
 
 using namespace mb_string;
 
-#if defined __has_include
-#if __has_include(<Client.h>)
 #include <Client.h>
-#endif
-#else
-#include <Client.h>
-#endif
 
 #ifdef __cplusplus
 extern "C"
@@ -118,7 +119,7 @@ extern "C"
 
 #elif defined(ARDUINO_ARCH_RP2040) || defined(ARDUINO_ARCH_SAMD) || defined(ARDUINO_ARCH_STM32) || defined(ARDUINO_ARCH_STM32F1) || defined(ARDUINO_ARCH_STM32F4) || defined(__AVR__)
 
-#include "extras/print/printf.h"
+#include "extras/print/fb_json_print.h"
 
 extern "C" __attribute__((weak)) void
 fb_json_putchar(char c)
@@ -172,7 +173,10 @@ static void *fb_js_malloc(size_t len)
     size_t newLen = getReservedLen(len);
 
 #if defined(BOARD_HAS_PSRAM) && defined(MB_STRING_USE_PSRAM)
-    p = (void *)ps_malloc(newLen);
+    if (ESP.getPsramSize() > 0)
+        p = (void *)ps_malloc(newLen);
+    else
+        p = (void *)malloc(newLen);
     if (!p)
         return NULL;
 #else
@@ -294,9 +298,9 @@ public:
     template <typename T>
     bool getArray(T source, FirebaseJsonArray &jsonArray)
     {
-        char *s = NULL;
-        bool ret = mGetArray(getStr(source, s), jsonArray);
-        delP(&s);
+        uint32_t addr = 0;
+        bool ret = mGetArray(getStr(source, addr), jsonArray);
+        delAddr(addr);
         return ret;
     }
 
@@ -321,9 +325,9 @@ public:
     template <typename T>
     bool getJSON(T source, FirebaseJson &json)
     {
-        char *s = NULL;
-        bool ret = mGetJSON(getStr(source, s), json);
-        delP(&s);
+        uint32_t addr = 0;
+        bool ret = mGetJSON(getStr(source, addr), json);
+        delAddr(addr);
         return ret;
     }
 
@@ -464,27 +468,38 @@ private:
     void *newP(size_t len);
 
     template <typename T>
-    auto getStr(const T &val, char *out) -> typename MB_ENABLE_IF<is_std_string<T>::value || is_arduino_string<T>::value || is_mb_string<T>::value || MB_IS_SAME<T, StringSumHelper>::value, const char *>::type
+    auto getStr(const T &val, uint32_t &addr) -> typename MB_ENABLE_IF<is_std_string<T>::value || is_arduino_string<T>::value || is_mb_string<T>::value || MB_IS_SAME<T, StringSumHelper>::value, const char *>::type
     {
         addr = 0;
         return val.c_str();
     }
 
     template <typename T>
-    auto getStr(T val, char *out) -> typename MB_ENABLE_IF<is_arduino_flash_string_helper<T>::value, const char *>::type
+    auto getStr(T val, uint32_t &addr) -> typename MB_ENABLE_IF<is_arduino_flash_string_helper<T>::value, const char *>::type
     {
-        return getStr(reinterpret_cast<PGM_P>(val), out);
+        return getStr(reinterpret_cast<PGM_P>(val), addr);
     }
 
     template <typename T>
-    auto getStr(T val, char *out) -> typename MB_ENABLE_IF<is_const_chars<T>::value, const char *>::type
+    auto getStr(T val, uint32_t &addr) -> typename MB_ENABLE_IF<is_const_chars<T>::value, const char *>::type
     {
         int len = strlen_P((PGM_P)val) + 1;
-        out = (char *)newP(len);
+        char *out = (char *)newP(len);
         uint8_t *d = reinterpret_cast<uint8_t *>(out);
         while (len-- > 0)
             *d++ = pgm_read_byte(val++);
-        return out;
+        addr = toAddr(*out);
+        return (const char *)out;
+    }
+
+    void delAddr(uint32_t addr)
+    {
+        if (addr > 0)
+        {
+            char *s = addrTo<char *>(addr);
+            delP(&s);
+            s = NULL;
+        }
     }
 };
 
@@ -640,27 +655,49 @@ protected:
     MB_String buf;
 
     template <typename T>
-    auto getStr(const T &val, char *out) -> typename MB_ENABLE_IF<is_std_string<T>::value || is_arduino_string<T>::value || is_mb_string<T>::value || MB_IS_SAME<T, StringSumHelper>::value, const char *>::type
+    auto getStr(T val, uint32_t &addr) -> typename MB_ENABLE_IF<is_bool<T>::value || is_num_int<T>::value || MB_IS_SAME<T, float>::value || MB_IS_SAME<T, double>::value || MB_IS_SAME<T, long double>::value, const char *>::type
+    {
+        MB_String t;
+
+        if (is_bool<T>::value)
+            t.appendNum(val, 0);
+        else if (is_num_int<T>::value)
+            t.appendNum(val, -1);
+        else if (MB_IS_SAME<T, float>::value)
+            t.appendNum(val, floatDigits);
+        else if (MB_IS_SAME<T, double>::value || MB_IS_SAME<T, long double>::value)
+            t.appendNum(val, doubleDigits);
+
+        char *out = (char *)newP(t.length() + 1);
+        strcpy(out, t.c_str());
+
+        addr = toAddr(*out);
+        return (const char *)out;
+    }
+
+    template <typename T>
+    auto getStr(const T &val, uint32_t &addr) -> typename MB_ENABLE_IF<is_std_string<T>::value || is_arduino_string<T>::value || is_mb_string<T>::value || MB_IS_SAME<T, StringSumHelper>::value, const char *>::type
     {
         addr = 0;
         return val.c_str();
     }
 
     template <typename T>
-    auto getStr(T val, char *out) -> typename MB_ENABLE_IF<is_arduino_flash_string_helper<T>::value, const char *>::type
+    auto getStr(T val, uint32_t &addr) -> typename MB_ENABLE_IF<is_arduino_flash_string_helper<T>::value, const char *>::type
     {
-        return getStr(reinterpret_cast<PGM_P>(val), out);
+        return getStr(reinterpret_cast<PGM_P>(val), addr);
     }
 
     template <typename T>
-    auto getStr(T val, char *out) -> typename MB_ENABLE_IF<is_const_chars<T>::value, const char *>::type
+    auto getStr(T val, uint32_t &addr) -> typename MB_ENABLE_IF<is_const_chars<T>::value, const char *>::type
     {
         int len = strlen_P((PGM_P)val) + 1;
-        out = (char *)newP(len);
+        char *out = (char *)newP(len);
         uint8_t *d = reinterpret_cast<uint8_t *>(out);
         while (len-- > 0)
             *d++ = pgm_read_byte(val++);
-        return out;
+        addr = toAddr(*out);
+        return (const char *)out;
     }
 
     template <typename T>
@@ -784,8 +821,10 @@ protected:
         void *p;
         size_t newLen = getReservedLen(len);
 #if defined(BOARD_HAS_PSRAM) && defined(MB_STRING_USE_PSRAM)
-
-        p = (void *)ps_malloc(newLen);
+        if (ESP.getPsramSize() > 0)
+            p = (void *)ps_malloc(newLen);
+        else
+            p = (void *)malloc(newLen);
         if (!p)
             return NULL;
 
@@ -1011,20 +1050,20 @@ protected:
     char *getHeader(const char *buf, PGM_P beginH, PGM_P endH, int &beginPos, int endPos)
     {
 
-        char *tmp = strP(beginH);
-        int p1 = strpos(buf, tmp, beginPos);
+        char *temp = strP(beginH);
+        int p1 = strpos(buf, temp, beginPos);
         int ofs = 0;
-        delP(&tmp);
+        delP(&temp);
         if (p1 != -1)
         {
-            tmp = strP(endH);
+            temp = strP(endH);
             int p2 = -1;
             if (endPos > 0)
                 p2 = endPos;
             else if (endPos == 0)
             {
                 ofs = strlen_P(endH);
-                p2 = strpos(buf, tmp, p1 + strlen_P(beginH) + 1);
+                p2 = strpos(buf, temp, p1 + strlen_P(beginH) + 1);
             }
             else if (endPos == -1)
             {
@@ -1034,15 +1073,15 @@ protected:
             if (p2 == -1)
                 p2 = strlen(buf);
 
-            delP(&tmp);
+            delP(&temp);
 
             if (p2 != -1)
             {
                 beginPos = p2 + ofs;
                 int len = p2 - p1 - strlen_P(beginH);
-                tmp = (char *)newP(len + 1);
-                memcpy(tmp, &buf[p1 + strlen_P(beginH)], len);
-                return tmp;
+                temp = (char *)newP(len + 1);
+                memcpy(temp, &buf[p1 + strlen_P(beginH)], len);
+                return temp;
             }
         }
 
@@ -1053,58 +1092,58 @@ protected:
     {
         int beginPos = 0, pmax = 0, payloadPos = 0;
 
-        char *tmp = nullptr;
+        char *temp = nullptr;
 
         if (response.httpCode != -1)
         {
             payloadPos = beginPos;
             pmax = beginPos;
-            tmp = getHeader(buf, fb_json_str_1, fb_json_str_7, beginPos, 0);
-            if (tmp)
+            temp = getHeader(buf, fb_json_str_1, fb_json_str_7, beginPos, 0);
+            if (temp)
             {
-                response.connection = tmp;
-                delP(&tmp);
+                response.connection = temp;
+                delP(&temp);
             }
             if (pmax < beginPos)
                 pmax = beginPos;
             beginPos = payloadPos;
-            tmp = getHeader(buf, fb_json_str_3, fb_json_str_7, beginPos, 0);
-            if (tmp)
+            temp = getHeader(buf, fb_json_str_3, fb_json_str_7, beginPos, 0);
+            if (temp)
             {
-                response.contentType = tmp;
-                delP(&tmp);
-            }
-
-            if (pmax < beginPos)
-                pmax = beginPos;
-            beginPos = payloadPos;
-            tmp = getHeader(buf, fb_json_str_6, fb_json_str_7, beginPos, 0);
-            if (tmp)
-            {
-                response.contentLen = atoi(tmp);
-                delP(&tmp);
+                response.contentType = temp;
+                delP(&temp);
             }
 
             if (pmax < beginPos)
                 pmax = beginPos;
             beginPos = payloadPos;
-            tmp = getHeader(buf, fb_json_str_8, fb_json_str_7, beginPos, 0);
-            if (tmp)
+            temp = getHeader(buf, fb_json_str_6, fb_json_str_7, beginPos, 0);
+            if (temp)
             {
-                response.transferEnc = tmp;
-                if (strcmp(tmp, (const char *)MBSTRING_FLASH_MCR("chunked")) == 0)
+                response.contentLen = atoi(temp);
+                delP(&temp);
+            }
+
+            if (pmax < beginPos)
+                pmax = beginPos;
+            beginPos = payloadPos;
+            temp = getHeader(buf, fb_json_str_8, fb_json_str_7, beginPos, 0);
+            if (temp)
+            {
+                response.transferEnc = temp;
+                if (strcmp(temp, (const char *)MBSTRING_FLASH_MCR("chunked")) == 0)
                     response.isChunkedEnc = true;
-                delP(&tmp);
+                delP(&temp);
             }
 
             if (pmax < beginPos)
                 pmax = beginPos;
             beginPos = payloadPos;
-            tmp = getHeader(buf, fb_json_str_4, fb_json_str_7, beginPos, 0);
-            if (tmp)
+            temp = getHeader(buf, fb_json_str_4, fb_json_str_7, beginPos, 0);
+            if (temp)
             {
-                response.connection = tmp;
-                delP(&tmp);
+                response.connection = temp;
+                delP(&temp);
             }
 
             if (response.httpCode == FBJS_ERROR_HTTP_CODE_OK || response.httpCode == FBJS_ERROR_HTTP_CODE_TEMPORARY_REDIRECT || response.httpCode == FBJS_ERROR_HTTP_CODE_PERMANENT_REDIRECT || response.httpCode == FBJS_ERROR_HTTP_CODE_MOVED_PERMANENTLY || response.httpCode == FBJS_ERROR_HTTP_CODE_FOUND)
@@ -1112,11 +1151,11 @@ protected:
                 if (pmax < beginPos)
                     pmax = beginPos;
                 beginPos = payloadPos;
-                tmp = getHeader(buf, fb_json_str_9, fb_json_str_7, beginPos, 0);
-                if (tmp)
+                temp = getHeader(buf, fb_json_str_9, fb_json_str_7, beginPos, 0);
+                if (temp)
                 {
-                    response.location = tmp;
-                    delP(&tmp);
+                    response.location = temp;
+                    delP(&temp);
                 }
             }
 
@@ -1175,7 +1214,7 @@ protected:
 
     int readChunkedData(Client *stream, char *out, int &chunkState, int &chunkedSize, int &dataLen, int bufLen)
     {
-        char *tmp = nullptr;
+        char *temp = nullptr;
         char *buf = nullptr;
         int p1 = 0;
         int olen = 0;
@@ -1192,17 +1231,17 @@ protected:
                 p1 = strpos(buf, ';', 0);
                 if (p1 == -1)
                 {
-                    tmp = strP(fb_json_str_7);
-                    p1 = strpos(buf, tmp, 0);
-                    delP(&tmp);
+                    temp = strP(fb_json_str_7);
+                    p1 = strpos(buf, temp, 0);
+                    delP(&temp);
                 }
 
                 if (p1 != -1)
                 {
-                    tmp = (char *)newP(p1 + 1);
-                    memcpy(tmp, buf, p1);
-                    chunkedSize = hex2int(tmp);
-                    delP(&tmp);
+                    temp = (char *)newP(p1 + 1);
+                    memcpy(temp, buf, p1);
+                    chunkedSize = hex2int(temp);
+                    delP(&temp);
                 }
 
                 // last chunk
@@ -1254,7 +1293,7 @@ protected:
 
     int readChunkedData(Client *stream, MB_String &out, int &chunkState, int &chunkedSize, int &dataLen)
     {
-        char *tmp = nullptr;
+        char *temp = nullptr;
         int p1 = 0;
         int olen = 0;
 
@@ -1270,17 +1309,17 @@ protected:
                 p1 = strpos(s.c_str(), ';', 0);
                 if (p1 == -1)
                 {
-                    tmp = strP(fb_json_str_7);
-                    p1 = strpos(s.c_str(), tmp, 0);
-                    delP(&tmp);
+                    temp = strP(fb_json_str_7);
+                    p1 = strpos(s.c_str(), temp, 0);
+                    delP(&temp);
                 }
 
                 if (p1 != -1)
                 {
-                    tmp = (char *)newP(p1 + 1);
-                    memcpy(tmp, s.c_str(), p1);
-                    chunkedSize = hex2int(tmp);
-                    delP(&tmp);
+                    temp = (char *)newP(p1 + 1);
+                    memcpy(temp, s.c_str(), p1);
+                    chunkedSize = hex2int(temp);
+                    delP(&temp);
                 }
 
                 // last chunk
@@ -1331,7 +1370,7 @@ protected:
         int ret = -1;
 
         char *pChunk = nullptr;
-        char *tmp = nullptr;
+        char *temp = nullptr;
         char *header = nullptr;
         bool isHeader = false;
 
@@ -1384,17 +1423,17 @@ protected:
                             int readLen = readLine(client, header, chunkBufSize);
                             int pos = 0;
 
-                            tmp = getHeader(header, fb_json_str_1, fb_json_str_2, pos, 0);
+                            temp = getHeader(header, fb_json_str_1, fb_json_str_2, pos, 0);
                             idle();
                             dataTime = millis();
-                            if (tmp)
+                            if (temp)
                             {
                                 // http response header with http response code
                                 isHeader = true;
                                 hBufPos = readLen;
-                                response.httpCode = atoi(tmp);
+                                response.httpCode = atoi(temp);
                                 httpCode = response.httpCode;
-                                delP(&tmp);
+                                delP(&temp);
                             }
                         }
                         else
@@ -1405,17 +1444,17 @@ protected:
                             if (isHeader)
                             {
                                 // read one line of next header field until the empty header has found
-                                tmp = (char *)newP(chunkBufSize);
-                                int readLen = readLine(client, tmp, chunkBufSize);
+                                temp = (char *)newP(chunkBufSize);
+                                int readLen = readLine(client, temp, chunkBufSize);
                                 bool headerEnded = false;
 
                                 // check is it the end of http header (\n or \r\n)?
                                 if (readLen == 1)
-                                    if (tmp[0] == '\r')
+                                    if (temp[0] == '\r')
                                         headerEnded = true;
 
                                 if (readLen == 2)
-                                    if (tmp[0] == '\r' && tmp[1] == '\n')
+                                    if (temp[0] == '\r' && temp[1] == '\n')
                                         headerEnded = true;
 
                                 if (headerEnded)
@@ -1431,17 +1470,17 @@ protected:
 
                                     if (response.contentLen == 0)
                                     {
-                                        delP(&tmp);
+                                        delP(&temp);
                                         break;
                                     }
                                 }
                                 else
                                 {
                                     // accumulate the remaining header field
-                                    memcpy(header + hBufPos, tmp, readLen);
+                                    memcpy(header + hBufPos, temp, readLen);
                                     hBufPos += readLen;
                                 }
-                                delP(&tmp);
+                                delP(&temp);
                             }
                             else
                             {
@@ -1743,9 +1782,9 @@ public:
     template <typename T>
     bool setJsonArrayData(T data)
     {
-        char *s = NULL;
-        bool ret = setRaw(getStr(data, s));
-        delP(&s);
+        uint32_t addr = 0;
+        bool ret = setRaw(getStr(data, addr));
+        delAddr(addr);
         return ret;
     }
 
@@ -1852,9 +1891,9 @@ public:
     template <typename T>
     bool isMember(T path)
     {
-        char *s = NULL;
-        bool ret = mGet(root, NULL, getStr(path, s));
-        delP(&s);
+        uint32_t addr = 0;
+        bool ret = mGet(root, NULL, getStr(path, addr));
+        delAddr(addr);
         return ret;
     }
 
@@ -1907,9 +1946,6 @@ public:
      * @param out The object e.g. Serial, String, std::string, char array, Stream, File, Client, that accepts the returning string.
      * @param prettify The text indentation and new line serialization option.
      */
-    template <typename T>
-    bool toString(T &out, bool prettify = false) { return toStringHandler(out, prettify); }
-
     template <typename T>
     bool toString(T *ptr, bool prettify = false) { return toStringPtrHandler(ptr, prettify); }
 
@@ -2013,9 +2049,9 @@ private:
     template <typename T>
     auto dataGetHandler(T arg, FirebaseJsonData &result, bool prettify) -> typename MB_ENABLE_IF<is_string<T>::value, bool>::type
     {
-        char *s = NULL;
-        bool ret = mGet(root, &result, getStr(arg, s), prettify);
-        delP(&s);
+        uint32_t addr = 0;
+        bool ret = mGet(root, &result, getStr(arg, addr), prettify);
+        delAddr(addr);
         return ret;
     }
 
@@ -2028,10 +2064,10 @@ private:
     template <typename T>
     auto dataRemoveHandler(T arg) -> typename MB_ENABLE_IF<is_string<T>::value, bool>::type
     {
-        char *s = NULL;
-        mRemove(getStr(arg, s));
-        delP(&s);
-        return *this;
+        uint32_t addr = 0;
+        bool ret = mRemove(getStr(arg, addr));
+        delAddr(addr);
+        return ret;
     }
 
     template <typename T>
@@ -2077,7 +2113,7 @@ private:
     }
 
     template <typename T>
-    auto dataAddHandler(T arg) -> typename MB_ENABLE_IF<MB_IS_SAME<T, double>::value, FirebaseJsonArray &>::type
+    auto dataAddHandler(T arg) -> typename MB_ENABLE_IF<MB_IS_SAME<T, double>::value || MB_IS_SAME<T, long double>::value, FirebaseJsonArray &>::type
     {
         if (root_type != Root_Type_JSONArray)
             mClear();
@@ -2091,9 +2127,14 @@ private:
     template <typename T>
     auto dataAddHandler(T arg) -> typename MB_ENABLE_IF<is_string<T>::value, FirebaseJsonArray &>::type
     {
-        char *s = NULL;
-        nAdd(MB_JSON_CreateString(getStr(arg, s)));
-        delP(&s);
+        if (root_type != Root_Type_JSONArray)
+            mClear();
+
+        root_type = Root_Type_JSONArray;
+
+        uint32_t addr = 0;
+        nAdd(MB_JSON_CreateString(getStr(arg, addr)));
+        delAddr(addr);
         return *this;
     }
 
@@ -2101,13 +2142,18 @@ private:
     template <typename T1, typename T2>
     auto dataSetHandler(T1 arg1, T2 arg2) -> typename MB_ENABLE_IF<is_string<T1>::value && MB_IS_SAME<T2, std::nullptr_t>::value>::type
     {
-        char *s = NULL;
-        mSet(getStr(arg1, s), MB_JSON_CreateNull());
-        delP(&s);
+        if (root_type != Root_Type_JSONArray)
+            mClear();
+
+        root_type = Root_Type_JSONArray;
+
+        uint32_t addr = 0;
+        mSet(getStr(arg1, addr), MB_JSON_CreateNull());
+        delAddr(addr);
     }
 
     template <typename T1, typename T2>
-    auto dataSetHandler(T1 arg1, T2 arg2) -> typename MB_ENABLE_IF<is_num_int<T1>::value && MB_IS_SAME<T2, std::nullptr_t>::value>::type
+    auto dataSetHandler(T1 arg1, T2 arg2) -> typename MB_ENABLE_IF<(is_num_int<T1>::value || is_num_float<T1>::value || is_bool<T1>::value) && MB_IS_SAME<T2, std::nullptr_t>::value>::type
     {
         mSetIdx(arg1, MB_JSON_CreateNull);
     }
@@ -2116,13 +2162,18 @@ private:
     template <typename T1, typename T2>
     auto dataSetHandler(T1 arg1, T2 arg2) -> typename MB_ENABLE_IF<is_string<T1>::value && is_bool<T2>::value>::type
     {
-        char *s = NULL;
-        mSet(getStr(arg1, s), MB_JSON_CreateBool(arg2));
-        delP(&s);
+        if (root_type != Root_Type_JSONArray)
+            mClear();
+
+        root_type = Root_Type_JSONArray;
+
+        uint32_t addr = 0;
+        mSet(getStr(arg1, addr), MB_JSON_CreateBool(arg2));
+        delAddr(addr);
     }
 
     template <typename T1, typename T2>
-    auto dataSetHandler(T1 arg1, T2 arg2) -> typename MB_ENABLE_IF<is_num_int<T1>::value && is_bool<T2>::value>::type
+    auto dataSetHandler(T1 arg1, T2 arg2) -> typename MB_ENABLE_IF<(is_num_int<T1>::value || is_num_float<T1>::value || is_bool<T1>::value) && is_bool<T2>::value>::type
     {
         mSetIdx(arg1, MB_JSON_CreateBool(arg2));
     }
@@ -2130,13 +2181,18 @@ private:
     template <typename T1, typename T2>
     auto dataSetHandler(T1 arg1, T2 arg2) -> typename MB_ENABLE_IF<is_string<T1>::value && is_num_int<T2>::value>::type
     {
-        char *s = NULL;
-        mSet(getStr(arg1, s), MB_JSON_CreateRaw(num2Str(arg2, -1)));
-        delP(&s);
+        if (root_type != Root_Type_JSONArray)
+            mClear();
+
+        root_type = Root_Type_JSONArray;
+
+        uint32_t addr = 0;
+        mSet(getStr(arg1, addr), MB_JSON_CreateRaw(num2Str(arg2, -1)));
+        delAddr(addr);
     }
 
     template <typename T1, typename T2>
-    auto dataSetHandler(T1 arg1, T2 arg2) -> typename MB_ENABLE_IF<is_num_int<T1>::value && is_num_int<T2>::value>::type
+    auto dataSetHandler(T1 arg1, T2 arg2) -> typename MB_ENABLE_IF<(is_num_int<T1>::value || is_num_float<T1>::value || is_bool<T1>::value) && is_num_int<T2>::value>::type
     {
         mSetIdx(arg1, MB_JSON_CreateRaw(num2Str(arg2, -1)));
     }
@@ -2144,27 +2200,37 @@ private:
     template <typename T1, typename T2>
     auto dataSetHandler(T1 arg1, T2 arg2) -> typename MB_ENABLE_IF<is_string<T1>::value && MB_IS_SAME<T2, float>::value>::type
     {
-        char *s = NULL;
-        mSet(getStr(arg1, s), MB_JSON_CreateRaw(num2Str(arg2, floatDigits)));
-        delP(&s);
+        if (root_type != Root_Type_JSONArray)
+            mClear();
+
+        root_type = Root_Type_JSONArray;
+
+        uint32_t addr = 0;
+        mSet(getStr(arg1, addr), MB_JSON_CreateRaw(num2Str(arg2, floatDigits)));
+        delAddr(addr);
     }
 
     template <typename T1, typename T2>
-    auto dataSetHandler(T1 arg1, T2 arg2) -> typename MB_ENABLE_IF<is_num_int<T1>::value && MB_IS_SAME<T2, float>::value>::type
+    auto dataSetHandler(T1 arg1, T2 arg2) -> typename MB_ENABLE_IF<(is_num_int<T1>::value || is_num_float<T1>::value || is_bool<T1>::value) && MB_IS_SAME<T2, float>::value>::type
     {
         mSetIdx(arg1, MB_JSON_CreateRaw(num2Str(arg2, floatDigits)));
     }
 
     template <typename T1, typename T2>
-    auto dataSetHandler(T1 arg1, T2 arg2) -> typename MB_ENABLE_IF<is_string<T1>::value && MB_IS_SAME<T2, double>::value>::type
+    auto dataSetHandler(T1 arg1, T2 arg2) -> typename MB_ENABLE_IF<is_string<T1>::value && (MB_IS_SAME<T2, double>::value || MB_IS_SAME<T2, long double>::value)>::type
     {
-        char *s = NULL;
-        mSet(getStr(arg1, s), MB_JSON_CreateRaw(num2Str(arg2, doubleDigits)));
-        delP(&s);
+        if (root_type != Root_Type_JSONArray)
+            mClear();
+
+        root_type = Root_Type_JSONArray;
+
+        uint32_t addr = 0;
+        mSet(getStr(arg1, addr), MB_JSON_CreateRaw(num2Str(arg2, doubleDigits)));
+        delAddr(addr);
     }
 
     template <typename T1, typename T2>
-    auto dataSetHandler(T1 arg1, T2 arg2) -> typename MB_ENABLE_IF<is_num_int<T1>::value && MB_IS_SAME<T2, double>::value>::type
+    auto dataSetHandler(T1 arg1, T2 arg2) -> typename MB_ENABLE_IF<(is_num_int<T1>::value || is_num_float<T1>::value || is_bool<T1>::value) && (MB_IS_SAME<T2, double>::value || MB_IS_SAME<T2, long double>::value)>::type
     {
         mSetIdx(arg1, MB_JSON_CreateRaw(num2Str(arg2, doubleDigits)));
     }
@@ -2172,19 +2238,24 @@ private:
     template <typename T1, typename T2>
     auto dataSetHandler(T1 arg1, T2 arg2) -> typename MB_ENABLE_IF<is_string<T1>::value && is_string<T2>::value>::type
     {
-        char *s1 = NULL;
-        char *s2 = NULL;
-        mSet(getStr(arg1, s1), MB_JSON_CreateString(getStr(arg2, s2)));
-        delP(&s1);
-        delP(&s2);
+        if (root_type != Root_Type_JSONArray)
+            mClear();
+
+        root_type = Root_Type_JSONArray;
+
+        uint32_t addr1 = 0;
+        uint32_t addr2 = 0;
+        mSet(getStr(arg1, addr1), MB_JSON_CreateString(getStr(arg2, addr2)));
+        delAddr(addr1);
+        delAddr(addr2);
     }
 
     template <typename T1, typename T2>
-    auto dataSetHandler(T1 arg1, T2 arg2) -> typename MB_ENABLE_IF<is_num_int<T1>::value && is_string<T2>::value>::type
+    auto dataSetHandler(T1 arg1, T2 arg2) -> typename MB_ENABLE_IF<(is_num_int<T1>::value || is_num_float<T1>::value || is_bool<T1>::value) && is_string<T2>::value>::type
     {
-        char *s = NULL;
-        mSetIdx(arg1, MB_JSON_CreateString(getStr(arg2, s)));
-        delP(&s);
+        uint32_t addr = 0;
+        mSetIdx(arg1, MB_JSON_CreateString(getStr(arg2, addr)));
+        delAddr(addr);
     }
 
     template <typename T1, typename T2>
@@ -2196,13 +2267,13 @@ private:
         root_type = Root_Type_JSONArray;
 
         MB_JSON *e = MB_JSON_Duplicate(arg2.root, true);
-        char *s = NULL;
-        mSet(getStr(arg1, s), e);
-        delP(&s);
+        uint32_t addr = 0;
+        mSet(getStr(arg1, addr), e);
+        delAddr(addr);
     }
 
     template <typename T1, typename T2>
-    auto dataSetHandler(T1 arg1, T2 &arg2) -> typename MB_ENABLE_IF<is_num_int<T1>::value && MB_IS_SAME<T2, FirebaseJson>::value>::type
+    auto dataSetHandler(T1 arg1, T2 &arg2) -> typename MB_ENABLE_IF<(is_num_int<T1>::value || is_num_float<T1>::value || is_bool<T1>::value) && MB_IS_SAME<T2, FirebaseJson>::value>::type
     {
         MB_JSON *e = MB_JSON_Duplicate(arg2.root, true);
         mSetIdx(arg1, e);
@@ -2217,13 +2288,13 @@ private:
         root_type = Root_Type_JSONArray;
 
         MB_JSON *e = MB_JSON_Duplicate(arg2.root, true);
-        char *s = NULL;
-        mSet(getStr(arg1, s), e);
-        delP(&s);
+        uint32_t addr = 0;
+        mSet(getStr(arg1, addr), e);
+        delAddr(addr);
     }
 
     template <typename T1, typename T2>
-    auto dataSetHandler(T1 arg1, T2 &arg2) -> typename MB_ENABLE_IF<is_num_int<T1>::value && MB_IS_SAME<T2, FirebaseJsonArray>::value>::type
+    auto dataSetHandler(T1 arg1, T2 &arg2) -> typename MB_ENABLE_IF<(is_num_int<T1>::value || is_num_float<T1>::value || is_bool<T1>::value) && MB_IS_SAME<T2, FirebaseJsonArray>::value>::type
     {
         MB_JSON *e = MB_JSON_Duplicate(arg2.root, true);
         mSetIdx(arg1, e);
@@ -2282,9 +2353,9 @@ public:
     template <typename T>
     bool setJsonData(T data)
     {
-        char *s = NULL;
-        bool ret = setRaw(getStr(data, s));
-        delP(&s);
+        uint32_t addr = 0;
+        bool ret = setRaw(getStr(data, addr));
+        delAddr(addr);
         return ret;
     }
 
@@ -2332,9 +2403,9 @@ public:
     template <typename T>
     FirebaseJson &add(T key)
     {
-        char *s = NULL;
-        nAdd(getStr(key, s), NULL);
-        delP(&s);
+        uint32_t addr = 0;
+        nAdd(getStr(key, addr), NULL);
+        delAddr(addr);
         return *this;
     }
 
@@ -2346,10 +2417,22 @@ public:
      * @return instance of an object.
      */
     template <typename T1, typename T2>
-    FirebaseJson &add(T1 key, T2 value) { return dataHandler(key, value, fb_json_func_type_add); }
+    FirebaseJson &add(T1 key, T2 value)
+    {
+        uint32_t addr = 0;
+        dataHandler(getStr(key, addr), value, fb_json_func_type_add);
+        delAddr(addr);
+        return *this;
+    }
 
     template <typename T>
-    FirebaseJson &add(T key, FirebaseJson &value) { return dataHandler(key, value, fb_json_func_type_add); }
+    FirebaseJson &add(T key, FirebaseJson &value)
+    {
+        uint32_t addr = 0;
+        dataHandler(getStr(key, addr), value, fb_json_func_type_add);
+        delAddr(addr);
+        return *this;
+    }
 
     template <typename T>
     FirebaseJson &add(T key, FirebaseJsonArray &value)
@@ -2367,13 +2450,21 @@ public:
      * @param prettify The text indentation and new line serialization option.
      */
 
-    bool toString(Stream &out, bool prettify = false) { return toStringHandler(out, prettify); }
-
     template <typename T>
     bool toString(T *ptr, bool prettify = false) { return toStringPtrHandler(ptr, prettify); }
 
-    template <typename T>
-    bool toString(T &out, bool prettify = false) { return toStringHandler(out, prettify); }
+    bool toString(Stream &out, bool prettify = false) { return toStringHandler(out, prettify); }
+
+    bool toString(String &out, bool prettify = false) { return toStringHandler(out, prettify); }
+
+    bool toString(MB_String &out, bool prettify = false) { return toStringHandler(out, prettify); }
+
+#if !defined(__AVR__)
+    bool toString(std::string &out, bool prettify = false)
+    {
+        return toStringHandler(out, prettify);
+    }
+#endif
 
     /**
      * Get the value from the specified node path in FirebaseJson object.
@@ -2407,9 +2498,9 @@ public:
     template <typename T>
     bool get(FirebaseJsonData &result, T path, bool prettify = false)
     {
-        char *s = NULL;
-        bool ret = mGet(root, &result, getStr(path, s), prettify);
-        delP(&s);
+        uint32_t addr = 0;
+        bool ret = mGet(root, &result, getStr(path, addr), prettify);
+        delAddr(addr);
         return ret;
     }
 
@@ -2422,9 +2513,9 @@ public:
     template <typename T>
     bool isMember(T path)
     {
-        char *s = NULL;
-        bool ret = mGet(root, NULL, getStr(path, s));
-        delP(&s);
+        uint32_t addr = 0;
+        bool ret = mGet(root, NULL, getStr(path, addr));
+        delAddr(addr);
         return ret;
     }
 
@@ -2477,9 +2568,9 @@ public:
     template <typename T>
     void set(T key)
     {
-        char *s = NULL;
-        mSet(getStr(key, s), NULL);
-        delP(&s);
+        uint32_t addr = 0;
+        mSet(getStr(key, addr), NULL);
+        delAddr(addr);
     }
 
     /**
@@ -2496,10 +2587,22 @@ public:
      * boolean, FirebaseJson object and array.
      */
     template <typename T1, typename T2>
-    void set(T1 key, T2 value) { dataHandler(key, value, fb_json_func_type_set); }
+    FirebaseJson &set(T1 key, T2 value)
+    {
+        uint32_t addr = 0;
+        dataHandler(getStr(key, addr), value, fb_json_func_type_set);
+        delAddr(addr);
+        return *this;
+    }
 
     template <typename T>
-    FirebaseJson &set(T key, FirebaseJson &value) { return dataHandler(key, value, fb_json_func_type_set); }
+    FirebaseJson &set(T key, FirebaseJson &value)
+    {
+        uint32_t addr = 0;
+        dataHandler(getStr(key, addr), value, fb_json_func_type_set);
+        delAddr(addr);
+        return *this;
+    }
 
     template <typename T>
     FirebaseJson &set(T key, FirebaseJsonArray &value)
@@ -2519,9 +2622,9 @@ public:
     template <typename T>
     bool remove(T path)
     {
-        char *s = NULL;
-        bool ret = mRemove(getStr(path, s));
-        delP(&s);
+        uint32_t addr = 0;
+        bool ret = mRemove(getStr(path, addr));
+        delAddr(addr);
         return ret;
     }
 
@@ -2568,62 +2671,87 @@ private:
     template <typename T1, typename T2>
     auto dataHandler(T1 arg1, T2 arg2, fb_json_func_type_t type) -> typename MB_ENABLE_IF<is_string<T1>::value && is_bool<T2>::value, FirebaseJson &>::type
     {
-        char *s = NULL;
+        if (root_type != Root_Type_JSON)
+            mClear();
+
+        root_type = Root_Type_JSON;
+
+        uint32_t addr = 0;
         if (type == fb_json_func_type_add)
-            nAdd(getStr(arg1, s), MB_JSON_CreateBool(arg2));
+            nAdd(getStr(arg1, addr), MB_JSON_CreateBool(arg2));
         else if (type == fb_json_func_type_set)
-            mSet(getStr(arg1, s), MB_JSON_CreateBool(arg2));
-        delP(&s);
+            mSet(getStr(arg1, addr), MB_JSON_CreateBool(arg2));
+        delAddr(addr);
         return *this;
     }
 
     template <typename T1, typename T2>
     auto dataHandler(T1 arg1, T2 arg2, fb_json_func_type_t type) -> typename MB_ENABLE_IF<is_string<T1>::value && is_num_int<T2>::value, FirebaseJson &>::type
     {
-        char *s = NULL;
+        if (root_type != Root_Type_JSON)
+            mClear();
+
+        root_type = Root_Type_JSON;
+
+        uint32_t addr = 0;
         if (type == fb_json_func_type_add)
-            nAdd(getStr(arg1, s), MB_JSON_CreateRaw(num2Str(arg2, -1)));
+            nAdd(getStr(arg1, addr), MB_JSON_CreateRaw(num2Str(arg2, -1)));
         else if (type == fb_json_func_type_set)
-            mSet(getStr(arg1, s), MB_JSON_CreateRaw(num2Str(arg2, -1)));
-        delP(&s);
+            mSet(getStr(arg1, addr), MB_JSON_CreateRaw(num2Str(arg2, -1)));
+        delAddr(addr);
         return *this;
     }
 
     template <typename T1, typename T2>
     auto dataHandler(T1 arg1, T2 arg2, fb_json_func_type_t type) -> typename MB_ENABLE_IF<is_string<T1>::value && MB_IS_SAME<T2, float>::value, FirebaseJson &>::type
     {
-        char *s = NULL;
+        if (root_type != Root_Type_JSON)
+            mClear();
+
+        root_type = Root_Type_JSON;
+
+        uint32_t addr = 0;
         if (type == fb_json_func_type_add)
-            nAdd(getStr(arg1, s), MB_JSON_CreateRaw(num2Str(arg2, floatDigits)));
+            nAdd(getStr(arg1, addr), MB_JSON_CreateRaw(num2Str(arg2, floatDigits)));
         else if (type == fb_json_func_type_set)
-            mSet(getStr(arg1, s), MB_JSON_CreateRaw(num2Str(arg2, floatDigits)));
-        delP(&s);
+            mSet(getStr(arg1, addr), MB_JSON_CreateRaw(num2Str(arg2, floatDigits)));
+        delAddr(addr);
         return *this;
     }
 
     template <typename T1, typename T2>
-    auto dataHandler(T1 arg1, T2 arg2, fb_json_func_type_t type) -> typename MB_ENABLE_IF<is_string<T1>::value && MB_IS_SAME<T2, double>::value, FirebaseJson &>::type
+    auto dataHandler(T1 arg1, T2 arg2, fb_json_func_type_t type) -> typename MB_ENABLE_IF<is_string<T1>::value && (MB_IS_SAME<T2, double>::value || MB_IS_SAME<T2, long double>::value), FirebaseJson &>::type
     {
-        char *s = NULL;
+        if (root_type != Root_Type_JSON)
+            mClear();
+
+        root_type = Root_Type_JSON;
+
+        uint32_t addr = 0;
         if (type == fb_json_func_type_add)
-            nAdd(getStr(arg1, s), MB_JSON_CreateRaw(num2Str(arg2, doubleDigits)));
+            nAdd(getStr(arg1, addr), MB_JSON_CreateRaw(num2Str(arg2, doubleDigits)));
         else if (type == fb_json_func_type_set)
-            mSet(getStr(arg1, s), MB_JSON_CreateRaw(num2Str(arg2, doubleDigits)));
-        delP(&s);
+            mSet(getStr(arg1, addr), MB_JSON_CreateRaw(num2Str(arg2, doubleDigits)));
+        delAddr(addr);
         return *this;
     }
 
     template <typename T1, typename T2>
     auto dataHandler(T1 arg1, T2 arg2, fb_json_func_type_t type) -> typename MB_ENABLE_IF<is_string<T1>::value && is_string<T2>::value, FirebaseJson &>::type
     {
-        char *s1 = NULL;
-        char *s2 = NULL;
+        if (root_type != Root_Type_JSON)
+            mClear();
+
+        root_type = Root_Type_JSON;
+
+        uint32_t addr1 = 0;
+        uint32_t addr2 = 0;
         if (type == fb_json_func_type_add)
-            nAdd(getStr(arg1, s1), MB_JSON_CreateString(getStr(arg2, s2)));
+            nAdd(getStr(arg1, addr1), MB_JSON_CreateString(getStr(arg2, addr2)));
         else if (type == fb_json_func_type_set)
-            mSet(getStr(arg1, s1), MB_JSON_CreateString(getStr(arg2, s2)));
-        delP(&s1);
-        delP(&s2);
+            mSet(getStr(arg1, addr1), MB_JSON_CreateString(getStr(arg2, addr2)));
+        delAddr(addr1);
+        delAddr(addr2);
         return *this;
     }
 
@@ -2636,12 +2764,12 @@ private:
         root_type = Root_Type_JSON;
 
         MB_JSON *e = MB_JSON_Duplicate(json.root, true);
-        char *s = NULL;
+        uint32_t addr = 0;
         if (type == fb_json_func_type_add)
-            nAdd(getStr(arg, s), e);
+            nAdd(getStr(arg, addr), e);
         else if (type == fb_json_func_type_set)
-            mSet(getStr(arg, s), e);
-        delP(&s);
+            mSet(getStr(arg, addr), e);
+        delAddr(addr);
         return *this;
     }
 
@@ -2654,12 +2782,12 @@ private:
         root_type = Root_Type_JSON;
 
         MB_JSON *e = MB_JSON_Duplicate(arr.root, true);
-        char *s = NULL;
+        uint32_t addr = 0;
         if (type == fb_json_func_type_add)
-            nAdd(getStr(arg, s), e);
+            nAdd(getStr(arg, addr), e);
         else if (type == fb_json_func_type_set)
-            mSet(getStr(arg, s), e);
-        delP(&s);
+            mSet(getStr(arg, addr), e);
+        delAddr(addr);
         return *this;
     }
 

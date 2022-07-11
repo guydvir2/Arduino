@@ -3,8 +3,6 @@
 #ifndef FirebaseFS_H
 #define FirebaseFS_H
 
-#pragma once
-
 #include <Arduino.h>
 
 #define FIREBASE_ESP_CLIENT 1
@@ -73,7 +71,7 @@ static SdFat sd_fat_fs;   //should declare as static here
 
 #define ENABLE_ERROR_QUEUE
 
-//Comment to exclude Cloud Firestore
+// Comment to exclude Cloud Firestore
 #define ENABLE_FIRESTORE
 
 // Comment to exclude Firebase Cloud Messaging
@@ -99,5 +97,8 @@ static SdFat sd_fat_fs;   //should declare as static here
 // To enable external Client for ESP8266 and ESP32.
 // This will enable automatically for other devices.
 //#define FB_ENABLE_EXTERNAL_CLIENT
+
+// For ESP8266 W5100 Ethernet module
+// #define ENABLE_ESP8266_W5100_ETH
 
 #endif

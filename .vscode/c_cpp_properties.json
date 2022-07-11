@@ -3,9 +3,9 @@
     "configurations": [
         {
             "name": "Linux",
-            "compilerPath": "/bin/cpp",
+            "compilerPath": "\"\"",
             "compilerArgs": [],
-            "intelliSenseMode": "linux-gcc-x64",
+            "intelliSenseMode": "linux-clang-x64",
             "includePath": [
                 "/home/guy/Documents/Dropbox/Arduino/libraries/**",
                 "${workspaceFolder}/**"

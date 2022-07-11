@@ -37,6 +37,11 @@ class VariantData {
     _flags = VALUE_IS_NULL;
   }
 
+  void operator=(const VariantData &src) {
+    _content = src._content;
+    _flags = uint8_t((_flags & OWNED_KEY_BIT) | (src._flags & ~OWNED_KEY_BIT));
+  }
+
   template <typename TVisitor>
   typename TVisitor::result_type accept(TVisitor &visitor) const {
     switch (type()) {
@@ -89,6 +94,10 @@ class VariantData {
 
   const CollectionData *asArray() const {
     return const_cast<VariantData *>(this)->asArray();
+  }
+
+  const CollectionData *asCollection() const {
+    return isCollection() ? &_content.asCollection : 0;
   }
 
   CollectionData *asObject() {
@@ -245,10 +254,6 @@ class VariantData {
     }
   }
 
-  size_t nesting() const {
-    return isCollection() ? _content.asCollection.nesting() : 0;
-  }
-
   size_t size() const {
     return isCollection() ? _content.asCollection.size() : 0;
   }
@@ -262,7 +267,8 @@ class VariantData {
   }
 
   VariantData *getElement(size_t index) const {
-    return isArray() ? _content.asCollection.getElement(index) : 0;
+    const CollectionData *col = asArray();
+    return col ? col->getElement(index) : 0;
   }
 
   VariantData *getOrAddElement(size_t index, MemoryPool *pool) {
@@ -275,7 +281,8 @@ class VariantData {
 
   template <typename TAdaptedString>
   VariantData *getMember(TAdaptedString key) const {
-    return isObject() ? _content.asCollection.getMember(key) : 0;
+    const CollectionData *col = asObject();
+    return col ? col->getMember(key) : 0;
   }
 
   template <typename TAdaptedString, typename TStoragePolicy>

@@ -185,12 +185,14 @@ public:
   int16_t getX(void);
   int16_t getY(void);
   int16_t getZ(void);
+  bool getXYZ(int16_t &x, int16_t &y, int16_t &z);
 
 protected:
   Adafruit_SPIDevice *spi_dev = NULL; ///< BusIO SPI device
   Adafruit_I2CDevice *i2c_dev = NULL; ///< BusIO I2C device
 
-  TwoWire *_wire;         ///< I2C hardware interface
+  TwoWire *_wire = NULL;  ///< I2C hardware interface
+  SPIClass *_spi = NULL;  ///< SPI hardware interface
   int32_t _sensorID;      ///< User-set sensor identifier
   adxl34x_range_t _range; ///< cache of range
   uint8_t _clk,           ///< SPI software clock

@@ -2,10 +2,6 @@
  * Created by K. Suwatchai (Mobizt)
  *
  * Email: k_suwatchai@hotmail.com
- * 
- * Github: https://github.com/mobizt
- * 
- * Copyright (c) 2021 mobizt
  *
  * Github: https://github.com/mobizt
  *
@@ -13,7 +9,7 @@
  *
  */
 
-//https://github.com/arduino-libraries/ArduinoMqttClient
+// https://github.com/arduino-libraries/ArduinoMqttClient
 #include <ArduinoMqttClient.h>
 #if defined(ARDUINO_SAMD_MKRWIFI1010) || defined(ARDUINO_SAMD_NANO_33_IOT) || defined(ARDUINO_AVR_UNO_WIFI_REV2)
 #include <WiFiNINA.h>
@@ -25,7 +21,7 @@
 #include <WiFi.h>
 #endif
 
-//Enable LW MQTT library after include the library and before include the FirebaseJson.
+// Enable LW MQTT library after include the library and before include the FirebaseJson.
 
 #include <FirebaseJson.h>
 

@@ -42,13 +42,13 @@ public:
     bool turnOFF();                /* PWM & GPIO */
     bool turnON(uint8_t step = 0); /* PWM & GPIO */
     bool PWMvalue(int val);        /* Drive to PWM value */
-
+    void blink(uint8_t blinks, int _delay=20);
     bool isON();
     bool isPWM();
 
 private:
     bool _setPWM(int val);
-    void _Dim2Value(int &val);
+    void _Dim2Value(int val);
     bool _isValidPWM(int val);
     bool _isValidStep(int step);
     int _step2Value(uint8_t step);

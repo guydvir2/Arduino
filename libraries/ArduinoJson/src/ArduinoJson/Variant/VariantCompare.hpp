@@ -5,7 +5,6 @@
 #pragma once
 
 #include <ArduinoJson/Configuration.hpp>
-#include <ArduinoJson/Misc/Visitable.hpp>
 #include <ArduinoJson/Numbers/arithmeticCompare.hpp>
 #include <ArduinoJson/Polyfills/type_traits.hpp>
 #include <ArduinoJson/Strings/StringAdapters.hpp>
@@ -89,7 +88,7 @@ struct ArrayComparer : ComparerBase {
   explicit ArrayComparer(const CollectionData &rhs) : _rhs(&rhs) {}
 
   CompareResult visitArray(const CollectionData &lhs) {
-    if (lhs.equalsArray(*_rhs))
+    if (ArrayConstRef(&lhs) == ArrayConstRef(_rhs))
       return COMPARE_RESULT_EQUAL;
     else
       return COMPARE_RESULT_DIFFER;
@@ -102,7 +101,7 @@ struct ObjectComparer : ComparerBase {
   explicit ObjectComparer(const CollectionData &rhs) : _rhs(&rhs) {}
 
   CompareResult visitObject(const CollectionData &lhs) {
-    if (lhs.equalsObject(*_rhs))
+    if (ObjectConstRef(&lhs) == ObjectConstRef(_rhs))
       return COMPARE_RESULT_EQUAL;
     else
       return COMPARE_RESULT_DIFFER;
@@ -128,12 +127,10 @@ struct RawComparer : ComparerBase {
   }
 };
 
-template <typename T>
-struct Comparer<T, typename enable_if<IsVisitable<T>::value>::type>
-    : ComparerBase {
-  const T *rhs;  // TODO: should be a VariantConstRef
+struct VariantComparer : ComparerBase {
+  VariantConstRef rhs;
 
-  explicit Comparer(const T &value) : rhs(&value) {}
+  explicit VariantComparer(VariantConstRef value) : rhs(value) {}
 
   CompareResult visitArray(const CollectionData &lhs) {
     ArrayComparer comparer(lhs);
@@ -183,7 +180,8 @@ struct Comparer<T, typename enable_if<IsVisitable<T>::value>::type>
  private:
   template <typename TComparer>
   CompareResult accept(TComparer &comparer) {
-    CompareResult reversedResult = rhs->accept(comparer);
+    CompareResult reversedResult =
+        variantAccept(VariantAttorney::getData(rhs), comparer);
     switch (reversedResult) {
       case COMPARE_RESULT_GREATER:
         return COMPARE_RESULT_LESS;
@@ -195,14 +193,18 @@ struct Comparer<T, typename enable_if<IsVisitable<T>::value>::type>
   }
 };
 
-template <typename T1, typename T2>
-CompareResult compare(const T1 &lhs, const T2 &rhs) {
-  Comparer<T2> comparer(rhs);
-  return lhs.accept(comparer);
-}
+template <typename T>
+struct Comparer<
+    T, typename enable_if<is_convertible<T, VariantConstRef>::value>::type>
+    : VariantComparer {
+  explicit Comparer(const T &value)
+      : VariantComparer(value.operator VariantConstRef()) {}
+};
 
-inline int variantCompare(const VariantData *a, const VariantData *b) {
-  return compare(VariantConstRef(a), VariantConstRef(b));
+template <typename T>
+CompareResult compare(VariantConstRef lhs, const T &rhs) {
+  Comparer<T> comparer(rhs);
+  return variantAccept(VariantAttorney::getData(lhs), comparer);
 }
 
 }  // namespace ARDUINOJSON_NAMESPACE

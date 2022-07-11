@@ -19,13 +19,12 @@ namespace ARDUINOJSON_NAMESPACE {
 template <typename TArray>
 class ElementProxy : public VariantOperators<ElementProxy<TArray> >,
                      public VariantShortcuts<ElementProxy<TArray> >,
-                     public Visitable,
                      public VariantTag {
   typedef ElementProxy<TArray> this_type;
 
- public:
-  typedef VariantRef variant_type;
+  friend class VariantAttorney;
 
+ public:
   FORCE_INLINE ElementProxy(TArray array, size_t index)
       : _array(array), _index(index) {}
 
@@ -61,12 +60,20 @@ class ElementProxy : public VariantOperators<ElementProxy<TArray> >,
   }
 
   FORCE_INLINE bool isNull() const {
-    return getUpstreamElement().isNull();
+    return getUpstreamElementConst().isNull();
   }
 
   template <typename T>
-  FORCE_INLINE typename enable_if<!is_same<T, char*>::value, T>::type as()
-      const {
+  FORCE_INLINE typename enable_if<!is_same<T, char*>::value &&
+                                      !ConverterNeedsWriteableRef<T>::value,
+                                  T>::type
+  as() const {
+    return getUpstreamElementConst().template as<T>();
+  }
+
+  template <typename T>
+  FORCE_INLINE typename enable_if<ConverterNeedsWriteableRef<T>::value, T>::type
+  as() const {
     return getUpstreamElement().template as<T>();
   }
 
@@ -79,17 +86,30 @@ class ElementProxy : public VariantOperators<ElementProxy<TArray> >,
 
   template <typename T>
   FORCE_INLINE operator T() const {
-    return getUpstreamElement();
+    return as<T>();
   }
 
   template <typename T>
-  FORCE_INLINE bool is() const {
+  FORCE_INLINE
+      typename enable_if<ConverterNeedsWriteableRef<T>::value, bool>::type
+      is() const {
     return getUpstreamElement().template is<T>();
+  }
+
+  template <typename T>
+  FORCE_INLINE
+      typename enable_if<!ConverterNeedsWriteableRef<T>::value, bool>::type
+      is() const {
+    return getUpstreamElementConst().template is<T>();
   }
 
   template <typename T>
   FORCE_INLINE typename VariantTo<T>::type to() const {
     return getOrAddUpstreamElement().template to<T>();
+  }
+
+  FORCE_INLINE void shallowCopy(VariantConstRef value) const {
+    getOrAddUpstreamElement().shallowCopy(value);
   }
 
   // Replaces the value
@@ -109,50 +129,19 @@ class ElementProxy : public VariantOperators<ElementProxy<TArray> >,
     return getOrAddUpstreamElement().set(value);
   }
 
-  template <typename TVisitor>
-  typename TVisitor::result_type accept(TVisitor& visitor) const {
-    return getUpstreamElement().accept(visitor);
-  }
-
   FORCE_INLINE size_t size() const {
-    return getUpstreamElement().size();
+    return getUpstreamElementConst().size();
   }
 
   FORCE_INLINE size_t memoryUsage() const {
-    return getUpstreamElement().memoryUsage();
+    return getUpstreamElementConst().memoryUsage();
   }
 
-  template <typename TNestedKey>
-  VariantRef getMember(TNestedKey* key) const {
-    return getUpstreamElement().getMember(key);
+  VariantRef add() const {
+    return getOrAddUpstreamElement().add();
   }
 
-  template <typename TNestedKey>
-  VariantRef getMember(const TNestedKey& key) const {
-    return getUpstreamElement().getMember(key);
-  }
-
-  template <typename TNestedKey>
-  VariantRef getOrAddMember(TNestedKey* key) const {
-    return getOrAddUpstreamElement().getOrAddMember(key);
-  }
-
-  template <typename TNestedKey>
-  VariantRef getOrAddMember(const TNestedKey& key) const {
-    return getOrAddUpstreamElement().getOrAddMember(key);
-  }
-
-  VariantRef addElement() const {
-    return getOrAddUpstreamElement().addElement();
-  }
-
-  VariantRef getElement(size_t index) const {
-    return getOrAddUpstreamElement().getElement(index);
-  }
-
-  VariantRef getOrAddElement(size_t index) const {
-    return getOrAddUpstreamElement().getOrAddElement(index);
-  }
+  using ArrayShortcuts<ElementProxy<TArray> >::add;
 
   FORCE_INLINE void remove(size_t index) const {
     getUpstreamElement().remove(index);
@@ -173,17 +162,35 @@ class ElementProxy : public VariantOperators<ElementProxy<TArray> >,
     getUpstreamElement().remove(key);
   }
 
+ protected:
+  FORCE_INLINE MemoryPool* getPool() const {
+    return VariantAttorney::getPool(_array);
+  }
+
+  FORCE_INLINE VariantData* getData() const {
+    return variantGetElement(VariantAttorney::getData(_array), _index);
+  }
+
+  FORCE_INLINE VariantData* getOrCreateData() const {
+    return variantGetOrAddElement(VariantAttorney::getOrCreateData(_array),
+                                  _index, VariantAttorney::getPool(_array));
+  }
+
  private:
   FORCE_INLINE VariantRef getUpstreamElement() const {
-    return _array.getElement(_index);
+    return VariantRef(getPool(), getData());
+  }
+
+  FORCE_INLINE VariantConstRef getUpstreamElementConst() const {
+    return VariantConstRef(getData());
   }
 
   FORCE_INLINE VariantRef getOrAddUpstreamElement() const {
-    return _array.getOrAddElement(_index);
+    return VariantRef(getPool(), getOrCreateData());
   }
 
   friend void convertToJson(const this_type& src, VariantRef dst) {
-    dst.set(src.getUpstreamElement());
+    dst.set(src.getUpstreamElementConst());
   }
 
   TArray _array;

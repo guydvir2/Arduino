@@ -11,16 +11,13 @@
 
 namespace ARDUINOJSON_NAMESPACE {
 
-inline bool variantEquals(const VariantData* a, const VariantData* b) {
-  return variantCompare(a, b) == COMPARE_RESULT_EQUAL;
-}
-
 inline VariantSlot* CollectionData::addSlot(MemoryPool* pool) {
   VariantSlot* slot = pool->allocVariant();
   if (!slot)
     return 0;
 
   if (_tail) {
+    ARDUINOJSON_ASSERT(pool->owns(_tail));  // Can't alter a linked array/object
     _tail->setNextNotNull(slot);
     _tail = slot;
   } else {
@@ -75,33 +72,6 @@ inline bool CollectionData::copyFrom(const CollectionData& src,
       return false;
   }
   return true;
-}
-
-inline bool CollectionData::equalsObject(const CollectionData& other) const {
-  size_t count = 0;
-  for (VariantSlot* slot = _head; slot; slot = slot->next()) {
-    VariantData* v1 = slot->data();
-    VariantData* v2 = other.getMember(adaptString(slot->key()));
-    if (!variantEquals(v1, v2))
-      return false;
-    count++;
-  }
-  return count == other.size();
-}
-
-inline bool CollectionData::equalsArray(const CollectionData& other) const {
-  VariantSlot* s1 = _head;
-  VariantSlot* s2 = other._head;
-  for (;;) {
-    if (s1 == s2)
-      return true;
-    if (!s1 || !s2)
-      return false;
-    if (!variantEquals(s1->data(), s2->data()))
-      return false;
-    s1 = s1->next();
-    s2 = s2->next();
-  }
 }
 
 template <typename TAdaptedString>
@@ -201,16 +171,6 @@ inline size_t CollectionData::memoryUsage() const {
       total += strlen(s->key()) + 1;
   }
   return total;
-}
-
-inline size_t CollectionData::nesting() const {
-  size_t maxChildNesting = 0;
-  for (VariantSlot* s = _head; s; s = s->next()) {
-    size_t childNesting = s->data()->nesting();
-    if (childNesting > maxChildNesting)
-      maxChildNesting = childNesting;
-  }
-  return maxChildNesting + 1;
 }
 
 inline size_t CollectionData::size() const {

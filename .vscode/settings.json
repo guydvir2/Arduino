@@ -22,5 +22,6 @@
         "ostream": "cpp",
         "chrono": "cpp",
         "new": "cpp"
-    }
+    },
+    "C_Cpp.errorSquiggles": "Disabled"
 }

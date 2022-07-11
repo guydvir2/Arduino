@@ -1,7 +1,7 @@
 /*
- * TCP Client Base class, version 1.0.0
+ * TCP Client Base class, version 1.0.5
  *
- * Created February 10, 2022
+ * Created July 10, 2022
  *
  * The MIT License (MIT)
  * Copyright (c) 2022 K. Suwatchai (Mobizt)
@@ -26,10 +26,10 @@
  */
 
 #ifndef FB_TCP_CLIENT_BASE_H
-#define TCP_CLIENT_BASE_H
+#define FB_TCP_CLIENT_BASE_H
 
 #include <Arduino.h>
-#include "Utils.h"
+#include "FB_Utils.h"
 #include <IPAddress.h>
 #include <Client.h>
 
@@ -136,7 +136,6 @@ public:
 
             if (!ret)
             {
-                setError(FIREBASE_ERROR_TCP_ERROR_CONNECTION_REFUSED);
                 client->stop();
                 client->flush();
             }
@@ -149,13 +148,16 @@ public:
 
     virtual int write(uint8_t *data, int len)
     {
-        if (!data)
+        if (!data || !client)
             return setError(FIREBASE_ERROR_TCP_ERROR_SEND_REQUEST_FAILED);
 
         if (len == 0)
             return setError(FIREBASE_ERROR_TCP_ERROR_SEND_REQUEST_FAILED);
 
-        // call base or derved connect.
+        if (!networkReady())
+            return setError(FIREBASE_ERROR_TCP_ERROR_NOT_CONNECTED);
+
+        // call base or derived connect.
         if (!connect())
             return setError(FIREBASE_ERROR_TCP_ERROR_CONNECTION_REFUSED);
 
@@ -166,6 +168,9 @@ public:
             if (sent + toSend > len)
                 toSend = len - sent;
 
+#if defined(ESP8266)
+            delay(0);
+#endif
             int res = client->write(data + sent, toSend);
 
             if (res != toSend)
@@ -276,6 +281,10 @@ public:
         {
             if (!client)
                 break;
+
+            if (mbfs)
+                mbfs->feed();
+
             res = client->read();
             if (res > -1)
             {
@@ -303,6 +312,10 @@ public:
         {
             if (!client)
                 break;
+
+            if (mbfs)
+                mbfs->feed();
+
             res = client->read();
             if (res > -1)
             {
@@ -321,7 +334,7 @@ public:
         if (!client)
             return setError(FIREBASE_ERROR_TCP_ERROR_CONNECTION_REFUSED);
 
-        char *tmp = nullptr;
+        char *temp = nullptr;
         char *buf = nullptr;
         int p1 = 0;
         int olen = 0;
@@ -343,10 +356,10 @@ public:
 
                 if (p1 != -1)
                 {
-                    tmp = (char *)mbfs->newP(p1 + 1);
-                    memcpy(tmp, buf, p1);
-                    chunkedSize = hex2int(tmp);
-                    mbfs->delP(&tmp);
+                    temp = (char *)mbfs->newP(p1 + 1);
+                    memcpy(temp, buf, p1);
+                    chunkedSize = hex2int(temp);
+                    mbfs->delP(&temp);
                 }
 
                 // last chunk
@@ -399,10 +412,7 @@ public:
     bool sendBase64(size_t bufSize, uint8_t *data, size_t len, bool flashMem)
     {
         if (!client)
-        {
-            setError(FIREBASE_ERROR_TCP_ERROR_CONNECTION_REFUSED);
-            return false;
-        }
+            return setError(FIREBASE_ERROR_TCP_ERROR_CONNECTION_REFUSED);
 
         bool ret = false;
         const unsigned char *end, *in;
@@ -417,20 +427,25 @@ public:
         unsigned char *buf = (unsigned char *)mbfs->newP(chunkSize);
         memset(buf, 0, chunkSize);
 
-        unsigned char *tmp = (unsigned char *)mbfs->newP(3);
+        unsigned char *temp = (unsigned char *)mbfs->newP(3);
 
         while (end - in >= 3)
         {
-            memset(tmp, 0, 3);
-            if (flashMem)
-                memcpy_P(tmp, in, 3);
-            else
-                memcpy(tmp, in, 3);
 
-            buf[byteAdded++] = fb_esp_base64_table[tmp[0] >> 2];
-            buf[byteAdded++] = fb_esp_base64_table[((tmp[0] & 0x03) << 4) | (tmp[1] >> 4)];
-            buf[byteAdded++] = fb_esp_base64_table[((tmp[1] & 0x0f) << 2) | (tmp[2] >> 6)];
-            buf[byteAdded++] = fb_esp_base64_table[tmp[2] & 0x3f];
+#if defined(ESP8266)
+            delay(0);
+#endif
+
+            memset(temp, 0, 3);
+            if (flashMem)
+                memcpy_P(temp, in, 3);
+            else
+                memcpy(temp, in, 3);
+
+            buf[byteAdded++] = fb_esp_base64_table[temp[0] >> 2];
+            buf[byteAdded++] = fb_esp_base64_table[((temp[0] & 0x03) << 4) | (temp[1] >> 4)];
+            buf[byteAdded++] = fb_esp_base64_table[((temp[1] & 0x0f) << 2) | (temp[2] >> 6)];
+            buf[byteAdded++] = fb_esp_base64_table[temp[2] & 0x3f];
 
             if (byteAdded >= chunkSize - 4)
             {
@@ -458,32 +473,32 @@ public:
         {
             memset(buf, 0, chunkSize);
             byteAdded = 0;
-            memset(tmp, 0, 3);
+            memset(temp, 0, 3);
             if (flashMem)
             {
                 if (end - in == 1)
-                    memcpy_P(tmp, in, 1);
+                    memcpy_P(temp, in, 1);
                 else
-                    memcpy_P(tmp, in, 2);
+                    memcpy_P(temp, in, 2);
             }
             else
             {
                 if (end - in == 1)
-                    memcpy(tmp, in, 1);
+                    memcpy(temp, in, 1);
                 else
-                    memcpy(tmp, in, 2);
+                    memcpy(temp, in, 2);
             }
 
-            buf[byteAdded++] = fb_esp_base64_table[tmp[0] >> 2];
+            buf[byteAdded++] = fb_esp_base64_table[temp[0] >> 2];
             if (end - in == 1)
             {
-                buf[byteAdded++] = fb_esp_base64_table[(tmp[0] & 0x03) << 4];
+                buf[byteAdded++] = fb_esp_base64_table[(temp[0] & 0x03) << 4];
                 buf[byteAdded++] = '=';
             }
             else
             {
-                buf[byteAdded++] = fb_esp_base64_table[((tmp[0] & 0x03) << 4) | (tmp[1] >> 4)];
-                buf[byteAdded++] = fb_esp_base64_table[(tmp[1] & 0x0f) << 2];
+                buf[byteAdded++] = fb_esp_base64_table[((temp[0] & 0x03) << 4) | (temp[1] >> 4)];
+                buf[byteAdded++] = fb_esp_base64_table[(temp[1] & 0x0f) << 2];
             }
             buf[byteAdded++] = '=';
             size_t sz = strlen((const char *)buf);
@@ -495,7 +510,7 @@ public:
         ret = true;
     ex:
 
-        mbfs->delP(&tmp);
+        mbfs->delP(&temp);
         mbfs->delP(&buf);
         return ret;
     }
@@ -505,7 +520,7 @@ public:
         if (!client)
             return setError(FIREBASE_ERROR_TCP_ERROR_CONNECTION_REFUSED);
 
-        char *tmp = nullptr;
+        char *temp = nullptr;
         int p1 = 0;
         int olen = 0;
 
@@ -526,10 +541,10 @@ public:
 
                 if (p1 != -1)
                 {
-                    tmp = (char *)mbfs->newP(p1 + 1);
-                    memcpy(tmp, s.c_str(), p1);
-                    chunkedSize = hex2int(tmp);
-                    mbfs->delP(&tmp);
+                    temp = (char *)mbfs->newP(p1 + 1);
+                    memcpy(temp, s.c_str(), p1);
+                    chunkedSize = hex2int(temp);
+                    mbfs->delP(&temp);
                 }
 
                 // last chunk
@@ -672,7 +687,7 @@ protected:
     // In esp8266, this is actually Arduino base Stream (char read) timeout.
     //  This will override internally by WiFiClientSecureCtx::_connectSSL
     //  to 5000 after SSL handshake was done with success.
-    int timeoutMs = 40000; // 40 sec
+    int timeoutMs = 120000; // 120 sec
     bool clockReady = false;
     time_t now = 0;
     int *response_code = nullptr;

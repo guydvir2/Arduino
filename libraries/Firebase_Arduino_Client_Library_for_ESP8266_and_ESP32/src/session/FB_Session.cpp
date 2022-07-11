@@ -1,9 +1,9 @@
 /**
- * Google's Firebase Data class, FB_Session.cpp version 1.2.16
+ * Google's Firebase Data class, FB_Session.cpp version 1.2.22
  *
  * This library supports Espressif ESP8266 and ESP32
  *
- * Created February 10, 2022
+ * Created May 11, 2022
  *
  * This work is a part of Firebase ESP Client library
  * Copyright (c) 2022 K. Suwatchai (Mobizt)
@@ -90,6 +90,67 @@ void FirebaseData::setNetworkStatus(bool status)
     Signer.setNetworkStatus(status);
     tcpClient.setNetworkStatus(status);
 #endif
+}
+
+void FirebaseData::addSO()
+{
+    if (!Signer.getCfg())
+        return;
+
+    if (so_addr == 0)
+    {
+        so_addr = toAddr(*this);
+        Signer.getCfg()->internal.so_addr_list.push_back(so_addr);
+        session.con_mode = fb_esp_con_mode_rtdb_stream;
+    }
+}
+
+void FirebaseData::removeSO()
+{
+    if (!Signer.getCfg())
+        return;
+
+    if (so_addr > 0)
+    {
+        for (size_t i = 0; i < Signer.getCfg()->internal.so_addr_list.size(); i++)
+        {
+            if (so_addr > 0 && Signer.getCfg()->internal.so_addr_list[i] == so_addr)
+            {
+                session.con_mode = fb_esp_con_mode_undefined;
+                Signer.getCfg()->internal.so_addr_list.erase(Signer.getCfg()->internal.so_addr_list.begin() + i);
+                so_addr = 0;
+                break;
+            }
+        }
+    }
+}
+
+void FirebaseData::addQueueAddr()
+{
+    if (queue_addr == 0)
+    {
+        queue_addr = toAddr(*this);
+        Signer.getCfg()->internal.queue_addr_list.push_back(queue_addr);
+    }
+}
+
+void FirebaseData::removeQueueAddr()
+{
+    if (!Signer.getCfg())
+        return;
+
+    if (queue_addr > 0)
+    {
+        for (size_t i = 0; i < Signer.getCfg()->internal.queue_addr_list.size(); i++)
+        {
+            if (queue_addr > 0 && Signer.getCfg()->internal.queue_addr_list[i] == queue_addr)
+            {
+                Signer.getCfg()->internal.queue_addr_list.erase(Signer.getCfg()->internal.queue_addr_list.begin() + i);
+                queue_addr = 0;
+                break;
+            }
+        }
+    }
 }
 
 bool FirebaseData::init()
@@ -702,13 +763,20 @@ void FirebaseData::sendStreamToCB(int code)
     session.rtdb.data_millis = 0;
     session.rtdb.data_tmo = true;
     session.response.code = code;
-    if (_timeoutCallback)
-        _timeoutCallback(true);
+    if (Signer.getCfg())
+    {
+        if (_timeoutCallback && millis() - Signer.getCfg()->internal.fb_last_stream_timeout_cb_millis > 3000)
+        {
+            Signer.getCfg()->internal.fb_last_stream_timeout_cb_millis = millis();
+            _timeoutCallback(code < 0);
+        }
+    }
 }
 #endif
 
 void FirebaseData::closeSession()
 {
+
     init();
     bool status = tcpClient.networkReady();
 
@@ -894,16 +962,8 @@ void FirebaseData::setSecure()
 
         if (!Signer.getCfg()->internal.fb_clock_rdy && (Signer.getCAFile().length() > 0 || Signer.getCfg()->cert.data != NULL || session.cert_addr > 0) && init())
         {
-
-#if defined(ESP8266)
-            int retry = 0;
-            while (!tcpClient.clockReady && retry < 5)
-            {
-                ut->setClock(Signer.getCfg()->internal.fb_gmt_offset);
-                tcpClient.clockReady = Signer.getCfg()->internal.fb_clock_rdy;
-                retry++;
-            }
-#endif
+            ut->syncClock(Signer.getCfg()->internal.fb_gmt_offset);
+            tcpClient.clockReady = Signer.getCfg()->internal.fb_clock_rdy;
         }
 
         if (Signer.getCAFile().length() == 0)
@@ -936,6 +996,18 @@ void FirebaseData::setCert(const char *ca)
 
 bool FirebaseData::tokenReady()
 {
+    if (Signer.getCfg())
+    {
+        if (Signer.getCfg()->signer.test_mode || (Signer.getCfg()->signer.tokens.token_type == token_type_legacy_token && Signer.getCfg()->signer.tokens.status == token_status_ready))
+            return true;
+    }
+
+    if (Signer.isExpired())
+    {
+        closeSession();
+        return false;
+    }
+
     if (!Signer.tokenReady())
     {
         session.response.code = FIREBASE_ERROR_TOKEN_NOT_READY;
@@ -970,8 +1042,8 @@ void FirebaseData::clear()
 
     if (session.jsonPtr)
         session.jsonPtr->clear();
-    
-    if(session.dataPtr)
+
+    if (session.dataPtr)
         session.dataPtr->clear();
 
 #ifdef ENABLE_RTDB
@@ -1543,7 +1615,7 @@ bool FCMObject::handleResponse(FirebaseData *fbdo)
     unsigned long dataTime = millis();
 
     char *pChunk = NULL;
-    char *tmp = NULL;
+    char *temp = NULL;
     char *header = NULL;
     char *payload = NULL;
     bool isHeader = false;
@@ -1608,17 +1680,17 @@ bool FCMObject::handleResponse(FirebaseData *fbdo)
                     int readLen = fbdo->tcpClient.readLine(header, chunkBufSize);
                     int pos = 0;
 
-                    tmp = ut->getHeader(header, fb_esp_pgm_str_5, fb_esp_pgm_str_6, pos, 0);
+                    temp = ut->getHeader(header, fb_esp_pgm_str_5, fb_esp_pgm_str_6, pos, 0);
                     ut->idle();
                     dataTime = millis();
-                    if (tmp)
+                    if (temp)
                     {
                         // http response header with http response code
                         isHeader = true;
                         hBufPos = readLen;
-                        response.httpCode = atoi(tmp);
+                        response.httpCode = atoi(temp);
                         fbdo->session.response.code = response.httpCode;
-                        ut->delP(&tmp);
+                        ut->delP(&temp);
                     }
                     else
                     {
@@ -1638,17 +1710,17 @@ bool FCMObject::handleResponse(FirebaseData *fbdo)
                     if (isHeader)
                     {
                         // read one line of next header field until the empty header has found
-                        tmp = (char *)ut->newP(chunkBufSize);
-                        int readLen = fbdo->tcpClient.readLine(tmp, chunkBufSize);
+                        temp = (char *)ut->newP(chunkBufSize);
+                        int readLen = fbdo->tcpClient.readLine(temp, chunkBufSize);
                         bool headerEnded = false;
 
                         // check is it the end of http header (\n or \r\n)?
                         if (readLen == 1)
-                            if (tmp[0] == '\r')
+                            if (temp[0] == '\r')
                                 headerEnded = true;
 
                         if (readLen == 2)
-                            if (tmp[0] == '\r' && tmp[1] == '\n')
+                            if (temp[0] == '\r' && temp[1] == '\n')
                                 headerEnded = true;
 
                         if (headerEnded)
@@ -1668,11 +1740,11 @@ bool FCMObject::handleResponse(FirebaseData *fbdo)
                         else
                         {
                             // accumulate the remaining header field
-                            memcpy(header + hBufPos, tmp, readLen);
+                            memcpy(header + hBufPos, temp, readLen);
                             hBufPos += readLen;
                         }
 
-                        ut->delP(&tmp);
+                        ut->delP(&temp);
                     }
                     else
                     {

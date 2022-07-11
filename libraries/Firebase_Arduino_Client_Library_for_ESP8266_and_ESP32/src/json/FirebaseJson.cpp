@@ -1,14 +1,14 @@
 /*
- * FirebaseJson, version 2.6.10
- * 
+ * FirebaseJson, version 3.0.0
+ *
  * The Easiest Arduino library to parse, create and edit JSON object using a relative path.
- * 
- * Created February 11, 2022
- * 
+ *
+ * Created May 6, 2022
+ *
  * Features
- * - Using path to access node element in search style e.g. json.get(result,"a/b/c") 
- * - Serializing to writable objects e.g. String, C/C++ string, Client (WiFi and Ethernet), File and Hardware Serial.
- * - Deserializing from const char, char array, string literal and stream e.g. Client (WiFi and Ethernet), File and 
+ * - Using path to access node element in search style e.g. json.get(result,"a/b/c")
+ * - Serializing to writable objects e.g. String, C/C++ string, Clients (WiFi, Ethernet, and GSM), File and Hardware Serial.
+ * - Deserializing from const char, char array, string literal and stream e.g. Clients (WiFi, Ethernet, and GSM), File and
  *   Hardware Serial.
  * - Use managed class, FirebaseJsonData to keep the deserialized result, which can be casted to any primitive data types.
  *
@@ -914,7 +914,7 @@ FirebaseJson &FirebaseJson::nAdd(const char *key, MB_JSON *value)
 {
     prepareRoot();
     MB_VECTOR<MB_String> keys = MB_VECTOR<MB_String>();
-    //makeList(key, keys, '/');
+    // makeList(key, keys, '/');
     MB_String ky = key;
     keys.push_back(ky);
 
@@ -1123,8 +1123,10 @@ void *FirebaseJsonData::newP(size_t len)
     void *p;
     size_t newLen = getReservedLen(len);
 #if defined(BOARD_HAS_PSRAM) && defined(MB_STRING_USE_PSRAM)
-
-    p = (void *)ps_malloc(newLen);
+    if (ESP.getPsramSize() > 0)
+        p = (void *)ps_malloc(newLen);
+    else
+        p = (void *)malloc(newLen);
     if (!p)
         return NULL;
 

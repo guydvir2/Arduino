@@ -8,10 +8,10 @@
 #include <stdint.h>  // for uint8_t
 
 #include <ArduinoJson/Memory/MemoryPool.hpp>
-#include <ArduinoJson/Misc/Visitable.hpp>
 #include <ArduinoJson/Polyfills/type_traits.hpp>
 #include <ArduinoJson/Strings/StringAdapters.hpp>
 #include <ArduinoJson/Variant/Converter.hpp>
+#include <ArduinoJson/Variant/VariantAttorney.hpp>
 #include <ArduinoJson/Variant/VariantFunctions.hpp>
 #include <ArduinoJson/Variant/VariantOperators.hpp>
 #include <ArduinoJson/Variant/VariantRef.hpp>
@@ -41,7 +41,7 @@ class VariantRefBase : public VariantTag {
   }
 
   FORCE_INLINE size_t nesting() const {
-    return _data ? _data->nesting() : 0;
+    return variantNesting(_data);
   }
 
   size_t size() const {
@@ -51,9 +51,96 @@ class VariantRefBase : public VariantTag {
  protected:
   VariantRefBase(TData *data) : _data(data) {}
   TData *_data;
+};
 
-  friend TData *getData(const VariantRefBase &variant) {
-    return variant._data;
+class VariantConstRef : public VariantRefBase<const VariantData>,
+                        public VariantOperators<VariantConstRef>,
+                        public VariantShortcuts<VariantConstRef> {
+  typedef VariantRefBase<const VariantData> base_type;
+
+  friend class VariantAttorney;
+
+ public:
+  VariantConstRef() : base_type(0) {}
+  explicit VariantConstRef(const VariantData *data) : base_type(data) {}
+
+  template <typename T>
+  FORCE_INLINE
+      typename enable_if<!is_same<T, char *>::value && !is_same<T, char>::value,
+                         T>::type
+      as() const {
+    return Converter<T>::fromJson(*this);
+  }
+
+  template <typename T>
+  FORCE_INLINE typename enable_if<is_same<T, char *>::value, const char *>::type
+  ARDUINOJSON_DEPRECATED("Replace as<char*>() with as<const char*>()")
+      as() const {
+    return as<const char *>();
+  }
+
+  template <typename T>
+  FORCE_INLINE typename enable_if<is_same<T, char>::value, char>::type
+  ARDUINOJSON_DEPRECATED(
+      "Support for char is deprecated, use int8_t or uint8_t instead")
+      as() const {
+    return static_cast<char>(as<signed char>());
+  }
+
+  template <typename T>
+  FORCE_INLINE
+      typename enable_if<!is_same<T, char *>::value && !is_same<T, char>::value,
+                         bool>::type
+      is() const {
+    return Converter<T>::checkJson(*this);
+  }
+
+  template <typename T>
+  FORCE_INLINE typename enable_if<is_same<T, char *>::value, bool>::type
+  ARDUINOJSON_DEPRECATED("Replace is<char*>() with is<const char*>()")
+      is() const {
+    return is<const char *>();
+  }
+
+  template <typename T>
+  FORCE_INLINE typename enable_if<is_same<T, char>::value, bool>::type
+  ARDUINOJSON_DEPRECATED(
+      "Support for char is deprecated, use int8_t or uint8_t instead")
+      is() const {
+    return is<signed char>();
+  }
+
+  template <typename T>
+  FORCE_INLINE operator T() const {
+    return as<T>();
+  }
+
+  FORCE_INLINE VariantConstRef operator[](size_t index) const {
+    return VariantConstRef(variantGetElement(_data, index));
+  }
+
+  // operator[](const std::string&) const
+  // operator[](const String&) const
+  template <typename TString>
+  FORCE_INLINE
+      typename enable_if<IsString<TString>::value, VariantConstRef>::type
+      operator[](const TString &key) const {
+    return VariantConstRef(variantGetMember(_data, adaptString(key)));
+  }
+
+  // operator[](char*) const
+  // operator[](const char*) const
+  // operator[](const __FlashStringHelper*) const
+  template <typename TChar>
+  FORCE_INLINE
+      typename enable_if<IsString<TChar *>::value, VariantConstRef>::type
+      operator[](TChar *key) const {
+    return VariantConstRef(variantGetMember(_data, adaptString(key)));
+  }
+
+ protected:
+  const VariantData *getData() const {
+    return _data;
   }
 };
 
@@ -66,10 +153,8 @@ class VariantRefBase : public VariantTag {
 // - a reference to a ArrayRef or ObjectRef
 class VariantRef : public VariantRefBase<VariantData>,
                    public VariantOperators<VariantRef>,
-                   public VariantShortcuts<VariantRef>,
-                   public Visitable {
+                   public VariantShortcuts<VariantRef> {
   typedef VariantRefBase<VariantData> base_type;
-  friend class VariantConstRef;
 
  public:
   // Intenal use only
@@ -150,9 +235,8 @@ class VariantRef : public VariantRefBase<VariantData>,
     return as<T>();
   }
 
-  template <typename TVisitor>
-  typename TVisitor::result_type accept(TVisitor &visitor) const {
-    return variantAccept(_data, visitor);
+  FORCE_INLINE operator VariantConstRef() const {
+    return VariantConstRef(_data);
   }
 
   // Change the type of the variant
@@ -170,33 +254,11 @@ class VariantRef : public VariantRefBase<VariantData>,
   typename enable_if<is_same<T, VariantRef>::value, VariantRef>::type to()
       const;
 
-  VariantRef addElement() const;
+  VariantRef add() const {
+    return VariantRef(_pool, variantAddElement(_data, _pool));
+  }
 
-  FORCE_INLINE VariantRef getElement(size_t) const;
-
-  FORCE_INLINE VariantRef getOrAddElement(size_t) const;
-
-  // getMember(const char*) const
-  // getMember(const __FlashStringHelper*) const
-  template <typename TChar>
-  FORCE_INLINE VariantRef getMember(TChar *) const;
-
-  // getMember(const std::string&) const
-  // getMember(const String&) const
-  template <typename TString>
-  FORCE_INLINE typename enable_if<IsString<TString>::value, VariantRef>::type
-  getMember(const TString &) const;
-
-  // getOrAddMember(char*) const
-  // getOrAddMember(const char*) const
-  // getOrAddMember(const __FlashStringHelper*) const
-  template <typename TChar>
-  FORCE_INLINE VariantRef getOrAddMember(TChar *) const;
-
-  // getOrAddMember(const std::string&) const
-  // getOrAddMember(const String&) const
-  template <typename TString>
-  FORCE_INLINE VariantRef getOrAddMember(const TString &) const;
+  using ArrayShortcuts<VariantRef>::add;
 
   FORCE_INLINE void remove(size_t index) const {
     if (_data)
@@ -220,127 +282,34 @@ class VariantRef : public VariantRefBase<VariantData>,
       _data->remove(adaptString(key));
   }
 
+  inline void shallowCopy(VariantConstRef target) {
+    if (!_data)
+      return;
+    const VariantData *targetData = VariantAttorney::getData(target);
+    if (targetData)
+      *_data = *targetData;
+    else
+      _data->setNull();
+  }
+
+  MemoryPool *getPool() const {
+    return _pool;
+  }
+
+  VariantData *getData() const {
+    return _data;
+  }
+
+  VariantData *getOrCreateData() const {
+    return _data;
+  }
+
  private:
   MemoryPool *_pool;
-
-  friend MemoryPool *getPool(const VariantRef &variant) {
-    return variant._pool;
-  }
-};
-
-class VariantConstRef : public VariantRefBase<const VariantData>,
-                        public VariantOperators<VariantConstRef>,
-                        public VariantShortcuts<VariantConstRef>,
-                        public Visitable {
-  typedef VariantRefBase<const VariantData> base_type;
-  friend class VariantRef;
-
- public:
-  VariantConstRef() : base_type(0) {}
-  VariantConstRef(const VariantData *data) : base_type(data) {}
-  VariantConstRef(VariantRef var) : base_type(var._data) {}
-
-  template <typename TVisitor>
-  typename TVisitor::result_type accept(TVisitor &visitor) const {
-    return variantAccept(_data, visitor);
-  }
-
-  template <typename T>
-  FORCE_INLINE
-      typename enable_if<!is_same<T, char *>::value && !is_same<T, char>::value,
-                         T>::type
-      as() const {
-    return Converter<T>::fromJson(*this);
-  }
-
-  template <typename T>
-  FORCE_INLINE typename enable_if<is_same<T, char *>::value, const char *>::type
-  ARDUINOJSON_DEPRECATED("Replace as<char*>() with as<const char*>()")
-      as() const {
-    return as<const char *>();
-  }
-
-  template <typename T>
-  FORCE_INLINE typename enable_if<is_same<T, char>::value, char>::type
-  ARDUINOJSON_DEPRECATED(
-      "Support for char is deprecated, use int8_t or uint8_t instead")
-      as() const {
-    return static_cast<char>(as<signed char>());
-  }
-
-  template <typename T>
-  FORCE_INLINE
-      typename enable_if<!is_same<T, char *>::value && !is_same<T, char>::value,
-                         bool>::type
-      is() const {
-    return Converter<T>::checkJson(*this);
-  }
-
-  template <typename T>
-  FORCE_INLINE typename enable_if<is_same<T, char *>::value, bool>::type
-  ARDUINOJSON_DEPRECATED("Replace is<char*>() with is<const char*>()")
-      is() const {
-    return is<const char *>();
-  }
-
-  template <typename T>
-  FORCE_INLINE typename enable_if<is_same<T, char>::value, bool>::type
-  ARDUINOJSON_DEPRECATED(
-      "Support for char is deprecated, use int8_t or uint8_t instead")
-      is() const {
-    return is<signed char>();
-  }
-
-  template <typename T>
-  FORCE_INLINE operator T() const {
-    return as<T>();
-  }
-
-  FORCE_INLINE VariantConstRef getElement(size_t) const;
-
-  FORCE_INLINE VariantConstRef operator[](size_t index) const {
-    return getElement(index);
-  }
-
-  // getMember(const std::string&) const
-  // getMember(const String&) const
-  template <typename TString>
-  FORCE_INLINE VariantConstRef getMember(const TString &key) const {
-    return VariantConstRef(
-        objectGetMember(variantAsObject(_data), adaptString(key)));
-  }
-
-  // getMember(char*) const
-  // getMember(const char*) const
-  // getMember(const __FlashStringHelper*) const
-  template <typename TChar>
-  FORCE_INLINE VariantConstRef getMember(TChar *key) const {
-    const CollectionData *obj = variantAsObject(_data);
-    return VariantConstRef(obj ? obj->getMember(adaptString(key)) : 0);
-  }
-
-  // operator[](const std::string&) const
-  // operator[](const String&) const
-  template <typename TString>
-  FORCE_INLINE
-      typename enable_if<IsString<TString>::value, VariantConstRef>::type
-      operator[](const TString &key) const {
-    return getMember(key);
-  }
-
-  // operator[](char*) const
-  // operator[](const char*) const
-  // operator[](const __FlashStringHelper*) const
-  template <typename TChar>
-  FORCE_INLINE
-      typename enable_if<IsString<TChar *>::value, VariantConstRef>::type
-      operator[](TChar *key) const {
-    return getMember(key);
-  }
 };
 
 template <>
-struct Converter<VariantRef> {
+struct Converter<VariantRef> : private VariantAttorney {
   static void toJson(VariantRef src, VariantRef dst) {
     variantCopyFrom(getData(dst), getData(src), getPool(dst));
   }
@@ -363,7 +332,7 @@ struct Converter<VariantRef> {
 };
 
 template <>
-struct Converter<VariantConstRef> {
+struct Converter<VariantConstRef> : private VariantAttorney {
   static void toJson(VariantConstRef src, VariantRef dst) {
     variantCopyFrom(getData(dst), getData(src), getPool(dst));
   }

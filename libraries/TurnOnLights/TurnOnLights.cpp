@@ -86,6 +86,18 @@ bool TurnOnLights::PWMvalue(int val)
         return 0;
     }
 }
+void TurnOnLights::blink(uint8_t blinks, int _delay)
+{
+    turnOFF();
+    for (uint8_t i = 0; i < blinks; i++)
+    {
+        turnON();
+        delay(_delay/2);
+        turnOFF();
+        delay(_delay/2);
+    }
+}
+
 bool TurnOnLights::isON()
 {
     if (_PWMmode)
@@ -122,7 +134,7 @@ bool TurnOnLights::_setPWM(int val)
         return 0;
     }
 }
-void TurnOnLights::_Dim2Value(int &val)
+void TurnOnLights::_Dim2Value(int val)
 {
     int PWMstep_change = dimDelay;
 
@@ -131,7 +143,7 @@ void TurnOnLights::_Dim2Value(int &val)
     {
         PWMval += PWMstep_change;
         analogWrite(Pin, (PWMval * limitPWM) / 100);
-        delay(dimDelay);
+        delayMicroseconds(dimDelay * 5);
     }
 }
 bool TurnOnLights::_isValidPWM(int val)
@@ -144,5 +156,5 @@ bool TurnOnLights::_isValidStep(int step)
 }
 int TurnOnLights::_step2Value(uint8_t step)
 {
-    return (int)(step * PWMres / maxSteps);
+    return (int)((step * PWMres) / maxSteps);
 }

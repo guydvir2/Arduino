@@ -1,6 +1,51 @@
 ArduinoJson: change log
 =======================
 
+HEAD
+----
+
+* Add `JsonVariant::shallowCopy()` (issue #1343)
+* Fix `9.22337e+18 is outside the range of representable values of type 'long'`
+* Fix comparison operators for `JsonArray`, `JsonArrayConst`, `JsonObject`, and `JsonObjectConst`
+* Remove undocumented `accept()` functions
+* Rename `addElement()` to `add()`
+* Remove `getElement()`, `getOrAddElement()`, `getMember()`, and `getOrAddMember()`
+
+> ### BREAKING CHANGES
+>
+> This release hides `JsonVariant`'s functions that were only intended for internal use.
+> If you were using them in your programs, you must replace with `operator[]` and `to<JsonVariant>()`, like so:
+>
+> ```c++
+> // before
+> JsonVariant a = variant.getElement(idx);
+> JsonVariant b = variant.getOrAddElement(idx);
+> JsonVariant c = variant.getMember(key);
+> JsonVariant d = variant.getOrAddMember(key);
+>
+> // after
+> JsonVariant a = variant[idx];
+> JsonVariant b = variant[idx].to<JsonVariant>();
+> JsonVariant c = variant[key];
+> JsonVariant d = variant[key].to<JsonVariant>();
+> ```
+
+v6.19.4 (2022-04-05)
+-------
+
+* Add `ElementProxy::memoryUsage()`
+* Add `MemberProxy::memoryUsage()` (issue #1730)
+* Add implicit conversion from `JsonDocument` to `JsonVariant`
+* Fix comparisons operators with `const JsonDocument&`
+
+v6.19.3 (2022-03-08)
+-------
+
+* Fix `call of overloaded 'String(const char*, int)' is ambiguous`
+* Fix `JsonString` operator `==` and `!=` for non-zero-terminated string
+* Fix `-Wsign-conversion` on GCC 8 (issue #1715)
+* MessagePack: serialize round floats as integers (issue #1718)
+
 v6.19.2 (2022-02-14)
 -------
 

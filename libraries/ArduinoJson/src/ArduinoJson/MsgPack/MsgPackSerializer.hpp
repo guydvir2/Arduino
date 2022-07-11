@@ -55,7 +55,7 @@ class MsgPackSerializer : public Visitor<size_t> {
       writeByte(0xDD);
       writeInteger(uint32_t(n));
     }
-    for (VariantSlot* slot = array.head(); slot; slot = slot->next()) {
+    for (const VariantSlot* slot = array.head(); slot; slot = slot->next()) {
       slot->data()->accept(*this);
     }
     return bytesWritten();
@@ -72,7 +72,7 @@ class MsgPackSerializer : public Visitor<size_t> {
       writeByte(0xDF);
       writeInteger(uint32_t(n));
     }
-    for (VariantSlot* slot = object.head(); slot; slot = slot->next()) {
+    for (const VariantSlot* slot = object.head(); slot; slot = slot->next()) {
       visitString(slot->key());
       slot->data()->accept(*this);
     }
@@ -197,19 +197,17 @@ class MsgPackSerializer : public Visitor<size_t> {
   CountingDecorator<TWriter> _writer;
 };
 
-template <typename TSource, typename TDestination>
-inline size_t serializeMsgPack(const TSource& source, TDestination& output) {
+template <typename TDestination>
+inline size_t serializeMsgPack(VariantConstRef source, TDestination& output) {
   return serialize<MsgPackSerializer>(source, output);
 }
 
-template <typename TSource>
-inline size_t serializeMsgPack(const TSource& source, void* output,
+inline size_t serializeMsgPack(VariantConstRef source, void* output,
                                size_t size) {
   return serialize<MsgPackSerializer>(source, output, size);
 }
 
-template <typename TSource>
-inline size_t measureMsgPack(const TSource& source) {
+inline size_t measureMsgPack(VariantConstRef source) {
   return measure<MsgPackSerializer>(source);
 }
 

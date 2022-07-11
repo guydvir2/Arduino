@@ -36,8 +36,6 @@ class CollectionData {
 
   void removeElement(size_t index);
 
-  bool equalsArray(const CollectionData &other) const;
-
   // Object only
 
   template <typename TAdaptedString, typename TStoragePolicy>
@@ -58,13 +56,10 @@ class CollectionData {
   template <typename TAdaptedString>
   bool containsKey(const TAdaptedString &key) const;
 
-  bool equalsObject(const CollectionData &other) const;
-
   // Generic
 
   void clear();
   size_t memoryUsage() const;
-  size_t nesting() const;
   size_t size() const;
 
   VariantSlot *addSlot(MemoryPool *);
@@ -86,4 +81,15 @@ class CollectionData {
 
   VariantSlot *getPreviousSlot(VariantSlot *) const;
 };
+
+inline const VariantData *collectionToVariant(
+    const CollectionData *collection) {
+  const void *data = collection;  // prevent warning cast-align
+  return reinterpret_cast<const VariantData *>(data);
+}
+
+inline VariantData *collectionToVariant(CollectionData *collection) {
+  void *data = collection;  // prevent warning cast-align
+  return reinterpret_cast<VariantData *>(data);
+}
 }  // namespace ARDUINOJSON_NAMESPACE

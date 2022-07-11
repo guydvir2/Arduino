@@ -5,7 +5,6 @@
 #pragma once
 
 #include <ArduinoJson/Json/TextFormatter.hpp>
-#include <ArduinoJson/Misc/Visitable.hpp>
 #include <ArduinoJson/Serialization/measure.hpp>
 #include <ArduinoJson/Serialization/serialize.hpp>
 #include <ArduinoJson/Variant/Visitor.hpp>
@@ -22,7 +21,7 @@ class JsonSerializer : public Visitor<size_t> {
   FORCE_INLINE size_t visitArray(const CollectionData &array) {
     write('[');
 
-    VariantSlot *slot = array.head();
+    const VariantSlot *slot = array.head();
 
     while (slot != 0) {
       slot->data()->accept(*this);
@@ -41,7 +40,7 @@ class JsonSerializer : public Visitor<size_t> {
   size_t visitObject(const CollectionData &object) {
     write('{');
 
-    VariantSlot *slot = object.head();
+    const VariantSlot *slot = object.head();
 
     while (slot != 0) {
       _formatter.writeString(slot->key());
@@ -116,24 +115,24 @@ class JsonSerializer : public Visitor<size_t> {
   TextFormatter<TWriter> _formatter;
 };
 
-template <typename TSource, typename TDestination>
-size_t serializeJson(const TSource &source, TDestination &destination) {
+template <typename TDestination>
+size_t serializeJson(VariantConstRef source, TDestination &destination) {
   return serialize<JsonSerializer>(source, destination);
 }
 
-template <typename TSource>
-size_t serializeJson(const TSource &source, void *buffer, size_t bufferSize) {
+inline size_t serializeJson(VariantConstRef source, void *buffer,
+                            size_t bufferSize) {
   return serialize<JsonSerializer>(source, buffer, bufferSize);
 }
 
-template <typename TSource>
-size_t measureJson(const TSource &source) {
+inline size_t measureJson(VariantConstRef source) {
   return measure<JsonSerializer>(source);
 }
 
 #if ARDUINOJSON_ENABLE_STD_STREAM
 template <typename T>
-inline typename enable_if<IsVisitable<T>::value, std::ostream &>::type
+inline typename enable_if<is_convertible<T, VariantConstRef>::value,
+                          std::ostream &>::type
 operator<<(std::ostream &os, const T &source) {
   serializeJson(source, os);
   return os;

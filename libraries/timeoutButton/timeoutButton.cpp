@@ -1,3 +1,4 @@
+#include <Arduino.h>
 #include "timeoutButton.h"
 
 timeoutButton::timeoutButton() : chrono(Chrono::SECONDS)
@@ -19,7 +20,24 @@ void timeoutButton::begin(uint8_t pin, uint8_t trigType, uint8_t id)
   _init_button();
   _init_chrono();
 }
+void timeoutButton::loop()
+{
+  _loopWatch();
+  _Button_looper();
+}
+bool timeoutButton::getState()
+{
+  return chrono.isRunning();
+}
+void timeoutButton::addWatch(int _add, uint8_t reason)
+{
+  timeout += _add;
 
+  if (!chrono.isRunning()) /* Case not ON */
+  {
+    ON_cb(timeout, reason); //, trigger);
+  }
+}
 void timeoutButton::ON_cb(int _TO, uint8_t reason) //, const char *trigger, uint8_t _PWMstep)
 {
   if (!chrono.isRunning()) /* Enter when off or at PWM different PWM value */
@@ -45,25 +63,11 @@ void timeoutButton::ExtOFF_cb(cb_func func)
 {
   _extOff_cb = func;
 }
-void timeoutButton::loop()
+void timeoutButton::ExtMultiPress_cb(cb_func func)
 {
-  _loopWatch();
-  _Button_looper();
-}
-bool timeoutButton::getState()
-{
-  return chrono.isRunning();
+  _extMultipress_cb = func;
 }
 
-void timeoutButton::addWatch(int _add, uint8_t &reason)
-{
-  timeout += _add;
-
-  if (!chrono.isRunning()) /* Case not ON */
-  {
-    ON_cb(timeout, reason); //, trigger);
-  }
-}
 void timeoutButton::_init_button()
 {
   if (useInput)
@@ -84,11 +88,9 @@ void timeoutButton::_init_button()
     {
       button.setPressedHandler(std::bind(&timeoutButton::_TrigSensor_handler, this, std::placeholders::_1));
     }
-    else if (_trigType == BTN_TO_PWM)
-    {
-    }
     else if (_trigType == MULTI_PRESS)
     {
+      button.setPressedHandler(std::bind(&timeoutButton::_MultiPress_handler, this, std::placeholders::_1));
     }
   }
 }
@@ -106,13 +108,33 @@ void timeoutButton::_Momentary_handle(Button2 &b)
 }
 void timeoutButton::_TrigSensor_handler(Button2 &b)
 {
-  const uint8_t update_timeout = 30; // must have passed this amount of seconds to updates timeout
+  const uint8_t update_timeout = 5; // must have passed this amount of seconds to updates timeout
   unsigned int _remaintime = remainWatch();
 
-  if (_remaintime != 0 && timeout*60 - _remaintime > update_timeout)
+  if (_remaintime == 0)
   {
-    _startWatch(); /* Restart timeout after 30 sec */
+    ON_cb(timeout, BUTTON);
   }
+  else
+  {
+    if (conv2Minute(timeout) - _remaintime > update_timeout)
+    {
+      _startWatch(); /* Restart timeout after 30 sec */
+    }
+  }
+}
+void timeoutButton::_MultiPress_handler(Button2 &b)
+{
+  if (millis() - _lastPress < time2Repress || _pressCounter == 0) //|| (_pressCounter == 0&&_lastPress))
+  {
+    _pressCounter++;
+  }
+  else
+  {
+    _pressCounter = 0;
+  }
+  _lastPress = millis();
+  _extMultipress_cb(_pressCounter);
 }
 void timeoutButton::_Button_looper()
 {
@@ -139,7 +161,7 @@ unsigned int timeoutButton::remainWatch()
 {
   if (chrono.isRunning())
   {
-    return timeout*60 - chrono.elapsed();
+    return conv2Minute(timeout) - chrono.elapsed();
   }
   else
   {
@@ -149,5 +171,8 @@ unsigned int timeoutButton::remainWatch()
 
 void timeoutButton::_loopWatch()
 {
-  chrono.hasPassed(timeout*60) ? OFF_cb(TIMEOUT) : yield();
+  if (chrono.isRunning() && (chrono.hasPassed(conv2Minute(timeout)) || chrono.hasPassed(conv2Minute(maxTimeout))))
+  {
+    OFF_cb(TIMEOUT);
+  }
 }
