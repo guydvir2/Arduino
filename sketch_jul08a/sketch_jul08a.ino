@@ -1,31 +1,24 @@
-#include <ArduinoJson.h>
-
-const char *onflash_Paramter[] = {nullptr, nullptr};
-char thisArray[3][50];
-
-void readJSON_fromfile()
+const char *onflash_Paramter[] = {"gulkjhlkjhlkjhlkjhlkjly", "dvir", "Anna", "OZ", "SSSSSSS"};
+const char *fileList[4];
+int fileCount=0;
+void processFiles(const char *_fileList[], int _fileCount)
 {
-  /* This part emulates reading JSON from file */
-  StaticJsonDocument<200> JSON_FILE;
+  fileCount=_fileCount;
+  for (int i = 0; i < fileCount; ++i) {
+      Serial.print("Processing file ");
+      fileList[i]=_fileList[i];
+      Serial.println(fileList[i]);
 
-  JSON_FILE["Par_1"] = "Value1";
-  JSON_FILE["Par_2"] = "Value2";
-
-  sprintf(thisArray[0], JSON_FILE["Par_1"]);
-  sprintf(thisArray[1], JSON_FILE["Par_2"]);
+  }
 }
 
+// char *y="GUY";
 void setup()
 {
   Serial.begin(115200);
   Serial.println("\nStart");
-  readJSON_fromfile();
+  processFiles(onflash_Paramter,4);
 
-  onflash_Paramter[0] = thisArray[0];
-  onflash_Paramter[1] = thisArray[1];
-
-  Serial.println(onflash_Paramter[0]);
-  Serial.println(onflash_Paramter[1]);
 }
 
 void loop()
