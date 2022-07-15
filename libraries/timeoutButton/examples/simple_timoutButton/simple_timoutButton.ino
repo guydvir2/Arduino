@@ -6,16 +6,16 @@
 #define LED_Pin D6
 #define ButtonPin D5
 #define IndicPin D7
-#define TRIG_TYPE 2
+#define TRIG_TYPE 0
 #define TO_Button_ID 0
-#define PWM_OUTPUT false
+#define PWM_OUTPUT true
 #define PWM_DIM true
 #define PWM_RES 1023
 #define USE_INDICATION true
 
 myIOT2 iot;
-TurnOnLights led0;
-timeoutButton TO_Button_0;
+TurnOnLights lightOutput_0;
+timeoutButton timeoutButton_0;
 
 struct oper_string
 {
@@ -26,15 +26,16 @@ struct oper_string
   time_t offtime; /* Off Clk */
 };
 
+// ~~~~ All CBs are called eventually by timeoutButton instance OR external input (that call timeoutButton) ~~
 void OFF_CB(uint8_t reason)
 {
   notifyOFF(reason); /* First to display time elapsed */
-  led0.turnOFF();    /* and then turn off */
+  lightOutput_0.turnOFF();    /* and then turn off */
   update_OperString(reason, false);
 }
 void ON_CB(uint8_t reason)
 {
-  if (led0.turnON(led0.currentStep)) /* First to display power */
+  if (lightOutput_0.turnON(lightOutput_0.currentStep)) /* First to display power */
   {
     notifyON(reason);
     update_OperString(reason, true);
@@ -44,78 +45,81 @@ void MULTP_CB(uint8_t reason)
 {
   Serial.println(reason);
 }
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-void ON_MQTT(uint8_t reason, int TO, uint8_t step)
+// ~~~~~~~~~~~ External update (as MQTT) for timeout and light ~~~~~~~~~~~~~
+void Ext_trigger_ON(uint8_t reason, int TO, uint8_t step)
 {
   if (step != 0)
   {
-    led0.currentStep = step;
+    lightOutput_0.currentStep = step;
   }
-  TO_Button_0.ON_cb(TO, reason);
+  timeoutButton_0.ON_cb(TO, reason);
 }
-void OFF_MQTT(uint8_t reason)
+void Ext_trigger_OFF(uint8_t reason)
 {
-  TO_Button_0.OFF_cb(reason);
+  timeoutButton_0.OFF_cb(reason);
 }
-void updatePWM(uint8_t reason, uint8_t step)
+void Ext_updatePWM_value(uint8_t reason, uint8_t step)
 {
-  if (led0.isPWM())
+  if (lightOutput_0.isPWM())
   {
-    if (TO_Button_0.getState()) /* if already ON */
+    if (timeoutButton_0.getState()) /* if already ON */
     {
-      if (led0.turnON(step)) /* update PWM value */
+      if (lightOutput_0.turnON(step)) /* update PWM value */
       {
         notifyUpdatePWM(step, reason);
       }
     }
     else
     {
-      ON_MQTT(reason, TO_Button_0.defaultTimeout, step); /* if Off, turn ON with desired PWM value */
+      Ext_trigger_ON(reason, timeoutButton_0.defaultTimeout, step); /* if Off, turn ON with desired PWM value */
     }
   }
 }
-void addTime_MQTT(uint8_t reason, int timeAdd)
+void Ext_addTime(uint8_t reason, int timeAdd)
 {
-  if (TO_Button_0.getState())
+  if (timeoutButton_0.getState())
   {
     notifyAdd(timeAdd, reason);
   }
-  TO_Button_0.addWatch(timeAdd, reason);
+  timeoutButton_0.addWatch(timeAdd, reason);
 }
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 void update_OperString(uint8_t reason, bool state)
 {
   oper_string str;
 
-  str.state = TO_Button_0.getState();
+  str.state = timeoutButton_0.getState();
   str.ontime = iot.now();
-  str.offtime = str.ontime + TO_Button_0.timeout * 60;
+  str.offtime = str.ontime + timeoutButton_0.timeout * 60;
   str.reason = reason;
-  led0.isPWM() ? str.step = led0.currentStep : str.step = 0;
+  lightOutput_0.isPWM() ? str.step = lightOutput_0.currentStep : str.step = 0;
 
   File writefile = LITFS.open("filename", "w");
 }
 void init_TObutton()
 {
-  TO_Button_0.ExtON_cb(ON_CB);
-  TO_Button_0.ExtOFF_cb(OFF_CB);
-  TO_Button_0.ExtMultiPress_cb(MULTP_CB);
-  TO_Button_0.begin(ButtonPin, TRIG_TYPE, TO_Button_ID);
+  timeoutButton_0.ExtON_cb(ON_CB);
+  timeoutButton_0.ExtOFF_cb(OFF_CB);
+  timeoutButton_0.ExtMultiPress_cb(MULTP_CB);
+  timeoutButton_0.begin(ButtonPin, TRIG_TYPE, TO_Button_ID);
 }
 void init_Light()
 {
   if (PWM_OUTPUT)
   {
-    led0.init(LED_Pin, PWM_RES, PWM_DIM);
+    lightOutput_0.init(LED_Pin, PWM_RES, PWM_DIM);
   }
   else
   {
-    led0.init(LED_Pin, HIGH);
+    lightOutput_0.init(LED_Pin, HIGH);
   }
 
   if (USE_INDICATION)
   {
-    led0.auxFlag(IndicPin);
+    lightOutput_0.auxFlag(IndicPin);
   }
 }
 
@@ -127,6 +131,6 @@ void setup()
 }
 void loop()
 {
-  TO_Button_0.loop();
+  timeoutButton_0.loop();
   iot.looper();
 }
