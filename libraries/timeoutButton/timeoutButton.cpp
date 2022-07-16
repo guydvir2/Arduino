@@ -5,8 +5,9 @@ timeoutButton::timeoutButton() : chrono(Chrono::SECONDS)
 {
   _stopWatch();
 }
-void timeoutButton::begin()
+void timeoutButton::begin(uint8_t id)
 {
+  _id = id;
   useInput = false;
   _init_chrono();
 }
@@ -44,14 +45,14 @@ void timeoutButton::ON_cb(int _TO, uint8_t reason) //, const char *trigger, uint
   {
     _TO == 0 ? timeout = defaultTimeout : timeout = _TO;
     _startWatch();
-    _extOn_cb(reason);
+    _extOn_cb(reason, _id);
   }
 }
 void timeoutButton::OFF_cb(uint8_t reason) // const char *trigger)
 {
   if (chrono.isRunning())
   {
-    _extOff_cb(reason);
+    _extOff_cb(reason, _id);
     _stopWatch();
   }
 }
@@ -134,7 +135,7 @@ void timeoutButton::_MultiPress_handler(Button2 &b)
     _pressCounter = 0;
   }
   _lastPress = millis();
-  _extMultipress_cb(_pressCounter);
+  _extMultipress_cb(_pressCounter, _id);
 }
 void timeoutButton::_Button_looper()
 {

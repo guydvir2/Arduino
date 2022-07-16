@@ -42,7 +42,7 @@ public:
     bool turnOFF();                /* PWM & GPIO */
     bool turnON(uint8_t step = 0); /* PWM & GPIO */
     bool PWMvalue(int val);        /* Drive to PWM value */
-    void blink(uint8_t blinks, int _delay=20);
+    void blink(uint8_t blinks, int _delay = 20);
     bool isON();
     bool isPWM();
 

@@ -1,18 +1,9 @@
-extern myIOT2 iot;
-extern TurnOnLights lightOutput_0;
-extern TurnOnLights lightOutput_1;
-extern timeoutButton timeoutButton_0;
-extern timeoutButton timeoutButton_1;
-
- TurnOnLights *lightOutputV[2] = {&lightOutput_0, &lightOutput_1};
- timeoutButton *timeoutButtonV[2] = {&timeoutButton_0, &timeoutButton_1};
-
 extern void Ext_trigger_OFF(uint8_t reason, uint8_t i);
 extern void Ext_trigger_ON(uint8_t reason, int TO = 0, uint8_t step = 0, uint8_t i = 0);
 extern void Ext_updatePWM_value(uint8_t reason, uint8_t step, uint8_t i = 0);
 extern void Ext_addTime(uint8_t reason, int timeAdd, uint8_t i = 0);
 
-const char *INPUTS_ORIGIN[3] = {"Timeout", "Button", "MQTT"};
+const char *INPUTS_ORIGIN[4] = {"Timeout", "Button", "MQTT", "PowerON"};
 
 // ±±±±±±± Genereal pub topic ±±±±±±±±±
 const char *topicLog = "myHome/log";
@@ -37,7 +28,7 @@ void notifyAdd(int &_add, uint8_t &reason, uint8_t i)
     iot.convert_epoch2clock((_add)*60, 0, clk1);
     iot.convert_epoch2clock((timeoutButtonV[i]->timeout + _add) * 60, 0, clk2);
     iot.convert_epoch2clock(timeoutButtonV[i]->remainWatch() + _add, 0, clk3);
-    sprintf(a, "%s: Added [%s] ,total [%s] remain [%s]", INPUTS_ORIGIN[reason], clk1, clk2, clk3);
+    sprintf(a, "%s: [%s] Added [%s] ,total [%s] remain [%s]", INPUTS_ORIGIN[reason], sw_names[i], clk1, clk2, clk3);
     iot.pub_msg(a);
 }
 void notifyOFF(uint8_t &reason, uint8_t i)
@@ -46,7 +37,7 @@ void notifyOFF(uint8_t &reason, uint8_t i)
     char clk[25];
     unsigned int remtime = timeoutButtonV[i]->remainWatch();
     iot.convert_epoch2clock(timeoutButtonV[i]->timeout * 60 - remtime, 0, clk);
-    sprintf(a, "%s: Switched [Off] after [%s]", INPUTS_ORIGIN[reason], clk);
+    sprintf(a, "%s: [%s] Switched [Off] after [%s]", INPUTS_ORIGIN[reason], sw_names[i], clk);
     if (remtime > 1)
     {
         char b[50];
@@ -62,7 +53,7 @@ void notifyON(uint8_t &reason, uint8_t i)
     char b[50];
     char clk[25];
     iot.convert_epoch2clock(timeoutButtonV[i]->timeout * 60, 0, clk);
-    sprintf(a, "%s: Switched [On] for [%s]", INPUTS_ORIGIN[reason], clk);
+    sprintf(a, "%s: [%s] Switched [On] for [%s]", INPUTS_ORIGIN[reason], sw_names[i], clk);
 
     if (lightOutputV[i]->isPWM())
     {
@@ -77,7 +68,7 @@ void notifyUpdatePWM(uint8_t &step, uint8_t &reason, uint8_t i)
     char b[50];
     if (lightOutputV[i]->isPWM() && timeoutButtonV[i]->getState())
     {
-        sprintf(b, "%s: Power update [%d/%d]", INPUTS_ORIGIN[reason], step, lightOutputV[i]->maxSteps);
+        sprintf(b, "%s: [%s] Power update [%d/%d]", INPUTS_ORIGIN[reason], sw_names[i], step, lightOutputV[i]->maxSteps);
     }
     iot.pub_msg(b);
 }
@@ -88,34 +79,34 @@ void notifyRemain(uint8_t i)
 
     int _rem = timeoutButtonV[i]->remainWatch();
     iot.convert_epoch2clock(_rem, 0, s1);
-    sprintf(msg, "MQTT: remain [%s] ", timeoutButtonV[i]->getState() ? s1 : "Off");
+    sprintf(msg, "MQTT: [%s] remain [%s] ", sw_names[i], timeoutButtonV[i]->getState() ? s1 : "Off");
     iot.pub_msg(msg);
 }
-void status_mqtt()
+void status_mqtt(uint8_t i)
 {
     char a[150];
     char b[80];
     char pwmstep[25];
-    // unsigned int rem = timeoutButtonV[i]->remainWatch();
+    unsigned int rem = timeoutButtonV[i]->remainWatch();
 
-    // sprintf(a, "Status: [%s]", timeoutButtonV[i]->getState() ? "ON" : "OFF");
+    sprintf(a, "Status: [%s] [%s]", sw_names[i], timeoutButtonV[i]->getState() ? "ON" : "OFF");
 
-    // if (lightOutputV[i]->isPWM() && rem > 0)
-    // {
-    //     sprintf(pwmstep, " Power [%d/%d]", lightOutputV[i]->currentStep, lightOutputV[i]->maxSteps);
-    //     strcat(a, pwmstep);
-    // }
+    if (lightOutputV[i]->isPWM() && rem > 0)
+    {
+        sprintf(pwmstep, " Power [%d/%d]", lightOutputV[i]->currentStep, lightOutputV[i]->maxSteps);
+        strcat(a, pwmstep);
+    }
 
-    // if (rem > 0)
-    // {
-    //     char clk[25];
-    //     char clk2[25];
-    //     iot.convert_epoch2clock(rem, 0, clk);
-    //     iot.convert_epoch2clock(timeoutButtonV[i]->timeout * 60 - rem, 0, clk2);
-    //     sprintf(b, " on-Time [%s], Remain[%s]", clk, clk2);
-    //     strcat(a, b);
-    // }
-    // iot.pub_msg(a);
+    if (rem > 0)
+    {
+        char clk[25];
+        char clk2[25];
+        iot.convert_epoch2clock(rem, 0, clk);
+        iot.convert_epoch2clock(timeoutButtonV[i]->timeout * 60 - rem, 0, clk2);
+        sprintf(b, " on-Time [%s], Remain[%s]", clk, clk2);
+        strcat(a, b);
+    }
+    iot.pub_msg(a);
 }
 
 void updateTopics_local()
@@ -151,7 +142,8 @@ void addiotnalMQTT(char *incoming_msg, char *_topic)
     char msg[150];
     if (strcmp(incoming_msg, "status") == 0)
     {
-        status_mqtt();
+        status_mqtt(0);
+        status_mqtt(1);
     }
     else if (strcmp(incoming_msg, "help2") == 0)
     {
@@ -163,45 +155,59 @@ void addiotnalMQTT(char *incoming_msg, char *_topic)
         sprintf(msg, "ver #2:");
         iot.pub_msg(msg);
     }
-    else if (strcmp(iot.inline_param[0], "remain") == 0)
+    else
     {
-        notifyRemain(0);
-    }
-    // else if (strcmp(iot.inline_param[0], "off") == 0)
-    // {
-    //     if (timeoutButtonV[i]->getState())
-    //     {
-    //         Ext_trigger_OFF(2);
-    //     }
-    // }
-    // else if (strcmp(iot.inline_param[0], "on") == 0)
-    // {
-    //     if (timeoutButtonV[i]->getState())
-    //     {
-    //         Ext_trigger_OFF(2);
-    //     }
+        if (iot.num_p > 1)
+        {
+            if (strcmp(iot.inline_param[1], "remain") == 0)
+            {
+                notifyRemain(atoi(iot.inline_param[0]));
+            }
+            else if (strcmp(iot.inline_param[1], "off") == 0)
+            {
+                if (timeoutButtonV[atoi(iot.inline_param[0])]->getState())
+                {
+                    Ext_trigger_OFF(2, atoi(iot.inline_param[0]));
+                }
+            }
+            else if (strcmp(iot.inline_param[1], "on") == 0)
+            {
+                if (timeoutButtonV[atoi(iot.inline_param[0])]->getState()) /* turn off if it is ON */
+                {
+                    Ext_trigger_OFF(2, atoi(iot.inline_param[0]));
+                }
 
-    //     if (iot.num_p == 1)
-    //     {
-    //         Ext_trigger_ON(2); /* Default Timeout & default PWM value*/
-    //     }
-    //     else if (iot.num_p == 2)
-    //     {
-    //         Ext_trigger_ON(2, atoi(iot.inline_param[1])); /* define Timeout*/
-    //     }
-    //     else if (iot.num_p == 3)
-    //     {
-    //         Ext_trigger_ON(2, atoi(iot.inline_param[1]), atoi(iot.inline_param[2])); /* define Timeout & PWM*/
-    //     }
-    // }
-    // else if (strcmp(iot.inline_param[0], "add") == 0)
-    // {
-    //     Ext_addTime(2, atoi(iot.inline_param[1]));
-    // }
-    // else if (strcmp(iot.inline_param[0], "updatePWM") == 0)
-    // {
-    //     Ext_updatePWM_value(2, atoi(iot.inline_param[1]));
-    // }
+                if (iot.num_p == 2)
+                {
+                    Ext_trigger_ON(2, 0, 0, atoi(iot.inline_param[0])); /* Default Timeout & default PWM value*/
+                }
+                else if (iot.num_p == 3)
+                {
+                    Ext_trigger_ON(2, atoi(iot.inline_param[2]), atoi(iot.inline_param[0])); /* define Timeout*/
+                }
+                else if (iot.num_p == 4)
+                {
+                    Ext_trigger_ON(2, atoi(iot.inline_param[2]), atoi(iot.inline_param[3]), atoi(iot.inline_param[0])); /* define Timeout & PWM*/
+                }
+            }
+            else if (strcmp(iot.inline_param[1], "add") == 0)
+            {
+                Ext_addTime(2, atoi(iot.inline_param[2]), atoi(iot.inline_param[0]));
+            }
+            else if (strcmp(iot.inline_param[1], "updatePWM") == 0)
+            {
+                Ext_updatePWM_value(2, atoi(iot.inline_param[2]), atoi(iot.inline_param[0]));
+            }
+            else
+            {
+                iot.pub_msg("MQTT: Command not recongnized");
+            }
+        }
+        else
+        {
+            iot.pub_msg("MQTT: Command not recongnized");
+        }
+    }
 }
 void startIOTservices()
 {
