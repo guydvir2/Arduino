@@ -5,20 +5,6 @@ extern void Ext_addTime(uint8_t reason, int timeAdd, uint8_t i = 0);
 
 const char *INPUTS_ORIGIN[4] = {"Timeout", "Button", "MQTT", "PowerON"};
 
-// ±±±±±±± Genereal pub topic ±±±±±±±±±
-const char *topicLog = "myHome/log";
-const char *topicDebug = "myHome/debug";
-const char *topicmsg = "myHome/Messages";
-
-// ±±±±±±±±±±±± sub Topics ±±±±±±±±±±±±±±±±±±
-const char *topicSub1 = "myHome/alarmMonitor";
-const char *topicClient = "myHome/test/Client";
-const char *topicAll = "myHome/All";
-
-// ±±±±±±±±±±±±±±±± Client state pub topics ±±±±±±±±±±±±±±±±
-const char *topicClient_avail = "myHome/test/Client/Avail";
-const char *topicClient_state = "myHome/test/Client/State";
-
 void notifyAdd(int &_add, uint8_t &reason, uint8_t i)
 {
     char a[100];
@@ -109,32 +95,77 @@ void status_mqtt(uint8_t i)
     iot.pub_msg(a);
 }
 
-void updateTopics_local()
+#define MAX_TOPIC_SIZE 40 // <----- Verfy max Topic size
+
+char topics_sub[3][MAX_TOPIC_SIZE];
+char topics_pub[3][MAX_TOPIC_SIZE];
+char topics_gen_pub[3][MAX_TOPIC_SIZE];
+char *parameterFiles[3] = {"/myIOT_param.json", "/myIOT2_topics.json", "/sketch_param.json"}; // <----- Verfy file names
+
+void updateTopics_flash(JsonDocument &DOC, char ch_array[][MAX_TOPIC_SIZE], const char *dest_array[], const char *topic, const char *defaulttopic, uint8_t ar_size)
 {
-    iot.topics_gen_pub[0] = topicmsg;
-    iot.topics_gen_pub[1] = topicLog;
-    iot.topics_gen_pub[2] = topicDebug;
-
-    iot.topics_pub[0] = topicClient_avail;
-    iot.topics_pub[1] = topicClient_state;
-
-    iot.topics_sub[0] = topicClient;
-    iot.topics_sub[1] = topicAll;
-    iot.topics_sub[2] = topicSub1;
+    for (uint8_t i = 0; i < ar_size; i++)
+    {
+        strlcpy(ch_array[i], DOC[topic][i] | defaulttopic, MAX_TOPIC_SIZE);
+        dest_array[i] = ch_array[i];
+    }
 }
-void update_Parameters_local()
+void update_sketch_parameters_flash(JsonDocument &DOC)
 {
-    iot.useWDT = true;
-    iot.useOTA = true;
-    iot.useSerial = true;
-    iot.useResetKeeper = false;
-    iot.useDebug = true;
-    iot.debug_level = 0;
-    iot.useFlashP = false;
-    iot.useNetworkReset = true;
-    iot.noNetwork_reset = 2;
-    iot.useBootClockLog = true;
-    iot.ignore_boot_msg = false;
+    /* Custom paramters for each sketch used IOT2*/
+
+    numSW = DOC["numSW"] | numSW;
+    sketch_JSON_Psize = DOC["sketch_JSON_Psize"] | sketch_JSON_Psize;
+    PWM_res = DOC["PWM_res"] | PWM_res;
+
+    for (uint8_t i = 0; i < numSW; i++)
+    {
+        OnatBoot[i] = DOC["OnatBoot"][i] | OnatBoot[i];
+        useInput[i] = DOC["useInput"][i] | useInput[i];
+        outputPWM[i] = DOC["outputPWM"][i] | outputPWM[i];
+        useIndicLED[i] = DOC["useIndicLED"][i] | useIndicLED[i];
+        dimmablePWM[i] = DOC["dimmablePWM"][i] | dimmablePWM[i];
+
+        output_ON[i] = DOC["output_ON"][i] | output_ON[i];
+        inputPressed[i] = DOC["inputPressed"][i] | inputPressed[i];
+
+        trigType[i] = DOC["trigType"][i] | trigType[i];
+        inputPin[i] = DOC["inputPin"][i] | inputPin[i];
+        outputPin[i] = DOC["outputPin"][i] | outputPin[i];
+        indicPin[i] = DOC["indicPin"][i] | indicPin[i];
+
+        def_TO_minutes[i] = DOC["def_TO_minutes"][i] | def_TO_minutes[i];
+        maxON_minutes[i] = DOC["maxON_minutes"][i] | maxON_minutes[i];
+
+        defPWM[i] = DOC["defPWM"][i] | defPWM[i];
+        max_pCount[i] = DOC["max_pCount"][i] | max_pCount[i];
+        limitPWM[i] = DOC["limitPWM"][i] | limitPWM[i];
+
+        sprintf(sw_names[i], DOC["sw_names"][i] | "LED_err");
+        Serial.print("PWM: ");
+        Serial.println(outputPWM[i]);
+        Serial.flush();
+    }
+}
+void update_Parameters_flash()
+{
+    StaticJsonDocument<1250> DOC;
+
+    iot.set_pFilenames(parameterFiles, sizeof(parameterFiles) / sizeof(parameterFiles[0])); /* update filenames of paramter files */
+
+    iot.extract_JSON_from_flash(iot.parameter_filenames[0], DOC) ? P_readOK_a = true : P_readOK_a = false;
+    iot.update_vars_flash_parameters(DOC);
+    DOC.clear();
+
+    iot.extract_JSON_from_flash(iot.parameter_filenames[1], DOC) ? P_readOK_b = true : P_readOK_b = false; /* extract topics from flash */
+    updateTopics_flash(DOC, topics_gen_pub, iot.topics_gen_pub, "pub_gen_topics", "myHome/Messages", sizeof(topics_gen_pub) / (sizeof(topics_gen_pub[0])));
+    updateTopics_flash(DOC, topics_pub, iot.topics_pub, "pub_topics", "myHome/log", sizeof(topics_pub) / (sizeof(topics_pub[0])));
+    updateTopics_flash(DOC, topics_sub, iot.topics_sub, "sub_topics", "myHome/log", sizeof(topics_sub) / (sizeof(topics_sub[0])));
+    DOC.clear();
+
+    iot.extract_JSON_from_flash(iot.parameter_filenames[2], DOC) ? P_readOK_c = true : P_readOK_c = false;
+    update_sketch_parameters_flash(DOC);
+    DOC.clear();
 }
 
 void addiotnalMQTT(char *incoming_msg, char *_topic)
@@ -198,20 +229,19 @@ void addiotnalMQTT(char *incoming_msg, char *_topic)
             {
                 Ext_updatePWM_value(2, atoi(iot.inline_param[2]), atoi(iot.inline_param[0]));
             }
-            else
-            {
-                iot.pub_msg("MQTT: Command not recongnized");
-            }
+            // else
+            // {
+            //     iot.pub_msg("MQTT: Command not recongnized");
+            // }
         }
-        else
-        {
-            iot.pub_msg("MQTT: Command not recongnized");
-        }
+        // else
+        // {
+        //     iot.pub_msg("MQTT: Command not recongnized");
+        // }
     }
 }
 void startIOTservices()
 {
-    updateTopics_local();
-    update_Parameters_local();
+    update_Parameters_flash();
     iot.start_services(addiotnalMQTT);
 }

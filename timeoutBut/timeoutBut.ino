@@ -16,7 +16,7 @@ uint8_t numSW = 2;
 
 bool OnatBoot[2] = {true, false};
 bool useInput[2] = {true, true};
-bool outputPWM[2] = {true, true};
+bool outputPWM[2] = {false, true};
 bool useIndicLED[2] = {false, false};
 bool dimmablePWM[2] = {true, false};
 
@@ -37,10 +37,12 @@ uint8_t limitPWM[2] = {80, 80};
 uint8_t PWM_res = 1023;
 
 int sketch_JSON_Psize = 1250;
-const char *v_file = "0.83";
-
 char sw_names[2][10] = {"led0", "led1"};
 // ±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+
+bool P_readOK_a = false;
+bool P_readOK_b = false;
+bool P_readOK_c = false;
 
 #include "myIOT_settings.h"
 
@@ -149,6 +151,7 @@ void update_OperString(uint8_t reason, bool state, uint8_t i)
 
   File writefile = LITFS.open("filename", "w");
 }
+
 void init_TObutton(uint8_t i)
 {
   timeoutButtonV[i]->ExtON_cb(ON_CB);
@@ -168,30 +171,49 @@ void init_Light(uint8_t i)
   if (outputPWM[i])
   {
     lightOutputV[i]->init(outputPin[i], PWM_res, dimmablePWM[i]);
+    lightOutputV[i]->defStep = defPWM[i];
+    lightOutputV[i]->maxSteps = max_pCount[i];
+    lightOutputV[i]->limitPWM = limitPWM[i];
   }
   else
   {
     lightOutputV[i]->init(outputPin[i], output_ON[i]);
   }
-
   if (useIndicLED[i])
   {
     lightOutputV[i]->auxFlag(indicPin[i]);
   }
 }
 
+void debug_end_startUp()
+{
+  char a[100];
+  if (P_readOK_a && P_readOK_b && P_readOK_c)
+  {
+    Serial.println("All flashPAramters read OK");
+  }
+  else
+  {
+    sprintf(a, ">>> Error reading flash paramters:\nIOT2 vars loaded \t[%s]\nTopics loaded \t[%s]\nSketch vars loaded \t[%s]", P_readOK_a ? "OK" : "FAIL", P_readOK_b ? "OK" : "FAIL", P_readOK_b ? "OK" : "FAIL");
+    Serial.print(a);
+  }
+}
+
 void setup()
 {
+  Serial.begin(115200);
   startIOTservices();
   init_TObutton(0);
   init_Light(0);
-  onAtBoot();
 
   if (numSW == 2)
   {
     init_TObutton(1);
     init_Light(1);
   }
+
+  onAtBoot();
+  debug_end_startUp();
 }
 void loop()
 {
