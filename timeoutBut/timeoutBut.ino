@@ -76,16 +76,16 @@ void MULTP_CB(uint8_t reason, uint8_t i)
 }
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-// ~~~~~~~~~~~ External update (as MQTT) for timeout and light ~~~~~~~~~~~~~
+// ~~~~~~~~~~~ External trigger (not physical button, but MQTT cmd) for timeout and light ~~~~~~~~~~~~~
 void Ext_trigger_ON(uint8_t reason, int TO, uint8_t step, uint8_t i)
 {
   if (i < numSW)
   {
     if (step != 0)
     {
-      lightOutputV[i]->currentStep = step;
+      lightOutputV[i]->currentStep = step; /* Relevant for PWM lights */
     }
-    timeoutButtonV[i]->ON_cb(TO, reason);
+    timeoutButtonV[i]->ON_cb(TO, reason); /* emulates "button press" and at end calls ON_CB */
   }
 }
 void Ext_trigger_OFF(uint8_t reason, uint8_t i)
@@ -123,20 +123,16 @@ void Ext_addTime(uint8_t reason, int timeAdd, uint8_t i)
     {
       notifyAdd(timeAdd, reason, i);
     }
-    timeoutButtonV[i]->addWatch(timeAdd, reason);
+    timeoutButtonV[i]->addWatch(timeAdd, reason); /* update end time */
   }
 }
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-void onAtBoot()
+void onAtBoot(uint8_t t)
 {
-  if (OnatBoot[0])
+  if (OnatBoot[t])
   {
-    Ext_trigger_ON(3, 0);
-  }
-  if (OnatBoot[1])
-  {
-    Ext_trigger_ON(3, 1);
+    Ext_trigger_ON(3, t);
   }
 }
 void update_OperString(uint8_t reason, bool state, uint8_t i)
@@ -184,43 +180,82 @@ void init_Light(uint8_t i)
     lightOutputV[i]->auxFlag(indicPin[i]);
   }
 }
-
+void initAll()
+{
+  for (uint8_t i = 0; i < numSW; i++)
+  {
+    init_TObutton(i);
+    init_Light(i);
+    onAtBoot(i);
+  }
+}
 void debug_end_startUp()
 {
-  char a[100];
+  char a[130];
+  Serial.println(F("\n ~~~~~~~~~~~~~~~~~~~~ POST-BOOT DEBUG START~~~~~~~~~~~~~~~~~~~~"));
   if (P_readOK_a && P_readOK_b && P_readOK_c)
   {
-    Serial.println("All flashPAramters read OK");
+    Serial.println("All flash Paramters loaded OK");
   }
   else
   {
     sprintf(a, ">>> Error reading flash paramters:\nIOT2 vars loaded \t[%s]\nTopics loaded \t[%s]\nSketch vars loaded \t[%s]", P_readOK_a ? "OK" : "FAIL", P_readOK_b ? "OK" : "FAIL", P_readOK_b ? "OK" : "FAIL");
     Serial.print(a);
   }
+  for (uint8_t i = 0; i < numSW; i++)
+  {
+    Serial.print("±±±±±± #");
+    Serial.print(i);
+    Serial.println(" ±±±±±± ");
+    Serial.print("OnatBoot: \t");
+    Serial.println(OnatBoot[i]);
+    Serial.print("useInput: \t");
+    Serial.println(useInput[i]);
+    Serial.print("outputPWM: \t");
+    Serial.println(outputPWM[i]);
+    Serial.print("useIndicLED: \t");
+    Serial.println(useIndicLED[i]);
+    Serial.print("dimmablePWM: \t");
+    Serial.println(dimmablePWM[i]);
+    Serial.print("output_ON: \t");
+    Serial.println(dimmablePWM[i]);
+    Serial.print("inputPressed: \t");
+    Serial.println(inputPressed[i]);
+    Serial.print("trigType: \t");
+    Serial.println(trigType[i]);
+    Serial.print("inputPin: \t");
+    Serial.println(inputPin[i]);
+    Serial.print("outputPin: \t");
+    Serial.println(outputPin[i]);
+    Serial.print("indicPin: \t");
+    Serial.println(indicPin[i]);
+    Serial.print("def_TO_minutes:\t");
+    Serial.println(def_TO_minutes[i]);
+    Serial.print("maxON_minutes: \t");
+    Serial.println(maxON_minutes[i]);
+    Serial.print("defPWM: \t");
+    Serial.println(defPWM[i]);
+    Serial.print("max_pCount: \t");
+    Serial.println(max_pCount[i]);
+    Serial.print("limitPWM: \t");
+    Serial.println(limitPWM[i]);
+    Serial.print("sw_names: \t");
+    Serial.println(sw_names[i]);
+  }
+  Serial.println(F(" ~~~~~~~~~~~~~~~~~~~~ POST-BOOT DEBUG END ~~~~~~~~~~~~~~~~~~~~\n"));
 }
 
 void setup()
 {
-  Serial.begin(115200);
   startIOTservices();
-  init_TObutton(0);
-  init_Light(0);
-
-  if (numSW == 2)
-  {
-    init_TObutton(1);
-    init_Light(1);
-  }
-
-  onAtBoot();
+  initAll();
   debug_end_startUp();
 }
 void loop()
 {
-  timeoutButtonV[0]->loop();
-  if (numSW == 2)
+  for (uint8_t i = 0; i < numSW; i++)
   {
-    timeoutButtonV[1]->loop();
+    timeoutButtonV[i]->loop();
   }
   iot.looper();
 }

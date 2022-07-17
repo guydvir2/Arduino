@@ -142,9 +142,6 @@ void update_sketch_parameters_flash(JsonDocument &DOC)
         limitPWM[i] = DOC["limitPWM"][i] | limitPWM[i];
 
         sprintf(sw_names[i], DOC["sw_names"][i] | "LED_err");
-        Serial.print("PWM: ");
-        Serial.println(outputPWM[i]);
-        Serial.flush();
     }
 }
 void update_Parameters_flash()
@@ -229,15 +226,7 @@ void addiotnalMQTT(char *incoming_msg, char *_topic)
             {
                 Ext_updatePWM_value(2, atoi(iot.inline_param[2]), atoi(iot.inline_param[0]));
             }
-            // else
-            // {
-            //     iot.pub_msg("MQTT: Command not recongnized");
-            // }
         }
-        // else
-        // {
-        //     iot.pub_msg("MQTT: Command not recongnized");
-        // }
     }
 }
 void startIOTservices()
