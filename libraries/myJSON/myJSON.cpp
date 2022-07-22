@@ -9,9 +9,9 @@ myJSON::myJSON(const char *filename, bool useserial, int doc_size)
 }
 void myJSON::start()
 {
-#if isESP32
+#if defined (ESP32)
         bool a = LITFS.begin(true);
-#elif isESP8266
+#elif defined(ESP8266)
         bool a = LITFS.begin();
 #endif
         if (a)

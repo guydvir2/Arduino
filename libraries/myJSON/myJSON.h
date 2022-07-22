@@ -5,13 +5,9 @@
 
 #if defined(ESP32)
 #include <LITTLEFS.h>
-#define isESP32 true
-#define isESP8266 false
 #define LITFS LITTLEFS
-#elif defined(ARDUINO_ARCH_ESP8266)
+#elif defined(ESP8266)
 #include <LittleFS.h>
-#define isESP32 false
-#define isESP8266 true
 #define LITFS LittleFS
 #endif
 
@@ -24,7 +20,7 @@ private:
     char _filename[15];
 
 public:
-    const char *ver = "myJSON_v2.0a";
+    const char *ver = "myJSON_v2.1";
     int DOC_SIZE;
     myJSON(const char *filename = "/jfile.json", bool useserial = false, int doc_size = 400);
 
