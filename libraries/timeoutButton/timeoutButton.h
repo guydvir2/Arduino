@@ -8,7 +8,7 @@
 class timeoutButton
 {
 private:
-    typedef void (*cb_func)(uint8_t resaon, uint8_t i);
+    typedef void (*cb_func)(uint8_t resaon);
 #define conv2Minute(t) t * 60
 
     enum SWITCH_TYPES : const uint8_t
@@ -24,6 +24,7 @@ private:
         BUTTON
     };
 
+    uint8_t _id = 0;
     uint8_t _pin = 255;
     uint8_t _trigType = 0;
     uint8_t _pressCounter = 0;
@@ -32,7 +33,6 @@ private:
 private:
     Chrono chrono;
     Button2 button;
-
     cb_func _extOn_cb = nullptr;
     cb_func _extOff_cb = nullptr;
     cb_func _extMultipress_cb = nullptr;
@@ -43,10 +43,9 @@ public:
     int maxTimeout = 500;
     int defaultTimeout = 1;
     int time2Repress = 1000; // millis
-    uint8_t _id = 0;
 
 protected:
-    const char *ver = "timeouter_v0.3";
+    const char *ver = "timeouter_v0.2";
 
 private:
     void _init_button();
@@ -64,8 +63,8 @@ private:
 
 public:
     timeoutButton();
-    void begin(uint8_t id); /* Not using button */
-    void begin(uint8_t pin, uint8_t trigType, uint8_t id = 0);
+    void begin(); /* Not using button */
+    void begin(uint8_t pin, uint8_t trigType = 0, uint8_t id = 0);
     void addWatch(int _add, uint8_t reason);
     void loop();
     bool getState();

@@ -2,7 +2,7 @@
     "numSW": 1,
     "OnatBoot": [
         true,
-        false
+        true
     ],
     "sw_names": [
         "Plug1",
@@ -22,19 +22,23 @@
     ],
     "inputPressed": [
         false,
-        false
+        true
     ],
     "inputPin": [
         0,
-        4
+        13
     ],
     "outputPin": [
         12,
         5
     ],
     "indicPin": [
-        5,
+        13,
         11
+    ],
+    "indic_ON": [
+        true,
+        true
     ],
     "output_ON": [
         true,
@@ -49,7 +53,7 @@
         360
     ],
     "max_pCount": [
-        6,
+        3,
         3
     ],
     "defPWM": [
@@ -57,18 +61,14 @@
         3
     ],
     "limitPWM": [
-        90,
+        20,
         20
     ],
     "outputPWM": [
-        true,
-        false
-    ],
-    "dimmablePWM": [
-        true,
+        false,
         false
     ],
     "PWM_res": 1023,
     "sketch_JSON_Psize": 1250,
-    "v_file": 0.83
+    "v_file": 0.82
 }
