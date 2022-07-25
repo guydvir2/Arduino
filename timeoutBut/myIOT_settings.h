@@ -1,3 +1,5 @@
+#include <Arduino.h>
+
 extern void Ext_trigger_OFF(uint8_t reason, uint8_t i);
 extern void Ext_trigger_ON(uint8_t reason, int TO = 0, uint8_t step = 0, uint8_t i = 0);
 extern void Ext_updatePWM_value(uint8_t reason, uint8_t step, uint8_t i = 0);
@@ -38,7 +40,7 @@ void notifyON(uint8_t &reason, uint8_t i)
     char a[100];
     char b[50];
     char clk[25];
-    iot.convert_epoch2clock(timeoutButtonV[i]->timeout * 60, 0, clk);
+    iot.convert_epoch2clock(conv2Minute(timeoutButtonV[i]->timeout), 0, clk);
     sprintf(a, "%s: [%s] Switched [On] for [%s]", INPUTS_ORIGIN[reason], sw_names[i], clk);
 
     if (lightOutputV[i]->isPWM())

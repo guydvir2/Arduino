@@ -74,14 +74,44 @@ void read_OperStr(oper_string &str)
   _file.read((byte *)&str, sizeof(str));
   _file.close();
 }
-void update_OperString(uint8_t reason, uint8_t i)
+void update_OperString(uint8_t reason, uint8_t i, bool state)
 {
   OPERstringV[i]->reason = reason;
-  OPERstringV[i]->ontime = iot.now();
-  OPERstringV[i]->state = timeoutButtonV[i]->getState();
-  OPERstringV[i]->offtime = OPERstringV[i]->ontime + timeoutButtonV[i]->timeout * 60;
+  OPERstringV[i]->state = state;
+  if (state == true)
+  {
+    OPERstringV[i]->ontime = iot.now();
+    OPERstringV[i]->offtime = OPERstringV[i]->ontime + timeoutButtonV[i]->timeout * 60;
+  }
+  else
+  {
+    OPERstringV[i]->ontime = 0;
+    OPERstringV[i]->offtime = iot.now();
+  }
   lightOutputV[i]->isPWM() ? OPERstringV[i]->step = lightOutputV[i]->currentStep : OPERstringV[i]->step = 0;
   save_OperStr(*OPERstringV[i]);
+  Serial.print("Updated OPERstring: \t#");
+  Serial.println(i);
+  print_OPERstring(*OPERstringV[i]);
+}
+void print_OPERstring(oper_string &str)
+{
+  Serial.println("~~~~~~~ OPER_STRING START ~~~~~~~~~~~");
+  Serial.print("state:\t\t\t");
+  Serial.println(str.state);
+
+  Serial.print("reason:\t\t\t");
+  Serial.println(INPUTS_ORIGIN[str.reason]);
+
+  Serial.print("step:\t\t\t");
+  Serial.println(str.step);
+
+  Serial.print("ontime:\t\t\t");
+  Serial.println(str.ontime);
+
+  Serial.print("offtime:\t\t");
+  Serial.println(str.offtime);
+  Serial.println("~~~~~~~ OPER_STRING END ~~~~~~~~~~~~");
 }
 
 // ~~~~ All CBs are called eventually by timeoutButton instance OR external input (that call timeoutButton) ~~
@@ -89,14 +119,14 @@ void OFF_CB(uint8_t reason, uint8_t i)
 {
   notifyOFF(reason, i);       /* First to display time elapsed */
   lightOutputV[i]->turnOFF(); /* and then turn off */
-  update_OperString(reason, i);
+  update_OperString(reason, i, false);
 }
 void ON_CB(uint8_t reason, uint8_t i)
 {
   if (lightOutputV[i]->turnON(lightOutputV[i]->currentStep)) /* First to display power */
   {
     notifyON(reason, i);
-    update_OperString(reason, i);
+    update_OperString(reason, i, true);
   }
 }
 void MULTP_CB(uint8_t reason, uint8_t i)
@@ -135,13 +165,13 @@ void Ext_updatePWM_value(uint8_t reason, uint8_t step, uint8_t i)
         if (lightOutputV[i]->turnON(step)) /* update PWM value */
         {
           notifyUpdatePWM(step, reason, i);
-          update_OperString(reason, i); /* Only PWN step changes */
         }
       }
       else
       {
         Ext_trigger_ON(reason, timeoutButtonV[i]->defaultTimeout, step, i); /* if Off, turn ON with desired PWM value */
       }
+      update_OperString(reason, i, true);
     }
   }
 }
@@ -154,7 +184,7 @@ void Ext_addTime(uint8_t reason, int timeAdd, uint8_t i)
       notifyAdd(timeAdd, reason, i);
     }
     timeoutButtonV[i]->addWatch(timeAdd, reason); /* update end time */
-    update_OperString(reason, i);
+    update_OperString(reason, i, true);
   }
 }
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -169,9 +199,16 @@ void onAtBoot(uint8_t i)
 void checkResidue_onBoot(uint8_t i)
 {
   read_OperStr(*OPERstringV[i]);
-  if (OPERstringV[i]->state && iot.now() < OPERstringV[i]->offtime)
+  Serial.print("Read OPERstring: \t#");
+  Serial.println(i);
+  print_OPERstring(*OPERstringV[i]);
+
+  if (OPERstringV[i]->state == true && (iot.now() < OPERstringV[i]->offtime))
   {
-    Ext_trigger_ON(4, i);
+    Serial.print("remained: ");
+    Serial.println(OPERstringV[i]->offtime - iot.now());
+    Serial.println((int)(OPERstringV[i]->offtime - iot.now()) / 60);
+    Ext_trigger_ON(4, (int)(OPERstringV[i]->offtime - iot.now()) / 60, OPERstringV[i]->step);
   }
 }
 
@@ -286,4 +323,5 @@ void loop()
     timeoutButtonV[i]->loop();
   }
   iot.looper();
+  delay(200);
 }

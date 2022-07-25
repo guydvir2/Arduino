@@ -13,7 +13,6 @@
 
 class myJSON
 {
-
 private:
     bool _useSerial = false;
     bool _openOK = false;
