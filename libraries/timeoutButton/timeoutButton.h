@@ -4,6 +4,7 @@
 #include <Arduino.h>
 #include <Button2.h>
 #include <Chrono.h>
+#include <TurnOnLights.h>
 
 class timeoutButton
 {
@@ -49,7 +50,7 @@ protected:
     const char *ver = "timeouter_v0.3";
 
 private:
-    void _init_button(); 
+    void _init_button();
     void _Button_looper();
     void _ON_OFF_on_handle(Button2 &b);
     void _Momentary_handle(Button2 &b);
@@ -77,4 +78,125 @@ public:
     void ExtOFF_cb(cb_func func);
     void ExtMultiPress_cb(cb_func func);
 };
+
+template <uint8_t N>
+class timeout2
+{
+private:
+    timeoutButton _toButton[N];
+    TurnOnLights _lightOutput[N];
+
+    void _init_TObutton();
+    void _init_Light();
+    void _initAll();
+    void _onAtBoot();
+
+public:
+    bool OnatBoot[N];
+    bool useInput[N];
+    bool outputPWM[N];
+    bool useIndicLED[N];
+    bool dimmablePWM[N];
+
+    bool output_ON[N];
+    bool inputPressed[N];
+
+    uint8_t trigType[N];
+    uint8_t inputPin[N];
+    uint8_t outputPin[N];
+    uint8_t indicPin[N];
+
+    int def_TO_minutes[N];
+    int maxON_minutes[N];
+
+    uint8_t defPWM[N];
+    uint8_t max_pCount[N];
+    uint8_t limitPWM[N];
+    uint8_t PWM_res;
+
+    char sw_names[N][15];
+
+    timeout2();
+    void begin();
+    void turnON_lightsCB(uint8_t reason);
+    void turnOFF_lightsCB(uint8_t reason);
+    void MULTP_CB(uint8_t reason);
+    void loop();
+};
+
+template <uint8_t N>
+timeout2<N>::timeout2()
+{
+}
+template <uint8_t N>
+void timeout2<N>::begin()
+{
+    _init_TObutton();
+    _init_Light();
+}
+template <uint8_t N>
+void timeout2<N>::turnON_lightsCB(uint8_t reason)
+{
+}
+template <uint8_t N>
+void timeout2<N>::turnOFF_lightsCB(uint8_t reason)
+{
+}
+template <uint8_t N>
+void timeout2<N>::MULTP_CB(uint8_t reason)
+{
+}
+
+template <uint8_t N>
+void timeout2<N>::_init_Light()
+{
+    for (uint8_t i = 0; i < N; i++)
+    {
+        if (outputPWM[i])
+        {
+            _lightOutput[i].init(outputPin[i], PWM_res, dimmablePWM[i]);
+            _lightOutput[i].defStep = defPWM[i];
+            _lightOutput[i].maxSteps = max_pCount[i];
+            _lightOutput[i].limitPWM = limitPWM[i];
+        }
+        else
+        {
+            _lightOutput[i].init(outputPin[i], output_ON[i]);
+        }
+        if (useIndicLED[i])
+        {
+            _lightOutput[i].auxFlag(indicPin[i]);
+        }
+    }
+}
+
+template <uint8_t N>
+void timeout2<N>::_init_TObutton()
+{
+    for (uint8_t i = 0; i < N; i++)
+    {
+        _toButton[i].ExtON_cb(turnON_lightsCB);
+        // _toButton[i].ExtOFF_cb(turnOFF_lightsCB);
+        // _toButton[i].ExtMultiPress_cb(MULTP_CB);
+
+        if (useInput[i])
+        {
+            _toButton[i].begin(inputPin[i], trigType[i], i);
+        }
+        else
+        {
+            _toButton[i].begin(i);
+        }
+    }
+}
+
+template <uint8_t N>
+void timeout2<N>::loop()
+{
+    for (uint8_t i = 0; i < N; i++)
+    {
+        _toButton[i].loop();
+    }
+}
+
 #endif
