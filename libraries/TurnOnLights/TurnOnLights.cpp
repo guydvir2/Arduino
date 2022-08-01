@@ -1,11 +1,8 @@
 #include "TurnOnLights.h"
+
 TurnOnLights::TurnOnLights()
 {
 }
-// TurnOnLights::~TurnOnLights()
-// {
-//     delete[] ver;
-// }
 void TurnOnLights::init(uint8_t pin, int res, bool usedim) /* PWM */
 {
     Pin = pin;
@@ -26,9 +23,12 @@ void TurnOnLights::init(uint8_t pin, bool isON) /* GPIO */
 }
 void TurnOnLights::auxFlag(uint8_t pin)
 {
-    auxPin = pin;
-    pinMode(auxPin, OUTPUT);
-    _useAuxFlag = true;
+    if (pin != 255)
+    {
+        auxPin = pin;
+        pinMode(auxPin, OUTPUT);
+        _useAuxFlag = true;
+    }
 }
 
 bool TurnOnLights::turnOFF() /* PWM & GPIO */
@@ -92,9 +92,9 @@ void TurnOnLights::blink(uint8_t blinks, int _delay)
     for (uint8_t i = 0; i < blinks; i++)
     {
         turnON();
-        delay(_delay/2);
+        delay(_delay / 2);
         turnOFF();
-        delay(_delay/2);
+        delay(_delay / 2);
     }
 }
 

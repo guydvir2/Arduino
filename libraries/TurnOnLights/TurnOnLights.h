@@ -24,27 +24,26 @@ public:
     uint8_t Pin = 255;
     uint8_t auxPin = 255;
     uint8_t defStep = 2;
-    uint8_t dimStep = 2;
     uint8_t dimDelay = 1;
     uint8_t maxSteps = 3;
     uint8_t limitPWM = 100; /* Percentage of total power */
     uint8_t currentStep = 0;
 
 protected:
-    const char *ver = "turnLight_v0.1";
+    const char *ver = "turnLight_v0.2";
 
 public:
     TurnOnLights();
+    void auxFlag(uint8_t pin = 255);
     void init(uint8_t pin, bool isON);            /* GPIO */
     void init(uint8_t pin, int res, bool usedim); /* PWM */
-    void auxFlag(uint8_t pin);
 
+    bool isON();
+    bool isPWM();
     bool turnOFF();                /* PWM & GPIO */
     bool turnON(uint8_t step = 0); /* PWM & GPIO */
     bool PWMvalue(int val);        /* Drive to PWM value */
     void blink(uint8_t blinks, int _delay = 20);
-    bool isON();
-    bool isPWM();
 
 private:
     bool _setPWM(int val);

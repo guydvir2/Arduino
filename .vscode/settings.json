@@ -21,7 +21,20 @@
         "ranges": "cpp",
         "ostream": "cpp",
         "chrono": "cpp",
-        "new": "cpp"
+        "new": "cpp",
+        "compare": "cpp",
+        "concepts": "cpp",
+        "cstdio": "cpp",
+        "cstdlib": "cpp",
+        "exception": "cpp",
+        "functional": "cpp",
+        "limits": "cpp",
+        "optional": "cpp",
+        "cstdint": "cpp",
+        "tuple": "cpp",
+        "type_traits": "cpp",
+        "typeinfo": "cpp",
+        "utility": "cpp"
     },
     "C_Cpp.errorSquiggles": "Disabled"
 }
