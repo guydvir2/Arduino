@@ -247,7 +247,7 @@ void LightButton::begin(uint8_t id)
 void LightButton::_newActivity_handler()
 {
   Button.print_OPERstring(*OPstr);
-  if (OPstr->state) /* ON */
+  if (OPstr->state) /* ON אקדא */
   {
     if (isON() && isPWM())
     {
