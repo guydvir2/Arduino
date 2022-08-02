@@ -12,14 +12,15 @@ class TurnOnLights
 #define IS_OUTPUT_ON digitalRead(Pin) == _isON
 
 private:
-    bool _isON = HIGH;        /* GPIO only */
     bool _PWMmode = true;     /* select PWM or GPIO */
-    bool _useDim = false;     /* PWM only */
     bool _useAuxFlag = false; /* PWM & GPIO */
 
 public:
     int PWMval = 0;
     int PWMres = 1023;
+
+    bool _isON = HIGH; /* GPIO only */
+    bool _useDim = false; /* PWM only */
 
     uint8_t Pin = 255;
     uint8_t auxPin = 255;

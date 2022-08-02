@@ -5,50 +5,72 @@
 #include <Button2.h>
 #include <Chrono.h>
 #include <TurnOnLights.h>
+#include <FS.h>
+
+#if defined(ESP32)
+#include "LITTLEFS.h"
+#define LITFS LITTLEFS
+#elif defined(ESP8266)
+#include <LittleFS.h>
+#define LITFS LittleFS
+#endif
+
+struct oper_string
+{
+    bool state;     /* On or Off */
+    uint8_t step;   /* Step, in case of PWM */
+    uint8_t reason; /* What triggered the button */
+    time_t ontime;  /* Start Clk */
+    time_t offtime; /* Off Clk */
+};
+enum SWITCH_TYPES : const uint8_t
+{
+    MOMENTARY,
+    ON_OFF,
+    TRIGGER_SERNSOR,
+    MULTI_PRESS
+};
+enum REASONS : const uint8_t
+{
+    TIMEOUT,
+    BUTTON,
+    MQTT,
+    PWRON,
+    REBOOT
+};
 
 class timeoutButton
 {
-private:
 #define conv2Minute(t) t * 60
 
-    enum SWITCH_TYPES : const uint8_t
-    {
-        MOMENTARY,
-        ON_OFF,
-        TRIGGER_SERNSOR,
-        MULTI_PRESS
-    };
-    enum REASONS : const uint8_t
-    {
-        TIMEOUT,
-        BUTTON
-    };
+private:
+    const char *INPUT_ORG[5] = {"Timeout", "Button", "MQTT", "PowerON", "Resume Reboot"};
 
-    uint8_t _pin = 255;
-    uint8_t _trigType = 0;
-    uint8_t _pressCounter = 0;
     unsigned long _lastPress = 0;
-
     bool _useInput = false;
+    char _operfile[15];
 
 private:
     Chrono chrono;
     Button2 button;
 
 public:
-    TurnOnLights *Light;
-
-public:
     int timeout = 0;
     int maxTimeout = 500;
     int defaultTimeout = 1;
     int time2Repress = 1000; // millis
-    uint8_t _id = 0;
+    oper_string OPERstring = {false, 0, 0, 0, 0};
+    bool newMSG = false;
+    uint8_t pressCounter = 0;
+    uint8_t trigTYPE = 0;
+    uint8_t Id = 0;
+    uint8_t Inpin = 255;
 
 protected:
     const char *ver = "timeouter_v0.3";
 
 private:
+    void _commonBegin(uint8_t id);
     void _init_button();
     void _Button_looper();
     void _ON_OFF_on_handle(Button2 &b);
@@ -68,47 +90,58 @@ public:
     void begin(uint8_t pin, uint8_t trigType, uint8_t id = 0);
     void addWatch(int _add, uint8_t reason);
 
-    void set_lights(TurnOnLights *light);
-    virtual bool lightsON(uint8_t step = 1);
-    virtual bool lightsOFF();
-    virtual bool lightsPWM(int val);
-
     void loop();
     bool getState();
     unsigned int remainWatch();
 
-    bool OFF_cb(uint8_t reason);
-    bool ON_cb(int _TO, uint8_t reason);
+    void OFF_cb(uint8_t reason);
+    void ON_cb(int _TO, uint8_t reason);
+
+    void save_OperStr(oper_string &str);
+    void read_OperStr(oper_string &str);
+    void print_OPERstring(oper_string &str);
 };
 
-class LightButton
+class LightButton : private TurnOnLights
 {
 private:
     uint8_t _buttonID = 0;
-    TurnOnLights Light;
-    timeoutButton Button;
 
 public:
     bool OnatBoot = false;
-    bool dimmablePWM = true;
+    bool outputPWM = false;
 
-    bool output_ON = HIGH;
-    bool inputPressed = LOW;
+    bool inputPressed = LOW; // NEED TO DEFINED IN BUTTON CLASS //
+    bool &newMSG = Button.newMSG;
+    uint8_t &trigType = Button.trigTYPE;
+    uint8_t &inputPin = Button.Inpin;
+    int &def_TO_minutes = Button.defaultTimeout;
+    int &maxON_minutes = Button.maxTimeout;
 
-    uint8_t trigType = 0;
-    uint8_t inputPin = 5;
-    uint8_t outputPin = 4;
-    uint8_t indicPin = 255;
+    bool &output_ON = _isON;
+    bool &dimmablePWM = _useDim;
+    uint8_t &outputPin = Pin;
+    uint8_t &indicPin = auxPin;
+    uint8_t &defPWM = defStep;
+    uint8_t &max_pCount = maxSteps;
+    uint8_t &limit_PWM = limitPWM;
+    int &PWM_res = PWMres;
 
-    int def_TO_minutes = 360;
-    int maxON_minutes = 1000;
+    oper_string *OPstr = &Button.OPERstring;
 
-    uint8_t defPWM = 2;
-    uint8_t max_pCount = 3;
-    uint8_t limitPWM = 50;
-    int PWM_res = 1023;
+private:
+    timeoutButton Button;
+    void _newActivity_handler();
+    void _init_button();
+    void _init_light();
+    void _init_onAtBoot();
+    void _turnONlights();
+    void _turnOFFlights();
 
+public:
     LightButton();
+    void sendMSG(oper_string &str);
+
     // ~~~~~~~~ Belongs to Button Class ~~~~~
     void loop();
     bool getState();
@@ -116,9 +149,5 @@ public:
     unsigned int remainWatch();
     void OFF_cb(uint8_t reason);
     void ON_cb(int _TO, uint8_t reason);
-    
-    // ~~~~~~~~ Belongs to Light Class ~~~~~
-    bool isON();
-    void blink(uint8_t blinks, int _delay = 20);
 };
 #endif

@@ -7,24 +7,22 @@ timeoutButton::timeoutButton() : chrono(Chrono::SECONDS)
 }
 void timeoutButton::begin(uint8_t id)
 {
-  _id = id;
   _useInput = false;
-  _init_chrono();
+  _commonBegin(id);
 }
 void timeoutButton::begin(uint8_t pin, uint8_t trigType, uint8_t id)
 {
   _useInput = true;
-  _pin = pin;
-  _trigType = trigType;
-  _id = id;
+  Inpin = pin;
+  trigTYPE = trigType;
 
+  _commonBegin(id);
   _init_button();
-  _init_chrono();
 }
 void timeoutButton::loop()
 {
-  _loopWatch();
-  _Button_looper();
+  _loopWatch();     /* Timeouts */
+  _Button_looper(); /* Read button states */
 }
 bool timeoutButton::getState()
 {
@@ -36,75 +34,77 @@ void timeoutButton::addWatch(int _add, uint8_t reason)
 
   if (!chrono.isRunning()) /* Case not ON */
   {
-    ON_cb(timeout, reason); //, trigger);
+    ON_cb(timeout, reason);
+  }
+  else
+  {
+    OPERstring.offtime = OPERstring.ontime + timeout;
+    save_OperStr(OPERstring);
+    newMSG = true;
   }
 }
-bool timeoutButton::ON_cb(int _TO, uint8_t reason) 
+void timeoutButton::ON_cb(int _TO, uint8_t reason)
 {
   if (!chrono.isRunning()) /* Enter when off or at PWM different PWM value */
   {
     _TO == 0 ? timeout = defaultTimeout : timeout = _TO;
     _startWatch();
-    lightsON(reason);
-    return 1;
-  }
-  else
-  {
-    return 0;
+
+    OPERstring.state = true;
+    OPERstring.reason = reason;
+    if(trigTYPE==3&&pressCounter==0){
+      pressCounter=
+    }
+    OPERstring.step = pressCounter;
+    OPERstring.ontime = time(nullptr);
+    OPERstring.offtime = OPERstring.ontime + timeout;
+
+    save_OperStr(OPERstring);
+    newMSG = true;
   }
 }
-bool timeoutButton::OFF_cb(uint8_t reason) 
+void timeoutButton::OFF_cb(uint8_t reason)
 {
   if (chrono.isRunning())
   {
     _stopWatch();
-    lightsOFF();
-    return 1;
-  }
-  else
-  {
-    return 0;
+    OPERstring.state = false;
+    OPERstring.reason = reason;
+    OPERstring.step = pressCounter;
+    // OPERstring.ontime = time(nullptr);
+    OPERstring.offtime = time(nullptr);
+    save_OperStr(OPERstring);
+    newMSG = true;
   }
 }
 
-void timeoutButton::set_lights(TurnOnLights *light)
+void timeoutButton::_commonBegin(uint8_t id)
 {
-  Light = light;
+  Id = id;
+  sprintf(_operfile, "/opfile%d.txt", Id);
+  _init_chrono();
 }
-bool timeoutButton::lightsON(uint8_t step)
-{
-  return Light->turnON(step);
-}
-bool timeoutButton::lightsOFF()
-{
-  return Light->turnOFF();
-}
-bool timeoutButton::lightsPWM(int val)
-{
-  return Light->PWMvalue(val);
-}
-
 void timeoutButton::_init_button()
 {
   if (_useInput)
   {
-    button.begin(_pin);
-    button.setID(_id);
+    button.begin(Inpin);
+    button.setID(Id);
 
-    if (_trigType == MOMENTARY)
+    if (trigTYPE == MOMENTARY)
     {
       button.setPressedHandler(std::bind(&timeoutButton::_Momentary_handle, this, std::placeholders::_1));
     }
-    else if (_trigType == ON_OFF)
+    else if (trigTYPE == ON_OFF)
     {
       button.setPressedHandler(std::bind(&timeoutButton::_ON_OFF_on_handle, this, std::placeholders::_1));
       button.setReleasedHandler(std::bind(&timeoutButton::_ON_OFF_off_handle, this, std::placeholders::_1));
     }
-    else if (_trigType == TRIGGER_SERNSOR)
+    else if (trigTYPE == TRIGGER_SERNSOR)
     {
       button.setPressedHandler(std::bind(&timeoutButton::_TrigSensor_handler, this, std::placeholders::_1));
     }
-    else if (_trigType == MULTI_PRESS)
+    else if (trigTYPE == MULTI_PRESS)
     {
       button.setPressedHandler(std::bind(&timeoutButton::_MultiPress_handler, this, std::placeholders::_1));
     }
@@ -141,16 +141,25 @@ void timeoutButton::_TrigSensor_handler(Button2 &b)
 }
 void timeoutButton::_MultiPress_handler(Button2 &b)
 {
-  if (millis() - _lastPress < time2Repress || _pressCounter == 0) //|| (_pressCounter == 0&&_lastPress))
+  if (millis() - _lastPress < time2Repress || pressCounter == 0) //|| (_pressCounter == 0&&_lastPress))
   {
-    _pressCounter++;
+    pressCounter++;
   }
   else
   {
-    _pressCounter = 0;
+    pressCounter = 0;
   }
   _lastPress = millis();
-  // _extMultipress_cb(_pressCounter, _id);
+
+  OPERstring.state = true;
+  // OPERstring.reason = reason;
+  OPERstring.step = pressCounter;
+  // OPERstring.ontime = time(nullptr);
+  // OPERstring.offtime = OPERstring.ontime + timeout;
+
+  print_OPERstring(OPERstring);
+  save_OperStr(OPERstring);
+  newMSG = true;
 }
 void timeoutButton::_Button_looper()
 {
@@ -177,7 +186,7 @@ unsigned int timeoutButton::remainWatch()
 {
   if (chrono.isRunning())
   {
-    return conv2Minute(timeout) - chrono.elapsed();
+    return timeout - chrono.elapsed();
   }
   else
   {
@@ -186,52 +195,91 @@ unsigned int timeoutButton::remainWatch()
 }
 void timeoutButton::_loopWatch()
 {
-  if (chrono.isRunning() && (chrono.hasPassed(conv2Minute(timeout)) || chrono.hasPassed(conv2Minute(maxTimeout))))
+  if (chrono.isRunning() && (chrono.hasPassed(timeout) || chrono.hasPassed(maxTimeout)))
   {
     OFF_cb(TIMEOUT);
   }
 }
 
-/* ~~~~~~~ LightButton Class ~~~~~~~~ */
-LightButton::LightButton() : Button(), Light()
+void timeoutButton::print_OPERstring(oper_string &str)
 {
+  Serial.println("~~~~~~~ OPER_STRING START ~~~~~~~~~~~");
+  Serial.print("state:\t\t\t");
+  Serial.println(str.state);
+
+  Serial.print("reason:\t\t\t");
+  Serial.println(INPUT_ORG[str.reason]);
+
+  Serial.print("step:\t\t\t");
+  Serial.println(str.step);
+
+  Serial.print("ontime:\t\t\t");
+  Serial.println(str.ontime);
+
+  Serial.print("offtime:\t\t");
+  Serial.println(str.offtime);
+  Serial.println("~~~~~~~ OPER_STRING END ~~~~~~~~~~~~~");
 }
-bool LightButton::isON()
+void timeoutButton::save_OperStr(oper_string &str)
 {
-  return Light.isON();
+  File _file = LITFS.open(_operfile, "w");
+  _file.write((byte *)&str, sizeof(str));
+  _file.close();
 }
-void LightButton::blink(uint8_t blinks, int _delay)
+void timeoutButton::read_OperStr(oper_string &str)
 {
-  Light.blink(blinks, _delay);
+  File _file = LITFS.open(_operfile, "r");
+  _file.read((byte *)&str, sizeof(str));
+  _file.close();
 }
 
+/* ~~~~~~~ LightButton Class ~~~~~~~~ */
+LightButton::LightButton() : Button()
+{
+}
 void LightButton::begin(uint8_t id)
 {
   _buttonID = id;
-  Button.begin(_buttonID);                     /* Not using button */
-  Button.begin(inputPin, trigType, _buttonID); /* Using button */
-  Button.set_lights(&Light);
-  
-  Button.maxTimeout = maxON_minutes;
-  Button.defaultTimeout = def_TO_minutes;
-
-  Light.init(outputPin, output_ON);            /* GPIO output */
-  Light.init(outputPin, PWM_res, dimmablePWM); /* PWM output */
-  Light.auxFlag(indicPin);                     /* init if pin != 255 */
-
-  Light.defStep = defPWM;
-  Light.limitPWM = limitPWM;
-  Light.maxSteps = max_pCount;
+  _init_button();
+  _init_light();
+  _init_onAtBoot();
 }
+void LightButton::_newActivity_handler()
+{
+  Button.print_OPERstring(*OPstr);
+  if (OPstr->state) /* ON */
+  {
+    if (isON() && isPWM())
+    {
+      Serial.println("PWM CHNGE");
+    }
+    else
+    {
+      Serial.println("LIGHTS_ON");
+      _turnONlights();
+    }
+  }
+  else
+  {
+    Serial.println("LIGHTS_OFF");
+    _turnOFFlights();
+  }
+  sendMSG(*OPstr);
+  Button.newMSG = false;
+}
+
 void LightButton::loop()
 {
   Button.loop();
+  if (Button.newMSG)
+  {
+    _newActivity_handler();
+  }
 }
 unsigned int LightButton::remainWatch()
 {
   return Button.remainWatch();
 }
-
 bool LightButton::getState()
 {
   return Button.getState();
@@ -242,5 +290,46 @@ void LightButton::OFF_cb(uint8_t reason)
 }
 void LightButton::ON_cb(int _TO, uint8_t reason)
 {
-  Button.ON_cb(_TO, reason);
+  Button.ON_cb(conv2Minute(_TO), reason);
+}
+
+void LightButton::_init_button()
+{
+  Button.maxTimeout = conv2Minute(Button.maxTimeout);
+  Button.defaultTimeout = conv2Minute(Button.defaultTimeout);
+  Button.begin(_buttonID);                     /* Not using button */
+  Button.begin(inputPin, trigType, _buttonID); /* Using button */
+}
+void LightButton::_init_light()
+{
+  if (!outputPWM)
+  {
+    init(outputPin, output_ON); /* GPIO output */
+  }
+  else
+  {
+    init(outputPin, PWM_res, dimmablePWM); /* PWM output */
+  }
+  auxFlag(indicPin); /* init if pin != 255 */
+}
+void LightButton::_init_onAtBoot()
+{
+  if (OnatBoot)
+  {
+    ON_cb(0, PWRON);
+  }
+}
+void LightButton::_turnONlights()
+{
+  if (!isON())
+  {
+    turnON(Button.pressCounter);
+  }
+}
+void LightButton::_turnOFFlights()
+{
+  if (isON())
+  {
+    turnOFF();
+  }
 }

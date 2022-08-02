@@ -1,85 +1,51 @@
-// class Actions
-// {
-//   typedef void (*cb_func)(uint8_t resaon);
-
-// public:
-//   cb_func exter_func;
-
-// public:
-//   void get_external_func(cb_func func)
-//   {
-//     exter_func = func;
-//   }
-//   void callAction(uint8_t i)
-//   {
-//     exter_func(i);
-//   }
-// };
-
-// class Triggers
-// {
-// public:
-//   static void this_is_external_func(uint8_t i)
-//   {
-//     Serial.println(i);
-//   }
-// };
-
-// class Combine : public Actions, Triggers
-// {
-//   typedef void (*cb_func)(uint8_t resaon);
-
-// public:
-//   void combine_funcs(cb_func func)
-//   {
-//     // get_external_func(this_is_external_func);
-//     // exter_func = (void *)this_is_external_func;
-//     exter_func = func;
-//   }
-//   void begin()
-//   {
-//     combine_funcs(this_is_external_func);
-//   }
-//   void loop()
-//   {
-//     if (millis() > 10000)
-//     {
-//       callAction(13);
-//     }
-//   }
-// };
-
-// Combine combo;
-
+#include <myIOT2.h>
 #include <timeoutButton.h>
+#include "myIOT_settings.h"
 
+// myIOT2 iot;
 LightButton Lightbut;
+oper_string takeOper_string;
+
+void LightButton::sendMSG(oper_string &str)
+{
+  Serial.println("HI");
+}
+
 void setup()
 {
   // put your setup code here, to run once:
   Serial.begin(115200);
   Serial.println("Start!");
+  startIOTservices();
 
-  Lightbut.dimmablePWM = true;
-  Lightbut.output_ON = HIGH;
+  Lightbut.OnatBoot = false;
+
+  Lightbut.trigType = 1;
   Lightbut.inputPressed = LOW;
-  Lightbut.outputPin = D6;
   Lightbut.inputPin = D3;
-  Lightbut.indicPin = D7; /* set to 255 to disable */
+  Lightbut.def_TO_minutes = 1;
+  Lightbut.maxON_minutes = 100;
 
-  Lightbut.def_TO_minutes = 360;
-  Lightbut.maxON_minutes = 1000;
-
-  Lightbut.defPWM = 2;
+  // Lightbut.indicPin = D7; /* set to 255 to disable */
+  Lightbut.outputPin = D6;
+  Lightbut.output_ON = HIGH;
+  Lightbut.outputPWM = true;
+  Lightbut.defPWM = 1;
   Lightbut.max_pCount = 3;
-  Lightbut.limitPWM = 50;
+  Lightbut.limit_PWM = 50;
   Lightbut.PWM_res = 1023;
+  Lightbut.dimmablePWM = true;
 
   Lightbut.begin(0);
 }
 
 void loop()
 {
-  // put your main code here, to run repeatedly:
+  iot.looper();
   Lightbut.loop();
+  if (Lightbut.remainWatch() != 0)
+  {
+    Serial.println(Lightbut.remainWatch());
+  }
+  delay(50);
 }

@@ -7,7 +7,7 @@ extern void Ext_trigger_ON(uint8_t reason, int TO = 0, uint8_t step = 0);
 extern void Ext_updatePWM_value(uint8_t reason, uint8_t step);
 extern void Ext_addTime(uint8_t reason, int timeAdd);
 
-const char *INPUTS_ORIGIN[3] = {"Timeout", "Button", "MQTT"};
+// const char *INPUTS_ORIGIN[3] = {"Timeout", "Button", "MQTT"};
 
 // ±±±±±±± Genereal pub topic ±±±±±±±±±
 const char *topicLog = "myHome/log";

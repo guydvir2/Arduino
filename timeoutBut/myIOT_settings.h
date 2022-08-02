@@ -5,7 +5,7 @@ extern void Ext_trigger_ON(uint8_t reason, int TO = 0, uint8_t step = 0, uint8_t
 extern void Ext_updatePWM_value(uint8_t reason, uint8_t step, uint8_t i = 0);
 extern void Ext_addTime(uint8_t reason, int timeAdd, uint8_t i = 0);
 
-const char *INPUTS_ORIGIN[5] = {"Timeout", "Button", "MQTT", "PowerON","Resume Reboot"};
+// const char *INPUTS_ORIGIN[5] = {"Timeout", "Button", "MQTT", "PowerON","Resume Reboot"};
 
 void notifyAdd(int &_add, uint8_t &reason, uint8_t i)
 {
