@@ -52,9 +52,10 @@ void timeoutButton::ON_cb(int _TO, uint8_t reason)
 
     OPERstring.state = true;
     OPERstring.reason = reason;
-    if(trigTYPE==3&&pressCounter==0){
-      pressCounter=
-    }
+    // if (trigTYPE == 3 && pressCounter == 0)
+    // {
+    // //   pressCounter =
+    // }
     OPERstring.step = pressCounter;
     OPERstring.ontime = time(nullptr);
     OPERstring.offtime = OPERstring.ontime + timeout;
@@ -133,7 +134,7 @@ void timeoutButton::_TrigSensor_handler(Button2 &b)
   }
   else
   {
-    if (conv2Minute(timeout) - _remaintime > update_timeout)
+    if (timeout - _remaintime > update_timeout)
     {
       _startWatch(); /* Restart timeout after 30 sec */
     }
@@ -246,24 +247,27 @@ void LightButton::begin(uint8_t id)
 }
 void LightButton::_newActivity_handler()
 {
-  Button.print_OPERstring(*OPstr);
-  if (OPstr->state) /* ON אקדא */
+  if (OPstr->state) /* ON */
   {
-    if (isON() && isPWM())
+    if (!isON() && isPWM())
     {
+      Button.pressCounter = OPstr->step;
+      Button.save_OperStr(*OPstr);
       Serial.println("PWM CHNGE");
     }
     else
     {
       Serial.println("LIGHTS_ON");
-      _turnONlights();
     }
+    _turnONlights();
   }
   else
   {
     Serial.println("LIGHTS_OFF");
     _turnOFFlights();
   }
+  Button.print_OPERstring(*OPstr);
+
   sendMSG(*OPstr);
   Button.newMSG = false;
 }

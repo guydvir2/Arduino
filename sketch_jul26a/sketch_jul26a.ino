@@ -2,7 +2,6 @@
 #include <timeoutButton.h>
 #include "myIOT_settings.h"
 
-// myIOT2 iot;
 LightButton Lightbut;
 oper_string takeOper_string;
 
@@ -20,7 +19,7 @@ void setup()
 
   Lightbut.OnatBoot = false;
 
-  Lightbut.trigType = 1;
+  Lightbut.trigType = 2;
   Lightbut.inputPressed = LOW;
   Lightbut.inputPin = D3;
   Lightbut.def_TO_minutes = 1;
