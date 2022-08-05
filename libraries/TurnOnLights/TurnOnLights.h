@@ -5,22 +5,22 @@
 
 class TurnOnLights
 {
-#define TURN_ON digitalWrite(Pin, _isON)
-#define TURN_OFF digitalWrite(Pin, !_isON)
+#define TURN_ON digitalWrite(Pin, isON)
+#define TURN_OFF digitalWrite(Pin, !isON)
 #define INDIC_ON _useAuxFlag ? digitalWrite(auxPin, HIGH) : yield()
 #define INDIC_OFF _useAuxFlag ? digitalWrite(auxPin, LOW) : yield()
-#define IS_OUTPUT_ON digitalRead(Pin) == _isON
+#define IS_OUTPUT_ON digitalRead(Pin) == isON
 
 private:
-    bool _PWMmode = true;     /* select PWM or GPIO */
     bool _useAuxFlag = false; /* PWM & GPIO */
 
 public:
     int PWMval = 0;
     int PWMres = 1023;
 
-    bool _isON = HIGH; /* GPIO only */
-    bool _useDim = false; /* PWM only */
+    bool isON = HIGH;    /* GPIO only */
+    bool useDim = false; /* PWM only */
+    bool PWMmode = true; /* select PWM or GPIO */
 
     uint8_t Pin = 255;
     uint8_t auxPin = 255;
@@ -36,10 +36,10 @@ protected:
 public:
     TurnOnLights();
     void auxFlag(uint8_t pin = 255);
-    void init(uint8_t pin, bool isON);            /* GPIO */
+    void init(uint8_t pin, bool _isON);            /* GPIO */
     void init(uint8_t pin, int res, bool usedim); /* PWM */
 
-    bool isON();
+    bool is_ON();
     bool isPWM();
     bool turnOFF();                /* PWM & GPIO */
     bool turnON(uint8_t step = 0); /* PWM & GPIO */

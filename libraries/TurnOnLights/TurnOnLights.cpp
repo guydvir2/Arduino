@@ -7,18 +7,18 @@ void TurnOnLights::init(uint8_t pin, int res, bool usedim) /* PWM */
 {
     Pin = pin;
     PWMres = res;
-    _PWMmode = true;
-    _useDim = usedim;
+    PWMmode = true;
+    useDim = usedim;
 #if defined(ESP8266)
     analogWriteRange(PWMres);
 #endif
     pinMode(Pin, OUTPUT);
 }
-void TurnOnLights::init(uint8_t pin, bool isON) /* GPIO */
+void TurnOnLights::init(uint8_t pin, bool _isON) /* GPIO */
 {
     Pin = pin;
-    _PWMmode = false;
-    _isON = isON;
+    PWMmode = false;
+    isON = _isON;
     pinMode(Pin, OUTPUT);
 }
 void TurnOnLights::auxFlag(uint8_t pin)
@@ -33,7 +33,7 @@ void TurnOnLights::auxFlag(uint8_t pin)
 
 bool TurnOnLights::turnOFF() /* PWM & GPIO */
 {
-    if (_PWMmode)
+    if (PWMmode)
     {
         currentStep = 0;
         if (_setPWM(0))
@@ -55,7 +55,7 @@ bool TurnOnLights::turnOFF() /* PWM & GPIO */
 }
 bool TurnOnLights::turnON(uint8_t step) /* PWM & GPIO */
 {
-    if (_PWMmode)
+    if (PWMmode)
     {
         step == 0 ? currentStep = defStep : currentStep = step;
         if (_setPWM(_step2Value(currentStep)))
@@ -77,7 +77,7 @@ bool TurnOnLights::turnON(uint8_t step) /* PWM & GPIO */
 }
 bool TurnOnLights::PWMvalue(int val)
 {
-    if (_isValidPWM(val) && _PWMmode)
+    if (_isValidPWM(val) && PWMmode)
     {
         return _setPWM(val);
     }
@@ -98,9 +98,9 @@ void TurnOnLights::blink(uint8_t blinks, int _delay)
     }
 }
 
-bool TurnOnLights::isON()
+bool TurnOnLights::is_ON()
 {
-    if (_PWMmode)
+    if (PWMmode)
     {
         return PWMval > 0;
     }
@@ -111,14 +111,14 @@ bool TurnOnLights::isON()
 }
 bool TurnOnLights::isPWM()
 {
-    return _PWMmode;
+    return PWMmode;
 }
 
 bool TurnOnLights::_setPWM(int val)
 {
     if (_isValidPWM(val))
     {
-        if (_useDim)
+        if (useDim)
         {
             _Dim2Value(val);
         }
