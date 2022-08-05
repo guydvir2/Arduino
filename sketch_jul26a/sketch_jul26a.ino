@@ -33,10 +33,8 @@ void LightButton<N>::sendMSG(oper_string &str, uint8_t i)
   print_OPERstring(str, i);
 }
 
-void setup()
+void start_LiButt()
 {
-  startIOTservices();
-
   Lightbut.define_button(0, 0, D3, LOW, 1, 10);
   // Lightbut.define_light(0, D6, HIGH, true, false, 2, 4, 90, 1023, D7);
   Lightbut.define_light(0, D6, HIGH); /* IO light*/
@@ -44,7 +42,13 @@ void setup()
 
   Lightbut.define_button(1, 0, D4, LOW, 1, 10);
   Lightbut.define_light(1, D7, HIGH, true /* PWM */, true /* Dim */, 2, 4, 90, 1023); /* Dimmable PWM*/
-  Lightbut.powerOn_powerFailure(0);
+  // Lightbut.powerOn_powerFailure(1);
+}
+
+void setup()
+{
+  startIOTservices();
+  start_LiButt();
 }
 
 void loop()

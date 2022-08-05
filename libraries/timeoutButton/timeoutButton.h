@@ -15,6 +15,7 @@
 #define LITFS LittleFS
 #endif
 
+#define conv2Minute(t) t * 60
 struct oper_string
 {
     bool state;     /* On or Off */
@@ -41,7 +42,6 @@ enum REASONS : const uint8_t
 
 class timeoutButton
 {
-#define conv2Minute(t) t * 10
 
 private:
     char _operfile[15];
@@ -118,7 +118,7 @@ private:
 
 public:
     LightButton();
-    
+
     void loop();
     void powerOn_powerFailure(uint8_t i);
     void sendMSG(oper_string &str, uint8_t i);
@@ -253,16 +253,25 @@ template <uint8_t N>
 void LightButton<N>::powerOn_powerFailure(uint8_t i)
 {
     _Button[i].read_OperStr(_Button[i].OPERstring);
+
     if (_Button[i].OPERstring.state == true)
     {
+        Serial.println("A");
         if (_Button[i].OPERstring.offtime > time(nullptr))
         {
+            Serial.println("B");
             _Button[i].startTimeout_cb(_Button[i].OPERstring.offtime - time(nullptr), REBOOT);
+            _Button[i].print_OPERstring(_Button[i].OPERstring);
         }
         else
         {
+            Serial.println("C");
             stopTimeout_cb(REBOOT, i);
         }
+    }
+    else
+    {
+        Serial.println("D");
     }
 }
 
