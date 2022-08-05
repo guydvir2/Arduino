@@ -203,7 +203,10 @@ void timeoutButton::_loopClock()
 
 void timeoutButton::print_OPERstring(oper_string &str)
 {
-  Serial.println("~~~~~~~ OPER_STRING START ~~~~~~~~~~~");
+  Serial.print("~~~~~~~ OPER_STRING START #");
+  Serial.print(Id);
+  Serial.println(" ~~~~~~~~~");
+  
   Serial.print("state:\t\t\t");
   Serial.println(str.state);
 
