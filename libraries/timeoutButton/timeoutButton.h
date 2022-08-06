@@ -128,6 +128,7 @@ public:
     // ~~~~~~~~ Belongs to Button Class ~~~~~
     bool getState(uint8_t i);
     unsigned int remainClock(uint8_t i);
+    void Ext_setCounter(uint8_t i, uint8_t count);
     void stopTimeout_cb(uint8_t reason, uint8_t i);
     void startTimeout_cb(int _TO, uint8_t reason, uint8_t i);
 };
@@ -273,6 +274,12 @@ void LightButton<N>::powerOn_powerFailure(uint8_t i)
     {
         Serial.println("D");
     }
+}
+
+template <uint8_t N>
+void LightButton<N>::Ext_setCounter(uint8_t i,uint8_t count)
+{
+    _Button[i].pressCounter = count;
 }
 
 template <uint8_t N>

@@ -1,4 +1,6 @@
 myIOT2 iot;
+extern LightButton Lightbut;
+
 
 // ±±±±±±± Genereal pub topic ±±±±±±±±±
 const char *topicLog = "myHome/log";
@@ -58,6 +60,53 @@ void addiotnalMQTT(char *incoming_msg, char *_topic)
     {
         sprintf(msg, "ver #2:");
         iot.pub_msg(msg);
+    }
+    else
+    {
+        if (iot.num_p > 1)
+        {
+            if (strcmp(iot.inline_param[1], "remain") == 0)
+            {
+                // notifyRemain(atoi(iot.inline_param[0]));
+            }
+            else if (strcmp(iot.inline_param[1], "off") == 0)
+            {
+                // Ext_trigger_OFF(2, atoi(iot.inline_param[0]));
+
+                if (Lightbut[atoi(iot.inline_param[0])]->getState())
+                {
+                    Ext_trigger_OFF(2, atoi(iot.inline_param[0]));
+                }
+            }
+            else if (strcmp(iot.inline_param[1], "on") == 0)
+            {
+                if (Lightbut[atoi(iot.inline_param[0])]->getState()) /* turn off if it is ON */
+                {
+                    Ext_trigger_OFF(2, atoi(iot.inline_param[0]));
+                }
+
+                if (iot.num_p == 2)
+                {
+                    Ext_trigger_ON(2, 0, 0, atoi(iot.inline_param[0])); /* Default Timeout & default PWM value*/
+                }
+                else if (iot.num_p == 3)
+                {
+                    Ext_trigger_ON(2, atoi(iot.inline_param[2]), atoi(iot.inline_param[0])); /* define Timeout*/
+                }
+                else if (iot.num_p == 4)
+                {
+                    Ext_trigger_ON(2, atoi(iot.inline_param[2]), atoi(iot.inline_param[3]), atoi(iot.inline_param[0])); /* define Timeout & PWM*/
+                }
+            }
+            else if (strcmp(iot.inline_param[1], "add") == 0)
+            {
+                // Ext_addTime(2, atoi(iot.inline_param[2]), atoi(iot.inline_param[0]));
+            }
+            else if (strcmp(iot.inline_param[1], "updatePWM") == 0)
+            {
+                // Ext_updatePWM_value(2, atoi(iot.inline_param[2]), atoi(iot.inline_param[0]));
+            }
+        }
     }
 }
 void startIOTservices()
