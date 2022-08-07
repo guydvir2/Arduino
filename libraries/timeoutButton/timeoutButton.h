@@ -15,7 +15,7 @@
 #define LITFS LittleFS
 #endif
 
-#define conv2Minute(t) t * 60
+#define conv2Minute(t) t * 6
 struct oper_string
 {
     bool state;     /* On or Off */
@@ -120,6 +120,7 @@ public:
     LightButton();
 
     void loop();
+    uint8_t get_counter(uint8_t i);
     void powerOn_powerFailure(uint8_t i);
     void sendMSG(oper_string &str, uint8_t i);
     void define_button(uint8_t i, uint8_t trig, uint8_t pin, bool inputPressed = LOW, int defMinutes = 120, int maxMinutes = 360, bool useButton = true);
@@ -128,6 +129,7 @@ public:
     // ~~~~~~~~ Belongs to Button Class ~~~~~
     bool getState(uint8_t i);
     unsigned int remainClock(uint8_t i);
+    void addClock(int _add, uint8_t reason, uint8_t i);
     void Ext_setCounter(uint8_t i, uint8_t count);
     void stopTimeout_cb(uint8_t reason, uint8_t i);
     void startTimeout_cb(int _TO, uint8_t reason, uint8_t i);
@@ -233,9 +235,20 @@ unsigned int LightButton<N>::remainClock(uint8_t i)
 }
 
 template <uint8_t N>
+void LightButton<N>::addClock(int _add, uint8_t reason, uint8_t i)
+{
+    _Button[i].addClock(_add, reason);
+}
+
+template <uint8_t N>
 bool LightButton<N>::getState(uint8_t i)
 {
     return _Button[i].getState();
+}
+
+template <uint8_t N>
+uint8_t LightButton<N>::get_counter(uint8_t i){
+    return _Button[i].pressCounter;
 }
 
 template <uint8_t N>
@@ -277,7 +290,7 @@ void LightButton<N>::powerOn_powerFailure(uint8_t i)
 }
 
 template <uint8_t N>
-void LightButton<N>::Ext_setCounter(uint8_t i,uint8_t count)
+void LightButton<N>::Ext_setCounter(uint8_t i, uint8_t count)
 {
     _Button[i].pressCounter = count;
 }

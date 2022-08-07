@@ -2,9 +2,7 @@
 #include <timeoutButton.h>
 #include "myIOT_settings.h"
 
-
 #define numSW 2
-LightButton<2> Lightbut;
 
 void print_OPERstring(oper_string &str, uint8_t i)
 {
@@ -47,7 +45,7 @@ void start_LiButt()
   // Lightbut.powerOn_powerFailure(1);
 }
 
-/ ~~~~~~~~~~~ External trigger (not physical button, but MQTT cmd) for timeout and light ~~~~~~~~~~~~~
+// ~~~~~~~~~~~ External trigger (not physical button, but MQTT cmd) for timeout and light ~~~~~~~~~~~~~
 void Ext_trigger_ON(uint8_t reason, int TO, uint8_t step, uint8_t i)
 {
   if (i < numSW)
@@ -61,40 +59,36 @@ void Ext_trigger_OFF(uint8_t reason, uint8_t i)
   if (i < numSW)
   {
     Lightbut.Ext_setCounter(i, 0);
-    Lightbut.stopTimeout_cb(TO, reason, i);  }
+    Lightbut.stopTimeout_cb(reason, i);
+  }
 }
 void Ext_updatePWM_value(uint8_t reason, uint8_t step, uint8_t i)
 {
   if (i < numSW)
   {
-  //   if (lightOutputV[i]->isPWM())
-  //   {
-  //     if (timeoutButtonV[i]->getState()) /* if already ON */
-  //     {
-  //       if (lightOutputV[i]->turnON(step)) /* update PWM value */
-  //       {
-  //         notifyUpdatePWM(step, reason, i);
-  //       }
-  //     }
-  //     else
-  //     {
-  //       Ext_trigger_ON(reason, timeoutButtonV[i]->defaultTimeout, step, i); /* if Off, turn ON with desired PWM value */
-  //     }
-  //     update_OperString(reason, i, true);
-  //   }
-  // }
+    if (Lightbut.getState(i) == true) /* if already ON */
+    {
+      Lightbut.Ext_setCounter(i, step);
+    }
+    else
+    {
+      Ext_trigger_ON(reason, 0, step, i); /* if Off, turn ON with desired PWM value */
+    }
+  }
 }
 void Ext_addTime(uint8_t reason, int timeAdd, uint8_t i)
 {
-  // if (i < numSW)
-  // {
-  //   if (timeoutButtonV[i]->getState())
-  //   {
-  //     notifyAdd(timeAdd, reason, i);
-  //   }
-  //   timeoutButtonV[i]->addWatch(timeAdd, reason); /* update end time */
-  //   update_OperString(reason, i, true);
-  // }
+  if (i < numSW)
+  {
+    if (Lightbut.getState(i) == true) /* if already ON */
+    {
+      Lightbut.addClock(reason, timeAdd, i);
+    }
+    else
+    {
+      Ext_trigger_ON(reason, timeAdd, Lightbut.get_counter(i), i); /* if Off, turn ON with desired Time value */
+    }
+  }
 }
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 

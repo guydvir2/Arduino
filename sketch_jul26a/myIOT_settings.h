@@ -1,6 +1,11 @@
 myIOT2 iot;
-extern LightButton Lightbut;
+// extern LightButton< > Lightbut;
+LightButton<2> Lightbut;
 
+extern void Ext_trigger_OFF(uint8_t reason, uint8_t i);
+extern void Ext_trigger_ON(uint8_t reason, int TO = 0, uint8_t step = 0, uint8_t i = 0);
+extern void Ext_updatePWM_value(uint8_t reason, uint8_t step, uint8_t i = 0);
+extern void Ext_addTime(uint8_t reason, int timeAdd, uint8_t i = 0);
 
 // ±±±±±±± Genereal pub topic ±±±±±±±±±
 const char *topicLog = "myHome/log";
@@ -67,20 +72,18 @@ void addiotnalMQTT(char *incoming_msg, char *_topic)
         {
             if (strcmp(iot.inline_param[1], "remain") == 0)
             {
-                // notifyRemain(atoi(iot.inline_param[0]));
+                Serial.println(Lightbut.remainClock(atoi(iot.inline_param[0])));
             }
             else if (strcmp(iot.inline_param[1], "off") == 0)
             {
-                // Ext_trigger_OFF(2, atoi(iot.inline_param[0]));
-
-                if (Lightbut[atoi(iot.inline_param[0])]->getState())
+                if (Lightbut.getState(atoi(iot.inline_param[0])))
                 {
                     Ext_trigger_OFF(2, atoi(iot.inline_param[0]));
                 }
             }
             else if (strcmp(iot.inline_param[1], "on") == 0)
             {
-                if (Lightbut[atoi(iot.inline_param[0])]->getState()) /* turn off if it is ON */
+                if (Lightbut.getState(atoi(iot.inline_param[0]))) /* turn off if it is ON */
                 {
                     Ext_trigger_OFF(2, atoi(iot.inline_param[0]));
                 }
@@ -100,11 +103,12 @@ void addiotnalMQTT(char *incoming_msg, char *_topic)
             }
             else if (strcmp(iot.inline_param[1], "add") == 0)
             {
-                // Ext_addTime(2, atoi(iot.inline_param[2]), atoi(iot.inline_param[0]));
+                // Ext_addTime(2, int timeAdd, uint8_t i)
+                Ext_addTime(2, atoi(iot.inline_param[2]), atoi(iot.inline_param[0]));
             }
             else if (strcmp(iot.inline_param[1], "updatePWM") == 0)
             {
-                // Ext_updatePWM_value(2, atoi(iot.inline_param[2]), atoi(iot.inline_param[0]));
+                Ext_updatePWM_value(2, atoi(iot.inline_param[2]), atoi(iot.inline_param[0]));
             }
         }
     }
