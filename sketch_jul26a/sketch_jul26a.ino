@@ -31,6 +31,15 @@ template <uint8_t N>
 void LightButton<N>::sendMSG(oper_string &str, uint8_t i)
 {
   print_OPERstring(str, i);
+  if (str.state == 0)
+  {
+    notifyOFF(str.reason, i, str.offtime - str.ontime);
+  }
+  else
+  {
+    notifyState(str.reason, i, str.offtime - str.ontime);
+  }
+  Serial.println("Here");
 }
 
 void start_LiButt()
@@ -39,10 +48,12 @@ void start_LiButt()
   // Lightbut.define_light(0, D6, HIGH, true, false, 2, 4, 90, 1023, D7);
   Lightbut.define_light(0, D6, HIGH); /* IO light*/
   Lightbut.powerOn_powerFailure(0);
+  Lightbut.set_name(0, "Light0");
 
-  Lightbut.define_button(1, 0, D4, LOW, 1, 10);
+  Lightbut.define_button(1 /* ID */, 0 /* Trig */, D5 /* io */, LOW, 1 /*def time min */, 10);
   Lightbut.define_light(1, D7, HIGH, true /* PWM */, true /* Dim */, 2, 4, 90, 1023); /* Dimmable PWM*/
-  // Lightbut.powerOn_powerFailure(1);
+  Lightbut.set_name(1, "Light1");
+  Lightbut.powerOn_powerFailure(1);
 }
 
 // ~~~~~~~~~~~ External trigger (not physical button, but MQTT cmd) for timeout and light ~~~~~~~~~~~~~
@@ -80,14 +91,7 @@ void Ext_addTime(uint8_t reason, int timeAdd, uint8_t i)
 {
   if (i < numSW)
   {
-    if (Lightbut.getState(i) == true) /* if already ON */
-    {
-      Lightbut.addClock(reason, timeAdd, i);
-    }
-    else
-    {
-      Ext_trigger_ON(reason, timeAdd, Lightbut.get_counter(i), i); /* if Off, turn ON with desired Time value */
-    }
+    Lightbut.addClock(conv2Minute(timeAdd), reason, i);
   }
 }
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

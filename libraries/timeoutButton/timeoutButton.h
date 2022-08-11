@@ -47,7 +47,6 @@ private:
     char _operfile[15];
     bool _useInput = false;
     unsigned long _lastPress = 0;
-    const char *INPUT_ORG[5] = {"Timeout", "Button", "MQTT", "PowerON", "Resume Reboot"};
 
 private:
     Chrono chrono;
@@ -115,12 +114,17 @@ private:
     void _turnONlights(uint8_t i);
     void _turnOFFlights(uint8_t i);
     void _newActivity_handler(uint8_t i);
+#define _max_name_len 15
 
 public:
     LightButton();
+    char names[N][_max_name_len];
 
     void loop();
+    bool isPwm(uint8_t i);
+    void set_name(uint8_t i, const char *n);
     uint8_t get_counter(uint8_t i);
+    uint8_t get_maxcounter(uint8_t i);
     void powerOn_powerFailure(uint8_t i);
     void sendMSG(oper_string &str, uint8_t i);
     void define_button(uint8_t i, uint8_t trig, uint8_t pin, bool inputPressed = LOW, int defMinutes = 120, int maxMinutes = 360, bool useButton = true);
@@ -128,6 +132,7 @@ public:
 
     // ~~~~~~~~ Belongs to Button Class ~~~~~
     bool getState(uint8_t i);
+    int get_timeout(uint8_t i);
     unsigned int remainClock(uint8_t i);
     void addClock(int _add, uint8_t reason, uint8_t i);
     void Ext_setCounter(uint8_t i, uint8_t count);
@@ -201,17 +206,19 @@ void LightButton<N>::_newActivity_handler(uint8_t i)
                 _turnOFFlights(i);
                 _Button[N].stopTimeout_cb(BUTTON);
             }
+            sendMSG(_Button[i].OPERstring, i);
         }
         else
         {
             _turnONlights(i);
+            sendMSG(_Button[i].OPERstring, i);
         }
     }
     else
     {
+        sendMSG(_Button[i].OPERstring, i);
         _turnOFFlights(i);
     }
-    sendMSG(_Button[i].OPERstring, i);
     _Button[i].newMSG = false;
 }
 
@@ -247,10 +254,27 @@ bool LightButton<N>::getState(uint8_t i)
 }
 
 template <uint8_t N>
-uint8_t LightButton<N>::get_counter(uint8_t i){
+uint8_t LightButton<N>::get_counter(uint8_t i)
+{
     return _Button[i].pressCounter;
 }
+template <uint8_t N>
+uint8_t LightButton<N>::get_maxcounter(uint8_t i)
+{
+    return _light[i].maxSteps;
+}
 
+template <uint8_t N>
+int LightButton<N>::get_timeout(uint8_t i)
+{
+    return _Button[i].timeout;
+}
+
+template <uint8_t N>
+bool LightButton<N>::isPwm(uint8_t i)
+{
+    return _light[i].PWMmode;
+}
 template <uint8_t N>
 void LightButton<N>::stopTimeout_cb(uint8_t reason, uint8_t i)
 {
@@ -293,6 +317,11 @@ template <uint8_t N>
 void LightButton<N>::Ext_setCounter(uint8_t i, uint8_t count)
 {
     _Button[i].pressCounter = count;
+}
+template <uint8_t N>
+void LightButton<N>::set_name(uint8_t i, const char *n)
+{
+    strlcpy(names[i], n, _max_name_len);
 }
 
 template <uint8_t N>
