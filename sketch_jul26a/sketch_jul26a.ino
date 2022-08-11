@@ -30,16 +30,16 @@ void print_OPERstring(oper_string &str, uint8_t i)
 template <uint8_t N>
 void LightButton<N>::sendMSG(oper_string &str, uint8_t i)
 {
-  print_OPERstring(str, i);
-  if (str.state == 0)
-  {
-    notifyOFF(str.reason, i, str.offtime - str.ontime);
-  }
-  else
-  {
-    notifyState(str.reason, i, str.offtime - str.ontime);
-  }
-  Serial.println("Here");
+  // print_OPERstring(str, i);
+  // if (str.state == 0)
+  // {
+  //   notifyOFF(str.reason, i, str.offtime - str.ontime);
+  // }
+  // else
+  // {
+  //   notifyState(str.reason, i, str.offtime - str.ontime);
+  // }
+  notifyState(str.reason, i, str.offtime - str.ontime);
 }
 
 void start_LiButt()

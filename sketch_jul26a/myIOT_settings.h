@@ -1,5 +1,4 @@
 myIOT2 iot;
-// extern LightButton< > Lightbut;
 LightButton<2> Lightbut;
 
 extern void Ext_trigger_OFF(uint8_t reason, uint8_t i);
@@ -73,9 +72,9 @@ void notifyState(uint8_t &reason, uint8_t i, int t)
     char b[50];
     char clk[25];
     iot.convert_epoch2clock(t, 0, clk);
-    sprintf(a, "[%s]: [%s] [On] for [%s]", INPUT_ORG[reason], Lightbut.names[i], clk);
+    sprintf(a, "[%s]: [%s] [%s] %s [%s]", INPUT_ORG[reason], Lightbut.names[i], Lightbut.getState(i) ? "On" : "Off", Lightbut.getState(i) ? "for" : "after", clk);
 
-    if (Lightbut.isPwm(i))
+    if (Lightbut.isPwm(i) && Lightbut.getState(i))
     {
         sprintf(b, " Power [%d/%d]", Lightbut.get_counter(i), Lightbut.get_maxcounter(i));
         strcat(a, b);

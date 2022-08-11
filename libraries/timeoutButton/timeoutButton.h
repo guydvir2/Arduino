@@ -317,6 +317,7 @@ template <uint8_t N>
 void LightButton<N>::Ext_setCounter(uint8_t i, uint8_t count)
 {
     _Button[i].pressCounter = count;
+    _light[i].currentStep = count;
 }
 template <uint8_t N>
 void LightButton<N>::set_name(uint8_t i, const char *n)
