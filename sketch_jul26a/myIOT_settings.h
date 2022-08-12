@@ -1,4 +1,4 @@
-#define numSW 4
+#define numSW 2
 
 myIOT2 iot;
 LightButton<numSW> Lightbut;

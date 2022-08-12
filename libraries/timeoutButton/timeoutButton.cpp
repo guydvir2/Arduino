@@ -40,7 +40,7 @@ void timeoutButton::addClock(int _add, uint8_t reason)
   {
     OPERstring.offtime = OPERstring.ontime + timeout;
     save_OperStr(OPERstring);
-    newMSG = true;
+    // newMSG = true;
   }
 }
 void timeoutButton::startTimeout_cb(int _TO, uint8_t reason)
@@ -57,7 +57,8 @@ void timeoutButton::startTimeout_cb(int _TO, uint8_t reason)
     OPERstring.offtime = OPERstring.ontime + timeout;
 
     save_OperStr(OPERstring);
-    newMSG = true;
+    // newMSG = true;
+    flag2ON = true;
   }
 }
 void timeoutButton::stopTimeout_cb(uint8_t reason)
@@ -73,7 +74,8 @@ void timeoutButton::stopTimeout_cb(uint8_t reason)
     // OPERstring.ontime = time(nullptr);
     OPERstring.offtime = time(nullptr);
     save_OperStr(OPERstring);
-    newMSG = true;
+    // newMSG = true;
+    flag2OFF = true;
   }
 }
 
@@ -151,7 +153,8 @@ void timeoutButton::_MultiPress_handler(Button2 &b)
     {
       OPERstring.step = pressCounter;
       save_OperStr(OPERstring);
-      newMSG = true; /* Increase lihgt intersity */
+      flag2ON = true;
+      // newMSG = true; /* Increase lihgt intersity */
     }
   }
   else
@@ -206,7 +209,7 @@ void timeoutButton::print_OPERstring(oper_string &str)
   Serial.print("~~~~~~~ OPER_STRING START #");
   Serial.print(Id);
   Serial.println(" ~~~~~~~~~");
-  
+
   Serial.print("state:\t\t\t");
   Serial.println(str.state);
 

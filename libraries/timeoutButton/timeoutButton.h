@@ -42,7 +42,6 @@ enum REASONS : const uint8_t
 
 class timeoutButton
 {
-
 private:
     char _operfile[15];
     bool _useInput = false;
@@ -57,7 +56,9 @@ public:
     int maxTimeout = 500;
     int defaultTimeout = 1;
     int time2Repress = 2000; // millis between valid repress counts
-    bool newMSG = false;
+
+    bool flag2ON = false;
+    bool flag2OFF = false;
 
     uint8_t Id = 0;
     uint8_t Inpin = 255;
@@ -193,32 +194,31 @@ void LightButton<N>::define_light(uint8_t i, uint8_t pin, bool outputON, bool is
 template <uint8_t N>
 void LightButton<N>::_newActivity_handler(uint8_t i)
 {
-    if (_Button[i].OPERstring.state) /* ON */
-    {
-        if (_light[i].isPWM())
-        {
-            if (_Button[i].pressCounter <= _light[i].maxSteps) /* MultiPresses */
-            {
-                _turnONlights(i);
-            }
-            else
-            {
-                _turnOFFlights(i);
-                _Button[N].stopTimeout_cb(BUTTON);
-            }
-        }
-        else
-        {
-            _turnONlights(i);
-        }
-    }
-    else
-    {
-        _turnOFFlights(i);
-    }
-    sendMSG(_Button[i].OPERstring, i);
+    // if (_Button[i].OPERstring.state) /* ON */
+    // {
+    //     if (_light[i].isPWM())
+    //     {
+    //         if (_Button[i].pressCounter <= _light[i].maxSteps) /* MultiPresses */
+    //         {
+    //             _turnONlights(i);
+    //         }
+    //         else
+    //         {
+    //             _turnOFFlights(i);
+    //         }
+    //     }
+    //     else
+    //     {
+    //         _turnONlights(i);
+    //     }
+    // }
+    // else
+    // {
+    //     _turnOFFlights(i);
+    // }
+    // sendMSG(_Button[i].OPERstring, i);
 
-    _Button[i].newMSG = false;
+    // _Button[i].newMSG = false;
 }
 
 template <uint8_t N>
@@ -226,11 +226,34 @@ void LightButton<N>::loop()
 {
     for (uint8_t i = 0; i < N; i++)
     {
-        _Button[i].loop();
-        if (_Button[i].newMSG)
+        if (_Button[i].flag2ON)
         {
-            _newActivity_handler(i);
+            if (_light[i].isPWM())
+            {
+                if (_Button[i].pressCounter <= _light[i].maxSteps) /* MultiPresses */
+                {
+                    _turnONlights(i);
+                }
+                else
+                {
+                    _turnOFFlights(i);
+                }
+            }
+            else
+            {
+                _turnONlights(i);
+            }
+            _Button[i].flag2ON = false;
+            sendMSG(_Button[i].OPERstring, i);
         }
+        else if (_Button[i].flag2OFF)
+        {
+            _turnOFFlights(i);
+            _Button[i].flag2OFF = false;
+            sendMSG(_Button[i].OPERstring, i);
+        }
+
+        _Button[i].loop();
     }
 }
 
@@ -285,16 +308,15 @@ bool LightButton<N>::isPwm(uint8_t i)
 template <uint8_t N>
 void LightButton<N>::TurnOFF(uint8_t reason, uint8_t i)
 {
-    _turnOFFlights(i);
     _Button[i].stopTimeout_cb(reason);
+    // _turnOFFlights(i);
 }
 
 template <uint8_t N>
 void LightButton<N>::TurnON(int _TO, uint8_t reason, uint8_t step, uint8_t i)
 {
-    _Button[i].startTimeout_cb(conv2Minute(_TO), reason);
     _Button[i].pressCounter = step;
-    _turnONlights(i);
+    _Button[i].startTimeout_cb(conv2Minute(_TO), reason);
 }
 
 template <uint8_t N>
@@ -354,6 +376,7 @@ void LightButton<N>::_turnOFFlights(uint8_t i)
     if (_light[i].is_ON())
     {
         _light[i].turnOFF();
+        _Button[i].stopTimeout_cb(BUTTON);
     }
 }
 
