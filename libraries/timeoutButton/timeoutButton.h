@@ -137,8 +137,8 @@ public:
     unsigned int remainClock(uint8_t i);
     void addClock(int _add, uint8_t reason, uint8_t i);
     void Ext_setCounter(uint8_t i, uint8_t count);
-    void stopTimeout_cb(uint8_t reason, uint8_t i);
-    void startTimeout_cb(int _TO, uint8_t reason, uint8_t i);
+    void TurnOFF(uint8_t reason, uint8_t i);
+    void TurnON(int _TO, uint8_t reason, uint8_t step, uint8_t i);
 };
 
 template <uint8_t N>
@@ -203,7 +203,6 @@ void LightButton<N>::_newActivity_handler(uint8_t i)
             }
             else
             {
-                // _Button[N].pressCounter = 0;
                 _turnOFFlights(i);
                 _Button[N].stopTimeout_cb(BUTTON);
             }
@@ -258,11 +257,13 @@ uint8_t LightButton<N>::get_counter(uint8_t i)
 {
     return _Button[i].pressCounter;
 }
+
 template <uint8_t N>
 uint8_t LightButton<N>::get_defcounter(uint8_t i)
 {
     return _light[i].defStep;
 }
+
 template <uint8_t N>
 uint8_t LightButton<N>::get_maxcounter(uint8_t i)
 {
@@ -280,17 +281,19 @@ bool LightButton<N>::isPwm(uint8_t i)
 {
     return _light[i].PWMmode;
 }
+
 template <uint8_t N>
-void LightButton<N>::stopTimeout_cb(uint8_t reason, uint8_t i)
+void LightButton<N>::TurnOFF(uint8_t reason, uint8_t i)
 {
     _turnOFFlights(i);
     _Button[i].stopTimeout_cb(reason);
 }
 
 template <uint8_t N>
-void LightButton<N>::startTimeout_cb(int _TO, uint8_t reason, uint8_t i)
+void LightButton<N>::TurnON(int _TO, uint8_t reason, uint8_t step, uint8_t i)
 {
     _Button[i].startTimeout_cb(conv2Minute(_TO), reason);
+    _Button[i].pressCounter = step;
     _turnONlights(i);
 }
 
@@ -311,7 +314,7 @@ void LightButton<N>::powerOn_powerFailure(uint8_t i)
         else
         {
             Serial.println("C");
-            stopTimeout_cb(REBOOT, i);
+            TurnOFF(REBOOT, i);
         }
     }
     else
@@ -325,6 +328,7 @@ void LightButton<N>::Ext_setCounter(uint8_t i, uint8_t count)
 {
     _Button[i].pressCounter = count;
     _light[i].currentStep = count;
+    _light[i].turnON(count);
 }
 template <uint8_t N>
 void LightButton<N>::set_name(uint8_t i, const char *n)
@@ -352,14 +356,5 @@ void LightButton<N>::_turnOFFlights(uint8_t i)
         _light[i].turnOFF();
     }
 }
-
-// template <uint8_t N>
-// void LightButton<N>::_init_onAtBoot()
-// {
-//     if (OnatBoot)
-//     {
-//         startTimeout_cb(0, PWRON);
-//     }
-// }
 
 #endif

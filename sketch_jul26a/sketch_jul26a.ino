@@ -2,8 +2,6 @@
 #include <timeoutButton.h>
 #include "myIOT_settings.h"
 
-#define numSW 2
-
 void print_OPERstring(oper_string &str, uint8_t i)
 {
   Serial.print(" +++++++++ OPER_STRING START #");
@@ -27,6 +25,10 @@ void print_OPERstring(oper_string &str, uint8_t i)
   Serial.println("######### OPER_STRING END ###########");
 }
 
+const uint8_t LIGHT_PINS[] = {D5, D6, D7, D8};
+const uint8_t BUTTON_PINS[] = {D3, D4, D3, D4};
+const char *BUT_NAMES[] = {"L0", "L1", "L2", "L3"};
+
 template <uint8_t N>
 void LightButton<N>::sendMSG(oper_string &str, uint8_t i)
 {
@@ -36,61 +38,26 @@ void LightButton<N>::sendMSG(oper_string &str, uint8_t i)
 
 void start_LiButt()
 {
+  // Lightbut.define_button(0, 0, D3, LOW, 1, 10);
+  // Lightbut.define_light(0, D6, HIGH); /* IO light*/
+  // Lightbut.powerOn_powerFailure(0);
+  // Lightbut.set_name(0, "Light_0");
 
-  Lightbut.define_button(0, 0, D3, LOW, 1, 10);
-  // Lightbut.define_light(0, D6, HIGH, true, false, 2, 4, 90, 1023, D7);
-  Lightbut.define_light(0, D6, HIGH); /* IO light*/
-  Lightbut.powerOn_powerFailure(0);
-  Lightbut.set_name(0, "Light_0");
-
-  if (numSW > 1)
+  // if (numSW > 1)
+  // {
+  //   Lightbut.define_button(1 /* ID */, 0 /* Trig */, D5 /* io */, LOW, 1 /*def time min */, 10);
+  //   Lightbut.define_light(1, D7, HIGH, true /* PWM */, true /* Dim */, 2 /* def Power */, 4 /* Max power steps */, 90, 1023); /* Dimmable PWM*/
+  //   Lightbut.set_name(1, "LED_1");
+  //   Lightbut.powerOn_powerFailure(1);
+  // }
+  for (uint8_t n = 0; n < numSW; n++)
   {
-    Lightbut.define_button(1 /* ID */, 0 /* Trig */, D5 /* io */, LOW, 1 /*def time min */, 10);
-    Lightbut.define_light(1, D7, HIGH, true /* PWM */, true /* Dim */, 2 /* def Power */, 4 /* Max power steps */, 90, 1023); /* Dimmable PWM*/
-    Lightbut.set_name(1, "LED_1");
-    Lightbut.powerOn_powerFailure(1);
+    Lightbut.define_button(n, 0, BUTTON_PINS[n], LOW, 1, 10, false);
+    Lightbut.define_light(n, LIGHT_PINS[n], HIGH); /* IO light*/
+    Lightbut.powerOn_powerFailure(n);
+    Lightbut.set_name(n, BUT_NAMES[n]);
   }
 }
-
-// ~~~~~~~~~~~ External trigger (not physical button, but MQTT cmd) for timeout and light ~~~~~~~~~~~~~
-void Ext_trigger_ON(uint8_t reason, int TO, uint8_t step, uint8_t i)
-{
-  if (i < numSW)
-  {
-    Lightbut.Ext_setCounter(i, step);
-    Lightbut.startTimeout_cb(TO, reason, i);
-  }
-}
-void Ext_trigger_OFF(uint8_t reason, uint8_t i)
-{
-  if (i < numSW)
-  {
-    Lightbut.Ext_setCounter(i, 0);
-    Lightbut.stopTimeout_cb(reason, i);
-  }
-}
-void Ext_updatePWM_value(uint8_t reason, uint8_t step, uint8_t i)
-{
-  if (i < numSW)
-  {
-    if (Lightbut.getState(i) == true) /* if already ON */
-    {
-      Lightbut.Ext_setCounter(i, step);
-    }
-    else
-    {
-      Ext_trigger_ON(reason, 0, step, i); /* if Off, turn ON with desired PWM value */
-    }
-  }
-}
-void Ext_addTime(uint8_t reason, int timeAdd, uint8_t i)
-{
-  if (i < numSW)
-  {
-    Lightbut.addClock(conv2Minute(timeAdd), reason, i);
-  }
-}
-// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 void setup()
 {
@@ -102,9 +69,4 @@ void loop()
 {
   iot.looper();
   Lightbut.loop();
-  // if (Lightbut.remainClock() != 0)
-  // {
-  //   Serial.println(Lightbut.remainClock());
-  // }
-  //   delay(50);
 }

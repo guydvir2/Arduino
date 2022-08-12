@@ -1,10 +1,7 @@
-myIOT2 iot;
-LightButton<2> Lightbut;
+#define numSW 4
 
-extern void Ext_trigger_OFF(uint8_t reason, uint8_t i);
-extern void Ext_trigger_ON(uint8_t reason, int TO = 0, uint8_t step = 0, uint8_t i = 0);
-extern void Ext_updatePWM_value(uint8_t reason, uint8_t step, uint8_t i = 0);
-extern void Ext_addTime(uint8_t reason, int timeAdd, uint8_t i = 0);
+myIOT2 iot;
+LightButton<numSW> Lightbut;
 
 // ±±±±±±± Genereal pub topic ±±±±±±±±±
 const char *topicLog = "myHome/log";
@@ -22,50 +19,6 @@ const char *topicClient_state = "myHome/test/Client/State";
 
 const char *INPUT_ORG[5] = {"Timeout", "Button", "MQTT", "PowerON", "Resume Reboot"};
 
-void notifyAdd(int _add, uint8_t reason, uint8_t i)
-{
-    char a[100];
-    char clk1[25];
-    char clk2[25];
-    char clk3[25];
-    iot.convert_epoch2clock(_add, 0, clk1);
-    iot.convert_epoch2clock(Lightbut.get_timeout(i) + _add, 0, clk2);
-    iot.convert_epoch2clock(Lightbut.remainClock(i) + _add, 0, clk3);
-    sprintf(a, "%s: [%s] Added [%s] ,total [%s] remain [%s]", "INPUT_ORG[reason]", Lightbut.names[i], clk1, clk2, clk3);
-    iot.pub_msg(a);
-}
-void notifyOFF(uint8_t &reason, uint8_t i, int t)
-{
-    char a[100];
-    char clk[25];
-    unsigned int remtime = Lightbut.remainClock(i);
-    iot.convert_epoch2clock(t, 0, clk);
-    sprintf(a, "[%s]: [%s] Switched [Off] after [%s]", INPUT_ORG[reason], Lightbut.names[i], clk);
-    if (remtime > 1)
-    {
-        char b[50];
-        iot.convert_epoch2clock(remtime, 0, clk);
-        sprintf(b, " Remain [%s]", clk);
-        strcat(a, b);
-    }
-    iot.pub_msg(a);
-}
-void notifyON(uint8_t &reason, uint8_t i, int t)
-{
-    char a[100];
-    char b[50];
-    char clk[25];
-    iot.convert_epoch2clock(t, 0, clk);
-    sprintf(a, "%s: [%s] [On] for [%s]", INPUT_ORG[reason], Lightbut.names[i], clk);
-
-    if (Lightbut.isPwm(i))
-    {
-        sprintf(b, " Power [%d/d]", Lightbut.get_counter(i)); //, lightOutputV[i]->maxSteps);
-        strcat(a, b);
-    }
-
-    iot.pub_msg(a);
-}
 void notifyState(uint8_t &reason, uint8_t i, int t)
 {
     char a[100];
@@ -82,12 +35,12 @@ void notifyState(uint8_t &reason, uint8_t i, int t)
 
     iot.pub_msg(a);
 }
-void notifyUpdatePWM(uint8_t &step, uint8_t &reason, uint8_t i)
+void notifyUpdatePWM(uint8_t step, uint8_t reason, uint8_t i)
 {
     char b[50];
     if (Lightbut.isPwm(i) && Lightbut.getState(i))
     {
-        sprintf(b, "%s: [%s] Power update [%d/%d]", INPUT_ORG[reason], Lightbut.names[i], step, 3 /*lightOutputV[i]->maxSteps */);
+        sprintf(b, "%s: [%s] Power update [%d/%d]", INPUT_ORG[reason], Lightbut.names[i], step, Lightbut.get_maxcounter(i));
     }
     iot.pub_msg(b);
 }
@@ -149,7 +102,7 @@ void addiotnalMQTT(char *incoming_msg, char *_topic)
     }
     else
     {
-        if (iot.num_p > 1)
+        if (iot.num_p > 1 && atoi(iot.inline_param[0]) < numSW)
         {
             if (strcmp(iot.inline_param[1], "remain") == 0)
             {
@@ -159,36 +112,44 @@ void addiotnalMQTT(char *incoming_msg, char *_topic)
             {
                 if (Lightbut.getState(atoi(iot.inline_param[0])))
                 {
-                    Ext_trigger_OFF(2, atoi(iot.inline_param[0]));
+                    Lightbut.TurnOFF(2, atoi(iot.inline_param[0]));
                 }
             }
             else if (strcmp(iot.inline_param[1], "on") == 0)
             {
                 if (Lightbut.getState(atoi(iot.inline_param[0]))) /* turn off if it is ON */
                 {
-                    Ext_trigger_OFF(2, atoi(iot.inline_param[0]));
+                    Lightbut.TurnOFF(2, atoi(iot.inline_param[0]));
                 }
 
                 if (iot.num_p == 2)
                 {
-                    Ext_trigger_ON(2, 0, Lightbut.get_defcounter(atoi(iot.inline_param[0])), atoi(iot.inline_param[0])); /* Default Timeout & default PWM value*/
+                    Lightbut.TurnON(0, 2, Lightbut.get_defcounter(atoi(iot.inline_param[0])), atoi(iot.inline_param[0])); /* Default Timeout & default PWM value*/
                 }
                 else if (iot.num_p == 3)
                 {
-                    Ext_trigger_ON(2, atoi(iot.inline_param[2]), atoi(iot.inline_param[0])); /* define Timeout*/
+                    Lightbut.TurnON(atoi(iot.inline_param[2]), 2, Lightbut.get_defcounter(atoi(iot.inline_param[0])), atoi(iot.inline_param[0])); /* define Timeout*/
                 }
                 else if (iot.num_p == 4)
                 {
-                    Ext_trigger_ON(2, atoi(iot.inline_param[2]), atoi(iot.inline_param[3]), atoi(iot.inline_param[0])); /* define Timeout & PWM*/
+                    Lightbut.TurnON(atoi(iot.inline_param[2]), 2, atoi(iot.inline_param[3]), atoi(iot.inline_param[0])); /* define Timeout & PWM*/
                 }
             }
             else if (strcmp(iot.inline_param[1], "add") == 0)
             {
-                Ext_addTime(2, atoi(iot.inline_param[2]), atoi(iot.inline_param[0]));
+                Lightbut.addClock(conv2Minute(atoi(iot.inline_param[2])), 2, atoi(iot.inline_param[0]));
             }
             else if (strcmp(iot.inline_param[1], "updatePWM") == 0)
             {
-                Ext_updatePWM_value(2, atoi(iot.inline_param[2]), atoi(iot.inline_param[0]));
+                if (Lightbut.getState(atoi(iot.inline_param[0])) == true) /* if already ON */
+                {
+                    Lightbut.Ext_setCounter(atoi(iot.inline_param[0]), atoi(iot.inline_param[2]));
+                    notifyUpdatePWM(atoi(iot.inline_param[2]), 2, atoi(iot.inline_param[0]));
+                }
+                else
+                {
+                    Lightbut.TurnON(0, 2, atoi(iot.inline_param[2]), atoi(iot.inline_param[0]));
+                }
             }
         }
     }
