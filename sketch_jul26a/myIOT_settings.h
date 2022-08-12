@@ -171,7 +171,7 @@ void addiotnalMQTT(char *incoming_msg, char *_topic)
 
                 if (iot.num_p == 2)
                 {
-                    Ext_trigger_ON(2, 0, 0, atoi(iot.inline_param[0])); /* Default Timeout & default PWM value*/
+                    Ext_trigger_ON(2, 0, Lightbut.get_defcounter(atoi(iot.inline_param[0])), atoi(iot.inline_param[0])); /* Default Timeout & default PWM value*/
                 }
                 else if (iot.num_p == 3)
                 {

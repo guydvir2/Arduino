@@ -15,7 +15,7 @@
 #define LITFS LittleFS
 #endif
 
-#define conv2Minute(t) t * 6
+#define conv2Minute(t) t * 60
 struct oper_string
 {
     bool state;     /* On or Off */
@@ -106,8 +106,8 @@ template <uint8_t N>
 class LightButton
 {
 private:
-    timeoutButton _Button[N];
     TurnOnLights _light[N];
+    timeoutButton _Button[N];
 
 private:
     void _init_onAtBoot(uint8_t i);
@@ -125,6 +125,7 @@ public:
     void set_name(uint8_t i, const char *n);
     uint8_t get_counter(uint8_t i);
     uint8_t get_maxcounter(uint8_t i);
+    uint8_t get_defcounter(uint8_t i);
     void powerOn_powerFailure(uint8_t i);
     void sendMSG(oper_string &str, uint8_t i);
     void define_button(uint8_t i, uint8_t trig, uint8_t pin, bool inputPressed = LOW, int defMinutes = 120, int maxMinutes = 360, bool useButton = true);
@@ -206,19 +207,18 @@ void LightButton<N>::_newActivity_handler(uint8_t i)
                 _turnOFFlights(i);
                 _Button[N].stopTimeout_cb(BUTTON);
             }
-            sendMSG(_Button[i].OPERstring, i);
         }
         else
         {
             _turnONlights(i);
-            sendMSG(_Button[i].OPERstring, i);
         }
     }
     else
     {
-        sendMSG(_Button[i].OPERstring, i);
         _turnOFFlights(i);
     }
+    sendMSG(_Button[i].OPERstring, i);
+
     _Button[i].newMSG = false;
 }
 
@@ -259,6 +259,11 @@ uint8_t LightButton<N>::get_counter(uint8_t i)
     return _Button[i].pressCounter;
 }
 template <uint8_t N>
+uint8_t LightButton<N>::get_defcounter(uint8_t i)
+{
+    return _light[i].defStep;
+}
+template <uint8_t N>
 uint8_t LightButton<N>::get_maxcounter(uint8_t i)
 {
     return _light[i].maxSteps;
@@ -278,6 +283,7 @@ bool LightButton<N>::isPwm(uint8_t i)
 template <uint8_t N>
 void LightButton<N>::stopTimeout_cb(uint8_t reason, uint8_t i)
 {
+    _turnOFFlights(i);
     _Button[i].stopTimeout_cb(reason);
 }
 
@@ -285,6 +291,7 @@ template <uint8_t N>
 void LightButton<N>::startTimeout_cb(int _TO, uint8_t reason, uint8_t i)
 {
     _Button[i].startTimeout_cb(conv2Minute(_TO), reason);
+    _turnONlights(i);
 }
 
 template <uint8_t N>
@@ -328,7 +335,13 @@ void LightButton<N>::set_name(uint8_t i, const char *n)
 template <uint8_t N>
 void LightButton<N>::_turnONlights(uint8_t i)
 {
+    if (_Button[i].pressCounter == 0)
+    {
+        _Button[i].pressCounter = get_defcounter(i);
+    }
     _light[i].turnON(_Button[i].pressCounter);
+    _Button[i].OPERstring.step = _Button[i].pressCounter;
+    _Button[i].save_OperStr(_Button[i].OPERstring);
 }
 
 template <uint8_t N>
