@@ -87,8 +87,25 @@ void addiotnalMQTT(char *incoming_msg, char *_topic)
     char msg[150];
     if (strcmp(incoming_msg, "status") == 0)
     {
-        sprintf(msg, "BOOOOO");
-        iot.pub_msg(msg);
+        for (uint8_t i = 0; i < numSW; i++)
+        {
+            sprintf(msg, "[Status]: [%s] [%s]", Lightbut.names[i], Lightbut.getState(i) ? "On" : "Off");
+            if (Lightbut.getState(i))
+            {
+                char t2[100];
+                char s1[20];
+                char s2[10];
+                int _rem = Lightbut.remainClock(i);
+                iot.convert_epoch2clock(_rem, 0, s1);
+                if (Lightbut.isPwm(i))
+                {
+                    sprintf(s2, "%d/%d", Lightbut.get_counter(i), Lightbut.get_maxcounter(i));
+                }
+                sprintf(t2, " Remain: [%s] PWM[%s]", s1, Lightbut.isPwm(i) ? s2 : "NO");
+                strcat(msg, t2);
+            }
+            iot.pub_msg(msg);
+        }
     }
     else if (strcmp(incoming_msg, "help2") == 0)
     {
@@ -143,7 +160,7 @@ void addiotnalMQTT(char *incoming_msg, char *_topic)
             {
                 if (Lightbut.getState(atoi(iot.inline_param[0])) == true) /* if already ON */
                 {
-                    Lightbut.Ext_setCounter(atoi(iot.inline_param[0]), atoi(iot.inline_param[2]));
+                    Lightbut.set_PWM(atoi(iot.inline_param[0]), atoi(iot.inline_param[2]));
                     notifyUpdatePWM(atoi(iot.inline_param[2]), 2, atoi(iot.inline_param[0]));
                 }
                 else

@@ -137,7 +137,7 @@ public:
     int get_timeout(uint8_t i);
     unsigned int remainClock(uint8_t i);
     void addClock(int _add, uint8_t reason, uint8_t i);
-    void Ext_setCounter(uint8_t i, uint8_t count);
+    void set_PWM(uint8_t i, uint8_t count);
     void TurnOFF(uint8_t reason, uint8_t i);
     void TurnON(int _TO, uint8_t reason, uint8_t step, uint8_t i);
 };
@@ -309,7 +309,6 @@ template <uint8_t N>
 void LightButton<N>::TurnOFF(uint8_t reason, uint8_t i)
 {
     _Button[i].stopTimeout_cb(reason);
-    // _turnOFFlights(i);
 }
 
 template <uint8_t N>
@@ -326,32 +325,26 @@ void LightButton<N>::powerOn_powerFailure(uint8_t i)
 
     if (_Button[i].OPERstring.state == true)
     {
-        Serial.println("A");
         if (_Button[i].OPERstring.offtime > time(nullptr))
         {
-            Serial.println("B");
             _Button[i].startTimeout_cb(_Button[i].OPERstring.offtime - time(nullptr), REBOOT);
-            _Button[i].print_OPERstring(_Button[i].OPERstring);
+            // _Button[i].print_OPERstring(_Button[i].OPERstring);
         }
         else
         {
-            Serial.println("C");
             TurnOFF(REBOOT, i);
         }
-    }
-    else
-    {
-        Serial.println("D");
     }
 }
 
 template <uint8_t N>
-void LightButton<N>::Ext_setCounter(uint8_t i, uint8_t count)
+void LightButton<N>::set_PWM(uint8_t i, uint8_t count)
 {
     _Button[i].pressCounter = count;
     _light[i].currentStep = count;
     _light[i].turnON(count);
 }
+
 template <uint8_t N>
 void LightButton<N>::set_name(uint8_t i, const char *n)
 {

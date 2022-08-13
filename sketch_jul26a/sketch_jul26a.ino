@@ -36,6 +36,22 @@ void LightButton<N>::sendMSG(oper_string &str, uint8_t i)
   notifyState(str.reason, i, str.offtime - str.ontime);
 }
 
+uint8_t input_pins[numSW];
+uint8_t output_pins[numSW];
+uint8_t trig_type[numSW];
+bool isON[numSW];
+bool isPressed[numSW];
+int defTime[numSW];
+int maxTime[numSW];
+bool usePWM[numSW];
+bool isDimm[numSW];
+bool useInput[numSW];
+bool useOnAtBoot[numSW];
+bool usePowerRecovery[numSW];
+uint8_t defPWMstep[numSW];
+uint8_t maxPWMstep[numSW];
+uint8_t degPWM[numSW];
+
 void start_LiButt()
 {
   Lightbut.define_button(0, 0, D3, LOW, 1, 10);
