@@ -1,12 +1,22 @@
 #include <myIOT2.h>
 #include <timeoutButton.h>
+
+#define numSW 2
+
+myIOT2 iot;
+LightButton<numSW> Lightbut;
+
+uint8_t NUM_SWITCHES;
+
+#include "myIOT_flashParametrs.h"
 #include "myIOT_settings.h"
+
 
 void print_OPERstring(oper_string &str, uint8_t i)
 {
-  Serial.print(" +++++++++ OPER_STRING START #");
+  Serial.print(" +++++++++ OUTPUT OPER_STRING START #");
   Serial.print(i);
-  Serial.println(" +++++++++");
+  Serial.println(" ++++++++++++");
 
   Serial.print("state:\t\t\t");
   Serial.println(str.state);
@@ -25,10 +35,6 @@ void print_OPERstring(oper_string &str, uint8_t i)
   Serial.println("######### OPER_STRING END ###########");
 }
 
-const uint8_t LIGHT_PINS[] = {D5, D6, D7, D8};
-const uint8_t BUTTON_PINS[] = {D3, D4, D3, D4};
-const char *BUT_NAMES[] = {"L0", "L1", "L2", "L3"};
-
 template <uint8_t N>
 void LightButton<N>::sendMSG(oper_string &str, uint8_t i)
 {
@@ -36,49 +42,21 @@ void LightButton<N>::sendMSG(oper_string &str, uint8_t i)
   notifyState(str.reason, i, str.offtime - str.ontime);
 }
 
-uint8_t input_pins[numSW];
-uint8_t output_pins[numSW];
-uint8_t trig_type[numSW];
-bool isON[numSW];
-bool isPressed[numSW];
-int defTime[numSW];
-int maxTime[numSW];
-bool usePWM[numSW];
-bool isDimm[numSW];
-bool useInput[numSW];
-bool useOnAtBoot[numSW];
-bool usePowerRecovery[numSW];
-uint8_t defPWMstep[numSW];
-uint8_t maxPWMstep[numSW];
-uint8_t degPWM[numSW];
-
-void start_LiButt()
+void init_LightButton(JsonDocument &DOC)
 {
-  Lightbut.define_button(0, 0, D3, LOW, 1, 10);
-  Lightbut.define_light(0, D6, HIGH); /* IO light*/
-  Lightbut.powerOn_powerFailure(0);
-  Lightbut.set_name(0, "Light_0");
-
-  if (numSW > 1)
+  NUM_SWITCHES = DOC["numSW"];
+  for (uint8_t n = 0; n < NUM_SWITCHES; n++)
   {
-    Lightbut.define_button(1 /* ID */, 0 /* Trig */, D5 /* io */, LOW, 1 /*def time min */, 10);
-    Lightbut.define_light(1, D7, HIGH, true /* PWM */, true /* Dim */, 2 /* def Power */, 4 /* Max power steps */, 90, 1023); /* Dimmable PWM*/
-    Lightbut.set_name(1, "LED_1");
-    Lightbut.powerOn_powerFailure(1);
+    Lightbut.define_button(n, DOC["trig_type"][n], DOC["input_pins"][n], DOC["isPressed"][n], DOC["defTime"][n], DOC["maxTime"][n], DOC["useInput"][n]);
+    Lightbut.define_light(n, DOC["output_pins"][n], DOC["isON"][n], DOC["usePWM"][n], DOC["isDimm"][n], DOC["defPWMstep"][n], DOC["maxPWMstep"][n], DOC["degPWM"][n], 1023, DOC["indic_pins"][n]);
+    Lightbut.powerOn_powerFailure(DOC["usePowerRecovery"][n]);
+    Lightbut.set_name(n, DOC["nick"][n].as<const char *>());
   }
-  // for (uint8_t n = 0; n < numSW; n++)
-  // {
-  //   Lightbut.define_button(n, 0, BUTTON_PINS[n], LOW, 1, 10, false);
-  //   Lightbut.define_light(n, LIGHT_PINS[n], HIGH); /* IO light*/
-  //   Lightbut.powerOn_powerFailure(n);
-  //   Lightbut.set_name(n, BUT_NAMES[n]);
-  // }
 }
 
 void setup()
 {
   startIOTservices();
-  start_LiButt();
 }
 
 void loop()

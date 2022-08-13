@@ -1,0 +1,76 @@
+{
+    "useInput": [
+        true,
+        true
+    ],
+    "useOnAtBoot": [
+        false,
+        false
+    ],
+    "usePowerRecovery": [
+        true,
+        true
+    ],
+    "useIndicFlag": [
+        false,
+        false
+    ],
+    "defPWMstep": [ 
+        2,
+        2
+    ],
+    "input_pins": [
+        12,
+        13
+    ],
+    "output_pins": [
+        14,
+        0
+    ],
+    "indic_pins": [
+        255,
+        255
+    ],
+    "trig_type": [
+        0,
+        1
+    ],
+    "isON": [
+        true,
+        true
+    ],
+    "isPressed": [
+        false,
+        false
+    ],
+    "defTime": [
+        120,
+        120
+    ],
+    "maxTime": [
+        600,
+        600
+    ],
+    "usePWM": [
+        false,
+        true
+    ],
+    "isDimm": [
+        false,
+        true
+    ],
+    "maxPWMstep": [
+        4,
+        4
+    ],
+    "degPWM": [
+        80,
+        80
+    ],
+    "nick": [
+        "light0",
+        "light1"
+    ],
+    "numSW": 2,
+    "pFile_ver": 0.1
+}

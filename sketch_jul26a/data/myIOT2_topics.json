@@ -1,0 +1,18 @@
+{
+    "pub_gen_topics": [
+        "myHome/Messages",
+        "myHome/log",
+        "myHome/debug"
+    ],
+    "pub_topics": [
+        "myHome/Light/test/Avail",
+        "myHome/Light/test/State",
+        "myHome/Light/test/cmd"
+    ],
+    "sub_topics": [
+        "myHome/Light/test",
+        "myHome/Windows",
+        "myHome/alarmMonitor"
+    ],
+    "ver": 0.1
+}
