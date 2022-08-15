@@ -99,7 +99,7 @@ public:
     void startTimeout_cb(int _TO, uint8_t reason);
 
     void save_OperStr(oper_string &str);
-    void read_OperStr(oper_string &str);
+    bool read_OperStr(oper_string &str);
     void print_OPERstring(oper_string &str);
 };
 
@@ -321,18 +321,18 @@ void LightButton<N>::TurnON(int _TO, uint8_t reason, uint8_t step, uint8_t i)
 template <uint8_t N>
 void LightButton<N>::powerOn_powerFailure(uint8_t i)
 {
-    _Button[i].read_OperStr(_Button[i].OPERstring);
-
-    if (_Button[i].OPERstring.state == true)
+    if (_Button[i].read_OperStr(_Button[i].OPERstring))
     {
-        if (_Button[i].OPERstring.offtime > time(nullptr))
+        if (_Button[i].OPERstring.state == true)
         {
-            _Button[i].startTimeout_cb(_Button[i].OPERstring.offtime - time(nullptr), REBOOT);
-            // _Button[i].print_OPERstring(_Button[i].OPERstring);
-        }
-        else
-        {
-            TurnOFF(REBOOT, i);
+            if (_Button[i].OPERstring.offtime > time(nullptr))
+            {
+                _Button[i].startTimeout_cb(_Button[i].OPERstring.offtime - time(nullptr), REBOOT);
+            }
+            else
+            {
+                TurnOFF(REBOOT, i);
+            }
         }
     }
 }

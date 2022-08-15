@@ -1,106 +1,72 @@
 {
     "useInput": [
         true,
-        true,
-        true,
         true
     ],
     "useOnAtBoot": [
         false,
-        false,
-        false,
         false
     ],
     "usePowerRecovery": [
-        false,
-        false,
-        false,
-        false
+        true,
+        true
     ],
     "defPWMstep": [ 
-        2,
-        2,
         2,
         2
     ],
     "input_pins": [
-        19,
-        17,
-        16,
-        5
+        0,
+        2
     ],
     "output_pins": [
-        25,
-        26,
-        33,
-        32
+        12,
+        13
     ],
     "indic_pins": [
-        255,
-        255,
         255,
         255
     ],
     "trig_type": [
         0,
-        0,
-        0,
         0
     ],
     "isON": [
-        true,
-        true,
         true,
         true
     ],
     "isPressed": [
         false,
-        false,
-        false,
         false
     ],
     "defTime": [
         120,
-        90,
-        60,
-        30
+        90
     ],
     "maxTime": [
-        600,
-        600,
         600,
         600
     ],
     "usePWM": [
         false,
-        false,
-        false,
         false
     ],
     "isDimm": [
         false,
-        false,
-        false,
-        false
+        true
     ],
     "maxPWMstep": [
-        4,
-        4,
         4,
         4
     ],
     "degPWM": [
         80,
-        80,
-        80,
         80
     ],
     "nick": [
-        "relay0",
-        "relay1",
-        "relay2",
-        "relay3"
+        "light0",
+        "light1"
     ],
-    "numSW": 4,
+    "numSW": 2,
     "pFile_ver": 0.1
 }

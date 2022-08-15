@@ -232,9 +232,18 @@ void timeoutButton::save_OperStr(oper_string &str)
   _file.write((byte *)&str, sizeof(str));
   _file.close();
 }
-void timeoutButton::read_OperStr(oper_string &str)
+bool timeoutButton::read_OperStr(oper_string &str)
 {
   File _file = LITFS.open(_operfile, "r");
-  _file.read((byte *)&str, sizeof(str));
-  _file.close();
+  if (!_file)
+  {
+    _file.close();
+    return 0;
+  }
+  else
+  {
+    _file.read((byte *)&str, sizeof(str));
+    _file.close();
+    return 1;
+  }
 }

@@ -13,6 +13,7 @@ void TurnOnLights::init(uint8_t pin, int res, bool usedim) /* PWM */
     analogWriteRange(PWMres);
 #endif
     pinMode(Pin, OUTPUT);
+    turnOFF();
 }
 void TurnOnLights::init(uint8_t pin, bool _isON) /* GPIO */
 {
@@ -124,8 +125,10 @@ bool TurnOnLights::_setPWM(int val)
         }
         else
         {
+#if (ESP8266)
             analogWrite(Pin, (val * limitPWM) / 100);
             PWMval = val;
+#endif
         }
         return 1;
     }
@@ -142,7 +145,9 @@ void TurnOnLights::_Dim2Value(int val)
     while (abs(val - PWMval) >= abs(PWMstep_change))
     {
         PWMval += PWMstep_change;
+#if (ESP8266)
         analogWrite(Pin, (PWMval * limitPWM) / 100);
+#endif
         delayMicroseconds(dimDelay * 5);
     }
 }

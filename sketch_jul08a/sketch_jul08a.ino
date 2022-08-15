@@ -1,26 +1,35 @@
-char topic_sub[3][40];
-
-void func(static int i, char _array[i], const char* msg) {
-
-  //    sprintf(_array, msg);
-  //  _array = 'a';.
-}
-
+uint8_t input_pins[4] = {19, 17, 5, 4};
+uint8_t output_pins[4] = {25, 26, 33, 32};
 
 void setup()
 {
   Serial.begin(115200);
   Serial.println("\nStart");
 
-  sprintf(topic_sub[0], "GUY_DVIR");
-  sprintf(topic_sub[1], "OZ_DVIR");
-  sprintf(topic_sub[2], "OR_DVIR");
+  for (uint8_t i = 0; i < 4; i++)
+  {
+    pinMode(output_pins[i], OUTPUT);
+    digitalWrite(output_pins[i], LOW);
+    delay(100);
+    digitalWrite(output_pins[i], HIGH);
+    delay(1000);
+    digitalWrite(output_pins[i], LOW);
+    delay(1000);
+  }
 
-  func(topic_sub[0], "GUY");
-  Serial.println(topic_sub[0]);
-
+  for (uint8_t i = 0; i < 4; i++)
+  {
+    pinMode(input_pins[i], INPUT_PULLUP);
+  }
 }
 
 void loop()
 {
+  //    for (uint8_t i = 0; i < 4; i++)
+  // {
+  char a[20];
+  sprintf(a, "%d;%d;%d;%d", digitalRead(input_pins[0]), digitalRead(input_pins[1]), digitalRead(input_pins[2]), digitalRead(input_pins[3]));
+  Serial.println(a);
+  delay(500);
+  // }
 }

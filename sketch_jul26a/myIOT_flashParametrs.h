@@ -2,7 +2,7 @@ extern myIOT2 iot;
 extern void init_LightButton(JsonDocument &DOC);
 
 #define MAX_TOPIC_SIZE 40  // <----- Verfy max Topic size
-#define JSON_FILESIZE 1250 // <----- Verfy Json size
+#define JSON_FILESIZE 600*numSW // <----- Verfy Json size
 
 char *parameterFiles[3] = {"/myIOT_param.json", "/myIOT2_topics.json", "/sketch_param.json"}; // <----- Verfy file names
 

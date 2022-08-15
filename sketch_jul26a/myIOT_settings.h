@@ -53,9 +53,9 @@ void addiotnalMQTT(char *incoming_msg, char *_topic)
                 iot.convert_epoch2clock(_rem, 0, s1);
                 if (Lightbut.isPwm(i))
                 {
-                    sprintf(s2, "%d/%d", Lightbut.get_counter(i), Lightbut.get_maxcounter(i));
+                    sprintf(s2, " Power[%d/%d]", Lightbut.get_counter(i), Lightbut.get_maxcounter(i));
                 }
-                sprintf(t2, " Remain: [%s] PWM[%s]", s1, Lightbut.isPwm(i) ? s2 : "NO");
+                sprintf(t2, " Remain: [%s]", s1, Lightbut.isPwm(i) ? s2 : "");
                 strcat(msg, t2);
             }
             iot.pub_msg(msg);

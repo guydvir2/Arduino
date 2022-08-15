@@ -12,10 +12,10 @@
         false
     ],
     "usePowerRecovery": [
-        false,
-        false,
-        false,
-        false
+        true,
+        true,
+        true,
+        true
     ],
     "defPWMstep": [ 
         2,
@@ -24,16 +24,12 @@
         2
     ],
     "input_pins": [
-        19,
-        17,
-        16,
-        5
+        34,
+        35
     ],
     "output_pins": [
         25,
-        26,
-        33,
-        32
+        26
     ],
     "indic_pins": [
         255,
@@ -62,8 +58,8 @@
     "defTime": [
         120,
         90,
-        60,
-        30
+        120,
+        90
     ],
     "maxTime": [
         600,
@@ -79,9 +75,9 @@
     ],
     "isDimm": [
         false,
+        true,
         false,
-        false,
-        false
+        true
     ],
     "maxPWMstep": [
         4,
