@@ -57,7 +57,6 @@ void timeoutButton::startTimeout_cb(int _TO, uint8_t reason)
     OPERstring.offtime = OPERstring.ontime + timeout;
 
     save_OperStr(OPERstring);
-    // newMSG = true;
     flag2ON = true;
   }
 }
@@ -74,7 +73,6 @@ void timeoutButton::stopTimeout_cb(uint8_t reason)
     // OPERstring.ontime = time(nullptr);
     OPERstring.offtime = time(nullptr);
     save_OperStr(OPERstring);
-    // newMSG = true;
     flag2OFF = true;
   }
 }

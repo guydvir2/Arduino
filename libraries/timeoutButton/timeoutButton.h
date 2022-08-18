@@ -308,12 +308,23 @@ bool LightButton<N>::isPwm(uint8_t i)
 template <uint8_t N>
 void LightButton<N>::TurnOFF(uint8_t reason, uint8_t i)
 {
-    _Button[i].stopTimeout_cb(reason);
+    if (_Button[i].getState() && _light[i].is_ON()) /* When Light and timer works together */
+    {
+        _Button[i].stopTimeout_cb(reason);
+    }
+    else if (!_Button[i].getState() && _light[i].is_ON()) /* in case that Light is on and timer is not running */
+    {
+        _light[i].turnOFF();
+    }
 }
 
 template <uint8_t N>
 void LightButton<N>::TurnON(int _TO, uint8_t reason, uint8_t step, uint8_t i)
 {
+    if (_Button[i].getState() || !_light[i].is_ON())
+    {
+        TurnOFF(reason, i);
+    }
     _Button[i].pressCounter = step;
     _Button[i].startTimeout_cb(conv2Minute(_TO), reason);
 }

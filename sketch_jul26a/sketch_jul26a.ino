@@ -1,7 +1,7 @@
 #include <myIOT2.h>
 #include <timeoutButton.h>
 
-#define numSW 8
+#define numSW 4
 
 myIOT2 iot;
 LightButton<numSW> Lightbut;
@@ -80,6 +80,31 @@ void setup()
 }
 void loop()
 {
+  static unsigned long lastentry = 0;
+  static bool s = 0;
+  static int m = 0;
+  const char *x[2] = {"on", "off"};
+
+  int _delay_ = 500;
+  if (millis() - lastentry > _delay_)
+  {
+
+    char a[40];
+    sprintf(a, "%d,%s", m, x[s]);
+    iot.pub_noTopic(a, "myHome/Light/test");
+
+    if (m == 3)
+    {
+      m = 0;
+      s = !s;
+    }
+    else
+    {
+      m++;
+    }
+    lastentry = millis();
+  }
+
   iot.looper();
   Lightbut.loop();
 }
