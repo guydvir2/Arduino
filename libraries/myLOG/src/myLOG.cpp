@@ -30,6 +30,7 @@ void flashLOG::looper(uint8_t savePeriod)
     if (_delayed_save(savePeriod))
     {
         _write2file();
+        Serial.println("SAVED LOG");
     }
 }
 void flashLOG::write(const char *message, bool NOW)

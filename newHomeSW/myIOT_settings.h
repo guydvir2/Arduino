@@ -1,5 +1,8 @@
 myIOT2 iot;
 
+extern void _turnON_cb(uint8_t i, uint8_t type);
+extern void _turnOFF_cb(uint8_t i, uint8_t type);
+
 // ±±±±±±± Genereal pub topic ±±±±±±±±±
 const char *topicLog = "myHome/log";
 const char *topicDebug = "myHome/debug";
@@ -14,6 +17,15 @@ const char *topicAll = "myHome/All";
 const char *topicClient_avail = "myHome/test/Client/Avail";
 const char *topicClient_state = "myHome/test/Client/State";
 
+// void add_state_topics
+void updateState(uint8_t i, bool state)
+{
+    char t[60];
+    char r[5];
+    sprintf(t, "%s%d", topicClient_state, i);
+    sprintf(r, "%d", state);
+    iot.pub_noTopic(r, t, true);
+}
 void updateTopics_local()
 {
     iot.topics_gen_pub[0] = topicmsg;
@@ -27,10 +39,11 @@ void updateTopics_local()
     iot.topics_sub[1] = topicAll;
     iot.topics_sub[2] = topicSub1;
 }
-void update_Parameters_local(){
+void update_Parameters_local()
+{
     iot.useWDT = true;
     iot.useOTA = true;
-    iot.useSerial = false;
+    iot.useSerial = true;
     iot.useResetKeeper = false;
     iot.useDebug = true;
     iot.debug_level = 0;
@@ -40,12 +53,20 @@ void update_Parameters_local(){
     iot.useBootClockLog = true;
     iot.ignore_boot_msg = false;
 }
+
 void addiotnalMQTT(char *incoming_msg, char *_topic)
 {
     char msg[150];
+
     if (strcmp(incoming_msg, "status") == 0)
     {
-        sprintf(msg, "BOOOOO");
+        char b[30];
+        sprintf(msg, "[Status]:");
+        for (uint8_t i = 0; i < numSW; i++)
+        {
+            sprintf(b, " [%s] is [%s]%s", ButtonNames[i], digitalRead(relayPins[i]) ? "ON" : "OFF", i == numSW - 1 ? "" : ";");
+            strcat(msg, b);
+        }
         iot.pub_msg(msg);
     }
     else if (strcmp(incoming_msg, "help2") == 0)
@@ -57,6 +78,21 @@ void addiotnalMQTT(char *incoming_msg, char *_topic)
     {
         sprintf(msg, "ver #2:");
         iot.pub_msg(msg);
+    }
+    else
+    {
+        uint8_t i = atoi(iot.inline_param[0]);
+        if (iot.num_p > 1 && atoi(iot.inline_param[0]) < numSW)
+        {
+            if (strcmp(iot.inline_param[1], "off") == 0)
+            {
+                _turnOFF_cb(i, MQTT);
+            }
+            else if (strcmp(iot.inline_param[1], "on") == 0)
+            {
+                _turnON_cb(i, MQTT);
+            }
+        }
     }
 }
 void startIOTservices()
