@@ -5,18 +5,18 @@ timeoutButton::timeoutButton() : chrono(Chrono::SECONDS)
 {
   _stopClock();
 }
-void timeoutButton::begin(uint8_t id)
+void timeoutButton::begin(uint8_t id, bool useSave, bool useTO)
 {
   _useInput = false;
-  _commonBegin(id);
+  _commonBegin(id, useSave, useTO);
 }
-void timeoutButton::begin(uint8_t pin, uint8_t trigType, uint8_t id)
+void timeoutButton::begin(uint8_t pin, uint8_t trigType, uint8_t id, bool useSave, bool useTO)
 {
   _useInput = true;
   Inpin = pin;
   trigTYPE = trigType;
 
-  _commonBegin(id);
+  _commonBegin(id, useSave, useTO);
   _init_button();
 }
 void timeoutButton::loop()
@@ -26,60 +26,71 @@ void timeoutButton::loop()
 }
 bool timeoutButton::getState()
 {
-  return chrono.isRunning();
-}
-void timeoutButton::addClock(int _add, uint8_t reason)
-{
-  timeout += _add;
-
-  if (!chrono.isRunning()) /* Case not ON */
+  if (_useTimeout)
   {
-    startTimeout_cb(timeout, reason);
+    return chrono.isRunning();
   }
   else
   {
-    OPERstring.offtime = OPERstring.ontime + timeout;
-    save_OperStr(OPERstring);
-    // newMSG = true;
+    return _isButtonPressed;
   }
 }
-void timeoutButton::startTimeout_cb(int _TO, uint8_t reason)
+bool timeoutButton::get_useSave()
 {
-  if (!chrono.isRunning()) /* Enter when off or at PWM different PWM value */
+  return _useSave;
+}
+bool timeoutButton::get_useTimeout()
+{
+  return _useTimeout;
+}
+bool timeoutButton::get_useInput()
+{
+  return _useInput;
+}
+void timeoutButton::addClock(int _add, uint8_t reason)
+{
+  // use timeout ?
+  timeout += _add;
+
+  if (!getState()) /* Case not ON */
+  {
+    Button_pressON(timeout, reason);
+  }
+  else
+  {
+    updateOperStr(OPERstring, true, reason, OPERstring.step, OPERstring.ontime, OPERstring.ontime + timeout);
+    /* Add message ?*/
+  }
+}
+void timeoutButton::Button_pressON(int _TO, uint8_t reason)
+{
+  if (!getState()) /* Enter when off or at PWM different PWM value */
   {
     _TO == 0 ? timeout = defaultTimeout : timeout = _TO;
     _startClock();
 
-    OPERstring.state = true;
-    OPERstring.reason = reason;
-    OPERstring.step = pressCounter;
-    OPERstring.ontime = time(nullptr);
-    OPERstring.offtime = OPERstring.ontime + timeout;
-
-    save_OperStr(OPERstring);
+    updateOperStr(OPERstring, true, reason, pressCounter, time(nullptr), time(nullptr) + timeout);
     flag2ON = true;
+    _isButtonPressed = true;
   }
 }
-void timeoutButton::stopTimeout_cb(uint8_t reason)
+void timeoutButton::Button_pressOFF(uint8_t reason)
 {
-  if (chrono.isRunning())
+  if (getState())
   {
     _stopClock();
     pressCounter = 0;
-
-    OPERstring.state = false;
-    OPERstring.reason = reason;
-    OPERstring.step = pressCounter;
-    // OPERstring.ontime = time(nullptr);
-    OPERstring.offtime = time(nullptr);
-    save_OperStr(OPERstring);
+    updateOperStr(OPERstring, false, reason, pressCounter, OPERstring.ontime, time(nullptr));
     flag2OFF = true;
+    _isButtonPressed = false;
   }
 }
 
-void timeoutButton::_commonBegin(uint8_t id)
+void timeoutButton::_commonBegin(uint8_t id, bool useSave, bool useTO)
 {
   Id = id;
+  _useSave = useSave;
+  _useTimeout = useTO;
   sprintf(_operfile, "/opfile%d.txt", Id);
   _init_chrono();
 }
@@ -111,28 +122,28 @@ void timeoutButton::_init_button()
 }
 void timeoutButton::_ON_OFF_on_handle(Button2 &b)
 {
-  startTimeout_cb(timeout, BUTTON);
+  Button_pressON(timeout, BUTTON);
 }
 void timeoutButton::_ON_OFF_off_handle(Button2 &b)
 {
-  stopTimeout_cb(BUTTON);
+  Button_pressOFF(BUTTON);
 }
 void timeoutButton::_Momentary_handle(Button2 &b)
 {
-  chrono.isRunning() ? stopTimeout_cb(BUTTON) : startTimeout_cb(timeout, BUTTON);
+  getState() ? Button_pressOFF(BUTTON) : Button_pressON(timeout, BUTTON);
 }
 void timeoutButton::_TrigSensor_handler(Button2 &b)
 {
-  const uint8_t update_timeout = 5; // must have passed this amount of seconds to updates timeout
+  const uint8_t update_timeout = 5; // must have passed this amount of seconds to restart timeout
   unsigned int _remaintime = remainClock();
 
   if (_remaintime == 0)
   {
-    startTimeout_cb(timeout, BUTTON);
+    Button_pressON(timeout, BUTTON); /* First detection turns ON */
   }
   else
   {
-    if (timeout - _remaintime > update_timeout)
+    if (timeout - _remaintime > update_timeout) /* NOT DEFINED RIGHT. CHECK LATER */
     {
       _startClock(); /* Restart timeout after 30 sec */
     }
@@ -145,20 +156,18 @@ void timeoutButton::_MultiPress_handler(Button2 &b)
     pressCounter++;
     if (pressCounter == 1)
     {
-      startTimeout_cb(0, BUTTON); /* First step - turn on the light */
+      Button_pressON(0, BUTTON); /* First step - turn on the light */
     }
     else
     {
-      OPERstring.step = pressCounter;
-      save_OperStr(OPERstring);
-      flag2ON = true;
-      // newMSG = true; /* Increase lihgt intersity */
+      /* Press update */
+      updateOperStr(OPERstring, true, OPERstring.reason, pressCounter, OPERstring.ontime, OPERstring.offtime);
+      flag2ON = true; /* notify the update */
     }
   }
   else
   {
-    pressCounter = 0;
-    stopTimeout_cb(BUTTON);
+    Button_pressOFF(BUTTON);
   }
   _lastPress = millis();
 }
@@ -185,7 +194,7 @@ void timeoutButton::_startClock()
 }
 unsigned int timeoutButton::remainClock()
 {
-  if (chrono.isRunning())
+  if (getState())
   {
     return timeout - chrono.elapsed();
   }
@@ -196,9 +205,9 @@ unsigned int timeoutButton::remainClock()
 }
 void timeoutButton::_loopClock()
 {
-  if (chrono.isRunning() && (chrono.hasPassed(timeout) || chrono.hasPassed(maxTimeout)))
+  if (_useTimeout && chrono.isRunning() && (chrono.hasPassed(timeout) || chrono.hasPassed(maxTimeout)))
   {
-    stopTimeout_cb(TIMEOUT);
+    Button_pressOFF(TIMEOUT);
   }
 }
 
@@ -243,5 +252,17 @@ bool timeoutButton::read_OperStr(oper_string &str)
     _file.read((byte *)&str, sizeof(str));
     _file.close();
     return 1;
+  }
+}
+void timeoutButton::updateOperStr(oper_string &str, bool state, uint8_t reason, uint8_t step, time_t ontime, time_t offtime)
+{
+  str.state = state;
+  str.reason = reason;
+  str.step = step;
+  str.ontime = ontime;
+  str.offtime = offtime;
+  if (_useSave)
+  {
+    save_OperStr(str);
   }
 }

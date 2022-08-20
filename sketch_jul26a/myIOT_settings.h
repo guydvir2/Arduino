@@ -6,8 +6,24 @@ void notifyState(uint8_t &reason, uint8_t i, int t)
     char b[50];
     char clk[25];
     iot.convert_epoch2clock(t, 0, clk);
-    sprintf(a, "[%s]: [%s] [%s] %s [%s]", INPUT_ORG[reason], Lightbut.names[i], Lightbut.getState(i) ? "On" : "Off", Lightbut.getState(i) ? "for" : "after", clk);
-
+    sprintf(a, "[%s]: [%s] [%s]", INPUT_ORG[reason], SwNames[i], Lightbut.getState(i) ? "On" : "Off"); /* Note for On or Off*/
+    
+    /* When using timeouts */
+    if (Lightbut.get_useTimeout(i))
+    {
+        sprintf(b, "  %s [%s]", Lightbut.getState(i) ? "for" : "after", clk);
+        strcat(a, b);
+    }
+    else
+    {
+        if (Lightbut.getState(i) == false)
+        {
+            sprintf(b, "  %s [%s]", "after", clk);
+            strcat(a, b);
+        }
+    }
+    
+    /* When using PWM */
     if (Lightbut.isPwm(i) && Lightbut.getState(i))
     {
         sprintf(b, " Power [%d/%d]", Lightbut.get_counter(i), Lightbut.get_maxcounter(i));
@@ -21,7 +37,7 @@ void notifyUpdatePWM(uint8_t step, uint8_t reason, uint8_t i)
     char b[50];
     if (Lightbut.isPwm(i) && Lightbut.getState(i))
     {
-        sprintf(b, "%s: [%s] Power update [%d/%d]", INPUT_ORG[reason], Lightbut.names[i], step, Lightbut.get_maxcounter(i));
+        sprintf(b, "%s: [%s] Power update [%d/%d]", INPUT_ORG[reason], SwNames[i], step, Lightbut.get_maxcounter(i));
     }
     iot.pub_msg(b);
 }
@@ -32,7 +48,7 @@ void notifyRemain(uint8_t i)
 
     int _rem = Lightbut.remainClock(i);
     iot.convert_epoch2clock(_rem, 0, s1);
-    sprintf(msg, "MQTT: [%s] remain [%s] ", Lightbut.names[i], Lightbut.getState(i) ? s1 : "Off");
+    sprintf(msg, "MQTT: [%s] remain [%s] ", SwNames[i], Lightbut.getState(i) ? s1 : "Off");
     iot.pub_msg(msg);
 }
 
@@ -43,7 +59,7 @@ void addiotnalMQTT(char *incoming_msg, char *_topic)
     {
         for (uint8_t i = 0; i < NUM_SWITCHES; i++)
         {
-            sprintf(msg, "[Status]: [%s] [%s]", Lightbut.names[i], Lightbut.getState(i) ? "On" : "Off");
+            sprintf(msg, "[Status]: [%s] [%s]", SwNames[i], Lightbut.getState(i) ? "On" : "Off");
             if (Lightbut.getState(i))
             {
                 char t2[100];

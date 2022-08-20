@@ -15,7 +15,7 @@
 #define LITFS LittleFS
 #endif
 
-#define conv2Minute(t) t * 60
+#define conv2Minute(t) t * 10
 struct oper_string
 {
     bool state;     /* On or Off */
@@ -44,7 +44,10 @@ class timeoutButton
 {
 private:
     char _operfile[15];
+    bool _useSave = true;
     bool _useInput = false;
+    bool _useTimeout = true; /* Use Button with/out timeout*/
+    bool _isButtonPressed = false;
     unsigned long _lastPress = 0;
 
 private:
@@ -68,12 +71,12 @@ public:
     oper_string OPERstring = {false, 0, 0, 0, 0};
 
 protected:
-    const char *ver = "timeouter_v0.3";
+    const char *ver = "timeouter_v0.4";
 
 private:
-    void _commonBegin(uint8_t id);
     void _init_button();
     void _Button_looper();
+    void _commonBegin(uint8_t id, bool useSave, bool useTO);
     void _ON_OFF_on_handle(Button2 &b);
     void _Momentary_handle(Button2 &b);
     void _ON_OFF_off_handle(Button2 &b);
@@ -87,22 +90,27 @@ private:
 
 public:
     timeoutButton();
-    void begin(uint8_t id); /* Not using button */
-    void begin(uint8_t pin, uint8_t trigType, uint8_t id = 0);
+    void begin(uint8_t id, bool useSave = true, bool useTO = true); /* Not using button */
+    void begin(uint8_t pin, uint8_t trigType, uint8_t id = 0, bool useSave = true, bool useTO = false);
     void addClock(int _add, uint8_t reason);
 
     void loop();
     bool getState();
+    bool get_useSave();
+    bool get_useTimeout();
+    bool get_useInput();
     unsigned int remainClock();
 
-    void stopTimeout_cb(uint8_t reason);
-    void startTimeout_cb(int _TO, uint8_t reason);
+    void Button_pressOFF(uint8_t reason);
+    void Button_pressON(int _TO, uint8_t reason);
 
     void save_OperStr(oper_string &str);
     bool read_OperStr(oper_string &str);
     void print_OPERstring(oper_string &str);
+    void updateOperStr(oper_string &str, bool state, uint8_t reason, uint8_t step, time_t ontime, time_t offtime);
 };
 
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////
 template <uint8_t N>
 class LightButton
 {
@@ -114,26 +122,26 @@ private:
     void _init_onAtBoot(uint8_t i);
     void _turnONlights(uint8_t i);
     void _turnOFFlights(uint8_t i);
-    void _newActivity_handler(uint8_t i);
-#define _max_name_len 15
 
 public:
     LightButton();
-    char names[N][_max_name_len];
 
     void loop();
     bool isPwm(uint8_t i);
-    void set_name(uint8_t i, const char *n);
     uint8_t get_counter(uint8_t i);
     uint8_t get_maxcounter(uint8_t i);
     uint8_t get_defcounter(uint8_t i);
     void powerOn_powerFailure(uint8_t i);
-    void sendMSG(oper_string &str, uint8_t i);
+    void sendMSG(uint8_t i);
+    void readOperStr(oper_string &ret, uint8_t);
     void define_button(uint8_t i, uint8_t trig, uint8_t pin, bool inputPressed = LOW, int defMinutes = 120, int maxMinutes = 360, bool useButton = true);
     void define_light(uint8_t i, uint8_t pin, bool outputON = HIGH, bool isPWM = false, bool isDim = true, uint8_t defPWM = 2, uint8_t max_pcount = 3, uint8_t limitPWM = 70, int PWMr = 1023, uint8_t indicPin = 255);
 
     // ~~~~~~~~ Belongs to Button Class ~~~~~
     bool getState(uint8_t i);
+    bool get_useSave(uint8_t i);
+    bool get_useTimeout(uint8_t i);
+    bool get_useInput(uint8_t i);
     int get_timeout(uint8_t i);
     unsigned int remainClock(uint8_t i);
     void addClock(int _add, uint8_t reason, uint8_t i);
@@ -192,36 +200,6 @@ void LightButton<N>::define_light(uint8_t i, uint8_t pin, bool outputON, bool is
 }
 
 template <uint8_t N>
-void LightButton<N>::_newActivity_handler(uint8_t i)
-{
-    // if (_Button[i].OPERstring.state) /* ON */
-    // {
-    //     if (_light[i].isPWM())
-    //     {
-    //         if (_Button[i].pressCounter <= _light[i].maxSteps) /* MultiPresses */
-    //         {
-    //             _turnONlights(i);
-    //         }
-    //         else
-    //         {
-    //             _turnOFFlights(i);
-    //         }
-    //     }
-    //     else
-    //     {
-    //         _turnONlights(i);
-    //     }
-    // }
-    // else
-    // {
-    //     _turnOFFlights(i);
-    // }
-    // sendMSG(_Button[i].OPERstring, i);
-
-    // _Button[i].newMSG = false;
-}
-
-template <uint8_t N>
 void LightButton<N>::loop()
 {
     for (uint8_t i = 0; i < N; i++)
@@ -244,13 +222,13 @@ void LightButton<N>::loop()
                 _turnONlights(i);
             }
             _Button[i].flag2ON = false;
-            sendMSG(_Button[i].OPERstring, i);
+            sendMSG(i);
         }
         else if (_Button[i].flag2OFF)
         {
             _turnOFFlights(i);
             _Button[i].flag2OFF = false;
-            sendMSG(_Button[i].OPERstring, i);
+            sendMSG(i);
         }
 
         _Button[i].loop();
@@ -273,6 +251,22 @@ template <uint8_t N>
 bool LightButton<N>::getState(uint8_t i)
 {
     return _Button[i].getState();
+}
+
+template <uint8_t N>
+bool LightButton<N>::get_useSave(uint8_t i)
+{
+    return _Button[i].get_useSave();
+}
+template <uint8_t N>
+bool LightButton<N>::get_useTimeout(uint8_t i)
+{
+    return _Button[i].get_useTimeout();
+}
+template <uint8_t N>
+bool LightButton<N>::get_useInput(uint8_t i)
+{
+    return _Button[i].get_useInput();
 }
 
 template <uint8_t N>
@@ -300,6 +294,13 @@ int LightButton<N>::get_timeout(uint8_t i)
 }
 
 template <uint8_t N>
+void LightButton<N>::readOperStr(oper_string &ret, uint8_t i)
+{
+    _Button[i].read_OperStr(_Button[i].OPERstring);
+    ret = _Button[i].OPERstring;
+}
+
+template <uint8_t N>
 bool LightButton<N>::isPwm(uint8_t i)
 {
     return _light[i].PWMmode;
@@ -310,7 +311,7 @@ void LightButton<N>::TurnOFF(uint8_t reason, uint8_t i)
 {
     if (_Button[i].getState() && _light[i].is_ON()) /* When Light and timer works together */
     {
-        _Button[i].stopTimeout_cb(reason);
+        _Button[i].Button_pressOFF(reason);
     }
     else if (!_Button[i].getState() && _light[i].is_ON()) /* in case that Light is on and timer is not running */
     {
@@ -326,7 +327,7 @@ void LightButton<N>::TurnON(int _TO, uint8_t reason, uint8_t step, uint8_t i)
         TurnOFF(reason, i);
     }
     _Button[i].pressCounter = step;
-    _Button[i].startTimeout_cb(conv2Minute(_TO), reason);
+    _Button[i].Button_pressON(conv2Minute(_TO), reason);
 }
 
 template <uint8_t N>
@@ -338,7 +339,7 @@ void LightButton<N>::powerOn_powerFailure(uint8_t i)
         {
             if (_Button[i].OPERstring.offtime > time(nullptr))
             {
-                _Button[i].startTimeout_cb(_Button[i].OPERstring.offtime - time(nullptr), REBOOT);
+                _Button[i].Button_pressON(_Button[i].OPERstring.offtime - time(nullptr), REBOOT);
             }
             else
             {
@@ -357,12 +358,6 @@ void LightButton<N>::set_PWM(uint8_t i, uint8_t count)
 }
 
 template <uint8_t N>
-void LightButton<N>::set_name(uint8_t i, const char *n)
-{
-    strlcpy(names[i], n, _max_name_len);
-}
-
-template <uint8_t N>
 void LightButton<N>::_turnONlights(uint8_t i)
 {
     if (_Button[i].pressCounter == 0)
@@ -370,6 +365,7 @@ void LightButton<N>::_turnONlights(uint8_t i)
         _Button[i].pressCounter = get_defcounter(i);
     }
     _light[i].turnON(_Button[i].pressCounter);
+
     _Button[i].OPERstring.step = _Button[i].pressCounter;
     _Button[i].save_OperStr(_Button[i].OPERstring);
 }
@@ -380,7 +376,7 @@ void LightButton<N>::_turnOFFlights(uint8_t i)
     if (_light[i].is_ON())
     {
         _light[i].turnOFF();
-        _Button[i].stopTimeout_cb(BUTTON);
+        _Button[i].Button_pressOFF(BUTTON);
     }
 }
 

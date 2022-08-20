@@ -1,7 +1,7 @@
 {
     "useInput": [
         true,
-        true,
+        false,
         true,
         true
     ],
@@ -24,14 +24,14 @@
         2
     ],
     "input_pins": [
-        19,
-        17,
+        14,
+        12,
         16,
         5
     ],
     "output_pins": [
-        25,
-        26,
+        5,
+        4,
         33,
         32
     ],
@@ -60,8 +60,8 @@
         false
     ],
     "defTime": [
-        120,
-        90,
+        1,
+        1,
         60,
         30
     ],
@@ -101,6 +101,6 @@
         "relay2",
         "relay3"
     ],
-    "numSW": 4,
+    "numSW": 2,
     "pFile_ver": 0.1
 }

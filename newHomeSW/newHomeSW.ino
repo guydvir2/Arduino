@@ -73,7 +73,6 @@ void _turnON_cb(uint8_t i, uint8_t type)
 {
         if (!_isON(relayPins[i]))
         {
-
                 turnON(relayPins[i]);
                 _pub_turn(i, type, HIGH);
         }
