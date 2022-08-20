@@ -18,10 +18,7 @@ bool flashLOG::start(int max_entries, bool delyedSave, bool debugmode)
 
     if (!a)
     {
-        if (_useDebug)
-        {
-            Serial.println("LittleFS mount failed");
-        }
+        PRNTL("LittleFS mount failed");
     }
     return a;
 }
@@ -30,7 +27,8 @@ void flashLOG::looper(uint8_t savePeriod)
     if (_delayed_save(savePeriod))
     {
         _write2file();
-        Serial.println("SAVED LOG");
+        PRNT(_logfilename);
+        PRNTL(" - Saved");
     }
 }
 void flashLOG::write(const char *message, bool NOW)
@@ -47,12 +45,9 @@ void flashLOG::write(const char *message, bool NOW)
         {
             lastUpdate = millis(); // Making sure update will be in delay to request.
         }
-        if (_useDebug)
-        {
-            Serial.println("Buffer store: [");
-            Serial.println(_logBuff);
-            Serial.println("]");
-        }
+        PRNTL("Buffer store: [");
+        PRNTL(_logBuff);
+        PRNTL("]");
     }
 }
 void flashLOG::rawPrintfile()
@@ -61,25 +56,22 @@ void flashLOG::rawPrintfile()
     File file = LITFS.open(_logfilename, "r");
     if (!file)
     {
-        if (_useDebug)
-        {
-            Serial.println("Failed to open file for reading");
-        }
+        PRNTL("Failed to open file for reading");
     }
 
-    Serial.print("~~~ Saved in ");
-    Serial.print(_logfilename);
-    Serial.println(" ~~~");
+    PRNT("~~~ Saved in ");
+    PRNT(_logfilename);
+    PRNTL("~~~");
 
     while (file.available())
     {
         String line = file.readStringUntil(_EOL);
         String lineFormat = "row #" + String(row_counter) + " {" + line + "}";
-        Serial.println(lineFormat);
+        PRNTL(lineFormat);
         row_counter++;
     }
 
-    Serial.println("~~~ EOF ~~~");
+    PRNTL("~~~ EOF ~~~");
     file.close();
 }
 bool flashLOG::del_line(int line_index)
@@ -108,10 +100,10 @@ bool flashLOG::del_line(int line_index)
     }
     else
     {
-        if (_useDebug)
-        {
-            Serial.println("Fail open files");
-        }
+        PRNT("Fail open files: ");
+        PRNT(tfile);
+        PRNT("; ");
+        PRNTL(_logfilename);
     }
     file1.close();
     file2.close();
@@ -141,10 +133,8 @@ bool flashLOG::readline(int r, char retLog[])
     }
     else
     {
-        if (_useDebug)
-        {
-            Serial.println("Fail open file");
-        }
+        PRNT("Fail open file- ");
+        PRNTL(_logfilename);
         file.close();
         return 0;
     }
@@ -191,10 +181,7 @@ bool flashLOG::_chkFileOK(File &_file)
 {
     if (!_file)
     {
-        if (_useDebug)
-        {
-            Serial.println("Failed to open file for appending");
-        }
+        PRNTL("Failed to open file for appending");
         return 0;
     }
     else
@@ -289,10 +276,7 @@ bool flashLOG::_del_lines(int line_index)
 }
 void flashLOG::_printDebug(char *msg)
 {
-    if (_useDebug)
-    {
-        Serial.print(_logfilename);
-        Serial.print(": ");
-        Serial.println(msg);
-    }
+        PRNT(_logfilename);
+        PRNT(": ");
+        PRNTL(msg);
 }

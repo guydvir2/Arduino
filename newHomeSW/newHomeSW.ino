@@ -55,7 +55,7 @@ void check_answer_mqtt()
 }
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
-
+const char *ver = "lightPanel_v0.1";
 #include "myIOT_settings.h"
 
 bool _isON(uint8_t i)
@@ -224,5 +224,6 @@ void loop()
         iot.looper();
         loop_buttons();
         loop_RF();
+        delay(100);
         // check_answer_mqtt();
 }

@@ -1,8 +1,5 @@
 myIOT2 iot;
 
-extern void _turnON_cb(uint8_t i, uint8_t type);
-extern void _turnOFF_cb(uint8_t i, uint8_t type);
-
 // ±±±±±±± Genereal pub topic ±±±±±±±±±
 const char *topicLog = "myHome/log";
 const char *topicDebug = "myHome/debug";
@@ -17,7 +14,6 @@ const char *topicAll = "myHome/All";
 const char *topicClient_avail = "myHome/test/Client/Avail";
 const char *topicClient_state = "myHome/test/Client/State";
 
-// void add_state_topics
 void updateState(uint8_t i, bool state)
 {
     char t[60];
@@ -41,9 +37,9 @@ void updateTopics_local()
 }
 void update_Parameters_local()
 {
-    iot.useWDT = true;
+    iot.useWDT = false;
     iot.useOTA = true;
-    iot.useSerial = true;
+    iot.useSerial = false;
     iot.useResetKeeper = false;
     iot.useDebug = true;
     iot.debug_level = 0;
@@ -71,13 +67,20 @@ void addiotnalMQTT(char *incoming_msg, char *_topic)
     }
     else if (strcmp(incoming_msg, "help2") == 0)
     {
-        sprintf(msg, "help #2:No other functions");
+        sprintf(msg, "help #2:<i>,on; <i>,off; all_off");
         iot.pub_msg(msg);
     }
     else if (strcmp(incoming_msg, "ver2") == 0)
     {
-        sprintf(msg, "ver #2:");
+        sprintf(msg, "ver #2: %s, useButton[%d], useRFremote[%d]", ver, useButton, useRF);
         iot.pub_msg(msg);
+    }
+    else if (strcmp(incoming_msg, "all_off") == 0)
+    {
+        for (uint8_t i = 0; i < numSW; i++)
+        {
+            _turnOFF_cb(i, MQTT);
+        }
     }
     else
     {

@@ -18,6 +18,12 @@
 
 class flashLOG
 {
+#define PRNT(a)    \
+    if (_useDebug) \
+    Serial.print(a)
+#define PRNTL(a)   \
+    if (_useDebug) \
+    Serial.println(a)
 private:
     int _maxLOG_entries;
     String _logBuff = "";
@@ -27,7 +33,7 @@ private:
     char *_logfilename = "/logfile1234567.txt";
 
 public:
-    char *VeR = "flashLOG v2.3";
+    char *VeR = "flashLOG v2.4";
     unsigned long lastUpdate = 0;
 
 private:

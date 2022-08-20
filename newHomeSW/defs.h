@@ -21,7 +21,7 @@ uint8_t RFpin = 27;
 const bool buttonTypes[] = {0, 0, 0, 1}; /* <0> is ON-Off Switch, <1> push button */
 const int KB_codes[] = {3135496, 3135492, 3135490, 3135489};
 const char *ButtonNames[] = {"Saloon", "Entrance", "Parking", "Kitchen"};
-const char *turnTypes[] = {"MQTT", "Button", "RemoteControl", "Code"};
+const char *turnTypes[] = {"MQTT", "Button", "Remote", "Code"};
 
 enum OPerTypes : const uint8_t
 {
