@@ -5,12 +5,12 @@
         "myHome/debug"
     ],
     "pub_topics": [
-        "myHome/Light/test/Avail",
-        "myHome/Light/test/State",
-        "myHome/Light/test/cmd"
+        "myHome/Light/Saloon/Avail",
+        "myHome/Light/Saloon/State",
+        "myHome/Light/Saloon/cmd"
     ],
     "sub_topics": [
-        "myHome/Light/test",
+        "myHome/Light/Saloon",
         "myHome/Windows",
         "myHome/alarmMonitor"
     ],

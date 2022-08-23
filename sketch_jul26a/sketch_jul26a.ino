@@ -1,15 +1,9 @@
 #include <myIOT2.h>
 #include <timeoutButton.h>
-
-#define MAX_SW 4
+#include "defs.h"
 
 myIOT2 iot;
 LightButton<MAX_SW> Lightbut;
-
-bool powr[MAX_SW];
-bool oab[MAX_SW];
-char SwNames[MAX_SW][12];
-uint8_t NUM_SWITCHES;
 
 #include "myIOT_flashParametrs.h"
 #include "myIOT_settings.h"
@@ -20,7 +14,7 @@ void LightButton<N>::sendMSG(uint8_t i)
   oper_string str;
   readOperStr(str, i);
   notifyState(str.reason, i, str.offtime - str.ontime);
-
+#if defined(DEBUG_MODE)
   Serial.print("~~~~~~~ OPER_STRING START #");
   Serial.print(i);
   Serial.println(" ~~~~~~~~~");
@@ -40,23 +34,24 @@ void LightButton<N>::sendMSG(uint8_t i)
   Serial.print("offtime:\t\t");
   Serial.println(str.offtime);
   Serial.println("~~~~~~~ OPER_STRING END ~~~~~~~~~~~~~");
+#endif
 }
 
 void init_LightButton(JsonDocument &DOC)
 {
-  NUM_SWITCHES = 4;//DOC["numSW"];
+  NUM_SWITCHES = DOC["numSW"];
 
   for (uint8_t n = 0; n < NUM_SWITCHES; n++)
   {
-    powr[n] = DOC["usePowerRecovery"][n];
     oab[n] = DOC["useOnAtBoot"][n];
+    powr[n] = DOC["usePowerRecovery"][n];
     strcpy(SwNames[n], DOC["nick"][n]);
 
     Lightbut.define_button(n, DOC["trig_type"][n], DOC["input_pins"][n], DOC["isPressed"][n], DOC["defTime"][n], DOC["maxTime"][n], DOC["useInput"][n]);
     Lightbut.define_light(n, DOC["output_pins"][n], DOC["isON"][n], DOC["usePWM"][n], DOC["isDimm"][n], DOC["defPWMstep"][n], DOC["maxPWMstep"][n], DOC["degPWM"][n], 1023, DOC["indic_pins"][n]);
   }
 }
-void postBoot_LightButton()
+void turnON_afterBOOT()
 {
   /* Clock must be updated for those functions */
   for (uint8_t n = 0; n < NUM_SWITCHES; n++)
@@ -68,14 +63,15 @@ void postBoot_LightButton()
     }
     else if (powr[n])
     {
-      Serial.println("a");
+      Serial.println("b");
       Lightbut.powerOn_powerFailure(n);
     }
   }
 }
 
-void summary()
+void switches_setup_summary()
 {
+#if defined(DEBUG_MODE)
   char msg[100];
 
   Serial.println(" ~~~~~~~~~~~~~~~~~~~~~ SETUP SUMMARY ~~~~~~~~~~~~~~~~~~~~~");
@@ -119,13 +115,14 @@ void summary()
 
     Serial.println();
   }
+#endif
 }
 void setup()
 {
   Serial.begin(115200);
   startIOTservices();
-  postBoot_LightButton(); /* Must be placed after clock was updated */
-  summary();
+  turnON_afterBOOT(); /* Must be placed after clock was updated */
+  switches_setup_summary();
 }
 void loop()
 {

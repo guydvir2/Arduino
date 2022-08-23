@@ -1,10 +1,4 @@
-extern myIOT2 iot;
 extern void init_LightButton(JsonDocument &DOC);
-
-#define MAX_TOPIC_SIZE 40          // <----- Verfy max Topic size
-#define JSON_FILESIZE 600 * MAX_SW // <----- Verfy Json size
-
-char *parameterFiles[3] = {"/myIOT_param.json", "/myIOT2_topics.json", "/sketch_param.json"}; // <----- Verfy file names
 
 char topics_sub[3][MAX_TOPIC_SIZE];
 char topics_pub[3][MAX_TOPIC_SIZE];
@@ -38,9 +32,9 @@ void update_Parameters_flash()
 
     /* Part C: Read Topics from flash, and update myIOT Topics */
     iot.extract_JSON_from_flash(iot.parameter_filenames[1], DOC); /* extract topics from flash */
-    updateTopics_flash(DOC, topics_gen_pub, iot.topics_gen_pub, "pub_gen_topics", "myHome/Messages", sizeof(topics_gen_pub) / (sizeof(topics_gen_pub[0])));
-    updateTopics_flash(DOC, topics_pub, iot.topics_pub, "pub_topics", "myHome/log", sizeof(topics_pub) / (sizeof(topics_pub[0])));
-    updateTopics_flash(DOC, topics_sub, iot.topics_sub, "sub_topics", "myHome/log", sizeof(topics_sub) / (sizeof(topics_sub[0])));
+    updateTopics_flash(DOC, topics_gen_pub, iot.topics_gen_pub, "pub_gen_topics", DEFAULT_MSG_TOPIC, sizeof(topics_gen_pub) / (sizeof(topics_gen_pub[0])));
+    updateTopics_flash(DOC, topics_pub, iot.topics_pub, "pub_topics", DEFAULT_LOG_TOPIC, sizeof(topics_pub) / (sizeof(topics_pub[0])));
+    updateTopics_flash(DOC, topics_sub, iot.topics_sub, "sub_topics", DEFAULT_LOG_TOPIC, sizeof(topics_sub) / (sizeof(topics_sub[0])));
     // serializeJsonPretty(DOC, Serial);
     DOC.clear();
 

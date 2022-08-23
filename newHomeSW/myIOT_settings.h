@@ -7,12 +7,12 @@ const char *topicmsg = "myHome/Messages";
 
 // ±±±±±±±±±±±± sub Topics ±±±±±±±±±±±±±±±±±±
 const char *topicSub1 = "myHome/alarmMonitor";
-const char *topicClient = "myHome/test/Client";
+const char *topicClient = "myHome/SWPanels/SaloonLights";
 const char *topicAll = "myHome/All";
 
 // ±±±±±±±±±±±±±±±± Client state pub topics ±±±±±±±±±±±±±±±±
-const char *topicClient_avail = "myHome/test/Client/Avail";
-const char *topicClient_state = "myHome/test/Client/State";
+const char *topicClient_avail = "myHome/SWPanels/SaloonLights/Avail";
+const char *topicClient_state = "myHome/SWPanels/SaloonLights/State";
 
 void updateState(uint8_t i, bool state)
 {

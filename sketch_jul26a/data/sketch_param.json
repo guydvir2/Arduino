@@ -1,23 +1,30 @@
 {
+    "numSW": 2,
+    "nick": [
+        "relay0",
+        "relay1",
+        "relay2",
+        "relay3"
+    ],
     "useInput": [
         true,
         false,
-        true,
-        true
+        false,
+        false
     ],
     "useOnAtBoot": [
-        false,
+        true,
         false,
         false,
         false
     ],
     "usePowerRecovery": [
         false,
-        false,
+        true,
         false,
         false
     ],
-    "defPWMstep": [ 
+    "defPWMstep": [
         2,
         2,
         2,
@@ -95,12 +102,5 @@
         80,
         80
     ],
-    "nick": [
-        "relay0",
-        "relay1",
-        "relay2",
-        "relay3"
-    ],
-    "numSW": 2,
     "pFile_ver": 0.1
 }

@@ -1,5 +1,3 @@
-const char *INPUT_ORG[5] = {"Timeout", "Button", "MQTT", "PowerON", "Resume Reboot"};
-
 void notifyState(uint8_t &reason, uint8_t i, int t)
 {
     char a[100];
