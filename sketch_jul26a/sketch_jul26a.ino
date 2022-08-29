@@ -14,6 +14,7 @@ void LightButton<N>::sendMSG(uint8_t i)
   oper_string str;
   readOperStr(str, i);
   notifyState(str.reason, i, str.offtime - str.ontime);
+  
 #if defined(DEBUG_MODE)
   Serial.print("~~~~~~~ OPER_STRING START #");
   Serial.print(i);
@@ -51,7 +52,7 @@ void init_LightButton(JsonDocument &DOC)
     Lightbut.define_light(n, DOC["output_pins"][n], DOC["isON"][n], DOC["usePWM"][n], DOC["isDimm"][n], DOC["defPWMstep"][n], DOC["maxPWMstep"][n], DOC["degPWM"][n], 1023, DOC["indic_pins"][n]);
   }
 }
-void turnON_afterBOOT()
+void turnON_afterBOOT() /* PowerON boot, Resume */
 {
   /* Clock must be updated for those functions */
   for (uint8_t n = 0; n < NUM_SWITCHES; n++)
@@ -126,31 +127,6 @@ void setup()
 }
 void loop()
 {
-  // static unsigned long lastentry = 0;
-  // static bool s = 0;
-  // static int m = 0;
-  // const char *x[2] = {"on", "off"};
-
-  // int _delay_ = 500;
-  // if (millis() - lastentry > _delay_)
-  // {
-
-  //   char a[40];
-  //   sprintf(a, "%d,%s", m, x[s]);
-  //   iot.pub_noTopic(a, "myHome/Light/test");
-
-  //   if (m == 3)
-  //   {
-  //     m = 0;
-  //     s = !s;
-  //   }
-  //   else
-  //   {
-  //     m++;
-  //   }
-  //   lastentry = millis();
-  // }
-
   iot.looper();
   Lightbut.loop();
 }

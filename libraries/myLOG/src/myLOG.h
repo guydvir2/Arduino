@@ -9,8 +9,9 @@
 #include <FS.h>
 
 #if defined(ESP32)
-#include "LITTLEFS.h"
-#define LITFS LITTLEFS
+#include <LittleFS.h>
+// #include "LITTLEFS.h"
+#define LITFS LittleFS
 #elif defined(ESP8266)
 #include <LittleFS.h>
 #define LITFS LittleFS

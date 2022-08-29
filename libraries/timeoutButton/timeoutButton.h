@@ -230,7 +230,6 @@ void LightButton<N>::loop()
             _Button[i].flag2OFF = false;
             sendMSG(i);
         }
-
         _Button[i].loop();
     }
 }
@@ -307,7 +306,7 @@ bool LightButton<N>::isPwm(uint8_t i)
 }
 
 template <uint8_t N>
-void LightButton<N>::TurnOFF(uint8_t reason, uint8_t i)
+void LightButton<N>::TurnOFF(uint8_t reason, uint8_t i) /* External Callback */
 {
     if (_Button[i].getState() && _light[i].is_ON()) /* When Light and timer works together */
     {
@@ -320,7 +319,7 @@ void LightButton<N>::TurnOFF(uint8_t reason, uint8_t i)
 }
 
 template <uint8_t N>
-void LightButton<N>::TurnON(int _TO, uint8_t reason, uint8_t step, uint8_t i)
+void LightButton<N>::TurnON(int _TO, uint8_t reason, uint8_t step, uint8_t i) /* External Callback */
 {
     if (_Button[i].getState() || !_light[i].is_ON())
     {
@@ -331,7 +330,7 @@ void LightButton<N>::TurnON(int _TO, uint8_t reason, uint8_t step, uint8_t i)
 }
 
 template <uint8_t N>
-void LightButton<N>::powerOn_powerFailure(uint8_t i)
+void LightButton<N>::powerOn_powerFailure(uint8_t i) /* Recover from reboot using saved paramters */
 {
     if (_Button[i].read_OperStr(_Button[i].OPERstring))
     {
@@ -366,8 +365,7 @@ void LightButton<N>::_turnONlights(uint8_t i)
     }
     _light[i].turnON(_Button[i].pressCounter);
 
-    _Button[i].OPERstring.step = _Button[i].pressCounter;
-    _Button[i].save_OperStr(_Button[i].OPERstring);
+    _Button[i].updateOperStr(_Button[i].OPERstring, true, _Button[i].OPERstring.reason, _Button[i].pressCounter, _Button[i].OPERstring.ontime, _Button[i].OPERstring.offtime);
 }
 
 template <uint8_t N>
