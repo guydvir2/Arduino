@@ -1,5 +1,8 @@
 myIOT2 iot;
 
+extern void _turnOFF_cb(uint8_t i, uint8_t type);
+extern void _turnON_cb(uint8_t i, uint8_t type);
+
 // ±±±±±±± Genereal pub topic ±±±±±±±±±
 const char *topicLog = "myHome/log";
 const char *topicDebug = "myHome/debug";
@@ -37,10 +40,8 @@ void updateTopics_local()
 }
 void update_Parameters_local()
 {
-    iot.useWDT = false;
     iot.useOTA = true;
     iot.useSerial = false;
-    iot.useResetKeeper = false;
     iot.useDebug = true;
     iot.debug_level = 0;
     iot.useFlashP = false;

@@ -3,11 +3,8 @@
 #include <RCSwitch.h>
 #include "defs.h"
 
-/* ~~~~~~~~~~ FOR DEBUG ONLY ~~~~~~~~~~~~~~~~~~~ */
 #define USE_RF true
 #define USE_BUTTONS true
-int counter = 0;
-long lastheap = 0;
 
 #if USE_RF
 RCSwitch RFreader = RCSwitch();
@@ -15,6 +12,13 @@ RCSwitch RFreader = RCSwitch();
 #if USE_BUTTONS
 Button2 *Buttons[MAX_Relays] = {nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr};
 #endif
+
+const char *ver = "lightPanel_v0.1";
+#include "myIOT_settings.h"
+
+/* ~~~~~~~~~~ FOR DEBUG ONLY ~~~~~~~~~~~~~~~~~~~ */
+int counter = 0;
+long lastheap = 0;
 
 void BIT_outputs()
 {
@@ -53,10 +57,7 @@ void check_answer_mqtt()
                 lastentry2 = millis();
         }
 }
-
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
-const char *ver = "lightPanel_v0.1";
-#include "myIOT_settings.h"
 
 bool _isON(uint8_t i)
 {
@@ -197,9 +198,9 @@ void loop_RF()
                 if (RFreader.available())
                 {
                         // sprintf(temp, "Received %d / %dbit Protocol: ", RFreader.getReceivedValue(), RFreader.getReceivedBitlength(), RFreader.getReceivedProtocol());
-                        for (uint8_t i = 0; i < sizeof(KB_codes) / sizeof(KB_codes[0]); i++)
+                        for (uint8_t i = 0; i < sizeof(RF_keyboardCode) / sizeof(RF_keyboardCode[0]); i++)
                         {
-                                if (KB_codes[i] == RFreader.getReceivedValue())
+                                if (RF_keyboardCode[i] == RFreader.getReceivedValue())
                                 {
                                         toggleRelay(i, RF);
                                         delay(500); /* To avoid bursts */
