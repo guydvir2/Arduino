@@ -11,9 +11,9 @@ bool flashLOG::start(int max_entries, bool delyedSave, bool debugmode)
     _useDebug = debugmode;
 
 #if defined(ESP32)
-    bool a = LITFS.begin(true);
+    bool a = LittleFS.begin(true);
 #elif defined(ESP8266)
-    bool a = LITFS.begin();
+    bool a = LittleFS.begin();
 #endif
 
     if (!a)
@@ -53,7 +53,7 @@ void flashLOG::write(const char *message, bool NOW)
 void flashLOG::rawPrintfile()
 {
     int row_counter = 0;
-    File file = LITFS.open(_logfilename, "r");
+    File file = LittleFS.open(_logfilename, "r");
     if (!file)
     {
         PRNTL("Failed to open file for reading");
@@ -79,8 +79,8 @@ bool flashLOG::del_line(int line_index)
     int row_counter = 0;
     char *tfile = "/tempfile.txt";
     bool line_deleted = false;
-    File file1 = LITFS.open(_logfilename, "r");
-    File file2 = LITFS.open(tfile, "w");
+    File file1 = LittleFS.open(_logfilename, "r");
+    File file2 = LittleFS.open(tfile, "w");
 
     if (file1 && file2)
     {
@@ -107,14 +107,14 @@ bool flashLOG::del_line(int line_index)
     }
     file1.close();
     file2.close();
-    LITFS.remove(_logfilename);
-    LITFS.rename(tfile, _logfilename);
+    LittleFS.remove(_logfilename);
+    LittleFS.rename(tfile, _logfilename);
     return line_deleted;
 }
 bool flashLOG::readline(int r, char retLog[])
 {
     int row_counter = 0;
-    File file = LITFS.open(_logfilename, "r");
+    File file = LittleFS.open(_logfilename, "r");
 
     if (file)
     {
@@ -142,12 +142,12 @@ bool flashLOG::readline(int r, char retLog[])
 }
 bool flashLOG::delog()
 {
-    return LITFS.remove(_logfilename);
+    return LittleFS.remove(_logfilename);
 }
 int flashLOG::get_num_saved_records()
 {
     int row_counter = 0;
-    File file = LITFS.open(_logfilename, "r");
+    File file = LittleFS.open(_logfilename, "r");
 
     if (file)
     {
@@ -165,7 +165,7 @@ int flashLOG::get_num_saved_records()
 }
 unsigned long flashLOG::sizelog()
 {
-    File file = LITFS.open(_logfilename, "r");
+    File file = LittleFS.open(_logfilename, "r");
 
     unsigned long f = file.size();
     file.close();
@@ -224,7 +224,7 @@ bool flashLOG::_write2file()
         _del_lines(num_lines + _m + 1 - _maxLOG_entries);
     }
 
-    File file1 = LITFS.open(_logfilename, "a+");
+    File file1 = LittleFS.open(_logfilename, "a+");
 
     int _start = 0;
 
@@ -252,8 +252,8 @@ bool flashLOG::_del_lines(int line_index)
     int row_counter = 0;
     char *tfile = "/tempfile.txt";
     bool _delted_lines = false;
-    File file1 = LITFS.open(_logfilename, "r");
-    File file2 = LITFS.open(tfile, "w");
+    File file1 = LittleFS.open(_logfilename, "r");
+    File file2 = LittleFS.open(tfile, "w");
 
     if (_chkFileOK(file1) && _chkFileOK(file2))
     {
@@ -270,8 +270,8 @@ bool flashLOG::_del_lines(int line_index)
     }
     file1.close();
     file2.close();
-    LITFS.remove(_logfilename);
-    LITFS.rename(tfile, _logfilename);
+    LittleFS.remove(_logfilename);
+    LittleFS.rename(tfile, _logfilename);
     return _delted_lines;
 }
 void flashLOG::_printDebug(char *msg)

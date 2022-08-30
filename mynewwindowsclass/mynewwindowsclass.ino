@@ -101,7 +101,7 @@ public:
     _readSW();
     _timeout_looper();
   }
-  void ext_SW(uint8_t state, uint8_t reason)
+  void ext_SW(uint8_t state, uint8_t reason) /* External Callback */
   {
     _switch_cb(state, reason);
   }
@@ -147,36 +147,34 @@ private:
   }
   void _switch_cb(uint8_t state, uint8_t i)
   {
-    if ((_uselockdown && _lockdownState == false || _uselockdown == false)&& state != get_winState())
+    if (((_uselockdown && _lockdownState == false) || _uselockdown == false) && state != get_winState())
     {
       if (state == STOP)
       {
         _allOff();
         newMSGflag = true;
         _timeoutcounter = 0;
-        MSG.state = state;
-        MSG.reason = i;
       }
       else if (state == UP)
       {
         _winUP();
         newMSGflag = true;
         _timeoutcounter = millis();
-        MSG.state = state;
-        MSG.reason = i;
       }
       else if (state == DOWN)
       {
         _winDOWN();
         newMSGflag = true;
         _timeoutcounter = millis();
-        MSG.state = state;
-        MSG.reason = i;
       }
       else
       {
+        MSG.state = ERR;
+        MSG.reason = i;
         return;
       }
+      MSG.state = state;
+      MSG.reason = i;
     }
   }
   void _readSW()
@@ -201,7 +199,7 @@ private:
   {
     if (_useTimeout && _timeoutcounter > 0)
     {
-      if (millis() - _timeoutcounter > _timeout_clk*1000)
+      if (millis() - _timeoutcounter > _timeout_clk * 1000)
       {
         _switch_cb(STOP, TIMEOUT);
       }
@@ -218,14 +216,13 @@ void setup()
   Serial.println("\nSTART");
 
   WIN_SW.def(D5, D6, D3, D4);
-  WIN_SW.def_extSW(D7,D2);
+  WIN_SW.def_extSW(D7, D2);
   WIN_SW.def_extras();
   WIN_SW.start();
 }
 
 void loop()
 {
-  // put your main code here, to run repeatedly:
   WIN_SW.loop();
   if (WIN_SW.newMSGflag)
   {

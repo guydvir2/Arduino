@@ -7,15 +7,7 @@
 
 #include <Arduino.h>
 #include <FS.h>
-
-#if defined(ESP32)
 #include <LittleFS.h>
-// #include "LITTLEFS.h"
-#define LITFS LittleFS
-#elif defined(ESP8266)
-#include <LittleFS.h>
-#define LITFS LittleFS
-#endif
 
 class flashLOG
 {
@@ -25,6 +17,7 @@ class flashLOG
 #define PRNTL(a)   \
     if (_useDebug) \
     Serial.println(a)
+    
 private:
     int _maxLOG_entries;
     String _logBuff = "";
@@ -34,7 +27,7 @@ private:
     char *_logfilename = "/logfile1234567.txt";
 
 public:
-    char *VeR = "flashLOG v2.4";
+    char *VeR = "flashLOG v2.5";
     unsigned long lastUpdate = 0;
 
 private:
