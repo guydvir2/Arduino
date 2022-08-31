@@ -1,4 +1,5 @@
 #include <myWindowSW.h>
+#include <myIOT2.h>
 
 #define numW 1
 
@@ -8,6 +9,7 @@ WinSW *winSW_V[] = {
     nullptr,
     nullptr,
 };
+#include "myIOT_settings.h"
 
 void startWindow(uint8_t i)
 {
@@ -27,28 +29,20 @@ void loopWindow(uint8_t i)
     winSW_V[x]->loop();
     if (winSW_V[x]->newMSGflag)
     {
-      output_func(winSW_V[x]->MSG.state, winSW_V[x]->MSG.reason, x);
+      _gen_WinMSG(winSW_V[x]->MSG.state, winSW_V[x]->MSG.reason, x);
       winSW_V[x]->newMSGflag = false;
     }
   }
 }
 
-void output_func(uint8_t state, uint8_t reason, uint8_t i)
-{
-  char msg[30];
-  sprintf(msg, "Window [#%d] is [%s] by [%s]", i, STATES_TXT[state], REASONS_TXT[reason]);
-  Serial.println(msg);
-}
 void setup()
 {
-  // put your setup code here, to run once:
-  Serial.begin(115200);
-  Serial.println("\n\nStart");
+  startIOTservices();
   startWindow(numW);
 }
 
 void loop()
 {
-  // put your main code here, to run repeatedly:
   loopWindow(numW);
+  iot.looper();
 }

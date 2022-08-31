@@ -1,6 +1,6 @@
 #define RELAY_ON HIGH
 #define STATES_TXT (char *[]) { "Stop", "Up", "Down", "Err" }
-#define REASONS_TXT (char *[]) { "Timeout", "Button", "Button2", "Lockdown" }
+#define REASONS_TXT (char *[]) { "Timeout", "Button", "Button2", "Lockdown","MQTT" }
 
 struct MSGstr
 {
@@ -13,6 +13,7 @@ enum REASONS : const uint8_t
     BUTTON,
     BUTTON2,
     LCKDOWN,
+    MQTT,
 };
 enum WIN_STATES : const uint8_t
 {
