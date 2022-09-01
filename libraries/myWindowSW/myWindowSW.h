@@ -4,7 +4,7 @@ Features:
 1) Auto off - to prevent holding relaty Up or down for infinite time
 2) Lockdown - when signaled, shuts down window, and disables switch until lockdown is disabled.
 3) Dual Sw - in case of need 2 switches to control the window.
-4) Telemetry - psot change of state. 
+4) Telemetry - psot change of state.
 */
 #ifndef mywindowsw_h
 #define mywindowsw_h
@@ -36,22 +36,23 @@ public:
 
 public:
     WinSW();
-    void def(uint8_t upin, uint8_t dpin, uint8_t outup_pin, uint8_t outdown_pin);
-    void def_extSW(uint8_t upin, uint8_t dpin);
-    void def_extras(bool useTimeout = true, bool useLockdown = true, int timeout_clk = 15);
+    void loop();
     void start();
     void init_lockdown();
     void release_lockdown();
-    void loop();
+    void def_extSW(uint8_t upin, uint8_t dpin);
     void ext_SW(uint8_t state, uint8_t reason); /* External Callback */
+    void def(uint8_t upin, uint8_t dpin, uint8_t outup_pin, uint8_t outdown_pin);
+    void def_extras(bool useTimeout = true, bool useLockdown = true, int timeout_clk = 15);
+
     uint8_t get_winState();
 
 private:
-    void _allOff();
     void _winUP();
-    void _winDOWN();
-    void _switch_cb(uint8_t state, uint8_t i);
+    void _allOff();
     void _readSW();
+    void _winDOWN();
     void _timeout_looper();
+    void _switch_cb(uint8_t state, uint8_t i);
 };
 #endif

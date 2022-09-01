@@ -13,7 +13,7 @@ enum REASONS : const uint8_t
     BUTTON,
     BUTTON2,
     LCKDOWN,
-    MQTT,
+    MQTT
 };
 enum WIN_STATES : const uint8_t
 {

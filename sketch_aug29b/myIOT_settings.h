@@ -6,22 +6,26 @@ const char *topicDebug = "myHome/debug";
 const char *topicmsg = "myHome/Messages";
 
 // ±±±±±±±±±±±± sub Topics ±±±±±±±±±±±±±±±±±±
-const char *topicSub1 = "myHome/Windows";
-const char *topicClient = "myHome/WinC/ParentsRoom"; // Using controller definition //
+const char *topicClient = "myHome/Cont_A1"; // Using controller definition //
 const char *topicAll = "myHome/All";
 
 // ±±±±±±±±±±±±±±±± Client state pub topics ±±±±±±±±±±±±±±±±
-const char *topicClient_avail = "myHome/WinC/ParentsRoom/Avail";
-const char *topicClient_state = "myHome/WinC/ParentsRoom/State";
+const char *topicClient_avail = "myHome/Cont_A1/Avail";
+const char *topicClient_state = "myHome/Cont_A1/State";
 
 // ±±±±±±±±±±±±±±±± Additioan sub topics ±±±±±±±±±±±±±±±±
-const char *winNick[] = {"Closet", "Bath", "Bed", "TBD"};
+// const char *winNick[] = {"Closet", "Bath", "Bed", "TBD"};
+const char *topicSubgroup0 = "myHome/Windows";
+const char *topicSubgroup1 = "myHome/Windows/gFloor"; // Ground Floor group //
+const char *topicSubgroup2 = "myHome/lockdown";
+const char *addTopic1 = "myHome/Windows/gFloor/Closet"; // Using controller definition //
+const char *addTopic2 = "myHome/Windows/gFloor/Bath";   // Using controller definition //
+const char *addTopic3 = "myHome/Windows/gFloor/Bed";    // Using controller definition //
+const char *addTopic4 = "myHome/Windows/gFloor/TBD";    // Using controller definition //
 
-const char *addTopic0 = "myHome/Windows/gF";        // Ground Floor group //
-const char *addTopic1 = "myHome/Windows/gF/Closet"; // Using controller definition //
-const char *addTopic2 = "myHome/Windows/gF/Bath";   // Using controller definition //
-const char *addTopic3 = "myHome/Windows/gF/Bed";    // Using controller definition //
-const char *addTopic4 = "myHome/Windows/gF/TBD";    // Using controller definition //
+// const char *addedTopis[4] = {&addTopic1, &addTopic2, &addTopic3, &addTopic4};
+char winGroupTopics[3][30];
+char entitiesTopics[maxW][40];
 
 void updateTopics_local()
 {
@@ -34,13 +38,34 @@ void updateTopics_local()
 
     iot.topics_sub[0] = topicClient;
     iot.topics_sub[1] = topicAll;
-    iot.topics_sub[2] = topicSub1; /* All Windows */
 
-    iot.topics_sub[3] = addTopic1;
-    iot.topics_sub[4] = addTopic2;
-    iot.topics_sub[5] = addTopic3;
-    iot.topics_sub[6] = addTopic4;
-    iot.topics_sub[7] = addTopic0; /* gF (GroundFloor) group*/
+    /* Groups */
+    strcpy(winGroupTopics[0], topicSubgroup0);
+    strcpy(winGroupTopics[1], topicSubgroup1);
+    strcpy(winGroupTopics[2], topicSubgroup2);
+
+    iot.topics_sub[2] = winGroupTopics[0];
+    iot.topics_sub[3] = winGroupTopics[1];
+    iot.topics_sub[4] = winGroupTopics[2];
+
+    /* Entites topics */
+    strcpy(entitiesTopics[0], addTopic1);
+    strcpy(entitiesTopics[1], addTopic2);
+    strcpy(entitiesTopics[2], addTopic3);
+    strcpy(entitiesTopics[3], addTopic4);
+
+    /* Entities*/
+    for (uint8_t i = 0; i < numW; i++)
+    {
+        iot.topics_sub[i + 5] = entitiesTopics[i];
+    }
+    // iot.topics_sub[2] = topicSub1; /* All Windows */
+
+    // iot.topics_sub[3] = addTopic1;
+    // iot.topics_sub[4] = addTopic2;
+    // iot.topics_sub[5] = addTopic3;
+    // iot.topics_sub[6] = addTopic4;
+    // iot.topics_sub[7] = addTopic0; /* gFloor (GroundFloor) group*/
 }
 void update_Parameters_local()
 {
@@ -95,18 +120,25 @@ void addiotnalMQTT(char *incoming_msg, char *_topic)
             _word = STOP;
         }
 
-        if (_topic == addTopic0)
-        {
-            for (uint8_t i = 0; i < numW; i++)
-            {
-                winSW_V[i]->ext_SW(_word, MQTT);
-                _gen_WinMSG(_word, MQTT, i, _topic);
-                iot.pub_msg(msg);
-            }
-        }
-        else
-        {
-        }
+        // if (_topic == addTopic0)
+        // {
+        //     for (uint8_t i = 0; i < numW; i++)
+        //     {
+        //         winSW_V[i]->ext_SW(_word, MQTT);
+        //         _gen_WinMSG(_word, MQTT, i, _topic);
+        //         iot.pub_msg(msg);
+        //     }
+        // }
+        // else if (_topic == addTopic1 || _topic == addTopic2 || _topic == addTopic3 || _topic == addTopic4)
+        // {
+        //     winSW_V[1]->ext_SW(_word, MQTT);
+        //     _gen_WinMSG(_word, MQTT, 1, _topic);
+        //     iot.pub_msg(msg);
+        // }
+        // else
+        // {
+        //     return;
+        // }
     }
 }
 void startIOTservices()
