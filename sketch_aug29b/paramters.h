@@ -4,6 +4,10 @@
 WinSW *winSW_V[maxW] = {nullptr, nullptr, nullptr, nullptr};
 Button2 *Buttons[MAX_Relays] = {nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr};
 
+const char *buttMQTTcmds[2] = {"on", "off"};
+const char *winMQTTcmds[3] = {"up", "down", "off"};
+
+
 /* ****** Paramters that will be updated from FLASH saved on file ******* */
 
 // <<<<<<<<<<<<<<<<<<<<<  Button Paramters >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -32,8 +36,8 @@ char *ButtonNames[MAX_Relays] = {"Saloon", "Entrance", "Parking", "Kitchen", "NA
 
 uint8_t numW = 1;
 #if defined(ESP32)
-uint8_t WrelayPins[maxW][2] = {{33, 32}, {D5, D6}, {0, 0}, {0, 0}};
-uint8_t WinputPins[maxW][2] = {{16, 5}, {D7, D8}, {0, 0}, {0, 0}};
+uint8_t WrelayPins[maxW][2] = {{33, 32}, {0, 0}, {0, 0}, {0, 0}};
+uint8_t WinputPins[maxW][2] = {{16, 5}, {0, 0}, {0, 0}, {0, 0}};
 uint8_t WextInPins[maxW][2] = {{5, 4}, {255, 255}, {255, 255}, {255, 255}};
 #elif defined(ESP8266)
 uint8_t WrelayPins[maxW][2] = {{D3, D4}, {D5, D6}, {0, 0}, {0, 0}};
