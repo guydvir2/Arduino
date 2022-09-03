@@ -6,13 +6,14 @@ const char *topicDebug = "myHome/debug";
 const char *topicmsg = "myHome/Messages";
 
 // ±±±±±±±±±±±± sub Topics ±±±±±±±±±±±±±±±±±±
-const char *topicClient = "myHome/Cont_A1"; // Using controller definition //
+const char *topicClient = "myHome/Cont_A1";
 const char *topicAll = "myHome/All";
 
 // ±±±±±±±±±±±±±±±± Client state pub topics ±±±±±±±±±±±±±±±±
 const char *topicClient_avail = "myHome/Cont_A1/Avail";
 const char *topicClient_state = "myHome/Cont_A1/State";
 
+const char *EntTypes[2] = {"win", "sw"}; /* Prefix to address client types when using MQTT */
 
 void updateTopics_local()
 {
@@ -29,7 +30,10 @@ void updateTopics_local()
     /* Entities*/
     uint8_t shift1 = 2;
     uint8_t groptop = 4;
-    uint8_t shift2 = shift1 + groptop;
+    uint8_t shift2 = shift1 + numW;
+    uint8_t shift3 = shift2 + groptop;
+    uint8_t butgroup = 3;
+    uint8_t shift4 = shift3 + numSW;
 
     for (uint8_t i = 0; i < numW; i++)
     {
@@ -40,6 +44,14 @@ void updateTopics_local()
         iot.topics_sub[i + shift2] = winGroupTopics[i];
     }
 
+    for (uint8_t i = 0; i < numSW; i++)
+    {
+        iot.topics_sub[i + shift3] = buttTopics[i];
+    }
+    for (uint8_t i = 0; i < butgroup; i++)
+    {
+        iot.topics_sub[i + shift4] = buttGroupTopics[i];
+    }
 }
 void update_Parameters_local()
 {
@@ -53,6 +65,7 @@ void update_Parameters_local()
     iot.useBootClockLog = true;
     iot.ignore_boot_msg = false;
 }
+
 void _gen_WinMSG(uint8_t state, uint8_t reason, uint8_t i, const char *name = nullptr)
 {
     char msg[30];
@@ -94,42 +107,65 @@ void addiotnalMQTT(char *incoming_msg, char *_topic)
         sprintf(msg, "ver #2:");
         iot.pub_msg(msg);
     }
-    // if(topic==)
-    else if (strcmp(incoming_msg, "up") == 0 || strcmp(incoming_msg, "down") == 0 || strcmp(incoming_msg, "off") == 0)
-    {
-        uint8_t _word = 0;
-        if (strcmp(incoming_msg, "up") == 0)
-        {
-            _word = UP;
-        }
-        else if (strcmp(incoming_msg, "down") == 0)
-        {
-            _word = DOWN;
-        }
-        else if (strcmp(incoming_msg, "off") == 0)
-        {
-            _word = STOP;
-        }
 
-        // if (_topic == addTopic0)
-        // {
-        //     for (uint8_t i = 0; i < numW; i++)
-        //     {
-        //         winSW_V[i]->ext_SW(_word, MQTT);
-        //         _gen_WinMSG(_word, MQTT, i, _topic);
-        //         iot.pub_msg(msg);
-        //     }
-        // }
-        // else if (_topic == addTopic1 || _topic == addTopic2 || _topic == addTopic3 || _topic == addTopic4)
-        // {
-        //     winSW_V[1]->ext_SW(_word, MQTT);
-        //     _gen_WinMSG(_word, MQTT, 1, _topic);
-        //     iot.pub_msg(msg);
-        // }
-        // else
-        // {
-        //     return;
-        // }
+    else
+    {
+        /* MQTT format MSG:
+        win,0,up
+        sw,1,off
+        */
+        uint8_t n = atoi(iot.inline_param[1]);
+        if (iot.inline_param[0] == EntTypes[0]) /* MQTT cmd for windows */
+        {
+            for()
+            if (strcmp(incoming_msg, "up") == 0 || strcmp(incoming_msg, "down") == 0 || strcmp(incoming_msg, "off") == 0)
+            {
+                uint8_t _word = 0;
+                if (strcmp(incoming_msg, "up") == 0)
+                {
+                    _word = UP;
+                }
+                else if (strcmp(incoming_msg, "down") == 0)
+                {
+                    _word = DOWN;
+                }
+                else if (strcmp(incoming_msg, "off") == 0)
+                {
+                    _word = STOP;
+                }
+
+                // if (_topic == addTopic0)
+                // {
+                //     for (uint8_t i = 0; i < numW; i++)
+                //     {
+                //         winSW_V[i]->ext_SW(_word, MQTT);
+                //         _gen_WinMSG(_word, MQTT, i, _topic);
+                //         iot.pub_msg(msg);
+                //     }
+                // }
+                // else if (_topic == addTopic1 || _topic == addTopic2 || _topic == addTopic3 || _topic == addTopic4)
+                // {
+                //     winSW_V[1]->ext_SW(_word, MQTT);
+                //     _gen_WinMSG(_word, MQTT, 1, _topic);
+                //     iot.pub_msg(msg);
+                // }
+                // else
+                // {
+                //     return;
+                // }
+                for (uint8_t i = 0; i < numW; i++)
+                {
+                    if (winSW_V[i]->get_id() == n)
+                    {
+                        winSW_V[i]->
+
+                    }
+                }
+            }
+        }
+        else if (atoi(iot.inline_param[0]) == EntTypes[1]) /* MQTT cmd for SW */
+        {
+        }
     }
 }
 void startIOTservices()
