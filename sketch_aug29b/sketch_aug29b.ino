@@ -2,20 +2,18 @@
 #include <Button2.h>    /* Button Entities */
 #include <RCSwitch.h>   /* Button Entities */
 #include <myWindowSW.h> /* WinSW Entities */
-#include "paramters.h" /* Hardcoded or updated saved in flash */
+#include "paramters.h"  /* Hardcoded or updated saved in flash */
 #include "but_defs.h"
 #include "myIOT_settings.h"
 
 RCSwitch RFreader = RCSwitch();
-WinSW *winSW_V[maxW] = {nullptr, nullptr, nullptr, nullptr};
-Button2 *Buttons[MAX_Relays] = {nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr};
 
 void init_WinSW()
 {
   for (uint8_t x = 0; x < numW; x++)
   {
     winSW_V[x] = new WinSW;
-    winSW_V[x]->def(WinputPins[x][0], WinputPins[x][1], WinputPins[x][0], WinputPins[x][1]);
+    winSW_V[x]->def(WinputPins[x][0], WinputPins[x][1], WrelayPins[x][0], WrelayPins[x][1]);
     winSW_V[x]->def_extSW(WextInPins[x][0], WextInPins[x][1]);
     winSW_V[x]->def_extras(); /* Timeout, lockdown */
     winSW_V[x]->start();
@@ -34,7 +32,7 @@ void loop_WinSW()
   }
 }
 
-/* ******************* Buttons ************* */
+/* ******************* Buttons ******************* */
 void init_buttons()
 {
   init_butt();
@@ -107,14 +105,15 @@ void loop_RF()
     }
   }
 }
-/* ***************************************************** */
+/* ************************************************ */
+
 void setup()
 {
+  updateTopics();
   startIOTservices();
   init_WinSW();
   init_buttons();
 }
-
 void loop()
 {
   loop_RF();

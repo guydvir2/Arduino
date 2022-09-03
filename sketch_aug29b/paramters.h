@@ -1,13 +1,16 @@
 #define maxW 4
 #define MAX_Relays 8
 
+WinSW *winSW_V[maxW] = {nullptr, nullptr, nullptr, nullptr};
+Button2 *Buttons[MAX_Relays] = {nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr};
+
 /* ****** Paramters that will be updated from FLASH saved on file ******* */
 
 // <<<<<<<<<<<<<<<<<<<<<  Button Paramters >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 bool useRF = true;
 bool useButton = true;
 
-uint8_t numSW = 1;
+uint8_t numSW = 2;
 uint8_t RFpin = 27;
 
 #if defined(ESP32)
@@ -28,10 +31,15 @@ char *ButtonNames[MAX_Relays] = {"Saloon", "Entrance", "Parking", "Kitchen", "NA
 // <<<<<<<<<<<<<<<<<<<<<  WinSW Paramters >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 uint8_t numW = 1;
-uint8_t WrelayPins[maxW][2] = {{D1, D2}, {D5, D6}, {0, 0}, {0, 0}};
-uint8_t WinputPins[maxW][2] = {{D3, D4}, {D7, D8}, {0, 0}, {0, 0}};
-uint8_t WextInPins[maxW][2] = {{D5, D6}, {255, 255}, {255, 255}, {255, 255}};
-
+#if defined(ESP32)
+uint8_t WrelayPins[maxW][2] = {{33, 32}, {D5, D6}, {0, 0}, {0, 0}};
+uint8_t WinputPins[maxW][2] = {{16, 5}, {D7, D8}, {0, 0}, {0, 0}};
+uint8_t WextInPins[maxW][2] = {{5, 4}, {255, 255}, {255, 255}, {255, 255}};
+#elif defined(ESP8266)
+uint8_t WrelayPins[maxW][2] = {{D3, D4}, {D5, D6}, {0, 0}, {0, 0}};
+uint8_t WinputPins[maxW][2] = {{D5, D6}, {D7, D8}, {0, 0}, {0, 0}};
+uint8_t WextInPins[maxW][2] = {{D7, D8}, {255, 255}, {255, 255}, {255, 255}};
+#endif
 char winTopics[maxW][40];
 char winGroupTopics[4][30];
 

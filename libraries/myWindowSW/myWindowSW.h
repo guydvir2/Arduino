@@ -47,7 +47,7 @@ public:
     void def_extSW(uint8_t upin, uint8_t dpin);
     void ext_SW(uint8_t state, uint8_t reason); /* External Callback */
     void def(uint8_t upin, uint8_t dpin, uint8_t outup_pin, uint8_t outdown_pin);
-    void def_extras(bool useTimeout = true, bool useLockdown = true, int timeout_clk = 15);
+    void def_extras(bool useTimeout = true, bool useLockdown = true, int timeout_clk = 90);
 
     uint8_t get_winState();
 
