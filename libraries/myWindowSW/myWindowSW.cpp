@@ -36,6 +36,7 @@ void WinSW::start()
   pinMode(_outpins[0], OUTPUT);
   pinMode(_outpins[1], OUTPUT);
   _allOff();
+  id = _next_id++;
 }
 void WinSW::init_lockdown()
 {
@@ -83,7 +84,15 @@ uint8_t WinSW::get_winState()
     return ERR;
   }
 }
-
+uint8_t WinSW::get_id()
+{
+  return id;
+}
+void WinSW::set_id(uint8_t i)
+{
+  id = 1;
+}
+uint8_t WinSW::_next_id = 0;
 void WinSW::_allOff()
 {
   digitalWrite(_outpins[0], !RELAY_ON);

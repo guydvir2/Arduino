@@ -118,6 +118,7 @@ void switches_setup_summary()
   }
 #endif
 }
+
 void setup()
 {
   Serial.begin(115200);

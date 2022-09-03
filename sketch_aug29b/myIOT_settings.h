@@ -13,19 +13,6 @@ const char *topicAll = "myHome/All";
 const char *topicClient_avail = "myHome/Cont_A1/Avail";
 const char *topicClient_state = "myHome/Cont_A1/State";
 
-// ±±±±±±±±±±±±±±±± Additioan sub topics ±±±±±±±±±±±±±±±±
-// const char *winNick[] = {"Closet", "Bath", "Bed", "TBD"};
-const char *topicSubgroup0 = "myHome/Windows";
-const char *topicSubgroup1 = "myHome/Windows/gFloor"; // Ground Floor group //
-const char *topicSubgroup2 = "myHome/lockdown";
-const char *addTopic1 = "myHome/Windows/gFloor/Closet"; // Using controller definition //
-const char *addTopic2 = "myHome/Windows/gFloor/Bath";   // Using controller definition //
-const char *addTopic3 = "myHome/Windows/gFloor/Bed";    // Using controller definition //
-const char *addTopic4 = "myHome/Windows/gFloor/TBD";    // Using controller definition //
-
-// const char *addedTopis[4] = {&addTopic1, &addTopic2, &addTopic3, &addTopic4};
-char winGroupTopics[3][30];
-char entitiesTopics[maxW][40];
 
 void updateTopics_local()
 {
@@ -39,33 +26,20 @@ void updateTopics_local()
     iot.topics_sub[0] = topicClient;
     iot.topics_sub[1] = topicAll;
 
-    /* Groups */
-    strcpy(winGroupTopics[0], topicSubgroup0);
-    strcpy(winGroupTopics[1], topicSubgroup1);
-    strcpy(winGroupTopics[2], topicSubgroup2);
-
-    iot.topics_sub[2] = winGroupTopics[0];
-    iot.topics_sub[3] = winGroupTopics[1];
-    iot.topics_sub[4] = winGroupTopics[2];
-
-    /* Entites topics */
-    strcpy(entitiesTopics[0], addTopic1);
-    strcpy(entitiesTopics[1], addTopic2);
-    strcpy(entitiesTopics[2], addTopic3);
-    strcpy(entitiesTopics[3], addTopic4);
-
     /* Entities*/
+    uint8_t shift1 = 2;
+    uint8_t groptop = 4;
+    uint8_t shift2 = shift1 + groptop;
+
     for (uint8_t i = 0; i < numW; i++)
     {
-        iot.topics_sub[i + 5] = entitiesTopics[i];
+        iot.topics_sub[i + shift1] = winTopics[i];
     }
-    // iot.topics_sub[2] = topicSub1; /* All Windows */
+    for (uint8_t i = 0; i < groptop; i++)
+    {
+        iot.topics_sub[i + shift2] = winGroupTopics[i];
+    }
 
-    // iot.topics_sub[3] = addTopic1;
-    // iot.topics_sub[4] = addTopic2;
-    // iot.topics_sub[5] = addTopic3;
-    // iot.topics_sub[6] = addTopic4;
-    // iot.topics_sub[7] = addTopic0; /* gFloor (GroundFloor) group*/
 }
 void update_Parameters_local()
 {
@@ -86,6 +60,22 @@ void _gen_WinMSG(uint8_t state, uint8_t reason, uint8_t i, const char *name = nu
     Serial.println(msg);
     iot.pub_msg(msg);
 }
+void updateState(uint8_t i, bool state) /* Button State MQTT update */
+{
+    char t[60];
+    char r[5];
+    sprintf(t, "%s%d", topicClient_state, i);
+    sprintf(r, "%d", state);
+    iot.pub_noTopic(r, t, true);
+}
+void _pub_turn(uint8_t i, uint8_t type, bool request)
+{
+    char msg[50];
+    sprintf(msg, "[%s]: [SW#%d][%s] Turn [%s]", turnTypes[type], i, ButtonNames[i], request == HIGH ? "ON" : "OFF");
+    iot.pub_msg(msg);
+    updateState(i, (int)request);
+}
+
 void addiotnalMQTT(char *incoming_msg, char *_topic)
 {
     char msg[150];
@@ -104,6 +94,7 @@ void addiotnalMQTT(char *incoming_msg, char *_topic)
         sprintf(msg, "ver #2:");
         iot.pub_msg(msg);
     }
+    // if(topic==)
     else if (strcmp(incoming_msg, "up") == 0 || strcmp(incoming_msg, "down") == 0 || strcmp(incoming_msg, "off") == 0)
     {
         uint8_t _word = 0;

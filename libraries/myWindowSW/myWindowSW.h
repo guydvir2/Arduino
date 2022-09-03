@@ -24,12 +24,14 @@ private:
     bool _useTimeout = false;
     bool _useExtSW = false;
 
+    static uint8_t _next_id;
     uint8_t _outpins[2];
 
     int _timeout_clk = 0; // seconds to release relay
     unsigned long _timeoutcounter = 0;
 
 public:
+    uint8_t id = 0;
     bool newMSGflag = false;
 
     MSGstr MSG;
@@ -38,6 +40,8 @@ public:
     WinSW();
     void loop();
     void start();
+    uint8_t get_id();
+    void set_id(uint8_t i);
     void init_lockdown();
     void release_lockdown();
     void def_extSW(uint8_t upin, uint8_t dpin);
