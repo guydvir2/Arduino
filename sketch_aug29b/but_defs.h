@@ -4,28 +4,27 @@
 #define turnON(i) digitalWrite(i, OUTPUT_ON)
 #define turnOFF(i) digitalWrite(i, !OUTPUT_ON)
 
-char *turnTypes[] = {"MQTT", "Button", "Remote", "Code"};
+char *turnTypes[] = {"MQTT", "Button", "Remote"};
 
 enum OPerTypes : const uint8_t
 {
     _MQTT,
     _BUTTON,
-    RF,
-    BIT
+    RF
 };
 
 bool _isON(uint8_t i)
 {
     return digitalRead(i) == OUTPUT_ON;
 }
-void _pub_turn(uint8_t i, uint8_t type, bool request);
+void _gen_ButtMSG(uint8_t i, uint8_t type, bool request);
 
 void _turnON_cb(uint8_t i, uint8_t type)
 {
     if (!_isON(relayPins[i]))
     {
         turnON(relayPins[i]);
-        _pub_turn(i, type, HIGH);
+        _gen_ButtMSG(i, type, HIGH);
     }
     else
     {
@@ -38,7 +37,7 @@ void _turnOFF_cb(uint8_t i, uint8_t type)
     if (_isON(relayPins[i]))
     {
         turnOFF(relayPins[i]);
-        _pub_turn(i, type, LOW);
+        _gen_ButtMSG(i, type, LOW);
     }
     else
     {

@@ -28,6 +28,7 @@ void loop_WinSW()
     {
       _gen_WinMSG(winSW_V[x]->MSG.state, winSW_V[x]->MSG.reason, x);
       winSW_V[x]->newMSGflag = false;
+      win_updateState(x, winSW_V[x]->MSG.state);
     }
   }
 }
@@ -93,12 +94,13 @@ void loop_RF()
     if (RFreader.available())
     {
       // sprintf(temp, "Received %d / %dbit Protocol: ", RFreader.getReceivedValue(), RFreader.getReceivedBitlength(), RFreader.getReceivedProtocol());
+      static unsigned long lastEntry = 0;
       for (uint8_t i = 0; i < sizeof(RF_keyboardCode) / sizeof(RF_keyboardCode[0]); i++)
       {
-        if (RF_keyboardCode[i] == RFreader.getReceivedValue())
+        if (RF_keyboardCode[i] == RFreader.getReceivedValue() && millis() - lastEntry > 1000)
         {
           toggleRelay(i, RF);
-          delay(500); /* To avoid bursts */
+          lastEntry = millis();
         }
       }
       RFreader.resetAvailable();
@@ -107,6 +109,19 @@ void loop_RF()
 }
 /* ************************************************ */
 
+void boot_summary()
+{
+  Serial.print("numWindows:\t\t");
+  Serial.println(numW);
+  Serial.print("Topics:\t\t") for (uint8_t i = 0; i < NUMW; i++)
+  {
+    Serial.print(winTopics[i]);
+    Serial.print(\t);
+  }
+
+  Serial.print("numSwitches:\t\t");
+  Serial.println(numSW);
+}
 void setup()
 {
   updateTopics();

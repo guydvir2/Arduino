@@ -72,20 +72,28 @@ void _gen_WinMSG(uint8_t state, uint8_t reason, uint8_t i)
     sprintf(msg, "Window [#%d] [%s] is [%s] by [%s]", i, winTopics[i], STATES_TXT[state], REASONS_TXT[reason]);
     iot.pub_msg(msg);
 }
-void updateState(uint8_t i, bool state) /* Button State MQTT update */
+void win_updateState(uint8_t i, uint8_t state) /* Windows State MQTT update */
 {
     char t[60];
     char r[5];
-    sprintf(t, "%s%d", topicClient_state, i);
+    sprintf(t, "%s/State", winTopics[i]);
     sprintf(r, "%d", state);
     iot.pub_noTopic(r, t, true);
 }
-void _pub_turn(uint8_t i, uint8_t type, bool request)
+void butt_updateState(uint8_t i, bool state) /* Button State MQTT update */
 {
-    char msg[50];
-    sprintf(msg, "[%s]: [SW#%d][%s] Turn [%s]", turnTypes[type], i, ButtonNames[i], request == HIGH ? "ON" : "OFF");
+    char t[60];
+    char r[5];
+    sprintf(t, "%s/State", buttTopics[i]);
+    sprintf(r, "%d", state);
+    iot.pub_noTopic(r, t, true);
+}
+void _gen_ButtMSG(uint8_t i, uint8_t type, bool request)
+{
+    char msg[100];
+    sprintf(msg, "[%s]: [SW#%d][%s] Turn [%s]", turnTypes[type], i, buttTopics[i], request == HIGH ? "ON" : "OFF");
     iot.pub_msg(msg);
-    updateState(i, (int)request);
+    butt_updateState(i, (int)request);
 }
 
 void addiotnalMQTT(char *incoming_msg, char *_topic)
@@ -93,6 +101,14 @@ void addiotnalMQTT(char *incoming_msg, char *_topic)
     char msg[150];
     if (strcmp(incoming_msg, "status") == 0)
     {
+        if (numW > 0)
+        {
+            sprintf(msg, "");
+            for (uint8_t i = 0; i < numW; i++)
+            {
+                strcat(msg, "Win[#%d] [%d]", i, winSW_V[i]->get_winState())
+            }
+        }
         sprintf(msg, "BOOOOO");
         iot.pub_msg(msg);
     }
@@ -105,6 +121,25 @@ void addiotnalMQTT(char *incoming_msg, char *_topic)
     {
         sprintf(msg, "ver #2:");
         iot.pub_msg(msg);
+    }
+    else if (strcmp(winGroupTopics[1], _topic) == 0)
+    {
+        if (strcmp(incoming_msg, "true") == 0)
+        {
+            for (uint8_t i = 0; i < numW; i++)
+            {
+                iot.pub_msg("Lockdown: Start");
+                winSW_V[i]->init_lockdown();
+            }
+        }
+        if (strcmp(incoming_msg, "false") == 0)
+        {
+            for (uint8_t i = 0; i < numW; i++)
+            {
+                iot.pub_msg("Lockdown: Released");
+                winSW_V[i]->release_lockdown();
+            }
+        }
     }
     else
     {
@@ -135,17 +170,15 @@ void addiotnalMQTT(char *incoming_msg, char *_topic)
                     winSW_V[i]->ext_SW(_word, MQTT);
                     return;
                 }
-                else
-                {
-                    return;
-                }
             }
-            for (uint8_t i = 0; i < sizeof(winGroupTopics) / sizeof(winGroupTopics[0][0]); i++)
+            for (uint8_t i = 0; i < sizeof(winGroupTopics) / sizeof(winGroupTopics[0]); i++)
             {
-                for (uint8_t i = 0; i < numW; i++)
+                if (strcmp(_topic, winGroupTopics[i]) == 0)
                 {
-                    winSW_V[i]->ext_SW(_word, MQTT);
-                    return;
+                    for (uint8_t i = 0; i < numW; i++)
+                    {
+                        winSW_V[i]->ext_SW(_word, MQTT);
+                    }
                 }
             }
         }
@@ -166,25 +199,23 @@ void addiotnalMQTT(char *incoming_msg, char *_topic)
                         return;
                     }
                 }
-                else
-                {
-                    return;
-                }
             }
-            for (uint8_t i = 0; i < sizeof(buttGroupTopics) / sizeof(buttGroupTopics[0][0]); i++)
+            for (uint8_t i = 0; i < sizeof(buttGroupTopics) / sizeof(buttGroupTopics[0]); i++)
             {
-                for (uint8_t i = 0; i < numSW; i++)
+                if (strcmp(_topic, buttGroupTopics[i]) == 0)
                 {
-                    if (strcmp(iot.inline_param[1], buttMQTTcmds[0]) == 0)
+                    for (uint8_t i = 0; i < numSW; i++)
                     {
-                        _turnON_cb(i, _MQTT);
-                        return;
+                        if (strcmp(iot.inline_param[1], buttMQTTcmds[0]) == 0)
+                        {
+                            _turnON_cb(i, _MQTT);
+                        }
+                        else if (strcmp(iot.inline_param[1], buttMQTTcmds[1]) == 0)
+                        {
+                            _turnOFF_cb(i, _MQTT);
+                        }
                     }
-                    else if (strcmp(iot.inline_param[1], buttMQTTcmds[1]) == 0)
-                    {
-                        _turnOFF_cb(i, _MQTT);
-                        return;
-                    }
+                    return;
                 }
             }
         }

@@ -7,7 +7,6 @@ Button2 *Buttons[MAX_Relays] = {nullptr, nullptr, nullptr, nullptr, nullptr, nul
 const char *buttMQTTcmds[2] = {"on", "off"};
 const char *winMQTTcmds[3] = {"up", "down", "off"};
 
-
 /* ****** Paramters that will be updated from FLASH saved on file ******* */
 
 // <<<<<<<<<<<<<<<<<<<<<  Button Paramters >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -30,14 +29,14 @@ char buttTopics[MAX_Relays][40];
 
 bool buttonTypes[MAX_Relays] = {0, 0, 0, 1}; /* <0> is ON-Off Switch, <1> push button */
 int RF_keyboardCode[] = {3135496, 3135492, 3135490, 3135489};
-char *ButtonNames[MAX_Relays] = {"Saloon", "Entrance", "Parking", "Kitchen", "NAN", "NAN", "NAN", "NAN"};
+// char *ButtonNames[MAX_Relays] = {"Saloon", "Entrance", "Parking", "Kitchen", "NAN", "NAN", "NAN", "NAN"};
 
 // <<<<<<<<<<<<<<<<<<<<<  WinSW Paramters >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 uint8_t numW = 1;
 #if defined(ESP32)
-uint8_t WrelayPins[maxW][2] = {{33, 32}, {0, 0}, {0, 0}, {0, 0}};
-uint8_t WinputPins[maxW][2] = {{16, 5}, {0, 0}, {0, 0}, {0, 0}};
+uint8_t WrelayPins[maxW][2] = {{33, 32}, {25, 26}, {0, 0}, {0, 0}};
+uint8_t WinputPins[maxW][2] = {{16, 5}, {19, 17}, {0, 0}, {0, 0}};
 uint8_t WextInPins[maxW][2] = {{5, 4}, {255, 255}, {255, 255}, {255, 255}};
 #elif defined(ESP8266)
 uint8_t WrelayPins[maxW][2] = {{D3, D4}, {D5, D6}, {0, 0}, {0, 0}};
