@@ -1,9 +1,9 @@
 #define OUTPUT_ON HIGH
 #define BUTTON_PRESSED LOW
+#define HWturnON(i) digitalWrite(i, OUTPUT_ON)
+#define HWturnOFF(i) digitalWrite(i, !OUTPUT_ON)
 
-#define turnON(i) digitalWrite(i, OUTPUT_ON)
-#define turnOFF(i) digitalWrite(i, !OUTPUT_ON)
-
+extern myIOT2 iot;
 char *turnTypes[] = {"MQTT", "Button", "Remote"};
 
 enum OPerTypes : const uint8_t
@@ -12,37 +12,52 @@ enum OPerTypes : const uint8_t
     _BUTTON,
     RF
 };
+void _gen_ButtMSG(uint8_t i, uint8_t type, bool request);
 
 bool _isON(uint8_t i)
 {
-    return digitalRead(i) == OUTPUT_ON;
+    return digitalRead(SW_v[i]->outPin) == OUTPUT_ON;
 }
-void _gen_ButtMSG(uint8_t i, uint8_t type, bool request);
-
 void _turnON_cb(uint8_t i, uint8_t type)
 {
-    if (!_isON(relayPins[i]))
+    if (!SW_v[i]->virtCMD)
     {
-        turnON(relayPins[i]);
-        _gen_ButtMSG(i, type, HIGH);
+        if (!_isON(i))
+        {
+            HWturnON(SW_v[i]->outPin);
+            _gen_ButtMSG(i, type, HIGH);
+        }
+        else
+        {
+            Serial.print(i);
+            Serial.println(" Already on");
+        }
     }
     else
     {
-        Serial.print(i);
-        Serial.println(" Already on");
+        iot.pub_noTopic(buttMQTTcmds[0], SW_v[i]->Topic);
+        _gen_ButtMSG(i, type, HIGH);
     }
 }
 void _turnOFF_cb(uint8_t i, uint8_t type)
 {
-    if (_isON(relayPins[i]))
+    if (!SW_v[i]->virtCMD)
     {
-        turnOFF(relayPins[i]);
-        _gen_ButtMSG(i, type, LOW);
+        if (_isON(i))
+        {
+            HWturnOFF(SW_v[i]->outPin);
+            _gen_ButtMSG(i, type, LOW);
+        }
+        else
+        {
+            Serial.print(i);
+            Serial.println(" Already off");
+        }
     }
     else
     {
-        Serial.print(i);
-        Serial.println(" Already off");
+        iot.pub_noTopic(buttMQTTcmds[1], SW_v[i]->Topic);
+        _gen_ButtMSG(i, type, LOW);
     }
 }
 void OnOffSW_Relay(uint8_t i, bool state, uint8_t type)
@@ -58,13 +73,27 @@ void OnOffSW_Relay(uint8_t i, bool state, uint8_t type)
 }
 void toggleRelay(uint8_t i, uint8_t type)
 {
-    if (_isON(relayPins[i]))
+    if (!SW_v[i]->virtCMD)
     {
-        _turnOFF_cb(i, type);
+        if (_isON(i))
+        {
+            _turnOFF_cb(i, type);
+        }
+        else
+        {
+            _turnON_cb(i, type);
+        }
     }
     else
     {
-        _turnON_cb(i, type);
+        if (SW_v[i]->guessState == true)
+        {
+            _turnOFF_cb(i, type);
+        }
+        else{
+            _turnON_cb(i, type);
+        }
+        SW_v[i]->guessState = !SW_v[i]->guessState;
     }
 }
 

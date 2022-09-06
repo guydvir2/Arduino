@@ -37,7 +37,7 @@ void updateTopics_local()
 
     for (uint8_t i = 0; i < numW; i++)
     {
-        iot.topics_sub[i + shift1] = winTopics[i];
+        iot.topics_sub[i + shift1] = winSW_V[i]->name;
     }
     for (uint8_t i = 0; i < groptop; i++)
     {
@@ -46,7 +46,7 @@ void updateTopics_local()
 
     for (uint8_t i = 0; i < numSW; i++)
     {
-        iot.topics_sub[i + shift3] = buttTopics[i];
+        iot.topics_sub[i + shift3] = SW_v[i]->Topic;
     }
     for (uint8_t i = 0; i < butgroup; i++)
     {
@@ -69,14 +69,14 @@ void update_Parameters_local()
 void _gen_WinMSG(uint8_t state, uint8_t reason, uint8_t i)
 {
     char msg[100];
-    sprintf(msg, "Window [#%d] [%s] is [%s] by [%s]", i, winTopics[i], STATES_TXT[state], REASONS_TXT[reason]);
+    sprintf(msg, "Window [#%d] [%s] is [%s] by [%s]", i, winSW_V[i]->name, STATES_TXT[state], REASONS_TXT[reason]);
     iot.pub_msg(msg);
 }
 void win_updateState(uint8_t i, uint8_t state) /* Windows State MQTT update */
 {
     char t[60];
     char r[5];
-    sprintf(t, "%s/State", winTopics[i]);
+    sprintf(t, "%s/State", winSW_V[i]->name);
     sprintf(r, "%d", state);
     iot.pub_noTopic(r, t, true);
 }
@@ -84,14 +84,14 @@ void butt_updateState(uint8_t i, bool state) /* Button State MQTT update */
 {
     char t[60];
     char r[5];
-    sprintf(t, "%s/State", buttTopics[i]);
+    sprintf(t, "%s/State", SW_v[i]->Topic);
     sprintf(r, "%d", state);
     iot.pub_noTopic(r, t, true);
 }
 void _gen_ButtMSG(uint8_t i, uint8_t type, bool request)
 {
     char msg[100];
-    sprintf(msg, "[%s]: [SW#%d][%s] Turn [%s]", turnTypes[type], i, buttTopics[i], request == HIGH ? "ON" : "OFF");
+    sprintf(msg, "[%s]: [SW#%d][%s] Turn [%s]", turnTypes[type], i, SW_v[i]->Topic, request == HIGH ? "ON" : "OFF");
     iot.pub_msg(msg);
     butt_updateState(i, (int)request);
 }
@@ -101,16 +101,29 @@ void addiotnalMQTT(char *incoming_msg, char *_topic)
     char msg[150];
     if (strcmp(incoming_msg, "status") == 0)
     {
+        char msg2[100];
+        strcpy(msg, "Status: ");
         if (numW > 0)
         {
-            sprintf(msg, "");
+            strcat(msg, "[Windows]- ");
             for (uint8_t i = 0; i < numW; i++)
             {
-                strcat(msg, "Win[#%d] [%d]", i, winSW_V[i]->get_winState())
+                sprintf(msg2, " Win[#%d][%s] [%d]%s", i, winSW_V[i]->name, winSW_V[i]->get_winState(), i == numSW - 1 ? "" : "; ");
+                strcat(msg, msg2);
             }
+            iot.pub_msg(msg);
         }
-        sprintf(msg, "BOOOOO");
-        iot.pub_msg(msg);
+        strcpy(msg, "Status: ");
+        if (numSW > 0)
+        {
+            strcat(msg, "[Switches]- ");
+            for (uint8_t i = 0; i < numSW; i++)
+            {
+                sprintf(msg2, " SW[#%d][%s] [%d]%s", i, SW_v[i]->Topic, _isON(i), i == numSW - 1 ? "" : "; ");
+                strcat(msg, msg2);
+            }
+            iot.pub_msg(msg);
+        }
     }
     else if (strcmp(incoming_msg, "help2") == 0)
     {
@@ -165,7 +178,7 @@ void addiotnalMQTT(char *incoming_msg, char *_topic)
 
             for (uint8_t i = 0; i < numW; i++)
             {
-                if (strcmp(_topic, winTopics[i]) == 0)
+                if (strcmp(_topic, winSW_V[i]->name) == 0)
                 {
                     winSW_V[i]->ext_SW(_word, MQTT);
                     return;
@@ -186,7 +199,7 @@ void addiotnalMQTT(char *incoming_msg, char *_topic)
         {
             for (uint8_t i = 0; i < numSW; i++)
             {
-                if (strcmp(_topic, buttTopics[i]) == 0)
+                if (strcmp(_topic, SW_v[i]->Topic) == 0)
                 {
                     if (strcmp(iot.inline_param[1], buttMQTTcmds[0]) == 0)
                     {

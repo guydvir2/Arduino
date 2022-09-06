@@ -6,7 +6,7 @@
 #include "but_defs.h"
 #include "myIOT_settings.h"
 
-RCSwitch RFreader = RCSwitch();
+RCSwitch *RF_v = nullptr;
 
 void init_WinSW()
 {
@@ -17,6 +17,7 @@ void init_WinSW()
     winSW_V[x]->def_extSW(WextInPins[x][0], WextInPins[x][1]);
     winSW_V[x]->def_extras(); /* Timeout, lockdown */
     winSW_V[x]->start();
+    sprintf(winSW_V[x]->name, "%sWin%d", WIN_prefixTopic, x); /* Store MQTT topic inside LIB to avoid redefined overhead waste */
   }
 }
 void loop_WinSW()
@@ -24,66 +25,86 @@ void loop_WinSW()
   for (uint8_t x = 0; x < numW; x++)
   {
     winSW_V[x]->loop();
+    // Button action MSG to main code
     if (winSW_V[x]->newMSGflag)
     {
       _gen_WinMSG(winSW_V[x]->MSG.state, winSW_V[x]->MSG.reason, x);
       winSW_V[x]->newMSGflag = false;
       win_updateState(x, winSW_V[x]->MSG.state);
     }
+    // END handler
   }
 }
 
 /* ******************* Buttons ******************* */
 void init_buttons()
 {
-  init_butt();
-  init_outputs();
+  init_butt(buttonPins, buttonTypes);
+  init_outputs(relayPins);
+  init_topics();
   init_RF();
 }
-void init_butt()
+void init_butt(uint8_t butPinArray[], bool butType[])
 {
-  if (useButton)
+  for (uint8_t i = 0; i < numSW; i++)
   {
-    for (uint8_t i = 0; i < numSW; i++)
+    SW_v[i] = new SwitchStruct;
+    SW_v[i]->id = i;
+
+    if (SW_v[i]->useButton)
     {
-      Buttons[i] = new Button2;
-      Buttons[i]->begin(buttonPins[i]);
-      if (buttonTypes[i] == 0) /* On-Off Switch */
+      SW_v[i]->button.begin(butPinArray[i]);
+      SW_v[i]->button.setID(i);
+      SW_v[i]->virtCMD = false;
+
+      if (butType[i] == 0) /* On-Off Switch */
       {
-        Buttons[i]->setPressedHandler(OnOffSW_ON_handler);
-        Buttons[i]->setReleasedHandler(OnOffSW_OFF_handler);
+        SW_v[i]->button.setPressedHandler(OnOffSW_ON_handler);
+        SW_v[i]->button.setReleasedHandler(OnOffSW_OFF_handler);
       }
-      else if (buttonTypes[i] == 1) /* Momentary press */
+      else /* Momentary press */
       {
-        Buttons[i]->setPressedHandler(toggle_handle);
+        SW_v[i]->button.setPressedHandler(toggle_handle);
       }
-      Buttons[i]->setID(i);
     }
   }
 }
-void init_outputs()
+void init_outputs(uint8_t relp[])
 {
-  for (byte i = 0; i < numSW; i++)
+  for (uint8_t i = 0; i < numSW; i++)
   {
-    pinMode(relayPins[i], OUTPUT);
-    digitalWrite(relayPins[i], !OUTPUT_ON);
+    if (!SW_v[i]->virtCMD) /* virtCMD outputs a MQTT msg to operate other IOT device */
+    {
+      SW_v[i]->outPin = relp[i]; /* will be removed in future */
+      pinMode(SW_v[i]->outPin, OUTPUT);
+      digitalWrite(SW_v[i]->outPin, !OUTPUT_ON);
+    }
+  }
+}
+void init_topics()
+{
+  for (uint8_t i = 0; i < numSW; i++)
+  {
+    sprintf(SW_v[i]->Topic, "%sLight%d", SW_prefixTopic, i);
   }
 }
 void init_RF()
 {
   if (useRF)
   {
-    RFreader.enableReceive(RFpin);
+    RF_v = new RCSwitch();
+
+    RF_v->enableReceive(RFpin);
   }
 }
 
 void loop_buttons()
 {
-  if (useButton)
+  for (uint8_t i = 0; i < numSW; i++)
   {
-    for (byte i = 0; i < numSW; i++)
+    if (SW_v[i]->useButton)
     {
-      Buttons[i]->loop();
+      SW_v[i]->button.loop();
     }
   }
 }
@@ -91,19 +112,19 @@ void loop_RF()
 {
   if (useRF)
   {
-    if (RFreader.available())
+    if (RF_v->available())
     {
       // sprintf(temp, "Received %d / %dbit Protocol: ", RFreader.getReceivedValue(), RFreader.getReceivedBitlength(), RFreader.getReceivedProtocol());
       static unsigned long lastEntry = 0;
       for (uint8_t i = 0; i < sizeof(RF_keyboardCode) / sizeof(RF_keyboardCode[0]); i++)
       {
-        if (RF_keyboardCode[i] == RFreader.getReceivedValue() && millis() - lastEntry > 1000)
+        if (RF_keyboardCode[i] == RF_v->getReceivedValue() && millis() - lastEntry > 1000)
         {
           toggleRelay(i, RF);
           lastEntry = millis();
         }
       }
-      RFreader.resetAvailable();
+      RF_v->resetAvailable();
     }
   }
 }
@@ -113,21 +134,30 @@ void boot_summary()
 {
   Serial.print("numWindows:\t\t");
   Serial.println(numW);
-  Serial.print("Topics:\t\t") for (uint8_t i = 0; i < NUMW; i++)
+  Serial.print("Topics:\t\t");
+  for (uint8_t i = 0; i < numW; i++)
   {
-    Serial.print(winTopics[i]);
-    Serial.print(\t);
+    // Serial.print(winTopics[i]);
+    Serial.print("; ");
   }
+  Serial.println();
 
   Serial.print("numSwitches:\t\t");
   Serial.println(numSW);
+  Serial.print("Topics:\t\t");
+  for (uint8_t i = 0; i < numSW; i++)
+  {
+    // Serial.print(winTopics[i]);
+    // Serial.print("; ");
+  }
+  Serial.println();
 }
 void setup()
 {
   updateTopics();
-  startIOTservices();
   init_WinSW();
   init_buttons();
+  startIOTservices();
 }
 void loop()
 {

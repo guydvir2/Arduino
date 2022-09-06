@@ -1,15 +1,25 @@
 #include <Arduino.h>
 
-char a[3][30];
+
+
+char *a[2] = {nullptr, nullptr};
+
+char b[20];
 
 void setup()
 {
   Serial.begin(115200);
   Serial.println("\n\nStart");
-  Serial.println(sizeof(a) / sizeof(a[0]));
+  sprintf(b, "dfgsfgsdfgsdfg");
+
+  a[0] = b;
+
+  // for (uint8_t i = 0; i < 10; i++)
+  // {
+    Serial.println(a[0]);
+  // }
 }
 
 void loop()
 {
-
 }

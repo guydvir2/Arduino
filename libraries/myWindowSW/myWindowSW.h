@@ -33,6 +33,7 @@ private:
 public:
     uint8_t id = 0;
     bool newMSGflag = false;
+    char name[40];
 
     MSGstr MSG;
 
