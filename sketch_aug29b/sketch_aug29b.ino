@@ -146,15 +146,15 @@ void boot_summary()
 }
 void setup()
 {
-  updateTopics();
-  init_WinSW();
-  init_buttons();
+  // updateTopics();
+  // init_WinSW();
+  // init_buttons();
   startIOTservices();
 }
 void loop()
 {
-  loop_RF();
-  loop_WinSW();
-  loop_buttons();
+  // loop_RF();
+  // loop_WinSW();
+  // loop_buttons();
   iot.looper();
 }

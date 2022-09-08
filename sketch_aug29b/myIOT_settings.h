@@ -1,5 +1,90 @@
 myIOT2 iot;
 
+#define MAX_TOPIC_SIZE 40 // <----- Verfy max Topic size
+
+char topics_sub[3][MAX_TOPIC_SIZE];
+char topics_pub[2][MAX_TOPIC_SIZE];
+char topics_gen_pub[3][MAX_TOPIC_SIZE];
+
+char winGroupTopics[4][MAX_TOPIC_SIZE];
+char buttGroupTopics[3][MAX_TOPIC_SIZE];
+
+char *parameterFiles[3] = {"/myIOT_param.json", "/myIOT2_topics.json", "/sketch_param.json"}; // <----- Verfy file names
+
+void updateTopics_flash(JsonDocument &DOC, char ch_array[][MAX_TOPIC_SIZE], const char *dest_array[], const char *topic, const char *defaulttopic, uint8_t ar_size, uint8_t shift = 0)
+{
+    JsonArray array = DOC[topic].to<JsonArray>();
+    Serial.println(array.size());
+    for (uint8_t i = 0; i < ar_size; i++)
+    {
+        Serial.println(DOC[topic][i].isNull());
+        strlcpy(ch_array[i], DOC[topic][i] | defaulttopic, MAX_TOPIC_SIZE);
+        dest_array[i + shift] = ch_array[i];
+    }
+}
+void updateTopics_flash(JsonDocument &DOC, char ch_array[], const char *dest_array[], const char *topic, const char *defaulttopic, uint8_t i, uint8_t shift = 0)
+{
+    strlcpy(ch_array, DOC[topic][i] | defaulttopic, MAX_TOPIC_SIZE);
+    dest_array[i + shift] = ch_array;
+}
+void update_sketch_parameters_flash()
+{
+    /* Custom paramters for each sketch used IOT2*/
+    yield();
+}
+void update_Parameters_flash()
+{
+    StaticJsonDocument<1250> DOC;
+
+    /* Part A: update filenames of paramter files */
+    iot.set_pFilenames(parameterFiles, sizeof(parameterFiles) / sizeof(parameterFiles[0]));
+
+    /* Part B: Read from flash, and update myIOT parameters */
+    iot.extract_JSON_from_flash(iot.parameter_filenames[0], DOC);
+    iot.update_vars_flash_parameters(DOC);
+    DOC.clear();
+
+    uint8_t accum_shift = 0;
+
+    /* Part C: Read Topics from flash, and update myIOT Topics */
+    iot.extract_JSON_from_flash(iot.parameter_filenames[1], DOC); /* extract topics from flash */
+    updateTopics_flash(DOC, topics_gen_pub, iot.topics_gen_pub, "pub_gen_topics", "myHome/Messages", sizeof(topics_gen_pub) / (sizeof(topics_gen_pub[0])));
+    updateTopics_flash(DOC, topics_pub, iot.topics_pub, "pub_topics", "myHome/log", sizeof(topics_pub) / (sizeof(topics_pub[0])));
+    updateTopics_flash(DOC, topics_sub, iot.topics_sub, "sub_topics", "myHome/log", sizeof(topics_sub) / (sizeof(topics_sub[0])));
+
+    accum_shift = sizeof(topics_sub) / (sizeof(topics_sub[0]));
+    updateTopics_flash(DOC, winGroupTopics, iot.topics_sub, "sub_topics_win_g", "myHome/log", sizeof(winGroupTopics) / (sizeof(winGroupTopics[0])),accum_shift);
+
+    // accum_shift += sizeof(winGroupTopics) / (sizeof(winGroupTopics[0]));
+    // updateTopics_flash(DOC, buttGroupTopics, iot.topics_sub, "sub_topics_SW_g", "myHome/log", sizeof(buttGroupTopics) / (sizeof(buttGroupTopics[0])), accum_shift);
+
+    // accum_shift += sizeof(buttGroupTopics) / (sizeof(buttGroupTopics[0]));
+    // for (uint8_t i = 0; i < numW; i++)
+    // {
+    //     updateTopics_flash(DOC, winSW_V[i]->name, iot.topics_sub, "sub_topics_win", "myHome/log", i, accum_shift + i);
+    // }
+
+    // accum_shift += numW;
+    // for (uint8_t i = 0; i < numSW; i++)
+    // {
+    //     updateTopics_flash(DOC, SW_v[i]->Topic, iot.topics_sub, "sub_topics_SW", "myHome/log", i, accum_shift + i);
+    // }
+
+    Serial.begin(115200);
+    for (uint8_t i = 0; i < 20; i++)
+    {
+        Serial.print(i);
+        Serial.println(iot.topics_sub[i]);
+    }
+
+    DOC.clear();
+
+    /* Part D: Read Sketch paramters from flash, and update Sketch */
+    iot.extract_JSON_from_flash(iot.parameter_filenames[2], DOC);
+    update_sketch_parameters_flash();
+    DOC.clear();
+}
+
 // ±±±±±±± Genereal pub topic ±±±±±±±±±
 const char *topicLog = "myHome/log";
 const char *topicDebug = "myHome/debug";
@@ -85,7 +170,7 @@ void butt_updateState(uint8_t i, bool state) /* Button State MQTT update */
 void _gen_WinMSG(uint8_t state, uint8_t reason, uint8_t i)
 {
     char msg[100];
-    sprintf(msg, "[%s]: [WIN#%d] [%s] turned [%s]", REASONS_TXT[reason] ,i, winSW_V[i]->name, STATES_TXT[state]);
+    sprintf(msg, "[%s]: [WIN#%d] [%s] turned [%s]", REASONS_TXT[reason], i, winSW_V[i]->name, STATES_TXT[state]);
     iot.pub_msg(msg);
     win_updateState(i, state);
 }
@@ -238,7 +323,8 @@ void addiotnalMQTT(char *incoming_msg, char *_topic)
 }
 void startIOTservices()
 {
-    updateTopics_local();
-    update_Parameters_local();
+    // updateTopics_local();
+    // update_Parameters_local();
+    update_Parameters_flash();
     iot.start_services(addiotnalMQTT);
 }

@@ -37,7 +37,7 @@ uint8_t buttonPins[MAX_Relays] = {D7, D2, D3, D4, 0, 0, 0, 0};
 uint8_t relayPins[MAX_Relays] = {D8, D6, D7, D8, 0, 0, 0, 0};
 #endif
 
-char buttGroupTopics[3][30];
+
 bool buttonTypes[MAX_Relays] = {0, 0, 0, 1}; /* <0> is ON-Off Switch, <1> push button */
 int RF_keyboardCode[] = {3135496, 3135492, 3135490, 3135489};
 
@@ -55,20 +55,20 @@ uint8_t WinputPins[maxW][2] = {{D5, D6}, {D7, D8}, {0, 0}, {0, 0}};
 uint8_t WextInPins[maxW][2] = {{D7, D8}, {255, 255}, {255, 255}, {255, 255}};
 #endif
 
-char winGroupTopics[4][30];
+
 const char *WIN_prefixTopic = "myHome/Windows/gFloor/";
 
 // <<<<<<<<<<<<<<<<<<<<<  IOcmds Paramters >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 void updateTopics()
 {
-    strcpy(winGroupTopics[0], "myHome/Windows");
-    strcpy(winGroupTopics[1], "myHome/lockdown");
-    strcpy(winGroupTopics[2], "myHome/alarmMonitor");
-    strcpy(winGroupTopics[3], "myHome/Windows/gFloor");
+    // strcpy(winGroupTopics[0], "myHome/Windows");
+    // strcpy(winGroupTopics[1], "myHome/lockdown");
+    // strcpy(winGroupTopics[2], "myHome/alarmMonitor");
+    // strcpy(winGroupTopics[3], "myHome/Windows/gFloor");
 
-    strcpy(buttGroupTopics[0], "myHome/Lights");
-    strcpy(buttGroupTopics[1], "myHome/Lights/int");
-    strcpy(buttGroupTopics[2], "myHome/Lights/int/gFloor");
+    // strcpy(buttGroupTopics[0], "myHome/Lights");
+    // strcpy(buttGroupTopics[1], "myHome/Lights/int");
+    // strcpy(buttGroupTopics[2], "myHome/Lights/int/gFloor");
 }
 /*************************************************************************/

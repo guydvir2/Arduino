@@ -8,7 +8,7 @@
     "useNetworkReset": true,
     "useBootClockLog": true,
     "ignore_boot_msg": false,
-    "debug_level": 2,
-    "noNetwork_reset": 5,
+    "debug_level": 0,
+    "noNetwork_reset": 30,
     "ver": 0.6
 }
