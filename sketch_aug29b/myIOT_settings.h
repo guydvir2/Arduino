@@ -6,20 +6,22 @@ char topics_sub[3][MAX_TOPIC_SIZE];
 char topics_pub[2][MAX_TOPIC_SIZE];
 char topics_gen_pub[3][MAX_TOPIC_SIZE];
 
-char winGroupTopics[4][MAX_TOPIC_SIZE];
+char winGroupTopics[2][MAX_TOPIC_SIZE];
 char buttGroupTopics[3][MAX_TOPIC_SIZE];
 
 char *parameterFiles[3] = {"/myIOT_param.json", "/myIOT2_topics.json", "/sketch_param.json"}; // <----- Verfy file names
 
 void updateTopics_flash(JsonDocument &DOC, char ch_array[][MAX_TOPIC_SIZE], const char *dest_array[], const char *topic, const char *defaulttopic, uint8_t ar_size, uint8_t shift = 0)
 {
-    JsonArray array = DOC[topic].to<JsonArray>();
-    Serial.println(array.size());
+    JsonArray array = DOC[topic];
     for (uint8_t i = 0; i < ar_size; i++)
     {
-        Serial.println(DOC[topic][i].isNull());
+        // Serial.println(DOC[topic][i].isNull());
         strlcpy(ch_array[i], DOC[topic][i] | defaulttopic, MAX_TOPIC_SIZE);
         dest_array[i + shift] = ch_array[i];
+    }
+    for(const char *topic: array){
+        Serial.println(topic);
     }
 }
 void updateTopics_flash(JsonDocument &DOC, char ch_array[], const char *dest_array[], const char *topic, const char *defaulttopic, uint8_t i, uint8_t shift = 0)
@@ -52,8 +54,8 @@ void update_Parameters_flash()
     updateTopics_flash(DOC, topics_pub, iot.topics_pub, "pub_topics", "myHome/log", sizeof(topics_pub) / (sizeof(topics_pub[0])));
     updateTopics_flash(DOC, topics_sub, iot.topics_sub, "sub_topics", "myHome/log", sizeof(topics_sub) / (sizeof(topics_sub[0])));
 
-    accum_shift = sizeof(topics_sub) / (sizeof(topics_sub[0]));
-    updateTopics_flash(DOC, winGroupTopics, iot.topics_sub, "sub_topics_win_g", "myHome/log", sizeof(winGroupTopics) / (sizeof(winGroupTopics[0])),accum_shift);
+    // accum_shift = sizeof(topics_sub) / (sizeof(topics_sub[0]));
+    // updateTopics_flash(DOC, winGroupTopics, iot.topics_sub, "sub_topics_win_g", "myHome/log", sizeof(winGroupTopics) / (sizeof(winGroupTopics[0])),accum_shift);
 
     // accum_shift += sizeof(winGroupTopics) / (sizeof(winGroupTopics[0]));
     // updateTopics_flash(DOC, buttGroupTopics, iot.topics_sub, "sub_topics_SW_g", "myHome/log", sizeof(buttGroupTopics) / (sizeof(buttGroupTopics[0])), accum_shift);

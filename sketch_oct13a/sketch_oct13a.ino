@@ -1,23 +1,22 @@
 #include <Arduino.h>
+#include <ArduinoJson.h>
 
 
+char json[] = "{\"sensor\":\"gps\",\"time\":1351824120,\"data\":[48.756080,2.302038]}";
+DynamicJsonDocument doc(1024);
+DynamicJsonDocument doc2(1024);
 
-char *a[2] = {nullptr, nullptr};
-
-char b[20];
 
 void setup()
 {
   Serial.begin(115200);
   Serial.println("\n\nStart");
-  sprintf(b, "dfgsfgsdfgsdfg");
 
-  a[0] = b;
 
-  // for (uint8_t i = 0; i < 10; i++)
-  // {
-    Serial.println(a[0]);
-  // }
+  deserializeJson(doc, json);
+  for(uint8_t i=0;i<13;i++){
+  Serial.println(doc["data"][i].containsKey());
+  }
 }
 
 void loop()
