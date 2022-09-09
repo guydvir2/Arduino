@@ -21,12 +21,16 @@ WinSW *winSW_V[maxW] = {nullptr, nullptr, nullptr, nullptr};
 SwitchStruct *SW_v[MAX_Relays] = {nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr};
 
 char *buttMQTTcmds[2] = {"on", "off"};
+const char *EntTypes[2] = {"win", "sw"}; /* Prefix to address client types when using MQTT */
 const char *winMQTTcmds[3] = {"up", "down", "off"};
 
 /* ****** Paramters that will be updated from FLASH saved on file ******* */
 uint8_t numW = 1;
 uint8_t numSW = 2;
 uint8_t RFpin = 27;
+
+bool buttonTypes[MAX_Relays] = {0, 0, 0, 1}; /* <0> is ON-Off Switch, <1> push button */
+int RF_keyboardCode[] = {3135496, 3135492, 3135490, 3135489};
 
 #if defined(ESP32)
 uint8_t buttonPins[MAX_Relays] = {19, 17, 16, 5, 0, 0, 0, 0};
@@ -41,10 +45,4 @@ uint8_t WrelayPins[maxW][2] = {{D3, D4}, {D5, D6}, {0, 0}, {0, 0}};
 uint8_t WinputPins[maxW][2] = {{D5, D6}, {D7, D8}, {0, 0}, {0, 0}};
 uint8_t WextInPins[maxW][2] = {{D7, D8}, {255, 255}, {255, 255}, {255, 255}};
 #endif
-
-
-bool buttonTypes[MAX_Relays] = {0, 0, 0, 1}; /* <0> is ON-Off Switch, <1> push button */
-int RF_keyboardCode[] = {3135496, 3135492, 3135490, 3135489};
 // <<<<<<<<<<<<<<<<<<<<<  WinSW Paramters >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-
-

@@ -1,5 +1,4 @@
 #include <myIOT2.h>
-myIOT2 iot;
 #include <Button2.h>    /* Button Entities */
 #include <RCSwitch.h>   /* Button Entities */
 #include <myWindowSW.h> /* WinSW Entities */
@@ -145,8 +144,8 @@ void setup()
 }
 void loop()
 {
-  // loop_RF();
-  // loop_WinSW();
-  // loop_buttons();
+  loop_RF();
+  loop_WinSW();
+  loop_buttons();
   iot.looper();
 }

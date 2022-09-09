@@ -1,4 +1,4 @@
-
+myIOT2 iot;
 
 #define MAX_TOPIC_SIZE 40 // <----- Verfy max Topic size
 extern void init_buttons();
@@ -103,8 +103,6 @@ void update_Parameters_flash()
 
     DOC.clear();
 }
-
-const char *EntTypes[2] = {"win", "sw"}; /* Prefix to address client types when using MQTT */
 
 void win_updateState(uint8_t i, uint8_t state) /* Windows State MQTT update */
 {
