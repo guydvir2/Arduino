@@ -1,4 +1,5 @@
 #include <myIOT2.h>
+myIOT2 iot;
 #include <Button2.h>    /* Button Entities */
 #include <RCSwitch.h>   /* Button Entities */
 #include <myWindowSW.h> /* WinSW Entities */
@@ -17,7 +18,6 @@ void init_WinSW()
     winSW_V[x]->def_extSW(WextInPins[x][0], WextInPins[x][1]);
     winSW_V[x]->def_extras(); /* Timeout, lockdown */
     winSW_V[x]->start();
-    sprintf(winSW_V[x]->name, "%sWin%d", WIN_prefixTopic, x); /* Store MQTT topic inside LIB to avoid redefined overhead waste */
   }
 }
 void loop_WinSW()
@@ -42,7 +42,6 @@ void init_buttons()
   {
     init_butt(buttonPins, buttonTypes, i);
     init_outputs(relayPins, i);
-    init_topics(i);
     init_RF(i);
   }
 }
@@ -76,10 +75,6 @@ void init_outputs(uint8_t relp[], uint8_t i)
     pinMode(SW_v[i]->outPin, OUTPUT);
     digitalWrite(SW_v[i]->outPin, !OUTPUT_ON);
   }
-}
-void init_topics(uint8_t i)
-{
-  sprintf(SW_v[i]->Topic, "%sLight%d", SW_prefixTopic, i);
 }
 void init_RF(uint8_t i)
 {
@@ -146,15 +141,12 @@ void boot_summary()
 }
 void setup()
 {
-  // updateTopics();
-  // init_WinSW();
-  // init_buttons();
   startIOTservices();
 }
 void loop()
 {
-  // loop_RF();
-  // loop_WinSW();
-  // loop_buttons();
+  loop_RF();
+  loop_WinSW();
+  loop_buttons();
   iot.looper();
 }
