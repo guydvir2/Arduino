@@ -22,48 +22,42 @@ void updateTopics_flash(JsonDocument &DOC, char ch_array[][MAX_TOPIC_SIZE], cons
     {
         strlcpy(ch_array[i], topic, MAX_TOPIC_SIZE);
         dest_array[i + shift] = ch_array[i];
-        // Serial.println("SDFG");
-        // Serial.println(ch_array[i]);
-        // Serial.flush();
         i++;
     }
 }
 void updateTopics_flash(JsonDocument &DOC, char ch_array[], const char *dest_array[], const char *topic, const char *defaulttopic, u_int8_t i, uint8_t shift = 0)
 {
-    // strlcpy(ch_array, DOC[topic][i] | defaulttopic, MAX_TOPIC_SIZE);
-    // dest_array[i + shift] = ch_array;
-    // Serial.println(ch_array[i]);
-    Serial.println(i);
-    Serial.flush();
+    strlcpy(ch_array, DOC[topic][i] | defaulttopic, MAX_TOPIC_SIZE);
+    dest_array[i + shift] = ch_array;
 }
 void update_sketch_parameters_flash(JsonDocument &DOC)
 {
-    numW = DOC["numW"];
-    numSW = DOC["numSW"];
-    RFpin = DOC["RFpin"];
+    numW = DOC["numW"].as<uint8_t>();
+    numSW = DOC["numSW"].as<uint8_t>();
+    RFpin = DOC["RFpin"].as<uint8_t>();
 
     for (uint8_t i = 0; i < numW; i++)
     {
-        for (uint8_t n = 0; n < 2; i++)
+        for (uint8_t n = 0; n < 2; n++)
         {
-            WrelayPins[i][n] = DOC["WrelayPins"][n];
-            WinputPins[i][n] = DOC["WinputPins"][n];
-            WextInPins[i][n] = DOC["WextInPins"][n];
+            WrelayPins[i][n] = DOC["WrelayPins"][n].as<uint8_t>();
+            WinputPins[i][n] = DOC["WinputPins"][n].as<uint8_t>();
+            WextInPins[i][n] = DOC["WextInPins"][n].as<uint8_t>();
         }
     }
     for (uint8_t n = 0; n < numSW; n++)
     {
-        buttonPins[n] = DOC["ButtonsPins"][n];
-        relayPins[n] = DOC["relaysPins"][n];
-        buttonTypes[n] = DOC["ButtonTypes"][n];
+        buttonPins[n] = DOC["ButtonsPins"][n].as<uint8_t>();
+        relayPins[n] = DOC["relaysPins"][n].as<uint8_t>();
+        buttonTypes[n] = DOC["ButtonTypes"][n].as<uint8_t>();
     }
     for (uint8_t i = 0; i < 4; i++)
     {
-        RF_keyboardCode[i] = DOC["RF_keyboardCode"][i];
+        RF_keyboardCode[i] = DOC["RF_keyboardCode"][i].as<int>();
     }
 
-    // init_WinSW();
-    // init_buttons();
+    init_WinSW();
+    init_buttons();
 }
 void update_Parameters_flash()
 {
@@ -75,12 +69,12 @@ void update_Parameters_flash()
 
     /* Part B: Read from flash, and update myIOT parameters */
     iot.extract_JSON_from_flash(iot.parameter_filenames[0], DOC);
-    iot.update_vars_flash_parameters(DOC);
+    // iot.update_vars_flash_parameters(DOC);
     DOC.clear();
 
     // /* Part D: Read Sketch paramters from flash, and update Sketch */
     iot.extract_JSON_from_flash(iot.parameter_filenames[2], DOC);
-    // update_sketch_parameters_flash(DOC);
+    update_sketch_parameters_flash(DOC);
     DOC.clear();
 
     // /* Part C: Read Topics from flash, and update myIOT Topics */
@@ -101,17 +95,16 @@ void update_Parameters_flash()
         updateTopics_flash(DOC, winSW_V[i]->name, iot.topics_sub, "sub_topics_win", "myHome/log", i, accum_shift + i);
     }
 
-    // accum_shift += numW;
-    // for (uint8_t i = 0; i < numSW; i++)
-    // {
-    //     updateTopics_flash(DOC, SW_v[i]->Topic, iot.topics_sub, "sub_topics_SW", "myHome/log", i, accum_shift + i);
-    // }
+    accum_shift += numW;
+    for (uint8_t i = 0; i < numSW; i++)
+    {
+        updateTopics_flash(DOC, SW_v[i]->Topic, iot.topics_sub, "sub_topics_SW", "myHome/log", i, accum_shift + i);
+    }
 
     DOC.clear();
 }
 
 const char *EntTypes[2] = {"win", "sw"}; /* Prefix to address client types when using MQTT */
-
 
 void win_updateState(uint8_t i, uint8_t state) /* Windows State MQTT update */
 {
