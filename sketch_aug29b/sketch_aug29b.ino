@@ -145,8 +145,8 @@ void setup()
 }
 void loop()
 {
-  loop_RF();
-  loop_WinSW();
-  loop_buttons();
+  // loop_RF();
+  // loop_WinSW();
+  // loop_buttons();
   iot.looper();
 }

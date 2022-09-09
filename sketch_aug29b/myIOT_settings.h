@@ -22,13 +22,19 @@ void updateTopics_flash(JsonDocument &DOC, char ch_array[][MAX_TOPIC_SIZE], cons
     {
         strlcpy(ch_array[i], topic, MAX_TOPIC_SIZE);
         dest_array[i + shift] = ch_array[i];
+        // Serial.println("SDFG");
+        // Serial.println(ch_array[i]);
+        // Serial.flush();
         i++;
     }
 }
 void updateTopics_flash(JsonDocument &DOC, char ch_array[], const char *dest_array[], const char *topic, const char *defaulttopic, u_int8_t i, uint8_t shift = 0)
 {
-    strlcpy(ch_array, DOC[topic][i] | defaulttopic, MAX_TOPIC_SIZE);
-    dest_array[i + shift] = ch_array;
+    // strlcpy(ch_array, DOC[topic][i] | defaulttopic, MAX_TOPIC_SIZE);
+    // dest_array[i + shift] = ch_array;
+    // Serial.println(ch_array[i]);
+    Serial.println(i);
+    Serial.flush();
 }
 void update_sketch_parameters_flash(JsonDocument &DOC)
 {
@@ -56,45 +62,44 @@ void update_sketch_parameters_flash(JsonDocument &DOC)
         RF_keyboardCode[i] = DOC["RF_keyboardCode"][i];
     }
 
-    init_WinSW();
-    init_buttons();
+    // init_WinSW();
+    // init_buttons();
 }
 void update_Parameters_flash()
 {
-    StaticJsonDocument<1250> DOC;
-    // DynamicJsonDocument DOC(1250);
-    // Serial.begin(115200);
+    StaticJsonDocument<1200> DOC;
+    Serial.begin(115200);
 
     /* Part A: update filenames of paramter files */
     iot.set_pFilenames(parameterFiles, sizeof(parameterFiles) / sizeof(parameterFiles[0]));
 
     /* Part B: Read from flash, and update myIOT parameters */
-    // iot.extract_JSON_from_flash(iot.parameter_filenames[0], DOC);
-    // iot.update_vars_flash_parameters(DOC);
+    iot.extract_JSON_from_flash(iot.parameter_filenames[0], DOC);
+    iot.update_vars_flash_parameters(DOC);
     DOC.clear();
 
     // /* Part D: Read Sketch paramters from flash, and update Sketch */
-    // iot.extract_JSON_from_flash(iot.parameter_filenames[2], DOC);
+    iot.extract_JSON_from_flash(iot.parameter_filenames[2], DOC);
     // update_sketch_parameters_flash(DOC);
-    // DOC.clear();
+    DOC.clear();
 
     // /* Part C: Read Topics from flash, and update myIOT Topics */
-    // iot.extract_JSON_from_flash(iot.parameter_filenames[1], DOC); /* extract topics from flash */
-    // updateTopics_flash(DOC, topics_gen_pub, iot.topics_gen_pub, "pub_gen_topics", "myHome/Messages");
-    // updateTopics_flash(DOC, topics_pub, iot.topics_pub, "pub_topics", "myHome/log");
-    // updateTopics_flash(DOC, topics_sub, iot.topics_sub, "sub_topics", "myHome/log");
+    iot.extract_JSON_from_flash(iot.parameter_filenames[1], DOC); /* extract topics from flash */
+    updateTopics_flash(DOC, topics_gen_pub, iot.topics_gen_pub, "pub_gen_topics", "myHome/Messages");
+    updateTopics_flash(DOC, topics_pub, iot.topics_pub, "pub_topics", "myHome/log");
+    updateTopics_flash(DOC, topics_sub, iot.topics_sub, "sub_topics", "myHome/log");
 
-    // uint8_t accum_shift = sizeof(topics_sub) / (sizeof(topics_sub[0]));
-    // updateTopics_flash(DOC, winGroupTopics, iot.topics_sub, "sub_topics_win_g", "myHome/log", accum_shift);
+    uint8_t accum_shift = sizeof(topics_sub) / (sizeof(topics_sub[0]));
+    updateTopics_flash(DOC, winGroupTopics, iot.topics_sub, "sub_topics_win_g", "myHome/log", accum_shift);
 
-    // accum_shift += sizeof(winGroupTopics) / (sizeof(winGroupTopics[0]));
-    // updateTopics_flash(DOC, buttGroupTopics, iot.topics_sub, "sub_topics_SW_g", "myHome/log", accum_shift);
+    accum_shift += sizeof(winGroupTopics) / (sizeof(winGroupTopics[0]));
+    updateTopics_flash(DOC, buttGroupTopics, iot.topics_sub, "sub_topics_SW_g", "myHome/log", accum_shift);
 
-    // accum_shift += sizeof(buttGroupTopics) / (sizeof(buttGroupTopics[0]));
-    // for (uint8_t i = 0; i < numW; i++)
-    // {
-    //     updateTopics_flash(DOC, winSW_V[i]->name, iot.topics_sub, "sub_topics_win", "myHome/log", i, accum_shift + i);
-    // }
+    accum_shift += sizeof(buttGroupTopics) / (sizeof(buttGroupTopics[0]));
+    for (uint8_t i = 0; i < numW; i++)
+    {
+        updateTopics_flash(DOC, winSW_V[i]->name, iot.topics_sub, "sub_topics_win", "myHome/log", i, accum_shift + i);
+    }
 
     // accum_shift += numW;
     // for (uint8_t i = 0; i < numSW; i++)
