@@ -32,6 +32,9 @@ uint8_t RFpin = 27;
 bool buttonTypes[MAX_Relays] = {0, 0, 0, 1}; /* <0> is ON-Off Switch, <1> push button */
 int RF_keyboardCode[] = {3135496, 3135492, 3135490, 3135489};
 
+char winGroupTopics[2][MAX_TOPIC_SIZE];
+char buttGroupTopics[3][MAX_TOPIC_SIZE];
+
 #if defined(ESP32)
 uint8_t buttonPins[MAX_Relays] = {19, 17, 16, 5, 0, 0, 0, 0};
 uint8_t relayPins[MAX_Relays] = {25, 26, 33, 32, 0, 0, 0, 0};

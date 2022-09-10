@@ -7,8 +7,7 @@ extern void init_WinSW();
 char topics_sub[3][MAX_TOPIC_SIZE];
 char topics_pub[2][MAX_TOPIC_SIZE];
 char topics_gen_pub[3][MAX_TOPIC_SIZE];
-char winGroupTopics[2][MAX_TOPIC_SIZE];
-char buttGroupTopics[3][MAX_TOPIC_SIZE];
+
 
 char *parameterFiles[3] = {"/myIOT_param.json", "/myIOT2_topics.json", "/sketch_param.json"}; // <----- Verfy file names
 
@@ -72,6 +71,7 @@ void update_Parameters_flash()
 
     /* Part A: update filenames of paramter files */
     iot.set_pFilenames(parameterFiles, sizeof(parameterFiles) / sizeof(parameterFiles[0]));
+    // ±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
 
     /* Part B: Read from flash, and update myIOT parameters */
     if (iot.extract_JSON_from_flash(iot.parameter_filenames[0], DOC))
@@ -79,6 +79,7 @@ void update_Parameters_flash()
         iot.update_vars_flash_parameters(DOC);
         DOC.clear();
     }
+    // ±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
 
     // /* Part D: Read Sketch paramters from flash, and update Sketch */
     if (iot.extract_JSON_from_flash(iot.parameter_filenames[2], DOC))
@@ -88,6 +89,7 @@ void update_Parameters_flash()
     }
     init_WinSW();
     init_buttons();
+    // ±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
 
     // /* Part C: Read Topics from flash, and update myIOT Topics */
     readfile_OK = iot.extract_JSON_from_flash(iot.parameter_filenames[1], DOC); /* extract topics from flash */
@@ -129,6 +131,7 @@ void update_Parameters_flash()
         iot.topics_pub[0] = topics_pub[0];
         iot.topics_sub[0] = topics_sub[0];
     }
+    // ±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
 }
 
 void win_updateState(uint8_t i, uint8_t state) /* Windows State MQTT update */
