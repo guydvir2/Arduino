@@ -8,6 +8,7 @@
 
 RCSwitch *RF_v = nullptr;
 
+/* ******************* Windows ******************* */
 void init_WinSW()
 {
   for (uint8_t x = 0; x < numW; x++)
@@ -33,6 +34,7 @@ void loop_WinSW()
     // §§§§§§§§§§§§§ END handler §§§§§§§§§§§§§§§§§
   }
 }
+/* ************************************************ */
 
 /* ******************* Buttons ******************* */
 void init_buttons()
@@ -83,7 +85,6 @@ void init_RF(uint8_t i)
     RF_v->enableReceive(RFpin);
   }
 }
-
 void loop_buttons()
 {
   for (uint8_t i = 0; i < numSW; i++)
@@ -115,29 +116,7 @@ void loop_RF()
   }
 }
 /* ************************************************ */
-
-void boot_summary()
-{
-  Serial.print("numWindows:\t\t");
-  Serial.println(numW);
-  Serial.print("Topics:\t\t");
-  for (uint8_t i = 0; i < numW; i++)
-  {
-    // Serial.print(winTopics[i]);
-    Serial.print("; ");
-  }
-  Serial.println();
-
-  Serial.print("numSwitches:\t\t");
-  Serial.println(numSW);
-  Serial.print("Topics:\t\t");
-  for (uint8_t i = 0; i < numSW; i++)
-  {
-    // Serial.print(winTopics[i]);
-    // Serial.print("; ");
-  }
-  Serial.println();
-}
+ 
 void setup()
 {
   startIOTservices();

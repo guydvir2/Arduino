@@ -7,27 +7,35 @@ extern void init_WinSW();
 char topics_sub[3][MAX_TOPIC_SIZE];
 char topics_pub[2][MAX_TOPIC_SIZE];
 char topics_gen_pub[3][MAX_TOPIC_SIZE];
-
 char winGroupTopics[2][MAX_TOPIC_SIZE];
 char buttGroupTopics[3][MAX_TOPIC_SIZE];
 
 char *parameterFiles[3] = {"/myIOT_param.json", "/myIOT2_topics.json", "/sketch_param.json"}; // <----- Verfy file names
 
-void updateTopics_flash(JsonDocument &DOC, char ch_array[][MAX_TOPIC_SIZE], const char *dest_array[], const char *topic, const char *defaulttopic, uint8_t shift = 0)
+void updateTopics_flash(JsonDocument &DOC, char ch_array[][MAX_TOPIC_SIZE], const char *dest_array[], const char *topic, uint8_t shift = 0)
 {
-    JsonArray array = DOC[topic];
-
     uint8_t i = 0;
-    for (const char *topic : array)
+    JsonArray array = DOC[topic];
+    Serial.print("size: ");
+    Serial.println(array.size());
+    Serial.print("topic:");
+    Serial.println(topic);
+
+    if (!array.isNull())
     {
-        strlcpy(ch_array[i], topic, MAX_TOPIC_SIZE);
-        dest_array[i + shift] = ch_array[i];
-        i++;
+        for (const char *topic : array)
+        {
+            strlcpy(ch_array[i], topic, MAX_TOPIC_SIZE);
+            dest_array[i + shift] = ch_array[i];
+            Serial.println(ch_array[i]);
+            Serial.flush();
+            i++;
+        }
     }
 }
-void updateTopics_flash(JsonDocument &DOC, char ch_array[], const char *dest_array[], const char *topic, const char *defaulttopic, u_int8_t i, uint8_t shift = 0)
+void updateTopics_flash(JsonDocument &DOC, char ch_array[], const char *dest_array[], const char *topic, u_int8_t i, uint8_t shift = 0)
 {
-    strlcpy(ch_array, DOC[topic][i] | defaulttopic, MAX_TOPIC_SIZE);
+    strlcpy(ch_array, DOC[topic][i], MAX_TOPIC_SIZE);
     dest_array[i + shift] = ch_array;
 }
 void update_sketch_parameters_flash(JsonDocument &DOC)
@@ -55,53 +63,72 @@ void update_sketch_parameters_flash(JsonDocument &DOC)
     {
         RF_keyboardCode[i] = DOC["RF_keyboardCode"][i].as<int>();
     }
-
-    init_WinSW();
-    init_buttons();
 }
 void update_Parameters_flash()
 {
     StaticJsonDocument<1200> DOC;
     Serial.begin(115200);
+    bool readfile_OK = false;
 
     /* Part A: update filenames of paramter files */
     iot.set_pFilenames(parameterFiles, sizeof(parameterFiles) / sizeof(parameterFiles[0]));
 
     /* Part B: Read from flash, and update myIOT parameters */
-    iot.extract_JSON_from_flash(iot.parameter_filenames[0], DOC);
-    // iot.update_vars_flash_parameters(DOC);
-    DOC.clear();
+    if (iot.extract_JSON_from_flash(iot.parameter_filenames[0], DOC))
+    {
+        iot.update_vars_flash_parameters(DOC);
+        DOC.clear();
+    }
 
     // /* Part D: Read Sketch paramters from flash, and update Sketch */
-    iot.extract_JSON_from_flash(iot.parameter_filenames[2], DOC);
-    update_sketch_parameters_flash(DOC);
-    DOC.clear();
+    if (iot.extract_JSON_from_flash(iot.parameter_filenames[2], DOC))
+    {
+        update_sketch_parameters_flash(DOC);
+        DOC.clear();
+    }
+    init_WinSW();
+    init_buttons();
 
     // /* Part C: Read Topics from flash, and update myIOT Topics */
-    iot.extract_JSON_from_flash(iot.parameter_filenames[1], DOC); /* extract topics from flash */
-    updateTopics_flash(DOC, topics_gen_pub, iot.topics_gen_pub, "pub_gen_topics", "myHome/Messages");
-    updateTopics_flash(DOC, topics_pub, iot.topics_pub, "pub_topics", "myHome/log");
-    updateTopics_flash(DOC, topics_sub, iot.topics_sub, "sub_topics", "myHome/log");
-
-    uint8_t accum_shift = sizeof(topics_sub) / (sizeof(topics_sub[0]));
-    updateTopics_flash(DOC, winGroupTopics, iot.topics_sub, "sub_topics_win_g", "myHome/log", accum_shift);
-
-    accum_shift += sizeof(winGroupTopics) / (sizeof(winGroupTopics[0]));
-    updateTopics_flash(DOC, buttGroupTopics, iot.topics_sub, "sub_topics_SW_g", "myHome/log", accum_shift);
-
-    accum_shift += sizeof(buttGroupTopics) / (sizeof(buttGroupTopics[0]));
-    for (uint8_t i = 0; i < numW; i++)
+    readfile_OK = iot.extract_JSON_from_flash(iot.parameter_filenames[1], DOC); /* extract topics from flash */
+    if (readfile_OK)
     {
-        updateTopics_flash(DOC, winSW_V[i]->name, iot.topics_sub, "sub_topics_win", "myHome/log", i, accum_shift + i);
-    }
+        updateTopics_flash(DOC, topics_gen_pub, iot.topics_gen_pub, "pub_gen_topics");
+        updateTopics_flash(DOC, topics_pub, iot.topics_pub, "pub_topics");
+        updateTopics_flash(DOC, topics_sub, iot.topics_sub, "sub_topics");
 
-    accum_shift += numW;
-    for (uint8_t i = 0; i < numSW; i++)
+        uint8_t accum_shift = sizeof(topics_sub) / (sizeof(topics_sub[0]));
+        updateTopics_flash(DOC, winGroupTopics, iot.topics_sub, "sub_topics_win_g", accum_shift);
+
+        accum_shift += sizeof(winGroupTopics) / (sizeof(winGroupTopics[0]));
+        updateTopics_flash(DOC, buttGroupTopics, iot.topics_sub, "sub_topics_SW_g", accum_shift);
+
+        accum_shift += sizeof(buttGroupTopics) / (sizeof(buttGroupTopics[0]));
+        for (uint8_t i = 0; i < numW; i++)
+        {
+            updateTopics_flash(DOC, winSW_V[i]->name, iot.topics_sub, "sub_topics_win", i, accum_shift + i);
+        }
+
+        accum_shift += numW;
+        for (uint8_t i = 0; i < numSW; i++)
+        {
+            updateTopics_flash(DOC, SW_v[i]->Topic, iot.topics_sub, "sub_topics_SW", i, accum_shift + i);
+        }
+        DOC.clear();
+    }
+    else
     {
-        updateTopics_flash(DOC, SW_v[i]->Topic, iot.topics_sub, "sub_topics_SW", "myHome/log", i, accum_shift + i);
-    }
+        /* Tpoics in case of failure getting flash parameters */
+        sprintf(topics_gen_pub[0], "myHome/Messages");
+        sprintf(topics_gen_pub[1], "myHome/log");
+        sprintf(topics_sub[0], "myHome/Cont_Err");
+        sprintf(topics_pub[0], "myHome/Cont_Err/State");
 
-    DOC.clear();
+        iot.topics_gen_pub[0] = topics_gen_pub[0];
+        iot.topics_gen_pub[1] = topics_gen_pub[1];
+        iot.topics_pub[0] = topics_pub[0];
+        iot.topics_sub[0] = topics_sub[0];
+    }
 }
 
 void win_updateState(uint8_t i, uint8_t state) /* Windows State MQTT update */
