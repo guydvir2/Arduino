@@ -14,7 +14,10 @@ void WinSW::def(uint8_t upin, uint8_t dpin, uint8_t outup_pin, uint8_t outdown_p
 }
 void WinSW::def_extSW(uint8_t upin, uint8_t dpin)
 {
-  _useExtSW = true;
+  if (upin != 255)
+  {
+    _useExtSW = true;
+  }
   _windowSwitch_ext.pin0 = upin;
   _windowSwitch_ext.pin1 = dpin;
   _windowSwitch_ext.buttonType = 2;
@@ -33,8 +36,15 @@ void WinSW::start()
     _windowSwitch_ext.start();
   }
 
-  pinMode(_outpins[0], OUTPUT);
-  pinMode(_outpins[1], OUTPUT);
+  if (_outpins[0] != 255)
+  {
+    pinMode(_outpins[0], OUTPUT);
+    pinMode(_outpins[1], OUTPUT);
+  }
+  else
+  {
+    _virtWin = true; /* Not switching Relays */
+  }
   _allOff();
   id = _next_id++;
 }
@@ -90,24 +100,27 @@ uint8_t WinSW::get_id()
 }
 void WinSW::set_id(uint8_t i)
 {
-  id = 1;
+  id = i;
 }
 uint8_t WinSW::_next_id = 0;
 void WinSW::_allOff()
 {
-  digitalWrite(_outpins[0], !RELAY_ON);
-  digitalWrite(_outpins[1], !RELAY_ON);
-  delay(10);
+  if (!_virtWin)
+  {
+    digitalWrite(_outpins[0], !RELAY_ON);
+    digitalWrite(_outpins[1], !RELAY_ON);
+    delay(10);
+  }
 }
 void WinSW::_winUP()
 {
   _allOff();
-  digitalWrite(_outpins[0], RELAY_ON);
+  winUP;
 }
 void WinSW::_winDOWN()
 {
   _allOff();
-  digitalWrite(_outpins[1], RELAY_ON);
+  winDOWN;
 }
 void WinSW::_switch_cb(uint8_t state, uint8_t i)
 {

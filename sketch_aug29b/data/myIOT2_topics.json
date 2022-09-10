@@ -30,7 +30,7 @@
     "sub_topics_SW_g": [
         "myHome/Light",
         "myHome/Light/int",
-        "myHome/Light/int/gFloor/"
+        "myHome/Light/int/gFloor"
     ],
     "ver": 0.1
 }

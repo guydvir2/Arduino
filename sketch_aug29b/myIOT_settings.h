@@ -1,13 +1,16 @@
 myIOT2 iot;
+#include <ArduinoJson.h>
 
 #define MAX_TOPIC_SIZE 40 // <----- Verfy max Topic size
 extern void init_buttons();
 extern void init_WinSW();
 
+extern void create_SW_instance(JsonDocument &_DOC, uint8_t i);
+extern void create_WinSW_instance(JsonDocument &_DOC, uint8_t i);
+
 char topics_sub[3][MAX_TOPIC_SIZE];
 char topics_pub[2][MAX_TOPIC_SIZE];
 char topics_gen_pub[3][MAX_TOPIC_SIZE];
-
 
 char *parameterFiles[3] = {"/myIOT_param.json", "/myIOT2_topics.json", "/sketch_param.json"}; // <----- Verfy file names
 
@@ -15,10 +18,6 @@ void updateTopics_flash(JsonDocument &DOC, char ch_array[][MAX_TOPIC_SIZE], cons
 {
     uint8_t i = 0;
     JsonArray array = DOC[topic];
-    Serial.print("size: ");
-    Serial.println(array.size());
-    Serial.print("topic:");
-    Serial.println(topic);
 
     if (!array.isNull())
     {
@@ -39,28 +38,26 @@ void updateTopics_flash(JsonDocument &DOC, char ch_array[], const char *dest_arr
 }
 void update_sketch_parameters_flash(JsonDocument &DOC)
 {
-    numW = DOC["numW"].as<uint8_t>();
-    numSW = DOC["numSW"].as<uint8_t>();
     RFpin = DOC["RFpin"].as<uint8_t>();
-
-    for (uint8_t i = 0; i < numW; i++)
-    {
-        for (uint8_t n = 0; n < 2; n++)
-        {
-            WrelayPins[i][n] = DOC["WrelayPins"][n].as<uint8_t>();
-            WinputPins[i][n] = DOC["WinputPins"][n].as<uint8_t>();
-            WextInPins[i][n] = DOC["WextInPins"][n].as<uint8_t>();
-        }
-    }
-    for (uint8_t n = 0; n < numSW; n++)
-    {
-        buttonPins[n] = DOC["ButtonsPins"][n].as<uint8_t>();
-        relayPins[n] = DOC["relaysPins"][n].as<uint8_t>();
-        buttonTypes[n] = DOC["ButtonTypes"][n].as<uint8_t>();
-    }
     for (uint8_t i = 0; i < 4; i++)
     {
         RF_keyboardCode[i] = DOC["RF_keyboardCode"][i].as<int>();
+    }
+
+    JsonArray entTypes = DOC["entityType"];
+
+    for (uint8_t x = 0; x < entTypes.size(); x++)
+    {
+        if (entTypes[x] == 0)
+        {
+            /* create Window instance */
+            create_WinSW_instance(DOC, x);
+        }
+        else if (entTypes[x] == 1)
+        {
+            /* create Window instance */
+            create_SW_instance(DOC, x);
+        }
     }
 }
 void update_Parameters_flash()
@@ -77,6 +74,7 @@ void update_Parameters_flash()
     if (iot.extract_JSON_from_flash(iot.parameter_filenames[0], DOC))
     {
         iot.update_vars_flash_parameters(DOC);
+        // serializeJsonPretty(DOC, Serial);
         DOC.clear();
     }
     // ±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
@@ -85,38 +83,40 @@ void update_Parameters_flash()
     if (iot.extract_JSON_from_flash(iot.parameter_filenames[2], DOC))
     {
         update_sketch_parameters_flash(DOC);
+        // serializeJsonPretty(DOC,Serial);
         DOC.clear();
     }
-    init_WinSW();
-    init_buttons();
+    // init_WinSW();
+    // init_buttons();
     // ±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
 
     // /* Part C: Read Topics from flash, and update myIOT Topics */
     readfile_OK = iot.extract_JSON_from_flash(iot.parameter_filenames[1], DOC); /* extract topics from flash */
     if (readfile_OK)
     {
+        // serializeJsonPretty(DOC,Serial);
         updateTopics_flash(DOC, topics_gen_pub, iot.topics_gen_pub, "pub_gen_topics");
         updateTopics_flash(DOC, topics_pub, iot.topics_pub, "pub_topics");
         updateTopics_flash(DOC, topics_sub, iot.topics_sub, "sub_topics");
 
-        uint8_t accum_shift = sizeof(topics_sub) / (sizeof(topics_sub[0]));
-        updateTopics_flash(DOC, winGroupTopics, iot.topics_sub, "sub_topics_win_g", accum_shift);
+        // uint8_t accum_shift = sizeof(topics_sub) / (sizeof(topics_sub[0]));
+        // updateTopics_flash(DOC, winGroupTopics, iot.topics_sub, "sub_topics_win_g", accum_shift);
 
-        accum_shift += sizeof(winGroupTopics) / (sizeof(winGroupTopics[0]));
-        updateTopics_flash(DOC, buttGroupTopics, iot.topics_sub, "sub_topics_SW_g", accum_shift);
+        // accum_shift += sizeof(winGroupTopics) / (sizeof(winGroupTopics[0]));
+        // updateTopics_flash(DOC, buttGroupTopics, iot.topics_sub, "sub_topics_SW_g", accum_shift);
 
-        accum_shift += sizeof(buttGroupTopics) / (sizeof(buttGroupTopics[0]));
-        for (uint8_t i = 0; i < numW; i++)
-        {
-            updateTopics_flash(DOC, winSW_V[i]->name, iot.topics_sub, "sub_topics_win", i, accum_shift + i);
-        }
+        // accum_shift += sizeof(buttGroupTopics) / (sizeof(buttGroupTopics[0]));
+        // for (uint8_t i = 0; i < numW; i++)
+        // {
+        //     updateTopics_flash(DOC, winSW_V[i]->name, iot.topics_sub, "sub_topics_win", i, accum_shift + i);
+        // }
 
-        accum_shift += numW;
-        for (uint8_t i = 0; i < numSW; i++)
-        {
-            updateTopics_flash(DOC, SW_v[i]->Topic, iot.topics_sub, "sub_topics_SW", i, accum_shift + i);
-        }
-        DOC.clear();
+        // accum_shift += numW;
+        // for (uint8_t i = 0; i < numSW; i++)
+        // {
+        //     updateTopics_flash(DOC, SW_v[i]->Topic, iot.topics_sub, "sub_topics_SW", i, accum_shift + i);
+        // }
+        // DOC.clear();
     }
     else
     {

@@ -9,6 +9,50 @@
 RCSwitch *RF_v = nullptr;
 
 /* ******************* Windows ******************* */
+void print_win_instance(WinSW &winsw)
+{
+  // Serial.print("ID:\t");
+  // Serial.println(winsw.id);
+  // Serial.print("upPin:\t");
+  // Serial.println(winsw._outpins[0]);
+  // Serial.print("downPin:\t");
+  // Serial.println(winsw._outpins[1]);
+  // Serial.print("extSW:\t");
+  // Serial.println(winsw._useExtSW);
+  // Serial.print("virtCMD:\t");
+  // Serial.println(winsw._virtWin);
+  // Serial.print("name:\t");
+  // Serial.println(winsw.name);
+  yield();
+}
+void create_WinSW_instance(JsonDocument &_DOC, uint8_t i)
+{
+  winSW_V[winEntityCounter] = new WinSW;
+
+  if (strcmp(_DOC["virtCMD"][i], "") != 0)
+  {
+    strlcpy(winSW_V[winEntityCounter]->name, _DOC["virtCMD"][i], TOPIC_LEN);
+    winSW_V[winEntityCounter]->def(_DOC["inputPins"][lastUsed_inIO], _DOC["inputPins"][lastUsed_inIO + 1]);
+  }
+  else
+  {
+    winSW_V[winEntityCounter]->def(_DOC["inputPins"][lastUsed_inIO], _DOC["inputPins"][lastUsed_inIO + 1], _DOC["relayPins"][lastUsed_outIO], _DOC["relayPins"][lastUsed_outIO + 1]);
+    lastUsed_outIO += 2;
+  }
+
+  if (_DOC["extInputs"][i] == 1) /* define a Secondary input for a window */
+  {
+    winSW_V[winEntityCounter]->def_extSW(_DOC["inputPins"][lastUsed_inIO + 2], _DOC["inputPins"][lastUsed_inIO + 3]);
+    lastUsed_inIO += 2;
+  }
+  winSW_V[winEntityCounter]->def_extras(); /* Timeout, lockdown */
+  winSW_V[winEntityCounter]->start();
+
+  winEntityCounter++; /* inc Windows Enetity counter */
+  lastUsed_inIO += 2;
+  print_win_instance(*winSW_V[winEntityCounter]);
+}
+
 void init_WinSW()
 {
   for (uint8_t x = 0; x < numW; x++)
@@ -37,6 +81,47 @@ void loop_WinSW()
 /* ************************************************ */
 
 /* ******************* Buttons ******************* */
+void create_SW_instance(JsonDocument &_DOC, uint8_t i)
+{
+  uint8_t a = _DOC["ButtonTypes"][i];
+  SW_v[swEntityCounter] = new SwitchStruct;
+  SW_v[swEntityCounter]->id = swEntityCounter;
+
+  if (a > 0) /* Any input */
+  {
+    SW_v[swEntityCounter]->button.begin(_DOC["inputPins"][lastUsed_inIO]);
+    SW_v[swEntityCounter]->button.setID(swEntityCounter);
+    if (a == 3)
+    {
+      SW_v[swEntityCounter]->virtCMD = true;
+      strlcpy(SW_v[swEntityCounter]->Topic, _DOC["virtCMD"][i].as<const char *>(), TOPIC_LEN);
+    }
+    else
+    {
+      SW_v[swEntityCounter]->virtCMD = false;
+      char cc[20];
+      sprintf(cc, "SWITCH_%d", swEntityCounter);
+      strlcpy(SW_v[swEntityCounter]->Topic, cc, TOPIC_LEN);
+      SW_v[swEntityCounter]->outPin = _DOC["relayPins"][i];
+      pinMode(SW_v[swEntityCounter]->outPin, OUTPUT);
+      digitalWrite(SW_v[swEntityCounter]->outPin, !OUTPUT_ON);
+    }
+  }
+  if (a == 1) /* On-Off Switch */
+  {
+    SW_v[swEntityCounter]->button.setPressedHandler(OnOffSW_ON_handler);
+    SW_v[swEntityCounter]->button.setReleasedHandler(OnOffSW_OFF_handler);
+  }
+  else if (a == 2) /* Momentary/ Push button press */
+  {
+    SW_v[swEntityCounter]->button.setPressedHandler(toggle_handle);
+  }
+
+  print_sw_struct(*SW_v[swEntityCounter]);
+
+  lastUsed_inIO++;
+  swEntityCounter++;
+}
 void init_buttons()
 {
   for (uint8_t i = 0; i < numSW; i++)
@@ -116,15 +201,15 @@ void loop_RF()
   }
 }
 /* ************************************************ */
- 
+
 void setup()
 {
   startIOTservices();
 }
 void loop()
 {
-  loop_RF();
-  loop_WinSW();
-  loop_buttons();
+  // loop_RF();
+  // loop_WinSW();
+  // loop_buttons();
   iot.looper();
 }
