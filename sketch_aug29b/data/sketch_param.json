@@ -20,16 +20,6 @@
         33,
         32
     ],
-    "ButtonTypes": [
-        0,
-        1,
-        2
-    ],
-    "extInputs": [
-        1,
-        0,
-        0
-    ],
     "entityType": [
         0,
         1,
@@ -40,6 +30,16 @@
         "",
         "myHome/Windows",
         "myHome/Lights/int"
+    ],
+    "SW_buttonTypes": [
+        0,
+        1,
+        2
+    ],
+    "WextInputs": [
+        1,
+        0,
+        0
     ],
     "RF_keyboardCode": [
         3135496,

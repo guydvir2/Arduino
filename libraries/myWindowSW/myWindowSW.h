@@ -16,16 +16,16 @@ Features:
 #define off1 digitalWrite(_outpins[0], !RELAY_ON)
 #define off2 digitalWrite(_outpins[1], !RELAY_ON)
 
-// #define winSTOP \
-//     off1        \
-//         off2
-//     if (!_virtWin) \
-//     off1           \
-//         off2
-
-#define winUP      \
+#define winSTOP    \
     if (!_virtWin) \
-    digitalWrite(_outpins[0], RELAY_ON)
+    off1
+
+#define winUP                                \
+    if (!_virtWin)                           \
+    digitalWrite(_outpins[0], !RELAY_ON)    
+        // digitalWrite(_outpins[1], !RELAY_ON) 
+        //     digitalWrite(_outpins[0], RELAY_ON)
+
 #define winDOWN    \
     if (!_virtWin) \
     digitalWrite(_outpins[1], RELAY_ON)

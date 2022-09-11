@@ -8,6 +8,7 @@ extern void init_WinSW();
 extern void create_SW_instance(JsonDocument &_DOC, uint8_t i);
 extern void create_WinSW_instance(JsonDocument &_DOC, uint8_t i);
 
+bool paramLoadedOK = false;
 char topics_sub[3][MAX_TOPIC_SIZE];
 char topics_pub[2][MAX_TOPIC_SIZE];
 char topics_gen_pub[3][MAX_TOPIC_SIZE];
@@ -76,6 +77,7 @@ void update_Parameters_flash()
         iot.update_vars_flash_parameters(DOC);
         // serializeJsonPretty(DOC, Serial);
         DOC.clear();
+        // readfile_OK = true;
     }
     // ±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
 

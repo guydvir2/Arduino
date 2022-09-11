@@ -76,3 +76,8 @@ uint8_t WinputPins[TOT_Relays / 2][2] = {{D5, D6}, {D7, D8}, {0, 0}, {0, 0}};
 uint8_t WextInPins[TOT_Relays / 2][2] = {{D7, D8}, {255, 255}, {255, 255}, {255, 255}};
 #endif
 // <<<<<<<<<<<<<<<<<<<<<  WinSW Paramters >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+/* Entity types: 0 is window, 1 is SW */
+/* virtCMD: is entity calls a MQTT cb, or actually switching a gpio */
+/* SW_buttonTypes : 0 is no input, 1 is ONOFFsw, 2 is a push button */
+/* WextInputs - is a window entity need additional input */

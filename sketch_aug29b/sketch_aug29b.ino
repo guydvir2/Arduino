@@ -30,54 +30,46 @@ void create_WinSW_instance(JsonDocument &_DOC, uint8_t i)
 {
   winSW_V[winEntityCounter] = new WinSW;
 
-  if (strcmp(_DOC["virtCMD"][i], "") != 0)
+  if (strcmp(_DOC["virtCMD"][i], "") == 0) /* a virtCMD on output */
   {
     strlcpy(winSW_V[winEntityCounter]->name, _DOC["virtCMD"][i], TOPIC_LEN);
     winSW_V[winEntityCounter]->def(_DOC["inputPins"][lastUsed_inIO], _DOC["inputPins"][lastUsed_inIO + 1]);
   }
-  else
+  else /* Physical Switching input & output */
   {
     winSW_V[winEntityCounter]->def(_DOC["inputPins"][lastUsed_inIO], _DOC["inputPins"][lastUsed_inIO + 1], _DOC["relayPins"][lastUsed_outIO], _DOC["relayPins"][lastUsed_outIO + 1]);
     lastUsed_outIO += 2;
   }
 
-  if (_DOC["extInputs"][i] == 1) /* define a Secondary input for a window */
+  if (_DOC["WextInputs"][i] == 1) /* define a Secondary input for a window */
   {
     winSW_V[winEntityCounter]->def_extSW(_DOC["inputPins"][lastUsed_inIO + 2], _DOC["inputPins"][lastUsed_inIO + 3]);
     lastUsed_inIO += 2;
   }
-  winSW_V[winEntityCounter]->def_extras(); /* Timeout, lockdown */
+
+  winSW_V[winEntityCounter]->def_extras(); /* Timeout & lockdown */
   winSW_V[winEntityCounter]->start();
 
-  print_win_instance(*winSW_V[winEntityCounter]);
+  print_win_instance(*winSW_V[winEntityCounter]); /* debug only */
 
   winEntityCounter++; /* inc Windows Enetity counter */
   lastUsed_inIO += 2;
 }
 
-void init_WinSW()
+void newMSGcb(uint8_t x)
 {
-  for (uint8_t x = 0; x < numW; x++)
+  if (winSW_V[x]->newMSGflag)
   {
-    winSW_V[x] = new WinSW;
-    winSW_V[x]->def(WinputPins[x][0], WinputPins[x][1], WrelayPins[x][0], WrelayPins[x][1]);
-    winSW_V[x]->def_extSW(WextInPins[x][0], WextInPins[x][1]);
-    winSW_V[x]->def_extras(); /* Timeout, lockdown */
-    winSW_V[x]->start();
+    _gen_WinMSG(winSW_V[x]->MSG.state, winSW_V[x]->MSG.reason, x);
+    winSW_V[x]->newMSGflag = false;
   }
 }
 void loop_WinSW()
 {
-  for (uint8_t x = 0; x < numW; x++)
+  for (uint8_t x = 0; x < winEntityCounter; x++)
   {
     winSW_V[x]->loop();
-    // §§§§§§ Button action MSG to main code §§§§§§§
-    if (winSW_V[x]->newMSGflag)
-    {
-      _gen_WinMSG(winSW_V[x]->MSG.state, winSW_V[x]->MSG.reason, x);
-      winSW_V[x]->newMSGflag = false;
-    }
-    // §§§§§§§§§§§§§ END handler §§§§§§§§§§§§§§§§§
+    newMSGcb(x);
   }
 }
 /* ************************************************ */
@@ -85,7 +77,7 @@ void loop_WinSW()
 /* ******************* Buttons ******************* */
 void create_SW_instance(JsonDocument &_DOC, uint8_t i)
 {
-  uint8_t a = _DOC["ButtonTypes"][i];
+  uint8_t a = _DOC["SW_buttonTypes"][i];
   SW_v[swEntityCounter] = new SwitchStruct;
   SW_v[swEntityCounter]->id = swEntityCounter;
 
@@ -105,7 +97,7 @@ void create_SW_instance(JsonDocument &_DOC, uint8_t i)
     }
   }
 
-  if (strcmp(_DOC["virtCMD"][i], "") != 0) /* Virtual CMD */
+  if (strcmp(_DOC["virtCMD"][i],"")== 0) /* Virtual CMD */
   {
     SW_v[swEntityCounter]->virtCMD = true;
     strlcpy(SW_v[swEntityCounter]->Topic, _DOC["virtCMD"][i].as<const char *>(), TOPIC_LEN);
@@ -126,46 +118,46 @@ void create_SW_instance(JsonDocument &_DOC, uint8_t i)
   lastUsed_inIO++;
   swEntityCounter++;
 }
-void init_buttons()
-{
-  for (uint8_t i = 0; i < numSW; i++)
-  {
-    init_butt(buttonPins, buttonTypes, i);
-    init_outputs(relayPins, i);
-    init_RF(i);
-  }
-}
-void init_butt(uint8_t butPinArray[], bool butType[], uint8_t i)
-{
-  SW_v[i] = new SwitchStruct; /* add new instance of Switch entity */
-  SW_v[i]->id = i;            /* ID number*/
+// void init_buttons()
+// {
+//   for (uint8_t i = 0; i < numSW; i++)
+//   {
+//     init_butt(buttonPins, buttonTypes, i);
+//     init_outputs(relayPins, i);
+//     init_RF(i);
+//   }
+// }
+// void init_butt(uint8_t butPinArray[], bool butType[], uint8_t i)
+// {
+//   SW_v[i] = new SwitchStruct; /* add new instance of Switch entity */
+//   SW_v[i]->id = i;            /* ID number*/
 
-  if (SW_v[i]->useButton) /* Entity can have an input that triggers (or MQTT command only) */
-  {
-    SW_v[i]->button.begin(butPinArray[i]);
-    SW_v[i]->button.setID(i);
-    SW_v[i]->virtCMD = false; /* IO command calls MQTT rather than trigger a relay */
+//   if (SW_v[i]->useButton) /* Entity can have an input that triggers (or MQTT command only) */
+//   {
+//     SW_v[i]->button.begin(butPinArray[i]);
+//     SW_v[i]->button.setID(i);
+//     SW_v[i]->virtCMD = false; /* IO command calls MQTT rather than trigger a relay */
 
-    if (butType[i] == 0) /* On-Off Switch */
-    {
-      SW_v[i]->button.setPressedHandler(OnOffSW_ON_handler);
-      SW_v[i]->button.setReleasedHandler(OnOffSW_OFF_handler);
-    }
-    else /* Momentary/ Push button press */
-    {
-      SW_v[i]->button.setPressedHandler(toggle_handle);
-    }
-  }
-}
-void init_outputs(uint8_t relp[], uint8_t i)
-{
-  if (!SW_v[i]->virtCMD) /* virtCMD outputs a MQTT msg to operate other IOT device */
-  {
-    SW_v[i]->outPin = relp[i]; /* will be removed in future */
-    pinMode(SW_v[i]->outPin, OUTPUT);
-    digitalWrite(SW_v[i]->outPin, !OUTPUT_ON);
-  }
-}
+//     if (butType[i] == 0) /* On-Off Switch */
+//     {
+//       SW_v[i]->button.setPressedHandler(OnOffSW_ON_handler);
+//       SW_v[i]->button.setReleasedHandler(OnOffSW_OFF_handler);
+//     }
+//     else /* Momentary/ Push button press */
+//     {
+//       SW_v[i]->button.setPressedHandler(toggle_handle);
+//     }
+//   }
+// }
+// void init_outputs(uint8_t relp[], uint8_t i)
+// {
+//   if (!SW_v[i]->virtCMD) /* virtCMD outputs a MQTT msg to operate other IOT device */
+//   {
+//     SW_v[i]->outPin = relp[i]; /* will be removed in future */
+//     pinMode(SW_v[i]->outPin, OUTPUT);
+//     digitalWrite(SW_v[i]->outPin, !OUTPUT_ON);
+//   }
+// }
 void init_RF(uint8_t i)
 {
   if (SW_v[i]->RFch != 255 && RF_v == nullptr)
@@ -176,7 +168,7 @@ void init_RF(uint8_t i)
 }
 void loop_buttons()
 {
-  for (uint8_t i = 0; i < numSW; i++)
+  for (uint8_t i = 0; i < swEntityCounter; i++)
   {
     if (SW_v[i]->useButton)
     {
@@ -194,7 +186,7 @@ void loop_RF()
     {
       if (RF_keyboardCode[i] == RF_v->getReceivedValue() && millis() - lastEntry > 1000)
       {
-        for (uint8_t x = 0; x < numSW; x++) /* choose the right switch to the received code */
+        for (uint8_t x = 0; x < swEntityCounter; x++) /* choose the right switch to the received code */
         {
           toggleRelay(x, RF);
           lastEntry = millis();
@@ -212,8 +204,11 @@ void setup()
 }
 void loop()
 {
-  // loop_RF();
-  // loop_WinSW();
-  // loop_buttons();
+  if (paramLoadedOK)
+  {
+    loop_RF();
+    loop_WinSW();
+    loop_buttons();
+  }
   iot.looper();
 }

@@ -1,22 +1,28 @@
 #include <Arduino.h>
-#include <ArduinoJson.h>
+#define PIN_1 1
+#define PIN_2 2
 
+#define COND true
 
-char json[] = "{\"sensor\":\"gps\",\"time\":1351824120,\"data\":[48.756080,2.302038]}";
-DynamicJsonDocument doc(1024);
-DynamicJsonDocument doc2(1024);
+#define POWEROFF           \
+  if (COND)                \
+  digitalWrite(PIN_1, LOW) \
+      digitalWrite(PIN_2, LOW)
 
+#define winUP \
+  if (COND)   \
+    POWEROFF  \
+  digitalWrite(PIN_2, LOW)
+
+#define winDOWN \
+  if (COND)     \
+    POWEROFF    \
+  digitalWrite(PIN_1, LOW)
 
 void setup()
 {
   Serial.begin(115200);
   Serial.println("\n\nStart");
-
-
-  deserializeJson(doc, json);
-  for(uint8_t i=0;i<13;i++){
-  Serial.println(doc["data"][i].containsKey());
-  }
 }
 
 void loop()
