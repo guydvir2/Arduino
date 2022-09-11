@@ -1,9 +1,6 @@
 myIOT2 iot;
-#include <ArduinoJson.h>
 
 #define MAX_TOPIC_SIZE 40 // <----- Verfy max Topic size
-extern void init_buttons();
-extern void init_WinSW();
 
 extern void create_SW_instance(JsonDocument &_DOC, uint8_t i);
 extern void create_WinSW_instance(JsonDocument &_DOC, uint8_t i);
@@ -26,8 +23,6 @@ void updateTopics_flash(JsonDocument &DOC, char ch_array[][MAX_TOPIC_SIZE], cons
         {
             strlcpy(ch_array[i], topic, MAX_TOPIC_SIZE);
             dest_array[i + shift] = ch_array[i];
-            Serial.println(ch_array[i]);
-            Serial.flush();
             i++;
         }
     }
@@ -64,8 +59,9 @@ void update_sketch_parameters_flash(JsonDocument &DOC)
 void update_Parameters_flash()
 {
     StaticJsonDocument<1200> DOC;
-    Serial.begin(115200);
-    bool readfile_OK = false;
+    bool ok1 = false;
+    bool ok2 = false;
+    bool ok3 = false;
 
     /* Part A: update filenames of paramter files */
     iot.set_pFilenames(parameterFiles, sizeof(parameterFiles) / sizeof(parameterFiles[0]));
@@ -75,28 +71,23 @@ void update_Parameters_flash()
     if (iot.extract_JSON_from_flash(iot.parameter_filenames[0], DOC))
     {
         iot.update_vars_flash_parameters(DOC);
-        // serializeJsonPretty(DOC, Serial);
         DOC.clear();
-        // readfile_OK = true;
+        ok1 = true;
     }
     // ±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
 
-    // /* Part D: Read Sketch paramters from flash, and update Sketch */
+    // /* Part C: Read Sketch paramters from flash, and update Sketch */
     if (iot.extract_JSON_from_flash(iot.parameter_filenames[2], DOC))
     {
         update_sketch_parameters_flash(DOC);
-        // serializeJsonPretty(DOC,Serial);
         DOC.clear();
+        ok2 = true;
     }
-    // init_WinSW();
-    // init_buttons();
     // ±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
 
     // /* Part C: Read Topics from flash, and update myIOT Topics */
-    readfile_OK = iot.extract_JSON_from_flash(iot.parameter_filenames[1], DOC); /* extract topics from flash */
-    if (readfile_OK)
+    if(iot.extract_JSON_from_flash(iot.parameter_filenames[1], DOC)) /* extract topics from flash */
     {
-        // serializeJsonPretty(DOC,Serial);
         updateTopics_flash(DOC, topics_gen_pub, iot.topics_gen_pub, "pub_gen_topics");
         updateTopics_flash(DOC, topics_pub, iot.topics_pub, "pub_topics");
         updateTopics_flash(DOC, topics_sub, iot.topics_sub, "sub_topics");
@@ -119,6 +110,7 @@ void update_Parameters_flash()
             updateTopics_flash(DOC, SW_v[i]->Topic, iot.topics_sub, "sub_topics_SW", i, accum_shift + i);
         }
         DOC.clear();
+        ok3 = true;
     }
     else
     {
@@ -134,6 +126,7 @@ void update_Parameters_flash()
         iot.topics_sub[0] = topics_sub[0];
     }
     // ±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+    paramLoadedOK = ok1 && ok2 && ok3;
 }
 
 void win_updateState(uint8_t i, uint8_t state) /* Windows State MQTT update */
@@ -174,23 +167,23 @@ void addiotnalMQTT(char *incoming_msg, char *_topic)
     {
         char msg2[100];
         strcpy(msg, "Status: ");
-        if (numW > 0)
+        if (winEntityCounter > 0)
         {
             strcat(msg, "[Windows]- ");
-            for (uint8_t i = 0; i < numW; i++)
+            for (uint8_t i = 0; i < winEntityCounter; i++)
             {
-                sprintf(msg2, " Win[#%d][%s] [%d]%s", i, winSW_V[i]->name, winSW_V[i]->get_winState(), i == numSW - 1 ? "" : "; ");
+                sprintf(msg2, " Win[#%d][%s] [%d]%s", i, winSW_V[i]->name, winSW_V[i]->get_winState(), i == swEntityCounter - 1 ? "" : "; ");
                 strcat(msg, msg2);
             }
             iot.pub_msg(msg);
         }
         strcpy(msg, "Status: ");
-        if (numSW > 0)
+        if (swEntityCounter > 0)
         {
             strcat(msg, "[Switches]- ");
-            for (uint8_t i = 0; i < numSW; i++)
+            for (uint8_t i = 0; i < swEntityCounter; i++)
             {
-                sprintf(msg2, " SW[#%d][%s] [%d]%s", i, SW_v[i]->Topic, _isON(i), i == numSW - 1 ? "" : "; ");
+                sprintf(msg2, " SW[#%d][%s] [%d]%s", i, SW_v[i]->Topic, _isON(i), i == swEntityCounter - 1 ? "" : "; ");
                 strcat(msg, msg2);
             }
             iot.pub_msg(msg);
@@ -210,7 +203,7 @@ void addiotnalMQTT(char *incoming_msg, char *_topic)
     {
         if (strcmp(incoming_msg, "true") == 0)
         {
-            for (uint8_t i = 0; i < numW; i++)
+            for (uint8_t i = 0; i < winEntityCounter; i++)
             {
                 iot.pub_msg("Lockdown: Start");
                 winSW_V[i]->init_lockdown();
@@ -218,7 +211,7 @@ void addiotnalMQTT(char *incoming_msg, char *_topic)
         }
         if (strcmp(incoming_msg, "false") == 0)
         {
-            for (uint8_t i = 0; i < numW; i++)
+            for (uint8_t i = 0; i < winEntityCounter; i++)
             {
                 iot.pub_msg("Lockdown: Released");
                 winSW_V[i]->release_lockdown();
@@ -246,7 +239,7 @@ void addiotnalMQTT(char *incoming_msg, char *_topic)
                 _word = STOP;
             }
 
-            for (uint8_t i = 0; i < numW; i++)
+            for (uint8_t i = 0; i < winEntityCounter; i++)
             {
                 if (strcmp(_topic, winSW_V[i]->name) == 0) /* SENT FOR A SPECIFIC TOPIC */
                 {
@@ -258,7 +251,7 @@ void addiotnalMQTT(char *incoming_msg, char *_topic)
             {
                 if (strcmp(_topic, winGroupTopics[i]) == 0)
                 {
-                    for (uint8_t i = 0; i < numW; i++)
+                    for (uint8_t i = 0; i < winEntityCounter; i++)
                     {
                         winSW_V[i]->ext_SW(_word, MQTT);
                     }
@@ -269,7 +262,7 @@ void addiotnalMQTT(char *incoming_msg, char *_topic)
                  (strcmp(iot.inline_param[1], buttMQTTcmds[0]) == 0 ||
                   strcmp(iot.inline_param[1], buttMQTTcmds[1]) == 0)) /* MQTT cmd for SW */
         {
-            for (uint8_t i = 0; i < numSW; i++)
+            for (uint8_t i = 0; i < swEntityCounter; i++)
             {
                 if (strcmp(_topic, SW_v[i]->Topic) == 0) /* SENT FOR A SPECIFIC TOPIC */
                 {
@@ -289,7 +282,7 @@ void addiotnalMQTT(char *incoming_msg, char *_topic)
             {
                 if (strcmp(_topic, buttGroupTopics[i]) == 0)
                 {
-                    for (uint8_t i = 0; i < numSW; i++)
+                    for (uint8_t i = 0; i < swEntityCounter; i++)
                     {
                         if (strcmp(iot.inline_param[1], buttMQTTcmds[0]) == 0) /* ON */
                         {

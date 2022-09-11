@@ -52,11 +52,9 @@ uint8_t lastUsed_inIO = 0;
 uint8_t lastUsed_outIO = 0;
 
 /* ****** Paramters that will be updated from FLASH saved on file ******* */
-uint8_t numW = 1;
-uint8_t numSW = 2;
 uint8_t RFpin = 27;
 
-bool buttonTypes[TOT_Relays] = {0, 0, 0, 1}; /* <0> is ON-Off Switch, <1> push button */
+// bool buttonTypes[TOT_Relays] = {0, 0, 0, 1}; /* <0> is ON-Off Switch, <1> push button */
 int RF_keyboardCode[] = {3135496, 3135492, 3135490, 3135489};
 
 char winGroupTopics[2][TOPIC_LEN];
