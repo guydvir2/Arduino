@@ -99,24 +99,24 @@ void update_Parameters_flash()
         updateTopics_flash(DOC, topics_pub, iot.topics_pub, "pub_topics");
         updateTopics_flash(DOC, topics_sub, iot.topics_sub, "sub_topics");
 
-        // uint8_t accum_shift = sizeof(topics_sub) / (sizeof(topics_sub[0]));
-        // updateTopics_flash(DOC, winGroupTopics, iot.topics_sub, "sub_topics_win_g", accum_shift);
+        uint8_t accum_shift = sizeof(topics_sub) / (sizeof(topics_sub[0]));
+        updateTopics_flash(DOC, winGroupTopics, iot.topics_sub, "sub_topics_win_g", accum_shift);
 
-        // accum_shift += sizeof(winGroupTopics) / (sizeof(winGroupTopics[0]));
-        // updateTopics_flash(DOC, buttGroupTopics, iot.topics_sub, "sub_topics_SW_g", accum_shift);
+        accum_shift += sizeof(winGroupTopics) / (sizeof(winGroupTopics[0]));
+        updateTopics_flash(DOC, buttGroupTopics, iot.topics_sub, "sub_topics_SW_g", accum_shift);
 
-        // accum_shift += sizeof(buttGroupTopics) / (sizeof(buttGroupTopics[0]));
-        // for (uint8_t i = 0; i < numW; i++)
-        // {
-        //     updateTopics_flash(DOC, winSW_V[i]->name, iot.topics_sub, "sub_topics_win", i, accum_shift + i);
-        // }
+        accum_shift += sizeof(buttGroupTopics) / (sizeof(buttGroupTopics[0]));
+        for (uint8_t i = 0; i < winEntityCounter; i++)
+        {
+            updateTopics_flash(DOC, winSW_V[i]->name, iot.topics_sub, "sub_topics_win", i, accum_shift + i);
+        }
 
-        // accum_shift += numW;
-        // for (uint8_t i = 0; i < numSW; i++)
-        // {
-        //     updateTopics_flash(DOC, SW_v[i]->Topic, iot.topics_sub, "sub_topics_SW", i, accum_shift + i);
-        // }
-        // DOC.clear();
+        accum_shift += winEntityCounter;
+        for (uint8_t i = 0; i < swEntityCounter; i++)
+        {
+            updateTopics_flash(DOC, SW_v[i]->Topic, iot.topics_sub, "sub_topics_SW", i, accum_shift + i);
+        }
+        DOC.clear();
     }
     else
     {

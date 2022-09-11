@@ -11,18 +11,19 @@ RCSwitch *RF_v = nullptr;
 /* ******************* Windows ******************* */
 void print_win_instance(WinSW &winsw)
 {
-  // Serial.print("ID:\t");
-  // Serial.println(winsw.id);
-  // Serial.print("upPin:\t");
-  // Serial.println(winsw._outpins[0]);
-  // Serial.print("downPin:\t");
-  // Serial.println(winsw._outpins[1]);
-  // Serial.print("extSW:\t");
-  // Serial.println(winsw._useExtSW);
-  // Serial.print("virtCMD:\t");
-  // Serial.println(winsw._virtWin);
-  // Serial.print("name:\t");
-  // Serial.println(winsw.name);
+  Serial.println("<<<<<<<<<<<< Window Entity >>>>>>>>>>>>>>");
+  Serial.print("ID:\t");
+  Serial.println(winsw.id);
+  Serial.print("upPin:\t");
+  Serial.println(winsw._outpins[0]);
+  Serial.print("downPin:\t");
+  Serial.println(winsw._outpins[1]);
+  Serial.print("extSW:\t");
+  Serial.println(winsw._useExtSW);
+  Serial.print("virtCMD:\t");
+  Serial.println(winsw._virtWin);
+  Serial.print("name:\t");
+  Serial.println(winsw.name);
   yield();
 }
 void create_WinSW_instance(JsonDocument &_DOC, uint8_t i)
@@ -48,9 +49,10 @@ void create_WinSW_instance(JsonDocument &_DOC, uint8_t i)
   winSW_V[winEntityCounter]->def_extras(); /* Timeout, lockdown */
   winSW_V[winEntityCounter]->start();
 
+  print_win_instance(*winSW_V[winEntityCounter]);
+
   winEntityCounter++; /* inc Windows Enetity counter */
   lastUsed_inIO += 2;
-  print_win_instance(*winSW_V[winEntityCounter]);
 }
 
 void init_WinSW()
@@ -91,30 +93,32 @@ void create_SW_instance(JsonDocument &_DOC, uint8_t i)
   {
     SW_v[swEntityCounter]->button.begin(_DOC["inputPins"][lastUsed_inIO]);
     SW_v[swEntityCounter]->button.setID(swEntityCounter);
-    if (a == 3)
+
+    if (a == 1) /* On-Off Switch */
     {
-      SW_v[swEntityCounter]->virtCMD = true;
-      strlcpy(SW_v[swEntityCounter]->Topic, _DOC["virtCMD"][i].as<const char *>(), TOPIC_LEN);
+      SW_v[swEntityCounter]->button.setPressedHandler(OnOffSW_ON_handler);
+      SW_v[swEntityCounter]->button.setReleasedHandler(OnOffSW_OFF_handler);
     }
-    else
+    else if (a == 2) /* Momentary/ Push button press */
     {
-      SW_v[swEntityCounter]->virtCMD = false;
-      char cc[20];
-      sprintf(cc, "SWITCH_%d", swEntityCounter);
-      strlcpy(SW_v[swEntityCounter]->Topic, cc, TOPIC_LEN);
-      SW_v[swEntityCounter]->outPin = _DOC["relayPins"][i];
-      pinMode(SW_v[swEntityCounter]->outPin, OUTPUT);
-      digitalWrite(SW_v[swEntityCounter]->outPin, !OUTPUT_ON);
+      SW_v[swEntityCounter]->button.setPressedHandler(toggle_handle);
     }
   }
-  if (a == 1) /* On-Off Switch */
+
+  if (strcmp(_DOC["virtCMD"][i], "") != 0) /* Virtual CMD */
   {
-    SW_v[swEntityCounter]->button.setPressedHandler(OnOffSW_ON_handler);
-    SW_v[swEntityCounter]->button.setReleasedHandler(OnOffSW_OFF_handler);
+    SW_v[swEntityCounter]->virtCMD = true;
+    strlcpy(SW_v[swEntityCounter]->Topic, _DOC["virtCMD"][i].as<const char *>(), TOPIC_LEN);
   }
-  else if (a == 2) /* Momentary/ Push button press */
+  else /* Assign output to relays - Physical SW */
   {
-    SW_v[swEntityCounter]->button.setPressedHandler(toggle_handle);
+    SW_v[swEntityCounter]->virtCMD = false;
+    SW_v[swEntityCounter]->outPin = _DOC["relayPins"][lastUsed_outIO];
+
+    pinMode(SW_v[swEntityCounter]->outPin, OUTPUT);
+    digitalWrite(SW_v[swEntityCounter]->outPin, !OUTPUT_ON);
+
+    lastUsed_outIO++;
   }
 
   print_sw_struct(*SW_v[swEntityCounter]);

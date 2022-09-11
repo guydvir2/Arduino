@@ -11,13 +11,15 @@ struct SwitchStruct
     bool virtCMD = false;    /* Trigger a MQTT or a Relay */
     bool useButton = true;   /* Input is an option */
     bool guessState = false; /* when using IOcmd and a pushbutton state can not be known */
-    char Topic[TOPIC_LEN];
+    char Topic[TOPIC_LEN]="EMPTY";
 
     Button2 button; /* inputs only */
 };
 
 void print_sw_struct(SwitchStruct &sw)
 {
+    Serial.println("<<<<<<<<<<<< Switch Entity >>>>>>>>>>>>>>");
+
     Serial.print("ID:\t");
     Serial.println(sw.id);
     Serial.print("RFch:\t");
