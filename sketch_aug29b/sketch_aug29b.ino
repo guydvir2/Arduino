@@ -6,7 +6,6 @@
 #include "but_defs.h"
 #include "myIOT_settings.h"
 
-RCSwitch *RF_v = nullptr;
 
 /* ******************* Windows ******************* */
 void print_win_instance(WinSW &winsw)
@@ -15,13 +14,13 @@ void print_win_instance(WinSW &winsw)
   Serial.print("ID:\t");
   Serial.println(winsw.id);
   Serial.print("upPin:\t");
-  Serial.println(winsw._outpins[0]);
+  Serial.println(winsw.outpins[0]);
   Serial.print("downPin:\t");
-  Serial.println(winsw._outpins[1]);
+  Serial.println(winsw.outpins[1]);
   Serial.print("extSW:\t");
   Serial.println(winsw._useExtSW);
   Serial.print("virtCMD:\t");
-  Serial.println(winsw._virtWin);
+  Serial.println(winsw.virtCMD);
   Serial.print("name:\t");
   Serial.println(winsw.name);
   yield();
@@ -33,7 +32,7 @@ void create_WinSW_instance(JsonDocument &_DOC, uint8_t i)
   if (strcmp(_DOC["virtCMD"][i], "") == 0) /* a virtCMD on output */
   {
     strlcpy(winSW_V[winEntityCounter]->name, _DOC["virtCMD"][i], TOPIC_LEN);
-    winSW_V[winEntityCounter]->_virtWin = true;
+    winSW_V[winEntityCounter]->virtCMD = true;
     winSW_V[winEntityCounter]->def(_DOC["inputPins"][lastUsed_inIO], _DOC["inputPins"][lastUsed_inIO + 1]);
   }
   else /* Physical Switching input & output */
@@ -58,7 +57,7 @@ void create_WinSW_instance(JsonDocument &_DOC, uint8_t i)
 }
 void _Win_virtCMD(uint8_t state, uint8_t reason, uint8_t x)
 {
-  if (winSW_V[x]->_virtWin == true)
+  if (winSW_V[x]->virtCMD == true)
   {
     iot.pub_noTopic((char *)winMQTTcmds[state], winSW_V[x]->name); // <---- Fix this
   }
@@ -127,14 +126,6 @@ void create_SW_instance(JsonDocument &_DOC, uint8_t i)
   lastUsed_inIO++;
   swEntityCounter++;
 }
-void init_RF(uint8_t i)
-{
-  if (SW_v[i]->RFch != 255 && RF_v == nullptr)
-  {
-    RF_v = new RCSwitch();
-    RF_v->enableReceive(RFpin);
-  }
-}
 void loop_buttons()
 {
   for (uint8_t i = 0; i < swEntityCounter; i++)
@@ -143,6 +134,19 @@ void loop_buttons()
     {
       SW_v[i]->button.loop();
     }
+  }
+}
+/* ************************************************ */
+
+/* ******************* RF 433Hz ******************* */
+RCSwitch *RF_v = nullptr;
+
+void init_RF(uint8_t i)
+{
+  if (SW_v[i]->RFch != 255 && RF_v == nullptr)
+  {
+    RF_v = new RCSwitch();
+    RF_v->enableReceive(RFpin);
   }
 }
 void loop_RF()
@@ -166,7 +170,6 @@ void loop_RF()
   }
 }
 /* ************************************************ */
-
 void setup()
 {
   startIOTservices();

@@ -18,7 +18,7 @@ bool _isON(uint8_t i)
 {
     return digitalRead(SW_v[i]->outPin) == OUTPUT_ON;
 }
-void _turnON_cb(uint8_t i, uint8_t type)
+void SW_turnON_cb(uint8_t i, uint8_t type)
 {
     if (!SW_v[i]->virtCMD)
     {
@@ -39,7 +39,7 @@ void _turnON_cb(uint8_t i, uint8_t type)
         _gen_ButtMSG(i, type, HIGH);
     }
 }
-void _turnOFF_cb(uint8_t i, uint8_t type)
+void SW_turnOFF_cb(uint8_t i, uint8_t type)
 {
     if (!SW_v[i]->virtCMD)
     {
@@ -64,11 +64,11 @@ void OnOffSW_Relay(uint8_t i, bool state, uint8_t type)
 {
     if (state == true)
     {
-        _turnON_cb(i, type);
+        SW_turnON_cb(i, type);
     }
     else
     {
-        _turnOFF_cb(i, type);
+        SW_turnOFF_cb(i, type);
     }
 }
 void toggleRelay(uint8_t i, uint8_t type)
@@ -77,21 +77,22 @@ void toggleRelay(uint8_t i, uint8_t type)
     {
         if (_isON(i))
         {
-            _turnOFF_cb(i, type);
+            SW_turnOFF_cb(i, type);
         }
         else
         {
-            _turnON_cb(i, type);
+            SW_turnON_cb(i, type);
         }
     }
     else
     {
         if (SW_v[i]->guessState == true)
         {
-            _turnOFF_cb(i, type);
+            SW_turnOFF_cb(i, type);
         }
-        else{
-            _turnON_cb(i, type);
+        else
+        {
+            SW_turnON_cb(i, type);
         }
         SW_v[i]->guessState = !SW_v[i]->guessState;
     }
@@ -100,13 +101,13 @@ void toggleRelay(uint8_t i, uint8_t type)
 /* ****************** Button2 Handlers **********************/
 void OnOffSW_ON_handler(Button2 &b)
 {
-    OnOffSW_Relay(b.getID(), OUTPUT_ON, 1);
+    OnOffSW_Relay(b.getID(), OUTPUT_ON, _MQTT);
 }
 void OnOffSW_OFF_handler(Button2 &b)
 {
-    OnOffSW_Relay(b.getID(), !OUTPUT_ON, 1);
+    OnOffSW_Relay(b.getID(), !OUTPUT_ON, _MQTT);
 }
 void toggle_handle(Button2 &b)
 {
-    toggleRelay(b.getID(), 1);
+    toggleRelay(b.getID(), _MQTT);
 }

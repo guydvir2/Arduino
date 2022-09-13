@@ -13,22 +13,22 @@ Features:
 #include <buttonPresses.h>
 #include "defs.h"
 
-#define off1 digitalWrite(_outpins[0], !RELAY_ON)
-#define off2 digitalWrite(_outpins[1], !RELAY_ON)
+#define off1 digitalWrite(outpins[0], !RELAY_ON)
+#define off2 digitalWrite(outpins[1], !RELAY_ON)
 
 #define winSTOP    \
-    if (!_virtWin) \
+    if (!virtCMD) \
     off1
 
 #define winUP                                \
-    if (!_virtWin)                           \
-    digitalWrite(_outpins[0], !RELAY_ON)    
-        // digitalWrite(_outpins[1], !RELAY_ON) 
-        //     digitalWrite(_outpins[0], RELAY_ON)
+    if (!virtCMD)                           \
+    digitalWrite(outpins[0], !RELAY_ON)    
+        // digitalWrite(outpins[1], !RELAY_ON) 
+        //     digitalWrite(outpins[0], RELAY_ON)
 
 #define winDOWN    \
-    if (!_virtWin) \
-    digitalWrite(_outpins[1], RELAY_ON)
+    if (!virtCMD) \
+    digitalWrite(outpins[1], RELAY_ON)
 
 class WinSW
 {
@@ -48,8 +48,8 @@ public:
     bool newMSGflag = false;
     char name[40];
     bool _useExtSW = false;
-    bool _virtWin = false;
-    uint8_t _outpins[2];
+    bool virtCMD = false;
+    uint8_t outpins[2];
 
     MSGstr MSG;
 

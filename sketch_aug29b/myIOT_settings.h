@@ -35,6 +35,7 @@ void updateTopics_flash(JsonDocument &DOC, char ch_array[], const char *dest_arr
 void update_sketch_parameters_flash(JsonDocument &DOC)
 {
     RFpin = DOC["RFpin"].as<uint8_t>();
+    
     for (uint8_t i = 0; i < 4; i++)
     {
         RF_keyboardCode[i] = DOC["RF_keyboardCode"][i].as<int>();
@@ -268,12 +269,12 @@ void addiotnalMQTT(char *incoming_msg, char *_topic)
                 {
                     if (strcmp(iot.inline_param[1], buttMQTTcmds[0]) == 0) /* ON */
                     {
-                        _turnON_cb(i, _MQTT);
+                        SW_turnON_cb(i, _MQTT);
                         return;
                     }
                     else if (strcmp(iot.inline_param[1], buttMQTTcmds[1]) == 0) /* OFF */
                     {
-                        _turnOFF_cb(i, _MQTT);
+                        SW_turnOFF_cb(i, _MQTT);
                         return;
                     }
                 }
@@ -286,11 +287,11 @@ void addiotnalMQTT(char *incoming_msg, char *_topic)
                     {
                         if (strcmp(iot.inline_param[1], buttMQTTcmds[0]) == 0) /* ON */
                         {
-                            _turnON_cb(i, _MQTT);
+                            SW_turnON_cb(i, _MQTT);
                         }
                         else if (strcmp(iot.inline_param[1], buttMQTTcmds[1]) == 0) /* OFF */
                         {
-                            _turnOFF_cb(i, _MQTT);
+                            SW_turnOFF_cb(i, _MQTT);
                         }
                     }
                     return;
