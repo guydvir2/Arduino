@@ -12,6 +12,12 @@
 ## Table of Contents
 
 * [Changelog](#changelog)
+	* [Releases v1.9.1](#releases-v191)
+	* [Releases v1.9.0](#releases-v190)
+	* [Releases v1.8.2](#releases-v182)
+	* [Releases v1.8.1](#releases-v181)
+	* [Releases v1.8.0](#releases-v180)
+  * [Releases v1.7.1](#releases-v171)
   * [Releases v1.7.0](#releases-v170)
   * [Releases v1.6.0](#releases-v160)
   * [Releases v1.5.0](#releases-v150)
@@ -34,6 +40,42 @@
 ---
 
 ## Changelog
+
+### Releases v1.9.1
+
+1. Fix ESP32 chipID for example `AsyncHTTPRequest_ESP_WiFiManager`
+2. Remove dependency on `LittleFS_esp32` library to prevent PIO error when using new ESP32 core v1.0.6+
+
+### Releases v1.9.0
+
+1. Fix long timeout if using `IPAddress`. Check [setTimeout() hasn't any effect #38](https://github.com/khoih-prog/AsyncHTTPRequest_Generic/issues/38)
+2. Optimize code
+3. Display only successful responseText in examples
+4. Improve debug messages by adding functions to display error messages instead of `cryptic error number`
+5. Remove support to STM32 using **LAN8720** due to problem with new STM32 core v2.3.0
+5. Update `Packages' Patches`
+
+### Releases v1.8.2
+
+1. Fix library.properties to remove unavailable items from depends. Check [Remove unavailable items from depends field of library.properties #35](https://github.com/khoih-prog/AsyncHTTPRequest_Generic/pull/35)
+2. Remove lorol's LittleFS_esp32 library dependency as LittleFS has been included in new ESP32 cores v1.0.6+
+3. Fix compile error for [AsyncHTTPRequest_ESP_WiFiManager example](https://github.com/khoih-prog/AsyncHTTPRequest_Generic/tree/master/examples/AsyncHTTPRequest_ESP_WiFiManager)
+4. Update `Packages' Patches`
+
+### Releases v1.8.1
+
+1. Add support to ESP8266 using ENC28J60 with [lwIP_enc28j60](https://github.com/esp8266/Arduino/tree/master/libraries/lwIP_enc28j60) library
+
+### Releases v1.8.0
+
+1. Add support to ESP8266 using W5x00 with [lwIP_w5100](https://github.com/esp8266/Arduino/tree/master/libraries/lwIP_w5100) or [lwIP_w5500](https://github.com/esp8266/Arduino/tree/master/libraries/lwIP_w5500) library
+2. Add example [AsyncHTTPRequest_ESP8266_Ethernet](https://github.com/khoih-prog/AsyncHTTPRequest_Generic/tree/master/examples/AsyncHTTPRequest_ESP8266_Ethernet) to demo the new feature.
+3. Update `Packages' Patches`
+
+### Releases v1.7.1
+
+1. Add example [AsyncHTTPRequest_ESP_Multi](https://github.com/khoih-prog/AsyncHTTPRequest_Generic/tree/master/examples/AsyncHTTPRequest_ESP_Multi) to demo connection to multiple addresses.
+2. Update `Packages' Patches`
 
 ### Releases v1.7.0
 

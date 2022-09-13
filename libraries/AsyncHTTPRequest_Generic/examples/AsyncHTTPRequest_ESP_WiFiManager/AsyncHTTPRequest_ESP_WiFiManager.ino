@@ -46,11 +46,11 @@
   #error This code is intended to run on the ESP8266 or ESP32 platform! Please check your Tools->Board setting.
 #endif
 
-#define ESP_ASYNC_WIFIMANAGER_VERSION_MIN_TARGET          "ESPAsync_WiFiManager v1.12.1"
-#define ESP_ASYNC_WIFIMANAGER_VERSION_MIN                 1012001
+#define ESP_ASYNC_WIFIMANAGER_VERSION_MIN_TARGET          "ESPAsync_WiFiManager v1.14.0"
+#define ESP_ASYNC_WIFIMANAGER_VERSION_MIN                 1014000
 
-#define ASYNC_HTTP_REQUEST_GENERIC_VERSION_MIN_TARGET      "AsyncHTTPRequest_Generic v1.7.0"
-#define ASYNC_HTTP_REQUEST_GENERIC_VERSION_MIN             1007000
+#define ASYNC_HTTP_REQUEST_GENERIC_VERSION_MIN_TARGET      "AsyncHTTPRequest_Generic v1.9.1"
+#define ASYNC_HTTP_REQUEST_GENERIC_VERSION_MIN             1009001
 
 // Level from 0-4
 #define ASYNC_HTTP_DEBUG_PORT     Serial
@@ -114,8 +114,6 @@
     #define FS_Name       "FFat"
   #endif
   //////
-
-  #define ESP_getChipId()   ((uint32_t)ESP.getEfuseMac())
 
   #define LED_BUILTIN       2
   #define LED_ON            HIGH
@@ -483,7 +481,9 @@ void loadConfigData()
   memset(&WM_config,       0, sizeof(WM_config));
 
   // New in v1.4.0
-  memset(&WM_STA_IPconfig, 0, sizeof(WM_STA_IPconfig));
+  //memset(&WM_STA_IPconfig, 0, sizeof(WM_STA_IPconfig));
+  // New in v1.8.2
+  initSTAIPConfigStruct(WM_STA_IPconfig);
   //////
     
   if (file)
@@ -554,17 +554,21 @@ void sendRequest()
   }
 }
 
-void requestCB(void* optParm, AsyncHTTPRequest* request, int readyState) 
+void requestCB(void *optParm, AsyncHTTPRequest *request, int readyState)
 {
   (void) optParm;
-  
-  if (readyState == readyStateDone) 
+
+  if (readyState == readyStateDone)
   {
-    Serial.println(F("\n**************************************"));
-    Serial.println(request->responseText());
-    Serial.println(F("**************************************"));
-    
-    request->setDebug(false);
+    AHTTP_LOGDEBUG(F("\n**************************************"));
+    AHTTP_LOGDEBUG1(F("Response Code = "), request->responseHTTPString());
+
+    if (request->responseHTTPcode() == 200)
+    {
+      Serial.println(F("\n**************************************"));
+      Serial.println(request->responseText());
+      Serial.println(F("**************************************"));
+    }
   }
 }
 
@@ -572,7 +576,7 @@ void setup()
 {
   // put your setup code here, to run once:
   Serial.begin(115200);
-  while (!Serial);
+  while (!Serial && millis() < 5000);
 
   delay(200);
   
@@ -632,7 +636,7 @@ void setup()
 #if ( USING_ESP32_S2 || USING_ESP32_C3 )
   ESPAsync_WiFiManager ESPAsync_wifiManager(&webServer, NULL, "AutoConnectAP");
 #else
-  DNSServer dnsServer;
+  AsyncDNSServer dnsServer;
 
   ESPAsync_WiFiManager ESPAsync_wifiManager(&webServer, &dnsServer, "AutoConnectAP");
 #endif  

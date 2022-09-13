@@ -1,3 +1,23 @@
+/****************************************************************************************************************************
+  AsyncHTTPRequest_ESP_Multi.ino - Dead simple AsyncHTTPRequest for ESP8266, ESP32 and currently STM32 with built-in LAN8742A Ethernet
+  
+  For ESP8266, ESP32 and STM32 with built-in LAN8742A Ethernet (Nucleo-144, DISCOVERY, etc)
+  
+  AsyncHTTPRequest_Generic is a library for the ESP8266, ESP32 and currently STM32 run built-in Ethernet WebServer
+  
+  Based on and modified from asyncHTTPrequest Library (https://github.com/boblemaire/asyncHTTPrequest)
+  
+  Built by Khoi Hoang https://github.com/khoih-prog/AsyncHTTPRequest_Generic
+  Licensed under MIT license
+  
+  Copyright (C) <2018>  <Bob Lemaire, IoTaWatt, Inc.>
+  This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License 
+  as published bythe Free Software Foundation, either version 3 of the License, or (at your option) any later version.
+  This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+  You should have received a copy of the GNU General Public License along with this program.  If not, see <https://www.gnu.org/licenses/>.  
+ *****************************************************************************************************************************/
+
 #if !( defined(ESP8266) ||  defined(ESP32) )
   #error This code is intended to run on the ESP8266 or ESP32 platform! Please check your Tools->Board setting.
 #endif
@@ -115,10 +135,6 @@ void sendRequest1()
 
 void sendRequests()
 {
-  for (int index = 0; index < NUM_DIFFERENT_SITES; index++)
-  {
-    reqCount[index] = 2;
-  }
   reqCount[0] = NUM_ENTRIES_SITE_0;
   reqCount[1] = NUM_ENTRIES_SITE_1;
 }
@@ -130,9 +146,19 @@ void requestCB0(void* optParm, AsyncHTTPRequest* thisRequest, int readyState)
 
   if (readyState == readyStateDone)
   {
-    Serial.println("\n**************************************");
-    Serial.println(thisRequest->responseText());
-    Serial.println("**************************************");
+    AHTTP_LOGERROR(F("\n**************************************"));
+    AHTTP_LOGERROR1(F("Response Code = "), request->responseHTTPString());
+
+    if (request->responseHTTPcode() == 200)
+    {
+      Serial.println(F("\n**************************************"));
+      Serial.println(request->responseText());
+      Serial.println(F("**************************************"));
+    }
+    else
+    {
+      AHTTP_LOGERROR(F("Response error"));
+    }
 
     thisRequest->setDebug(false);
     readySend[0] = true;
@@ -145,9 +171,19 @@ void requestCB1(void* optParm, AsyncHTTPRequest* thisRequest, int readyState)
 
   if (readyState == readyStateDone)
   {
-    Serial.println("\n**************************************");
-    Serial.println(thisRequest->responseText());
-    Serial.println("**************************************");
+    AHTTP_LOGERROR(F("\n**************************************"));
+    AHTTP_LOGERROR1(F("Response Code = "), request->responseHTTPString());
+
+    if (request->responseHTTPcode() == 200)
+    {
+      Serial.println(F("\n**************************************"));
+      Serial.println(request->responseText());
+      Serial.println(F("**************************************"));
+    }
+    else
+    {
+      AHTTP_LOGERROR(F("Response error"));
+    }
 
     thisRequest->setDebug(false);
     readySend[1] = true;
@@ -158,9 +194,9 @@ void setup()
 {
   // put your setup code here, to run once:
   Serial.begin(115200);
-  while (!Serial);
+  while (!Serial && millis() < 5000);
 
-  Serial.println("\nStarting AsyncHTTPRequest_ESP_Multi using " + String(ARDUINO_BOARD));
+  Serial.print("\nStart AsyncHTTPRequest_ESP_Multi on "); Serial.println(ARDUINO_BOARD);
   Serial.println(ASYNC_HTTP_REQUEST_GENERIC_VERSION);
 
   WiFi.mode(WIFI_STA);
