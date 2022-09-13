@@ -60,7 +60,7 @@ void _Win_virtCMD(uint8_t state, uint8_t reason, uint8_t x)
 {
   if (winSW_V[x]->_virtWin == true)
   {
-    iot.pub_noTopic("up", winSW_V[x]->name);// <---- Fix this
+    iot.pub_noTopic((char *)winMQTTcmds[state], winSW_V[x]->name); // <---- Fix this
   }
 }
 void _newMSGcb(uint8_t x)
@@ -91,6 +91,7 @@ void create_SW_instance(JsonDocument &_DOC, uint8_t i)
 
   if (a > 0) /* Any input */
   {
+    SW_v[swEntityCounter]->useButton = true;
     SW_v[swEntityCounter]->button.begin(_DOC["inputPins"][lastUsed_inIO]);
     SW_v[swEntityCounter]->button.setID(swEntityCounter);
 
