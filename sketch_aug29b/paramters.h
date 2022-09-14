@@ -7,7 +7,7 @@ struct SwitchStruct
     uint8_t id = 0;
     uint8_t RFch = 255; /* Define RF channel. leave 255 to disable */
     uint8_t outPin = 255;
-    bool type;               /* <0> is ON-Off Switch, <1> push button */
+    uint8_t type;               /* <0> is ON-Off Switch, <1> push button */
     bool virtCMD = false;    /* Trigger a MQTT or a Relay */
     bool useButton = true;   /* Input is an option */
     bool guessState = false; /* when using IOcmd and a pushbutton state can not be known */

@@ -1,5 +1,16 @@
 {
-    "RFpin": 27,
+    "entityType": [
+        1,
+        1,
+        1,
+        1
+    ],
+    "virtCMD": [
+        "",
+        "",
+        "",
+        ""
+    ],
     "inputPins": [
         19,
         17,
@@ -20,24 +31,15 @@
         33,
         32
     ],
-    "entityType": [
+    "SW_buttonTypes": [
+        0,
         0,
         1,
         1
     ],
-    "virtCMD": [
-        "",
-        "",
-        "myHome/Windows",
-        "myHome/Lights/int"
-    ],
-    "SW_buttonTypes": [
-        0,
-        1,
-        2
-    ],
     "WextInputs": [
-        1,
+        0,
+        0,
         0,
         0
     ],
@@ -47,5 +49,6 @@
         3135490,
         3135489
     ],
+    "RFpin": 27,
     "v_file": 0.2
 }

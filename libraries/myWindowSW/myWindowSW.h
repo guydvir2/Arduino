@@ -13,20 +13,11 @@ Features:
 #include <buttonPresses.h>
 #include "defs.h"
 
-#define off1 digitalWrite(outpins[0], !RELAY_ON)
-#define off2 digitalWrite(outpins[1], !RELAY_ON)
-
-#define winSTOP    \
+#define winUP     \
     if (!virtCMD) \
-    off1
+    digitalWrite(outpins[0], RELAY_ON)
 
-#define winUP                                \
-    if (!virtCMD)                           \
-    digitalWrite(outpins[0], !RELAY_ON)    
-        // digitalWrite(outpins[1], !RELAY_ON) 
-        //     digitalWrite(outpins[0], RELAY_ON)
-
-#define winDOWN    \
+#define winDOWN   \
     if (!virtCMD) \
     digitalWrite(outpins[1], RELAY_ON)
 

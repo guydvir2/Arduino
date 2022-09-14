@@ -2,3 +2,6 @@
 .gcc_flags.json
 .pioenvs/*
 .DS_Store
+.vscode/*
+.vscode*/*
+workspace.code-workspace

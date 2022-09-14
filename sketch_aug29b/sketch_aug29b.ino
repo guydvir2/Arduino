@@ -6,17 +6,23 @@
 #include "but_defs.h"
 #include "myIOT_settings.h"
 
-
 /* ******************* Windows ******************* */
-void print_win_instance(WinSW &winsw)
+void print_win_instance(WinSW &winsw, JsonDocument &_DOC)
 {
   Serial.println("<<<<<<<<<<<< Window Entity >>>>>>>>>>>>>>");
   Serial.print("ID:\t");
   Serial.println(winsw.id);
-  Serial.print("upPin:\t");
+  Serial.print("upRelayPin:\t");
   Serial.println(winsw.outpins[0]);
-  Serial.print("downPin:\t");
+  Serial.print("downRelayPin:\t");
   Serial.println(winsw.outpins[1]);
+
+  Serial.print("downInputPin:\t");
+  Serial.println(_DOC["inputPins"][lastUsed_inIO].as<uint8_t>());
+
+  Serial.print("upInputPin:\t");
+  Serial.println(_DOC["inputPins"][lastUsed_inIO + 1].as<uint8_t>());
+
   Serial.print("extSW:\t");
   Serial.println(winsw._useExtSW);
   Serial.print("virtCMD:\t");
@@ -29,15 +35,16 @@ void create_WinSW_instance(JsonDocument &_DOC, uint8_t i)
 {
   winSW_V[winEntityCounter] = new WinSW;
 
-  if (strcmp(_DOC["virtCMD"][i], "") == 0) /* a virtCMD on output */
+  if (strcmp(_DOC["virtCMD"][i], "") != 0) /* a virtCMD on output */
   {
-    strlcpy(winSW_V[winEntityCounter]->name, _DOC["virtCMD"][i], TOPIC_LEN);
+    strlcpy(winSW_V[winEntityCounter]->name, _DOC["sub_topics_win"][i], TOPIC_LEN);
     winSW_V[winEntityCounter]->virtCMD = true;
     winSW_V[winEntityCounter]->def(_DOC["inputPins"][lastUsed_inIO], _DOC["inputPins"][lastUsed_inIO + 1]);
   }
   else /* Physical Switching input & output */
   {
     winSW_V[winEntityCounter]->def(_DOC["inputPins"][lastUsed_inIO], _DOC["inputPins"][lastUsed_inIO + 1], _DOC["relayPins"][lastUsed_outIO], _DOC["relayPins"][lastUsed_outIO + 1]);
+    winSW_V[winEntityCounter]->virtCMD = false;
     lastUsed_outIO += 2;
   }
 
@@ -50,7 +57,7 @@ void create_WinSW_instance(JsonDocument &_DOC, uint8_t i)
   winSW_V[winEntityCounter]->def_extras(); /* Timeout & lockdown */
   winSW_V[winEntityCounter]->start();
 
-  print_win_instance(*winSW_V[winEntityCounter]); /* debug only */
+  print_win_instance(*winSW_V[winEntityCounter], _DOC); /* debug only */
 
   winEntityCounter++; /* inc Windows Enetity counter */
   lastUsed_inIO += 2;
@@ -84,11 +91,12 @@ void loop_WinSW()
 /* ******************* Buttons ******************* */
 void create_SW_instance(JsonDocument &_DOC, uint8_t i)
 {
-  uint8_t a = _DOC["SW_buttonTypes"][i];
+  uint8_t a = _DOC["SW_buttonTypes"][i].as<uint8_t>();
+
   SW_v[swEntityCounter] = new SwitchStruct;
   SW_v[swEntityCounter]->id = swEntityCounter;
 
-  if (a > 0) /* Any input */
+  if (a > 0) /* Has any input */
   {
     SW_v[swEntityCounter]->useButton = true;
     SW_v[swEntityCounter]->button.begin(_DOC["inputPins"][lastUsed_inIO]);
@@ -105,7 +113,7 @@ void create_SW_instance(JsonDocument &_DOC, uint8_t i)
     }
   }
 
-  if (strcmp(_DOC["virtCMD"][i], "") == 0) /* Virtual CMD */
+  if (strcmp(_DOC["virtCMD"][i], "") != 0) /* Virtual CMD */
   {
     SW_v[swEntityCounter]->virtCMD = true;
     strlcpy(SW_v[swEntityCounter]->Topic, _DOC["virtCMD"][i].as<const char *>(), TOPIC_LEN);
@@ -113,7 +121,7 @@ void create_SW_instance(JsonDocument &_DOC, uint8_t i)
   else /* Assign output to relays - Physical SW */
   {
     SW_v[swEntityCounter]->virtCMD = false;
-    SW_v[swEntityCounter]->outPin = _DOC["relayPins"][lastUsed_outIO];
+    SW_v[swEntityCounter]->outPin = _DOC["relayPins"][lastUsed_outIO].as<uint8_t>();
 
     pinMode(SW_v[swEntityCounter]->outPin, OUTPUT);
     digitalWrite(SW_v[swEntityCounter]->outPin, !OUTPUT_ON);
@@ -170,6 +178,7 @@ void loop_RF()
   }
 }
 /* ************************************************ */
+
 void setup()
 {
   startIOTservices();

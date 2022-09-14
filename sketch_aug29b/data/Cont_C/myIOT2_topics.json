@@ -5,23 +5,22 @@
         "myHome/debug"
     ],
     "pub_topics": [
-        "myHome/Cont_A/Avail",
-        "myHome/Cont_A/State"
+        "myHome/Cont_C/Avail",
+        "myHome/Cont_C/State"
     ],
     "sub_topics": [
-        "myHome/Cont_A",
-        "myHome/All",
-        "myHome/lockdown"
+        "myHome/Cont_C",
+        "myHome/All"
     ],
     "sub_topics_win": [
-        "myHome/Windows/gFloor/TwinWindow",
-        "myHome/Windows/gFloor/Pergola"
+        "",
+        ""
     ],
     "sub_topics_SW": [
-        "myHome/Light/int/gFloor/SalAmbient1",
-        "myHome/Light/int/gFloor/SalAmbient2",
-        "myHome/Light/int/gFloor/Lobby",
-        "myHome/Light/int/gFloor/Corridor"
+        "myHome/Light/int/gFloor/Light1",
+        "myHome/Light/int/gFloor/Light2",
+        "",
+        ""
     ],
     "sub_topics_win_g": [
         "myHome/Windows",
