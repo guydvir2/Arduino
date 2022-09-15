@@ -13,14 +13,11 @@
         "myHome/All"
     ],
     "sub_topics_win": [
-        "myHome/Windows/gFloor/Win1",
-        ""
+        "myHome/Windows/gFloor/Win1"
     ],
     "sub_topics_SW": [
         "myHome/Light/int/gFloor/Light1",
-        "myHome/Light/int/gFloor/Light2",
-        "",
-        ""
+        "myHome/Light/int/gFloor/Light2"
     ],
     "sub_topics_win_g": [
         "myHome/Windows",

@@ -6,24 +6,24 @@
         1
     ],
     "virtCMD": [
-        "",
-        "",
-        "",
-        ""
+        "myHome/Light/gFloor/SW0",
+        "myHome/Light/gFloor/SW1",
+        "myHome/Light/gFloor/SW2",
+        "myHome/Light/gFloor/SW3"
     ],
     "inputPins": [
+        23,
         19,
+        18,
         17,
         16,
-        5,
-        4,
-        2,
-        23,
-        18,
         15,
         14,
         13,
-        12
+        12,
+        5,
+        4,
+        2
     ],
     "relayPins": [
         25,
@@ -32,10 +32,10 @@
         32
     ],
     "SW_buttonTypes": [
-        0,
-        0,
         1,
-        1
+        2,
+        2,
+        2
     ],
     "WextInputs": [
         0,

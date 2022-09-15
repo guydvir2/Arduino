@@ -1,7 +1,8 @@
 myIOT2 iot;
 
-#define MAX_TOPIC_SIZE 40 // <----- Verfy max Topic size
-
+extern bool _isON(uint8_t i);
+extern void SW_turnON_cb(uint8_t i, uint8_t type);
+extern void SW_turnOFF_cb(uint8_t i, uint8_t type);
 extern void create_SW_instance(JsonDocument &_DOC, uint8_t i);
 extern void create_WinSW_instance(JsonDocument &_DOC, uint8_t i);
 
@@ -11,8 +12,6 @@ char topics_pub[2][MAX_TOPIC_SIZE];
 char topics_gen_pub[3][MAX_TOPIC_SIZE];
 
 /* ±±±±±±±±± Filenames and directories for each controller ±±±±±±±±±±± */
-#define SELECT_CONTROLLER 2
-
 char parameterFiles[3][30];
 const char *dirs[] = {"Fail", "Cont_A", "Cont_B", "Cont_C", "Cont_D"};
 const char *FileNames[3] = {"myIOT_param.json", "myIOT2_topics.json", "sketch_param.json"};
@@ -82,7 +81,7 @@ void update_Parameters_flash()
   bool ok3 = false;
 
   /* ±±±±±±±± Part A: update filenames of paramter files ±±±±±±±±±±±*/
-  construct_filenames(SELECT_CONTROLLER);
+  construct_filenames(CONTROLLER_PRESET);
 
   // ±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
 

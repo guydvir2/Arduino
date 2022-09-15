@@ -17,20 +17,11 @@
         "myHome/Windows/gFloor/TwinWindow",
         "myHome/Windows/gFloor/Pergola"
     ],
-    "sub_topics_SW": [
-        "",
-        "",
-        "",
-        ""
-    ],
+    "sub_topics_SW": [],
     "sub_topics_win_g": [
         "myHome/Windows",
         "myHome/Windows/gFloor"
     ],
-    "sub_topics_SW_g": [
-        "",
-        "",
-        ""
-    ],
+    "sub_topics_SW_g": [],
     "ver": 0.1
 }

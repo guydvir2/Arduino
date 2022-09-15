@@ -13,24 +13,9 @@
         "myHome/All",
         "myHome/lockdown"
     ],
-    "sub_topics_win": [
-        "",
-        ""
-    ],
-    "sub_topics_SW": [
-        "",
-        "",
-        "",
-        ""
-    ],
-    "sub_topics_win_g": [
-        "",
-        ""
-    ],
-    "sub_topics_SW_g": [
-        "",
-        "",
-        ""
-    ],
+    "sub_topics_win": [],
+    "sub_topics_SW": [],
+    "sub_topics_win_g": [],
+    "sub_topics_SW_g": [],
     "ver": 0.1
 }
