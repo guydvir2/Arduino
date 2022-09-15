@@ -10,18 +10,38 @@
 void create_WinSW_instance(JsonDocument &_DOC, uint8_t i)
 {
   winSW_V[winEntityCounter] = new WinSW;
+  Serial.print("Windows #:\t");
+  Serial.println(winEntityCounter);
 
   // <<<<<<<<<<< Define input and output pins >>>>>>>>>>>>>>
   if (strcmp(_DOC["virtCMD"][i], "") != 0) /* a virtCMD on output */
   {
-    strlcpy(winSW_V[winEntityCounter]->name, _DOC["sub_topics_win"][i], TOPIC_LEN);
     winSW_V[winEntityCounter]->virtCMD = true;
     winSW_V[winEntityCounter]->def(_DOC["inputPins"][lastUsed_inIO], _DOC["inputPins"][lastUsed_inIO + 1]);
+
+    Serial.print("virtCMD :\t");
+    Serial.println(winSW_V[winEntityCounter]->virtCMD);
+    Serial.print("in_pins #:\t");
+    Serial.print(_DOC["inputPins"][lastUsed_inIO].as<uint8_t>());
+    Serial.print("; ");
+    Serial.println(_DOC["inputPins"][lastUsed_inIO + 1].as<uint8_t>());
   }
   else /* Physical Switching input & output */
   {
     winSW_V[winEntityCounter]->def(_DOC["inputPins"][lastUsed_inIO], _DOC["inputPins"][lastUsed_inIO + 1], _DOC["relayPins"][lastUsed_outIO], _DOC["relayPins"][lastUsed_outIO + 1]);
     winSW_V[winEntityCounter]->virtCMD = false;
+    Serial.print("virtCMD :\t");
+    Serial.println(winSW_V[winEntityCounter]->virtCMD);
+    Serial.print("in_pins #:\t");
+    Serial.print(_DOC["inputPins"][lastUsed_inIO].as<uint8_t>());
+    Serial.print("; ");
+    Serial.println(_DOC["inputPins"][lastUsed_inIO + 1].as<uint8_t>());
+
+    Serial.print("out_pins #:\t");
+    Serial.print(_DOC["relayPins"][lastUsed_outIO].as<uint8_t>());
+    Serial.print("; ");
+    Serial.println(_DOC["relayPins"][lastUsed_outIO + 1].as<uint8_t>());
+
     lastUsed_outIO += 2;
   }
 
@@ -29,12 +49,20 @@ void create_WinSW_instance(JsonDocument &_DOC, uint8_t i)
   if (_DOC["WextInputs"][i] == 1) /* define a Secondary input for a window */
   {
     winSW_V[winEntityCounter]->def_extSW(_DOC["inputPins"][lastUsed_inIO + 2], _DOC["inputPins"][lastUsed_inIO + 3]);
+
+    Serial.print("ext_pins #:\t");
+    Serial.print(_DOC["inputPins"][lastUsed_inIO+2].as<uint8_t>());
+    Serial.print("; ");
+    Serial.println(_DOC["inputPins"][lastUsed_inIO + 3].as<uint8_t>());
+
     lastUsed_inIO += 2;
   }
 
   // <<<<<<<<<<< Init instance  >>>>>>>>>>>>>>
   winSW_V[winEntityCounter]->def_extras(); /* Timeout & lockdown */
   winSW_V[winEntityCounter]->start();
+
+  // print_win_instance(*winSW_V[winEntityCounter], _DOC); /* debug only */
 
   winEntityCounter++; /* inc Windows Enetity counter */
   lastUsed_inIO += 2;
