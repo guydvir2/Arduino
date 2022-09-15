@@ -7,34 +7,11 @@
 #include "myIOT_settings.h"
 
 /* ******************* Windows ******************* */
-void print_win_instance(WinSW &winsw, JsonDocument &_DOC)
-{
-  Serial.println("<<<<<<<<<<<< Window Entity >>>>>>>>>>>>>>");
-  Serial.print("ID:\t");
-  Serial.println(winsw.id);
-  Serial.print("upRelayPin:\t");
-  Serial.println(winsw.outpins[0]);
-  Serial.print("downRelayPin:\t");
-  Serial.println(winsw.outpins[1]);
-
-  Serial.print("downInputPin:\t");
-  Serial.println(_DOC["inputPins"][lastUsed_inIO].as<uint8_t>());
-
-  Serial.print("upInputPin:\t");
-  Serial.println(_DOC["inputPins"][lastUsed_inIO + 1].as<uint8_t>());
-
-  Serial.print("extSW:\t");
-  Serial.println(winsw._useExtSW);
-  Serial.print("virtCMD:\t");
-  Serial.println(winsw.virtCMD);
-  Serial.print("name:\t");
-  Serial.println(winsw.name);
-  yield();
-}
 void create_WinSW_instance(JsonDocument &_DOC, uint8_t i)
 {
   winSW_V[winEntityCounter] = new WinSW;
 
+  // <<<<<<<<<<< Define input and output pins >>>>>>>>>>>>>>
   if (strcmp(_DOC["virtCMD"][i], "") != 0) /* a virtCMD on output */
   {
     strlcpy(winSW_V[winEntityCounter]->name, _DOC["sub_topics_win"][i], TOPIC_LEN);
@@ -48,16 +25,16 @@ void create_WinSW_instance(JsonDocument &_DOC, uint8_t i)
     lastUsed_outIO += 2;
   }
 
+  // <<<<<<<<<<< Define Ext_input pins , if needed >>>>>>>>>>>>>>
   if (_DOC["WextInputs"][i] == 1) /* define a Secondary input for a window */
   {
     winSW_V[winEntityCounter]->def_extSW(_DOC["inputPins"][lastUsed_inIO + 2], _DOC["inputPins"][lastUsed_inIO + 3]);
     lastUsed_inIO += 2;
   }
 
+  // <<<<<<<<<<< Init instance  >>>>>>>>>>>>>>
   winSW_V[winEntityCounter]->def_extras(); /* Timeout & lockdown */
   winSW_V[winEntityCounter]->start();
-
-  print_win_instance(*winSW_V[winEntityCounter], _DOC); /* debug only */
 
   winEntityCounter++; /* inc Windows Enetity counter */
   lastUsed_inIO += 2;
