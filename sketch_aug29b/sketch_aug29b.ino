@@ -195,23 +195,22 @@ void toggle_handle(Button2 &b)
 
 void create_SW_instance(JsonDocument &_DOC, uint8_t i)
 {
-  uint8_t a = _DOC["SW_buttonTypes"][i].as<uint8_t>();
-
   SW_v[swEntityCounter] = new SwitchStruct;
   SW_v[swEntityCounter]->id = swEntityCounter;
-
-  if (a > 0) /* Has any input */
+  SW_v[swEntityCounter]->type = _DOC["SW_buttonTypes"][i].as<uint8_t>();
+  
+  if (SW_v[swEntityCounter]->type > 0) /* Has any input */
   {
     SW_v[swEntityCounter]->useButton = true;
     SW_v[swEntityCounter]->button.begin(_DOC["inputPins"][lastUsed_inIO]);
     SW_v[swEntityCounter]->button.setID(swEntityCounter);
 
-    if (a == 1) /* On-Off Switch */
+    if (SW_v[swEntityCounter]->type == 1) /* On-Off Switch */
     {
       SW_v[swEntityCounter]->button.setPressedHandler(OnOffSW_ON_handler);
       SW_v[swEntityCounter]->button.setReleasedHandler(OnOffSW_OFF_handler);
     }
-    else if (a == 2) /* Momentary/ Push button press */
+    else if (SW_v[swEntityCounter]->type == 2) /* Momentary/ Push button press */
     {
       SW_v[swEntityCounter]->button.setPressedHandler(toggle_handle);
     }
