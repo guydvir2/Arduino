@@ -1,7 +1,7 @@
 #define TOT_Relays 8
 #define TOT_Inputs 12
 #define MAX_TOPIC_SIZE 40 // <----- Verfy max Topic size
-#define CONTROLLER_PRESET 4
+#define CONTROLLER_PRESET 2
 
 #define OUTPUT_ON HIGH
 #define BUTTON_PRESSED LOW
@@ -52,7 +52,7 @@ char *buttMQTTcmds[2] = {"on", "off"};
 char *turnTypes[] = {"MQTT", "Button", "Remote"};
 
 const char *EntTypes[2] = {"win", "sw"}; /* Prefix to address client types when using MQTT */
-const char *winMQTTcmds[3] = {"up", "down", "off"};
+const char *winMQTTcmds[3] = {"off", "up", "down"};
 
 enum OPerTypes : const uint8_t
 {

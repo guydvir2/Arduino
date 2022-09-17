@@ -97,7 +97,7 @@ void update_Parameters_flash()
     DOC.clear();
     ok1 = true;
   }
-  
+
   // ±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
 
   // /* ±±±±±±±±±± Part C: Read Sketch paramters from flash, and update Sketch ±±±±±±±±±±±±±± */
@@ -111,7 +111,7 @@ void update_Parameters_flash()
     DOC.clear();
     ok2 = true;
   }
-  
+
   // ±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
 
   // /* ±±±±±±±±±± Part D: Read Topics from flash, and update myIOT Topics ±±±±±±±±±± */
@@ -124,7 +124,7 @@ void update_Parameters_flash()
     updateTopics_flash(DOC, topics_gen_pub, iot.topics_gen_pub, "pub_gen_topics");
     updateTopics_flash(DOC, topics_pub, iot.topics_pub, "pub_topics");
     updateTopics_flash(DOC, topics_sub, iot.topics_sub, "sub_topics");
-    
+
     //  >>>>> Update Windows Group Topics >>>>>>>>>
     uint8_t accum_shift = sizeof(topics_sub) / (sizeof(topics_sub[0]));
     updateTopics_flash(DOC, winGroupTopics, iot.topics_sub, "sub_topics_win_g", accum_shift);
@@ -203,28 +203,21 @@ void addiotnalMQTT(char *incoming_msg, char *_topic)
   char msg[150];
   if (strcmp(incoming_msg, "status") == 0)
   {
-    char msg2[100];
-    strcpy(msg, "Status: ");
     if (winEntityCounter > 0)
     {
-      strcat(msg, "[Windows]- ");
       for (uint8_t i = 0; i < winEntityCounter; i++)
       {
-        sprintf(msg2, " Win[#%d][%s] [%d]%s", i, winSW_V[i]->name, winSW_V[i]->get_winState(), i == swEntityCounter - 1 ? "" : "; ");
-        strcat(msg, msg2);
+        sprintf(msg, "Status: Win[#%d][%s] [%s]%s", i, winSW_V[i]->name,winMQTTcmds[winSW_V[i]->get_winState()], i == (swEntityCounter - 1) ? "" : "; ");
+        iot.pub_msg(msg);
       }
-      iot.pub_msg(msg);
     }
-    strcpy(msg, "Status: ");
     if (swEntityCounter > 0)
     {
-      strcat(msg, "[Switches]- ");
       for (uint8_t i = 0; i < swEntityCounter; i++)
       {
-        sprintf(msg2, " SW[#%d][%s] [%d]%s", i, SW_v[i]->Topic, _isON(i), i == swEntityCounter - 1 ? "" : "; ");
-        strcat(msg, msg2);
+        sprintf(msg, "Status: SW[#%d][%s] [%s]%s", i, SW_v[i]->Topic, _isON(i) ? "On" : "Off", i == swEntityCounter - 1 ? "" : "; ");
+        iot.pub_msg(msg);
       }
-      iot.pub_msg(msg);
     }
   }
   else if (strcmp(incoming_msg, "help2") == 0)
@@ -262,15 +255,15 @@ void addiotnalMQTT(char *incoming_msg, char *_topic)
         (strcmp(iot.inline_param[1], winMQTTcmds[0]) == 0 || strcmp(iot.inline_param[1], winMQTTcmds[1]) == 0 || strcmp(iot.inline_param[1], winMQTTcmds[2]) == 0))
     {
       uint8_t _word = 0;
-      if (strcmp(iot.inline_param[1], winMQTTcmds[0]) == 0) /* UP */
+      if (strcmp(iot.inline_param[1], winMQTTcmds[1]) == 0) /* UP */
       {
         _word = UP;
       }
-      else if (strcmp(iot.inline_param[1], winMQTTcmds[1]) == 0) /* DOwN */
+      else if (strcmp(iot.inline_param[1], winMQTTcmds[2]) == 0) /* DOwN */
       {
         _word = DOWN;
       }
-      else if (strcmp(iot.inline_param[1], winMQTTcmds[2]) == 0) /* STOP */
+      else if (strcmp(iot.inline_param[1], winMQTTcmds[0]) == 0) /* STOP */
       {
         _word = STOP;
       }
