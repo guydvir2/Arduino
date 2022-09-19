@@ -241,6 +241,7 @@ void create_SW_instance(JsonDocument &_DOC, uint8_t i)
   if (_DOC["RF_2entity"][i].as<uint8_t>() != 255)
   {
     SW_v[swEntityCounter]->RFch = _DOC["RF_2entity"][i].as<uint8_t>();
+    init_RF(i);
   }
   print_sw_struct(*SW_v[swEntityCounter]);
 

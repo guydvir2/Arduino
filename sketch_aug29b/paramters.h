@@ -1,7 +1,6 @@
 #define TOT_Relays 8
 #define TOT_Inputs 12
 #define MAX_TOPIC_SIZE 40 // <----- Verfy max Topic size
-#define CONTROLLER_PRESET 2
 
 #define OUTPUT_ON HIGH
 #define BUTTON_PRESSED LOW
@@ -67,6 +66,7 @@ uint8_t winEntityCounter = 0;
 
 /* ****** Paramters that will be updated from FLASH saved on file ******* */
 uint8_t RFpin = 27;
+uint8_t ParameterFile_preset=1;
 
 int RF_keyboardCode[] = {3135496, 3135492, 3135490, 3135489};
 

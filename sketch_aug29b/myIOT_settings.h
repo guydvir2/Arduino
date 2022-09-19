@@ -49,6 +49,7 @@ void updateTopics_flash(JsonDocument &DOC, char ch_array[], const char *dest_arr
 void update_sketch_parameters_flash(JsonDocument &DOC)
 {
   RFpin = DOC["RFpin"].as<uint8_t>();
+  ParameterFile_preset = DOC["RFpin"].as<uint8_t>();
 
   for (uint8_t i = 0; i < 4; i++)
   {
@@ -81,7 +82,7 @@ void update_Parameters_flash()
   bool ok3 = false;
 
   /* ±±±±±±±± Part A: update filenames of paramter files ±±±±±±±±±±±*/
-  construct_filenames(CONTROLLER_PRESET);
+  construct_filenames(ParameterFile_preset);
 
   // ±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
 
