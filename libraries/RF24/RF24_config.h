@@ -54,12 +54,17 @@
 // RaspberryPi rp2xxx-based devices (e.g. RPi Pico board)
 #elif defined(PICO_BUILD) && !defined(ARDUINO)
     #include "utility/rp2/RF24_arch_config.h"
+    #define sprintf_P sprintf
 
 #elif (!defined(ARDUINO)) // Any non-arduino device is handled via configure/Makefile
     // The configure script detects device and copies the correct includes.h file to /utility/includes.h
     // This behavior can be overridden by calling configure with respective parameters
     // The includes.h file defines either RF24_RPi, MRAA, LITTLEWIRE or RF24_SPIDEV and includes the correct RF24_arch_config.h file
     #include "utility/includes.h"
+
+    #ifndef sprintf_P
+        #define sprintf_P sprintf
+    #endif // sprintf_P
 
 //ATTiny
 #elif defined(__AVR_ATtiny25__) || defined(__AVR_ATtiny45__) || defined(__AVR_ATtiny85__) || defined(__AVR_ATtiny24__) || defined(__AVR_ATtiny44__) || defined(__AVR_ATtiny84__) || defined(__AVR_ATtiny2313__) || defined(__AVR_ATtiny4313__) || defined(__AVR_ATtiny861__) || defined(__AVR_ATtinyX5__) || defined(__AVR_ATtinyX4__) || defined(__AVR_ATtinyX313__) || defined(__AVR_ATtinyX61__)
@@ -154,12 +159,18 @@ extern HardwareSPI SPI;
     #endif // defined (__ARDUINO_X86__)
 
     // Progmem is Arduino-specific
-    #if defined(ARDUINO_ARCH_ESP8266) || defined(ESP32)
+    #if defined(ARDUINO_ARCH_ESP8266) || defined(ESP32) || (defined(ARDUINO_ARCH_RP2040) && !defined(ARDUINO_ARCH_MBED))
         #include <pgmspace.h>
         #define PRIPSTR "%s"
         #ifndef pgm_read_ptr
-            #define pgm_read_ptr(p) (*(p))
+            #define pgm_read_ptr(p) (*(void* const*)(p))
         #endif
+        // Serial.printf() is no longer defined in the unifying Arduino/ArduinoCore-API repo
+        // Serial.printf() is defined if using the arduino-pico/esp32/8266 repo
+        #if defined(ARDUINO_ARCH_ESP32) // do not `undef` when using the espressif SDK only
+            #undef printf_P             // needed for ESP32 core
+        #endif
+        #define printf_P Serial.printf
     #elif defined(ARDUINO) && !defined(ESP_PLATFORM) && !defined(__arm__) && !defined(__ARDUINO_X86__) || defined(XMEGA)
         #include <avr/pgmspace.h>
         #define PRIPSTR "%S"
@@ -200,10 +211,10 @@ typedef uint16_t prog_uint16_t;
             #define PROGMEM
         #endif
         #ifndef pgm_read_word
-            #define pgm_read_word(p) (*(p))
+            #define pgm_read_word(p) (*(const unsigned short*)(p))
         #endif
         #if !defined pgm_read_ptr || defined ARDUINO_ARCH_MBED
-            #define pgm_read_ptr(p) (*(p))
+            #define pgm_read_ptr(p) (*(void* const*)(p))
         #endif
         #ifndef PRIPSTR
             #define PRIPSTR "%s"
@@ -216,9 +227,5 @@ typedef uint16_t prog_uint16_t;
 #if defined(SPI_HAS_TRANSACTION) && !defined(SPI_UART) && !defined(SOFTSPI)
     #define RF24_SPI_TRANSACTIONS
 #endif // defined (SPI_HAS_TRANSACTION) && !defined (SPI_UART) && !defined (SOFTSPI)
-
-#ifndef sprintf_P
-    #define sprintf_P sprintf
-#endif // sprintf_P
 
 #endif // __RF24_CONFIG_H__
