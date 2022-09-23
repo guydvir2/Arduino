@@ -18,14 +18,15 @@ void create_WinSW_instance(JsonDocument &_DOC, uint8_t i)
   if (strcmp(_DOC["virtCMD"][i], "") != 0) /* a virtCMD on output */
   {
     winSW_V[winEntityCounter]->virtCMD = true;
-    winSW_V[winEntityCounter]->def(_DOC["inputPins"][lastUsed_inIO], _DOC["inputPins"][lastUsed_inIO + 1]);
+    // winSW_V[winEntityCounter]->def(_DOC["inputPins"][lastUsed_inIO], _DOC["inputPins"][lastUsed_inIO + 1]);
+    winSW_V[winEntityCounter]->def(inPinsArray[lastUsed_inIO], inPinsArray[lastUsed_inIO + 1]);
 
     Serial.print("virtCMD :\t");
     Serial.println(winSW_V[winEntityCounter]->virtCMD);
     Serial.print("in_pins #:\t");
-    Serial.print(_DOC["inputPins"][lastUsed_inIO].as<uint8_t>());
+    Serial.print(inPinsArray[lastUsed_inIO]);
     Serial.print("; ");
-    Serial.println(_DOC["inputPins"][lastUsed_inIO + 1].as<uint8_t>());
+    Serial.println(inPinsArray[lastUsed_inIO + 1]);
     Serial.println("out_pins #:\t NONE");
   }
   else /* Physical Switching input & output */
@@ -50,12 +51,12 @@ void create_WinSW_instance(JsonDocument &_DOC, uint8_t i)
   // <<<<<<<<<<< Define Ext_input pins , if needed >>>>>>>>>>>>>>
   if (_DOC["WextInputs"][i] == 1) /* define a Secondary input for a window */
   {
-    winSW_V[winEntityCounter]->def_extSW(_DOC["inputPins"][lastUsed_inIO + 2], _DOC["inputPins"][lastUsed_inIO + 3]);
+    winSW_V[winEntityCounter]->def_extSW(inPinsArray[lastUsed_inIO + 2], inPinsArray[lastUsed_inIO + 3]);
 
     Serial.print("ext_pins #:\t");
-    Serial.print(_DOC["inputPins"][lastUsed_inIO + 2].as<uint8_t>());
+    Serial.print(inPinsArray[lastUsed_inIO + 2]);
     Serial.print("; ");
-    Serial.println(_DOC["inputPins"][lastUsed_inIO + 3].as<uint8_t>());
+    Serial.println(inPinsArray[lastUsed_inIO + 3]);
 
     lastUsed_inIO += 2;
   }
@@ -198,11 +199,11 @@ void create_SW_instance(JsonDocument &_DOC, uint8_t i)
   SW_v[swEntityCounter] = new SwitchStruct;
   SW_v[swEntityCounter]->id = swEntityCounter;
   SW_v[swEntityCounter]->type = _DOC["SW_buttonTypes"][i].as<uint8_t>();
-  
+
   if (SW_v[swEntityCounter]->type > 0) /* Has any input */
   {
     SW_v[swEntityCounter]->useButton = true;
-    SW_v[swEntityCounter]->button.begin(_DOC["inputPins"][lastUsed_inIO]);
+    SW_v[swEntityCounter]->button.begin(inPinsArray[lastUsed_inIO]);
     SW_v[swEntityCounter]->button.setID(swEntityCounter);
 
     if (SW_v[swEntityCounter]->type == 1) /* On-Off Switch */
@@ -230,7 +231,7 @@ void create_SW_instance(JsonDocument &_DOC, uint8_t i)
   else /* Assign output to relays - Physical SW */
   {
     SW_v[swEntityCounter]->virtCMD = false;
-    SW_v[swEntityCounter]->outPin = _DOC["relayPins"][lastUsed_outIO].as<uint8_t>();
+    SW_v[swEntityCounter]->outPin = outPinsArray[lastUsed_outIO];
 
     pinMode(SW_v[swEntityCounter]->outPin, OUTPUT);
     digitalWrite(SW_v[swEntityCounter]->outPin, !OUTPUT_ON);
