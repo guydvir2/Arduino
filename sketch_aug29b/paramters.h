@@ -48,7 +48,7 @@ WinSW *winSW_V[TOT_Relays / 2] = {nullptr, nullptr, nullptr, nullptr};
 SwitchStruct *SW_v[TOT_Inputs] = {nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr};
 
 char *buttMQTTcmds[2] = {"on", "off"};
-char *turnTypes[] = {"MQTT", "Button", "Remote"};
+char *turnTypes[] = {"Button", "MQTT", "Remote"};
 
 const char *EntTypes[2] = {"win", "sw"}; /* Prefix to address client types when using MQTT */
 const char *winMQTTcmds[3] = {"off", "up", "down"};
@@ -66,7 +66,7 @@ uint8_t winEntityCounter = 0;
 
 /* ****** Paramters that will be updated from FLASH saved on file ******* */
 uint8_t RFpin = 27;
-uint8_t ParameterFile_preset = 1;
+uint8_t ParameterFile_preset = 0;
 
 int RF_keyboardCode[] = {3135496, 3135492, 3135490, 3135489};
 uint8_t outPinsArray[TOT_Relays] = {255, 255, 255, 255, 255, 255, 255, 255};

@@ -38,6 +38,11 @@ void construct_filenames(uint8_t i = 0)
 /* ±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±± */
 
 /* ±±±±±±±±±±±±±± Read & Update Paramters stored on flash memory ±±±±±±±±±±±±±±±± */
+void updateTopics_flash(JsonDocument &DOC, char ch_array[], const char *dest_array[], const char *topic, u_int8_t i, uint8_t shift = 0)
+{
+  strlcpy(ch_array, DOC[topic][i], MAX_TOPIC_SIZE);
+  dest_array[i + shift] = ch_array;
+}
 void updateTopics_flash(JsonDocument &DOC, char ch_array[][MAX_TOPIC_SIZE], const char *dest_array[], const char *topic, uint8_t shift = 0)
 {
   uint8_t i = 0;
@@ -52,11 +57,6 @@ void updateTopics_flash(JsonDocument &DOC, char ch_array[][MAX_TOPIC_SIZE], cons
       i++;
     }
   }
-}
-void updateTopics_flash(JsonDocument &DOC, char ch_array[], const char *dest_array[], const char *topic, u_int8_t i, uint8_t shift = 0)
-{
-  strlcpy(ch_array, DOC[topic][i], MAX_TOPIC_SIZE);
-  dest_array[i + shift] = ch_array;
 }
 
 void update_HWpins_flash(JsonDocument &DOC)

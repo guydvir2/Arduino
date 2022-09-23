@@ -18,7 +18,6 @@ void create_WinSW_instance(JsonDocument &_DOC, uint8_t i)
   if (strcmp(_DOC["virtCMD"][i], "") != 0) /* a virtCMD on output */
   {
     winSW_V[winEntityCounter]->virtCMD = true;
-    // winSW_V[winEntityCounter]->def(_DOC["inputPins"][lastUsed_inIO], _DOC["inputPins"][lastUsed_inIO + 1]);
     winSW_V[winEntityCounter]->def(inPinsArray[lastUsed_inIO], inPinsArray[lastUsed_inIO + 1]);
 
     Serial.print("virtCMD :\t");
