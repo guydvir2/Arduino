@@ -1,0 +1,6 @@
+0 windows
+4 switches
+no RF
+no virtCMDs
+2 buttons ON_OFF
+2 buttons push_buttons

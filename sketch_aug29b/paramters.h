@@ -66,26 +66,15 @@ uint8_t winEntityCounter = 0;
 
 /* ****** Paramters that will be updated from FLASH saved on file ******* */
 uint8_t RFpin = 27;
-uint8_t ParameterFile_preset = 3;
+uint8_t ParameterFile_preset = 1;
 
 int RF_keyboardCode[] = {3135496, 3135492, 3135490, 3135489};
+uint8_t outPinsArray[TOT_Relays] = {255, 255, 255, 255, 255, 255, 255, 255};
+uint8_t inPinsArray[TOT_Inputs] = {255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255};
 
 char winGroupTopics[2][MAX_TOPIC_SIZE];
 char buttGroupTopics[3][MAX_TOPIC_SIZE];
 
-#if defined(ESP32)
-uint8_t buttonPins[TOT_Relays] = {19, 17, 16, 5, 0, 0, 0, 0};
-uint8_t relayPins[TOT_Relays] = {25, 26, 33, 32, 0, 0, 0, 0};
-uint8_t WrelayPins[TOT_Relays / 2][2] = {{33, 32}, {25, 26}, {0, 0}, {0, 0}};
-uint8_t WinputPins[TOT_Relays / 2][2] = {{16, 5}, {19, 17}, {0, 0}, {0, 0}};
-uint8_t WextInPins[TOT_Relays / 2][2] = {{5, 4}, {255, 255}, {255, 255}, {255, 255}};
-#elif defined(ESP8266)
-uint8_t buttonPins[TOT_Relays] = {D7, D2, D3, D4, 0, 0, 0, 0};
-uint8_t relayPins[TOT_Relays] = {D8, D6, D7, D8, 0, 0, 0, 0};
-uint8_t WrelayPins[TOT_Relays / 2][2] = {{D3, D4}, {D5, D6}, {0, 0}, {0, 0}};
-uint8_t WinputPins[TOT_Relays / 2][2] = {{D5, D6}, {D7, D8}, {0, 0}, {0, 0}};
-uint8_t WextInPins[TOT_Relays / 2][2] = {{D7, D8}, {255, 255}, {255, 255}, {255, 255}};
-#endif
 // <<<<<<<<<<<<<<<<<<<<<  WinSW Paramters >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 /* Entity types: 0 is window, 1 is SW */
