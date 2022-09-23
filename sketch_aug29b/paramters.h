@@ -66,7 +66,7 @@ uint8_t winEntityCounter = 0;
 
 /* ****** Paramters that will be updated from FLASH saved on file ******* */
 uint8_t RFpin = 27;
-uint8_t ParameterFile_preset=1;
+uint8_t ParameterFile_preset = 3;
 
 int RF_keyboardCode[] = {3135496, 3135492, 3135490, 3135489};
 
