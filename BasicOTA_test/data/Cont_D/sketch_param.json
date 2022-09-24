@@ -1,0 +1,60 @@
+{
+    "entityType": [
+        1,
+        1,
+        1,
+        1
+    ],
+    "virtCMD": [
+        "myHome/Light/gFloor/SW0",
+        "myHome/Light/gFloor/SW1",
+        "myHome/Light/gFloor/SW2",
+        "myHome/Light/gFloor/SW3"
+    ],
+    "inputPins": [
+        23,
+        19,
+        18,
+        17,
+        16,
+        15,
+        14,
+        13,
+        12,
+        5,
+        4,
+        2
+    ],
+    "relayPins": [
+        25,
+        26,
+        33,
+        32
+    ],
+    "SW_buttonTypes": [
+        1,
+        2,
+        2,
+        2
+    ],
+    "WextInputs": [
+        0,
+        0,
+        0,
+        0
+    ],
+    "RF_keyboardCode": [
+        3135496,
+        3135492,
+        3135490,
+        3135489
+    ],
+    "RF_2entity": [
+        0,
+        1,
+        255,
+        255
+    ],
+    "RFpin": 27,
+    "v_file": 0.2
+}

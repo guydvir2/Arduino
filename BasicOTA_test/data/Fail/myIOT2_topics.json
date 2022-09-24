@@ -1,0 +1,21 @@
+{
+    "pub_gen_topics": [
+        "myHome/Messages",
+        "myHome/log",
+        "myHome/debug"
+    ],
+    "pub_topics": [
+        "myHome/Cont_Fail/Avail",
+        "myHome/Cont_Fail/State"
+    ],
+    "sub_topics": [
+        "myHome/Cont_Fail",
+        "myHome/All",
+        "myHome/lockdown"
+    ],
+    "sub_topics_win": [],
+    "sub_topics_SW": [],
+    "sub_topics_win_g": [],
+    "sub_topics_SW_g": [],
+    "ver": 0.1
+}

@@ -6,10 +6,10 @@
         1
     ],
     "virtCMD": [
-        "",
-        "",
-        "",
-        ""
+        "myHome/Light/gFloor/SW0",
+        "myHome/Light/gFloor/SW1",
+        "myHome/Light/gFloor/SW2",
+        "myHome/Light/gFloor/SW3"
     ],
     "SW_buttonTypes": [
         1,
@@ -23,6 +23,7 @@
         0,
         0
     ],
+
     "RF_2entity": [
         255,
         255,

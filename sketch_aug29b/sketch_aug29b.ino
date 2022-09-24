@@ -30,19 +30,19 @@ void create_WinSW_instance(JsonDocument &_DOC, uint8_t i)
   }
   else /* Physical Switching input & output */
   {
-    winSW_V[winEntityCounter]->def(_DOC["inputPins"][lastUsed_inIO], _DOC["inputPins"][lastUsed_inIO + 1], _DOC["relayPins"][lastUsed_outIO], _DOC["relayPins"][lastUsed_outIO + 1]);
+    winSW_V[winEntityCounter]->def(inPinsArray[lastUsed_inIO], inPinsArray[lastUsed_inIO + 1], outPinsArray[lastUsed_outIO], outPinsArray[lastUsed_outIO + 1]);
     winSW_V[winEntityCounter]->virtCMD = false;
 
     Serial.print("virtCMD :\t");
     Serial.println(winSW_V[winEntityCounter]->virtCMD);
     Serial.print("in_pins #:\t");
-    Serial.print(_DOC["inputPins"][lastUsed_inIO].as<uint8_t>());
+    Serial.print(inPinsArray[lastUsed_inIO]);
     Serial.print("; ");
-    Serial.println(_DOC["inputPins"][lastUsed_inIO + 1].as<uint8_t>());
+    Serial.println(inPinsArray[lastUsed_inIO + 1]);
     Serial.print("out_pins #:\t");
-    Serial.print(_DOC["relayPins"][lastUsed_outIO].as<uint8_t>());
+    Serial.print(outPinsArray[lastUsed_outIO]);
     Serial.print("; ");
-    Serial.println(_DOC["relayPins"][lastUsed_outIO + 1].as<uint8_t>());
+    Serial.println(outPinsArray[lastUsed_outIO + 1]);
 
     lastUsed_outIO += 2;
   }
@@ -197,7 +197,7 @@ void create_SW_instance(JsonDocument &_DOC, uint8_t i)
 {
   SW_v[swEntityCounter] = new SwitchStruct;
   SW_v[swEntityCounter]->id = swEntityCounter;
-  SW_v[swEntityCounter]->type = _DOC["SW_buttonTypes"][i].as<uint8_t>();
+  SW_v[swEntityCounter]->type = _DOC["SW_buttonTypes"][i] | 1;
 
   if (SW_v[swEntityCounter]->type > 0) /* Has any input */
   {
@@ -238,10 +238,10 @@ void create_SW_instance(JsonDocument &_DOC, uint8_t i)
     lastUsed_outIO++;
   }
 
-  if (_DOC["RF_2entity"][i].as<uint8_t>() != 255)
+  if (_DOC["RF_2entity"][swEntityCounter] != 255)
   {
-    SW_v[swEntityCounter]->RFch = _DOC["RF_2entity"][i].as<uint8_t>();
-    init_RF(i);
+    SW_v[swEntityCounter]->RFch = _DOC["RF_2entity"][swEntityCounter];
+    init_RF(swEntityCounter);
   }
   print_sw_struct(*SW_v[swEntityCounter]);
 

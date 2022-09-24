@@ -1,4 +1,5 @@
 myIOT2 iot;
+#define LOCAL_PARAM true
 
 extern bool _isON(uint8_t i);
 extern void SW_turnON_cb(uint8_t i, uint8_t type);
@@ -13,7 +14,7 @@ char topics_gen_pub[3][MAX_TOPIC_SIZE];
 
 /* ±±±±±±±±± Filenames and directories for each controller ±±±±±±±±±±± */
 char parameterFiles[4][30];
-const char *dirs[] = {"Fail", "Cont_A", "Cont_B", "Cont_C", "Cont_D"};
+const char *dirs[] = {"Fail", "Cont_A", "Cont_B", "Cont_C", "Cont_D", "Cont_test"};
 const char *FileNames_common[2] = {"myIOT_param.json", "Hardware.json"};
 const char *FileNames_dedicated[2] = {"myIOT2_topics.json", "sketch_param.json"};
 
@@ -38,12 +39,12 @@ void construct_filenames(uint8_t i = 0)
 /* ±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±± */
 
 /* ±±±±±±±±±±±±±± Read & Update Paramters stored on flash memory ±±±±±±±±±±±±±±±± */
-void updateTopics_flash(JsonDocument &DOC, char ch_array[], const char *dest_array[], const char *topic, u_int8_t i, uint8_t shift = 0)
+void _updateTopics_flash(JsonDocument &DOC, char ch_array[], const char *dest_array[], const char *topic, u_int8_t i, uint8_t shift = 0)
 {
   strlcpy(ch_array, DOC[topic][i], MAX_TOPIC_SIZE);
   dest_array[i + shift] = ch_array;
 }
-void updateTopics_flash(JsonDocument &DOC, char ch_array[][MAX_TOPIC_SIZE], const char *dest_array[], const char *topic, uint8_t shift = 0)
+void _updateTopics_flash(JsonDocument &DOC, char ch_array[][MAX_TOPIC_SIZE], const char *dest_array[], const char *topic, uint8_t shift = 0)
 {
   uint8_t i = 0;
   JsonArray array = DOC[topic];
@@ -59,25 +60,25 @@ void updateTopics_flash(JsonDocument &DOC, char ch_array[][MAX_TOPIC_SIZE], cons
   }
 }
 
-void update_HWpins_flash(JsonDocument &DOC)
+void _update_HWpins_flash(JsonDocument &DOC)
 {
   const uint8_t num_RF_codes = 4;
-  RFpin = DOC["RFpin"].as<uint8_t>();
+  RFpin = DOC["RFpin"];
 
   for (uint8_t i = 0; i < num_RF_codes; i++)
   {
-    RF_keyboardCode[i] = DOC["RF_keyboardCode"][i].as<int>();
+    RF_keyboardCode[i] = DOC["RF_keyboardCode"][i].as<int>() | 0;
   }
   for (uint8_t i = 0; i < TOT_Inputs; i++)
   {
-    inPinsArray[i] = DOC["inputPins"][i].as<uint8_t>();
+    inPinsArray[i] = DOC["inputPins"][i] | 255;
   }
   for (uint8_t i = 0; i < TOT_Relays; i++)
   {
-    outPinsArray[i] = DOC["relayPins"][i].as<uint8_t>();
+    outPinsArray[i] = DOC["relayPins"][i] | 255;
   }
 }
-void update_sketch_parameters_flash(JsonDocument &DOC)
+void _update_sketch_parameters_flash(JsonDocument &DOC)
 {
   JsonArray entTypes = DOC["entityType"];
 
@@ -113,9 +114,19 @@ void update_Parameters_flash()
   // ±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
 
   /* ±±±±±±±± Part A_1: Update HW pins ±±±±±±±±±±±*/
+#if LOCAL_PARAM
+  char fakePin[] = "{\"inputPins\": [19,17,16,5,4,2,23,18,15,14,13,12], \"relayPins\": [25,26,33,32],\"RF_keyboardCode\": [3135496,3135492,3135490,3135489],\"RFpin\": 27}";
+  DeserializationError error0 = deserializeJson(DOC, fakePin);
+  if (!error0)
+  {
+    _update_HWpins_flash(DOC);
+    DOC.clear();
+    ok0 = true;
+  }
+#else
   if (iot.extract_JSON_from_flash(iot.parameter_filenames[1], DOC))
   {
-    update_HWpins_flash(DOC);
+    _update_HWpins_flash(DOC);
     DOC.clear();
     ok0 = true;
   }
@@ -123,16 +134,12 @@ void update_Parameters_flash()
   {
     Serial.println("Fail read HW pins");
   }
-
+#endif
   // ±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
 
   /* ±±±±±±±± Part B: update myIOT parameters ±±±±±±±±±±±*/
   if (iot.extract_JSON_from_flash(iot.parameter_filenames[0], DOC))
   {
-    // char fakeIOT[] = "{\"useSerial\": true,\"useWDT\" : true,\"useFlashP\" : true,\"useResetKeeper\" : true,\"useDebugLog\" : true,\"useNetworkReset\" : true,\"useBootClockLog\" : true,\"ignore_boot_msg\" : false,\"debug_level\" : 0,\"noNetwork_reset\" : 30,\"ver\" : 0.6}";
-    // DeserializationError error = deserializeJson(DOC, fakeIOT);
-    // if (!error)
-    // {
     iot.update_vars_flash_parameters(DOC);
     DOC.clear();
     ok1 = true;
@@ -145,13 +152,19 @@ void update_Parameters_flash()
   // ±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
 
   // /* ±±±±±±±±±± Part C: update Sketch Parameters ±±±±±±±±±±±±±± */
+#if LOCAL_PARAM
+  char fakeP[] = "{\"entityType\": [0,1,1],\"virtCMD\": [\"\",\"\",\"\",\"\"],\"SW_buttonTypes\": [2,1],\"WextInputs\": [0],\"RF_2entity\": [0,1,255,255],\"v_file\": 0.3}";
+  DeserializationError error2 = deserializeJson(DOC, fakeP);
+  if (!error2)
+  {
+    _update_sketch_parameters_flash(DOC);
+    DOC.clear();
+    ok2 = true;
+  }
+#else
   if (iot.extract_JSON_from_flash(iot.parameter_filenames[3], DOC))
   {
-    // char fakeP[] = "{\"entityType\": [0,1,1],\"virtCMD\": [\"\",\"\",\"\",\"\"],\"inputPins\": [19,17,16,5,4,2,23,18,15,14,13,12],\"relayPins\": [25,26,33,32],\"SW_buttonTypes\": [1,1,2,1],\"WextInputs\": [1,0,0],\"RF_keyboardCode\":[3135496,3135492,3135490,3135489],\"RFpin\": 27,\"v_file\": 0.2}";
-    // DeserializationError error2 = deserializeJson(DOC, fakeP);
-    // if (!error2)
-    // {
-    update_sketch_parameters_flash(DOC);
+    _update_sketch_parameters_flash(DOC);
     DOC.clear();
     ok2 = true;
   }
@@ -159,40 +172,71 @@ void update_Parameters_flash()
   {
     Serial.println("Fail read Sketch parameters");
   }
-
+#endif
   // ±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
 
   // /* ±±±±±±±±±± Part D: update myIOT Topics ±±±±±±±±±± */
-  // char fakeTopics[] = "{\"pub_gen_topics\" : [\"myHome\/Messages\",\"myHome\/log\",\"myHome\/debug\"],\"pub_topics\" : [\"myHome\/Cont_A\/Avail\",\"myHome\/Cont_A\/State\"],\"sub_topics\" : [\"myHome\/Cont_A\",\"myHome\/All\",\"myHome\/lockdown\"],\"sub_topics_win\" : [\"myHome\/Windows\/gFloor\/TwinWindow\",\"myHome\/Windows\/gFloor\/Pergola\"],\"sub_topics_SW\" : [\"myHome\/Light\/int\/gFloor\/SalAmbient1\",\"myHome\/Light\/int\/gFloor\/SalAmbient2\",\"myHome\/Light\/int\/gFloor\/Lobby\",\"myHome\/Light\/int\/gFloor\/Corridor\"],\"sub_topics_win_g\" : [\"myHome\/Windows\",\"myHome\/Windows\/gFloor\"],\"sub_topics_SW_g\" : [\"myHome\/Light\",\"myHome\/Light\/int\",\"myHome\/Light\/int\/gFloor\"],\"ver\" : 0.1}";
-  if (iot.extract_JSON_from_flash(iot.parameter_filenames[2], DOC)) /* extract topics from flash */
+#if LOCAL_PARAM
+  char fakeTopics[] = "{\"pub_gen_topics\" : [\"myHome\/Messages\",\"myHome\/log\",\"myHome\/debug\"],\"pub_topics\" : [\"myHome\/Cont_Man\/Avail\",\"myHome\/Cont_Man\/State\"],\"sub_topics\" : [\"myHome\/Cont_Man\",\"myHome\/All\",\"myHome\/lockdown\"],\"sub_topics_win\" : [\"myHome\/Windows\/gFloor\/Win0\",\"myHome\/Windows\/gFloor\/Win1\"],\"sub_topics_SW\" : [\"myHome\/Light\/int\/gFloor\/Light0\",\"myHome\/Light\/int\/gFloor\/Light0\",\"myHome\/Light\/int\/gFloor\/Light0\",\"myHome\/Light\/int\/gFloor\/Light0\"],\"sub_topics_win_g\" : [\"myHome\/Windows\",\"myHome\/Windows\/gFloor\"],\"sub_topics_SW_g\" : [\"myHome\/Light\",\"myHome\/Light\/int\",\"myHome\/Light\/int\/gFloor\"],\"ver\" : 0.1}";
+
+  DeserializationError error3 = deserializeJson(DOC, fakeTopics);
+  if (!error3)
   {
-    // DeserializationError error3 = deserializeJson(DOC, fakeTopics);
-    // if (!error3)
-    // {
-    updateTopics_flash(DOC, topics_gen_pub, iot.topics_gen_pub, "pub_gen_topics");
-    updateTopics_flash(DOC, topics_pub, iot.topics_pub, "pub_topics");
-    updateTopics_flash(DOC, topics_sub, iot.topics_sub, "sub_topics");
+    _updateTopics_flash(DOC, topics_gen_pub, iot.topics_gen_pub, "pub_gen_topics");
+    _updateTopics_flash(DOC, topics_pub, iot.topics_pub, "pub_topics");
+    _updateTopics_flash(DOC, topics_sub, iot.topics_sub, "sub_topics");
 
     //  >>>>> Update Windows Group Topics >>>>>>>>>
     uint8_t accum_shift = sizeof(topics_sub) / (sizeof(topics_sub[0]));
-    updateTopics_flash(DOC, winGroupTopics, iot.topics_sub, "sub_topics_win_g", accum_shift);
+    _updateTopics_flash(DOC, winGroupTopics, iot.topics_sub, "sub_topics_win_g", accum_shift);
 
     //  >>>>> Update Switch Group Topics >>>>>>>>>
     accum_shift += sizeof(winGroupTopics) / (sizeof(winGroupTopics[0]));
-    updateTopics_flash(DOC, buttGroupTopics, iot.topics_sub, "sub_topics_SW_g", accum_shift);
+    _updateTopics_flash(DOC, buttGroupTopics, iot.topics_sub, "sub_topics_SW_g", accum_shift);
 
     //  >>>>> Update Windows Topics >>>>>>>>>
     accum_shift += sizeof(buttGroupTopics) / (sizeof(buttGroupTopics[0]));
     for (uint8_t i = 0; i < winEntityCounter; i++)
     {
-      updateTopics_flash(DOC, winSW_V[i]->name, iot.topics_sub, "sub_topics_win", i, accum_shift + i);
+      _updateTopics_flash(DOC, winSW_V[i]->name, iot.topics_sub, "sub_topics_win", i, accum_shift + i);
     }
 
     //  >>>>> Update Switch Topics >>>>>>>>>
     accum_shift += winEntityCounter;
     for (uint8_t i = 0; i < swEntityCounter; i++)
     {
-      updateTopics_flash(DOC, SW_v[i]->Topic, iot.topics_sub, "sub_topics_SW", i, accum_shift + i);
+      _updateTopics_flash(DOC, SW_v[i]->Topic, iot.topics_sub, "sub_topics_SW", i, accum_shift + i);
+    }
+    DOC.clear();
+    ok3 = true;
+  }
+#else
+  if (iot.extract_JSON_from_flash(iot.parameter_filenames[2], DOC)) /* extract topics from flash */
+  {
+    _updateTopics_flash(DOC, topics_gen_pub, iot.topics_gen_pub, "pub_gen_topics");
+    _updateTopics_flash(DOC, topics_pub, iot.topics_pub, "pub_topics");
+    _updateTopics_flash(DOC, topics_sub, iot.topics_sub, "sub_topics");
+
+    //  >>>>> Update Windows Group Topics >>>>>>>>>
+    uint8_t accum_shift = sizeof(topics_sub) / (sizeof(topics_sub[0]));
+    _updateTopics_flash(DOC, winGroupTopics, iot.topics_sub, "sub_topics_win_g", accum_shift);
+
+    //  >>>>> Update Switch Group Topics >>>>>>>>>
+    accum_shift += sizeof(winGroupTopics) / (sizeof(winGroupTopics[0]));
+    _updateTopics_flash(DOC, buttGroupTopics, iot.topics_sub, "sub_topics_SW_g", accum_shift);
+
+    //  >>>>> Update Windows Topics >>>>>>>>>
+    accum_shift += sizeof(buttGroupTopics) / (sizeof(buttGroupTopics[0]));
+    for (uint8_t i = 0; i < winEntityCounter; i++)
+    {
+      _updateTopics_flash(DOC, winSW_V[i]->name, iot.topics_sub, "sub_topics_win", i, accum_shift + i);
+    }
+
+    //  >>>>> Update Switch Topics >>>>>>>>>
+    accum_shift += winEntityCounter;
+    for (uint8_t i = 0; i < swEntityCounter; i++)
+    {
+      _updateTopics_flash(DOC, SW_v[i]->Topic, iot.topics_sub, "sub_topics_SW", i, accum_shift + i);
     }
     DOC.clear();
     ok3 = true;
@@ -212,6 +256,7 @@ void update_Parameters_flash()
 
     Serial.println("Fail read Topics parameter");
   }
+#endif
   // ±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
   paramLoadedOK = ok0 && ok1 && ok2 && ok3;
   if (paramLoadedOK)
