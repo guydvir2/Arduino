@@ -153,7 +153,12 @@ void update_Parameters_flash()
 
   // /* ±±±±±±±±±± Part C: update Sketch Parameters ±±±±±±±±±±±±±± */
 #if LOCAL_PARAM
-  char fakeP[] = "{\"entityType\": [0,1,1],\"virtCMD\": [\"\",\"\",\"\",\"\"],\"SW_buttonTypes\": [2,1],\"WextInputs\": [0],\"RF_2entity\": [0,1,255,255],\"v_file\": 0.3}";
+  char fakeP[] = "{\"entityType\": [1,1,1,1,0,0],\
+                    \"virtCMD\": [\"\",\"\",\"\",\"\",\"myHome\/Windows\/gFloor\/W0\",\"myHome\/Windows\/gFloor\/W1\",\"\",\"\"],\
+                    \"SW_buttonTypes\": [2,1,1,1],\
+                    \"WextInputs\": [0,0],\
+                    \"RF_2entity\": [0,1,2,3],\
+                    \"v_file\": 0.3}";
   DeserializationError error2 = deserializeJson(DOC, fakeP);
   if (!error2)
   {
@@ -177,7 +182,15 @@ void update_Parameters_flash()
 
   // /* ±±±±±±±±±± Part D: update myIOT Topics ±±±±±±±±±± */
 #if LOCAL_PARAM
-  char fakeTopics[] = "{\"pub_gen_topics\" : [\"myHome\/Messages\",\"myHome\/log\",\"myHome\/debug\"],\"pub_topics\" : [\"myHome\/Cont_Man\/Avail\",\"myHome\/Cont_Man\/State\"],\"sub_topics\" : [\"myHome\/Cont_Man\",\"myHome\/All\",\"myHome\/lockdown\"],\"sub_topics_win\" : [\"myHome\/Windows\/gFloor\/Win0\",\"myHome\/Windows\/gFloor\/Win1\"],\"sub_topics_SW\" : [\"myHome\/Light\/int\/gFloor\/Light0\",\"myHome\/Light\/int\/gFloor\/Light0\",\"myHome\/Light\/int\/gFloor\/Light0\",\"myHome\/Light\/int\/gFloor\/Light0\"],\"sub_topics_win_g\" : [\"myHome\/Windows\",\"myHome\/Windows\/gFloor\"],\"sub_topics_SW_g\" : [\"myHome\/Light\",\"myHome\/Light\/int\",\"myHome\/Light\/int\/gFloor\"],\"ver\" : 0.1}";
+  char fakeTopics[] = "{\
+                        \"pub_gen_topics\" : [\"myHome\/Messages\",\"myHome\/log\",\"myHome\/debug\"],\
+                        \"pub_topics\" : [\"myHome\/Cont_Man\/Avail\", \"myHome\/Cont_Man\/State\"],\
+                        \"sub_topics\" : [\"myHome\/Cont_Man\",\"myHome\/All\",\"myHome\/lockdown\"],\
+                        \"sub_topics_win\" : [\"myHome\/Windows\/gFloor\/Win0\",\"myHome\/Windows\/gFloor\/Win1\",\"myHome\/Windows\/gFloor\/Win2\"],\
+                        \"sub_topics_SW\" : [\"myHome\/Light\/int\/gFloor\/Light0\",\"myHome\/Light\/int\/gFloor\/Light1\",\"myHome\/Light\/int\/gFloor\/Light2\",\"myHome\/Light\/int\/gFloor\/Light3\"],\
+                        \"sub_topics_win_g\" : [\"myHome\/Windows\",\"myHome\/Windows\/gFloor\"],\
+                        \"sub_topics_SW_g\" : [\"myHome\/Light\",\"myHome\/Light\/int\",\"myHome\/Light\/int\/gFloor\"],\
+                        \"ver\" : 0.1}";
 
   DeserializationError error3 = deserializeJson(DOC, fakeTopics);
   if (!error3)
@@ -202,7 +215,7 @@ void update_Parameters_flash()
     }
 
     //  >>>>> Update Switch Topics >>>>>>>>>
-    accum_shift += winEntityCounter;
+    accum_shift += winEntityCounter + 1;
     for (uint8_t i = 0; i < swEntityCounter; i++)
     {
       _updateTopics_flash(DOC, SW_v[i]->Topic, iot.topics_sub, "sub_topics_SW", i, accum_shift + i);

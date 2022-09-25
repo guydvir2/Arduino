@@ -72,7 +72,7 @@ void _Win_virtCMD(uint8_t state, uint8_t reason, uint8_t x)
 {
   if (winSW_V[x]->virtCMD == true)
   {
-    iot.pub_noTopic((char *)winMQTTcmds[state], winSW_V[x]->name); // <---- Fix this
+    iot.pub_noTopic((char *)winMQTTcmds[state], winSW_V[x]->name); // <---- Fix this : off cmd doesnot appear
   }
 }
 void _newMSGcb(uint8_t x)
