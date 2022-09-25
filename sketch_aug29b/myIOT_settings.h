@@ -153,7 +153,7 @@ void update_Parameters_flash()
 
   // /* ±±±±±±±±±± Part C: update Sketch Parameters ±±±±±±±±±±±±±± */
 #if LOCAL_PARAM
-  char fakeP[] = "{\"entityType\": [1,1,1,1,0,0],\
+  char fakeP[] = "{\"entityType\": [0,1],\
                     \"virtCMD\": [\"\",\"\",\"\",\"\",\"myHome\/Windows\/gFloor\/W0\",\"myHome\/Windows\/gFloor\/W1\",\"\",\"\"],\
                     \"SW_buttonTypes\": [2,1,1,1],\
                     \"WextInputs\": [0,0],\
