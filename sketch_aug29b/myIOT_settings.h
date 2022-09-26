@@ -153,8 +153,8 @@ void update_Parameters_flash()
 
   // /* ±±±±±±±±±± Part C: update Sketch Parameters ±±±±±±±±±±±±±± */
 #if LOCAL_PARAM
-  char fakeP[] = "{\"entityType\": [0,1],\
-                    \"virtCMD\": [\"\",\"\",\"\",\"\",\"myHome\/Windows\/gFloor\/W0\",\"myHome\/Windows\/gFloor\/W1\",\"\",\"\"],\
+  char fakeP[] = "{\"entityType\": [0,1,1],\
+                    \"virtCMD\": [\"myHome\/Windows\/gFloor\/W0\",\"myHome\/Lights\/int\/gFloor\/SW0\",\"\",\"\"],\
                     \"SW_buttonTypes\": [2,1,1,1],\
                     \"WextInputs\": [0,0],\
                     \"RF_2entity\": [0,1,2,3],\
@@ -211,14 +211,20 @@ void update_Parameters_flash()
     accum_shift += sizeof(buttGroupTopics) / (sizeof(buttGroupTopics[0]));
     for (uint8_t i = 0; i < winEntityCounter; i++)
     {
-      _updateTopics_flash(DOC, winSW_V[i]->name, iot.topics_sub, "sub_topics_win", i, accum_shift + i);
+      if (winSW_V[i]->virtCMD == false)
+      {
+        _updateTopics_flash(DOC, winSW_V[i]->name, iot.topics_sub, "sub_topics_win", i, accum_shift + i);
+      }
     }
 
     //  >>>>> Update Switch Topics >>>>>>>>>
     accum_shift += winEntityCounter + 1;
     for (uint8_t i = 0; i < swEntityCounter; i++)
     {
-      _updateTopics_flash(DOC, SW_v[i]->Topic, iot.topics_sub, "sub_topics_SW", i, accum_shift + i);
+      if (SW_v[i]->virtCMD == false)
+      {
+        _updateTopics_flash(DOC, SW_v[i]->Topic, iot.topics_sub, "sub_topics_SW", i, accum_shift + i);
+      }
     }
     DOC.clear();
     ok3 = true;
@@ -312,6 +318,13 @@ void _gen_ButtMSG(uint8_t i, uint8_t type, bool request)
   sprintf(msg, "[%s]: [SW#%d] [%s] turned [%s]", turnTypes[type], i, SW_v[i]->Topic, request == HIGH ? "ON" : "OFF");
   iot.pub_msg(msg);
   butt_updateState(i, (int)request);
+}
+void _post_Win_virtCMD(uint8_t state, uint8_t reason, uint8_t x)
+{
+  if (winSW_V[x]->virtCMD == true)
+  {
+    iot.pub_noTopic((char *)winMQTTcmds[state], winSW_V[x]->name); // <---- Fix this : off cmd doesnot appear
+  }
 }
 
 void addiotnalMQTT(char *incoming_msg, char *_topic)

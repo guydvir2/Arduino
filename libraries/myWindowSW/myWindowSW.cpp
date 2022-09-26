@@ -124,7 +124,7 @@ void WinSW::_winDOWN()
 }
 void WinSW::_switch_cb(uint8_t state, uint8_t i)
 {
-  if (((_uselockdown && _lockdownState == false) || _uselockdown == false) && state != get_winState())
+  if (((_uselockdown && _lockdownState == false) || _uselockdown == false) && (state != get_winState() || virtCMD == true))
   {
     if (state == STOP)
     {

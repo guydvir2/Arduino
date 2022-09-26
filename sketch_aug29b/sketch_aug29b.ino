@@ -10,7 +10,7 @@ void create_WinSW_instance(JsonDocument &_DOC, uint8_t i)
 {
   winSW_V[winEntityCounter] = new WinSW;
 
-  Serial.print(" >>>>>>>>>>>>>>> Window #:\t");
+  Serial.print(" >>>>>>>>>>>>>>> Window #:");
   Serial.print(winEntityCounter);
   Serial.println(" <<<<<<<<<<<<<<<<<< ");
 
@@ -19,9 +19,12 @@ void create_WinSW_instance(JsonDocument &_DOC, uint8_t i)
   {
     winSW_V[winEntityCounter]->virtCMD = true;
     winSW_V[winEntityCounter]->def(inPinsArray[lastUsed_inIO], inPinsArray[lastUsed_inIO + 1]);
+    strcpy(winSW_V[winEntityCounter]->name, _DOC["virtCMD"][i].as<const char *>());
 
     Serial.print("virtCMD :\t");
     Serial.println(winSW_V[winEntityCounter]->virtCMD);
+    Serial.print("virtCMD MQTT:\t");
+    Serial.println(winSW_V[winEntityCounter]->name);
     Serial.print("in_pins #:\t");
     Serial.print(inPinsArray[lastUsed_inIO]);
     Serial.print("; ");
@@ -30,8 +33,8 @@ void create_WinSW_instance(JsonDocument &_DOC, uint8_t i)
   }
   else /* Physical Switching input & output */
   {
-    winSW_V[winEntityCounter]->def(inPinsArray[lastUsed_inIO], inPinsArray[lastUsed_inIO + 1], outPinsArray[lastUsed_outIO], outPinsArray[lastUsed_outIO + 1]);
     winSW_V[winEntityCounter]->virtCMD = false;
+    winSW_V[winEntityCounter]->def(inPinsArray[lastUsed_inIO], inPinsArray[lastUsed_inIO + 1], outPinsArray[lastUsed_outIO], outPinsArray[lastUsed_outIO + 1]);
 
     Serial.print("virtCMD :\t");
     Serial.println(winSW_V[winEntityCounter]->virtCMD);
@@ -68,19 +71,12 @@ void create_WinSW_instance(JsonDocument &_DOC, uint8_t i)
   winEntityCounter++;
   lastUsed_inIO += 2;
 }
-void _Win_virtCMD(uint8_t state, uint8_t reason, uint8_t x)
-{
-  if (winSW_V[x]->virtCMD == true)
-  {
-    iot.pub_noTopic((char *)winMQTTcmds[state], winSW_V[x]->name); // <---- Fix this : off cmd doesnot appear
-  }
-}
 void _newMSGcb(uint8_t x)
 {
   if (winSW_V[x]->newMSGflag)
   {
     _gen_WinMSG(winSW_V[x]->MSG.state, winSW_V[x]->MSG.reason, x);  /* Generate MQTT MSG */
-    _Win_virtCMD(winSW_V[x]->MSG.state, winSW_V[x]->MSG.reason, x); /* Sending MQTT cmd in case of virt Win*/
+    _post_Win_virtCMD(winSW_V[x]->MSG.state, winSW_V[x]->MSG.reason, x); /* Sending MQTT cmd in case of virt Win*/
     winSW_V[x]->newMSGflag = false;
   }
 }
@@ -199,35 +195,43 @@ void create_SW_instance(JsonDocument &_DOC, uint8_t i)
   SW_v[swEntityCounter]->id = swEntityCounter;
   SW_v[swEntityCounter]->type = _DOC["SW_buttonTypes"][i] | 1;
 
-  if (SW_v[swEntityCounter]->type > 0) /* Has any input */
+  /* Has any input */
+  if (SW_v[swEntityCounter]->type > 0) 
   {
     SW_v[swEntityCounter]->useButton = true;
     SW_v[swEntityCounter]->button.begin(inPinsArray[lastUsed_inIO]);
     SW_v[swEntityCounter]->button.setID(swEntityCounter);
-
-    if (SW_v[swEntityCounter]->type == 1) /* On-Off Switch */
+    
+    /* On-Off Switch */
+    if (SW_v[swEntityCounter]->type == 1) 
     {
       SW_v[swEntityCounter]->button.setPressedHandler(OnOffSW_ON_handler);
       SW_v[swEntityCounter]->button.setReleasedHandler(OnOffSW_OFF_handler);
     }
-    else if (SW_v[swEntityCounter]->type == 2) /* Momentary/ Push button press */
+    /* Momentary/ Push button press */
+    else if (SW_v[swEntityCounter]->type == 2) 
     {
       SW_v[swEntityCounter]->button.setPressedHandler(toggle_handle);
     }
 
     lastUsed_inIO++;
   }
-  else /* Entity without physical input */
+
+  /* Entity without physical input */
+  else
   {
     SW_v[swEntityCounter]->useButton = false;
   }
-
-  if (strcmp(_DOC["virtCMD"][i], "") != 0) /* Virtual CMD */
+ 
+  /* Virtual CMD */
+  if (strcmp(_DOC["virtCMD"][i], "") != 0) 
   {
     SW_v[swEntityCounter]->virtCMD = true;
     strlcpy(SW_v[swEntityCounter]->Topic, _DOC["virtCMD"][i].as<const char *>(), MAX_TOPIC_SIZE);
   }
-  else /* Assign output to relays - Physical SW */
+  
+  /* Assign output to relays - Physical SW */
+  else 
   {
     SW_v[swEntityCounter]->virtCMD = false;
     SW_v[swEntityCounter]->outPin = outPinsArray[lastUsed_outIO];
@@ -238,6 +242,7 @@ void create_SW_instance(JsonDocument &_DOC, uint8_t i)
     lastUsed_outIO++;
   }
 
+  /* Assign RF to SW */
   if (_DOC["RF_2entity"][swEntityCounter] != 255)
   {
     SW_v[swEntityCounter]->RFch = _DOC["RF_2entity"][swEntityCounter];
