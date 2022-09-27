@@ -1,30 +1,24 @@
 #include <Arduino.h>
-#define PIN_1 1
-#define PIN_2 2
+#include <smartSwitch.h>
 
-#define COND true
+smartSwitch SW;
 
-#define POWEROFF           \
-  if (COND)                \
-  digitalWrite(PIN_1, LOW) \
-      digitalWrite(PIN_2, LOW)
-
-#define winUP \
-  if (COND)   \
-    POWEROFF  \
-  digitalWrite(PIN_2, LOW)
-
-#define winDOWN \
-  if (COND)     \
-    POWEROFF    \
-  digitalWrite(PIN_1, LOW)
+void smartSwitch::set_extON(uint8_t opt)
+{
+  Serial.println(opt);
+}
 
 void setup()
 {
   Serial.begin(115200);
   Serial.println("\n\nStart");
+  SW.set_input(D3, 2);
+  SW.set_output(D4);
+  SW.set_name("GUY_DVIR_SWITCH");
+  SW.get_prefences();
 }
 
 void loop()
 {
+  SW.loop();
 }

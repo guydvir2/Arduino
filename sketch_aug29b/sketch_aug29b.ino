@@ -75,7 +75,7 @@ void _newMSGcb(uint8_t x)
 {
   if (winSW_V[x]->newMSGflag)
   {
-    _gen_WinMSG(winSW_V[x]->MSG.state, winSW_V[x]->MSG.reason, x);  /* Generate MQTT MSG */
+    _gen_WinMSG(winSW_V[x]->MSG.state, winSW_V[x]->MSG.reason, x);       /* Generate MQTT MSG */
     _post_Win_virtCMD(winSW_V[x]->MSG.state, winSW_V[x]->MSG.reason, x); /* Sending MQTT cmd in case of virt Win*/
     winSW_V[x]->newMSGflag = false;
   }
@@ -91,6 +91,8 @@ void loop_WinSW()
 /* ************************************************ */
 
 /* ******************* Buttons ******************* */
+
+
 bool _isON(uint8_t i)
 {
   return digitalRead(SW_v[i]->outPin) == OUTPUT_ON;
@@ -196,20 +198,20 @@ void create_SW_instance(JsonDocument &_DOC, uint8_t i)
   SW_v[swEntityCounter]->type = _DOC["SW_buttonTypes"][i] | 1;
 
   /* Has any input */
-  if (SW_v[swEntityCounter]->type > 0) 
+  if (SW_v[swEntityCounter]->type > 0)
   {
     SW_v[swEntityCounter]->useButton = true;
     SW_v[swEntityCounter]->button.begin(inPinsArray[lastUsed_inIO]);
     SW_v[swEntityCounter]->button.setID(swEntityCounter);
-    
+
     /* On-Off Switch */
-    if (SW_v[swEntityCounter]->type == 1) 
+    if (SW_v[swEntityCounter]->type == 1)
     {
       SW_v[swEntityCounter]->button.setPressedHandler(OnOffSW_ON_handler);
       SW_v[swEntityCounter]->button.setReleasedHandler(OnOffSW_OFF_handler);
     }
     /* Momentary/ Push button press */
-    else if (SW_v[swEntityCounter]->type == 2) 
+    else if (SW_v[swEntityCounter]->type == 2)
     {
       SW_v[swEntityCounter]->button.setPressedHandler(toggle_handle);
     }
@@ -222,16 +224,16 @@ void create_SW_instance(JsonDocument &_DOC, uint8_t i)
   {
     SW_v[swEntityCounter]->useButton = false;
   }
- 
+
   /* Virtual CMD */
-  if (strcmp(_DOC["virtCMD"][i], "") != 0) 
+  if (strcmp(_DOC["virtCMD"][i], "") != 0)
   {
     SW_v[swEntityCounter]->virtCMD = true;
     strlcpy(SW_v[swEntityCounter]->Topic, _DOC["virtCMD"][i].as<const char *>(), MAX_TOPIC_SIZE);
   }
-  
+
   /* Assign output to relays - Physical SW */
-  else 
+  else
   {
     SW_v[swEntityCounter]->virtCMD = false;
     SW_v[swEntityCounter]->outPin = outPinsArray[lastUsed_outIO];
