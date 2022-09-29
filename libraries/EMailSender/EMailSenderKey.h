@@ -1,8 +1,8 @@
 /*
- * EMail Sender Arduino, esp8266 and esp32 library to send email
+ * EMail Sender Arduino, esp8266, stm32 and esp32 library to send email
  *
  * AUTHOR:  Renzo Mischianti
- * VERSION: 2.4.3
+ * VERSION: 3.0.6
  *
  * https://www.mischianti.org/
  *
@@ -37,6 +37,7 @@
 // Uncomment if you use esp8266 core <= 2.4.2
 //#define ARDUINO_ESP8266_RELEASE_2_4_2
 
+// If you want disable attachments and save memory comment this define
 #define ENABLE_ATTACHMENTS
 
 // Uncomment to enable printing out nice debug messages.
@@ -45,9 +46,15 @@
 // Define where debug output will be printed.
 #define DEBUG_PRINTER Serial
 
-#define STORAGE_SPIFFS (0)
-#define STORAGE_LITTLEFS (1)
-#define STORAGE_FFAT (2)
+#define STORAGE_NONE (0)
+// INTERNAL STORAGE
+#define STORAGE_SPIFFS (1)
+#define STORAGE_LITTLEFS (2)
+#define STORAGE_FFAT (3)
+#define STORAGE_SPIFM  (5) 	// Libraries Adafruit_SPIFlash and SdFat-Adafruit-Fork
+// EXTERNAL STORAGE
+#define STORAGE_SD (4)
+#define STORAGE_SDFAT2 (6) 	// Library SdFat version >= 2.0.2
 
 #define NETWORK_ESP8266_ASYNC (0)
 #define NETWORK_ESP8266 (1)
@@ -57,25 +64,74 @@
 #define NETWORK_ESP32 (4)
 #define NETWORK_ESP32_ETH (5)
 #define NETWORK_WiFiNINA (7)
+#define NETWORK_ETHERNET_LARGE (8)
+#define NETWORK_ETHERNET_ENC (9)
+#define NETWORK_ETHERNET_STM (10)
+#define NETWORK_UIPETHERNET (11)
+#define NETWORK_ETHERNET_2 (12)
 
+// if you want force disable SSL if present uncomment this define
+// #define FORCE_DISABLE_SSL
+
+// If you want add a wrapper to emulate SSL over Client like EthernetClient
+// #define SSLCLIENT_WRAPPER
+
+// esp8266 microcontrollers configuration
 #ifndef DEFAULT_EMAIL_NETWORK_TYPE_ESP8266
 	#define DEFAULT_EMAIL_NETWORK_TYPE_ESP8266 	NETWORK_ESP8266
-	#define DEFAULT_INTERNAL_ESP8266_STORAGE STORAGE_SPIFFS
+	#define DEFAULT_INTERNAL_ESP8266_STORAGE STORAGE_LITTLEFS
+	#define DEFAULT_EXTERNAL_ESP8266_STORAGE STORAGE_SD
 #endif
+// esp32 microcontrollers configuration
 #ifndef DEFAULT_EMAIL_NETWORK_TYPE_ESP32
 	#define DEFAULT_EMAIL_NETWORK_TYPE_ESP32 	NETWORK_ESP32
 	#define DEFAULT_INTERNAL_ESP32_STORAGE STORAGE_SPIFFS
+	#define DEFAULT_EXTERNAL_ESP32_STORAGE STORAGE_SD
 #endif
+// stm32 microcontrollers configuration
+#ifndef DEFAULT_EMAIL_NETWORK_TYPE_STM32
+	#define DEFAULT_EMAIL_NETWORK_TYPE_STM32 	NETWORK_W5100
+	#define DEFAULT_INTERNAL_STM32_STORAGE STORAGE_NONE
+	#define DEFAULT_EXTERNAL_STM32_STORAGE STORAGE_SDFAT2
+#endif
+// Arduino microcontrollers configuration
 #ifndef DEFAULT_EMAIL_NETWORK_TYPE_ARDUINO
 	#define DEFAULT_EMAIL_NETWORK_TYPE_ARDUINO 	NETWORK_W5100
+	#define DEFAULT_INTERNAL_ARDUINO_STORAGE STORAGE_NONE
+	#define DEFAULT_EXTERNAL_ARDUINO_STORAGE STORAGE_SD
 #endif
+// Arduino SAMD microcontrollers configuration
 #ifndef DEFAULT_EMAIL_NETWORK_TYPE_ARDUINO_SAMD
 	#define DEFAULT_EMAIL_NETWORK_TYPE_SAMD 	NETWORK_WiFiNINA
+	#define DEFAULT_INTERNAL_ARDUINO_SAMD_STORAGE STORAGE_NONE
+	#define DEFAULT_EXTERNAL_ARDUINO_SAMD_STORAGE STORAGE_SD
 #endif
 
-#define SD_CS_PIN 4
+#ifdef SSLCLIENT_WRAPPER
+	// Generate the trust_anchors.h with this online generator
+	// https://openslab-osu.github.io/bearssl-certificate-utility/
+	/**
+	 *  For Ethernet w5x00 card you must follow the step given
+	 *  from this link https://github.com/OPEnSLab-OSU/SSLClient#sslclient-with-ethernet
+	 *  you can modify Ethernet library or use directly this modified one
+	 *  https://github.com/OPEnSLab-OSU/EthernetLarge
+	 *
+	 *  For enc28j60 use EthernetENC available from library manager or
+	 *  https://github.com/jandrassy/EthernetENC
+	 */
+	#define ANALOG_PIN A7
+	#include <SSLClient.h>
+	#include "trust_anchors.h"
+
+	#define PUT_OUTSIDE_SCOPE_CLIENT_DECLARATION
+#endif
+
+#define DEFAULT_EHLO_RESPONSE_COUNT 6
+
+#define SD_CS_PIN SS
+#define SPIFM_CS_PIN SS
 
 //#define STORAGE_INTERNAL_FORCE_DISABLE
-//#define STORAGE_SD_FORCE_DISABLE
+//#define STORAGE_EXTERNAL_FORCE_DISABLE
 
 #endif

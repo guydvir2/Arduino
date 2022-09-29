@@ -26,6 +26,13 @@ Arduino (support W5100 like must be set, and ENC28J60 via UIPEthernet), esp8266 
 #### [Inviare email con allegati (libreria v2.x): esp32 e esp8266](https://www.mischianti.org/it/2020/06/16/inviare-email-con-allegati-libreria-v2-x-esp32-e-esp8266-part-2/)
 
 ## Change log
+ - 16/08/2022: v3.0.6 Add FORCE_DISABLE_SSL to disable SSL if present
+ - 19/07/2022: v3.0.5 Additional fix on additional response management ([#26](https://github.com/xreef/EMailSender/issues/26))
+ - 12/07/2022: v3.0.4 Fixed attachment issue on SPIFFS and LittleFS
+ - 06/07/2022: v3.0.3 Manage multiple response message after connect and HELO ([#26](https://github.com/xreef/EMailSender/issues/26))
+ - 03/06/2022: v3.0.2 Add possibility to set additionalResponseLineOnConnection with void setAdditionalResponseLineOnConnection(uint8_t numLines = 0), needed if on connection you receive 220 response as error, and add Ethernet2.
+ - 20/05/2022: v3.0.1 Put inside scope the client declaration (if you don't use SSLClient) for backward compatibility
+ - 18/05/2022: v3.0.0 Add STM32 support. Add SSLClient integration to allow send Email with SSL encryption (like Gmail) with ethernet (tested with STM32, ESP32, w5500, and enc28j60), minor fix
  - 12/04/2021: v2.4.3 Fix multiple email send
  - 12/04/2021: v2.4.1 Add support for LITTLEFS and Ffat on esp32 and fix certificate verification from esp32 core 1.0.5 
  - 18/03/2021: v2.3.0 Add support for LittleFS on esp8266
@@ -131,3 +138,5 @@ Sending status:
 0
 Message sent!
 ```
+
+https://downloads.arduino.cc/libraries/logs/github.com/xreef/EMailSender/

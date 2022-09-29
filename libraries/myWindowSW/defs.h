@@ -1,5 +1,5 @@
 #define RELAY_ON HIGH
-#define STATES_TXT (char *[]) { "Stop", "Up", "Down", "Err" }
+#define STATES_TXT (char *[]) { "Off", "Up", "Down", "Err" }
 #define REASONS_TXT (char *[]) { "Timeout", "Button", "Button2", "Lockdown","MQTT" }
 
 struct MSGstr

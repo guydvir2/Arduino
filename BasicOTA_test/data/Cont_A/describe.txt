@@ -1,0 +1,4 @@
+0 windows
+4 switches - all switches include buttons 
+no RF
+no virtCMDs
