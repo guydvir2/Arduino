@@ -15,6 +15,7 @@ char topics_gen_pub[3][MAX_TOPIC_SIZE];
 char parameterFiles[3][30];
 const char *dirs[] = {"Fail", "Cont_A", "Cont_B", "Cont_C", "Cont_D"};
 const char *FileNames[3] = {"myIOT_param.json", "myIOT2_topics.json", "sketch_param.json"};
+
 void construct_filenames(uint8_t i = 0)
 {
   for (uint8_t x = 0; x < 3; x++)
