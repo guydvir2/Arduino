@@ -221,9 +221,9 @@ void update_Parameters_flash()
     accum_shift += winEntityCounter + 1;
     for (uint8_t i = 0; i < swEntityCounter; i++)
     {
-      if (SW_v[i]->virtCMD == false)
+      if (SW_v[i]->is_virtCMD() == false)
       {
-        _updateTopics_flash(DOC, SW_v[i]->Topic, iot.topics_sub, "sub_topics_SW", i, accum_shift + i);
+        // _updateTopics_flash(DOC, SW_v[i]->To, iot.topics_sub, "sub_topics_SW", i, accum_shift + i);
       }
     }
     DOC.clear();
@@ -255,7 +255,7 @@ void update_Parameters_flash()
     accum_shift += winEntityCounter;
     for (uint8_t i = 0; i < swEntityCounter; i++)
     {
-      _updateTopics_flash(DOC, SW_v[i]->Topic, iot.topics_sub, "sub_topics_SW", i, accum_shift + i);
+      _updateTopics_flash(DOC, SW_v[i]->name, iot.topics_sub, "sub_topics_SW", i, accum_shift + i);
     }
     DOC.clear();
     ok3 = true;
@@ -301,7 +301,7 @@ void butt_updateState(uint8_t i, bool state) /* Button State MQTT update */
 {
   char t[60];
   char r[5];
-  sprintf(t, "%s/State", SW_v[i]->Topic);
+  sprintf(t, "%s/State", SW_v[i]->name);
   sprintf(r, "%d", state);
   iot.pub_noTopic(r, t, true);
 }
@@ -315,7 +315,7 @@ void _gen_WinMSG(uint8_t state, uint8_t reason, uint8_t i)
 void _gen_ButtMSG(uint8_t i, uint8_t type, bool request)
 {
   char msg[100];
-  sprintf(msg, "[%s]: [SW#%d] [%s] turned [%s]", turnTypes[type], i, SW_v[i]->Topic, request == HIGH ? "ON" : "OFF");
+  sprintf(msg, "[%s]: [SW#%d] [%s] turned [%s]", turnTypes[type], i, SW_v[i]->name, request == HIGH ? "ON" : "OFF");
   iot.pub_msg(msg);
   butt_updateState(i, (int)request);
 }
@@ -344,7 +344,7 @@ void addiotnalMQTT(char *incoming_msg, char *_topic)
     {
       for (uint8_t i = 0; i < swEntityCounter; i++)
       {
-        sprintf(msg, "Status: SW[#%d][%s] [%s]%s", i, SW_v[i]->Topic, _isON(i) ? "On" : "Off", i == swEntityCounter - 1 ? "" : "; ");
+        sprintf(msg, "Status: SW[#%d][%s] [%s]%s", i, SW_v[i]->name, i, SW_v[i]->get_SWstate() ? "On" : "Off", i == swEntityCounter - 1 ? "" : "; ");
         iot.pub_msg(msg);
       }
     }
@@ -421,16 +421,16 @@ void addiotnalMQTT(char *incoming_msg, char *_topic)
     {
       for (uint8_t i = 0; i < swEntityCounter; i++)
       {
-        if (strcmp(_topic, SW_v[i]->Topic) == 0) /* SENT FOR A SPECIFIC TOPIC */
+        if (strcmp(_topic, SW_v[i]->name) == 0) /* SENT FOR A SPECIFIC TOPIC */
         {
           if (strcmp(iot.inline_param[1], buttMQTTcmds[0]) == 0) /* ON */
           {
-            SW_turnON_cb(i, _MQTT);
+           SW_v[i]->turnON_cb(MQTT);
             return;
           }
           else if (strcmp(iot.inline_param[1], buttMQTTcmds[1]) == 0) /* OFF */
           {
-            SW_turnOFF_cb(i, _MQTT);
+            SW_v[i]->turnOFF_cb(MQTT);
             return;
           }
         }
@@ -443,11 +443,11 @@ void addiotnalMQTT(char *incoming_msg, char *_topic)
           {
             if (strcmp(iot.inline_param[1], buttMQTTcmds[0]) == 0) /* ON */
             {
-              SW_turnON_cb(i, _MQTT);
+             SW_v[i]->turnON_cb(MQTT);
             }
             else if (strcmp(iot.inline_param[1], buttMQTTcmds[1]) == 0) /* OFF */
             {
-              SW_turnOFF_cb(i, _MQTT);
+              SW_v[i]->turnOFF_cb(MQTT);
             }
           }
           return;

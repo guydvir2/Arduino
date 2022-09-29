@@ -12,13 +12,20 @@ void setup()
 {
   Serial.begin(115200);
   Serial.println("\n\nStart");
-  SW.set_input(D3, 2);
-  SW.set_output(D4);
+  SW.set_input(19, 1);
+  SW.set_output();
   SW.set_name("GUY_DVIR_SWITCH");
   SW.get_prefences();
 }
 
 void loop()
 {
-  SW.loop();
+  if (SW.loop())
+  {
+    SW.clear_newMSG();
+    Serial.print("NEW_MSG: State:");
+    Serial.print(SW.telemtryMSG.state);
+    Serial.print("\tReason: ");
+    Serial.println(SW.telemtryMSG.reason);
+  }
 }

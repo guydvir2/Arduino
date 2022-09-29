@@ -2,50 +2,33 @@
 #define TOT_Inputs 12
 #define MAX_TOPIC_SIZE 40 // <----- Verfy max Topic size
 
-#define OUTPUT_ON HIGH
-#define BUTTON_PRESSED LOW
-#define HWturnON(i) digitalWrite(i, OUTPUT_ON)
-#define HWturnOFF(i) digitalWrite(i, !OUTPUT_ON)
 
-struct SwitchStruct
-{
-  uint8_t id = 0;
-  uint8_t type = 0;   /* <0> is ON-Off Switch, <1> push button */
-  uint8_t RFch = 255; /* Define RF channel. leave 255 to disable */
-  uint8_t outPin = 255;
-  bool virtCMD = false;    /* Trigger a MQTT or a Relay */
-  bool useButton = true;   /* Input is an option */
-  bool guessState = false; /* when using IOcmd and a pushbutton state can not be known */
-  char Topic[MAX_TOPIC_SIZE] = "EMPTY";
+// void print_sw_struct(SwitchStruct &sw)
+// {
+//   Serial.println("<<<<<<<<<<<< Switch Entity >>>>>>>>>>>>>>");
 
-  Button2 button; /* inputs only */
-};
-
-void print_sw_struct(SwitchStruct &sw)
-{
-  Serial.println("<<<<<<<<<<<< Switch Entity >>>>>>>>>>>>>>");
-
-  Serial.print("ID:\t");
-  Serial.println(sw.id);
-  Serial.print("RFch:\t");
-  Serial.println(sw.RFch);
-  Serial.print("inPin:\t");
-  Serial.println(sw.button.getPin());
-  Serial.print("outPin:\t");
-  Serial.println(sw.outPin);
-  Serial.print("type:\t");
-  Serial.println(sw.type);
-  Serial.print("virtCMD:\t");
-  Serial.println(sw.virtCMD);
-  Serial.print("useButton:\t");
-  Serial.println(sw.useButton);
-  Serial.print("guessState:\t");
-  Serial.println(sw.guessState);
-  Serial.print("Topic:\t");
-  Serial.println(sw.Topic);
-}
+//   Serial.print("ID:\t");
+//   Serial.println(sw.id);
+//   Serial.print("RFch:\t");
+//   Serial.println(sw.RFch);
+//   Serial.print("inPin:\t");
+//   Serial.println(sw.button.getPin());
+//   Serial.print("outPin:\t");
+//   Serial.println(sw.outPin);
+//   Serial.print("type:\t");
+//   Serial.println(sw.type);
+//   Serial.print("virtCMD:\t");
+//   Serial.println(sw.virtCMD);
+//   Serial.print("useButton:\t");
+//   Serial.println(sw.useButton);
+//   Serial.print("guessState:\t");
+//   Serial.println(sw.guessState);
+//   Serial.print("Topic:\t");
+//   Serial.println(sw.Topic);
+// }
 WinSW *winSW_V[TOT_Relays / 2] = {nullptr, nullptr, nullptr, nullptr};
-SwitchStruct *SW_v[TOT_Inputs] = {nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr};
+smartSwitch *SW_v[TOT_Inputs]={nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr};
+// SwitchStruct *SW_v[TOT_Inputs] = {nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr};
 
 char *buttMQTTcmds[2] = {"on", "off"};
 char *turnTypes[] = {"Button", "MQTT", "Remote"};

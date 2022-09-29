@@ -2,7 +2,8 @@
 #include <Button2.h>    /* Button Entities */
 #include <RCSwitch.h>   /* Button Entities */
 #include <myWindowSW.h> /* WinSW Entities */
-#include "paramters.h"  /* Hardcoded or updated saved in flash */
+#include <smartSwitch.h>
+#include "paramters.h" /* Hardcoded or updated saved in flash */
 #include "myIOT_settings.h"
 
 /* ******************* Windows ******************* */
@@ -91,176 +92,58 @@ void loop_WinSW()
 /* ************************************************ */
 
 /* ******************* Buttons ******************* */
-
-
-bool _isON(uint8_t i)
-{
-  return digitalRead(SW_v[i]->outPin) == OUTPUT_ON;
-}
-void SW_turnON_cb(uint8_t i, uint8_t type)
-{
-  if (!SW_v[i]->virtCMD)
-  {
-    if (!_isON(i))
-    {
-      HWturnON(SW_v[i]->outPin);
-      _gen_ButtMSG(i, type, HIGH);
-    }
-    else
-    {
-      Serial.print(i);
-      Serial.println(" Already on");
-    }
-  }
-  else
-  {
-    iot.pub_noTopic(buttMQTTcmds[0], SW_v[i]->Topic);
-    _gen_ButtMSG(i, type, HIGH);
-  }
-}
-void SW_turnOFF_cb(uint8_t i, uint8_t type)
-{
-  if (!SW_v[i]->virtCMD)
-  {
-    if (_isON(i))
-    {
-      HWturnOFF(SW_v[i]->outPin);
-      _gen_ButtMSG(i, type, LOW);
-    }
-    else
-    {
-      Serial.print(i);
-      Serial.println(" Already off");
-    }
-  }
-  else
-  {
-    iot.pub_noTopic(buttMQTTcmds[1], SW_v[i]->Topic);
-    _gen_ButtMSG(i, type, LOW);
-  }
-}
-void OnOffSW_Relay(uint8_t i, bool state, uint8_t type)
-{
-  if (state == true)
-  {
-    SW_turnON_cb(i, type);
-  }
-  else
-  {
-    SW_turnOFF_cb(i, type);
-  }
-}
-void toggleRelay(uint8_t i, uint8_t type)
-{
-  if (!SW_v[i]->virtCMD)
-  {
-    if (_isON(i))
-    {
-      SW_turnOFF_cb(i, type);
-    }
-    else
-    {
-      SW_turnON_cb(i, type);
-    }
-  }
-  else
-  {
-    if (SW_v[i]->guessState == true)
-    {
-      SW_turnOFF_cb(i, type);
-    }
-    else
-    {
-      SW_turnON_cb(i, type);
-    }
-    SW_v[i]->guessState = !SW_v[i]->guessState;
-  }
-}
-
-/* Button2 Handlers */
-void OnOffSW_ON_handler(Button2 &b)
-{
-  OnOffSW_Relay(b.getID(), OUTPUT_ON, _MQTT);
-}
-void OnOffSW_OFF_handler(Button2 &b)
-{
-  OnOffSW_Relay(b.getID(), !OUTPUT_ON, _MQTT);
-}
-void toggle_handle(Button2 &b)
-{
-  toggleRelay(b.getID(), _MQTT);
-}
-
 void create_SW_instance(JsonDocument &_DOC, uint8_t i)
 {
-  SW_v[swEntityCounter] = new SwitchStruct;
-  SW_v[swEntityCounter]->id = swEntityCounter;
-  SW_v[swEntityCounter]->type = _DOC["SW_buttonTypes"][i] | 1;
+  SW_v[swEntityCounter] = new smartSwitch;
+  SW_v[swEntityCounter]->set_id(swEntityCounter);
+  // SW_v[swEntityCounter]->set_name(_DOC["virtCMD"][i].as<const char*>);
+  SW_v[swEntityCounter]->set_input(inPinsArray[lastUsed_inIO], _DOC["SW_buttonTypes"][i]);
 
-  /* Has any input */
-  if (SW_v[swEntityCounter]->type > 0)
+  if (_DOC["SW_buttonTypes"][i] > 0)
   {
-    SW_v[swEntityCounter]->useButton = true;
-    SW_v[swEntityCounter]->button.begin(inPinsArray[lastUsed_inIO]);
-    SW_v[swEntityCounter]->button.setID(swEntityCounter);
-
-    /* On-Off Switch */
-    if (SW_v[swEntityCounter]->type == 1)
-    {
-      SW_v[swEntityCounter]->button.setPressedHandler(OnOffSW_ON_handler);
-      SW_v[swEntityCounter]->button.setReleasedHandler(OnOffSW_OFF_handler);
-    }
-    /* Momentary/ Push button press */
-    else if (SW_v[swEntityCounter]->type == 2)
-    {
-      SW_v[swEntityCounter]->button.setPressedHandler(toggle_handle);
-    }
-
     lastUsed_inIO++;
   }
 
-  /* Entity without physical input */
-  else
-  {
-    SW_v[swEntityCounter]->useButton = false;
-  }
-
-  /* Virtual CMD */
   if (strcmp(_DOC["virtCMD"][i], "") != 0)
   {
-    SW_v[swEntityCounter]->virtCMD = true;
-    strlcpy(SW_v[swEntityCounter]->Topic, _DOC["virtCMD"][i].as<const char *>(), MAX_TOPIC_SIZE);
-  }
-
-  /* Assign output to relays - Physical SW */
-  else
-  {
-    SW_v[swEntityCounter]->virtCMD = false;
-    SW_v[swEntityCounter]->outPin = outPinsArray[lastUsed_outIO];
-
-    pinMode(SW_v[swEntityCounter]->outPin, OUTPUT);
-    digitalWrite(SW_v[swEntityCounter]->outPin, !OUTPUT_ON);
-
+    SW_v[swEntityCounter]->set_output(outPinsArray[lastUsed_outIO]);
     lastUsed_outIO++;
   }
 
   /* Assign RF to SW */
-  if (_DOC["RF_2entity"][swEntityCounter] != 255)
-  {
-    SW_v[swEntityCounter]->RFch = _DOC["RF_2entity"][swEntityCounter];
-    init_RF(swEntityCounter);
-  }
-  print_sw_struct(*SW_v[swEntityCounter]);
+  // if (_DOC["RF_2entity"][swEntityCounter] != 255)
+  // {
+  //   SW_v[swEntityCounter]->RFch = _DOC["RF_2entity"][swEntityCounter];
+  //   init_RF(swEntityCounter);
+  // }
+  // print_sw_struct(*SW_v[swEntityCounter]);
 
   swEntityCounter++;
+}
+void send_virtCMD(smartSwitch &sw)
+{
+  char *MQTT_cmds[] = {"off", "on"};
+  char *SW_Types[] = {"Button", "MQTT", "Timeout"};
+  if (sw.is_virtCMD())
+  {
+    char msg[100];
+    iot.pub_noTopic(MQTT_cmds[sw.telemtryMSG.state], sw.name, true);
+    sprintf(msg, "[%s]: Switched [%s] Virtual [%s]", SW_Types[sw.telemtryMSG.reason], MQTT_cmds[sw.telemtryMSG.state], sw.name);
+    iot.pub_msg(msg);
+  }
 }
 void loop_buttons()
 {
   for (uint8_t i = 0; i < swEntityCounter; i++)
   {
-    if (SW_v[i]->useButton)
+    if (SW_v[i]->loop())
     {
-      SW_v[i]->button.loop();
+      send_virtCMD(*SW_v[i]);
+      SW_v[i]->clear_newMSG();
+      // Serial.print("NEW_MSG: State:");
+      // Serial.print(SW.telemtryMSG.state);
+      // Serial.print("\tReason: ");
+      // Serial.println(SW.telemtryMSG.reason);
     }
   }
 }
@@ -271,34 +154,34 @@ RCSwitch *RF_v = nullptr;
 
 void init_RF(uint8_t i)
 {
-  if (SW_v[i]->RFch != 255 && RF_v == nullptr)
-  {
-    RF_v = new RCSwitch();
-    RF_v->enableReceive(RFpin);
-  }
+  // if (SW_v[i]->RFch != 255 && RF_v == nullptr)
+  // {
+  //   RF_v = new RCSwitch();
+  //   RF_v->enableReceive(RFpin);
+  // }
 }
 void loop_RF()
 {
-  if (RF_v->available()) /* New transmission */
-  {
-    // sprintf(temp, "Received %d / %dbit Protocol: ", RFreader.getReceivedValue(), RFreader.getReceivedBitlength(), RFreader.getReceivedProtocol());
-    static unsigned long lastEntry = 0;
-    for (uint8_t i = 0; i < sizeof(RF_keyboardCode) / sizeof(RF_keyboardCode[0]); i++)
-    {
-      if (RF_keyboardCode[i] == RF_v->getReceivedValue() && millis() - lastEntry > 1000)
-      {
-        for (uint8_t x = 0; x < swEntityCounter; x++) /* choose the right switch to the received code */
-        {
-          if (SW_v[x]->RFch == i)
-          {
-            toggleRelay(x, RF);
-            lastEntry = millis();
-          }
-        }
-      }
-    }
-    RF_v->resetAvailable();
-  }
+  // if (RF_v->available()) /* New transmission */
+  // {
+  //   // sprintf(temp, "Received %d / %dbit Protocol: ", RFreader.getReceivedValue(), RFreader.getReceivedBitlength(), RFreader.getReceivedProtocol());
+  //   static unsigned long lastEntry = 0;
+  //   for (uint8_t i = 0; i < sizeof(RF_keyboardCode) / sizeof(RF_keyboardCode[0]); i++)
+  //   {
+  //     if (RF_keyboardCode[i] == RF_v->getReceivedValue() && millis() - lastEntry > 1000)
+  //     {
+  //       for (uint8_t x = 0; x < swEntityCounter; x++) /* choose the right switch to the received code */
+  //       {
+  //         if (SW_v[x]->RFch == i)
+  //         {
+  //           toggleRelay(x, RF);
+  //           lastEntry = millis();
+  //         }
+  //       }
+  //     }
+  //   }
+  //   RF_v->resetAvailable();
+  // }
 }
 /* ************************************************ */
 
