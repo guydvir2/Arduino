@@ -30,12 +30,12 @@ void smartSwitch::set_input(uint8_t inpin, uint8_t t)
         _inputButton.begin(inpin);
     }
 
-    if (t == 1)
+    if (t == ON_OFF_SW)
     {
         _inputButton.setPressedHandler(std::bind(&smartSwitch::_OnOffSW_ON_handler, this, std::placeholders::_1));
         _inputButton.setReleasedHandler(std::bind(&smartSwitch::_OnOffSW_OFF_handler, this, std::placeholders::_1));
     }
-    else if (t == 2)
+    else if (t == MOMENTARY_SW)
     {
         _inputButton.setPressedHandler(std::bind(&smartSwitch::_toggle_handle, this, std::placeholders::_1));
     }
@@ -54,7 +54,7 @@ void smartSwitch::turnON_cb(uint8_t type)
         {
             HWturnON(_outputPin);
             _start_timeout();
-            _update_telemetry(1, type);
+            _update_telemetry(SW_ON, type);
         }
         else
         {
@@ -63,11 +63,11 @@ void smartSwitch::turnON_cb(uint8_t type)
     }
     else
     {
-        if (_guessState == false)
+        if (_guessState == SW_OFF)
         {
             _start_timeout();
             _guessState = !_guessState;
-            _update_telemetry(1, type);
+            _update_telemetry(SW_ON, type);
         }
     }
 }
@@ -79,7 +79,7 @@ void smartSwitch::turnOFF_cb(uint8_t type)
         {
             HWturnOFF(_outputPin);
             _stop_timeout();
-            _update_telemetry(0,type);
+            _update_telemetry(SW_OFF, type);
         }
         else
         {
@@ -88,11 +88,11 @@ void smartSwitch::turnOFF_cb(uint8_t type)
     }
     else
     {
-        if (_guessState == true)
+        if (_guessState == SW_ON)
         {
             _stop_timeout();
             _guessState = !_guessState;
-            _update_telemetry(0, type);
+            _update_telemetry(SW_OFF, type);
         }
     }
 }
@@ -185,6 +185,10 @@ int smartSwitch::get_remain_time()
         return 0;
     }
 }
+uint8_t smartSwitch::get_SWtype()
+{
+    return _button_type;
+}
 uint8_t smartSwitch::get_SWstate()
 {
     if (!_virtCMD)
@@ -219,7 +223,6 @@ void smartSwitch::_start_timeout()
         _timeout_clk.start();
     }
 }
-uint8_t _next_id = 0;
 bool smartSwitch::_isON()
 {
     return (digitalRead(_outputPin) == OUTPUT_ON);

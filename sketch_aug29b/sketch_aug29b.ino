@@ -1,9 +1,8 @@
 #include <myIOT2.h>
-#include <Button2.h>    /* Button Entities */
-#include <RCSwitch.h>   /* Button Entities */
-#include <myWindowSW.h> /* WinSW Entities */
-#include <smartSwitch.h>
-#include "paramters.h" /* Hardcoded or updated saved in flash */
+#include <RCSwitch.h>
+#include <myWindowSW.h>  /* WinSW Entities */
+#include <smartSwitch.h> /* smartSwitch Entities */
+#include "paramters.h"   /* Hardcoded or updated saved in flash */
 #include "myIOT_settings.h"
 
 /* ******************* Windows ******************* */
@@ -91,59 +90,62 @@ void loop_WinSW()
 }
 /* ************************************************ */
 
-/* ******************* Buttons ******************* */
+/* ******************* Switches  ******************* */
 void create_SW_instance(JsonDocument &_DOC, uint8_t i)
 {
   SW_v[swEntityCounter] = new smartSwitch;
-  SW_v[swEntityCounter]->set_id(swEntityCounter);
-  // SW_v[swEntityCounter]->set_name(_DOC["virtCMD"][i].as<const char*>);
-  SW_v[swEntityCounter]->set_input(inPinsArray[lastUsed_inIO], _DOC["SW_buttonTypes"][i]);
+  SW_v[swEntityCounter]->set_name((char *)_DOC["virtCMD"][i].as<const char *>());
+  SW_v[swEntityCounter]->set_input(inPinsArray[lastUsed_inIO], _DOC["SW_buttonTypes"][swEntityCounter] | 1);
+  SW_v[swEntityCounter]->set_id(swEntityCounter); /* MUST be after "set_input" function */
 
-  if (_DOC["SW_buttonTypes"][i] > 0)
-  {
-    lastUsed_inIO++;
-  }
-
-  if (strcmp(_DOC["virtCMD"][i], "") != 0)
+  /* Phsycal or Virtual output ?*/
+  if (strcmp(_DOC["virtCMD"][i], "") == 0)
   {
     SW_v[swEntityCounter]->set_output(outPinsArray[lastUsed_outIO]);
     lastUsed_outIO++;
   }
 
-  /* Assign RF to SW */
-  // if (_DOC["RF_2entity"][swEntityCounter] != 255)
-  // {
-  //   SW_v[swEntityCounter]->RFch = _DOC["RF_2entity"][swEntityCounter];
-  //   init_RF(swEntityCounter);
-  // }
-  // print_sw_struct(*SW_v[swEntityCounter]);
+  /* Config timeout duration to SW */
+  if (_DOC["SW_timeout"][i].as<int>() > 0)
+  {
+    SW_v[swEntityCounter]->set_timeout(_DOC["SW_timeout"][i].as<int>());
+  }
 
+  /* Assign RF to SW */
+  if (_DOC["SW_RF"][swEntityCounter] != 255)
+  {
+    linkRF2SW[swEntityCounter] = _DOC["SW_RF"][swEntityCounter];
+    init_RF(swEntityCounter);
+  }
+
+  SW_v[swEntityCounter]->get_prefences();
+  lastUsed_inIO++;
   swEntityCounter++;
 }
 void send_virtCMD(smartSwitch &sw)
 {
-  char *MQTT_cmds[] = {"off", "on"};
-  char *SW_Types[] = {"Button", "MQTT", "Timeout"};
   if (sw.is_virtCMD())
   {
     char msg[100];
-    iot.pub_noTopic(MQTT_cmds[sw.telemtryMSG.state], sw.name, true);
-    sprintf(msg, "[%s]: Switched [%s] Virtual [%s]", SW_Types[sw.telemtryMSG.reason], MQTT_cmds[sw.telemtryMSG.state], sw.name);
+    iot.pub_noTopic((char *)SW_MQTT_cmds[sw.telemtryMSG.state], sw.name, true);
+    sprintf(msg, "[%s]: Switched [%s] Virtual [%s]", SW_Types[sw.telemtryMSG.reason], SW_MQTT_cmds[sw.telemtryMSG.state], sw.name);
     iot.pub_msg(msg);
   }
 }
-void loop_buttons()
+void SW_loop()
 {
   for (uint8_t i = 0; i < swEntityCounter; i++)
   {
     if (SW_v[i]->loop())
     {
       send_virtCMD(*SW_v[i]);
+      _gen_SW_MSG(i, SW_v[i]->telemtryMSG.reason, SW_v[i]->telemtryMSG.state);
       SW_v[i]->clear_newMSG();
-      // Serial.print("NEW_MSG: State:");
-      // Serial.print(SW.telemtryMSG.state);
-      // Serial.print("\tReason: ");
-      // Serial.println(SW.telemtryMSG.reason);
+
+      Serial.print("NEW_MSG: State:");
+      Serial.print(SW_v[i]->telemtryMSG.state);
+      Serial.print("\tReason: ");
+      Serial.println(SW_v[i]->telemtryMSG.reason);
     }
   }
 }
@@ -154,34 +156,61 @@ RCSwitch *RF_v = nullptr;
 
 void init_RF(uint8_t i)
 {
-  // if (SW_v[i]->RFch != 255 && RF_v == nullptr)
-  // {
-  //   RF_v = new RCSwitch();
-  //   RF_v->enableReceive(RFpin);
-  // }
+  if (linkRF2SW[swEntityCounter] != 255 && RF_v == nullptr)
+  {
+    RF_v = new RCSwitch();
+    RF_v->enableReceive(RFpin);
+  }
+}
+void toggleSW_RF(uint8_t i)
+{
+  if (SW_v[i]->is_virtCMD())
+  {
+    if (SW_v[i]->get_SWtype() == 2) /* virtCMD + PushButton --> output state is unknown*/
+    {
+      char top[50];
+      sprintf(top, "%s/State", SW_v[i]->name);
+      iot.mqttClient.subscribe(top);
+    }
+    else
+    {
+    }
+  }
+  else
+  {
+    if (SW_v[i]->get_SWstate()) /* is output SW on ?*/
+    {
+      SW_v[i]->turnOFF_cb(3); /* # is RF remote indetifier */
+    }
+    else
+    {
+      SW_v[i]->turnON_cb(3);
+    }
+  }
 }
 void loop_RF()
 {
-  // if (RF_v->available()) /* New transmission */
-  // {
-  //   // sprintf(temp, "Received %d / %dbit Protocol: ", RFreader.getReceivedValue(), RFreader.getReceivedBitlength(), RFreader.getReceivedProtocol());
-  //   static unsigned long lastEntry = 0;
-  //   for (uint8_t i = 0; i < sizeof(RF_keyboardCode) / sizeof(RF_keyboardCode[0]); i++)
-  //   {
-  //     if (RF_keyboardCode[i] == RF_v->getReceivedValue() && millis() - lastEntry > 1000)
-  //     {
-  //       for (uint8_t x = 0; x < swEntityCounter; x++) /* choose the right switch to the received code */
-  //       {
-  //         if (SW_v[x]->RFch == i)
-  //         {
-  //           toggleRelay(x, RF);
-  //           lastEntry = millis();
-  //         }
-  //       }
-  //     }
-  //   }
-  //   RF_v->resetAvailable();
-  // }
+  if (RF_v->available()) /* New transmission */
+  {
+    // sprintf(temp, "Received %d / %dbit Protocol: ", RFreader.getReceivedValue(), RFreader.getReceivedBitlength(), RFreader.getReceivedProtocol());
+    static unsigned long lastEntry = 0;
+
+    for (uint8_t i = 0; i < sizeof(RF_keyboardCode) / sizeof(RF_keyboardCode[0]); i++)
+    {
+      if (RF_keyboardCode[i] == RF_v->getReceivedValue() && millis() - lastEntry > 300)
+      {
+        for (uint8_t x = 0; x < swEntityCounter; x++) /* choose the right switch to the received code */
+        {
+          if (linkRF2SW[x] == i)
+          {
+            toggleSW_RF(x);
+            lastEntry = millis();
+          }
+        }
+      }
+    }
+    RF_v->resetAvailable();
+  }
 }
 /* ************************************************ */
 
@@ -195,7 +224,7 @@ void loop()
   {
     loop_RF();
     loop_WinSW();
-    loop_buttons();
+    SW_loop();
   }
   iot.looper();
 }

@@ -11,24 +11,37 @@
 #define HWturnON(i) digitalWrite(i, OUTPUT_ON)
 #define HWturnOFF(i) digitalWrite(i, !OUTPUT_ON)
 
-
 class smartSwitch
 {
     struct MSGstr
-{
-    bool newMSG = false;
-    uint8_t state;  /* Up/Down/ Off */
-    uint8_t reason; /* What triggered the button */
-};
+    {
+        bool newMSG = false;
+        uint8_t state;  /* Up/Down/ Off */
+        uint8_t reason; /* What triggered the button */
+        unsigned long clk_start = 0;
+        unsigned long clk_end = 0;
+    };
+    enum SWTypes : const uint8_t
+    {
+        NO_INPUT,
+        ON_OFF_SW,
+        MOMENTARY_SW
+    };
+    enum InputTypes : const uint8_t
+    {
+        BUTTON_INPUT,
+        TIMEOUT,
+        EXT_0,
+        EXT_1
+    };
 
-enum InputTypes : const uint8_t
-{
-    BUTTON_INPUT,
-    EXT_0,
-    TIMEOUT
-};
 
 public:
+    enum SWstates : const uint8_t
+    {
+        SW_OFF,
+        SW_ON
+    };
     char name[MAX_NAME_LEN];
     MSGstr telemtryMSG;
 
@@ -39,8 +52,8 @@ public:
     void set_timeout(int t);
     void set_output(uint8_t outpin = UNDEF_PIN);
     void set_input(uint8_t inpin = UNDEF_PIN, uint8_t t = 0);
-    void set_extON(char *msg = nullptr, char *topic = nullptr);
-    void set_extOFF(char *msg = nullptr, char *topic = nullptr);
+    // void set_extON(char *msg = nullptr, char *topic = nullptr);
+    // void set_extOFF(char *msg = nullptr, char *topic = nullptr);
 
     void turnON_cb(uint8_t type);
     void turnOFF_cb(uint8_t type);
@@ -50,11 +63,11 @@ public:
     uint8_t get_id();
     uint8_t get_inpin();
     uint8_t get_outpin();
+    uint8_t get_SWtype();
     uint8_t get_SWstate();
     int get_remain_time();
     void get_prefences();
     void get_telemetry(uint8_t state, uint8_t reason);
-    
 
     bool is_virtCMD();
     bool is_useButton();
@@ -68,9 +81,8 @@ private:
     bool _guessState = false;
     bool _use_timeout = false;
 
-    static uint8_t _next_id;
     Chrono _timeout_clk;
-    Button2 _inputButton;               /* inputs only */
+    Button2 _inputButton;                /* inputs only */
     unsigned long _timeout_duration = 1; // in seconds
 
 private:

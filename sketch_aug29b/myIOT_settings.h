@@ -1,9 +1,6 @@
 myIOT2 iot;
 #define LOCAL_PARAM true
 
-extern bool _isON(uint8_t i);
-extern void SW_turnON_cb(uint8_t i, uint8_t type);
-extern void SW_turnOFF_cb(uint8_t i, uint8_t type);
 extern void create_SW_instance(JsonDocument &_DOC, uint8_t i);
 extern void create_WinSW_instance(JsonDocument &_DOC, uint8_t i);
 
@@ -153,12 +150,13 @@ void update_Parameters_flash()
 
   // /* ±±±±±±±±±± Part C: update Sketch Parameters ±±±±±±±±±±±±±± */
 #if LOCAL_PARAM
-  char fakeP[] = "{\"entityType\": [0,1,1],\
-                    \"virtCMD\": [\"myHome\/Windows\/gFloor\/W0\",\"myHome\/Lights\/int\/gFloor\/SW0\",\"\",\"\"],\
-                    \"SW_buttonTypes\": [2,1,1,1],\
+  char fakeP[] = "{\"entityType\": [0, 1, 1],\
+                    \"virtCMD\": [\"\",\"\",\"\",\"myHome\/Windows\/gFloor\/W0\",\"myHome\/Lights\/int\/gFloor\/SW0\",\"\"],\
+                    \"SW_buttonTypes\": [1,2,1],\
                     \"WextInputs\": [0,0],\
-                    \"RF_2entity\": [0,1,2,3],\
-                    \"v_file\": 0.3}";
+                    \"SW_RF\": [0,1,2,3],\
+                    \"SW_timeout\": [10,15,0,0],\
+                    \"v_file\": 0.4}";
   DeserializationError error2 = deserializeJson(DOC, fakeP);
   if (!error2)
   {
@@ -223,7 +221,7 @@ void update_Parameters_flash()
     {
       if (SW_v[i]->is_virtCMD() == false)
       {
-        // _updateTopics_flash(DOC, SW_v[i]->To, iot.topics_sub, "sub_topics_SW", i, accum_shift + i);
+        _updateTopics_flash(DOC, SW_v[i]->name, iot.topics_sub, "sub_topics_SW", i, accum_shift + i);
       }
     }
     DOC.clear();
@@ -297,7 +295,7 @@ void win_updateState(uint8_t i, uint8_t state) /* Windows State MQTT update */
   sprintf(r, "%d", state);
   iot.pub_noTopic(r, t, true);
 }
-void butt_updateState(uint8_t i, bool state) /* Button State MQTT update */
+void SWupdateState(uint8_t i, bool state) /* Button State MQTT update */
 {
   char t[60];
   char r[5];
@@ -312,12 +310,12 @@ void _gen_WinMSG(uint8_t state, uint8_t reason, uint8_t i)
   iot.pub_msg(msg);
   win_updateState(i, state);
 }
-void _gen_ButtMSG(uint8_t i, uint8_t type, bool request)
+void _gen_SW_MSG(uint8_t i, uint8_t type, bool request)
 {
   char msg[100];
-  sprintf(msg, "[%s]: [SW#%d] [%s] turned [%s]", turnTypes[type], i, SW_v[i]->name, request == HIGH ? "ON" : "OFF");
+  sprintf(msg, "[%s]: [SW#%d] [%s] turned [%s]", SW_Types[type], i, SW_v[i]->name, request == HIGH ? "ON" : "OFF");
   iot.pub_msg(msg);
-  butt_updateState(i, (int)request);
+  SWupdateState(i, (int)request);
 }
 void _post_Win_virtCMD(uint8_t state, uint8_t reason, uint8_t x)
 {
@@ -417,18 +415,18 @@ void addiotnalMQTT(char *incoming_msg, char *_topic)
         }
       }
     }
-    else if (strcmp(iot.inline_param[0], EntTypes[1]) == 0 && (strcmp(iot.inline_param[1], buttMQTTcmds[0]) == 0 || strcmp(iot.inline_param[1], buttMQTTcmds[1]) == 0)) /* MQTT cmd for SW */
+    else if (strcmp(iot.inline_param[0], EntTypes[1]) == 0 && (strcmp(iot.inline_param[1], SW_MQTT_cmds[0]) == 0 || strcmp(iot.inline_param[1], SW_MQTT_cmds[1]) == 0)) /* MQTT cmd for SW */
     {
       for (uint8_t i = 0; i < swEntityCounter; i++)
       {
         if (strcmp(_topic, SW_v[i]->name) == 0) /* SENT FOR A SPECIFIC TOPIC */
         {
-          if (strcmp(iot.inline_param[1], buttMQTTcmds[0]) == 0) /* ON */
+          if (strcmp(iot.inline_param[1], SW_MQTT_cmds[0]) == 0) /* ON */
           {
-           SW_v[i]->turnON_cb(MQTT);
+            SW_v[i]->turnON_cb(MQTT);
             return;
           }
-          else if (strcmp(iot.inline_param[1], buttMQTTcmds[1]) == 0) /* OFF */
+          else if (strcmp(iot.inline_param[1], SW_MQTT_cmds[1]) == 0) /* OFF */
           {
             SW_v[i]->turnOFF_cb(MQTT);
             return;
@@ -441,11 +439,11 @@ void addiotnalMQTT(char *incoming_msg, char *_topic)
         {
           for (uint8_t i = 0; i < swEntityCounter; i++)
           {
-            if (strcmp(iot.inline_param[1], buttMQTTcmds[0]) == 0) /* ON */
+            if (strcmp(iot.inline_param[1], SW_MQTT_cmds[0]) == 0) /* ON */
             {
-             SW_v[i]->turnON_cb(MQTT);
+              SW_v[i]->turnON_cb(MQTT);
             }
-            else if (strcmp(iot.inline_param[1], buttMQTTcmds[1]) == 0) /* OFF */
+            else if (strcmp(iot.inline_param[1], SW_MQTT_cmds[1]) == 0) /* OFF */
             {
               SW_v[i]->turnOFF_cb(MQTT);
             }
