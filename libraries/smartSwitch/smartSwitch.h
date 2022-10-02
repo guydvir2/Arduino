@@ -11,39 +11,37 @@
 #define HWturnON(i) digitalWrite(i, OUTPUT_ON)
 #define HWturnOFF(i) digitalWrite(i, !OUTPUT_ON)
 
+struct SW_MSGstr
+{
+    bool newMSG = false;
+    uint8_t state;  /* Up/Down/ Off */
+    uint8_t reason; /* What triggered the button */
+    unsigned long clk_start = 0;
+    unsigned long clk_end = 0;
+};
+enum SWTypes : const uint8_t
+{
+    NO_INPUT,
+    ON_OFF_SW,
+    MOMENTARY_SW
+};
+enum InputTypes : const uint8_t
+{
+    BUTTON_INPUT,
+    SW_TIMEOUT,
+    EXT_0,
+    EXT_1
+};
+enum SWstates : const uint8_t
+{
+    SW_OFF,
+    SW_ON
+};
 class smartSwitch
 {
-    struct MSGstr
-    {
-        bool newMSG = false;
-        uint8_t state;  /* Up/Down/ Off */
-        uint8_t reason; /* What triggered the button */
-        unsigned long clk_start = 0;
-        unsigned long clk_end = 0;
-    };
-    enum SWTypes : const uint8_t
-    {
-        NO_INPUT,
-        ON_OFF_SW,
-        MOMENTARY_SW
-    };
-    enum InputTypes : const uint8_t
-    {
-        BUTTON_INPUT,
-        TIMEOUT,
-        EXT_0,
-        EXT_1
-    };
-
-
 public:
-    enum SWstates : const uint8_t
-    {
-        SW_OFF,
-        SW_ON
-    };
     char name[MAX_NAME_LEN];
-    MSGstr telemtryMSG;
+    SW_MSGstr telemtryMSG;
 
 public:
     smartSwitch();
