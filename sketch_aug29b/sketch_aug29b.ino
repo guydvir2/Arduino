@@ -9,83 +9,50 @@
 void create_WinSW_instance(JsonDocument &_DOC, uint8_t i)
 {
   winSW_V[winEntityCounter] = new WinSW;
-
-  Serial.print(" >>>>>>>>>>>>>>> Window #:");
-  Serial.print(winEntityCounter);
-  Serial.println(" <<<<<<<<<<<<<<<<<< ");
+  winSW_V[winEntityCounter]->set_input(inPinsArray[lastUsed_inIO], inPinsArray[lastUsed_inIO + 1]);
 
   // <<<<<<<<<<< Define input and output pins >>>>>>>>>>>>>>
   if (strcmp(_DOC["virtCMD"][i], "") != 0) /* a virtCMD on output */
   {
-    winSW_V[winEntityCounter]->virtCMD = true;
-    winSW_V[winEntityCounter]->def(inPinsArray[lastUsed_inIO], inPinsArray[lastUsed_inIO + 1]);
-    strcpy(winSW_V[winEntityCounter]->name, _DOC["virtCMD"][i].as<const char *>());
-
-    Serial.print("virtCMD :\t");
-    Serial.println(winSW_V[winEntityCounter]->virtCMD);
-    Serial.print("virtCMD MQTT:\t");
-    Serial.println(winSW_V[winEntityCounter]->name);
-    Serial.print("in_pins #:\t");
-    Serial.print(inPinsArray[lastUsed_inIO]);
-    Serial.print("; ");
-    Serial.println(inPinsArray[lastUsed_inIO + 1]);
-    Serial.println("out_pins #:\t NONE");
+    winSW_V[winEntityCounter]->set_output(); /* empty definition --> virtCMD */
+    winSW_V[winEntityCounter]->set_name(_DOC["virtCMD"][i].as<const char *>());
   }
   else /* Physical Switching input & output */
   {
-    winSW_V[winEntityCounter]->virtCMD = false;
-    winSW_V[winEntityCounter]->def(inPinsArray[lastUsed_inIO], inPinsArray[lastUsed_inIO + 1], outPinsArray[lastUsed_outIO], outPinsArray[lastUsed_outIO + 1]);
-
-    Serial.print("virtCMD :\t");
-    Serial.println(winSW_V[winEntityCounter]->virtCMD);
-    Serial.print("in_pins #:\t");
-    Serial.print(inPinsArray[lastUsed_inIO]);
-    Serial.print("; ");
-    Serial.println(inPinsArray[lastUsed_inIO + 1]);
-    Serial.print("out_pins #:\t");
-    Serial.print(outPinsArray[lastUsed_outIO]);
-    Serial.print("; ");
-    Serial.println(outPinsArray[lastUsed_outIO + 1]);
-
+    winSW_V[winEntityCounter]->set_output(outPinsArray[lastUsed_outIO], outPinsArray[lastUsed_outIO + 1]);
     lastUsed_outIO += 2;
   }
 
   // <<<<<<<<<<< Define Ext_input pins , if needed >>>>>>>>>>>>>>
   if (_DOC["WextInputs"][i] == 1) /* define a Secondary input for a window */
   {
-    winSW_V[winEntityCounter]->def_extSW(inPinsArray[lastUsed_inIO + 2], inPinsArray[lastUsed_inIO + 3]);
-
-    Serial.print("ext_pins #:\t");
-    Serial.print(inPinsArray[lastUsed_inIO + 2]);
-    Serial.print("; ");
-    Serial.println(inPinsArray[lastUsed_inIO + 3]);
-
+    winSW_V[winEntityCounter]->set_ext_input(inPinsArray[lastUsed_inIO + 2], inPinsArray[lastUsed_inIO + 3]);
     lastUsed_inIO += 2;
   }
 
   // <<<<<<<<<<< Init instance  >>>>>>>>>>>>>>
-  winSW_V[winEntityCounter]->def_extras(); /* Timeout & lockdown */
+  winSW_V[winEntityCounter]->set_extras(); /* Timeout & lockdown */
   winSW_V[winEntityCounter]->start();
+  winSW_V[winEntityCounter]->print_preferences();
 
   // <<<<<<<<< Incrementing Counters >>>>>>>>>>
   winEntityCounter++;
   lastUsed_inIO += 2;
 }
-void _newMSGcb(uint8_t x)
+void Win_newMsg_cb(uint8_t x)
 {
-  if (winSW_V[x]->newMSGflag)
-  {
-    _gen_WinMSG(winSW_V[x]->MSG.state, winSW_V[x]->MSG.reason, x);       /* Generate MQTT MSG */
-    _post_Win_virtCMD(winSW_V[x]->MSG.state, winSW_V[x]->MSG.reason, x); /* Sending MQTT cmd in case of virt Win*/
-    winSW_V[x]->newMSGflag = false;
-  }
+  _gen_WinMSG(winSW_V[x]->MSG.state, winSW_V[x]->MSG.reason, x);       /* Generate MQTT MSG */
+  _post_Win_virtCMD(winSW_V[x]->MSG.state, winSW_V[x]->MSG.reason, x); /* Sending MQTT cmd in case of virt Win*/
 }
 void loop_WinSW()
 {
   for (uint8_t x = 0; x < winEntityCounter; x++)
   {
-    winSW_V[x]->loop();
-    _newMSGcb(x);
+    if (winSW_V[x]->loop())
+    {
+      Win_newMsg_cb(x);
+      winSW_V[x]->clear_newMSG();
+    }
   }
 }
 /* ************************************************ */
@@ -122,7 +89,7 @@ void create_SW_instance(JsonDocument &_DOC, uint8_t i)
   lastUsed_inIO++;
   swEntityCounter++;
 }
-void send_virtCMD(smartSwitch &sw)
+void send_SW_virtCMD(smartSwitch &sw)
 {
   if (sw.is_virtCMD())
   {
@@ -138,7 +105,7 @@ void SW_loop()
   {
     if (SW_v[i]->loop())
     {
-      send_virtCMD(*SW_v[i]);
+      send_SW_virtCMD(*SW_v[i]);
       _gen_SW_MSG(i, SW_v[i]->telemtryMSG.reason, SW_v[i]->telemtryMSG.state);
       SW_v[i]->clear_newMSG();
 

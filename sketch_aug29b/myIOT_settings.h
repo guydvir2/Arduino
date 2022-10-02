@@ -150,10 +150,10 @@ void update_Parameters_flash()
 
   // /* ±±±±±±±±±± Part C: update Sketch Parameters ±±±±±±±±±±±±±± */
 #if LOCAL_PARAM
-  char fakeP[] = "{\"entityType\": [0, 1, 1],\
-                    \"virtCMD\": [\"\",\"\",\"\",\"myHome\/Windows\/gFloor\/W0\",\"myHome\/Lights\/int\/gFloor\/SW0\",\"\"],\
+  char fakeP[] = "{\"entityType\": [0, 0],\
+                    \"virtCMD\": [\"\",\"myHome\/Windows\/gFloor\/W0\",\"myHome\/Lights\/int\/gFloor\/SW0\",\"\"],\
                     \"SW_buttonTypes\": [1,2,1],\
-                    \"WextInputs\": [0,0],\
+                    \"WextInputs\": [1,0],\
                     \"SW_RF\": [0,1,2,3],\
                     \"SW_timeout\": [10,15,0,0],\
                     \"v_file\": 0.4}";
@@ -400,7 +400,7 @@ void addiotnalMQTT(char *incoming_msg, char *_topic)
         if (strcmp(_topic, winSW_V[i]->name) == 0) /* SENT FOR A SPECIFIC TOPIC */
         {
           Serial.println("gotit");
-          winSW_V[i]->ext_SW(_word, MQTT);
+          winSW_V[i]->set_WINstate(_word, MQTT);
           return;
         }
       }
@@ -410,7 +410,7 @@ void addiotnalMQTT(char *incoming_msg, char *_topic)
         {
           for (uint8_t i = 0; i < winEntityCounter; i++)
           {
-            winSW_V[i]->ext_SW(_word, MQTT);
+            winSW_V[i]->set_WINstate(_word, MQTT);
           }
         }
       }

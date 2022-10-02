@@ -3,30 +3,11 @@
 WinSW::WinSW()
 {
 }
-void WinSW::def(uint8_t upin, uint8_t dpin, uint8_t outup_pin, uint8_t outdown_pin)
+bool WinSW::loop()
 {
-  outpins[0] = outup_pin;
-  outpins[1] = outdown_pin;
-
-  _windowSwitch.pin0 = upin;
-  _windowSwitch.pin1 = dpin;
-  _windowSwitch.buttonType = 2;
-}
-void WinSW::def_extSW(uint8_t upin, uint8_t dpin)
-{
-  if (upin != 255)
-  {
-    _useExtSW = true;
-  }
-  _windowSwitch_ext.pin0 = upin;
-  _windowSwitch_ext.pin1 = dpin;
-  _windowSwitch_ext.buttonType = 2;
-}
-void WinSW::def_extras(bool useTimeout, bool useLockdown, int timeout_clk)
-{
-  _useTimeout = useTimeout;
-  _uselockdown = useLockdown;
-  _timeout_clk = timeout_clk;
+  _readSW();
+  _timeout_looper();
+  return newMSGflag;
 }
 void WinSW::start()
 {
@@ -36,7 +17,7 @@ void WinSW::start()
     _windowSwitch_ext.start();
   }
 
-  if (outpins[0] != 255)
+  if (outpins[0] != UNDEF_INPUT)
   {
     pinMode(outpins[0], OUTPUT);
     pinMode(outpins[1], OUTPUT);
@@ -46,8 +27,56 @@ void WinSW::start()
     virtCMD = true; /* Not switching Relays */
   }
   _allOff();
-  id = _next_id++;
+  _id = _next_id++;
 }
+
+void WinSW::set_id(uint8_t i)
+{
+  _id = i;
+}
+void WinSW::set_name(const char *_name)
+{
+  strlcpy(name, _name, MAX_NAME_LEN);
+}
+void WinSW::set_input(uint8_t upin, uint8_t dpin)
+{
+  _windowSwitch.pin0 = upin;
+  _windowSwitch.pin1 = dpin;
+  _windowSwitch.buttonType = 2;
+}
+void WinSW::set_output(uint8_t outup_pin, uint8_t outdown_pin)
+{
+  if (outup_pin != UNDEF_INPUT && outdown_pin != UNDEF_INPUT)
+  {
+    outpins[0] = outup_pin;
+    outpins[1] = outdown_pin;
+    virtCMD = false;
+  }
+  else
+  {
+    virtCMD = true;
+  }
+}
+void WinSW::set_ext_input(uint8_t upin, uint8_t dpin)
+{
+  if (upin != UNDEF_INPUT && dpin != UNDEF_INPUT)
+  {
+    _useExtSW = true;
+  }
+  _windowSwitch_ext.pin0 = upin;
+  _windowSwitch_ext.pin1 = dpin;
+  _windowSwitch_ext.buttonType = 2;
+}
+void WinSW::set_WINstate(uint8_t state, uint8_t reason) /* External Callback */
+{
+  _switch_cb(state, reason);
+}
+void WinSW::set_extras(bool useLockdown, int timeout_clk)
+{
+  _uselockdown = useLockdown;
+  _timeout_clk = timeout_clk;
+}
+
 void WinSW::init_lockdown()
 {
   if (_uselockdown && _lockdownState == false)
@@ -63,14 +92,48 @@ void WinSW::release_lockdown()
     _lockdownState = false;
   }
 }
-void WinSW::loop()
+void WinSW::print_preferences()
 {
-  _readSW();
-  _timeout_looper();
+  Serial.print(" >>>>>> Window #:");
+  Serial.print(_id);
+  Serial.println(" <<<<<< ");
+
+  Serial.print("Output :\t");
+  Serial.println(virtCMD ? "Virutal" : "Relay");
+
+  Serial.print("MQTT:\t");
+  Serial.println(name);
+
+  Serial.print("in_pins #:\t");
+  Serial.print(_windowSwitch.pin0);
+  Serial.print("; ");
+  Serial.println(_windowSwitch.pin1);
+
+  Serial.print("out_pins #:\t");
+  Serial.print(outpins[0]);
+  Serial.print("; ");
+  Serial.println(outpins[1]);
+
+  Serial.print("ext_pins #:\t");
+  Serial.print(_windowSwitch_ext.pin0);
+  Serial.print("; ");
+  Serial.println(_windowSwitch_ext.pin1);
+
+  Serial.print("use timeout:\t");
+  Serial.println(_timeout_clk);
+
+  Serial.print("use lockdown:\t");
+  Serial.println(_uselockdown ? "YES" : "NO");
+
+  Serial.println(" >>>>>>>> END <<<<<<<< ");
 }
-void WinSW::ext_SW(uint8_t state, uint8_t reason) /* External Callback */
+void WinSW::clear_newMSG()
 {
-  _switch_cb(state, reason);
+  newMSGflag = false;
+}
+uint8_t WinSW::get_id()
+{
+  return _id;
 }
 uint8_t WinSW::get_winState()
 {
@@ -94,15 +157,9 @@ uint8_t WinSW::get_winState()
     return ERR;
   }
 }
-uint8_t WinSW::get_id()
-{
-  return id;
-}
-void WinSW::set_id(uint8_t i)
-{
-  id = i;
-}
+
 uint8_t WinSW::_next_id = 0;
+
 void WinSW::_allOff()
 {
   if (!virtCMD)
@@ -174,7 +231,7 @@ void WinSW::_readSW()
 }
 void WinSW::_timeout_looper()
 {
-  if (_useTimeout && _timeoutcounter > 0)
+  if (_timeout_clk > 0 && _timeoutcounter > 0)
   {
     if (millis() - _timeoutcounter > _timeout_clk * 1000)
     {

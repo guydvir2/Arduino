@@ -2,7 +2,6 @@
 #define TOT_Inputs 12
 #define MAX_TOPIC_SIZE 40 // <----- Verfy max Topic size
 
-
 const char *SW_MQTT_cmds[] = {"off", "on"};
 const char *winMQTTcmds[3] = {"off", "up", "down"};
 const char *SW_Types[] = {"Button", "Timeout", "MQTT", "Remote"};
@@ -28,5 +27,3 @@ uint8_t inPinsArray[TOT_Inputs] = {255, 255, 255, 255, 255, 255, 255, 255, 255, 
 
 char winGroupTopics[2][MAX_TOPIC_SIZE];
 char buttGroupTopics[3][MAX_TOPIC_SIZE];
-
-// <<<<<<<<<<<<<<<<<<<<<  WinSW Paramters >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
