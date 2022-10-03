@@ -2,6 +2,7 @@
 
 WinSW::WinSW()
 {
+  _id = _next_id++;
 }
 bool WinSW::loop()
 {
@@ -11,23 +12,23 @@ bool WinSW::loop()
 }
 void WinSW::start()
 {
-  _windowSwitch.start();
-  if (_useExtSW)
-  {
-    _windowSwitch_ext.start();
-  }
+  // _windowSwitch.start();
+  // if (_useExtSW)
+  // {
+  //   _windowSwitch_ext.start();
+  // }
 
-  if (outpins[0] != UNDEF_INPUT)
-  {
-    pinMode(outpins[0], OUTPUT);
-    pinMode(outpins[1], OUTPUT);
-  }
-  else
-  {
-    virtCMD = true; /* Not switching Relays */
-  }
-  _allOff();
-  _id = _next_id++;
+  // if (outpins[0] != UNDEF_INPUT)
+  // {
+  //   pinMode(outpins[0], OUTPUT);
+  //   pinMode(outpins[1], OUTPUT);
+  // }
+  // else
+  // {
+  //   virtCMD = true; /* Not switching Relays */
+  // }
+  // _allOff();
+  // _id = _next_id++;
 }
 
 void WinSW::set_id(uint8_t i)
@@ -43,6 +44,7 @@ void WinSW::set_input(uint8_t upin, uint8_t dpin)
   _windowSwitch.pin0 = upin;
   _windowSwitch.pin1 = dpin;
   _windowSwitch.buttonType = 2;
+  _windowSwitch.start();
 }
 void WinSW::set_output(uint8_t outup_pin, uint8_t outdown_pin)
 {
@@ -50,22 +52,27 @@ void WinSW::set_output(uint8_t outup_pin, uint8_t outdown_pin)
   {
     outpins[0] = outup_pin;
     outpins[1] = outdown_pin;
+    pinMode(outpins[0], OUTPUT);
+    pinMode(outpins[1], OUTPUT);
     virtCMD = false;
   }
   else
   {
     virtCMD = true;
   }
+  _allOff();
 }
 void WinSW::set_ext_input(uint8_t upin, uint8_t dpin)
 {
   if (upin != UNDEF_INPUT && dpin != UNDEF_INPUT)
   {
     _useExtSW = true;
+    _windowSwitch_ext.pin0 = upin;
+    _windowSwitch_ext.pin1 = dpin;
+    _windowSwitch_ext.buttonType = 2;
+    _windowSwitch_ext.start();
   }
-  _windowSwitch_ext.pin0 = upin;
-  _windowSwitch_ext.pin1 = dpin;
-  _windowSwitch_ext.buttonType = 2;
+
 }
 void WinSW::set_WINstate(uint8_t state, uint8_t reason) /* External Callback */
 {

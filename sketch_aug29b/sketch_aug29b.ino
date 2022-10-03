@@ -147,11 +147,11 @@ void toggleSW_RF(uint8_t i)
   {
     if (SW_v[i]->get_SWstate()) /* is output SW on ?*/
     {
-      SW_v[i]->turnOFF_cb(3); /* # is RF remote indetifier */
+      SW_v[i]->turnOFF_cb(EXT_1); /* # is RF remote indetifier */
     }
     else
     {
-      SW_v[i]->turnON_cb(3);
+      SW_v[i]->turnON_cb(EXT_1);
     }
   }
 }

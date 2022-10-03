@@ -159,7 +159,7 @@ void smartSwitch::_timeout_loop()
 {
     if (_timeout_clk.isRunning() & _timeout_clk.hasPassed(_timeout_duration))
     {
-        turnOFF_cb(TIMEOUT);
+        turnOFF_cb(SW_TIMEOUT);
     }
 }
 uint8_t smartSwitch::get_inpin()
