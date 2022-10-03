@@ -36,7 +36,6 @@ private:
 
     bool _lockdownState = false;
     bool _uselockdown = false;
-    // bool _useTimeout = false;
     int _timeout_clk = 0; // seconds to release relay
     unsigned long _timeoutcounter = 0;
 
