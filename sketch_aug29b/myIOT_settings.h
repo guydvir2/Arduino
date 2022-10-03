@@ -325,6 +325,79 @@ void _post_Win_virtCMD(uint8_t state, uint8_t reason, uint8_t x)
   }
 }
 
+/* ±±±±±±±±±±±±±± Receiving and handling MQTT CMDs ±±±±±±±±±±±±±±±± */
+
+/* CHECK TOPICS - for what entity it belongs */
+bool MQTT_is_Contl_topic(char *_topic)
+{
+  if (strcmp(_topic, topics_sub[0]) == 0 /* Cont Topic */ || strcmp(_topic, topics_sub[1]) == 0 /* All Topic */)
+  {
+    return 1;
+  }
+  else
+  {
+    return 0;
+  }
+}
+bool MQTT_is_lockdown_topic(char *_topic)
+{
+  if (strcmp(_topic, topics_sub[2]) == 0)
+  {
+    return 1;
+  }
+  else
+  {
+    return 0;
+  }
+}
+bool MQTT_is_Win_topic(char *_topic, uint8_t n)
+{
+  for (uint8_t i = 0; i < winEntityCounter; i++)
+  {
+    if (strcmp(_topic, winSW_V[i]->name) == 0) /* SENT FOR A SPECIFIC TOPIC */
+    {
+      n = i;
+      return 1;
+    }
+  }
+  return 0;
+}
+bool MQTT_is_SW_topic(char *_topic, uint8_t n)
+{
+  for (uint8_t i = 0; i < swEntityCounter; i++)
+  {
+    if (strcmp(_topic, SW_v[i]->name) == 0) /* SENT FOR A SPECIFIC TOPIC */
+    {
+      n = i;
+      return 1;
+    }
+  }
+  return 0;
+}
+bool MQTT_is_Wingroup_topic(char *_topic)
+{
+  for (uint8_t i = 0; i < sizeof(winGroupTopics) / sizeof(winGroupTopics[0]); i++) /* OR SENT FOR A GROUP */
+  {
+    if (strcmp(_topic, winGroupTopics[i]) == 0)
+    {
+      return 1;
+    }
+  }
+  return 0;
+}
+bool MQTT_is_SWgroup_topic(char *_topic)
+{
+  for (uint8_t i = 0; i < sizeof(buttGroupTopics) / sizeof(buttGroupTopics[0]); i++) /* SENT FOR A GROUP TOPIC */
+  {
+    if (strcmp(_topic, buttGroupTopics[i]) == 0)
+    {
+      return 1;
+    }
+  }
+  return 0;
+}
+
+/* Answer Status CMD */
 void MQTT_Post_Win_status(uint8_t i, char *msg)
 {
   sprintf(msg, "Status: Win[#%d][%s] [%s]%s", i, winSW_V[i]->name, winMQTTcmds[winSW_V[i]->get_winState()], i == (swEntityCounter - 1) ? "" : "; ");
@@ -335,6 +408,99 @@ void MQTT_Post_SW_status(uint8_t i, char *msg)
   sprintf(msg, "Status: SW[#%d][%s] [%s]%s", i, SW_v[i]->name, i, SW_v[i]->get_SWstate() ? "On" : "Off", i == swEntityCounter - 1 ? "" : "; ");
   iot.pub_msg(msg);
 }
+void MQTT_WinGroup_status(char *msg)
+{
+  for (uint8_t i = 0; i < winEntityCounter; i++)
+  {
+    MQTT_Post_Win_status(i, msg);
+  }
+}
+void MQTT_SWGroup_status(char *msg)
+{
+  for (uint8_t i = 0; i < swEntityCounter; i++)
+  {
+    MQTT_Post_SW_status(i, msg);
+  }
+}
+
+/* Switch CMDs*/
+bool MQTT_is_CHG_winState(char *inmsg, uint8_t n)
+{
+  if (strcmp(inmsg, winMQTTcmds[1]) == 0) /* UP */
+  {
+    n = UP;
+    return 1;
+  }
+  else if (strcmp(inmsg, winMQTTcmds[2]) == 0) /* DOwN */
+  {
+    n = DOWN;
+    return 1;
+  }
+  else if (strcmp(inmsg, winMQTTcmds[0]) == 0) /* STOP */
+  {
+    n = STOP;
+    return 1;
+  }
+  else
+  {
+    return 0;
+  }
+}
+void MQTT_Win_Change_state(uint8_t i, uint8_t dir)
+{
+  winSW_V[i]->set_WINstate(dir, MQTT);
+}
+bool MQTT_is_CHG_SWstate(char *inmsg, uint8_t n)
+{
+  if (strcmp(inmsg, SW_MQTT_cmds[0]) == 0) /* ON */
+  {
+    n = 1;
+    return 1;
+  }
+  else if (strcmp(inmsg, SW_MQTT_cmds[1]) == 0) /* OFF */
+  {
+    n = 0;
+    return 1;
+  }
+  else
+  {
+    return 0;
+  }
+}
+void MQTT_SW_Change_state(uint8_t i, uint8_t dir)
+{
+  if (dir == 1) /* ON */
+  {
+    SW_v[i]->turnON_cb(MQTT);
+  }
+  else if (dir == 0) /* OFF */
+  {
+    SW_v[i]->turnOFF_cb(MQTT);
+  }
+}
+void MQTT_WinGroup_Change_state(uint8_t dir)
+{
+  for (uint8_t i = 0; i < winEntityCounter; i++)
+  {
+    MQTT_SW_Change_state(i, dir);
+  }
+}
+void MQTT_SWGroup_Change_state(uint8_t dir)
+{
+  for (uint8_t i = 0; i < swEntityCounter; i++)
+  {
+    if (dir == 1) /* ON */
+    {
+      SW_v[i]->turnON_cb(MQTT);
+    }
+    else if (dir == 0) /* OFF */
+    {
+      SW_v[i]->turnOFF_cb(MQTT);
+    }
+  }
+}
+
+/* Controller CMDS */
 void MQTT_to_controller(char *incoming_msg, char *msg)
 {
   if (strcmp(incoming_msg, "status") == 0)
@@ -378,6 +544,8 @@ void MQTT_to_lockdown(char *incoming_msg)
     }
   }
 }
+
+/*
 bool MQTT_isWin()
 {
   return (strcmp(iot.inline_param[0], EntTypes[0]) == 0);
@@ -394,130 +562,74 @@ bool MQTT_isSwCMD()
 {
   return (strcmp(iot.inline_param[1], SW_MQTT_cmds[0]) == 0 || strcmp(iot.inline_param[1], SW_MQTT_cmds[1]) == 0);
 }
-uint8_t MQTT_req_winState()
-{
-  if (strcmp(iot.inline_param[1], winMQTTcmds[1]) == 0) /* UP */
-  {
-    return UP;
-  }
-  else if (strcmp(iot.inline_param[1], winMQTTcmds[2]) == 0) /* DOwN */
-  {
-    return DOWN;
-  }
-  else if (strcmp(iot.inline_param[1], winMQTTcmds[0]) == 0) /* STOP */
-  {
-    return STOP;
-  }
-}
-void MQTT_Win_Change_state(char *_topic)
-{
-  for (uint8_t i = 0; i < winEntityCounter; i++)
-  {
-    if (strcmp(_topic, winSW_V[i]->name) == 0) /* SENT FOR A SPECIFIC TOPIC */
-    {
-      winSW_V[i]->set_WINstate(MQTT_req_winState(), MQTT);
-    }
-  }
-}
-void MQTT_SW_Change_state(char *_topic)
-{
-  for (uint8_t i = 0; i < swEntityCounter; i++)
-  {
-    if (strcmp(_topic, SW_v[i]->name) == 0) /* SENT FOR A SPECIFIC TOPIC */
-    {
-      if (strcmp(iot.inline_param[1], SW_MQTT_cmds[0]) == 0) /* ON */
-      {
-        SW_v[i]->turnON_cb(MQTT);
-      }
-      else if (strcmp(iot.inline_param[1], SW_MQTT_cmds[1]) == 0) /* OFF */
-      {
-        SW_v[i]->turnOFF_cb(MQTT);
-      }
-    }
-  }
-}
-void MQTT_WinGroup_Change_state(char *_topic)
-{
-  for (uint8_t i = 0; i < sizeof(winGroupTopics) / sizeof(winGroupTopics[0]); i++) /* OR SENT FOR A GROUP */
-  {
-    if (strcmp(_topic, winGroupTopics[i]) == 0)
-    {
-      for (uint8_t i = 0; i < winEntityCounter; i++)
-      {
-        winSW_V[i]->set_WINstate(MQTT_req_winState(), MQTT);
-      }
-    }
-  }
-}
-void MQTT_SWGroup_Change_state(char *_topic)
-{
-  for (uint8_t i = 0; i < sizeof(buttGroupTopics) / sizeof(buttGroupTopics[0]); i++) /* SENT FOR A GROUP TOPIC */
-  {
-    if (strcmp(_topic, buttGroupTopics[i]) == 0)
-    {
-      for (uint8_t i = 0; i < swEntityCounter; i++)
-      {
-        if (strcmp(iot.inline_param[1], SW_MQTT_cmds[0]) == 0) /* ON */
-        {
-          SW_v[i]->turnON_cb(MQTT);
-        }
-        else if (strcmp(iot.inline_param[1], SW_MQTT_cmds[1]) == 0) /* OFF */
-        {
-          SW_v[i]->turnOFF_cb(MQTT);
-        }
-      }
-    }
-  }
-}
-void MQTT_Win_status(char *_topic, char *msg)
-{
-  for (uint8_t i = 0; i < winEntityCounter; i++)
-  {
-    if (strcmp(_topic, winSW_V[i]->name) == 0)
-    {
-      MQTT_Post_Win_status(i, msg);
-    }
-  }
-}
+*/
+
+/* ±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±± */
+
 void addiotnalMQTT(char *incoming_msg, char *_topic)
 {
+  uint8_t n;
+  uint8_t dir;
   char msg[150];
-  if (strcmp(_topic, topics_sub[0]) == 0 || strcmp(_topic, topics_sub[1]) == 0) /* Controller CMDs*/
+
+  if (MQTT_is_Contl_topic(_topic))
   {
     MQTT_to_controller(incoming_msg, msg);
   }
-  else if (strcmp(winGroupTopics[1], _topic) == 0) /* lockdown */
+  else if (MQTT_is_lockdown_topic(_topic))
   {
     MQTT_to_lockdown(incoming_msg);
   }
-  else
+  else if (MQTT_is_Win_topic(_topic, n))
   {
-    if (MQTT_isWin() && MQTT_isWinCMD())
+    if (MQTT_is_CHG_winState(incoming_msg, dir))
     {
-      MQTT_Win_Change_state(_topic);
-      MQTT_WinGroup_Change_state(_topic);
-    }
-    else if (MQTT_isSW() && MQTT_isSwCMD())
-    {
-      MQTT_SW_Change_state(_topic);
-      MQTT_SWGroup_Change_state(_topic);
+      MQTT_Win_Change_state(n, dir);
     }
     else if (strcmp(incoming_msg, "status") == 0)
     {
-      for (uint8_t i = 0; i < winEntityCounter; i++)
-      {
-        if (strcmp(_topic, winSW_V[i]->name) == 0 && winSW_V[i]->virtCMD == false)
-        {
-          MQTT_Post_Win_status(i, msg);
-        }
-      }
-      for (uint8_t i = 0; i < swEntityCounter; i++)
-      {
-        if (strcmp(_topic, SW_v[i]->name) == 0 && SW_v[i]->!is_virtCMD())
-        {
-          MQTT_Post_SW_status(i, msg);
-        }
-      }
+      MQTT_Post_Win_status(n, msg);
+    }
+  }
+  else if (MQTT_is_SW_topic(_topic, n))
+  {
+    if (MQTT_is_CHG_SWstate(incoming_msg, dir))
+    {
+      MQTT_SW_Change_state(n, dir);
+    }
+    else if (strcmp(incoming_msg, "status") == 0)
+    {
+      MQTT_Post_SW_status(n, msg);
+    }
+    else
+    {
+      /* Here Timeout CMD */
+    }
+  }
+  else if (MQTT_is_Wingroup_topic(_topic))
+  {
+    if (MQTT_is_CHG_winState(incoming_msg, dir))
+    {
+      MQTT_WinGroup_Change_state(dir);
+    }
+    else if (strcmp(incoming_msg, "status") == 0)
+    {
+      MQTT_WinGroup_status(msg);
+    }
+  }
+  else if (MQTT_is_SWgroup_topic(_topic))
+  {
+    if (MQTT_is_CHG_SWstate(incoming_msg, dir))
+    {
+      MQTT_SWGroup_Change_state(dir);
+    }
+    else if (strcmp(incoming_msg, "status") == 0)
+    {
+      MQTT_SWGroup_status(msg);
+    }
+    else
+    {
+      /* Here Timeout CMD */
     }
   }
 }
