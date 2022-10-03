@@ -325,12 +325,12 @@ void _post_Win_virtCMD(uint8_t state, uint8_t reason, uint8_t x)
   }
 }
 
-void MQTT_WIN_entity_status(uint8_t i, char *msg)
+void MQTT_Post_Win_status(uint8_t i, char *msg)
 {
   sprintf(msg, "Status: Win[#%d][%s] [%s]%s", i, winSW_V[i]->name, winMQTTcmds[winSW_V[i]->get_winState()], i == (swEntityCounter - 1) ? "" : "; ");
   iot.pub_msg(msg);
 }
-void MQTT_SW_entity_status(uint8_t i, char *msg)
+void MQTT_Post_SW_status(uint8_t i, char *msg)
 {
   sprintf(msg, "Status: SW[#%d][%s] [%s]%s", i, SW_v[i]->name, i, SW_v[i]->get_SWstate() ? "On" : "Off", i == swEntityCounter - 1 ? "" : "; ");
   iot.pub_msg(msg);
@@ -339,19 +339,13 @@ void MQTT_to_controller(char *incoming_msg, char *msg)
 {
   if (strcmp(incoming_msg, "status") == 0)
   {
-    if (winEntityCounter > 0)
+    for (uint8_t i = 0; i < winEntityCounter; i++)
     {
-      for (uint8_t i = 0; i < winEntityCounter; i++)
-      {
-        MQTT_WIN_entity_status(i, msg);
-      }
+      MQTT_Post_Win_status(i, msg);
     }
-    if (swEntityCounter > 0)
+    for (uint8_t i = 0; i < swEntityCounter; i++)
     {
-      for (uint8_t i = 0; i < swEntityCounter; i++)
-      {
-        MQTT_SW_entity_status(i, msg);
-      }
+      MQTT_Post_SW_status(i, msg);
     }
   }
   else if (strcmp(incoming_msg, "help2") == 0)
@@ -394,9 +388,13 @@ bool MQTT_isWinCMD()
 }
 bool MQTT_isSW()
 {
-  return (strcmp(iot.inline_param[0], EntTypes[1]) == 0 && (strcmp(iot.inline_param[1], SW_MQTT_cmds[0]) == 0 || strcmp(iot.inline_param[1], SW_MQTT_cmds[1]) == 0));
+  return (strcmp(iot.inline_param[0], EntTypes[1]) == 0);
 }
-uint8_t MQTT_set_winState()
+bool MQTT_isSwCMD()
+{
+  return (strcmp(iot.inline_param[1], SW_MQTT_cmds[0]) == 0 || strcmp(iot.inline_param[1], SW_MQTT_cmds[1]) == 0);
+}
+uint8_t MQTT_req_winState()
 {
   if (strcmp(iot.inline_param[1], winMQTTcmds[1]) == 0) /* UP */
   {
@@ -417,7 +415,7 @@ void MQTT_Win_Change_state(char *_topic)
   {
     if (strcmp(_topic, winSW_V[i]->name) == 0) /* SENT FOR A SPECIFIC TOPIC */
     {
-      winSW_V[i]->set_WINstate(MQTT_set_winState(), MQTT);
+      winSW_V[i]->set_WINstate(MQTT_req_winState(), MQTT);
     }
   }
 }
@@ -446,7 +444,7 @@ void MQTT_WinGroup_Change_state(char *_topic)
     {
       for (uint8_t i = 0; i < winEntityCounter; i++)
       {
-        winSW_V[i]->set_WINstate(MQTT_set_winState(), MQTT);
+        winSW_V[i]->set_WINstate(MQTT_req_winState(), MQTT);
       }
     }
   }
@@ -471,11 +469,20 @@ void MQTT_SWGroup_Change_state(char *_topic)
     }
   }
 }
-
+void MQTT_Win_status(char *_topic, char *msg)
+{
+  for (uint8_t i = 0; i < winEntityCounter; i++)
+  {
+    if (strcmp(_topic, winSW_V[i]->name) == 0)
+    {
+      MQTT_Post_Win_status(i, msg);
+    }
+  }
+}
 void addiotnalMQTT(char *incoming_msg, char *_topic)
 {
   char msg[150];
-  if (strcmp(_topic, topics_sub[0]) == 0 || strcmp(_topic, topics_sub[1]) == 0)
+  if (strcmp(_topic, topics_sub[0]) == 0 || strcmp(_topic, topics_sub[1]) == 0) /* Controller CMDs*/
   {
     MQTT_to_controller(incoming_msg, msg);
   }
@@ -485,28 +492,32 @@ void addiotnalMQTT(char *incoming_msg, char *_topic)
   }
   else
   {
-    if (MQTT_isWin())
+    if (MQTT_isWin() && MQTT_isWinCMD())
     {
-      if (MQTT_isWinCMD())
-      {
-        MQTT_Win_Change_state(_topic);
-        MQTT_WinGroup_Change_state(_topic);
-      }
-      else if (strcmp(incoming_msg, "status") == 0)
-      {
-        for (uint8_t i = 0; i < winEntityCounter; i++)
-        {
-          if (strcmp(_topic, winSW_V[i]->name) == 0)
-          {
-            MQTT_WIN_entity_status(i, msg);
-          }
-        }
-      }
+      MQTT_Win_Change_state(_topic);
+      MQTT_WinGroup_Change_state(_topic);
     }
-    else if (MQTT_isSW())
+    else if (MQTT_isSW() && MQTT_isSwCMD())
     {
       MQTT_SW_Change_state(_topic);
       MQTT_SWGroup_Change_state(_topic);
+    }
+    else if (strcmp(incoming_msg, "status") == 0)
+    {
+      for (uint8_t i = 0; i < winEntityCounter; i++)
+      {
+        if (strcmp(_topic, winSW_V[i]->name) == 0 && winSW_V[i]->virtCMD == false)
+        {
+          MQTT_Post_Win_status(i, msg);
+        }
+      }
+      for (uint8_t i = 0; i < swEntityCounter; i++)
+      {
+        if (strcmp(_topic, SW_v[i]->name) == 0 && SW_v[i]->!is_virtCMD())
+        {
+          MQTT_Post_SW_status(i, msg);
+        }
+      }
     }
   }
 }
