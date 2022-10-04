@@ -96,7 +96,7 @@ void create_SW_instance(JsonDocument &_DOC, uint8_t i)
 {
   SW_v[swEntityCounter] = new smartSwitch;
   SW_v[swEntityCounter]->set_id(swEntityCounter);
-  // SW_v[swEntityCounter]->set_name(_DOC["virtCMD"][i].as<const char*>);
+  SW_v[swEntityCounter]->set_name(_DOC["virtCMD"][i].as<const char*>);
   SW_v[swEntityCounter]->set_input(inPinsArray[lastUsed_inIO], _DOC["SW_buttonTypes"][i]);
 
   if (_DOC["SW_buttonTypes"][i] > 0)
