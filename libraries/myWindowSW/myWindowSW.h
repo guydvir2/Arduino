@@ -23,41 +23,53 @@ Features:
 
 class WinSW
 {
+#define RELAY_ON HIGH
+#define MAX_NAME_LEN 40
+#define UNDEF_INPUT 255
+
 private:
     buttonPresses _windowSwitch;
     buttonPresses _windowSwitch_ext;
 
+    uint8_t _id = 0;
+    static uint8_t _next_id; /* Instance counter */
+
     bool _lockdownState = false;
     bool _uselockdown = false;
-    bool _useTimeout = false;
-    static uint8_t _next_id;
     int _timeout_clk = 0; // seconds to release relay
     unsigned long _timeoutcounter = 0;
 
 public:
-    uint8_t id = 0;
-    bool newMSGflag = false;
-    char name[40];
-    bool _useExtSW = false;
     bool virtCMD = false;
+    bool _useExtSW = false;
+    bool newMSGflag = false;
+
+    char ver[14]="WinSW_v0.2";
+    char name[MAX_NAME_LEN] = {""};
     uint8_t outpins[2];
 
     MSGstr MSG;
 
 public:
     WinSW();
-    void loop();
+    bool loop();
     void start();
-    uint8_t get_id();
-    void set_id(uint8_t i);
     void init_lockdown();
     void release_lockdown();
-    void def_extSW(uint8_t upi = 255, uint8_t dpin = 255);
-    void ext_SW(uint8_t state, uint8_t reason); /* External Callback */
-    void def(uint8_t upin, uint8_t dpin, uint8_t outup_pin = 255, uint8_t outdown_pin = 255);
-    void def_extras(bool useTimeout = true, bool useLockdown = true, int timeout_clk = 90);
 
+    void set_id(uint8_t i);
+    void set_name(const char *_name);
+    void set_input(uint8_t upin, uint8_t dpin);
+    void set_WINstate(uint8_t state, uint8_t reason); /* External Callback */
+    void set_ext_input(uint8_t upi = UNDEF_INPUT, uint8_t dpin = UNDEF_INPUT);
+    void set_output(uint8_t outup_pin = UNDEF_INPUT, uint8_t outdown_pin = UNDEF_INPUT);
+    void set_extras(bool useLockdown = true, int timeout_clk = 90);
+
+    uint8_t get_id();
     uint8_t get_winState();
+
+    void clear_newMSG();
+    void print_preferences();
 
 private:
     void _winUP();
