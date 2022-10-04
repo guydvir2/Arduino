@@ -105,12 +105,12 @@ void update_Parameters_flash()
   bool ok2 = false;
   bool ok3 = false;
 
-  /* ±±±±±±±± Part A_0: update filenames of parameter files ±±±±±±±±±±±*/
+  /* ±±±±±±±± Part A_0: filenames of parameter files ±±±±±±±±±±±*/
   construct_filenames(ParameterFile_preset);
 
   // ±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
 
-  /* ±±±±±±±± Part A_1: Update HW pins ±±±±±±±±±±±*/
+  /* ±±±±±±±± Part A_1: HW pins ±±±±±±±±±±±*/
 #if LOCAL_PARAM
   char fakePin[] = "{\"inputPins\": [19,17,16,5,4,2,23,18,15,14,13,12], \"relayPins\": [25,26,33,32],\"RF_keyboardCode\": [3135496,3135492,3135490,3135489],\"RFpin\": 27}";
   DeserializationError error0 = deserializeJson(DOC, fakePin);
@@ -134,7 +134,7 @@ void update_Parameters_flash()
 #endif
   // ±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
 
-  /* ±±±±±±±± Part B: update myIOT parameters ±±±±±±±±±±±*/
+  /* ±±±±±±±± Part B: myIOT parameters ±±±±±±±±±±±*/
   if (iot.extract_JSON_from_flash(iot.parameter_filenames[0], DOC))
   {
     iot.update_vars_flash_parameters(DOC);
@@ -148,10 +148,10 @@ void update_Parameters_flash()
 
   // ±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
 
-  // /* ±±±±±±±±±± Part C: update Sketch Parameters ±±±±±±±±±±±±±± */
+  // /* ±±±±±±±±±± Part C: Sketch Parameters ±±±±±±±±±±±±±± */
 #if LOCAL_PARAM
-  char fakeP[] = "{\"entityType\": [0, 0],\
-                    \"virtCMD\": [\"\",\"myHome\/Windows\/gFloor\/W0\",\"myHome\/Lights\/int\/gFloor\/SW0\",\"\"],\
+  char fakeP[] = "{\"entityType\": [0, 1],\
+                    \"virtCMD\": [\"\",\"\",\"myHome\/Windows\/gFloor\/W0\",\"myHome\/Lights\/int\/gFloor\/SW0\",\"\"],\
                     \"SW_buttonTypes\": [1,2,1],\
                     \"WextInputs\": [1,0],\
                     \"SW_RF\": [0,1,2,3],\
@@ -178,7 +178,7 @@ void update_Parameters_flash()
 #endif
   // ±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
 
-  // /* ±±±±±±±±±± Part D: update myIOT Topics ±±±±±±±±±± */
+  // /* ±±±±±±±±±± Part D: myIOT Topics ±±±±±±±±±± */
 #if LOCAL_PARAM
   char fakeTopics[] = "{\
                         \"pub_gen_topics\" : [\"myHome\/Messages\",\"myHome\/log\",\"myHome\/debug\"],\
@@ -350,7 +350,7 @@ bool MQTT_is_lockdown_topic(char *_topic)
     return 0;
   }
 }
-bool MQTT_is_Win_topic(char *_topic, uint8_t n)
+bool MQTT_is_Win_topic(char *_topic, uint8_t &n)
 {
   for (uint8_t i = 0; i < winEntityCounter; i++)
   {
@@ -362,7 +362,7 @@ bool MQTT_is_Win_topic(char *_topic, uint8_t n)
   }
   return 0;
 }
-bool MQTT_is_SW_topic(char *_topic, uint8_t n)
+bool MQTT_is_SW_topic(char *_topic, uint8_t &n)
 {
   for (uint8_t i = 0; i < swEntityCounter; i++)
   {
@@ -424,21 +424,21 @@ void MQTT_SWGroup_status(char *msg)
 }
 
 /* Switch CMDs*/
-bool MQTT_is_CHG_winState(char *inmsg, uint8_t n)
+bool MQTT_is_CHG_winState(char *inmsg, uint8_t &ret_state)
 {
   if (strcmp(inmsg, winMQTTcmds[1]) == 0) /* UP */
   {
-    n = UP;
+    ret_state = UP;
     return 1;
   }
   else if (strcmp(inmsg, winMQTTcmds[2]) == 0) /* DOwN */
   {
-    n = DOWN;
+    ret_state = DOWN;
     return 1;
   }
   else if (strcmp(inmsg, winMQTTcmds[0]) == 0) /* STOP */
   {
-    n = STOP;
+    ret_state = STOP;
     return 1;
   }
   else
@@ -446,20 +446,20 @@ bool MQTT_is_CHG_winState(char *inmsg, uint8_t n)
     return 0;
   }
 }
-void MQTT_Win_Change_state(uint8_t i, uint8_t dir)
+void MQTT_Win_Change_state(uint8_t i, uint8_t state)
 {
-  winSW_V[i]->set_WINstate(dir, MQTT);
+  winSW_V[i]->set_WINstate(state, MQTT);
 }
-bool MQTT_is_CHG_SWstate(char *inmsg, uint8_t n)
+bool MQTT_is_CHG_SWstate(char *inmsg, uint8_t &ret_state)
 {
   if (strcmp(inmsg, SW_MQTT_cmds[0]) == 0) /* ON */
   {
-    n = 1;
+    ret_state = 1;
     return 1;
   }
   else if (strcmp(inmsg, SW_MQTT_cmds[1]) == 0) /* OFF */
   {
-    n = 0;
+    ret_state = 0;
     return 1;
   }
   else
@@ -467,33 +467,33 @@ bool MQTT_is_CHG_SWstate(char *inmsg, uint8_t n)
     return 0;
   }
 }
-void MQTT_SW_Change_state(uint8_t i, uint8_t dir)
+void MQTT_SW_Change_state(uint8_t i, uint8_t state)
 {
-  if (dir == 1) /* ON */
+  if (state == 1) /* ON */
   {
     SW_v[i]->turnON_cb(MQTT);
   }
-  else if (dir == 0) /* OFF */
+  else if (state == 0) /* OFF */
   {
     SW_v[i]->turnOFF_cb(MQTT);
   }
 }
-void MQTT_WinGroup_Change_state(uint8_t dir)
+void MQTT_WinGroup_Change_state(uint8_t state)
 {
   for (uint8_t i = 0; i < winEntityCounter; i++)
   {
-    MQTT_SW_Change_state(i, dir);
+    MQTT_SW_Change_state(i, state);
   }
 }
-void MQTT_SWGroup_Change_state(uint8_t dir)
+void MQTT_SWGroup_Change_state(uint8_t state)
 {
   for (uint8_t i = 0; i < swEntityCounter; i++)
   {
-    if (dir == 1) /* ON */
+    if (state == 1) /* ON */
     {
       SW_v[i]->turnON_cb(MQTT);
     }
-    else if (dir == 0) /* OFF */
+    else if (state == 0) /* OFF */
     {
       SW_v[i]->turnOFF_cb(MQTT);
     }
@@ -569,7 +569,7 @@ bool MQTT_isSwCMD()
 void addiotnalMQTT(char *incoming_msg, char *_topic)
 {
   uint8_t n;
-  uint8_t dir;
+  uint8_t state;
   char msg[150];
 
   if (MQTT_is_Contl_topic(_topic))
@@ -582,9 +582,9 @@ void addiotnalMQTT(char *incoming_msg, char *_topic)
   }
   else if (MQTT_is_Win_topic(_topic, n))
   {
-    if (MQTT_is_CHG_winState(incoming_msg, dir))
+    if (MQTT_is_CHG_winState(incoming_msg, state))
     {
-      MQTT_Win_Change_state(n, dir);
+      MQTT_Win_Change_state(n, state);
     }
     else if (strcmp(incoming_msg, "status") == 0)
     {
@@ -593,9 +593,9 @@ void addiotnalMQTT(char *incoming_msg, char *_topic)
   }
   else if (MQTT_is_SW_topic(_topic, n))
   {
-    if (MQTT_is_CHG_SWstate(incoming_msg, dir))
+    if (MQTT_is_CHG_SWstate(incoming_msg, state))
     {
-      MQTT_SW_Change_state(n, dir);
+      MQTT_SW_Change_state(n, state);
     }
     else if (strcmp(incoming_msg, "status") == 0)
     {
@@ -608,9 +608,9 @@ void addiotnalMQTT(char *incoming_msg, char *_topic)
   }
   else if (MQTT_is_Wingroup_topic(_topic))
   {
-    if (MQTT_is_CHG_winState(incoming_msg, dir))
+    if (MQTT_is_CHG_winState(incoming_msg, state))
     {
-      MQTT_WinGroup_Change_state(dir);
+      MQTT_WinGroup_Change_state(state);
     }
     else if (strcmp(incoming_msg, "status") == 0)
     {
@@ -619,9 +619,9 @@ void addiotnalMQTT(char *incoming_msg, char *_topic)
   }
   else if (MQTT_is_SWgroup_topic(_topic))
   {
-    if (MQTT_is_CHG_SWstate(incoming_msg, dir))
+    if (MQTT_is_CHG_SWstate(incoming_msg, state))
     {
-      MQTT_SWGroup_Change_state(dir);
+      MQTT_SWGroup_Change_state(state);
     }
     else if (strcmp(incoming_msg, "status") == 0)
     {
