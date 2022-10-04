@@ -97,9 +97,6 @@ void update_Parameters_flash()
 {
   StaticJsonDocument<800> DOC;
 
-  Serial.begin(115200);
-  delay(100);
-
   bool ok0 = false;
   bool ok1 = false;
   bool ok2 = false;
@@ -150,8 +147,8 @@ void update_Parameters_flash()
 
   // /* ±±±±±±±±±± Part C: Sketch Parameters ±±±±±±±±±±±±±± */
 #if LOCAL_PARAM
-  char fakeP[] = "{\"entityType\": [0, 1],\
-                    \"virtCMD\": [\"\",\"\",\"myHome\/Windows\/gFloor\/W0\",\"myHome\/Lights\/int\/gFloor\/SW0\",\"\"],\
+  char fakeP[] = "{\"entityType\": [0, 1, 1],\
+                    \"virtCMD\": [\"\",\"\",\"\",\"\", \"myHome\/Windows\/gFloor\/W0\",\"myHome\/Lights\/int\/gFloor\/SW0\",\"\"],\
                     \"SW_buttonTypes\": [1,2,1],\
                     \"WextInputs\": [1,0],\
                     \"SW_RF\": [0,1,2,3],\
@@ -287,7 +284,7 @@ void update_Parameters_flash()
 }
 /* ±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±± */
 
-void win_updateState(uint8_t i, uint8_t state) /* Windows State MQTT update */
+void Winupdate_MQTT_state(uint8_t i, uint8_t state) /* Windows State MQTT update */
 {
   char t[60];
   char r[5];
@@ -295,7 +292,7 @@ void win_updateState(uint8_t i, uint8_t state) /* Windows State MQTT update */
   sprintf(r, "%d", state);
   iot.pub_noTopic(r, t, true);
 }
-void SWupdateState(uint8_t i, bool state) /* Button State MQTT update */
+void SWupdate_MQTT_state(uint8_t i, bool state) /* Button State MQTT update */
 {
   char t[60];
   char r[5];
@@ -303,28 +300,37 @@ void SWupdateState(uint8_t i, bool state) /* Button State MQTT update */
   sprintf(r, "%d", state);
   iot.pub_noTopic(r, t, true);
 }
-void _gen_WinMSG(uint8_t state, uint8_t reason, uint8_t i)
+void Win_send_MQTT_switch(uint8_t state, uint8_t reason, uint8_t i)
 {
   char msg[100];
   sprintf(msg, "[%s]: [WIN#%d] [%s] turned [%s]", REASONS_TXT[reason], i, winSW_V[i]->name, STATES_TXT[state]);
   iot.pub_msg(msg);
-  win_updateState(i, state);
+  Winupdate_MQTT_state(i, state);
 }
-void _gen_SW_MSG(uint8_t i, uint8_t type, bool request)
+void SW_send_MQTT_switch(uint8_t i, uint8_t type, bool request)
 {
   char msg[100];
   sprintf(msg, "[%s]: [SW#%d] [%s] turned [%s]", SW_Types[type], i, SW_v[i]->name, request == HIGH ? "ON" : "OFF");
   iot.pub_msg(msg);
-  SWupdateState(i, (int)request);
+  SWupdate_MQTT_state(i, (int)request);
 }
-void _post_Win_virtCMD(uint8_t state, uint8_t reason, uint8_t x)
+void Win_send_virtCMD(uint8_t state, uint8_t reason, uint8_t x)
 {
   if (winSW_V[x]->virtCMD == true)
   {
     iot.pub_noTopic((char *)winMQTTcmds[state], winSW_V[x]->name); // <---- Fix this : off cmd doesnot appear
   }
 }
-
+void SW_send_virtCMD(smartSwitch &sw)
+{
+  if (sw.is_virtCMD())
+  {
+    char msg[100];
+    iot.pub_noTopic((char *)SW_MQTT_cmds[sw.telemtryMSG.state], sw.name, true);
+    sprintf(msg, "[%s]: Switched [%s] Virtual [%s]", SW_Types[sw.telemtryMSG.reason], SW_MQTT_cmds[sw.telemtryMSG.state], sw.name);
+    iot.pub_msg(msg);
+  }
+}
 /* ±±±±±±±±±±±±±± Receiving and handling MQTT CMDs ±±±±±±±±±±±±±±±± */
 
 /* CHECK TOPICS - for what entity it belongs */
@@ -405,7 +411,7 @@ void MQTT_Post_Win_status(uint8_t i, char *msg)
 }
 void MQTT_Post_SW_status(uint8_t i, char *msg)
 {
-  sprintf(msg, "Status: SW[#%d][%s] [%s]%s", i, SW_v[i]->name, i, SW_v[i]->get_SWstate() ? "On" : "Off", i == swEntityCounter - 1 ? "" : "; ");
+  sprintf(msg, "Status: SW[#%d][%s] [%s]", i, SW_v[i]->name, SW_v[i]->get_SWstate() ? "On" : "Off"); //, i == swEntityCounter - 1 ? "" : "; ");
   iot.pub_msg(msg);
 }
 void MQTT_WinGroup_status(char *msg)
@@ -423,7 +429,7 @@ void MQTT_SWGroup_status(char *msg)
   }
 }
 
-/* Switch CMDs*/
+/* Switch Windows CMDs*/
 bool MQTT_is_CHG_winState(char *inmsg, uint8_t &ret_state)
 {
   if (strcmp(inmsg, winMQTTcmds[1]) == 0) /* UP */
@@ -450,14 +456,23 @@ void MQTT_Win_Change_state(uint8_t i, uint8_t state)
 {
   winSW_V[i]->set_WINstate(state, MQTT);
 }
+void MQTT_WinGroup_Change_state(uint8_t state)
+{
+  for (uint8_t i = 0; i < winEntityCounter; i++)
+  {
+    MQTT_Win_Change_state(i, state);
+  }
+}
+
+/* Switch Windows CMDs*/
 bool MQTT_is_CHG_SWstate(char *inmsg, uint8_t &ret_state)
 {
-  if (strcmp(inmsg, SW_MQTT_cmds[0]) == 0) /* ON */
+  if (strcmp(inmsg, SW_MQTT_cmds[1]) == 0) /* ON */
   {
     ret_state = 1;
     return 1;
   }
-  else if (strcmp(inmsg, SW_MQTT_cmds[1]) == 0) /* OFF */
+  else if (strcmp(inmsg, SW_MQTT_cmds[0]) == 0) /* OFF */
   {
     ret_state = 0;
     return 1;
@@ -471,18 +486,11 @@ void MQTT_SW_Change_state(uint8_t i, uint8_t state)
 {
   if (state == 1) /* ON */
   {
-    SW_v[i]->turnON_cb(MQTT);
+    SW_v[i]->turnON_cb(EXT_0);
   }
   else if (state == 0) /* OFF */
   {
-    SW_v[i]->turnOFF_cb(MQTT);
-  }
-}
-void MQTT_WinGroup_Change_state(uint8_t state)
-{
-  for (uint8_t i = 0; i < winEntityCounter; i++)
-  {
-    MQTT_SW_Change_state(i, state);
+    SW_v[i]->turnOFF_cb(EXT_0);
   }
 }
 void MQTT_SWGroup_Change_state(uint8_t state)
@@ -491,13 +499,27 @@ void MQTT_SWGroup_Change_state(uint8_t state)
   {
     if (state == 1) /* ON */
     {
-      SW_v[i]->turnON_cb(MQTT);
+      SW_v[i]->turnON_cb(EXT_0);
     }
     else if (state == 0) /* OFF */
     {
-      SW_v[i]->turnOFF_cb(MQTT);
+      SW_v[i]->turnOFF_cb(EXT_0);
     }
   }
+}
+
+void MQTT_Win_entity(uint8_t i, char *msg)
+{
+  sprintf(msg, "[Entity]: [Win#%d] topic [%s], Virtual-out [%s], 2nd-input [%s]",
+          winSW_V[i]->get_id(), winSW_V[i]->name, winSW_V[i]->virtCMD ? "Yes" : "No", winSW_V[i]->_useExtSW ? "Yes" : "No");
+  iot.pub_msg(msg);
+}
+void MQTT_SW_entity(uint8_t i, char *msg)
+{
+  char *w[] = {"None", "On_off SW", "Push Button"};
+  sprintf(msg, "[Entity]: [SW#%d] topic [%s], Virtual-out [%s], type[%s]",
+          SW_v[i]->get_id(), SW_v[i]->name, SW_v[i]->is_virtCMD() ? "Yes" : "No", w[SW_v[i]->get_SWtype()]);
+  iot.pub_msg(msg);
 }
 
 /* Controller CMDS */
@@ -505,24 +527,29 @@ void MQTT_to_controller(char *incoming_msg, char *msg)
 {
   if (strcmp(incoming_msg, "status") == 0)
   {
-    for (uint8_t i = 0; i < winEntityCounter; i++)
-    {
-      MQTT_Post_Win_status(i, msg);
-    }
-    for (uint8_t i = 0; i < swEntityCounter; i++)
-    {
-      MQTT_Post_SW_status(i, msg);
-    }
+    MQTT_WinGroup_status(msg);
+    MQTT_SWGroup_status(msg);
   }
   else if (strcmp(incoming_msg, "help2") == 0)
   {
-    sprintf(msg, "help #2:No other functions");
+    sprintf(msg, "help #2: {Controller : [status, ver2, help2, entities]}, {Windows : [up, down, off]}, {Switch : [on, off]}");
     iot.pub_msg(msg);
   }
   else if (strcmp(incoming_msg, "ver2") == 0)
   {
-    sprintf(msg, "ver #2:");
+    sprintf(msg, "ver #2:[%s], [%s], [%s]", ver, swEntityCounter > 0 ? SW_v[0]->ver : "", winEntityCounter > 0 ? winSW_V[0]->ver : "");
     iot.pub_msg(msg);
+  }
+  else if (strcmp(incoming_msg, "entities") == 0)
+  {
+    for (uint8_t n = 0; n < winEntityCounter; n++)
+    {
+      MQTT_Win_entity(n, msg);
+    }
+    for (uint8_t n = 0; n < swEntityCounter; n++)
+    {
+      MQTT_SW_entity(n, msg);
+    }
   }
 }
 void MQTT_to_lockdown(char *incoming_msg)

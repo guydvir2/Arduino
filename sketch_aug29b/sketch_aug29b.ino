@@ -41,8 +41,8 @@ void create_WinSW_instance(JsonDocument &_DOC, uint8_t i)
 }
 void Win_newMsg_cb(uint8_t x)
 {
-  _gen_WinMSG(winSW_V[x]->MSG.state, winSW_V[x]->MSG.reason, x);       /* Generate MQTT MSG */
-  _post_Win_virtCMD(winSW_V[x]->MSG.state, winSW_V[x]->MSG.reason, x); /* Sending MQTT cmd in case of virt Win*/
+  Win_send_MQTT_switch(winSW_V[x]->MSG.state, winSW_V[x]->MSG.reason, x); /* Generate MQTT MSG */
+  Win_send_virtCMD(winSW_V[x]->MSG.state, winSW_V[x]->MSG.reason, x);     /* Sending MQTT cmd in case of virt Win*/
 }
 void loop_WinSW()
 {
@@ -89,15 +89,10 @@ void create_SW_instance(JsonDocument &_DOC, uint8_t i)
   lastUsed_inIO++;
   swEntityCounter++;
 }
-void send_SW_virtCMD(smartSwitch &sw)
+void SW_newMsg_cb(uint8_t i)
 {
-  if (sw.is_virtCMD())
-  {
-    char msg[100];
-    iot.pub_noTopic((char *)SW_MQTT_cmds[sw.telemtryMSG.state], sw.name, true);
-    sprintf(msg, "[%s]: Switched [%s] Virtual [%s]", SW_Types[sw.telemtryMSG.reason], SW_MQTT_cmds[sw.telemtryMSG.state], sw.name);
-    iot.pub_msg(msg);
-  }
+  SW_send_virtCMD(*SW_v[i]);
+  SW_send_MQTT_switch(i, SW_v[i]->telemtryMSG.reason, SW_v[i]->telemtryMSG.state);
 }
 void SW_loop()
 {
@@ -105,14 +100,8 @@ void SW_loop()
   {
     if (SW_v[i]->loop())
     {
-      send_SW_virtCMD(*SW_v[i]);
-      _gen_SW_MSG(i, SW_v[i]->telemtryMSG.reason, SW_v[i]->telemtryMSG.state);
+      SW_newMsg_cb(i);
       SW_v[i]->clear_newMSG();
-
-      Serial.print("NEW_MSG: State:");
-      Serial.print(SW_v[i]->telemtryMSG.state);
-      Serial.print("\tReason: ");
-      Serial.println(SW_v[i]->telemtryMSG.reason);
     }
   }
 }
@@ -183,6 +172,9 @@ void loop_RF()
 
 void setup()
 {
+  Serial.begin(115200);
+  delay(100);
+
   startIOTservices();
 }
 void loop()

@@ -40,6 +40,7 @@ enum SWstates : const uint8_t
 class smartSwitch
 {
 public:
+    char ver[15]="smartSW_v0.1";
     char name[MAX_NAME_LEN];
     SW_MSGstr telemtryMSG;
 
@@ -50,8 +51,6 @@ public:
     void set_timeout(int t);
     void set_output(uint8_t outpin = UNDEF_PIN);
     void set_input(uint8_t inpin = UNDEF_PIN, uint8_t t = 0);
-    // void set_extON(char *msg = nullptr, char *topic = nullptr);
-    // void set_extOFF(char *msg = nullptr, char *topic = nullptr);
 
     void turnON_cb(uint8_t type);
     void turnOFF_cb(uint8_t type);

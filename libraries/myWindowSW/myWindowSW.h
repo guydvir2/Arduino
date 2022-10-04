@@ -44,6 +44,7 @@ public:
     bool _useExtSW = false;
     bool newMSGflag = false;
 
+    char ver[14]="WinSW_v0.2";
     char name[MAX_NAME_LEN] = {""};
     uint8_t outpins[2];
 

@@ -2,6 +2,7 @@
 #define TOT_Inputs 12
 #define MAX_TOPIC_SIZE 40 // <----- Verfy max Topic size
 
+const char* ver="smartController_v0.1";
 const char *SW_MQTT_cmds[] = {"off", "on"};
 const char *winMQTTcmds[3] = {"off", "up", "down"};
 const char *SW_Types[] = {"Button", "Timeout", "MQTT", "Remote"};
