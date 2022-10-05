@@ -10,12 +10,12 @@ void create_WinSW_instance(JsonDocument &_DOC, uint8_t i)
 {
   winSW_V[winEntityCounter] = new WinSW;
   winSW_V[winEntityCounter]->set_input(inPinsArray[lastUsed_inIO], inPinsArray[lastUsed_inIO + 1]);
+  winSW_V[winEntityCounter]->set_name(_DOC["virtCMD"][i].as<const char *>());
 
   // <<<<<<<<<<< Define input and output pins >>>>>>>>>>>>>>
   if (strcmp(_DOC["virtCMD"][i], "") != 0) /* a virtCMD on output */
   {
     winSW_V[winEntityCounter]->set_output(); /* empty definition --> virtCMD */
-    winSW_V[winEntityCounter]->set_name(_DOC["virtCMD"][i].as<const char *>());
   }
   else /* Physical Switching input & output */
   {
@@ -71,11 +71,15 @@ void create_SW_instance(JsonDocument &_DOC, uint8_t i)
     SW_v[swEntityCounter]->set_output(outPinsArray[lastUsed_outIO]);
     lastUsed_outIO++;
   }
+  else
+  {
+    SW_v[swEntityCounter]->set_output();
+  }
 
   /* Config timeout duration to SW */
-  if (_DOC["SW_timeout"][i].as<int>() > 0)
+  if (_DOC["SW_timeout"][swEntityCounter].as<int>() > 0)
   {
-    SW_v[swEntityCounter]->set_timeout(_DOC["SW_timeout"][i].as<int>());
+    SW_v[swEntityCounter]->set_timeout(_DOC["SW_timeout"][swEntityCounter].as<int>());
   }
 
   /* Assign RF to SW */

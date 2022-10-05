@@ -2,7 +2,7 @@
 #define TOT_Inputs 12
 #define MAX_TOPIC_SIZE 40 // <----- Verfy max Topic size
 
-const char* ver="smartController_v0.1";
+const char *ver = "smartController_v0.1";
 const char *SW_MQTT_cmds[] = {"off", "on"};
 const char *winMQTTcmds[3] = {"off", "up", "down"};
 const char *SW_Types[] = {"Button", "Timeout", "MQTT", "Remote"};
@@ -27,4 +27,4 @@ uint8_t outPinsArray[TOT_Relays] = {255, 255, 255, 255, 255, 255, 255, 255};
 uint8_t inPinsArray[TOT_Inputs] = {255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255};
 
 char winGroupTopics[2][MAX_TOPIC_SIZE];
-char buttGroupTopics[3][MAX_TOPIC_SIZE];
+char SwGroupTopics[3][MAX_TOPIC_SIZE];

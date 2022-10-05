@@ -40,7 +40,7 @@ enum SWstates : const uint8_t
 class smartSwitch
 {
 public:
-    char ver[15]="smartSW_v0.1";
+    char ver[15] = "smartSW_v0.1";
     char name[MAX_NAME_LEN];
     SW_MSGstr telemtryMSG;
 
@@ -52,7 +52,7 @@ public:
     void set_output(uint8_t outpin = UNDEF_PIN);
     void set_input(uint8_t inpin = UNDEF_PIN, uint8_t t = 0);
 
-    void turnON_cb(uint8_t type);
+    void turnON_cb(uint8_t type, unsigned int temp_TO = 0);
     void turnOFF_cb(uint8_t type);
     void clear_newMSG();
     bool loop();
@@ -66,6 +66,7 @@ public:
     void get_prefences();
     void get_telemetry(uint8_t state, uint8_t reason);
 
+    bool useTimeout();
     bool is_virtCMD();
     bool is_useButton();
 
@@ -81,6 +82,7 @@ private:
     Chrono _timeout_clk;
     Button2 _inputButton;                /* inputs only */
     unsigned long _timeout_duration = 1; // in seconds
+    unsigned long _timeout_temp = 0; // in seconds
 
 private:
     bool _isON();

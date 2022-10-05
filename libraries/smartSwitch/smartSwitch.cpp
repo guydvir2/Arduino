@@ -5,6 +5,17 @@ smartSwitch::smartSwitch() : _inputButton(),
                              _timeout_clk(Chrono::MILLIS)
 {
 }
+
+void smartSwitch::set_id(uint8_t i)
+{
+    _inputButton.setID(i);
+}
+void smartSwitch::set_timeout(int t)
+{
+    _use_timeout = true;
+    _timeout_duration = t * 1000;
+    _stop_timeout();
+}
 void smartSwitch::set_name(char *Name)
 {
     strlcpy(name, Name, MAX_NAME_LEN);
@@ -40,19 +51,18 @@ void smartSwitch::set_input(uint8_t inpin, uint8_t t)
         _inputButton.setPressedHandler(std::bind(&smartSwitch::_toggle_handle, this, std::placeholders::_1));
     }
 }
-void smartSwitch::set_timeout(int t)
-{
-    _use_timeout = true;
-    _timeout_duration = t * 1000;
-    _stop_timeout();
-}
-void smartSwitch::turnON_cb(uint8_t type)
+
+void smartSwitch::turnON_cb(uint8_t type, unsigned int temp_TO)
 {
     if (!_virtCMD)
     {
         if (!_isON())
         {
             HWturnON(_outputPin);
+            if (temp_TO != 0)
+            {
+                _timeout_temp = temp_TO * 1000;
+            }
             _start_timeout();
             _update_telemetry(SW_ON, type);
         }
@@ -96,10 +106,6 @@ void smartSwitch::turnOFF_cb(uint8_t type)
         }
     }
 }
-void smartSwitch::set_id(uint8_t i)
-{
-    _inputButton.setID(i);
-}
 void smartSwitch::get_prefences()
 {
     Serial.print("<<<<<<< smartSwitch #");
@@ -134,33 +140,10 @@ void smartSwitch::get_prefences()
     Serial.print("<<<<<<< END ");
     Serial.println(">>>>>>");
 }
-void smartSwitch::get_telemetry(uint8_t state, uint8_t reason)
+
+uint8_t smartSwitch::get_id()
 {
-    state = telemtryMSG.state;
-    reason = telemtryMSG.reason;
-}
-void smartSwitch::clear_newMSG()
-{
-    telemtryMSG.newMSG = false;
-}
-bool smartSwitch::loop()
-{
-    if (_useButton)
-    {
-        _inputButton.loop();
-    }
-    if (_use_timeout)
-    {
-        _timeout_loop();
-    }
-    return telemtryMSG.newMSG;
-}
-void smartSwitch::_timeout_loop()
-{
-    if (_timeout_clk.isRunning() & _timeout_clk.hasPassed(_timeout_duration))
-    {
-        turnOFF_cb(SW_TIMEOUT);
-    }
+    return _inputButton.getID();
 }
 uint8_t smartSwitch::get_inpin()
 {
@@ -170,15 +153,11 @@ uint8_t smartSwitch::get_outpin()
 {
     return _outputPin;
 }
-uint8_t smartSwitch::get_id()
-{
-    return _inputButton.getID();
-}
 int smartSwitch::get_remain_time()
 {
     if (_timeout_clk.isRunning() && _use_timeout)
     {
-        return _timeout_clk.elapsed();
+        return _timeout_temp == 0 ? _timeout_duration - _timeout_clk.elapsed() : _timeout_temp - _timeout_clk.elapsed();
     }
     else
     {
@@ -200,6 +179,33 @@ uint8_t smartSwitch::get_SWstate()
         return 255;
     }
 }
+void smartSwitch::get_telemetry(uint8_t state, uint8_t reason)
+{
+    state = telemtryMSG.state;
+    reason = telemtryMSG.reason;
+}
+
+bool smartSwitch::loop()
+{
+    if (_useButton)
+    {
+        _inputButton.loop();
+    }
+    if (_use_timeout)
+    {
+        _timeout_loop();
+    }
+    return telemtryMSG.newMSG;
+}
+void smartSwitch::clear_newMSG()
+{
+    telemtryMSG.newMSG = false;
+}
+
+bool smartSwitch::useTimeout()
+{
+    return _use_timeout;
+}
 bool smartSwitch::is_virtCMD()
 {
     return _virtCMD;
@@ -208,11 +214,31 @@ bool smartSwitch::is_useButton()
 {
     return _useButton;
 }
+
+bool smartSwitch::_isON()
+{
+    return (digitalRead(_outputPin) == OUTPUT_ON);
+}
+void smartSwitch::_timeout_loop()
+{
+    if (_timeout_clk.isRunning())
+    {
+        if (_timeout_temp != 0 && _timeout_clk.hasPassed(_timeout_temp))
+        {
+            turnOFF_cb(SW_TIMEOUT);
+        }
+        else if (_timeout_temp == 0 && _timeout_clk.hasPassed(_timeout_duration))
+        {
+            turnOFF_cb(SW_TIMEOUT);
+        }
+    }
+}
 void smartSwitch::_stop_timeout()
 {
     if (_use_timeout)
     {
         _timeout_clk.stop();
+        _timeout_temp = 0;
     }
 }
 void smartSwitch::_start_timeout()
@@ -222,10 +248,6 @@ void smartSwitch::_start_timeout()
         _timeout_clk.stop();
         _timeout_clk.start();
     }
-}
-bool smartSwitch::_isON()
-{
-    return (digitalRead(_outputPin) == OUTPUT_ON);
 }
 void smartSwitch::_update_telemetry(uint8_t state, uint8_t type)
 {
