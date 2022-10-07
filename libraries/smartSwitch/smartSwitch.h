@@ -69,6 +69,7 @@ public:
     bool useTimeout();
     bool is_virtCMD();
     bool is_useButton();
+    Button2 _inputButton;  
 
 private:
     uint8_t _button_type = 255;
@@ -80,7 +81,7 @@ private:
     bool _use_timeout = false;
 
     Chrono _timeout_clk;
-    Button2 _inputButton;                /* inputs only */
+                  /* inputs only */
     unsigned long _timeout_duration = 1; // in seconds
     unsigned long _timeout_temp = 0; // in seconds
 

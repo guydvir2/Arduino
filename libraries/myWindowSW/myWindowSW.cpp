@@ -20,11 +20,8 @@ void WinSW::set_name(const char *_name)
 }
 void WinSW::set_input(uint8_t upin, uint8_t dpin)
 {
-  // _windowSwitch.pin0 = upin;
-  // _windowSwitch.pin1 = dpin;
-  // _windowSwitch.buttonType = 2;
-  // _windowSwitch.start();
   _mainSW.set_input(upin, dpin);
+  _mainSW.get_SWstate(); // <--- To read init state at boot, and ignore switch state //
 }
 void WinSW::set_output(uint8_t outup_pin, uint8_t outdown_pin)
 {
@@ -47,11 +44,8 @@ void WinSW::set_ext_input(uint8_t upin, uint8_t dpin)
   if (upin != UNDEF_INPUT && dpin != UNDEF_INPUT)
   {
     useExtSW = true;
-    // _windowSwitch_ext.pin0 = upin;
-    // _windowSwitch_ext.pin1 = dpin;
-    // _windowSwitch_ext.buttonType = 2;
-    // _windowSwitch_ext.start();
     _extSW.set_input(upin, dpin);
+    _extSW.get_SWstate(); // <--- To read init state at boot, and ignore switch state //
   }
 }
 void WinSW::set_WINstate(uint8_t state, uint8_t reason) /* External Callback */
@@ -81,7 +75,7 @@ void WinSW::release_lockdown()
 }
 void WinSW::print_preferences()
 {
-  Serial.print(" >>>>>> Window #:");
+  Serial.print("\n >>>>>> Window #:");
   Serial.print(_id);
   Serial.println(" <<<<<< ");
 
@@ -105,7 +99,7 @@ void WinSW::print_preferences()
   Serial.print(_extSW.get_pins(0));
 
   Serial.print("; ");
-  Serial.print(_extSW.get_pins(1));
+  Serial.println(_extSW.get_pins(1));
 
   Serial.print("use timeout:\t");
   Serial.println(_timeout_clk);
@@ -113,7 +107,7 @@ void WinSW::print_preferences()
   Serial.print("use lockdown:\t");
   Serial.println(_uselockdown ? "YES" : "NO");
 
-  Serial.println(" >>>>>>>> END <<<<<<<< ");
+  Serial.println(" >>>>>>>> END <<<<<<<< \n");
 }
 void WinSW::clear_newMSG()
 {
@@ -229,6 +223,7 @@ void WinSW::_timeout_looper()
   }
 }
 
+// <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 RockerSW::RockerSW()
 {
 }

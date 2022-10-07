@@ -122,7 +122,9 @@ void update_Parameters_flash()
   }
   else
   {
+#if DBG_MODE
     Serial.println("Fail read HW pins");
+#endif
   }
 
   // ±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
@@ -136,7 +138,9 @@ void update_Parameters_flash()
   }
   else
   {
+#if DBG_MODE
     Serial.println("Fail read myIOT2 parameters");
+#endif
   }
 
 // ±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
@@ -156,7 +160,9 @@ void update_Parameters_flash()
   }
   else
   {
+#if DBG_MODE
     Serial.println("Fail read Sketch parameters");
+#endif
   }
 
 // ±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
@@ -170,43 +176,6 @@ void update_Parameters_flash()
   if (iot.extract_JSON_from_flash(iot.parameter_filenames[2], DOC)) /* extract topics from flash */
   {
 #endif
-    //     _updateTopics_flash(DOC, topics_gen_pub, iot.topics_gen_pub, "pub_gen_topics");
-    //     _updateTopics_flash(DOC, topics_pub, iot.topics_pub, "pub_topics");
-    //     _updateTopics_flash(DOC, topics_sub, iot.topics_sub, "sub_topics");
-
-    //     //  >>>>> Update Windows Group Topics >>>>>>>>>
-    //     uint8_t accum_shift = sizeof(topics_sub) / (sizeof(topics_sub[0]));
-    //     _updateTopics_flash(DOC, winGroupTopics, iot.topics_sub, "sub_topics_win_g", accum_shift);
-
-    //     //  >>>>> Update Switch Group Topics >>>>>>>>>
-    //     accum_shift += sizeof(winGroupTopics) / (sizeof(winGroupTopics[0]));
-    //     _updateTopics_flash(DOC, SwGroupTopics, iot.topics_sub, "sub_topics_SW_g", accum_shift);
-
-    //     //  >>>>> Update Windows Topics >>>>>>>>>
-    //     accum_shift += sizeof(SwGroupTopics) / (sizeof(SwGroupTopics[0]));
-    //     for (uint8_t i = 0; i < winEntityCounter; i++)
-    //     {
-    //       if (winSW_V[i]->virtCMD == false)
-    //       {
-    //         _updateTopics_flash(DOC, winSW_V[i]->name, iot.topics_sub, "sub_topics_win", i, accum_shift + i);
-    //       }
-    //     }
-
-    //     //  >>>>> Update Switch Topics >>>>>>>>>
-    //     accum_shift += winEntityCounter + 1;
-    //     for (uint8_t i = 0; i < swEntityCounter; i++)
-    //     {
-    //       if (SW_v[i]->is_virtCMD() == false)
-    //       {
-    //         _updateTopics_flash(DOC, SW_v[i]->name, iot.topics_sub, "sub_topics_SW", i, accum_shift + i);
-    //       }
-    //     }
-    //     DOC.clear();
-    //     ok3 = true;
-    //   }
-    // #else
-    // if (iot.extract_JSON_from_flash(iot.parameter_filenames[2], DOC)) /* extract topics from flash */
-    // {
     _updateTopics_flash(DOC, topics_gen_pub, iot.topics_gen_pub, "pub_gen_topics");
     _updateTopics_flash(DOC, topics_pub, iot.topics_pub, "pub_topics");
     _updateTopics_flash(DOC, topics_sub, iot.topics_sub, "sub_topics");
@@ -247,12 +216,14 @@ void update_Parameters_flash()
     iot.topics_gen_pub[1] = topics_gen_pub[1];
     iot.topics_pub[0] = topics_pub[0];
     iot.topics_sub[0] = topics_sub[0];
-
+#if DBG_MODE
     Serial.println("Fail read Topics parameter");
+#endif
   }
-  // #endif
+
   // ±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
   paramLoadedOK = ok0 && ok1 && ok2 && ok3;
+#if DBG_MODE
   if (paramLoadedOK)
   {
     Serial.println("~ Parameter files - read OK");
@@ -261,6 +232,7 @@ void update_Parameters_flash()
   {
     Serial.println("~ Parameter files - read failed");
   }
+#endif
 }
 /* ±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±± */
 

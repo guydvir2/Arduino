@@ -5,7 +5,7 @@
 
 char fakePin[] = "{\"inputPins\": [19,17,16,5,4,2,23,18,15,14,13,12], \"relayPins\": [25,26,33,32],\"RF_keyboardCode\": [3135496,3135492,3135490,3135489],\"RFpin\": 27}";
 
-char fakeP[] = "{\"entityType\": [0],\
+char fakeP[] = "{\"entityType\": [0, 1],\
                     \"virtCMD\": [\"\",\"\",\"myHome\/Lights\/int\/gFloor\/SW0\",\"myHome\/Lights\/int\/gFloor\/SW1\",\"myHome\/Windows\/gFloor\/W0\",\"\",\"\",\"\",\"\",\"\"],\
                     \"SW_buttonTypes\": [1,2,2,2],\
                     \"WextInputs\": [0,0],\

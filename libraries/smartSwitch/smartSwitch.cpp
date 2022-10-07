@@ -43,6 +43,7 @@ void smartSwitch::set_input(uint8_t inpin, uint8_t t)
     {
         _useButton = true;
         _inputButton.begin(inpin);
+        _inputButton.loop();
     }
 
     if (t == ON_OFF_SW)
