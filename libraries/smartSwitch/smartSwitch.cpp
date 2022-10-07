@@ -35,7 +35,11 @@ void smartSwitch::set_output(uint8_t outpin)
 void smartSwitch::set_input(uint8_t inpin, uint8_t t)
 {
     _button_type = t;
-    if (inpin != UNDEF_PIN)
+    if (_button_type == 0 || inpin == UNDEF_PIN)
+    {
+        _useButton = false;
+    }
+    else if (inpin != UNDEF_PIN && _button_type > 0)
     {
         _useButton = true;
         _inputButton.begin(inpin);

@@ -10,27 +10,6 @@ bool WinSW::loop()
   _timeout_looper();
   return newMSGflag;
 }
-void WinSW::start()
-{
-  // _windowSwitch.start();
-  // if (_useExtSW)
-  // {
-  //   _windowSwitch_ext.start();
-  // }
-
-  // if (outpins[0] != UNDEF_INPUT)
-  // {
-  //   pinMode(outpins[0], OUTPUT);
-  //   pinMode(outpins[1], OUTPUT);
-  // }
-  // else
-  // {
-  //   virtCMD = true; /* Not switching Relays */
-  // }
-  // _allOff();
-  // _id = _next_id++;
-}
-
 void WinSW::set_id(uint8_t i)
 {
   _id = i;
@@ -41,10 +20,11 @@ void WinSW::set_name(const char *_name)
 }
 void WinSW::set_input(uint8_t upin, uint8_t dpin)
 {
-  _windowSwitch.pin0 = upin;
-  _windowSwitch.pin1 = dpin;
-  _windowSwitch.buttonType = 2;
-  _windowSwitch.start();
+  // _windowSwitch.pin0 = upin;
+  // _windowSwitch.pin1 = dpin;
+  // _windowSwitch.buttonType = 2;
+  // _windowSwitch.start();
+  _mainSW.set_input(upin, dpin);
 }
 void WinSW::set_output(uint8_t outup_pin, uint8_t outdown_pin)
 {
@@ -66,13 +46,13 @@ void WinSW::set_ext_input(uint8_t upin, uint8_t dpin)
 {
   if (upin != UNDEF_INPUT && dpin != UNDEF_INPUT)
   {
-    _useExtSW = true;
-    _windowSwitch_ext.pin0 = upin;
-    _windowSwitch_ext.pin1 = dpin;
-    _windowSwitch_ext.buttonType = 2;
-    _windowSwitch_ext.start();
+    useExtSW = true;
+    // _windowSwitch_ext.pin0 = upin;
+    // _windowSwitch_ext.pin1 = dpin;
+    // _windowSwitch_ext.buttonType = 2;
+    // _windowSwitch_ext.start();
+    _extSW.set_input(upin, dpin);
   }
-
 }
 void WinSW::set_WINstate(uint8_t state, uint8_t reason) /* External Callback */
 {
@@ -112,9 +92,11 @@ void WinSW::print_preferences()
   Serial.println(name);
 
   Serial.print("in_pins #:\t");
-  Serial.print(_windowSwitch.pin0);
+  // Serial.print(_windowSwitch.pin0);
+  Serial.print(_mainSW.get_pins(0));
   Serial.print("; ");
-  Serial.println(_windowSwitch.pin1);
+  // Serial.println(_windowSwitch.pin1);
+  Serial.print(_mainSW.get_pins(1));
 
   Serial.print("out_pins #:\t");
   Serial.print(outpins[0]);
@@ -122,9 +104,12 @@ void WinSW::print_preferences()
   Serial.println(outpins[1]);
 
   Serial.print("ext_pins #:\t");
-  Serial.print(_windowSwitch_ext.pin0);
+  // Serial.print(_windowSwitch_ext.pin0);
+  Serial.print(_extSW.get_pins(0));
+
   Serial.print("; ");
-  Serial.println(_windowSwitch_ext.pin1);
+  // Serial.println(_windowSwitch_ext.pin1);
+  Serial.print(_extSW.get_pins(1));
 
   Serial.print("use timeout:\t");
   Serial.println(_timeout_clk);
@@ -220,15 +205,15 @@ void WinSW::_switch_cb(uint8_t state, uint8_t i)
 }
 void WinSW::_readSW()
 {
-  uint8_t switchRead = _windowSwitch.read(); /*  0: stop; 1: up; 2: down; 3:err ; 4: nochange*/
+  uint8_t switchRead = _mainSW.read(); //_windowSwitch.read(); /*  0: stop; 1: up; 2: down; 3:err ; 4: nochange*/
   if (switchRead < 3)
   {
     _switch_cb(switchRead, BUTTON);
     return;
   }
-  if (_useExtSW)
+  if (useExtSW)
   {
-    switchRead = _windowSwitch_ext.read(); /*  0: stop; 1: up; 2: down; 3:err ; 4: nochange*/
+    switchRead = _mainSW.read(); //_windowSwitch_ext.read(); /*  0: stop; 1: up; 2: down; 3:err ; 4: nochange*/
     if (switchRead < 3)
     {
       _switch_cb(switchRead, BUTTON2);
@@ -243,6 +228,98 @@ void WinSW::_timeout_looper()
     if (millis() - _timeoutcounter > _timeout_clk * 1000)
     {
       _switch_cb(STOP, TIMEOUT);
+    }
+  }
+}
+
+RockerSW::RockerSW()
+{
+}
+uint8_t RockerSW::get_pins(uint8_t i)
+{
+  return _pins[i];
+}
+void RockerSW::set_input(uint8_t upPin, uint8_t downPin, uint8_t active_dir)
+{
+  _pins[0] = upPin;
+  _pins[1] = downPin;
+
+  if (active_dir == INPUT_PULLUP)
+  {
+    pinMode(_pins[0], INPUT_PULLUP);
+    pinMode(_pins[1], INPUT_PULLUP);
+  }
+  else if (active_dir == INPUT)
+  {
+    pinMode(_pins[0], INPUT);
+    pinMode(_pins[1], INPUT);
+  }
+  _lastPins_read[0] = digitalRead(_pins[0]);
+  _lastPins_read[1] = digitalRead(_pins[1]);
+}
+uint8_t RockerSW::get_raw()
+{
+  bool cur_pin0 = digitalRead(_pins[0]);
+  bool cur_pin1 = digitalRead(_pins[1]);
+
+  if (cur_pin0 == !PRESSED && cur_pin1 == !PRESSED)
+  {
+    return STATE_OFF;
+  }
+  else if (cur_pin0 == PRESSED && cur_pin1 == !PRESSED)
+  {
+    return STATE_1;
+  }
+  else if (cur_pin0 == !PRESSED && cur_pin1 == PRESSED)
+  {
+    return STATE_2;
+  }
+  else
+  {
+    return STATE_ERR;
+  }
+}
+uint8_t RockerSW::read()
+{
+  /*
+  Return codes:
+  0 - Both are off
+  1 - Pin0 is Pressed
+  2 - Pin1 is Pressed
+  3 - no change
+  4 - err
+  */
+
+  bool cur_pin0 = digitalRead(_pins[0]);
+  bool cur_pin1 = digitalRead(_pins[1]);
+
+  if (cur_pin0 == _lastPins_read[0] && cur_pin1 == _lastPins_read[1]) /* no-change */
+  {
+    return 3;
+  }
+  else
+  {
+    delay(DEBOUNCE_MS);
+    bool cur2_pin0 = digitalRead(_pins[0]);
+    bool cur2_pin1 = digitalRead(_pins[1]);
+
+    if (cur2_pin0 != cur_pin0 || cur2_pin1 != cur2_pin1)
+    {
+      return STATE_ERR;
+    }
+    else if (cur2_pin0 == cur_pin0 && _lastPins_read[0] != cur_pin0)
+    {
+      _lastPins_read[0] = cur_pin0;
+      return cur2_pin0 == PRESSED ? STATE_1 : STATE_OFF;
+    }
+    else if (cur2_pin1 == cur_pin1 && _lastPins_read[1] != cur_pin1)
+    {
+      _lastPins_read[1] = cur_pin1;
+      return cur2_pin1 == PRESSED ? STATE_2 : STATE_OFF;
+    }
+    else
+    {
+      return STATE_ERR;
     }
   }
 }

@@ -32,7 +32,6 @@ void create_WinSW_instance(JsonDocument &_DOC, uint8_t i)
 
   // <<<<<<<<<<< Init instance  >>>>>>>>>>>>>>
   winSW_V[winEntityCounter]->set_extras(); /* Timeout & lockdown */
-  winSW_V[winEntityCounter]->start();
   winSW_V[winEntityCounter]->print_preferences();
 
   // <<<<<<<<< Incrementing Counters >>>>>>>>>>
@@ -41,8 +40,14 @@ void create_WinSW_instance(JsonDocument &_DOC, uint8_t i)
 }
 void Win_newMsg_cb(uint8_t x)
 {
-  Win_send_MQTT_switch(winSW_V[x]->MSG.state, winSW_V[x]->MSG.reason, x); /* Generate MQTT MSG */
-  Win_send_virtCMD(winSW_V[x]->MSG.state, winSW_V[x]->MSG.reason, x);     /* Sending MQTT cmd in case of virt Win*/
+  if (winSW_V[x]->virtCMD)
+  {
+    Win_send_virtCMD(winSW_V[x]->MSG.state, winSW_V[x]->MSG.reason, x); /* Sending MQTT cmd in case of virt Win*/
+  }
+  else
+  {
+    Win_send_MQTT_switch(winSW_V[x]->MSG.state, winSW_V[x]->MSG.reason, x); /* Generate MQTT MSG */
+  }
 }
 void loop_WinSW()
 {
@@ -62,8 +67,8 @@ void create_SW_instance(JsonDocument &_DOC, uint8_t i)
 {
   SW_v[swEntityCounter] = new smartSwitch;
   SW_v[swEntityCounter]->set_name((char *)_DOC["virtCMD"][i].as<const char *>());
-  SW_v[swEntityCounter]->set_input(inPinsArray[lastUsed_inIO], _DOC["SW_buttonTypes"][swEntityCounter] | 1);
-  SW_v[swEntityCounter]->set_id(swEntityCounter); /* MUST be after "set_input" function */
+  SW_v[swEntityCounter]->set_input(inPinsArray[lastUsed_inIO], _DOC["SW_buttonTypes"][swEntityCounter] | 1); /* input is an option */
+  SW_v[swEntityCounter]->set_id(swEntityCounter);                                                            /* MUST be after "set_input" function */
 
   /* Phsycal or Virtual output ?*/
   if (strcmp(_DOC["virtCMD"][i], "") == 0)
@@ -77,7 +82,7 @@ void create_SW_instance(JsonDocument &_DOC, uint8_t i)
   }
 
   /* Config timeout duration to SW */
-  if (_DOC["SW_timeout"][swEntityCounter].as<int>() > 0)
+  if (_DOC["SW_timeout"][swEntityCounter].as<int>() > 0 | 0)
   {
     SW_v[swEntityCounter]->set_timeout(_DOC["SW_timeout"][swEntityCounter].as<int>());
   }
@@ -85,7 +90,7 @@ void create_SW_instance(JsonDocument &_DOC, uint8_t i)
   /* Assign RF to SW */
   if (_DOC["SW_RF"][swEntityCounter] != 255)
   {
-    linkRF2SW[swEntityCounter] = _DOC["SW_RF"][swEntityCounter];
+    linkRF2SW[swEntityCounter] = _DOC["SW_RF"][swEntityCounter].as<int>();
     init_RF(swEntityCounter);
   }
 
@@ -95,8 +100,14 @@ void create_SW_instance(JsonDocument &_DOC, uint8_t i)
 }
 void SW_newMsg_cb(uint8_t i)
 {
-  SW_send_virtCMD(*SW_v[i]);
-  SW_send_MQTT_switch(i, SW_v[i]->telemtryMSG.reason, SW_v[i]->telemtryMSG.state);
+  if (SW_v[i]->is_virtCMD())
+  {
+    SW_send_virtCMD(*SW_v[i]);
+  }
+  else
+  {
+    SW_send_MQTT_switch(i, SW_v[i]->telemtryMSG.reason, SW_v[i]->telemtryMSG.state);
+  }
 }
 void SW_loop()
 {

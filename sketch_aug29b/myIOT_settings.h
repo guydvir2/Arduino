@@ -149,11 +149,11 @@ void update_Parameters_flash()
   // /* ±±±±±±±±±± Part C: Sketch Parameters ±±±±±±±±±±±±±± */
 #if LOCAL_PARAM
   char fakeP[] = "{\"entityType\": [0,1,1],\
-                    \"virtCMD\": [\"\",\"myHome\/Lights\/int\/gFloor\/SW0\",\"myHome\/Lights\/int\/gFloor\/SW1\",\"myHome\/Windows\/gFloor\/W0\",\"\",\"\",\"\",\"\",\"\"],\
+                    \"virtCMD\": [\"\",\"\",\"myHome\/Lights\/int\/gFloor\/SW0\",\"myHome\/Lights\/int\/gFloor\/SW1\",\"myHome\/Windows\/gFloor\/W0\",\"\",\"\",\"\",\"\",\"\"],\
                     \"SW_buttonTypes\": [1,2,2,2],\
                     \"WextInputs\": [0,0],\
                     \"SW_RF\": [0,1,2,3],\
-                    \"SW_timeout\": [0,15,0,0],\
+                    \"SW_timeout\": [20,15,0,0],\
                     \"v_file\": 0.4}";
   DeserializationError error2 = deserializeJson(DOC, fakeP);
   if (!error2)
@@ -345,13 +345,10 @@ void Win_send_virtCMD(uint8_t state, uint8_t reason, uint8_t x)
 }
 void SW_send_virtCMD(smartSwitch &sw)
 {
-  if (sw.is_virtCMD())
-  {
-    char msg[100];
-    iot.pub_noTopic((char *)SW_MQTT_cmds[sw.telemtryMSG.state], sw.name, true); /* Retained */
-    sprintf(msg, "[%s]: Switched [%s] Virtual [%s]", SW_Types[sw.telemtryMSG.reason], SW_MQTT_cmds[sw.telemtryMSG.state], sw.name);
-    iot.pub_msg(msg);
-  }
+  char msg[100];
+  iot.pub_noTopic((char *)SW_MQTT_cmds[sw.telemtryMSG.state], sw.name, true); /* Retained */
+  sprintf(msg, "[%s]: Switched [%s] Virtual [%s]", SW_Types[sw.telemtryMSG.reason], SW_MQTT_cmds[sw.telemtryMSG.state], sw.name);
+  iot.pub_msg(msg);
 }
 /* ±±±±±±±±±±±±±± Receiving and handling MQTT CMDs ±±±±±±±±±±±±±±±± */
 
@@ -544,7 +541,7 @@ void MQTT_SWGroup_Change_state(uint8_t state)
 void MQTT_Win_entity(uint8_t i, char *msg)
 {
   sprintf(msg, "[Entity]: [Win#%d] topic [%s], Virtual-out [%s], 2nd-input [%s]",
-          winSW_V[i]->get_id(), winSW_V[i]->name, winSW_V[i]->virtCMD ? "Yes" : "No", winSW_V[i]->_useExtSW ? "Yes" : "No");
+          winSW_V[i]->get_id(), winSW_V[i]->name, winSW_V[i]->virtCMD ? "Yes" : "No", winSW_V[i]->useExtSW ? "Yes" : "No");
   iot.pub_msg(msg);
 }
 void MQTT_SW_entity(uint8_t i, char *msg)

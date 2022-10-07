@@ -10,7 +10,7 @@ Features:
 #define mywindowsw_h
 
 #include <Arduino.h>
-#include <buttonPresses.h>
+// #include <buttonPresses.h>
 #include "defs.h"
 
 #define winUP     \
@@ -21,6 +21,33 @@ Features:
     if (!virtCMD) \
     digitalWrite(outpins[1], RELAY_ON)
 
+class RockerSW
+{
+#define UNDEF_INPUT 255
+#define PRESSED LOW
+#define DEBOUNCE_MS 50
+
+    enum state : const uint8_t
+    {
+        STATE_OFF,
+        STATE_1,
+        STATE_2,
+        STATE_NOCHG,
+        STATE_ERR
+    };
+
+private:
+    uint8_t _pins[2] = {UNDEF_INPUT, UNDEF_INPUT};
+    uint8_t _lastPins_read[2] = {false, false};
+
+public:
+    RockerSW();
+    uint8_t read();
+    uint8_t get_raw();
+    uint8_t get_pins(uint8_t i);
+    void set_input(uint8_t upPin = UNDEF_INPUT, uint8_t downPin = UNDEF_INPUT, uint8_t active_dir = INPUT_PULLUP);
+};
+
 class WinSW
 {
 #define RELAY_ON HIGH
@@ -28,8 +55,10 @@ class WinSW
 #define UNDEF_INPUT 255
 
 private:
-    buttonPresses _windowSwitch;
-    buttonPresses _windowSwitch_ext;
+    // buttonPresses _windowSwitch;
+    // buttonPresses _windowSwitch_ext;
+    RockerSW _mainSW;
+    RockerSW _extSW;
 
     uint8_t _id = 0;
     static uint8_t _next_id; /* Instance counter */
@@ -41,10 +70,10 @@ private:
 
 public:
     bool virtCMD = false;
-    bool _useExtSW = false;
+    bool useExtSW = false;
     bool newMSGflag = false;
 
-    char ver[14]="WinSW_v0.2";
+    char ver[14] = "WinSW_v0.3";
     char name[MAX_NAME_LEN] = {""};
     uint8_t outpins[2];
 
@@ -53,7 +82,6 @@ public:
 public:
     WinSW();
     bool loop();
-    void start();
     void init_lockdown();
     void release_lockdown();
 
