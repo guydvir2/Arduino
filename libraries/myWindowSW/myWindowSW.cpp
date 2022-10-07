@@ -88,15 +88,13 @@ void WinSW::print_preferences()
   Serial.print("Output :\t");
   Serial.println(virtCMD ? "Virutal" : "Relay");
 
-  Serial.print("MQTT:\t");
+  Serial.print("MQTT:\t\t");
   Serial.println(name);
 
   Serial.print("in_pins #:\t");
-  // Serial.print(_windowSwitch.pin0);
   Serial.print(_mainSW.get_pins(0));
   Serial.print("; ");
-  // Serial.println(_windowSwitch.pin1);
-  Serial.print(_mainSW.get_pins(1));
+  Serial.println(_mainSW.get_pins(1));
 
   Serial.print("out_pins #:\t");
   Serial.print(outpins[0]);
@@ -104,11 +102,9 @@ void WinSW::print_preferences()
   Serial.println(outpins[1]);
 
   Serial.print("ext_pins #:\t");
-  // Serial.print(_windowSwitch_ext.pin0);
   Serial.print(_extSW.get_pins(0));
 
   Serial.print("; ");
-  // Serial.println(_windowSwitch_ext.pin1);
   Serial.print(_extSW.get_pins(1));
 
   Serial.print("use timeout:\t");
@@ -205,7 +201,8 @@ void WinSW::_switch_cb(uint8_t state, uint8_t i)
 }
 void WinSW::_readSW()
 {
-  uint8_t switchRead = _mainSW.read(); //_windowSwitch.read(); /*  0: stop; 1: up; 2: down; 3:err ; 4: nochange*/
+  /*  0: stop; 1: up; 2: down; 4:err ; 3: nochange*/
+  uint8_t switchRead = _mainSW.get_SWstate(); 
   if (switchRead < 3)
   {
     _switch_cb(switchRead, BUTTON);
@@ -213,7 +210,7 @@ void WinSW::_readSW()
   }
   if (useExtSW)
   {
-    switchRead = _mainSW.read(); //_windowSwitch_ext.read(); /*  0: stop; 1: up; 2: down; 3:err ; 4: nochange*/
+    switchRead = _mainSW.get_SWstate(); 
     if (switchRead < 3)
     {
       _switch_cb(switchRead, BUTTON2);
@@ -244,33 +241,56 @@ void RockerSW::set_input(uint8_t upPin, uint8_t downPin, uint8_t active_dir)
   _pins[0] = upPin;
   _pins[1] = downPin;
 
-  if (active_dir == INPUT_PULLUP)
+  for (uint8_t i = 0; i < 2; i++)
   {
-    pinMode(_pins[0], INPUT_PULLUP);
-    pinMode(_pins[1], INPUT_PULLUP);
+    pinMode(_pins[i], active_dir);
+    _last_state[i] = digitalRead(_pins[i]);
   }
-  else if (active_dir == INPUT)
-  {
-    pinMode(_pins[0], INPUT);
-    pinMode(_pins[1], INPUT);
-  }
-  _lastPins_read[0] = digitalRead(_pins[0]);
-  _lastPins_read[1] = digitalRead(_pins[1]);
 }
 uint8_t RockerSW::get_raw()
 {
-  bool cur_pin0 = digitalRead(_pins[0]);
-  bool cur_pin1 = digitalRead(_pins[1]);
+  // bool _state[0] = digitalRead(_pins[0]);
+  // bool _state[1] = digitalRead(_pins[1]);
 
-  if (cur_pin0 == !PRESSED && cur_pin1 == !PRESSED)
+  // if (_state[0] == !PRESSED && _state[1] == !PRESSED)
+  // {
+  //   return STATE_OFF;
+  // }
+  // else if (_state[0] == PRESSED && _state[1] == !PRESSED)
+  // {
+  //   return STATE_1;
+  // }
+  // else if (_state[0] == !PRESSED && _state[1] == PRESSED)
+  // {
+  //   return STATE_2;
+  // }
+  // else
+  // {
+  //   return STATE_ERR;
+  // }
+}
+uint8_t RockerSW::get_SWstate()
+{
+  uint8_t _up = _readPin(0);
+  uint8_t _down = _readPin(1);
+
+  if (_up == STATE_NOCHG && _down == STATE_NOCHG)
+  {
+    return STATE_NOCHG;
+  }
+    else if (_up == PRESSED && _down == PRESSED)
+  {
+    return STATE_ERR;
+  }
+    else if (_up != PRESSED && _down != PRESSED)
   {
     return STATE_OFF;
   }
-  else if (cur_pin0 == PRESSED && cur_pin1 == !PRESSED)
+  else if (_up == PRESSED && _down != PRESSED)
   {
     return STATE_1;
   }
-  else if (cur_pin0 == !PRESSED && cur_pin1 == PRESSED)
+  else if (_up != PRESSED && _down == PRESSED)
   {
     return STATE_2;
   }
@@ -278,9 +298,7 @@ uint8_t RockerSW::get_raw()
   {
     return STATE_ERR;
   }
-}
-uint8_t RockerSW::read()
-{
+
   /*
   Return codes:
   0 - Both are off
@@ -289,37 +307,80 @@ uint8_t RockerSW::read()
   3 - no change
   4 - err
   */
+  // for (uint8_t i = 0; i < 2; i++)
+  // {
+  // _last_state[i] = _state[i];
+  // _state[i] = _readPin(_pins[i]);
+  // }
+  // unsigned long now = millis();
+  // if (_state[0] == PRESSED || _state[1] == PRESSED)
+  // {
+  //   if (_last_state[0] != PRESSED || _last_state[1] != PRESSED)
+  //   {
+  //     _down_ms = now;
+  //     _is_triggered = false;
+  //   }
 
-  bool cur_pin0 = digitalRead(_pins[0]);
-  bool cur_pin1 = digitalRead(_pins[1]);
+  //   if (_state[0] == _last_state[0] && _state[1] == _last_state[1]) /* no-change */
+  //   {
+  //     return 3;
+  //   }
+  //   else
+  //   {
+  //     delay(DEBOUNCE_MS);
+  //     bool cur2_pin0 = digitalRead(_pins[0]);
+  //     bool cur2_pin1 = digitalRead(_pins[1]);
 
-  if (cur_pin0 == _lastPins_read[0] && cur_pin1 == _lastPins_read[1]) /* no-change */
+  //     if (cur2_pin0 != _state[0] || cur2_pin1 != cur2_pin1)
+  //     {
+  //       return STATE_ERR;
+  //     }
+  //     else if (cur2_pin0 == _state[0] && _last_state[0] != _state[0])
+  //     {
+  //       _last_state[0] = _state[0];
+  //       return cur2_pin0 == PRESSED ? STATE_1 : STATE_OFF;
+  //     }
+  //     else if (cur2_pin1 == _state[1] && _last_state[1] != _state[1])
+  //     {
+  //       _last_state[1] = _state[1];
+  //       return cur2_pin1 == PRESSED ? STATE_2 : STATE_OFF;
+  //     }
+  //     else
+  //     {
+  //       return STATE_ERR;
+  //     }
+  //   }
+  // }
+}
+uint8_t RockerSW::_readPin(uint8_t i)
+{
+  _last_state[i] = _state[i];
+  _state[i] = digitalRead(_pins[i]);
+  unsigned long now = millis();
+
+  if (_state[i] == PRESSED)
   {
-    return 3;
+    if (_last_state[i] != PRESSED)
+    {
+      _down_ms[i] = now;
+      _is_triggered[i] = false;
+    }
+    else if (_is_triggered[i] == false && (now - _down_ms[i] > DEBOUNCE_MS))
+    {
+      _is_triggered[i] = true;
+      return PRESSED;
+    }
   }
-  else
+  else if (_state[i] != PRESSED)
   {
-    delay(DEBOUNCE_MS);
-    bool cur2_pin0 = digitalRead(_pins[0]);
-    bool cur2_pin1 = digitalRead(_pins[1]);
-
-    if (cur2_pin0 != cur_pin0 || cur2_pin1 != cur2_pin1)
+    if (_last_state[i] == PRESSED)
     {
-      return STATE_ERR;
-    }
-    else if (cur2_pin0 == cur_pin0 && _lastPins_read[0] != cur_pin0)
-    {
-      _lastPins_read[0] = cur_pin0;
-      return cur2_pin0 == PRESSED ? STATE_1 : STATE_OFF;
-    }
-    else if (cur2_pin1 == cur_pin1 && _lastPins_read[1] != cur_pin1)
-    {
-      _lastPins_read[1] = cur_pin1;
-      return cur2_pin1 == PRESSED ? STATE_2 : STATE_OFF;
-    }
-    else
-    {
-      return STATE_ERR;
+      _down_rel_ms[i] = now - _down_ms[i];
+      if (_down_rel_ms[i] >= DEBOUNCE_MS)
+      {
+        return !PRESSED;
+      }
     }
   }
+  return STATE_NOCHG;
 }

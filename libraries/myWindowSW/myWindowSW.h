@@ -10,7 +10,6 @@ Features:
 #define mywindowsw_h
 
 #include <Arduino.h>
-// #include <buttonPresses.h>
 #include "defs.h"
 
 #define winUP     \
@@ -37,15 +36,24 @@ class RockerSW
     };
 
 private:
+    bool _is_triggered[2] = {false, false};
+
+    unsigned long _down_ms[2] = {0, 0};
+    unsigned long _down_rel_ms[2] = {0, 0};
+
+    uint8_t _state[2] = {false, false};
+    uint8_t _last_state[2] = {false, false};
     uint8_t _pins[2] = {UNDEF_INPUT, UNDEF_INPUT};
-    uint8_t _lastPins_read[2] = {false, false};
 
 public:
     RockerSW();
-    uint8_t read();
     uint8_t get_raw();
+    uint8_t get_SWstate();
     uint8_t get_pins(uint8_t i);
     void set_input(uint8_t upPin = UNDEF_INPUT, uint8_t downPin = UNDEF_INPUT, uint8_t active_dir = INPUT_PULLUP);
+
+private:
+    uint8_t _readPin(uint8_t i);
 };
 
 class WinSW
@@ -55,8 +63,6 @@ class WinSW
 #define UNDEF_INPUT 255
 
 private:
-    // buttonPresses _windowSwitch;
-    // buttonPresses _windowSwitch_ext;
     RockerSW _mainSW;
     RockerSW _extSW;
 

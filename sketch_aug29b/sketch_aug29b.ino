@@ -3,6 +3,7 @@
 #include <myWindowSW.h>  /* WinSW Entities */
 #include <smartSwitch.h> /* smartSwitch Entities */
 #include "paramters.h"   /* Hardcoded or updated saved in flash */
+#include "dbgMode.h"
 #include "myIOT_settings.h"
 
 /* ******************* Windows ******************* */
@@ -187,8 +188,10 @@ void loop_RF()
 
 void setup()
 {
+#if DBG_MODE
   Serial.begin(115200);
   delay(100);
+#endif
 
   startIOTservices();
 }
