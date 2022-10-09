@@ -15,10 +15,10 @@
     ],
     "sub_topics_win": [],
     "sub_topics_SW": [
-        "myHome/Light/int/gFloor/SalAmbient1",
-        "myHome/Light/int/gFloor/SalAmbient2",
-        "myHome/Light/int/gFloor/Lobby",
-        "myHome/Light/int/gFloor/Corridor"
+        "myHome/Lights/int/gFloor/Sw_0",
+        "myHome/Lights/int/gFloor/Sw_1",
+        "myHome/Lights/int/gFloor/Sw_2",
+        "myHome/Lights/int/gFloor/Sw_3"
     ],
     "sub_topics_win_g": [],
     "sub_topics_SW_g": [

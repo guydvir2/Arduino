@@ -48,7 +48,7 @@ public:
     smartSwitch();
     void set_id(uint8_t i);
     void set_name(char *Name);
-    void set_timeout(int t);
+    void set_timeout(int t=0);
     void set_output(uint8_t outpin = UNDEF_PIN);
     void set_input(uint8_t inpin = UNDEF_PIN, uint8_t t = 0);
 

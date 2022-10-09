@@ -1,6 +1,6 @@
 1 windows + ext button
-2 switches (1 with button, 1 without), 3 RF switches
-no RF
+2 switches (1 with button, 1 without input), 
+2 RF switches
 no virtCMDs
 
 

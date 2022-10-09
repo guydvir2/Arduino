@@ -196,7 +196,7 @@ void WinSW::_switch_cb(uint8_t state, uint8_t i)
 void WinSW::_readSW()
 {
   /*  0: stop; 1: up; 2: down; 4:err ; 3: nochange*/
-  uint8_t switchRead = _mainSW.get_SWstate(); 
+  uint8_t switchRead = _mainSW.get_SWstate();
   if (switchRead < 3)
   {
     _switch_cb(switchRead, BUTTON);
@@ -204,7 +204,7 @@ void WinSW::_readSW()
   }
   if (useExtSW)
   {
-    switchRead = _mainSW.get_SWstate(); 
+    switchRead = _mainSW.get_SWstate();
     if (switchRead < 3)
     {
       _switch_cb(switchRead, BUTTON2);
@@ -224,6 +224,7 @@ void WinSW::_timeout_looper()
 }
 
 // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
 RockerSW::RockerSW()
 {
 }
@@ -242,27 +243,28 @@ void RockerSW::set_input(uint8_t upPin, uint8_t downPin, uint8_t active_dir)
     _last_state[i] = digitalRead(_pins[i]);
   }
 }
-uint8_t RockerSW::get_raw()
+uint8_t RockerSW::get_raw() 
 {
-  // bool _state[0] = digitalRead(_pins[0]);
-  // bool _state[1] = digitalRead(_pins[1]);
-
-  // if (_state[0] == !PRESSED && _state[1] == !PRESSED)
-  // {
-  //   return STATE_OFF;
-  // }
-  // else if (_state[0] == PRESSED && _state[1] == !PRESSED)
-  // {
-  //   return STATE_1;
-  // }
-  // else if (_state[0] == !PRESSED && _state[1] == PRESSED)
-  // {
-  //   return STATE_2;
-  // }
-  // else
-  // {
-  //   return STATE_ERR;
-  // }
+  if (_readPin(0) == PRESSED && _readPin(1) == PRESSED)
+  {
+    return STATE_ERR;
+  }
+  else if (_readPin(0) != PRESSED && _readPin(1) != PRESSED)
+  {
+    return STATE_OFF;
+  }
+  else if (_readPin(0) == PRESSED && _readPin(1) != PRESSED)
+  {
+    return STATE_1;
+  }
+  else if (_readPin(0) != PRESSED && _readPin(1) == PRESSED)
+  {
+    return STATE_2;
+  }
+  else
+  {
+    return STATE_ERR;
+  }
 }
 uint8_t RockerSW::get_SWstate()
 {
@@ -273,11 +275,11 @@ uint8_t RockerSW::get_SWstate()
   {
     return STATE_NOCHG;
   }
-    else if (_up == PRESSED && _down == PRESSED)
+  else if (_up == PRESSED && _down == PRESSED)
   {
     return STATE_ERR;
   }
-    else if (_up != PRESSED && _down != PRESSED)
+  else if (_up != PRESSED && _down != PRESSED)
   {
     return STATE_OFF;
   }

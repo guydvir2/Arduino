@@ -1,6 +1,6 @@
-2 windows
+2 windows, 1 ext Buttons
 0 switches
 no RF
 no virtCMDs
-2 ext Buttons
+
 

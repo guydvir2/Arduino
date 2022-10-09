@@ -8,12 +8,20 @@ const char *winMQTTcmds[3] = {"off", "up", "down"};
 const char *SW_Types[] = {"Button", "Timeout", "MQTT", "Remote"};
 const char *EntTypes[2] = {"win", "sw"}; /* Prefix to address client types when using MQTT */
 
+/* ±±±±±±±±± Filenames and directories for each controller ±±±±±±±±±±± */
+char parameterFiles[4][30];
+const char *dirs[] = {"Fail", "Cont_A", "Cont_B", "Cont_C", "Cont_D", "Cont_test"};
+const char *FileNames_common[2] = {"myIOT_param.json", "Hardware.json"};
+const char *FileNames_dedicated[2] = {"myIOT2_topics.json", "sketch_param.json"};
+/* ±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±± */
+
+
 uint8_t lastUsed_inIO = 0;
 uint8_t lastUsed_outIO = 0;
 uint8_t swEntityCounter = 0;
 uint8_t winEntityCounter = 0;
 
-uint8_t ParameterFile_preset = 3;
+uint8_t ParameterFile_preset = 1;
 
 WinSW *winSW_V[TOT_Relays / 2] = {nullptr, nullptr, nullptr, nullptr};
 smartSwitch *SW_v[TOT_Inputs] = {nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr};

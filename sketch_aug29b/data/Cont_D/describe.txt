@@ -1,7 +1,7 @@
 1 windows
 2 switches
 no RF
-no virtCMDs
+win virtCMDs
 1 ext Buttons
 1 push_buttons
 1 ON_OFF buttons

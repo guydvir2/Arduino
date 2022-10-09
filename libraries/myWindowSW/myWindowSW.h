@@ -36,10 +36,9 @@ class RockerSW
     };
 
 private:
-    bool _is_triggered[2] = {false, false};
-
     unsigned long _down_ms[2] = {0, 0};
     unsigned long _down_rel_ms[2] = {0, 0};
+    bool _is_triggered[2] = {false, false};
 
     uint8_t _state[2] = {false, false};
     uint8_t _last_state[2] = {false, false};
@@ -50,10 +49,12 @@ public:
     uint8_t get_raw();
     uint8_t get_SWstate();
     uint8_t get_pins(uint8_t i);
-    void set_input(uint8_t upPin = UNDEF_INPUT, uint8_t downPin = UNDEF_INPUT, uint8_t active_dir = INPUT_PULLUP);
+    void set_input(uint8_t upPin, uint8_t downPin, uint8_t active_dir = INPUT_PULLUP);
 
 private:
     uint8_t _readPin(uint8_t i);
+
+friend class WinSW;
 };
 
 class WinSW

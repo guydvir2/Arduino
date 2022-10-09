@@ -15,9 +15,12 @@
     ],
     "sub_topics_win": [
         "myHome/Windows/gFloor/TwinWindow",
-        "myHome/Windows/gFloor/Pergola"
+        "myHome/Windows/gFloor/Win2"
     ],
-    "sub_topics_SW": [],
+    "sub_topics_SW": [
+        "myHome/Lights/int/gFloor/Sw_0",
+        "myHome/Lights/int/gFloor/Sw_1"
+    ],
     "sub_topics_win_g": [
         "myHome/Windows",
         "myHome/Windows/gFloor"

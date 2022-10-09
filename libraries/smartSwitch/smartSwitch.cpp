@@ -12,9 +12,12 @@ void smartSwitch::set_id(uint8_t i)
 }
 void smartSwitch::set_timeout(int t)
 {
-    _use_timeout = true;
-    _timeout_duration = t * 1000;
-    _stop_timeout();
+    if (t > 0)
+    {
+        _use_timeout = true;
+        _timeout_duration = t * 1000;
+        _stop_timeout();
+    }
 }
 void smartSwitch::set_name(char *Name)
 {
@@ -137,7 +140,7 @@ void smartSwitch::get_prefences()
     bool a = 0;
 #if defined ESP32
     a = 1;
-#elif
+#elif defined ESP8266
     a = 0;
 #endif
     Serial.println(a == 0 ? "ESP8266" : "ESP32");

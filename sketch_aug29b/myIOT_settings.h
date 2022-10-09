@@ -1,5 +1,4 @@
 myIOT2 iot;
-#define RETAINED_MSG false
 
 extern void create_SW_instance(JsonDocument &_DOC, uint8_t i);
 extern void create_WinSW_instance(JsonDocument &_DOC, uint8_t i);
@@ -8,12 +7,6 @@ bool paramLoadedOK = false;
 char topics_sub[3][MAX_TOPIC_SIZE];
 char topics_pub[2][MAX_TOPIC_SIZE];
 char topics_gen_pub[3][MAX_TOPIC_SIZE];
-
-/* ±±±±±±±±± Filenames and directories for each controller ±±±±±±±±±±± */
-char parameterFiles[4][30];
-const char *dirs[] = {"Fail", "Cont_A", "Cont_B", "Cont_C", "Cont_D", "Cont_test"};
-const char *FileNames_common[2] = {"myIOT_param.json", "Hardware.json"};
-const char *FileNames_dedicated[2] = {"myIOT2_topics.json", "sketch_param.json"};
 
 void construct_filenames(uint8_t i = 0)
 {
@@ -33,7 +26,6 @@ void construct_filenames(uint8_t i = 0)
     iot.parameter_filenames[x] = parameterFiles[x];
   }
 }
-/* ±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±± */
 
 /* ±±±±±±±±±±±±±± Read & Update Paramters stored on flash memory ±±±±±±±±±±±±±±±± */
 void _updateTopics_flash(JsonDocument &DOC, char ch_array[], const char *dest_array[], const char *topic, u_int8_t i, uint8_t shift = 0)
@@ -192,14 +184,20 @@ void update_Parameters_flash()
     accum_shift += sizeof(SwGroupTopics) / (sizeof(SwGroupTopics[0]));
     for (uint8_t i = 0; i < winEntityCounter; i++)
     {
-      _updateTopics_flash(DOC, winSW_V[i]->name, iot.topics_sub, "sub_topics_win", i, accum_shift + i);
+      if (winSW_V[i]->virtCMD == false)
+      {
+        _updateTopics_flash(DOC, winSW_V[i]->name, iot.topics_sub, "sub_topics_win", i, accum_shift + i);
+      }
     }
 
     //  >>>>> Update Switch Topics >>>>>>>>>
     accum_shift += winEntityCounter;
     for (uint8_t i = 0; i < swEntityCounter; i++)
     {
-      _updateTopics_flash(DOC, SW_v[i]->name, iot.topics_sub, "sub_topics_SW", i, accum_shift + i);
+      if (SW_v[i]->is_virtCMD() == false)
+      {
+        _updateTopics_flash(DOC, SW_v[i]->name, iot.topics_sub, "sub_topics_SW", i, accum_shift + i);
+      }
     }
     DOC.clear();
     ok3 = true;
@@ -402,8 +400,7 @@ void MQTT_SWGroup_status(char *msg)
 /* Switch Windows CMDs*/
 void MQTT_clear_retained(char *topic)
 {
-  // iot.pub_noTopic("", topic, true);
-  yield();
+  iot.pub_noTopic("", topic, true);
 }
 bool MQTT_is_CHG_winState(char *inmsg, uint8_t &ret_state)
 {

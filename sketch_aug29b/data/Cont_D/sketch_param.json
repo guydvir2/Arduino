@@ -1,35 +1,13 @@
 {
     "entityType": [
-        1,
-        1,
+        0,
         1,
         1
     ],
     "virtCMD": [
-        "myHome/Light/gFloor/SW0",
-        "myHome/Light/gFloor/SW1",
-        "myHome/Light/gFloor/SW2",
-        "myHome/Light/gFloor/SW3"
-    ],
-    "inputPins": [
-        23,
-        19,
-        18,
-        17,
-        16,
-        15,
-        14,
-        13,
-        12,
-        5,
-        4,
-        2
-    ],
-    "relayPins": [
-        25,
-        26,
-        33,
-        32
+        "myHome/Windows/gFloor/W0",
+        "myHome/Lights/int/gFloor/SW0",
+        "myHome/Lights/int/gFloor/SW1"
     ],
     "SW_buttonTypes": [
         1,
@@ -48,6 +26,12 @@
         3135492,
         3135490,
         3135489
+    ],
+    "SW_timeout": [
+        30,
+        60,
+        0,
+        0
     ],
     "RF_2entity": [
         0,

@@ -1,3 +1,5 @@
+#pragma once
+
 #define STATES_TXT \
     (char *[]) { "Off", "Up", "Down", "Err" }
 #define REASONS_TXT \
