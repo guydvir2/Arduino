@@ -222,7 +222,31 @@ uint8_t homeCtl::get_outputPins(uint8_t i)
 {
   return _output_pins[i];
 }
+auto homeCtl::get_win_property(WinSW &win)
+{
+  return win.get_winState();
+}
+uint8_t homeCtl::get_Win_state(uint8_t i)
+{
+  return winSW_V[i]->get_winState();
+}
+uint8_t homeCtl::get_SW_state(uint8_t i)
+{
+  return SW_v[i]->get_SWstate();
+}
+bool homeCtl::SW_use_timeout(uint8_t i)
+{
+  return SW_v[i]->useTimeout();
+}
 
+void homeCtl::get_Win_name(uint8_t i, char &name)
+{
+  name = *winSW_V[i]->name;
+}
+void homeCtl::get_telemetry(Ctl_MSGstr &M)
+{
+  M = _MSG;
+}
 void homeCtl::Win_switchCB(uint8_t i, uint8_t state)
 {
   winSW_V[i]->set_WINstate(state, MQTT);

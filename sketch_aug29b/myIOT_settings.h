@@ -551,7 +551,6 @@ void MQTT_to_lockdown(char *incoming_msg)
 }
 
 /* ±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±± */
-
 void addiotnalMQTT(char *incoming_msg, char *_topic)
 {
   uint8_t n;

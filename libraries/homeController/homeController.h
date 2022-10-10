@@ -16,6 +16,7 @@ struct Ctl_MSGstr
     uint8_t state;  /* Up/Down/ Off */
     uint8_t reason; /* What triggered the button */
 };
+
 class homeCtl
 {
 #define TOT_Relays 8
@@ -35,21 +36,22 @@ private:
     int _RF_freq[4] = {3135496, 3135492, 3135490, 3135489};
 
     const char *ver = "smartController_v0.1";
-    const char *SW_MQTT_cmds[2] = {"off", "on"};
-    const char *winMQTTcmds[3] = {"off", "up", "down"};
-    const char *SW_Types[4] = {"Button", "Timeout", "MQTT", "Remote"};
-    const char *EntTypes[2] = {"win", "sw"}; /* Prefix to address client types when using MQTT */
 
     /* ±±±±±±±±± Filenames and directories for each controller ±±±±±±±±±±± */
     char parameterFiles[4][30];
     // const char *dirs[] = {"Fail", "Cont_A", "Cont_B", "Cont_C", "Cont_D", "Cont_test"};
-    const char *FileNames_common[2] = {"myIOT_param.json", "Hardware.json"};
-    const char *FileNames_dedicated[2] = {"myIOT2_topics.json", "sketch_param.json"};
+    // const char *FileNames_common[2] = {"myIOT_param.json", "Hardware.json"};
+    // const char *FileNames_dedicated[2] = {"myIOT2_topics.json", "sketch_param.json"};
     /* ±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±± */
 
 public:
+    char *SW_MQTT_cmds[2] = {"off", "on"};
+    char *winMQTTcmds[3] = {"off", "up", "down"};
+    char *SW_Types[4] = {"Button", "Timeout", "MQTT", "Remote"};
+    char *EntTypes[2] = {"win", "sw"}; /* Prefix to address client types when using MQTT */
+
 private:
-Ctl_MSGstr _MSG;
+    Ctl_MSGstr _MSG;
     RCSwitch *RF_v = nullptr;
     WinSW *winSW_V[TOT_Relays / 2] = {nullptr, nullptr, nullptr, nullptr};
     smartSwitch *SW_v[TOT_Inputs] = {nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr};
@@ -74,6 +76,13 @@ public:
     uint8_t get_Win_entCounter();
     uint8_t get_inputPins(uint8_t i);
     uint8_t get_outputPins(uint8_t i);
+    auto get_win_property(WinSW &win);
+    void get_Win_name(uint8_t i, char &name);
+    void get_SW_name(uint8_t i, char &name);
+
+    uint8_t get_Win_state(uint8_t i);
+    uint8_t get_SW_state(uint8_t i);
+    bool SW_use_timeout(uint8_t);
 
     void create_Win(char *topic, bool is_virtual = false, bool use_ext_sw = false);
     void create_SW(char *topic, uint8_t sw_type, bool is_virtual = false, int timeout_m = 1, uint8_t RF_ch = 255);
@@ -82,6 +91,7 @@ public:
     void SW_switchCB(uint8_t i, uint8_t state, unsigned int TO = 0);
 
     void clear_telemetryMSG();
+    void get_telemetry(Ctl_MSGstr &M);
 };
 
 #endif
