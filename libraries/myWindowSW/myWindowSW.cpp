@@ -139,7 +139,21 @@ uint8_t WinSW::get_winState()
     return ERR;
   }
 }
+void WinSW::get_Win_props(Win_props &win_props)
+{
+  win_props.id = _id;
+  win_props.name = name;
+  win_props.extSW = useExtSW;
+  win_props.virtCMD = virtCMD;
+  win_props.lockdown = _uselockdown;
 
+  win_props.outpins[0] = outpins[0];
+  win_props.outpins[1] = outpins[1];
+  win_props.inpins[0] = _mainSW.get_pins(0);
+  win_props.inpins[1] = _mainSW.get_pins(1);
+  win_props.inpins2[0] = useExtSW ? _extSW.get_pins(0) : 255;
+  win_props.inpins2[1] = useExtSW ? _extSW.get_pins(1) : 255;
+}
 uint8_t WinSW::_next_id = 0;
 
 void WinSW::_allOff()
@@ -243,7 +257,7 @@ void RockerSW::set_input(uint8_t upPin, uint8_t downPin, uint8_t active_dir)
     _last_state[i] = digitalRead(_pins[i]);
   }
 }
-uint8_t RockerSW::get_raw() 
+uint8_t RockerSW::get_raw()
 {
   if (_readPin(0) == PRESSED && _readPin(1) == PRESSED)
   {

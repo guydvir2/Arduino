@@ -250,6 +250,7 @@ void SWupdate_MQTT_state(uint8_t i, bool state) /* Button State MQTT update */
   sprintf(r, "%d", state);
   iot.pub_noTopic(r, t, true);
 }
+
 void Win_send_MQTT_switch(uint8_t state, uint8_t reason, uint8_t i)
 {
   char msg[100];

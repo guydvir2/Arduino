@@ -11,7 +11,7 @@
 #define HWturnON(i) digitalWrite(i, OUTPUT_ON)
 #define HWturnOFF(i) digitalWrite(i, !OUTPUT_ON)
 
-struct SW_MSGstr
+struct SW_act_telem
 {
     bool newMSG = false;
     uint8_t state;  /* Up/Down/ Off */
@@ -19,6 +19,18 @@ struct SW_MSGstr
     unsigned long clk_start = 0;
     unsigned long clk_end = 0;
 };
+struct SW_props
+{
+    uint8_t id;
+    uint8_t type;
+    uint8_t inpin = 255;
+    uint8_t outpin = 255;
+
+    bool timeout = false;
+    bool virtCMD = false;
+    char *name;
+};
+
 enum SWTypes : const uint8_t
 {
     NO_INPUT,
@@ -40,15 +52,15 @@ enum SWstates : const uint8_t
 class smartSwitch
 {
 public:
-    char ver[15] = "smartSW_v0.1";
+    char ver[15] = "smartSW_v0.2";
     char name[MAX_NAME_LEN];
-    SW_MSGstr telemtryMSG;
+    SW_act_telem telemtryMSG;
 
 public:
     smartSwitch();
     void set_id(uint8_t i);
     void set_name(char *Name);
-    void set_timeout(int t=0);
+    void set_timeout(int t = 0);
     void set_output(uint8_t outpin = UNDEF_PIN);
     void set_input(uint8_t inpin = UNDEF_PIN, uint8_t t = 0);
 
@@ -64,12 +76,13 @@ public:
     uint8_t get_SWstate();
     int get_remain_time();
     void get_prefences();
-    void get_telemetry(uint8_t state, uint8_t reason);
+    // void get_telemetry(uint8_t state, uint8_t reason);
+    void get_SW_props(SW_props &props);
 
     bool useTimeout();
     bool is_virtCMD();
     bool is_useButton();
-    Button2 _inputButton;  
+    Button2 _inputButton;
 
 private:
     uint8_t _button_type = 255;
@@ -81,9 +94,9 @@ private:
     bool _use_timeout = false;
 
     Chrono _timeout_clk;
-                  /* inputs only */
+    /* inputs only */
     unsigned long _timeout_duration = 1; // in seconds
-    unsigned long _timeout_temp = 0; // in seconds
+    unsigned long _timeout_temp = 0;     // in seconds
 
 private:
     bool _isON();

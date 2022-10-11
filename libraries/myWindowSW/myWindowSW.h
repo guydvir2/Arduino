@@ -54,7 +54,7 @@ public:
 private:
     uint8_t _readPin(uint8_t i);
 
-friend class WinSW;
+    friend class WinSW;
 };
 
 class WinSW
@@ -84,7 +84,7 @@ public:
     char name[MAX_NAME_LEN] = {""};
     uint8_t outpins[2];
 
-    MSGstr MSG;
+    Win_act_telem MSG;
 
 public:
     WinSW();
@@ -103,7 +103,9 @@ public:
     uint8_t get_id();
     uint8_t get_winState();
 
+
     void clear_newMSG();
+    void get_Win_props(Win_props &win_props);
     void print_preferences();
 
 private:

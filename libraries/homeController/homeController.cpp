@@ -3,6 +3,7 @@
 homeCtl::homeCtl()
 {
 }
+
 bool homeCtl::loop()
 {
   _SW_loop();
@@ -14,37 +15,28 @@ bool homeCtl::loop()
   }
   return _MSG.newMSG;
 }
-
-void homeCtl::create_SW(char *topic, uint8_t sw_type, bool is_virtual, int timeout_m, uint8_t RF_ch)
+void homeCtl::Win_switchCB(uint8_t i, uint8_t state)
 {
-  SW_v[_swEntityCounter] = new smartSwitch;
-  SW_v[_swEntityCounter]->set_name(topic);
-  SW_v[_swEntityCounter]->set_input(_input_pins[_inIOCounter], sw_type); /* input is an option */
-  SW_v[_swEntityCounter]->set_id(_swEntityCounter);
-  SW_v[_swEntityCounter]->set_timeout(timeout_m);
-
-  /* Phsycal or Virtual output ?*/
-  if (!is_virtual)
-  {
-    SW_v[_swEntityCounter]->set_output(_output_pins[_outIOCounter]);
-    _outIOCounter++;
-  }
-  else
-  {
-    SW_v[_swEntityCounter]->set_output();
-  }
-
-  /* Assign RF to SW */
-  if (RF_ch != 255)
-  {
-    _RF_ch_2_SW[_swEntityCounter] = _RF_freq[_swEntityCounter];
-    _init_RF(_swEntityCounter);
-  }
-
-  SW_v[_swEntityCounter]->get_prefences();
-  _inIOCounter++;
-  _swEntityCounter++;
+  winSW_V[i]->set_WINstate(state, MQTT);
+#if RETAINED_MSG
+  MQTT_clear_retained(winSW_V[i]->name);
+#endif
 }
+void homeCtl::SW_switchCB(uint8_t i, uint8_t state, unsigned int TO)
+{
+  if (state == 1) /* ON */
+  {
+    SW_v[i]->turnON_cb(EXT_0, TO);
+  }
+  else if (state == 0) /* OFF */
+  {
+    SW_v[i]->turnOFF_cb(EXT_0);
+  }
+#if RETAINED_MSG
+  MQTT_clear_retained(SW_v[i]->name);
+#endif
+}
+
 void homeCtl::create_Win(char *topic, bool is_virtual, bool use_ext_sw)
 {
   winSW_V[_winEntityCounter] = new WinSW;
@@ -77,28 +69,163 @@ void homeCtl::create_Win(char *topic, bool is_virtual, bool use_ext_sw)
   _winEntityCounter++;
   _inIOCounter += 2;
 }
+void homeCtl::create_SW(char *topic, uint8_t sw_type, bool is_virtual, int timeout_m, uint8_t RF_ch)
+{
+  SW_v[_swEntityCounter] = new smartSwitch;
+  SW_v[_swEntityCounter]->set_name(topic);
+  SW_v[_swEntityCounter]->set_input(_input_pins[_inIOCounter], sw_type); /* input is an option */
+  SW_v[_swEntityCounter]->set_id(_swEntityCounter);
+  SW_v[_swEntityCounter]->set_timeout(timeout_m);
 
+  /* Phsycal or Virtual output ?*/
+  if (!is_virtual)
+  {
+    SW_v[_swEntityCounter]->set_output(_output_pins[_outIOCounter]);
+    _outIOCounter++;
+  }
+  else
+  {
+    SW_v[_swEntityCounter]->set_output();
+  }
+
+  /* Assign RF to SW */
+  if (RF_ch != 255)
+  {
+    _RF_ch_2_SW[_swEntityCounter] = _RF_freq[_swEntityCounter];
+    _init_RF(_swEntityCounter);
+  }
+
+  SW_v[_swEntityCounter]->get_prefences();
+  _inIOCounter++;
+  _swEntityCounter++;
+}
+
+char *homeCtl::get_ent_ver(uint8_t type)
+{
+  if (type == WIN_ENT)
+  {
+    WinSW w;
+    return w.ver;
+  }
+  if (type == SW_ENT)
+  {
+    smartSwitch s;
+    return s.ver;
+  }
+}
+uint8_t homeCtl::get_ent_counter(uint8_t type)
+{
+  if (type == 0)
+  {
+    return _winEntityCounter;
+  }
+  else if (type == 1)
+  {
+    return _swEntityCounter;
+  }
+}
+uint8_t homeCtl::get_ent_state(uint8_t type, uint8_t i)
+{
+  if (type == 0)
+  {
+    return winSW_V[i]->get_winState();
+  }
+  else if (type == 1)
+  {
+    return SW_v[i]->get_SWstate();
+  }
+}
+void homeCtl::get_telemetry(Cotroller_Ent_telemetry &M)
+{
+  M = _MSG;
+}
+void homeCtl::get_entity_prop(uint8_t ent_type, uint8_t i, SW_props &sw_prop)
+{
+  if (ent_type == 1)
+  {
+    SW_v[i]->get_SW_props(sw_prop);
+  }
+}
+void homeCtl::get_entity_prop(uint8_t ent_type, uint8_t i, Win_props &win_prop)
+{
+  if (ent_type == 1)
+  {
+    winSW_V[i]->get_Win_props(win_prop);
+  }
+}
+
+void homeCtl::set_inputs(uint8_t arr[], uint8_t arr_size)
+{
+  for (uint8_t i = 0; i < arr_size; i++)
+  {
+    _input_pins[i] = arr[i];
+  }
+}
+void homeCtl::set_outputs(uint8_t arr[], uint8_t arr_size)
+{
+  for (uint8_t i = 0; i < arr_size; i++)
+  {
+    _output_pins[i] = arr[i];
+  }
+}
+void homeCtl::set_RFch(uint8_t arr[], uint8_t arr_size)
+{
+  for (uint8_t i = 0; i < arr_size; i++)
+  {
+    _RF_freq[i] = arr[i];
+  }
+}
+void homeCtl::set_RF(uint8_t pin)
+{
+  _RFpin = pin;
+}
+
+void homeCtl::Win_init_lockdown()
+{
+  for (uint8_t i = 0; i < _winEntityCounter; i++)
+  {
+    winSW_V[i]->init_lockdown();
+  }
+}
+void homeCtl::Win_release_lockdown()
+{
+  for (uint8_t i = 0; i < _winEntityCounter; i++)
+  {
+    winSW_V[i]->release_lockdown();
+  }
+}
 void homeCtl::clear_telemetryMSG()
 {
+  if (_MSG.type == 0)
+  {
+    winSW_V[_MSG.id]->clear_newMSG();
+  }
+  else if (_MSG.type == 1)
+  {
+    SW_v[_MSG.id]->clear_newMSG();
+  }
+  _MSG.id = 0;
+  _MSG.type = 255;
+  _MSG.trig = 255;
+  _MSG.state = 255;
   _MSG.newMSG = false;
 }
+
 void homeCtl::_SW_newMSG(uint8_t i)
 {
   _MSG.id = i;
   _MSG.type = 1;
   _MSG.newMSG = true;
-  _MSG.virtCMD = SW_v[i]->is_virtCMD();
   _MSG.state = SW_v[i]->telemtryMSG.state;
-  _MSG.reason = SW_v[i]->telemtryMSG.reason;
+  _MSG.trig = SW_v[i]->telemtryMSG.reason;
 }
 void homeCtl::_Win_newMSG(uint8_t i)
 {
   _MSG.id = i;
   _MSG.type = 0;
   _MSG.newMSG = true;
-  _MSG.virtCMD = winSW_V[i]->virtCMD;
   _MSG.state = winSW_V[i]->MSG.state;
-  _MSG.reason = winSW_V[i]->MSG.reason;
+  _MSG.trig = winSW_V[i]->MSG.reason;
 }
 
 void homeCtl::_SW_loop()
@@ -108,7 +235,6 @@ void homeCtl::_SW_loop()
     if (SW_v[i]->loop())
     {
       _SW_newMSG(i);
-      SW_v[i]->clear_newMSG();
     }
   }
 }
@@ -119,7 +245,6 @@ void homeCtl::_Win_loop()
     if (winSW_V[x]->loop())
     {
       _Win_newMSG(x);
-      winSW_V[x]->clear_newMSG();
     }
   }
 }
@@ -182,89 +307,4 @@ void homeCtl::_toggle_SW_RF(uint8_t i)
       SW_v[i]->turnON_cb(EXT_1);
     }
   }
-}
-
-void homeCtl::set_inputs(uint8_t arr[], uint8_t arr_size)
-{
-  for (uint8_t i = 0; i < arr_size; i++)
-  {
-    _input_pins[i] = arr[i];
-  }
-}
-void homeCtl::set_outputs(uint8_t arr[], uint8_t arr_size)
-{
-  for (uint8_t i = 0; i < arr_size; i++)
-  {
-    _output_pins[i] = arr[i];
-  }
-}
-void homeCtl::set_RFch(uint8_t arr[], uint8_t arr_size)
-{
-  for (uint8_t i = 0; i < arr_size; i++)
-  {
-    _RF_freq[i] = arr[i];
-  }
-}
-
-uint8_t homeCtl::get_SW_entCounter()
-{
-  return _swEntityCounter;
-}
-uint8_t homeCtl::get_Win_entCounter()
-{
-  return _winEntityCounter;
-}
-uint8_t homeCtl::get_inputPins(uint8_t i)
-{
-  return _input_pins[i];
-}
-uint8_t homeCtl::get_outputPins(uint8_t i)
-{
-  return _output_pins[i];
-}
-auto homeCtl::get_win_property(WinSW &win)
-{
-  return win.get_winState();
-}
-uint8_t homeCtl::get_Win_state(uint8_t i)
-{
-  return winSW_V[i]->get_winState();
-}
-uint8_t homeCtl::get_SW_state(uint8_t i)
-{
-  return SW_v[i]->get_SWstate();
-}
-bool homeCtl::SW_use_timeout(uint8_t i)
-{
-  return SW_v[i]->useTimeout();
-}
-
-void homeCtl::get_Win_name(uint8_t i, char &name)
-{
-  name = *winSW_V[i]->name;
-}
-void homeCtl::get_telemetry(Ctl_MSGstr &M)
-{
-  M = _MSG;
-}
-void homeCtl::Win_switchCB(uint8_t i, uint8_t state)
-{
-  winSW_V[i]->set_WINstate(state, MQTT);
-#if RETAINED_MSG
-  MQTT_clear_retained(winSW_V[i]->name);
-#endif
-}
-void homeCtl::SW_switchCB(uint8_t i, uint8_t state, unsigned int TO)
-{
-  if (state == 1) /* ON */
-  {
-    SW_v[i]->turnON_cb(EXT_0, TO);
-  }
-  else if (state == 0) /* OFF */
-  {
-    SW_v[i]->turnOFF_cb(EXT_0);
-  }
-#if RETAINED_MSG
-  MQTT_clear_retained(SW_v[i]->name);
-#endif
 }

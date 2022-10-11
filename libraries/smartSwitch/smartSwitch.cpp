@@ -187,10 +187,20 @@ uint8_t smartSwitch::get_SWstate()
         return 255;
     }
 }
-void smartSwitch::get_telemetry(uint8_t state, uint8_t reason)
+// void smartSwitch::get_telemetry(uint8_t state, uint8_t reason)
+// {
+//     state = telemtryMSG.state;
+//     reason = telemtryMSG.reason;
+// }
+void smartSwitch::get_SW_props(SW_props &props)
 {
-    state = telemtryMSG.state;
-    reason = telemtryMSG.reason;
+    props.id = _inputButton.getID();
+    props.type = _button_type;
+    props.inpin = _inputButton.getPin();
+    props.outpin = _outputPin;
+    props.timeout = _use_timeout;
+    props.virtCMD = _virtCMD;
+    props.name = name;
 }
 
 bool smartSwitch::loop()
