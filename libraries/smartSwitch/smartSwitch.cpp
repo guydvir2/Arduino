@@ -19,7 +19,7 @@ void smartSwitch::set_timeout(int t)
         _stop_timeout();
     }
 }
-void smartSwitch::set_name(char *Name)
+void smartSwitch::set_name(const char *Name)
 {
     strlcpy(name, Name, MAX_NAME_LEN);
 }
@@ -72,7 +72,12 @@ void smartSwitch::turnON_cb(uint8_t type, unsigned int temp_TO)
                 _timeout_temp = temp_TO * 1000;
             }
             _start_timeout();
-            _update_telemetry(SW_ON, type);
+            unsigned long _t = 0;
+            if (_use_timeout)
+            {
+                temp_TO == 0 ? _t = _timeout_duration : _t = _timeout_temp;
+            }
+            _update_telemetry(SW_ON, type, _t);
         }
         else
         {
@@ -97,7 +102,7 @@ void smartSwitch::turnOFF_cb(uint8_t type)
         {
             HWturnOFF(_outputPin);
             _stop_timeout();
-            _update_telemetry(SW_OFF, type);
+            _update_telemetry(SW_OFF, type, 0);
         }
         else
         {
@@ -187,11 +192,6 @@ uint8_t smartSwitch::get_SWstate()
         return 255;
     }
 }
-// void smartSwitch::get_telemetry(uint8_t state, uint8_t reason)
-// {
-//     state = telemtryMSG.state;
-//     reason = telemtryMSG.reason;
-// }
 void smartSwitch::get_SW_props(SW_props &props)
 {
     props.id = _inputButton.getID();
@@ -241,11 +241,11 @@ void smartSwitch::_timeout_loop()
 {
     if (_timeout_clk.isRunning())
     {
-        if (_timeout_temp != 0 && _timeout_clk.hasPassed(_timeout_temp))
+        if (_timeout_temp != 0 && _timeout_clk.hasPassed(_timeout_temp)) /* ad-hoc timeout*/
         {
             turnOFF_cb(SW_TIMEOUT);
         }
-        else if (_timeout_temp == 0 && _timeout_clk.hasPassed(_timeout_duration))
+        else if (_timeout_temp == 0 && _timeout_clk.hasPassed(_timeout_duration)) /* preset timeout */
         {
             turnOFF_cb(SW_TIMEOUT);
         }
@@ -267,11 +267,12 @@ void smartSwitch::_start_timeout()
         _timeout_clk.start();
     }
 }
-void smartSwitch::_update_telemetry(uint8_t state, uint8_t type)
+void smartSwitch::_update_telemetry(uint8_t state, uint8_t type, unsigned long te)
 {
     telemtryMSG.newMSG = true;
     telemtryMSG.state = state;
     telemtryMSG.reason = type;
+    telemtryMSG.clk_end = te;
 }
 void smartSwitch::_OnOffSW_Relay(uint8_t i, bool state, uint8_t type)
 {

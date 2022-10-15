@@ -12,7 +12,9 @@ struct Cotroller_Ent_telemetry
     uint8_t type;  /* Entiry type 0- win. 1 sw */
     uint8_t state; /* Up/Down/ Off */
     uint8_t trig;  /* What triggered the button */
+
     bool newMSG = false;
+    unsigned long timeout = 0;
 };
 enum ENT_TYPE : const uint8_t
 {
@@ -47,12 +49,14 @@ public:
     char *WinTrigs[5] = {"Timeout", "Button", "Button2", "Lockdown", "MQTT"};
     char *SW_Types[4] = {"Button", "Timeout", "MQTT", "Remote"};
     char *EntTypes[2] = {"win", "sw"}; /* Prefix to address client types when using MQTT */
+    WinSW *winSW_V[TOT_Relays / 2] = {nullptr, nullptr, nullptr, nullptr};
+    smartSwitch *SW_v[TOT_Inputs] = {nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr};
 
 private:
     Cotroller_Ent_telemetry _MSG;
     RCSwitch *RF_v = nullptr;
-    WinSW *winSW_V[TOT_Relays / 2] = {nullptr, nullptr, nullptr, nullptr};
-    smartSwitch *SW_v[TOT_Inputs] = {nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr};
+    // WinSW *winSW_V[TOT_Relays / 2] = {nullptr, nullptr, nullptr, nullptr};
+    // smartSwitch *SW_v[TOT_Inputs] = {nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr};
 
     void _init_RF(uint8_t i);
     void _toggle_SW_RF(uint8_t i);
@@ -70,7 +74,8 @@ public:
     void set_RF(uint8_t pin = 255);                    /* IO that RF recv is connected to */
     void set_inputs(uint8_t arr[], uint8_t arr_size);  /* Physical SW IOs*/
     void set_outputs(uint8_t arr[], uint8_t arr_size); /* Relays pins */
-    void set_RFch(uint8_t arr[], uint8_t arr_size);    /* Radio freq to listen to. belong to a remote control */
+    void set_RFch(int arr[], uint8_t arr_size);    /* Radio freq to listen to. belong to a remote control */
+    void set_ent_name(uint8_t type, uint8_t i, const char *name);
     void Win_init_lockdown();
     void Win_release_lockdown();
 
@@ -80,8 +85,8 @@ public:
     void get_entity_prop(uint8_t ent_type, uint8_t i, SW_props &sw_prop);
     void get_entity_prop(uint8_t ent_type, uint8_t i, Win_props &win_prop);
 
-    void create_Win(char *topic, bool is_virtual = false, bool use_ext_sw = false);
-    void create_SW(char *topic, uint8_t sw_type, bool is_virtual = false, int timeout_m = 1, uint8_t RF_ch = 255);
+    void create_Win(const char *topic, bool is_virtual = false, bool use_ext_sw = false);
+    void create_SW(const char *topic, uint8_t sw_type, bool is_virtual = false, int timeout_m = 1, uint8_t RF_ch = 255);
 
     void Win_switchCB(uint8_t i, uint8_t state);
     void SW_switchCB(uint8_t i, uint8_t state, unsigned int TO = 0);

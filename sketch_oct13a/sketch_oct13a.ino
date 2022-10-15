@@ -1,17 +1,25 @@
 #include <Arduino.h>
-#include <myWindowSW.h>
 
-RockerSW SW;
+char a[4][20];
+char *b[4];
 
 void setup()
 {
   Serial.begin(115200);
   Serial.println("\n\nStart");
-  SW.set_input(19,15);
-  }
+
+  sprintf(a[0], "THIS IS MY FIRST");
+  b[0] = a[0];
+
+  Serial.println(a[0]);
+  Serial.println(b[0]);
+
+  sprintf(a[0], "THIS IS MY SECOND");
+
+  Serial.println(a[0]);
+  Serial.println(b[0]);
+}
 void loop()
 {
-Serial.println(SW.get_SWstate());
-// SW.get_SWstate();
-delay(500);
+
 }

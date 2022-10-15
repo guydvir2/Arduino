@@ -1,0 +1,5 @@
+0 windows
+4 switches - all switches include buttons  ( 2 push button and 2 Rocker )
+no RF
+no virtCMDs
+no SW Timeout

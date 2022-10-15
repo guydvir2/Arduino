@@ -37,7 +37,7 @@ void homeCtl::SW_switchCB(uint8_t i, uint8_t state, unsigned int TO)
 #endif
 }
 
-void homeCtl::create_Win(char *topic, bool is_virtual, bool use_ext_sw)
+void homeCtl::create_Win(const char *topic, bool is_virtual, bool use_ext_sw)
 {
   winSW_V[_winEntityCounter] = new WinSW;
   winSW_V[_winEntityCounter]->set_input(_input_pins[_inIOCounter], _input_pins[_inIOCounter + 1]);
@@ -69,7 +69,7 @@ void homeCtl::create_Win(char *topic, bool is_virtual, bool use_ext_sw)
   _winEntityCounter++;
   _inIOCounter += 2;
 }
-void homeCtl::create_SW(char *topic, uint8_t sw_type, bool is_virtual, int timeout_m, uint8_t RF_ch)
+void homeCtl::create_SW(const char *topic, uint8_t sw_type, bool is_virtual, int timeout_m, uint8_t RF_ch)
 {
   SW_v[_swEntityCounter] = new smartSwitch;
   SW_v[_swEntityCounter]->set_name(topic);
@@ -104,24 +104,31 @@ char *homeCtl::get_ent_ver(uint8_t type)
 {
   if (type == WIN_ENT)
   {
-    WinSW w;
-    return w.ver;
+    // WinSW w;
+    return winSW_V[0]->ver;
   }
-  if (type == SW_ENT)
+  else if (type == SW_ENT)
   {
-    smartSwitch s;
-    return s.ver;
+    // smartSwitch s;
+    return SW_v[0]->ver;
+  }
+  else{
+    return "err";
   }
 }
 uint8_t homeCtl::get_ent_counter(uint8_t type)
 {
-  if (type == 0)
+  if (type == WIN_ENT)
   {
     return _winEntityCounter;
   }
-  else if (type == 1)
+  else if (type == SW_ENT)
   {
     return _swEntityCounter;
+  }
+  else
+  {
+    return 0;
   }
 }
 uint8_t homeCtl::get_ent_state(uint8_t type, uint8_t i)
@@ -134,6 +141,11 @@ uint8_t homeCtl::get_ent_state(uint8_t type, uint8_t i)
   {
     return SW_v[i]->get_SWstate();
   }
+
+  else
+  {
+    return 0;
+  }
 }
 void homeCtl::get_telemetry(Cotroller_Ent_telemetry &M)
 {
@@ -141,14 +153,14 @@ void homeCtl::get_telemetry(Cotroller_Ent_telemetry &M)
 }
 void homeCtl::get_entity_prop(uint8_t ent_type, uint8_t i, SW_props &sw_prop)
 {
-  if (ent_type == 1)
+  if (ent_type == SW_ENT)
   {
     SW_v[i]->get_SW_props(sw_prop);
   }
 }
 void homeCtl::get_entity_prop(uint8_t ent_type, uint8_t i, Win_props &win_prop)
 {
-  if (ent_type == 1)
+  if (ent_type == WIN_ENT)
   {
     winSW_V[i]->get_Win_props(win_prop);
   }
@@ -168,7 +180,7 @@ void homeCtl::set_outputs(uint8_t arr[], uint8_t arr_size)
     _output_pins[i] = arr[i];
   }
 }
-void homeCtl::set_RFch(uint8_t arr[], uint8_t arr_size)
+void homeCtl::set_RFch(int arr[], uint8_t arr_size)
 {
   for (uint8_t i = 0; i < arr_size; i++)
   {
@@ -179,7 +191,17 @@ void homeCtl::set_RF(uint8_t pin)
 {
   _RFpin = pin;
 }
-
+void homeCtl::set_ent_name(uint8_t type, uint8_t i, const char *name)
+{
+  if (type == WIN_ENT)
+  {
+    winSW_V[i]->set_name(name);
+  }
+  else if (type == SW_ENT)
+  {
+    SW_v[i]->set_name(name);
+  }
+}
 void homeCtl::Win_init_lockdown()
 {
   for (uint8_t i = 0; i < _winEntityCounter; i++)
@@ -196,14 +218,15 @@ void homeCtl::Win_release_lockdown()
 }
 void homeCtl::clear_telemetryMSG()
 {
-  if (_MSG.type == 0)
+  if (_MSG.type == WIN_ENT)
   {
     winSW_V[_MSG.id]->clear_newMSG();
   }
-  else if (_MSG.type == 1)
+  else if (_MSG.type == SW_ENT)
   {
     SW_v[_MSG.id]->clear_newMSG();
   }
+  _MSG.timeout = 0;
   _MSG.id = 0;
   _MSG.type = 255;
   _MSG.trig = 255;
@@ -214,18 +237,20 @@ void homeCtl::clear_telemetryMSG()
 void homeCtl::_SW_newMSG(uint8_t i)
 {
   _MSG.id = i;
-  _MSG.type = 1;
+  _MSG.type = SW_ENT;
   _MSG.newMSG = true;
   _MSG.state = SW_v[i]->telemtryMSG.state;
   _MSG.trig = SW_v[i]->telemtryMSG.reason;
+  _MSG.timeout = SW_v[i]->telemtryMSG.clk_end;
 }
 void homeCtl::_Win_newMSG(uint8_t i)
 {
   _MSG.id = i;
-  _MSG.type = 0;
+  _MSG.type = WIN_ENT;
   _MSG.newMSG = true;
   _MSG.state = winSW_V[i]->MSG.state;
   _MSG.trig = winSW_V[i]->MSG.reason;
+  _MSG.timeout = 0;
 }
 
 void homeCtl::_SW_loop()

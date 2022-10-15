@@ -103,7 +103,6 @@ public:
     uint8_t get_id();
     uint8_t get_winState();
 
-
     void clear_newMSG();
     void get_Win_props(Win_props &win_props);
     void print_preferences();

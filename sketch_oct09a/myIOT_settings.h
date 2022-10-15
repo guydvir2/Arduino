@@ -4,11 +4,11 @@ extern homeCtl controller;
 /* ±±±±±±±±±±±±±± Receiving and handling MQTT CMDs ±±±±±±±±±±±±±±±± */
 #define MAX_TOPIC_SIZE 40 // <----- Verfy max Topic size
 
-char topics_sub[3][MAX_TOPIC_SIZE];
-char topics_pub[2][MAX_TOPIC_SIZE];
-char topics_gen_pub[3][MAX_TOPIC_SIZE];
-char winGroupTopics[2][MAX_TOPIC_SIZE];
-char SwGroupTopics[3][MAX_TOPIC_SIZE];
+char topics_sub[3][MAX_TOPIC_SIZE];     /* generic topic array */
+char topics_pub[2][MAX_TOPIC_SIZE];     /* generic topic array */
+char topics_gen_pub[3][MAX_TOPIC_SIZE]; /* generic topic array */
+char winGroupTopics[2][MAX_TOPIC_SIZE]; /* group topic array */
+char SwGroupTopics[3][MAX_TOPIC_SIZE];  /* group topic array */
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ MQTT ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -29,7 +29,7 @@ void post_telemetry_2MQTT(Cotroller_Ent_telemetry &MSG) /* get telemetry from an
 {
     char msg[100];
 
-    if (MSG.type == 0)
+    if (MSG.type == WIN_ENT)
     {
         Win_props win_props;
 
@@ -40,7 +40,7 @@ void post_telemetry_2MQTT(Cotroller_Ent_telemetry &MSG) /* get telemetry from an
             iot.pub_msg(msg);
 
 #if RETAINED_MSG
-            iot.pub_noTopic(controller.winMQTTcmds[MSG.state], win_props.name, true); /* Retain Message */
+            iot.pub_noTopic(/*controller.winMQTTcmds[MSG.state]*/ "", win_props.name, true); /* Retain Message */
 #endif
             MQTT_update_state(MSG.state, win_props.name); /* Retain State */
         }
@@ -49,7 +49,7 @@ void post_telemetry_2MQTT(Cotroller_Ent_telemetry &MSG) /* get telemetry from an
             iot.pub_noTopic(controller.winMQTTcmds[MSG.state], win_props.name, true); // <---- Fix this : off cmd doesnot appear
         }
     }
-    else if (MSG.type == 1)
+    else if (MSG.type == SW_ENT)
     {
         SW_props sw_props;
         controller.get_entity_prop(MSG.type /* Sw */, MSG.id /* Sw entity id */, sw_props);
@@ -58,27 +58,27 @@ void post_telemetry_2MQTT(Cotroller_Ent_telemetry &MSG) /* get telemetry from an
         {
             char msg2[30];
 
-            if (MSG.state == 1 && !sw_props.timeout)
+            if (MSG.state == 1 && sw_props.timeout) /* On, with timeout */
             {
                 char t[20];
-                // iot.convert_epoch2clock((int)((SW_v[i]->get_remain_time() + 500) / 1000), 0, t);
+                iot.convert_epoch2clock((int)((MSG.timeout + 500) / 1000), 0, t);
                 sprintf(msg2, "timeout [%s]", t);
             }
-            else if (!sw_props.timeout)
+            else if (MSG.state == 1 && !sw_props.timeout) /* On, without timeout*/
             {
                 strcpy(msg2, "timeout [No]");
             }
-            else if (MSG.state == 0)
+            else if (MSG.state == 0) /* Off*/
             {
                 strcpy(msg2, "");
             }
 
             sprintf(msg, "[%s]: [SW#%d] [%s] turned [%s] %s",
-                    controller.SW_Types[sw_props.type], sw_props.id, sw_props.name, controller.SW_MQTT_cmds[MSG.state], msg2);
+                    controller.SW_Types[MSG.trig], sw_props.id, sw_props.name, controller.SW_MQTT_cmds[MSG.state], msg2);
             iot.pub_msg(msg);
 
 #if RETAINED_MSG
-            iot.pub_noTopic(controller.SW_MQTT_cmds[MSG.state], sw_props.name, true); /* Retain Message */
+            iot.pub_noTopic("" /*controller.SW_MQTT_cmds[MSG.state]*/, sw_props.name, true); /* Retain Message */
 #endif
             MQTT_update_state(MSG.state, sw_props.name); /* Retain State */
         }
@@ -263,6 +263,7 @@ void MQTT_SWGroup_Change_state(uint8_t state)
 void MQTT_Win_entity(uint8_t i, char *msg)
 {
     Win_props win_props;
+    controller.get_entity_prop(WIN_ENT, i, win_props);
     sprintf(msg, "[Entity]: [Win#%d] topic [%s], Virtual-out [%s], 2nd-input [%s]",
             win_props.id, win_props.name, win_props.virtCMD ? "Yes" : "No", win_props.extSW ? "Yes" : "No");
     iot.pub_msg(msg);
@@ -270,6 +271,8 @@ void MQTT_Win_entity(uint8_t i, char *msg)
 void MQTT_SW_entity(uint8_t i, char *msg)
 {
     SW_props sw_props;
+    controller.get_entity_prop(SW_ENT, i, sw_props);
+
     char *w[] = {"None", "On_off SW", "Push Button"};
     sprintf(msg, "[Entity]: [SW#%d] topic [%s], Virtual-out [%s], type [%s], timeout [%s]",
             sw_props.id, sw_props.name, sw_props.virtCMD ? "Yes" : "No", w[sw_props.type], sw_props.timeout ? "Yes" : "No");
@@ -337,7 +340,7 @@ void addiotnalMQTT(char *incoming_msg, char *_topic)
     {
         if (MQTT_is_valid_winState(incoming_msg, state))
         {
-            controller.SW_switchCB(n, state);
+            controller.Win_switchCB(n, state);
         }
         else if (strcmp(incoming_msg, "status") == 0)
         {
@@ -356,7 +359,6 @@ void addiotnalMQTT(char *incoming_msg, char *_topic)
         }
         else
         {
-            /* Here Timeout CMD */
             if (iot.num_p > 1 && strcmp(iot.inline_param[0], "timeout") == 0)
             {
                 controller.SW_switchCB(n, 1, atoi(iot.inline_param[1]));

@@ -58,6 +58,7 @@ void WiFiManagerParameter::init(const char *id, const char *label, const char *d
   _label          = label;
   _labelPlacement = labelPlacement;
   _customHTML     = custom;
+  _length         = 1;
   _value          = nullptr;
   setValue(defaultValue,length);
 }
@@ -279,7 +280,7 @@ boolean WiFiManager::autoConnect(char const *apName, char const *apPassword) {
   DEBUG_WM(F("AutoConnect"));
   #endif
 
-  bool wifiIsSaved = getWiFiIsSaved();
+  // bool wifiIsSaved = getWiFiIsSaved();
 
   #ifdef ESP32
   setupHostname(true);
@@ -1858,6 +1859,8 @@ void WiFiManager::handleWifiSave() {
     page = getHTTPHead(FPSTR(S_titlewifisaved)); // @token titlewifisaved
     page += FPSTR(HTTP_SAVED);
   }
+
+  if(_showBack) page += FPSTR(HTTP_BACKBTN);
   page += FPSTR(HTTP_END);
 
   server->sendHeader(FPSTR(HTTP_HEAD_CORS), FPSTR(HTTP_HEAD_CORS_ALLOW_ALL)); // @HTTPHEAD send cors
@@ -1884,6 +1887,7 @@ void WiFiManager::handleParamSave() {
 
   String page = getHTTPHead(FPSTR(S_titleparamsaved)); // @token titleparamsaved
   page += FPSTR(HTTP_PARAMSAVED);
+  if(_showBack) page += FPSTR(HTTP_BACKBTN); 
   page += FPSTR(HTTP_END);
 
   HTTPSend(page);
@@ -1989,7 +1993,7 @@ void WiFiManager::handleInfo() {
 
   #elif defined(ESP32)
     // add esp_chip_info ?
-    infos = 26;
+    infos = 27;
     String infoids[] = {
       F("esphead"),
       F("uptime"),
@@ -2002,6 +2006,7 @@ void WiFiManager::handleInfo() {
       F("memsketch"),
       F("memsmeter"),      
       F("lastreset"),
+      F("temp"),
       F("wifihead"),
       F("conx"),
       F("stassid"),
@@ -2017,7 +2022,6 @@ void WiFiManager::handleInfo() {
       F("apmac"),
       F("aphost"),
       F("apbssid")
-      // F("temp")
     };
   #endif
 
@@ -2052,9 +2056,16 @@ void WiFiManager::handleInfo() {
 String WiFiManager::getInfoData(String id){
 
   String p;
-  // @todo add WM versioning
-  if(id==F("esphead"))p = FPSTR(HTTP_INFO_esphead);
-  else if(id==F("wifihead"))p = FPSTR(HTTP_INFO_wifihead);
+  if(id==F("esphead")){
+    p = FPSTR(HTTP_INFO_esphead);
+    #ifdef ESP32
+      p.replace(FPSTR(T_1), (String)ESP.getChipModel());
+    #endif
+  }
+  else if(id==F("wifihead")){
+    p = FPSTR(HTTP_INFO_wifihead);
+    p.replace(FPSTR(T_1),getModeString(WiFi.getMode()));
+  }
   else if(id==F("uptime")){
     // subject to rollover!
     p = FPSTR(HTTP_INFO_uptime);
@@ -2107,7 +2118,7 @@ String WiFiManager::getInfoData(String id){
       p = FPSTR(HTTP_INFO_bootver);
       p.replace(FPSTR(T_1),(String)system_get_boot_version());
   }
-  #endif  
+  #endif
   else if(id==F("cpufreq")){
     p = FPSTR(HTTP_INFO_cpufreq);
     p.replace(FPSTR(T_1),(String)ESP.getCpuFreqMHz());
@@ -2239,7 +2250,7 @@ String WiFiManager::getInfoData(String id){
     p.replace(FPSTR(T_1),(String)temperatureRead());
     p.replace(FPSTR(T_2),(String)((temperatureRead()+32)*1.8));
     // p.replace(FPSTR(T_3),(String)hallRead());
-    p.replace(FPSTR(T_3),"NA");
+    // p.replace(FPSTR(T_3),"NA"); // removed hall sensor as reads can cause issues with adcs
   }
   #endif
   else if(id==F("aboutver")){
@@ -3359,28 +3370,25 @@ void WiFiManager::debugPlatformInfo(){
   #ifdef ESP8266
     system_print_meminfo();
     #ifdef WM_DEBUG_LEVEL
-    DEBUG_WM(F("getCoreVersion():         "),ESP.getCoreVersion());
-    DEBUG_WM(F("system_get_sdk_version(): "),system_get_sdk_version());
-    DEBUG_WM(F("system_get_boot_version():"),system_get_boot_version());
-    DEBUG_WM(F("getFreeHeap():            "),(String)ESP.getFreeHeap());
+    DEBUG_WM(F("[SYS] getCoreVersion():         "),ESP.getCoreVersion());
+    DEBUG_WM(F("[SYS] system_get_sdk_version(): "),system_get_sdk_version());
+    DEBUG_WM(F("[SYS] system_get_boot_version():"),system_get_boot_version());
+    DEBUG_WM(F("[SYS] getFreeHeap():            "),(String)ESP.getFreeHeap());
     #endif
   #elif defined(ESP32)
   #ifdef WM_DEBUG_LEVEL
-    DEBUG_WM(F("WM version: "),      WM_VERSION_STR);
-    DEBUG_WM(F("Arduino version: "), VER_ARDUINO_STR);
-    DEBUG_WM(F("ESP SDK version: "), ESP.getSdkVersion());
-    DEBUG_WM(F("Free heap:       "), ESP.getFreeHeap());
+    DEBUG_WM(F("[SYS] WM version: "),      WM_VERSION_STR);
+    DEBUG_WM(F("[SYS] Arduino version: "), VER_ARDUINO_STR);
+    DEBUG_WM(F("[SYS] ESP SDK version: "), ESP.getSdkVersion());
+    DEBUG_WM(F("[SYS] Free heap:       "), ESP.getFreeHeap());
     #endif
-    // esp_chip_info_t chipInfo;
-    // esp_chip_info(&chipInfo);
+
     #ifdef WM_DEBUG_LEVEL
-    // DEBUG_WM("Chip Info: Model: ",chipInfo.model);
-    // DEBUG_WM("Chip Info: Cores: ",chipInfo.cores);
-    // DEBUG_WM("Chip Info: Rev: ",chipInfo.revision);
-    // DEBUG_WM(printf("Chip Info: Model: %d, cores: %d, revision: %d", chipInfo.model.c_str(), chipInfo.cores, chipInfo.revision));
-    // DEBUG_WM("Chip Rev: ",(String)ESP.getChipRevision());
+    DEBUG_WM(F("[SYS] Chip ID:"),WIFI_getChipId());
+    DEBUG_WM(F("[SYS] Chip Model:"), ESP.getChipModel());
+    DEBUG_WM(F("[SYS] Chip Cores:"), ESP.getChipCores());
+    DEBUG_WM(F("[SYS] Chip Rev:"),   ESP.getChipRevision());
     #endif
-    // core version is not avail
   #endif
 }
 

@@ -218,7 +218,7 @@ void WinSW::_readSW()
   }
   if (useExtSW)
   {
-    switchRead = _mainSW.get_SWstate();
+    switchRead = _extSW.get_SWstate();
     if (switchRead < 3)
     {
       _switch_cb(switchRead, BUTTON2);

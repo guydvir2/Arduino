@@ -5,7 +5,9 @@
 #include <Chrono.h>
 
 #define UNDEF_PIN 255
+#ifndef MAX_NAME_LEN
 #define MAX_NAME_LEN 35
+#endif
 #define OUTPUT_ON HIGH
 #define BUTTON_PRESSED LOW
 #define HWturnON(i) digitalWrite(i, OUTPUT_ON)
@@ -59,7 +61,7 @@ public:
 public:
     smartSwitch();
     void set_id(uint8_t i);
-    void set_name(char *Name);
+    void set_name(const char *Name);
     void set_timeout(int t = 0);
     void set_output(uint8_t outpin = UNDEF_PIN);
     void set_input(uint8_t inpin = UNDEF_PIN, uint8_t t = 0);
@@ -76,7 +78,6 @@ public:
     uint8_t get_SWstate();
     int get_remain_time();
     void get_prefences();
-    // void get_telemetry(uint8_t state, uint8_t reason);
     void get_SW_props(SW_props &props);
 
     bool useTimeout();
@@ -101,7 +102,7 @@ private:
 private:
     bool _isON();
     void _timeout_loop();
-    void _update_telemetry(uint8_t state, uint8_t type);
+    void _update_telemetry(uint8_t state, uint8_t type, unsigned long te = 0);
     void _OnOffSW_Relay(uint8_t i, bool state, uint8_t type);
     void _toggleRelay(uint8_t i, uint8_t type);
     void _stop_timeout();

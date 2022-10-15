@@ -11,12 +11,14 @@
 
 class flashLOG
 {
+    #ifndef PRNT
 #define PRNT(a)    \
     if (_useDebug) \
     Serial.print(a)
 #define PRNTL(a)   \
     if (_useDebug) \
     Serial.println(a)
+    #endif
     
 private:
     int _maxLOG_entries;
