@@ -35,7 +35,7 @@ char topics[] = "{\
 bool getPins_manual(JsonDocument &DOC)
 {
 #if MAN_MODE
-copyArray(pins,)
+// copyArray(pins,)
     DeserializationError err = deserializeJson(DOC, pins);
     if (!err)
     {

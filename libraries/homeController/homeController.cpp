@@ -37,7 +37,7 @@ void homeCtl::SW_switchCB(uint8_t i, uint8_t state, unsigned int TO)
 #endif
 }
 
-void homeCtl::create_Win(const char *topic, bool is_virtual, bool use_ext_sw)
+void homeCtl::create_Win(uint8_t _input_pins[], uint8_t _output_pins[], const char *topic, bool is_virtual, bool use_ext_sw)
 {
   winSW_V[_winEntityCounter] = new WinSW;
   winSW_V[_winEntityCounter]->set_input(_input_pins[_inIOCounter], _input_pins[_inIOCounter + 1]);
@@ -69,7 +69,7 @@ void homeCtl::create_Win(const char *topic, bool is_virtual, bool use_ext_sw)
   _winEntityCounter++;
   _inIOCounter += 2;
 }
-void homeCtl::create_SW(const char *topic, uint8_t sw_type, bool is_virtual, int timeout_m, uint8_t RF_ch)
+void homeCtl::create_SW(uint8_t _input_pins[], uint8_t _output_pins[], const char *topic, uint8_t sw_type, bool is_virtual, int timeout_m, uint8_t RF_ch)
 {
   SW_v[_swEntityCounter] = new smartSwitch;
   SW_v[_swEntityCounter]->set_name(topic);
@@ -112,7 +112,8 @@ char *homeCtl::get_ent_ver(uint8_t type)
     // smartSwitch s;
     return SW_v[0]->ver;
   }
-  else{
+  else
+  {
     return "err";
   }
 }
@@ -166,20 +167,6 @@ void homeCtl::get_entity_prop(uint8_t ent_type, uint8_t i, Win_props &win_prop)
   }
 }
 
-void homeCtl::set_inputs(uint8_t arr[], uint8_t arr_size)
-{
-  for (uint8_t i = 0; i < arr_size; i++)
-  {
-    _input_pins[i] = arr[i];
-  }
-}
-void homeCtl::set_outputs(uint8_t arr[], uint8_t arr_size)
-{
-  for (uint8_t i = 0; i < arr_size; i++)
-  {
-    _output_pins[i] = arr[i];
-  }
-}
 void homeCtl::set_RFch(int arr[], uint8_t arr_size)
 {
   for (uint8_t i = 0; i < arr_size; i++)

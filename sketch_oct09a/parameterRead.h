@@ -9,15 +9,9 @@ extern char SwGroupTopics[3][MAX_TOPIC_SIZE];
 
 extern bool getPins_manual(JsonDocument &DOC);
 
-/* ±±±±±±±±± Filenames and directories for each controller ±±±±±±±±±±± */
-
 char parameterFiles[4][30];
-
-void construct_filenames(uint8_t i = 0)
+void build_path_directory(uint8_t i = 0)
 {
-    uint8_t tot_num_files = 4;
-    uint8_t num_common_files = 2;
-
     const char *dirs[] = {"Fail", "Cont_A", "Cont_B", "Cont_C", "Cont_D", "Cont_test"};
 #if defined(ESP32)
     const char *FileNames_common[2] = {"myIOT_param.json", "HardwareESP32.json"};
@@ -26,21 +20,19 @@ void construct_filenames(uint8_t i = 0)
 #endif
     const char *FileNames_dedicated[2] = {"myIOT2_topics.json", "sketch_param.json"};
 
-    for (uint8_t x = 0; x < tot_num_files; x++)
+    for (uint8_t x = 0; x < sizeof(FileNames_common) / sizeof(FileNames_common[0]); x++)
     {
-        if (x < num_common_files)
+        if (x < sizeof(FileNames_common) / sizeof(FileNames_common[0]))
         {
             sprintf(parameterFiles[x], "/%s", FileNames_common[x]);
         }
         else
         {
-            sprintf(parameterFiles[x], "/%s/%s", dirs[i], FileNames_dedicated[x - num_common_files]);
+            sprintf(parameterFiles[x], "/%s/%s", dirs[i], FileNames_dedicated[x - sizeof(FileNames_common) / sizeof(FileNames_common[0])]);
         }
         iot.parameter_filenames[x] = parameterFiles[x];
     }
 }
-
-/* ±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±± */
 
 void _updateTopics_flash(JsonDocument &DOC, char ch_array[], const char *dest_array[], const char *topic, uint8_t i, uint8_t shift = 0) /* update ent Name property */
 {
@@ -118,27 +110,7 @@ void readTopics()
     }
 }
 
-void _update_HWpins_flash(JsonDocument &DOC, uint8_t in[], uint8_t out[], int RF[], uint8_t &size_in, uint8_t &size_out, uint8_t &size_RF, uint8_t &RF_pin)
-{
-    RF_pin = DOC["RFpin"];
-    size_in = DOC["inputPins"].size() | 1;
-    size_out = DOC["relayPins"].size() | 1;
-    size_RF = DOC["RF_keyboardCode"].size() | 1;
-
-    for (uint8_t i = 0; i < size_RF; i++)
-    {
-        RF[i] = DOC["RF_keyboardCode"][i].as<int>() | 0;
-    }
-    for (uint8_t i = 0; i < size_in; i++)
-    {
-        in[i] = DOC["inputPins"][i] | 255;
-    }
-    for (uint8_t i = 0; i < size_out; i++)
-    {
-        out[i] = DOC["relayPins"][i] | 255;
-    }
-}
-void read_Hardware(JsonDocument &DOC, uint8_t _inpins[], uint8_t _outpins[], int _RFcodes[], uint8_t &in, uint8_t &out, uint8_t &RF, uint8_t RFp)
+void get_pins_parameters(JsonDocument &DOC, uint8_t _inpins[], uint8_t _outpins[], int _RFcodes[], uint8_t &in, uint8_t &out, uint8_t &RF, uint8_t RFp)
 {
 #if MAN_MODE && LOCAL_PARAM
     if (getPins_manual(DOC))
@@ -147,11 +119,27 @@ void read_Hardware(JsonDocument &DOC, uint8_t _inpins[], uint8_t _outpins[], int
     if (iot.extract_JSON_from_flash(iot.parameter_filenames[1], DOC))
     {
 #endif
-        _update_HWpins_flash(DOC, _inpins, _outpins, _RFcodes, in, out, RF, RFp);
+
+        RFp = DOC["RFpin"];
+        in = DOC["inputPins"].size() | 1;
+        out = DOC["relayPins"].size() | 1;
+        RF = DOC["RF_keyboardCode"].size() | 1;
+
+        for (uint8_t i = 0; i < RF; i++)
+        {
+            _RFcodes[i] = DOC["RF_keyboardCode"][i].as<int>() | 0;
+        }
+        for (uint8_t i = 0; i < in; i++)
+        {
+            _inpins[i] = DOC["inputPins"][i] | 255;
+        }
+        for (uint8_t i = 0; i < out; i++)
+        {
+            _outpins[i] = DOC["relayPins"][i] | 255;
+        }
     }
 }
-
-void read_IOT()
+void get_IOT2_parameters()
 {
     StaticJsonDocument<400> DOC;
     if (iot.extract_JSON_from_flash(iot.parameter_filenames[0], DOC))
@@ -159,37 +147,10 @@ void read_IOT()
         iot.update_vars_flash_parameters(DOC);
     }
 }
-
-void _create_entities(JsonDocument &DOC, uint8_t input_pins[], uint8_t output_pins[], int RF_keyboardCode[], uint8_t &size_in, uint8_t &size_out, uint8_t &size_RF, uint8_t RF)
-{
-    JsonArray entTypes = DOC["entityType"];
-    uint8_t win_ents = 0;
-    uint8_t sw_ents = 0;
-
-    controller.set_RF(RF);
-    controller.set_RFch(RF_keyboardCode, size_RF);
-    controller.set_inputs(input_pins, size_in);
-    controller.set_outputs(output_pins, size_out);
-
-    for (uint8_t x = 0; x < entTypes.size(); x++)
-    {
-        if (entTypes[x].as<uint8_t>() == WIN_ENT)
-        {
-            controller.create_Win(DOC["Winname"][win_ents].as<const char *>(), DOC["WinvirtCMD"][win_ents].as<bool>(), DOC["WextInputs"][win_ents].as<uint8_t>());
-            win_ents++;
-        }
-        else if (entTypes[x].as<uint8_t>() == SW_ENT)
-        {
-            controller.create_SW(DOC["SWname"][sw_ents].as<const char *>(), DOC["SW_buttonTypes"][sw_ents].as<uint8_t>(),
-                                 DOC["SWvirtCMD"][sw_ents].as<bool>(), DOC["SW_timeout"][sw_ents].as<uint8_t>(), DOC["RF_2entity"][sw_ents].as<uint8_t>());
-            sw_ents++;
-        }
-    }
-}
-void read_Entities()
+void get_entities_parameters()
 {
     StaticJsonDocument<1200> DOC;
-    
+
     int _RFcodes[10]{};
     uint8_t _inpins[12]{};
     uint8_t _outpins[8]{};
@@ -198,7 +159,7 @@ void read_Entities()
     uint8_t actual_outpins_saved = 0;
     uint8_t actual_RFcodes_saved = 0;
 
-    read_Hardware(DOC, _inpins, _outpins, _RFcodes, actual_inpins_saved, actual_outpins_saved, actual_RFcodes_saved, RF_p);
+    get_pins_parameters(DOC, _inpins, _outpins, _RFcodes, actual_inpins_saved, actual_outpins_saved, actual_RFcodes_saved, RF_p);
 
 #if MAN_MODE && LOCAL_PARAM
     DeserializationError error0 = deserializeJson(DOC, cont_params);
@@ -208,14 +169,36 @@ void read_Entities()
     if (iot.extract_JSON_from_flash(iot.parameter_filenames[3], DOC))
     {
 #endif
-        _create_entities(DOC, _inpins, _outpins, _RFcodes, actual_inpins_saved, actual_outpins_saved, actual_RFcodes_saved, RF_p);
+        // _create_entities(DOC, _inpins, _outpins, _RFcodes, actual_inpins_saved, actual_outpins_saved, actual_RFcodes_saved, RF_p);
+
+        JsonArray entTypes = DOC["entityType"];
+        uint8_t win_ents = 0;
+        uint8_t sw_ents = 0;
+
+        controller.set_RF(RF_p);
+        controller.set_RFch(_RFcodes, actual_RFcodes_saved);
+
+        for (uint8_t x = 0; x < entTypes.size(); x++)
+        {
+            if (entTypes[x].as<uint8_t>() == WIN_ENT)
+            {
+                controller.create_Win(_inpins, _outpins, DOC["Winname"][win_ents].as<const char *>(), DOC["WinvirtCMD"][win_ents].as<bool>(), DOC["WextInputs"][win_ents].as<uint8_t>());
+                win_ents++;
+            }
+            else if (entTypes[x].as<uint8_t>() == SW_ENT)
+            {
+                controller.create_SW(_inpins, _outpins, DOC["SWname"][sw_ents].as<const char *>(), DOC["SW_buttonTypes"][sw_ents].as<uint8_t>(),
+                                     DOC["SWvirtCMD"][sw_ents].as<bool>(), DOC["SW_timeout"][sw_ents].as<uint8_t>(), DOC["RF_2entity"][sw_ents].as<uint8_t>());
+                sw_ents++;
+            }
+        }
     }
 }
 
 void read_all_parameters()
 {
-    construct_filenames();
-    read_IOT();
-    read_Entities();
+    build_path_directory();
+    get_IOT2_parameters();
+    get_entities_parameters();
     readTopics();
 }

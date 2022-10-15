@@ -8,7 +8,7 @@
 
 struct Cotroller_Ent_telemetry
 {
-    uint8_t id;
+    uint8_t id;    /* of entity instance*/
     uint8_t type;  /* Entiry type 0- win. 1 sw */
     uint8_t state; /* Up/Down/ Off */
     uint8_t trig;  /* What triggered the button */
@@ -35,8 +35,8 @@ private:
     uint8_t _outIOCounter = 0;
     uint8_t _swEntityCounter = 0;
     uint8_t _winEntityCounter = 0;
-    uint8_t _input_pins[TOT_Inputs];
-    uint8_t _output_pins[TOT_Relays];
+    // uint8_t _input_pins[TOT_Inputs];
+    // uint8_t _output_pins[TOT_Relays];
     uint8_t _RF_ch_2_SW[4] = {255, 255, 255, 255};
     int _RF_freq[4] = {3135496, 3135492, 3135490, 3135489};
 
@@ -72,9 +72,7 @@ public:
     homeCtl();
     bool loop();
     void set_RF(uint8_t pin = 255);                    /* IO that RF recv is connected to */
-    void set_inputs(uint8_t arr[], uint8_t arr_size);  /* Physical SW IOs*/
-    void set_outputs(uint8_t arr[], uint8_t arr_size); /* Relays pins */
-    void set_RFch(int arr[], uint8_t arr_size);    /* Radio freq to listen to. belong to a remote control */
+    void set_RFch(int arr[], uint8_t arr_size);        /* Radio freq to listen to. belong to a remote control */
     void set_ent_name(uint8_t type, uint8_t i, const char *name);
     void Win_init_lockdown();
     void Win_release_lockdown();
@@ -85,8 +83,8 @@ public:
     void get_entity_prop(uint8_t ent_type, uint8_t i, SW_props &sw_prop);
     void get_entity_prop(uint8_t ent_type, uint8_t i, Win_props &win_prop);
 
-    void create_Win(const char *topic, bool is_virtual = false, bool use_ext_sw = false);
-    void create_SW(const char *topic, uint8_t sw_type, bool is_virtual = false, int timeout_m = 1, uint8_t RF_ch = 255);
+    void create_Win(uint8_t _input_pins[], uint8_t _output_pins[], const char *topic, bool is_virtual = false, bool use_ext_sw = false);
+    void create_SW(uint8_t _input_pins[], uint8_t _output_pins[], const char *topic, uint8_t sw_type, bool is_virtual = false, int timeout_m = 1, uint8_t RF_ch = 255);
 
     void Win_switchCB(uint8_t i, uint8_t state);
     void SW_switchCB(uint8_t i, uint8_t state, unsigned int TO = 0);
