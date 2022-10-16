@@ -1,6 +1,6 @@
-1 windows + ext button
-2 switches (1 with button, 1 without input), 
-2 RF switches
-no virtCMDs
-
-
+1 windows
+2 switches
+0 RF
+0 virtCMDs
+2 SW Timeout
+2 input types

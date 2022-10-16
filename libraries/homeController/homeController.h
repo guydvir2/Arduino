@@ -25,7 +25,7 @@ enum ENT_TYPE : const uint8_t
 class homeCtl
 {
 #define TOT_Relays 8
-#define TOT_Inputs 12
+#define TOT_Inputs 2
 #define MAX_TOPIC_SIZE 40 // <----- Verfy max Topic size
 
 private:
@@ -35,10 +35,8 @@ private:
     uint8_t _outIOCounter = 0;
     uint8_t _swEntityCounter = 0;
     uint8_t _winEntityCounter = 0;
-    // uint8_t _input_pins[TOT_Inputs];
-    // uint8_t _output_pins[TOT_Relays];
     uint8_t _RF_ch_2_SW[4] = {255, 255, 255, 255};
-    int _RF_freq[4] = {3135496, 3135492, 3135490, 3135489};
+    int _RF_freq[4]; // = {3135496, 3135492, 3135490, 3135489};
 
 public:
     const char *ver = "smartController_v0.1";
@@ -49,14 +47,13 @@ public:
     char *WinTrigs[5] = {"Timeout", "Button", "Button2", "Lockdown", "MQTT"};
     char *SW_Types[4] = {"Button", "Timeout", "MQTT", "Remote"};
     char *EntTypes[2] = {"win", "sw"}; /* Prefix to address client types when using MQTT */
-    WinSW *winSW_V[TOT_Relays / 2] = {nullptr, nullptr, nullptr, nullptr};
-    smartSwitch *SW_v[TOT_Inputs] = {nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr};
+
+    smartSwitch *SW_v[TOT_Inputs] = {nullptr, nullptr}; //, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr};
 
 private:
     Cotroller_Ent_telemetry _MSG;
     RCSwitch *RF_v = nullptr;
     // WinSW *winSW_V[TOT_Relays / 2] = {nullptr, nullptr, nullptr, nullptr};
-    // smartSwitch *SW_v[TOT_Inputs] = {nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr};
 
     void _init_RF(uint8_t i);
     void _toggle_SW_RF(uint8_t i);
@@ -71,9 +68,8 @@ private:
 public:
     homeCtl();
     bool loop();
-    void set_RF(uint8_t pin = 255);                    /* IO that RF recv is connected to */
-    void set_RFch(int arr[], uint8_t arr_size);        /* Radio freq to listen to. belong to a remote control */
-    void set_ent_name(uint8_t type, uint8_t i, const char *name);
+    void set_RF(uint8_t pin = 255);             /* IO that RF recv is connected to */
+    void set_RFch(int arr[], uint8_t arr_size); /* Radio freq to listen to. belong to a remote control */
     void Win_init_lockdown();
     void Win_release_lockdown();
 
@@ -81,7 +77,7 @@ public:
     uint8_t get_ent_state(uint8_t type, uint8_t i);
     char *get_ent_ver(uint8_t type);
     void get_entity_prop(uint8_t ent_type, uint8_t i, SW_props &sw_prop);
-    void get_entity_prop(uint8_t ent_type, uint8_t i, Win_props &win_prop);
+    // void get_entity_prop(uint8_t ent_type, uint8_t i, Win_props &win_prop);
 
     void create_Win(uint8_t _input_pins[], uint8_t _output_pins[], const char *topic, bool is_virtual = false, bool use_ext_sw = false);
     void create_SW(uint8_t _input_pins[], uint8_t _output_pins[], const char *topic, uint8_t sw_type, bool is_virtual = false, int timeout_m = 1, uint8_t RF_ch = 255);

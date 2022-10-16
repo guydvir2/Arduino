@@ -257,29 +257,6 @@ void RockerSW::set_input(uint8_t upPin, uint8_t downPin, uint8_t active_dir)
     _last_state[i] = digitalRead(_pins[i]);
   }
 }
-uint8_t RockerSW::get_raw()
-{
-  if (_readPin(0) == PRESSED && _readPin(1) == PRESSED)
-  {
-    return STATE_ERR;
-  }
-  else if (_readPin(0) != PRESSED && _readPin(1) != PRESSED)
-  {
-    return STATE_OFF;
-  }
-  else if (_readPin(0) == PRESSED && _readPin(1) != PRESSED)
-  {
-    return STATE_1;
-  }
-  else if (_readPin(0) != PRESSED && _readPin(1) == PRESSED)
-  {
-    return STATE_2;
-  }
-  else
-  {
-    return STATE_ERR;
-  }
-}
 uint8_t RockerSW::get_SWstate()
 {
   uint8_t _up = _readPin(0);
@@ -318,50 +295,6 @@ uint8_t RockerSW::get_SWstate()
   3 - no change
   4 - err
   */
-  // for (uint8_t i = 0; i < 2; i++)
-  // {
-  // _last_state[i] = _state[i];
-  // _state[i] = _readPin(_pins[i]);
-  // }
-  // unsigned long now = millis();
-  // if (_state[0] == PRESSED || _state[1] == PRESSED)
-  // {
-  //   if (_last_state[0] != PRESSED || _last_state[1] != PRESSED)
-  //   {
-  //     _down_ms = now;
-  //     _is_triggered = false;
-  //   }
-
-  //   if (_state[0] == _last_state[0] && _state[1] == _last_state[1]) /* no-change */
-  //   {
-  //     return 3;
-  //   }
-  //   else
-  //   {
-  //     delay(DEBOUNCE_MS);
-  //     bool cur2_pin0 = digitalRead(_pins[0]);
-  //     bool cur2_pin1 = digitalRead(_pins[1]);
-
-  //     if (cur2_pin0 != _state[0] || cur2_pin1 != cur2_pin1)
-  //     {
-  //       return STATE_ERR;
-  //     }
-  //     else if (cur2_pin0 == _state[0] && _last_state[0] != _state[0])
-  //     {
-  //       _last_state[0] = _state[0];
-  //       return cur2_pin0 == PRESSED ? STATE_1 : STATE_OFF;
-  //     }
-  //     else if (cur2_pin1 == _state[1] && _last_state[1] != _state[1])
-  //     {
-  //       _last_state[1] = _state[1];
-  //       return cur2_pin1 == PRESSED ? STATE_2 : STATE_OFF;
-  //     }
-  //     else
-  //     {
-  //       return STATE_ERR;
-  //     }
-  //   }
-  // }
 }
 uint8_t RockerSW::_readPin(uint8_t i)
 {

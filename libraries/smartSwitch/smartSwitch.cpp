@@ -21,7 +21,7 @@ void smartSwitch::set_timeout(int t)
 }
 void smartSwitch::set_name(const char *Name)
 {
-    strlcpy(name, Name, MAX_NAME_LEN);
+    // strlcpy(name, Name, MAX_NAME_LEN);
 }
 void smartSwitch::set_output(uint8_t outpin)
 {
@@ -57,6 +57,20 @@ void smartSwitch::set_input(uint8_t inpin, uint8_t t)
     else if (t == MOMENTARY_SW)
     {
         _inputButton.setPressedHandler(std::bind(&smartSwitch::_toggle_handle, this, std::placeholders::_1));
+    }
+}
+void smartSwitch::init_lockdown()
+{
+    if (_use_lockdown)
+    {
+        _in_lockdown = true;
+    }
+}
+void smartSwitch::release_lockdown()
+{
+    if (_use_lockdown)
+    {
+        _in_lockdown = false;
     }
 }
 
@@ -103,6 +117,11 @@ void smartSwitch::turnOFF_cb(uint8_t type)
             HWturnOFF(_outputPin);
             _stop_timeout();
             _update_telemetry(SW_OFF, type, 0);
+
+            // telemtryMSG.newMSG = true;
+            // telemtryMSG.state = 0;
+            // telemtryMSG.reason = type;
+            // telemtryMSG.clk_end = 0;
         }
         else
         {
@@ -121,51 +140,39 @@ void smartSwitch::turnOFF_cb(uint8_t type)
 }
 void smartSwitch::get_prefences()
 {
-    Serial.print("<<<<<<< smartSwitch #");
-    Serial.print(get_id());
-    Serial.println(" >>>>>>>");
-    Serial.print("> Type:\t\t");
-    Serial.print(_button_type);
-    Serial.println("  [0:None, 1:On-Off, 2:pushButton]");
-    Serial.print("> Name:\t\t");
-    Serial.println(strcmp(name, "") != 0 ? name : "None");
+//     Serial.print("<<<<<<< smartSwitch #");
+//     Serial.print(_inputButton.getID());
+//     Serial.println(" >>>>>>>");
+//     Serial.print("> Type:\t\t");
+//     Serial.print(_button_type);
+//     Serial.println("  [0:None, 1:On-Off, 2:pushButton]");
+//     Serial.print("> Name:\t\t");
+//     Serial.println(strcmp(name, "") != 0 ? name : "None");
 
-    Serial.print("> useInput:\t");
-    Serial.println(get_inpin() != UNDEF_PIN ? "YES" : "NO");
-    Serial.print("> useoutput:\t");
-    Serial.println(_outputPin != UNDEF_PIN ? "YES" : "NO");
-    Serial.print("> inputPin:\t");
-    Serial.println(_inputButton.getPin());
-    Serial.print("> outputPin:\t");
-    Serial.println(_outputPin);
+//     Serial.print("> useInput:\t");
+//     Serial.println(_inputButton.getPin() != UNDEF_PIN ? "YES" : "NO");
+//     Serial.print("> useoutput:\t");
+//     Serial.println(_outputPin != UNDEF_PIN ? "YES" : "NO");
+//     Serial.print("> inputPin:\t");
+//     Serial.println(_inputButton.getPin());
+//     Serial.print("> outputPin:\t");
+//     Serial.println(_outputPin);
 
-    Serial.print("> virtualCMD:\t");
-    Serial.println(_virtCMD ? name : "NO");
-    Serial.print("> MCU:\t\t");
-    bool a = 0;
-#if defined ESP32
-    a = 1;
-#elif defined ESP8266
-    a = 0;
-#endif
-    Serial.println(a == 0 ? "ESP8266" : "ESP32");
+//     Serial.print("> virtualCMD:\t");
+//     Serial.println(_virtCMD ? name : "NO");
+//     Serial.print("> MCU:\t\t");
+//     bool a = 0;
+// #if defined ESP32
+//     a = 1;
+// #elif defined ESP8266
+//     a = 0;
+// #endif
+//     Serial.println(a == 0 ? "ESP8266" : "ESP32");
 
-    Serial.print("<<<<<<< END ");
-    Serial.println(">>>>>>");
+//     Serial.print("<<<<<<< END ");
+//     Serial.println(">>>>>>");
 }
 
-uint8_t smartSwitch::get_id()
-{
-    return _inputButton.getID();
-}
-uint8_t smartSwitch::get_inpin()
-{
-    return _inputButton.getPin();
-}
-uint8_t smartSwitch::get_outpin()
-{
-    return _outputPin;
-}
 int smartSwitch::get_remain_time()
 {
     if (_timeout_clk.isRunning() && _use_timeout)
@@ -177,10 +184,7 @@ int smartSwitch::get_remain_time()
         return 0;
     }
 }
-uint8_t smartSwitch::get_SWtype()
-{
-    return _button_type;
-}
+
 uint8_t smartSwitch::get_SWstate()
 {
     if (!_virtCMD)
@@ -200,16 +204,18 @@ void smartSwitch::get_SW_props(SW_props &props)
     props.outpin = _outputPin;
     props.timeout = _use_timeout;
     props.virtCMD = _virtCMD;
-    props.name = name;
+    // props.name = name;
 }
 
 bool smartSwitch::loop()
 {
-    if (_useButton)
+    bool lckdown = true; //((_use_lockdown && !_in_lockdown) || (!_use_lockdown));
+
+    if (_useButton && lckdown)
     {
         _inputButton.loop();
     }
-    if (_use_timeout)
+    if (_use_timeout && lckdown)
     {
         _timeout_loop();
     }
@@ -273,6 +279,16 @@ void smartSwitch::_update_telemetry(uint8_t state, uint8_t type, unsigned long t
     telemtryMSG.state = state;
     telemtryMSG.reason = type;
     telemtryMSG.clk_end = te;
+
+    // Serial.println("Tele updated");
+
+    // Serial.println("AT LIB");
+    // Serial.print("state: ");
+    // Serial.println(telemtryMSG.state);
+    // Serial.print("reason: ");
+    // Serial.println(telemtryMSG.reason);
+    // Serial.print("clk_end: ");
+    // Serial.println(telemtryMSG.clk_end);
 }
 void smartSwitch::_OnOffSW_Relay(uint8_t i, bool state, uint8_t type)
 {

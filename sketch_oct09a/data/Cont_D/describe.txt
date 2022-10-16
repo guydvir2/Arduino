@@ -1,9 +1,6 @@
 1 windows
 2 switches
-no RF
-win virtCMDs
-1 ext Buttons
-1 push_buttons
-1 ON_OFF buttons
-2 RF switches
-
+0 RF
+3 virtCMDs
+0 SW Timeout
+2 input types

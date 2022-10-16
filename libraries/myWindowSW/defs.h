@@ -2,8 +2,8 @@
 
 struct Win_act_telem
 {
-    uint8_t state;  /* Up/Down/ Off */
-    uint8_t reason; /* What triggered the button */
+    uint8_t state = 255;  /* Up/Down/ Off */
+    uint8_t reason = 255; /* What triggered the button */
     bool lockdown_state = false;
 };
 struct Win_props

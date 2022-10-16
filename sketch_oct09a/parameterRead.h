@@ -8,6 +8,7 @@ extern char winGroupTopics[2][MAX_TOPIC_SIZE];
 extern char SwGroupTopics[3][MAX_TOPIC_SIZE];
 
 extern bool getPins_manual(JsonDocument &DOC);
+extern uint8_t onFlash_hardware_preset;
 
 char parameterFiles[4][30];
 void build_path_directory(uint8_t i = 0)
@@ -20,15 +21,15 @@ void build_path_directory(uint8_t i = 0)
 #endif
     const char *FileNames_dedicated[2] = {"myIOT2_topics.json", "sketch_param.json"};
 
-    for (uint8_t x = 0; x < sizeof(FileNames_common) / sizeof(FileNames_common[0]); x++)
+    for (uint8_t x = 0; x < 4; x++)
     {
-        if (x < sizeof(FileNames_common) / sizeof(FileNames_common[0]))
+        if (x < 2)
         {
             sprintf(parameterFiles[x], "/%s", FileNames_common[x]);
         }
         else
         {
-            sprintf(parameterFiles[x], "/%s/%s", dirs[i], FileNames_dedicated[x - sizeof(FileNames_common) / sizeof(FileNames_common[0])]);
+            sprintf(parameterFiles[x], "/%s/%s", dirs[i], FileNames_dedicated[x - 2]);
         }
         iot.parameter_filenames[x] = parameterFiles[x];
     }
@@ -169,7 +170,6 @@ void get_entities_parameters()
     if (iot.extract_JSON_from_flash(iot.parameter_filenames[3], DOC))
     {
 #endif
-        // _create_entities(DOC, _inpins, _outpins, _RFcodes, actual_inpins_saved, actual_outpins_saved, actual_RFcodes_saved, RF_p);
 
         JsonArray entTypes = DOC["entityType"];
         uint8_t win_ents = 0;
@@ -197,8 +197,8 @@ void get_entities_parameters()
 
 void read_all_parameters()
 {
-    build_path_directory();
-    get_IOT2_parameters();
+    build_path_directory(onFlash_hardware_preset);
+    // get_IOT2_parameters();
     get_entities_parameters();
-    readTopics();
+    // readTopics();
 }

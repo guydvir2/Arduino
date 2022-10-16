@@ -13,18 +13,16 @@
         "myHome/All",
         "myHome/lockdown"
     ],
-    "sub_topics_win": [
-        "myHome/Windows/gFloor/TwinWindow",
-        "myHome/Windows/gFloor/Win2"
-    ],
-    "sub_topics_SW": [
-        "myHome/Lights/int/gFloor/Sw_0",
-        "myHome/Lights/int/gFloor/Sw_1"
-    ],
+    "sub_topics_win": ["myHome/Windows/gFloor/W0","myHome/Windows/gFloor/W1"],
+    "sub_topics_SW": ["myHome/Lights/int/gFloor/Sw0","myHome/Lights/int/gFloor/Sw1","myHome/Lights/int/gFloor/Sw2","myHome/Lights/int/gFloor/Sw3"],
     "sub_topics_win_g": [
         "myHome/Windows",
         "myHome/Windows/gFloor"
     ],
-    "sub_topics_SW_g": [],
+    "sub_topics_SW_g": [
+        "myHome/Light",
+        "myHome/Lights/int",
+        "myHome/Lights/int/gFloor"
+    ],
     "ver": 0.1
 }

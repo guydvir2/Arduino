@@ -4,10 +4,14 @@
 #include <Button2.h> /* Button Entities */
 #include <Chrono.h>
 
+#ifndef UNDEF_PIN
 #define UNDEF_PIN 255
-#ifndef MAX_NAME_LEN
-#define MAX_NAME_LEN 35
 #endif
+
+#ifndef MAX_NAM_LEN
+#define MAX_NAM_LEN 35
+#endif
+
 #define OUTPUT_ON HIGH
 #define BUTTON_PRESSED LOW
 #define HWturnON(i) digitalWrite(i, OUTPUT_ON)
@@ -16,10 +20,9 @@
 struct SW_act_telem
 {
     bool newMSG = false;
-    uint8_t state;  /* Up/Down/ Off */
-    uint8_t reason; /* What triggered the button */
-    unsigned long clk_start = 0;
-    unsigned long clk_end = 0;
+    uint8_t state = 255;  /* Up/Down/ Off */
+    uint8_t reason = 255; /* What triggered the button */
+    unsigned long clk_end = 5555;
 };
 struct SW_props
 {
@@ -30,7 +33,8 @@ struct SW_props
 
     bool timeout = false;
     bool virtCMD = false;
-    char *name;
+    bool lockdown = false;
+    // char *name;
 };
 
 enum SWTypes : const uint8_t
@@ -51,11 +55,12 @@ enum SWstates : const uint8_t
     SW_OFF,
     SW_ON
 };
+
 class smartSwitch
 {
 public:
-    char ver[15] = "smartSW_v0.2";
-    char name[MAX_NAME_LEN];
+    char ver[15] = "smartSW_v0.3";
+    char name[MAX_NAM_LEN];
     SW_act_telem telemtryMSG;
 
 public:
@@ -63,6 +68,8 @@ public:
     void set_id(uint8_t i);
     void set_name(const char *Name);
     void set_timeout(int t = 0);
+    void init_lockdown();
+    void release_lockdown();
     void set_output(uint8_t outpin = UNDEF_PIN);
     void set_input(uint8_t inpin = UNDEF_PIN, uint8_t t = 0);
 
@@ -71,10 +78,6 @@ public:
     void clear_newMSG();
     bool loop();
 
-    uint8_t get_id();
-    uint8_t get_inpin();
-    uint8_t get_outpin();
-    uint8_t get_SWtype();
     uint8_t get_SWstate();
     int get_remain_time();
     void get_prefences();
@@ -93,6 +96,8 @@ private:
     bool _useButton = false;
     bool _guessState = false;
     bool _use_timeout = false;
+    bool _use_lockdown = false;
+    bool _in_lockdown = false;
 
     Chrono _timeout_clk;
     /* inputs only */

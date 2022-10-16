@@ -12,6 +12,14 @@ Features:
 #include <Arduino.h>
 #include "defs.h"
 
+#ifndef MAX_NAME_LEN
+#define MAX_NAME_LEN 40
+#endif
+
+#ifndef UNDEF_INPUT
+#define UNDEF_INPUT 255
+#endif
+
 #define winUP     \
     if (!virtCMD) \
     digitalWrite(outpins[0], RELAY_ON)
@@ -22,7 +30,6 @@ Features:
 
 class RockerSW
 {
-#define UNDEF_INPUT 255
 #define PRESSED LOW
 #define DEBOUNCE_MS 50
 
@@ -46,23 +53,17 @@ private:
 
 public:
     RockerSW();
-    uint8_t get_raw();
     uint8_t get_SWstate();
     uint8_t get_pins(uint8_t i);
     void set_input(uint8_t upPin, uint8_t downPin, uint8_t active_dir = INPUT_PULLUP);
 
 private:
     uint8_t _readPin(uint8_t i);
-
-    friend class WinSW;
 };
 
 class WinSW
 {
 #define RELAY_ON HIGH
-#define MAX_NAME_LEN 40
-#define UNDEF_INPUT 255
-
 private:
     RockerSW _mainSW;
     RockerSW _extSW;

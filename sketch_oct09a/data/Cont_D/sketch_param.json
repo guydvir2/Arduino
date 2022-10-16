@@ -4,41 +4,47 @@
         1,
         1
     ],
-    "virtCMD": [
-        "myHome/Windows/gFloor/W0",
-        "myHome/Lights/int/gFloor/SW0",
-        "myHome/Lights/int/gFloor/SW1"
+    "SWname": [
+        "myHome/Lights/int/gFloor/Sw_0",
+        "myHome/Lights/int/gFloor/Sw_1",
+        "myHome/Lights/int/gFloor/Sw_2",
+        "myHome/Lights/int/gFloor/Sw_3"
     ],
-    "SW_buttonTypes": [
-        1,
-        2,
-        2,
-        2
+    "Winname": [
+        "myHome/Windows/gFloor/Win_0",
+        "myHome/Windows/gFloor/Win_1"
+    ],
+    "SWvirtCMD": [
+        true,
+        true,
+        false,
+        false
+    ],
+    "WinvirtCMD": [
+        true,
+        false
     ],
     "WextInputs": [
         0,
-        0,
-        0,
         0
     ],
-    "RF_keyboardCode": [
-        3135496,
-        3135492,
-        3135490,
-        3135489
+    "SW_buttonTypes": [
+        2,
+        1,
+        2,
+        0
     ],
     "SW_timeout": [
+        10,
+        20,
         30,
-        60,
-        0,
         0
     ],
     "RF_2entity": [
-        0,
-        1,
         255,
-        255
+        255,
+        0,
+        1
     ],
-    "RFpin": 27,
-    "v_file": 0.2
+    "v_file": 0.5
 }
