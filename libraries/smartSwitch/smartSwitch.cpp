@@ -21,7 +21,7 @@ void smartSwitch::set_timeout(int t)
 }
 void smartSwitch::set_name(const char *Name)
 {
-    // strlcpy(name, Name, MAX_NAME_LEN);
+    strlcpy(name, Name, MAX_NAM_LEN);
 }
 void smartSwitch::set_output(uint8_t outpin)
 {
@@ -59,6 +59,14 @@ void smartSwitch::set_input(uint8_t inpin, uint8_t t)
         _inputButton.setPressedHandler(std::bind(&smartSwitch::_toggle_handle, this, std::placeholders::_1));
     }
 }
+void smartSwitch::set_lockSW()
+{
+    _in_lockdown = true;
+}
+void smartSwitch::set_unlockSW()
+{
+    _in_lockdown = false;
+}
 void smartSwitch::init_lockdown()
 {
     if (_use_lockdown)
@@ -76,101 +84,107 @@ void smartSwitch::release_lockdown()
 
 void smartSwitch::turnON_cb(uint8_t type, unsigned int temp_TO)
 {
-    if (!_virtCMD)
+    if (!_in_lockdown)
     {
-        if (!_isON())
+        if (!_virtCMD)
         {
-            HWturnON(_outputPin);
-            if (temp_TO != 0)
+            if (!_isON())
             {
-                _timeout_temp = temp_TO * 1000;
+                HWturnON(_outputPin);
+                if (temp_TO != 0)
+                {
+                    _timeout_temp = temp_TO * 1000;
+                }
+                _start_timeout();
+                unsigned long _t = 0;
+                if (_use_timeout)
+                {
+                    temp_TO == 0 ? _t = _timeout_duration : _t = _timeout_temp;
+                }
+                _update_telemetry(SW_ON, type, _t);
             }
-            _start_timeout();
-            unsigned long _t = 0;
-            if (_use_timeout)
+            else
             {
-                temp_TO == 0 ? _t = _timeout_duration : _t = _timeout_temp;
+                Serial.println(" Already on");
             }
-            _update_telemetry(SW_ON, type, _t);
         }
         else
         {
-            Serial.println(" Already on");
-        }
-    }
-    else
-    {
-        if (_guessState == SW_OFF)
-        {
-            _start_timeout();
-            _guessState = !_guessState;
-            _update_telemetry(SW_ON, type);
+            if (_guessState == SW_OFF)
+            {
+                _start_timeout();
+                _guessState = !_guessState;
+                _update_telemetry(SW_ON, type);
+            }
         }
     }
 }
 void smartSwitch::turnOFF_cb(uint8_t type)
 {
-    if (!_virtCMD)
+    if (!_in_lockdown)
     {
-        if (_isON())
+        if (!_virtCMD)
         {
-            HWturnOFF(_outputPin);
-            _stop_timeout();
-            _update_telemetry(SW_OFF, type, 0);
+            if (_isON())
+            {
+                HWturnOFF(_outputPin);
+                _stop_timeout();
+                _update_telemetry(SW_OFF, type, 0);
 
-            // telemtryMSG.newMSG = true;
-            // telemtryMSG.state = 0;
-            // telemtryMSG.reason = type;
-            // telemtryMSG.clk_end = 0;
+                // telemtryMSG.newMSG = true;
+                // telemtryMSG.state = 0;
+                // telemtryMSG.reason = type;
+                // telemtryMSG.clk_end = 0;
+            }
+            else
+            {
+                Serial.println(" Already off");
+            }
         }
         else
         {
-            Serial.println(" Already off");
-        }
-    }
-    else
-    {
-        if (_guessState == SW_ON)
-        {
-            _stop_timeout();
-            _guessState = !_guessState;
-            _update_telemetry(SW_OFF, type);
+            if (_guessState == SW_ON)
+            {
+                _stop_timeout();
+                _guessState = !_guessState;
+                _update_telemetry(SW_OFF, type);
+            }
         }
     }
 }
 void smartSwitch::get_prefences()
 {
-//     Serial.print("<<<<<<< smartSwitch #");
-//     Serial.print(_inputButton.getID());
-//     Serial.println(" >>>>>>>");
-//     Serial.print("> Type:\t\t");
-//     Serial.print(_button_type);
-//     Serial.println("  [0:None, 1:On-Off, 2:pushButton]");
-//     Serial.print("> Name:\t\t");
-//     Serial.println(strcmp(name, "") != 0 ? name : "None");
+    //     Serial.print("<<<<<<< smartSwitch #");
+    //     Serial.print(_inputButton.getID());
+    //     Serial.println(" >>>>>>>");
+    //     Serial.print("> Type:\t\t");
+    //     Serial.print(_button_type);
+    //     Serial.println("  [0:None, 1:On-Off, 2:pushButton]");
+    //     Serial.print("> Name:\t\t");
+    //     Serial.println(strcmp(name, "") != 0 ? name : "None");
 
-//     Serial.print("> useInput:\t");
-//     Serial.println(_inputButton.getPin() != UNDEF_PIN ? "YES" : "NO");
-//     Serial.print("> useoutput:\t");
-//     Serial.println(_outputPin != UNDEF_PIN ? "YES" : "NO");
-//     Serial.print("> inputPin:\t");
-//     Serial.println(_inputButton.getPin());
-//     Serial.print("> outputPin:\t");
-//     Serial.println(_outputPin);
+    //     Serial.print("> useInput:\t");
+    //     Serial.println(_inputButton.getPin() != UNDEF_PIN ? "YES" : "NO");
+    //     Serial.print("> useoutput:\t");
+    //     Serial.println(_outputPin != UNDEF_PIN ? "YES" : "NO");
+    //     Serial.print("> inputPin:\t");
+    //     Serial.println(_inputButton.getPin());
+    //     Serial.print("> outputPin:\t");
+    //     Serial.println(_outputPin);
 
-//     Serial.print("> virtualCMD:\t");
-//     Serial.println(_virtCMD ? name : "NO");
-//     Serial.print("> MCU:\t\t");
-//     bool a = 0;
-// #if defined ESP32
-//     a = 1;
-// #elif defined ESP8266
-//     a = 0;
-// #endif
-//     Serial.println(a == 0 ? "ESP8266" : "ESP32");
+    //     Serial.print("> virtualCMD:\t");
+    //     Serial.println(_virtCMD ? name : "NO");
+    //     Serial.print("> MCU:\t\t");
+    //     bool a = 0;
+    // #if defined ESP32
+    //     a = 1;
+    // #elif defined ESP8266
+    //     a = 0;
+    // #endif
+    //     Serial.println(a == 0 ? "ESP8266" : "ESP32");
 
-//     Serial.print("<<<<<<< END ");
-//     Serial.println(">>>>>>");
+    //     Serial.print("<<<<<<< END ");
+    //     Serial.println(">>>>>>");
 }
 
 int smartSwitch::get_remain_time()
@@ -204,7 +218,7 @@ void smartSwitch::get_SW_props(SW_props &props)
     props.outpin = _outputPin;
     props.timeout = _use_timeout;
     props.virtCMD = _virtCMD;
-    // props.name = name;
+    props.name = name;
 }
 
 bool smartSwitch::loop()

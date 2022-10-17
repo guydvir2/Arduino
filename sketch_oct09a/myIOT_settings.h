@@ -34,79 +34,6 @@ void MQTT_send_virtCMD(char *msg, char *topic)
 {
     iot.pub_noTopic(msg, topic, true);
 }
-void post_telemetry_2MQTT(Cotroller_Ent_telemetry &MSG) /* get telemetry from any entity */
-{
-    char msg[100];
-
-    if (MSG.type == WIN_ENT)
-    {
-        Win_props win_props;
-
-        controller.get_entity_prop(MSG.type /* window */, MSG.id /* win entity id */, win_props);
-        if (!win_props.virtCMD)
-        {
-            sprintf(msg, "[%s]: [WIN#%d] [%s] turned [%s]", controller.WinTrigs[MSG.trig], MSG.id, win_props.name, controller.WinStates[MSG.state]);
-            iot.pub_msg(msg);
-
-#if RETAINED_MSG
-            MQTT_clear_retained(win_props.name);
-#endif
-            MQTT_update_state(MSG.state, win_props.name); /* Retain State */
-        }
-        else
-        {
-            MQTT_send_virtCMD(controller.winMQTTcmds[MSG.state], win_props.name);
-            MQTT_notify_virtCMD(win_props.name, controller.winMQTTcmds[MSG.state], controller.WinTrigs[MSG.trig], msg);
-        }
-    }
-    else if (MSG.type == SW_ENT)
-    {
-        SW_props sw_props;
-        controller.get_entity_prop(MSG.type, MSG.id, sw_props);
-
-        if (!sw_props.virtCMD)
-        {
-            char msg2[30]{};
-
-            if (MSG.state == 1 && MSG.timeout > 0) /* On, with timeout */
-            {
-                char t[20];
-                iot.convert_epoch2clock((int)((MSG.timeout + 250) / 1000), 0, t);
-                sprintf(msg2, "timeout [%s]", t);
-            }
-            else if (MSG.state == 1 && MSG.timeout == 0) /* On, without timeout*/
-            {
-                strcpy(msg2, "timeout [No]");
-            }
-            else if (MSG.state == 0) /* Off*/
-            {
-                strcpy(msg2, "");
-            }
-            else
-            {
-                strcpy(msg2, "err");
-            }
-
-            Serial.println(controller.SW_Types[MSG.trig]);
-            Serial.println(sw_props.id);
-            Serial.println(sw_props.name);
-            Serial.println(controller.SW_MQTT_cmds[MSG.state]);
-
-            sprintf(msg, "[%s]: [SW#%d] [%s] turned [%s] %s", controller.SW_Types[MSG.trig], sw_props.id, sw_props.name, controller.SW_MQTT_cmds[MSG.state], msg2);
-            iot.pub_msg(msg);
-
-#if RETAINED_MSG
-            MQTT_clear_retained(sw_props.name);
-#endif
-            MQTT_update_state(MSG.state, sw_props.name); /* Retain State */
-        }
-        else
-        {
-            MQTT_send_virtCMD(controller.SW_MQTT_cmds[MSG.state], sw_props.name);
-            MQTT_notify_virtCMD(sw_props.name, controller.SW_MQTT_cmds[MSG.state], controller.SW_Types[MSG.trig], msg);
-        }
-    }
-}
 
 /* CHECK TOPICS - for what entity it belongs */
 bool MQTT_is_Contl_topic(char *_topic)
@@ -187,11 +114,10 @@ bool MQTT_is_SWgroup_topic(char *_topic)
 void MQTT_Post_Win_status(uint8_t i, char *msg)
 {
     Win_props win_props;
-    Cotroller_Ent_telemetry telemetry;
     controller.get_entity_prop(WIN_ENT, i, win_props);
-    controller.get_telemetry(telemetry);
 
-    sprintf(msg, "Status: Win[#%d][%s] [%s]%s", i, win_props.name, controller.winMQTTcmds[controller.get_ent_state(WIN_ENT, i)], i == (controller.get_ent_counter(WIN_ENT) - 1) ? "" : "; ");
+    sprintf(msg, "Status: Win[#%d][%s] [%s]",
+            i, win_props.name, win_props.virtCMD ? "Virtual" : controller.winMQTTcmds[controller.get_ent_state(WIN_ENT, i)]);
     iot.pub_msg(msg);
 }
 void MQTT_WinGroup_status(char *msg)
@@ -204,11 +130,10 @@ void MQTT_WinGroup_status(char *msg)
 void MQTT_Post_SW_status(uint8_t i, char *msg)
 {
     SW_props sw_props;
-    Cotroller_Ent_telemetry telemetry;
     controller.get_entity_prop(SW_ENT, i, sw_props);
-    controller.get_telemetry(telemetry);
 
-    sprintf(msg, "Status: SW[#%d][%s] [%s]", i, sw_props.name, controller.SW_MQTT_cmds[controller.get_ent_state(SW_ENT, i)]); //, i == swEntityCounter - 1 ? "" : "; ");
+    sprintf(msg, "Status: SW[#%d][%s] [%s]",
+            i, sw_props.name, sw_props.virtCMD ? "Virtual" : controller.SW_MQTT_cmds[controller.get_ent_state(SW_ENT, i)]);
     iot.pub_msg(msg);
 }
 void MQTT_SWGroup_status(char *msg)
@@ -246,7 +171,12 @@ void MQTT_WinGroup_Change_state(uint8_t state)
 {
     for (uint8_t i = 0; i < controller.get_ent_counter(WIN_ENT); i++)
     {
-        controller.Win_switchCB(i, state);
+        Win_props win_props;
+        controller.get_entity_prop(WIN_ENT, i, win_props);
+        if (!win_props.virtCMD)
+        {
+            controller.Win_switchCB(i, state);
+        }
     }
 }
 
@@ -272,7 +202,12 @@ void MQTT_SWGroup_Change_state(uint8_t state)
 {
     for (uint8_t i = 0; i < controller.get_ent_counter(SW_ENT); i++)
     {
-        controller.SW_switchCB(i, state);
+        SW_props sw_props;
+        controller.get_entity_prop(SW_ENT, i, sw_props);
+        if (!sw_props.virtCMD)
+        {
+            controller.SW_switchCB(i, state);
+        }
     }
 }
 

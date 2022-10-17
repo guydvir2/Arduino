@@ -15,13 +15,13 @@ bool homeCtl::loop()
   }
   return _MSG.newMSG;
 }
-// void homeCtl::Win_switchCB(uint8_t i, uint8_t state)
-// {
-// //   winSW_V[i]->set_WINstate(state, MQTT);
-// // #if RETAINED_MSG
-// //   MQTT_clear_retained(winSW_V[i]->name);
-// // #endif
-// }
+void homeCtl::Win_switchCB(uint8_t i, uint8_t state)
+{
+  winSW_V[i]->set_WINstate(state, MQTT);
+#if RETAINED_MSG
+  MQTT_clear_retained(winSW_V[i]->name);
+#endif
+}
 void homeCtl::SW_switchCB(uint8_t i, uint8_t state, unsigned int TO)
 {
   if (state == 1) /* ON */
@@ -32,43 +32,43 @@ void homeCtl::SW_switchCB(uint8_t i, uint8_t state, unsigned int TO)
   {
     SW_v[i]->turnOFF_cb(EXT_0);
   }
-  #if RETAINED_MSG
-    MQTT_clear_retained(SW_v[i]->name);
-  #endif
+#if RETAINED_MSG
+  MQTT_clear_retained(SW_v[i]->name);
+#endif
 }
 
-// void homeCtl::create_Win(uint8_t _input_pins[], uint8_t _output_pins[], const char *topic, bool is_virtual, bool use_ext_sw)
-// {
-//   // winSW_V[_winEntityCounter] = new WinSW;
-//   // winSW_V[_winEntityCounter]->set_input(_input_pins[_inIOCounter], _input_pins[_inIOCounter + 1]);
-//   // winSW_V[_winEntityCounter]->set_name(topic);
+void homeCtl::create_Win(uint8_t _input_pins[], uint8_t _output_pins[], const char *topic, bool is_virtual, bool use_ext_sw)
+{
+  winSW_V[_winEntityCounter] = new WinSW;
+  winSW_V[_winEntityCounter]->set_input(_input_pins[_inIOCounter], _input_pins[_inIOCounter + 1]);
+  winSW_V[_winEntityCounter]->set_name(topic);
 
-//   // // <<<<<<<<<<< Define input and output pins >>>>>>>>>>>>>>
-//   // if (is_virtual) /* a virtCMD on output */
-//   // {
-//   //   winSW_V[_winEntityCounter]->set_output(); /* empty definition --> virtCMD */
-//   // }
-//   // else /* Physical Switching input & output */
-//   // {
-//   //   winSW_V[_winEntityCounter]->set_output(_output_pins[_outIOCounter], _output_pins[_outIOCounter + 1]);
-//   //   _outIOCounter += 2;
-//   // }
+  // <<<<<<<<<<< Define input and output pins >>>>>>>>>>>>>>
+  if (is_virtual) /* a virtCMD on output */
+  {
+    winSW_V[_winEntityCounter]->set_output(); /* empty definition --> virtCMD */
+  }
+  else /* Physical Switching input & output */
+  {
+    winSW_V[_winEntityCounter]->set_output(_output_pins[_outIOCounter], _output_pins[_outIOCounter + 1]);
+    _outIOCounter += 2;
+  }
 
-//   // // <<<<<<<<<<< Define Ext_input pins , if needed >>>>>>>>>>>>>>
-//   // if (use_ext_sw) /* define a Secondary input for a window */
-//   // {
-//   //   winSW_V[_winEntityCounter]->set_ext_input(_input_pins[_inIOCounter + 2], _input_pins[_inIOCounter + 3]);
-//   //   _inIOCounter += 2;
-//   // }
+  // <<<<<<<<<<< Define Ext_input pins , if needed >>>>>>>>>>>>>>
+  if (use_ext_sw) /* define a Secondary input for a window */
+  {
+    winSW_V[_winEntityCounter]->set_ext_input(_input_pins[_inIOCounter + 2], _input_pins[_inIOCounter + 3]);
+    _inIOCounter += 2;
+  }
 
-//   // // <<<<<<<<<<< Init instance  >>>>>>>>>>>>>>
-//   // winSW_V[_winEntityCounter]->set_extras(); /* Timeout & lockdown */
-//   // winSW_V[_winEntityCounter]->print_preferences();
+  // <<<<<<<<<<< Init instance  >>>>>>>>>>>>>>
+  winSW_V[_winEntityCounter]->set_extras(); /* Timeout & lockdown */
+  winSW_V[_winEntityCounter]->print_preferences();
 
-//   // // <<<<<<<<< Incrementing Counters >>>>>>>>>>
-//   // _winEntityCounter++;
-//   // _inIOCounter += 2;
-// }
+  // <<<<<<<<< Incrementing Counters >>>>>>>>>>
+  _winEntityCounter++;
+  _inIOCounter += 2;
+}
 void homeCtl::create_SW(uint8_t _input_pins[], uint8_t _output_pins[], const char *topic, uint8_t sw_type, bool is_virtual, int timeout_m, uint8_t RF_ch)
 {
   SW_v[_swEntityCounter] = new smartSwitch;
@@ -100,21 +100,21 @@ void homeCtl::create_SW(uint8_t _input_pins[], uint8_t _output_pins[], const cha
   _swEntityCounter++;
 }
 
-// char *homeCtl::get_ent_ver(uint8_t type)
-// {
-//   // if (type == WIN_ENT)
-//   // {
-//   //   return winSW_V[0]->ver;
-//   // }
-//   // else if (type == SW_ENT)
-//   // {
-//   //   return SW_v[0]->ver;
-//   // }
-//   // else
-//   // {
-//   //   return "err";
-//   // }
-// }
+char *homeCtl::get_ent_ver(uint8_t type)
+{
+  if (type == WIN_ENT)
+  {
+    return winSW_V[0]->ver;
+  }
+  else if (type == SW_ENT)
+  {
+    return SW_v[0]->ver;
+  }
+  else
+  {
+    return "err";
+  }
+}
 uint8_t homeCtl::get_ent_counter(uint8_t type)
 {
   if (type == WIN_ENT)
@@ -156,14 +156,39 @@ void homeCtl::get_entity_prop(uint8_t ent_type, uint8_t i, SW_props &sw_prop)
     SW_v[i]->get_SW_props(sw_prop);
   }
 }
-// void homeCtl::get_entity_prop(uint8_t ent_type, uint8_t i, Win_props &win_prop)
-// {
-//   // if (ent_type == WIN_ENT)
-//   // {
-//   //   winSW_V[i]->get_Win_props(win_prop);
-//   // }
-// }
-
+void homeCtl::get_entity_prop(uint8_t ent_type, uint8_t i, Win_props &win_prop)
+{
+  if (ent_type == WIN_ENT)
+  {
+    winSW_V[i]->get_Win_props(win_prop);
+  }
+}
+char *homeCtl::get_ent_name(uint8_t i, uint8_t ent_type)
+{
+  if (ent_type == WIN_ENT)
+  {
+     return winSW_V[i]->name;
+  }
+  else if (ent_type == SW_ENT)
+  {
+    return SW_v[i]->name;
+  }
+}
+void homeCtl::set_ent_name(uint8_t i, uint8_t ent_type, const char *name)
+{
+  if (ent_type == WIN_ENT)
+  {
+    winSW_V[i]->set_name(name);
+  }
+  else if (ent_type == SW_ENT)
+  {
+    SW_v[i]->set_name(name);
+  }
+  else
+  {
+    return;
+  }
+}
 void homeCtl::set_RFch(int arr[], uint8_t arr_size)
 {
   for (uint8_t i = 0; i < arr_size; i++)
@@ -176,26 +201,25 @@ void homeCtl::set_RF(uint8_t pin)
   _RFpin = pin;
 }
 
-// void homeCtl::Win_init_lockdown()
-// {
-//   // for (uint8_t i = 0; i < _winEntityCounter; i++)
-//   // {
-//   //   // winSW_V[i]->init_lockdown();
-//   // }
-// }
-// void homeCtl::Win_release_lockdown()
-// {
-//   // for (uint8_t i = 0; i < _winEntityCounter; i++)
-//   // {
-//   //   // winSW_V[i]->release_lockdown();
-//   // }
-// }
+void homeCtl::Win_init_lockdown()
+{
+  for (uint8_t i = 0; i < _winEntityCounter; i++)
+  {
+    winSW_V[i]->init_lockdown();
+  }
+}
+void homeCtl::Win_release_lockdown()
+{
+  for (uint8_t i = 0; i < _winEntityCounter; i++)
+  {
+    winSW_V[i]->release_lockdown();
+  }
+}
 void homeCtl::clear_telemetryMSG()
 {
   if (_MSG.type == WIN_ENT)
   {
-    Serial.println("CLEAR Win");
-    // winSW_V[_MSG.id]->clear_newMSG();
+    winSW_V[_MSG.id]->clear_newMSG();
   }
   else if (_MSG.type == SW_ENT)
   {
@@ -218,15 +242,15 @@ void homeCtl::_SW_newMSG(uint8_t i)
   _MSG.trig = SW_v[i]->telemtryMSG.reason;
   _MSG.timeout = SW_v[i]->telemtryMSG.clk_end;
 }
-// void homeCtl::_Win_newMSG(uint8_t i)
-// {
-//   // _MSG.id = i;
-//   // _MSG.type = WIN_ENT;
-//   // _MSG.newMSG = true;
-//   // // _MSG.state = winSW_V[i]->MSG.state;
-//   // // _MSG.trig = winSW_V[i]->MSG.reason;
-//   // _MSG.timeout = 0;
-// }
+void homeCtl::_Win_newMSG(uint8_t i)
+{
+  _MSG.id = i;
+  _MSG.type = WIN_ENT;
+  _MSG.newMSG = true;
+  _MSG.state = winSW_V[i]->MSG.state;
+  _MSG.trig = winSW_V[i]->MSG.reason;
+  _MSG.timeout = 0;
+}
 
 void homeCtl::_SW_loop()
 {
@@ -240,14 +264,13 @@ void homeCtl::_SW_loop()
 }
 void homeCtl::_Win_loop()
 {
-//   // for (uint8_t x = 0; x < _winEntityCounter; x++)
-//   // {
-//   //   // if (winSW_V[x]->loop())
-//   //   // {
-//   //   //   Serial.println("WIN_LOOP");
-//   //   //   _Win_newMSG(x);
-//   //   // }
-//   // }
+  for (uint8_t x = 0; x < _winEntityCounter; x++)
+  {
+    if (winSW_V[x]->loop())
+    {
+      _Win_newMSG(x);
+    }
+  }
 }
 void homeCtl::_RF_loop()
 {

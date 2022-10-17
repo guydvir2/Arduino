@@ -1,5 +1,7 @@
-#define MAN_MODE true
-#define RETAINED_MSG false
+#define MAN_MODE false
+
+extern homeCtl controller;
+
 
 #if MAN_MODE
 #define LOCAL_PARAM true
@@ -10,13 +12,13 @@ char pins[] = "{\"inputPins\": [19,17,16,5,4,2,23,18,15,14,13,12], \"relayPins\"
 char pins[] = "{\"inputPins\": [0,2,13,15,3,1], \"relayPins\": [4,5,14,12],\"RF_keyboardCode\": [3135496,3135492,3135490,3135489],\"RFpin\": 27}";
 #endif
 
-char cont_params[] = "{\"entityType\": [1],\
+char cont_params[] = "{\"entityType\": [0,1,1],\
                     \"SWname\": [\"myHome\/Lights\/int\/gFloor\/Sw_0\",\"myHome\/Lights\/int\/gFloor\/Sw_1\",\"\",\"\"],\
                     \"Winname\": [\"myHome\/Windows\/gFloor\/Win_0\",\"myHome\/Windows\/gFloor\/Win_1\",\"\",\"\"],\
                     \"SW_buttonTypes\": [1,1,2,2],\
                     \"WextInputs\": [1,0],\
-                    \"RF_2entity\": [0,1,2,3],\
-                    \"SW_timeout\": [0,0,0,0],\
+                    \"RF_2entity\": [255,255,255,255],\
+                    \"SW_timeout\": [10,20,30,0],\
                     \"SWvirtCMD\":[0,0,0,0],\
                     \"WinvirtCMD\":[0,0,0,0],\
                     \"v_file\": 0.5}";
@@ -35,7 +37,6 @@ char topics[] = "{\
 bool getPins_manual(JsonDocument &DOC)
 {
 #if MAN_MODE
-    // copyArray(pins,)
     DeserializationError err = deserializeJson(DOC, pins);
     if (!err)
     {
@@ -47,8 +48,5 @@ bool getPins_manual(JsonDocument &DOC)
     }
 #endif
 }
-void init_Serial_DBG_MODE()
-{
-    Serial.begin(115200);
-    delay(100);
-}
+
+

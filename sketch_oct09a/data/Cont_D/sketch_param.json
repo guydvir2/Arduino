@@ -1,6 +1,8 @@
 {
     "entityType": [
         0,
+        0,
+        1,
         1,
         1
     ],
@@ -26,7 +28,7 @@
     ],
     "WextInputs": [
         0,
-        0
+        1
     ],
     "SW_buttonTypes": [
         2,

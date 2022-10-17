@@ -10,19 +10,11 @@
     ],
     "sub_topics": [
         "myHome/Cont_Fail",
-        "myHome/All",
-        "myHome/lockdown"
+        "myHome/All"
     ],
-    "sub_topics_win": ["myHome/Windows/gFloor/W0","myHome/Windows/gFloor/W1"],
-    "sub_topics_SW": ["myHome/Lights/int/gFloor/Sw0","myHome/Lights/int/gFloor/Sw1","myHome/Lights/int/gFloor/Sw2","myHome/Lights/int/gFloor/Sw3"],
-    "sub_topics_win_g": [
-        "myHome/Windows",
-        "myHome/Windows/gFloor"
-    ],
-    "sub_topics_SW_g": [
-        "myHome/Light",
-        "myHome/Lights/int",
-        "myHome/Lights/int/gFloor"
-    ],
+    "sub_topics_win": [],
+    "sub_topics_SW": [],
+    "sub_topics_win_g": [],
+    "sub_topics_SW_g": [],
     "ver": 0.1
 }

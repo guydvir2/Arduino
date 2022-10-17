@@ -9,7 +9,7 @@
 #endif
 
 #ifndef MAX_NAM_LEN
-#define MAX_NAM_LEN 35
+#define MAX_NAM_LEN 45
 #endif
 
 #define OUTPUT_ON HIGH
@@ -22,7 +22,7 @@ struct SW_act_telem
     bool newMSG = false;
     uint8_t state = 255;  /* Up/Down/ Off */
     uint8_t reason = 255; /* What triggered the button */
-    unsigned long clk_end = 5555;
+    unsigned long clk_end = 0;
 };
 struct SW_props
 {
@@ -34,7 +34,7 @@ struct SW_props
     bool timeout = false;
     bool virtCMD = false;
     bool lockdown = false;
-    // char *name;
+    char *name;
 };
 
 enum SWTypes : const uint8_t
@@ -72,6 +72,8 @@ public:
     void release_lockdown();
     void set_output(uint8_t outpin = UNDEF_PIN);
     void set_input(uint8_t inpin = UNDEF_PIN, uint8_t t = 0);
+    void set_lockSW();
+    void set_unlockSW();
 
     void turnON_cb(uint8_t type, unsigned int temp_TO = 0);
     void turnOFF_cb(uint8_t type);
