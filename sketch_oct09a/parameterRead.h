@@ -1,17 +1,9 @@
-extern myIOT2 iot;
-extern homeCtl controller;
-
-extern char topics_sub[3][MAX_TOPIC_SIZE];
-extern char topics_pub[2][MAX_TOPIC_SIZE];
-extern char topics_gen_pub[3][MAX_TOPIC_SIZE];
-extern char winGroupTopics[2][MAX_TOPIC_SIZE];
-extern char SwGroupTopics[3][MAX_TOPIC_SIZE];
-
 extern bool getPins_manual(JsonDocument &DOC);
+
 extern bool bootProcess_OK;
-extern const uint8_t onFlash_hardware_preset;
 
 char parameterFiles[4][30];
+
 void build_path_directory(uint8_t i = 0)
 {
     const char *dirs[] = {"Fail", "Cont_A", "Cont_B", "Cont_C", "Cont_D", "Cont_test"};
@@ -36,7 +28,6 @@ void build_path_directory(uint8_t i = 0)
     }
     Serial.println("~ Path builded OK");
 }
-
 void _updateTopics_flash(JsonDocument &DOC, char ch_array[][MAX_TOPIC_SIZE], const char *dest_array[], const char *topic, uint8_t shift = 0) /* update local Topic array */
 {
     uint8_t i = 0;
@@ -55,7 +46,7 @@ void _updateTopics_flash(JsonDocument &DOC, char ch_array[][MAX_TOPIC_SIZE], con
 bool readTopics()
 {
     StaticJsonDocument<1200> DOC;
-#if MAN_MODE && LOCAL_PARAM
+#if MAN_MODE == true
     Serial.println("~ Topics data-base - local");
 
     DeserializationError error0 = deserializeJson(DOC, topics);
@@ -132,19 +123,21 @@ bool readTopics()
     }
 }
 
-bool get_pins_parameters(JsonDocument &DOC, uint8_t _inpins[], uint8_t _outpins[], int _RFcodes[], uint8_t &in, uint8_t &out, uint8_t &RF, uint8_t RFp)
+bool get_pins_parameters(JsonDocument &DOC, uint8_t _inpins[], uint8_t _outpins[], int _RFcodes[], uint8_t &in, uint8_t &out, uint8_t &RF, uint8_t &RFp)
 {
-#if MAN_MODE && LOCAL_PARAM
+#if MAN_MODE == true
     if (getPins_manual(DOC))
     {
+        Serial.println("~ Read pins hardware - local");
 #else
     if (iot.extract_JSON_from_flash(iot.parameter_filenames[1], DOC))
     {
+        Serial.println("~ Read pins hardware - flash");
 #endif
         RFp = DOC["RFpin"];
-        in = DOC["inputPins"].size() | 1;
-        out = DOC["relayPins"].size() | 1;
-        RF = DOC["RF_keyboardCode"].size() | 1;
+        in = DOC["inputPins"].size();
+        out = DOC["relayPins"].size();
+        RF = DOC["RF_keyboardCode"].size();
 
         for (uint8_t i = 0; i < RF; i++)
         {
@@ -198,51 +191,45 @@ bool get_entities_parameters()
     if (get_pins_parameters(DOC, _inpins, _outpins, _RFcodes, actual_inpins_saved, actual_outpins_saved, actual_RFcodes_saved, RF_p))
     {
 
-        #if MAN_MODE && LOCAL_PARAM
-                Serial.println("~ entities data-base - local");
-                DeserializationError error0 = deserializeJson(DOC, cont_params);
-                if (!error0)
-                {
-        #else
-                Serial.println("~ entities data-base - flash");
-                if (iot.extract_JSON_from_flash(iot.parameter_filenames[3], DOC))
-                {
-        #endif
-                    JsonArray entTypes = DOC["entityType"];
-                    uint8_t win_ents = 0;
-                    uint8_t sw_ents = 0;
+#if MAN_MODE == true
+        Serial.println("~ entities data-base - local");
+        DeserializationError error0 = deserializeJson(DOC, cont_params);
+        if (!error0)
+        {
+#else
+        Serial.println("~ entities data-base - flash");
+        if (iot.extract_JSON_from_flash(iot.parameter_filenames[3], DOC))
+        {
+#endif
+            JsonArray entTypes = DOC["entityType"];
+            uint8_t win_ents = 0;
+            uint8_t sw_ents = 0;
 
-                    controller.set_RF(RF_p);
-                    controller.set_RFch(_RFcodes, actual_RFcodes_saved);
+            controller.set_RF(RF_p);
+            controller.set_RFch(_RFcodes, actual_RFcodes_saved);
 
-                    for (uint8_t x = 0; x < entTypes.size(); x++)
-                    {
-                        if (entTypes[x].as<uint8_t>() == WIN_ENT)
-                        {
-                            controller.create_Win(_inpins, _outpins, DOC["Winname"][win_ents].as<const char *>(), DOC["WinvirtCMD"][win_ents].as<bool>(), DOC["WextInputs"][win_ents].as<uint8_t>());
-                            Serial.print("~ Win #");
-                            Serial.print(win_ents);
-                            Serial.println(" built - OK");
-                            win_ents++;
-                        }
-                        else if (entTypes[x].as<uint8_t>() == SW_ENT)
-                        {
-                            controller.create_SW(_inpins, _outpins, DOC["SWname"][sw_ents].as<const char *>(), DOC["SW_buttonTypes"][sw_ents].as<uint8_t>(),
-                                                 DOC["SWvirtCMD"][sw_ents].as<bool>(), DOC["SW_timeout"][sw_ents].as<uint8_t>(), DOC["RF_2entity"][sw_ents].as<uint8_t>());
-                            Serial.print("~ SW #");
-                            Serial.print(sw_ents);
-                            Serial.println(" built - OK");
-                            sw_ents++;
-                        }
-                    }
-                    Serial.println("~ Entities build - OK ");
-                    return 1;
-                }
-                else
+            for (uint8_t x = 0; x < entTypes.size(); x++)
+            {
+                if (entTypes[x].as<uint8_t>() == WIN_ENT)
                 {
-                    Serial.println("~ Entities read file - Failed ");
-                    return 0;
+                    controller.create_Win(_inpins, _outpins, DOC["Winname"][win_ents].as<const char *>(), DOC["WinvirtCMD"][win_ents].as<bool>(), DOC["WextInputs"][win_ents].as<uint8_t>());
+                    win_ents++;
                 }
+                else if (entTypes[x].as<uint8_t>() == SW_ENT)
+                {
+                    controller.create_SW(_inpins, _outpins, DOC["SWname"][sw_ents].as<const char *>(), DOC["SW_buttonTypes"][sw_ents].as<uint8_t>(),
+                                         DOC["SWvirtCMD"][sw_ents].as<bool>(), DOC["SW_timeout"][sw_ents].as<uint8_t>(), DOC["RF_2entity"][sw_ents].as<uint8_t>());
+                    sw_ents++;
+                }
+            }
+            Serial.println("~ Entities build - OK ");
+            return 1;
+        }
+        else
+        {
+            Serial.println("~ Entities read file - Failed ");
+            return 0;
+        }
     }
     else
     {
@@ -253,17 +240,18 @@ bool get_entities_parameters()
 
 void read_all_parameters()
 {
-    Serial.println("\n\n");
+    Serial.println("\n<<<<<<<<<<<<<<<<< Start Reading Parameters >>>>>>>>>>>>>>>>\n");
     uint8_t fail_directory = 0;
-    build_path_directory(onFlash_hardware_preset);
-    // get_IOT2_parameters();
-    // get_entities_parameters();
+    build_path_directory(PARAM_PRESET);
     if (get_IOT2_parameters() && get_entities_parameters() && readTopics())
     {
         bootProcess_OK = true;
+        Serial.println("\n<<<<<<<<<<<<<<<<< Reading Parameters -OK  >>>>>>>>>>>>>>>>\n");
     }
     else
     {
+        Serial.println("\n<<<<<<<<<<<<<<<<< Reading Parameters -Failed  >>>>>>>>>>>>>>>>\n");
+
         bootProcess_OK = false;
         build_path_directory(fail_directory);
         get_IOT2_parameters();

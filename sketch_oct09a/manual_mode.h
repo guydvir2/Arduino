@@ -1,11 +1,4 @@
-#define MAN_MODE false
-
-extern homeCtl controller;
-
-
-#if MAN_MODE
-#define LOCAL_PARAM true
-
+#if MAN_MODE == true
 #if defined ESP32
 char pins[] = "{\"inputPins\": [19,17,16,5,4,2,23,18,15,14,13,12], \"relayPins\": [25,26,33,32],\"RF_keyboardCode\": [3135496,3135492,3135490,3135489],\"RFpin\": 27}";
 #elif defined ESP8266
@@ -15,12 +8,12 @@ char pins[] = "{\"inputPins\": [0,2,13,15,3,1], \"relayPins\": [4,5,14,12],\"RF_
 char cont_params[] = "{\"entityType\": [0,1,1],\
                     \"SWname\": [\"myHome\/Lights\/int\/gFloor\/Sw_0\",\"myHome\/Lights\/int\/gFloor\/Sw_1\",\"\",\"\"],\
                     \"Winname\": [\"myHome\/Windows\/gFloor\/Win_0\",\"myHome\/Windows\/gFloor\/Win_1\",\"\",\"\"],\
-                    \"SW_buttonTypes\": [1,1,2,2],\
-                    \"WextInputs\": [1,0],\
-                    \"RF_2entity\": [255,255,255,255],\
-                    \"SW_timeout\": [10,20,30,0],\
-                    \"SWvirtCMD\":[0,0,0,0],\
-                    \"WinvirtCMD\":[0,0,0,0],\
+                    \"SW_buttonTypes\": [1,2,2,2],\
+                    \"WextInputs\": [0,0],\
+                    \"RF_2entity\": [0,1,2,3],\
+                    \"SW_timeout\": [5,5,10,10],\
+                    \"SWvirtCMD\":[1,1,0,0],\
+                    \"WinvirtCMD\":[1,0,0,0],\
                     \"v_file\": 0.5}";
 
 char topics[] = "{\
@@ -48,5 +41,3 @@ bool getPins_manual(JsonDocument &DOC)
     }
 #endif
 }
-
-

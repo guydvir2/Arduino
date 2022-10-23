@@ -16,7 +16,7 @@ void WinSW::set_id(uint8_t i)
 }
 void WinSW::set_name(const char *_name)
 {
-  strlcpy(name, _name, MAX_NAME_LEN);
+  strlcpy(name, _name, MAX_TOPIC_SIZE);
 }
 void WinSW::set_input(uint8_t upin, uint8_t dpin)
 {

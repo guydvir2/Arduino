@@ -6,6 +6,8 @@
 #include <myWindowSW.h>  /* WinSW Entities */
 #include <smartSwitch.h> /* smartSwitch Entities */
 
+#define MAX_TOPIC_SIZE 40 // <----- Verfy max Topic size
+
 struct Cotroller_Ent_telemetry
 {
     uint8_t id;    /* of entity instance*/
@@ -24,9 +26,8 @@ enum ENT_TYPE : const uint8_t
 
 class homeCtl
 {
-#define TOT_Relays 8
-#define TOT_Inputs 8
-#define MAX_TOPIC_SIZE 40 // <----- Verfy max Topic size
+#define TOT_Relays 4
+#define TOT_Inputs 12
 
 private:
     bool _use_RF = false;
@@ -49,12 +50,12 @@ public:
     char *EntTypes[2] = {"win", "sw"}; /* Prefix to address client types when using MQTT */
 
 private:
-    Cotroller_Ent_telemetry _MSG;
     RCSwitch *RF_v = nullptr;
-    WinSW *winSW_V[TOT_Relays / 2] = {nullptr, nullptr, nullptr, nullptr};
+    Cotroller_Ent_telemetry _MSG;
+    WinSW *winSW_V[TOT_Relays / 2] = {nullptr, nullptr};
     smartSwitch *SW_v[TOT_Inputs] = {nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr};
 
-    void _init_RF(uint8_t i);
+    void _init_RF();
     void _toggle_SW_RF(uint8_t i);
 
     void _SW_newMSG(uint8_t i);
@@ -69,9 +70,11 @@ public:
     bool loop();
     void set_RF(uint8_t pin = 255);             /* IO that RF recv is connected to */
     void set_RFch(int arr[], uint8_t arr_size); /* Radio freq to listen to. belong to a remote control */
-    void set_ent_name(uint8_t i, uint8_t ent_type, const char* name);
+    void set_ent_name(uint8_t i, uint8_t ent_type, const char *name);
     void Win_init_lockdown();
+    void SW_init_lockdown(uint8_t i = 255);
     void Win_release_lockdown();
+    void SW_release_lockdown(uint8_t i = 255);
 
     uint8_t get_ent_counter(uint8_t type);
     uint8_t get_ent_state(uint8_t type, uint8_t i);

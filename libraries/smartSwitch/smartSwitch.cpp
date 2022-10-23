@@ -21,7 +21,7 @@ void smartSwitch::set_timeout(int t)
 }
 void smartSwitch::set_name(const char *Name)
 {
-    strlcpy(name, Name, MAX_NAM_LEN);
+    strlcpy(name, Name, MAX_TOPIC_SIZE);
 }
 void smartSwitch::set_output(uint8_t outpin)
 {

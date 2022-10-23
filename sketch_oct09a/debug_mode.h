@@ -1,6 +1,3 @@
-// extern void print_telemetry(Cotroller_Ent_telemetry &MSG);
-// extern void init_Serial_DBG_MODE();
-
 void print_telemetry(Cotroller_Ent_telemetry &MSG)
 {
     Serial.println("\n±±±±±±± Telemetry Start ±±±±±±±");

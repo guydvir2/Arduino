@@ -1,24 +1,34 @@
-#include <homeController.h>
+// #include "soc/soc.h"          // disable   detector
+// #include "soc/rtc_cntl_reg.h" // disable   detector
 #include <myIOT2.h>
-#include "manual_mode.h"
-#include "parameterRead.h"
-#include "myIOT_settings.h"
+#include <homeController.h>
 
+myIOT2 iot;
+homeCtl controller;
+
+// ~~~ Software Flags ~~~
 #define EN_WIFI true
 #define DEBUG_MODE true
 #define RETAINED_MSG true
+#define MAN_MODE false
+#define PARAM_PRESET 1
 
-#if DEBUG_MODE
+#if MAN_MODE == true
+#include "manual_mode.h"
+#endif
+
+#include "myIOT_settings.h"
+#include "parameterRead.h"
+
+#if DEBUG_MODE == true
 #include "debug_mode.h"
 #endif
 
-homeCtl controller;
-
 bool bootProcess_OK = true;
-const uint8_t onFlash_hardware_preset = 4;
 
 void post_telemetry_2MQTT(Cotroller_Ent_telemetry &MSG) /* get telemetry from any entity */
 {
+#if EN_WIFI
   char msg[100];
 
   if (MSG.type == WIN_ENT)
@@ -84,6 +94,7 @@ void post_telemetry_2MQTT(Cotroller_Ent_telemetry &MSG) /* get telemetry from an
       MQTT_notify_virtCMD(sw_props.name, controller.SW_MQTT_cmds[MSG.state], controller.SW_Types[MSG.trig], msg);
     }
   }
+#endif
 }
 void new_telemetry_handler()
 {
@@ -100,6 +111,7 @@ void new_telemetry_handler()
 
 void setup()
 {
+  // WRITE_PERI_REG(RTC_CNTL_BROWN_OUT_REG, 0); // disable   detector
 #if DEBUG_MODE
   init_Serial_DBG_MODE();
 #endif

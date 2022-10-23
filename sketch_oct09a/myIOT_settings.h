@@ -1,8 +1,4 @@
-myIOT2 iot;
-extern homeCtl controller;
-
 /* ±±±±±±±±±±±±±± Receiving and handling MQTT CMDs ±±±±±±±±±±±±±±±± */
-#define MAX_TOPIC_SIZE 40 // <----- Verfy max Topic size
 
 char topics_sub[3][MAX_TOPIC_SIZE];     /* generic topic array */
 char topics_pub[2][MAX_TOPIC_SIZE];     /* generic topic array */
@@ -116,7 +112,7 @@ void MQTT_Post_Win_status(uint8_t i, char *msg)
     Win_props win_props;
     controller.get_entity_prop(WIN_ENT, i, win_props);
 
-    sprintf(msg, "Status: Win[#%d][%s] [%s]",
+    sprintf(msg, "Status: [Win#%d][%s] [%s]",
             i, win_props.name, win_props.virtCMD ? "Virtual" : controller.winMQTTcmds[controller.get_ent_state(WIN_ENT, i)]);
     iot.pub_msg(msg);
 }
@@ -132,7 +128,7 @@ void MQTT_Post_SW_status(uint8_t i, char *msg)
     SW_props sw_props;
     controller.get_entity_prop(SW_ENT, i, sw_props);
 
-    sprintf(msg, "Status: SW[#%d][%s] [%s]",
+    sprintf(msg, "Status: [SW#%d][%s] [%s]",
             i, sw_props.name, sw_props.virtCMD ? "Virtual" : controller.SW_MQTT_cmds[controller.get_ent_state(SW_ENT, i)]);
     iot.pub_msg(msg);
 }
@@ -246,18 +242,37 @@ void MQTT_to_controller(char *incoming_msg, char *msg)
     }
     else if (strcmp(incoming_msg, "ver2") == 0)
     {
-        sprintf(msg, "ver #2:[%s], [%s], [%s]", controller.ver, controller.get_ent_ver(0), controller.get_ent_ver(1));
+        WinSW W;
+        smartSwitch SW;
+
+        sprintf(msg, "ver #2:[%s], [%s], [%s]", controller.ver, W.ver, SW.ver /*, controller.get_ent_ver(0), controller.get_ent_ver(1)*/);
         iot.pub_msg(msg);
     }
     else if (strcmp(incoming_msg, "entities") == 0)
     {
-        for (uint8_t n = 0; n < controller.get_ent_counter(WIN_ENT); n++)
+        if (controller.get_ent_counter(WIN_ENT) != 0)
         {
-            MQTT_Win_entity(n, msg);
+            for (uint8_t n = 0; n < controller.get_ent_counter(WIN_ENT); n++)
+            {
+                MQTT_Win_entity(n, msg);
+            }
         }
-        for (uint8_t n = 0; n < controller.get_ent_counter(SW_ENT); n++)
+        else
         {
-            MQTT_SW_entity(n, msg);
+            sprintf(msg, "[Entity]: [Win#%d]", controller.get_ent_counter(WIN_ENT));
+            iot.pub_msg(msg);
+        }
+        if (controller.get_ent_counter(SW_ENT) != 0)
+        {
+            for (uint8_t n = 0; n < controller.get_ent_counter(SW_ENT); n++)
+            {
+                MQTT_SW_entity(n, msg);
+            }
+        }
+        else
+        {
+            sprintf(msg, "[Entity]: [SW#%d]", controller.get_ent_counter(SW_ENT));
+            iot.pub_msg(msg);
         }
     }
 }

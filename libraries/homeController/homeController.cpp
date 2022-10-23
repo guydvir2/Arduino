@@ -91,8 +91,8 @@ void homeCtl::create_SW(uint8_t _input_pins[], uint8_t _output_pins[], const cha
   /* Assign RF to SW */
   if (RF_ch != 255)
   {
-    _RF_ch_2_SW[_swEntityCounter] = _RF_freq[_swEntityCounter];
-    _init_RF(_swEntityCounter);
+    _RF_ch_2_SW[_swEntityCounter] = RF_ch;
+    _init_RF();
   }
 
   SW_v[_swEntityCounter]->get_prefences();
@@ -167,7 +167,7 @@ char *homeCtl::get_ent_name(uint8_t i, uint8_t ent_type)
 {
   if (ent_type == WIN_ENT)
   {
-     return winSW_V[i]->name;
+    return winSW_V[i]->name;
   }
   else if (ent_type == SW_ENT)
   {
@@ -213,6 +213,40 @@ void homeCtl::Win_release_lockdown()
   for (uint8_t i = 0; i < _winEntityCounter; i++)
   {
     winSW_V[i]->release_lockdown();
+  }
+}
+void homeCtl::SW_init_lockdown(uint8_t i)
+{
+  if (i = 255)
+  {
+    for (uint8_t n = 0; n < get_ent_counter(SW_ENT); n++)
+    {
+      SW_v[n]->set_lockSW();
+    }
+  }
+  else
+  {
+    if (i < get_ent_counter(SW_ENT))
+    {
+      SW_v[i]->set_lockSW();
+    }
+  }
+}
+void homeCtl::SW_release_lockdown(uint8_t i)
+{
+  if (i = 255)
+  {
+    for (uint8_t n = 0; n < get_ent_counter(SW_ENT); n++)
+    {
+      SW_v[n]->set_unlockSW();
+    }
+  }
+  else
+  {
+    if (i < get_ent_counter(SW_ENT))
+    {
+      SW_v[i]->set_unlockSW();
+    }
   }
 }
 void homeCtl::clear_telemetryMSG()
@@ -276,7 +310,6 @@ void homeCtl::_RF_loop()
 {
   if (RF_v->available()) /* New transmission */
   {
-    // sprintf(temp, "Received %d / %dbit Protocol: ", RFreader.getReceivedValue(), RFreader.getReceivedBitlength(), RFreader.getReceivedProtocol());
     static unsigned long lastEntry = 0;
 
     for (uint8_t i = 0; i < sizeof(_RF_freq) / sizeof(_RF_freq[0]); i++)
@@ -297,7 +330,7 @@ void homeCtl::_RF_loop()
   }
 }
 
-void homeCtl::_init_RF(uint8_t i)
+void homeCtl::_init_RF()
 {
   if (_RF_ch_2_SW[_swEntityCounter] != 255 && RF_v == nullptr)
   {

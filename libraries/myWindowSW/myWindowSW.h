@@ -12,8 +12,8 @@ Features:
 #include <Arduino.h>
 #include "defs.h"
 
-#ifndef MAX_NAME_LEN
-#define MAX_NAME_LEN 40
+#ifndef MAX_TOPIC_SIZE
+#define MAX_TOPIC_SIZE 40
 #endif
 
 #ifndef UNDEF_INPUT
@@ -82,7 +82,7 @@ public:
     bool newMSGflag = false;
 
     char ver[14] = "WinSW_v0.4";
-    char name[MAX_NAME_LEN] = {""};
+    char name[MAX_TOPIC_SIZE] = {""};
     uint8_t outpins[2];
 
     Win_act_telem MSG;

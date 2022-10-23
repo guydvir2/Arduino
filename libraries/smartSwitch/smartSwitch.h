@@ -8,8 +8,8 @@
 #define UNDEF_PIN 255
 #endif
 
-#ifndef MAX_NAM_LEN
-#define MAX_NAM_LEN 45
+#ifndef MAX_TOPIC_SIZE
+#define MAX_TOPIC_SIZE 40
 #endif
 
 #define OUTPUT_ON HIGH
@@ -60,7 +60,7 @@ class smartSwitch
 {
 public:
     char ver[15] = "smartSW_v0.3";
-    char name[MAX_NAM_LEN];
+    char name[MAX_TOPIC_SIZE];
     SW_act_telem telemtryMSG;
 
 public:
