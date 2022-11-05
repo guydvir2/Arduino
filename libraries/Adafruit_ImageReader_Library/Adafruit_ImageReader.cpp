@@ -214,7 +214,7 @@ void Adafruit_Image::draw(Adafruit_SPITFT &tft, int16_t x, int16_t y) {
              often be in pre-setup() declaration, but DOES need initializing
              before any of the image loading or size functions are called!
 */
-Adafruit_ImageReader::Adafruit_ImageReader(FatFileSystem &fs) { filesys = &fs; }
+Adafruit_ImageReader::Adafruit_ImageReader(FatVolume &fs) { filesys = &fs; }
 
 /*!
     @brief   Destructor.
@@ -628,9 +628,9 @@ ImageReturnCode Adafruit_ImageReader::bmpDimensions(const char *filename,
       }
       status = IMAGE_SUCCESS; // YAY.
     }
+    file.close();
   }
 
-  file.close();
   return status;
 }
 

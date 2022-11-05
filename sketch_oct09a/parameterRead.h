@@ -6,7 +6,7 @@ char parameterFiles[4][30];
 
 void build_path_directory(uint8_t i = 0)
 {
-    const char *dirs[] = {"Fail", "Cont_A", "Cont_B", "Cont_C", "Cont_D", "Cont_test"};
+    const char *dirs[] = {"Fail", "Cont_A", "Cont_B", "Cont_C", "Cont_D", "Cont_test", "SONOFF_P"};
 #if defined(ESP32)
     const char *FileNames_common[2] = {"myIOT_param.json", "HardwareESP32.json"};
 #elif defined(ESP8266)

@@ -28,8 +28,9 @@ struct SW_props
 {
     uint8_t id;
     uint8_t type;
-    uint8_t inpin = 255;
-    uint8_t outpin = 255;
+    uint8_t inpin = UNDEF_PIN;
+    uint8_t outpin = UNDEF_PIN;
+    uint8_t indicpin = UNDEF_PIN;
 
     bool timeout = false;
     bool virtCMD = false;
@@ -56,10 +57,14 @@ enum SWstates : const uint8_t
     SW_ON
 };
 
+/* "Virtcmd" is defined when output is not defined
+   "useTimeout" is defined when set_timeout is set to t !=0
+   "useButton" is defined when set_input is defined !=0;
+*/
 class smartSwitch
 {
 public:
-    char ver[15] = "smartSW_v0.3";
+    const char *ver = "smartSW_v0.4";
     char name[MAX_TOPIC_SIZE];
     SW_act_telem telemtryMSG;
 
@@ -68,12 +73,14 @@ public:
     void set_id(uint8_t i);
     void set_name(const char *Name);
     void set_timeout(int t = 0);
+    void set_lockSW();
+    void set_unlockSW();
+    void set_indiction(uint8_t pin = UNDEF_PIN, bool dir = 0);
+    void set_useLockdown(bool t = true);
     void init_lockdown();
     void release_lockdown();
     void set_output(uint8_t outpin = UNDEF_PIN);
     void set_input(uint8_t inpin = UNDEF_PIN, uint8_t t = 0);
-    void set_lockSW();
-    void set_unlockSW();
 
     void turnON_cb(uint8_t type, unsigned int temp_TO = 0);
     void turnOFF_cb(uint8_t type);
@@ -82,7 +89,6 @@ public:
 
     uint8_t get_SWstate();
     int get_remain_time();
-    void get_prefences();
     void get_SW_props(SW_props &props);
 
     bool useTimeout();
@@ -93,13 +99,16 @@ public:
 private:
     uint8_t _button_type = 255;
     uint8_t _outputPin = UNDEF_PIN;
+    uint8_t _indicPin = UNDEF_PIN;
 
     bool _virtCMD = false;
     bool _useButton = false;
     bool _guessState = false;
     bool _use_timeout = false;
     bool _use_lockdown = false;
+    bool _use_indic = false;
     bool _in_lockdown = false;
+    bool _indic_on = false;
 
     Chrono _timeout_clk;
     /* inputs only */
@@ -109,11 +118,13 @@ private:
 private:
     bool _isON();
     void _timeout_loop();
-    void _update_telemetry(uint8_t state, uint8_t type, unsigned long te = 0);
-    void _OnOffSW_Relay(uint8_t i, bool state, uint8_t type);
-    void _toggleRelay(uint8_t i, uint8_t type);
     void _stop_timeout();
     void _start_timeout();
+    void _turn_indic_on();
+    void _turn_indic_off();
+    void _toggleRelay(uint8_t i, uint8_t type);
+    void _OnOffSW_Relay(uint8_t i, bool state, uint8_t type);
+    void _update_telemetry(uint8_t state, uint8_t type, unsigned long te = 0);
 
     /* Button2 Handlers */
     void _toggle_handle(Button2 &b);

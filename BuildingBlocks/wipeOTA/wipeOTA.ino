@@ -4,8 +4,8 @@
 #include <ArduinoOTA.h>
 
 #ifndef STASSID
-#define STASSID "Xiaomi_D6C8"
-#define STAPSK  "guyd5161"
+#define STASSID "dvirz_iot"
+#define STAPSK  "GdSd13100301"
 #endif
 
 const char* ssid = STASSID;

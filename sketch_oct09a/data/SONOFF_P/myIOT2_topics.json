@@ -1,0 +1,28 @@
+{
+    "pub_gen_topics": [
+        "myHome/Messages",
+        "myHome/log",
+        "myHome/debug"
+    ],
+    "pub_topics": [
+        "myHome/Cont_D/Avail",
+        "myHome/Cont_D/State"
+    ],
+    "sub_topics": [
+        "myHome/Cont_D",
+        "myHome/All",
+        "myHome/lockdown"
+    ],
+    "sub_topics_win": ["myHome/Windows/gFloor/W0","myHome/Windows/gFloor/W1"],
+    "sub_topics_SW": ["myHome/Lights/int/gFloor/Sw0","myHome/Lights/int/gFloor/Sw1","myHome/Lights/int/gFloor/Sw2","myHome/Lights/int/gFloor/Sw1"],
+    "sub_topics_win_g": [
+        "myHome/Windows",
+        "myHome/Windows/gFloor"
+    ],
+    "sub_topics_SW_g": [
+        "myHome/Lights",
+        "myHome/Lights/int",
+        "myHome/Lights/int/gFloor"
+    ],
+    "ver": 0.1
+}

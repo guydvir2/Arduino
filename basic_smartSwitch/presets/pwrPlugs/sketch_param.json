@@ -1,0 +1,9 @@
+{
+    "MCUtype": 1,
+    "SWtype": 2,
+    "Timeout": 180,
+    "useLockdown": false,
+    "ONatBoot": true,
+    "name": "myHome/pwrPlugs/iPhone",
+    "ver":0.1
+}

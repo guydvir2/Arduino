@@ -38,11 +38,11 @@ void smartSwitch::set_output(uint8_t outpin)
 void smartSwitch::set_input(uint8_t inpin, uint8_t t)
 {
     _button_type = t;
-    if (_button_type == 0 || inpin == UNDEF_PIN)
+    if (_button_type == NO_INPUT || inpin == UNDEF_PIN)
     {
         _useButton = false;
     }
-    else if (inpin != UNDEF_PIN && _button_type > 0)
+    else if (inpin != UNDEF_PIN && _button_type > NO_INPUT)
     {
         _useButton = true;
         _inputButton.begin(inpin);
@@ -66,6 +66,20 @@ void smartSwitch::set_lockSW()
 void smartSwitch::set_unlockSW()
 {
     _in_lockdown = false;
+}
+void smartSwitch::set_useLockdown(bool t)
+{
+    _use_lockdown = t;
+}
+void smartSwitch::set_indiction(uint8_t pin, bool dir)
+{
+    if (pin != UNDEF_PIN)
+    {
+        _use_indic = true;
+        _indicPin = pin;
+        _indic_on = dir;
+        pinMode(_indicPin, OUTPUT);
+    }
 }
 void smartSwitch::init_lockdown()
 {
@@ -152,41 +166,6 @@ void smartSwitch::turnOFF_cb(uint8_t type)
         }
     }
 }
-void smartSwitch::get_prefences()
-{
-    //     Serial.print("<<<<<<< smartSwitch #");
-    //     Serial.print(_inputButton.getID());
-    //     Serial.println(" >>>>>>>");
-    //     Serial.print("> Type:\t\t");
-    //     Serial.print(_button_type);
-    //     Serial.println("  [0:None, 1:On-Off, 2:pushButton]");
-    //     Serial.print("> Name:\t\t");
-    //     Serial.println(strcmp(name, "") != 0 ? name : "None");
-
-    //     Serial.print("> useInput:\t");
-    //     Serial.println(_inputButton.getPin() != UNDEF_PIN ? "YES" : "NO");
-    //     Serial.print("> useoutput:\t");
-    //     Serial.println(_outputPin != UNDEF_PIN ? "YES" : "NO");
-    //     Serial.print("> inputPin:\t");
-    //     Serial.println(_inputButton.getPin());
-    //     Serial.print("> outputPin:\t");
-    //     Serial.println(_outputPin);
-
-    //     Serial.print("> virtualCMD:\t");
-    //     Serial.println(_virtCMD ? name : "NO");
-    //     Serial.print("> MCU:\t\t");
-    //     bool a = 0;
-    // #if defined ESP32
-    //     a = 1;
-    // #elif defined ESP8266
-    //     a = 0;
-    // #endif
-    //     Serial.println(a == 0 ? "ESP8266" : "ESP32");
-
-    //     Serial.print("<<<<<<< END ");
-    //     Serial.println(">>>>>>");
-}
-
 int smartSwitch::get_remain_time()
 {
     if (_timeout_clk.isRunning() && _use_timeout)
@@ -218,12 +197,13 @@ void smartSwitch::get_SW_props(SW_props &props)
     props.outpin = _outputPin;
     props.timeout = _use_timeout;
     props.virtCMD = _virtCMD;
+    props.lockdown = _use_lockdown;
     props.name = name;
 }
 
 bool smartSwitch::loop()
 {
-    bool lckdown = true; //((_use_lockdown && !_in_lockdown) || (!_use_lockdown));
+    bool lckdown = (_use_lockdown && !_in_lockdown) || (!_use_lockdown);
 
     if (_useButton && lckdown)
     {
@@ -232,6 +212,10 @@ bool smartSwitch::loop()
     if (_use_timeout && lckdown)
     {
         _timeout_loop();
+    }
+    if (_use_indic)
+    {
+        _isON() ? _turn_indic_on() : _turn_indic_off();
     }
     return telemtryMSG.newMSG;
 }
@@ -270,6 +254,14 @@ void smartSwitch::_timeout_loop()
             turnOFF_cb(SW_TIMEOUT);
         }
     }
+}
+void smartSwitch::_turn_indic_on()
+{
+    digitalWrite(_indicPin,_indic_on);
+}
+void smartSwitch::_turn_indic_off()
+{
+    digitalWrite(_indicPin,!_indic_on);
 }
 void smartSwitch::_stop_timeout()
 {
