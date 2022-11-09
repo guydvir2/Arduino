@@ -18,7 +18,7 @@
   You should have received a copy of the GNU General Public License along with this program.  
   If not, see <https://www.gnu.org/licenses/>.  
  
-  Version: 1.9.1
+  Version: 1.10.1
   
   Version Modified By   Date      Comments
   ------- -----------  ---------- -----------
@@ -31,6 +31,9 @@
   1.8.2    K Hoang     10/08/2022 Fix library.properties to remove unavailable items from depends
   1.9.0    K Hoang     30/08/2022 Fix bug. Improve debug messages. Optimize code
   1.9.1    K Hoang     09/09/2022 Fix ESP32 chipID for example `AsyncHTTPRequest_ESP_WiFiManager`
+  1.9.2    K Hoang     18/10/2022 Not try to reconnect to the same host:port after connected
+  1.10.0   K Hoang     20/10/2022 Fix bug. Clean up
+  1.10.1   K Hoang     21/10/2022 Fix bug of wrong reqStates
  *****************************************************************************************************************************/
 
 #pragma once
@@ -38,17 +41,23 @@
 #ifndef ASYNC_HTTP_REQUEST_GENERIC_HPP
 #define ASYNC_HTTP_REQUEST_GENERIC_HPP
 
-#define ASYNC_HTTP_REQUEST_GENERIC_VERSION            "AsyncHTTPRequest_Generic v1.9.1"
+////////////////////////////////////////
+
+#define ASYNC_HTTP_REQUEST_GENERIC_VERSION            "AsyncHTTPRequest_Generic v1.10.1"
 
 #define ASYNC_HTTP_REQUEST_GENERIC_VERSION_MAJOR      1
-#define ASYNC_HTTP_REQUEST_GENERIC_VERSION_MINOR      9
+#define ASYNC_HTTP_REQUEST_GENERIC_VERSION_MINOR      10
 #define ASYNC_HTTP_REQUEST_GENERIC_VERSION_PATCH      1
 
-#define ASYNC_HTTP_REQUEST_GENERIC_VERSION_INT        1009001
+#define ASYNC_HTTP_REQUEST_GENERIC_VERSION_INT        1010001
+
+////////////////////////////////////////
 
 #include <Arduino.h>
 
 #include "AsyncHTTPRequest_Debug_Generic.h"
+
+////////////////////////////////////////
 
 #ifndef DEBUG_IOTA_PORT
   #define DEBUG_IOTA_PORT Serial
@@ -60,10 +69,19 @@
   #define DEBUG_IOTA_HTTP_SET     false
 #endif
 
+////////////////////////////////////////
 
 // KH add
 #define SAFE_DELETE(object)         if (object) { delete object;}
 #define SAFE_DELETE_ARRAY(object)   if (object) { delete[] object;}
+
+#define ASYNC_HTTP_PREFIX         "HTTP://"
+#define ASYNC_HTTP_PORT           80
+
+#define ASYNC_HTTPS_PREFIX        "HTTPS://"
+#define ASYNC_HTTPS_PORT          443
+
+////////////////////////////////////////
 
 #if ESP32
 
@@ -86,9 +104,9 @@
   #define _AHTTP_lock
   #define _AHTTP_unlock
   
-#elif ( defined(STM32F0) || defined(STM32F1) || defined(STM32F2) || defined(STM32F3)  ||defined(STM32F4) || defined(STM32F7) || \
-       defined(STM32L0) || defined(STM32L1) || defined(STM32L4) || defined(STM32H7)  ||defined(STM32G0) || defined(STM32G4) || \
-       defined(STM32WB) || defined(STM32MP1) )
+#elif ( defined(STM32F0) || defined(STM32F1) || defined(STM32F2) || defined(STM32F3) ||defined(STM32F4)  || \
+        defined(STM32F7) || defined(STM32L0) || defined(STM32L1) || defined(STM32L4) || defined(STM32H7) || \
+        defined(STM32G0) || defined(STM32G4) || defined(STM32WB) || defined(STM32MP1) )
        
   #include "STM32AsyncTCP.h"
   
@@ -99,16 +117,20 @@
   
 #endif
 
+////////////////////////////////////////
+
 #include <pgmspace.h>
 
 // Merge xbuf
-////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////
 
 struct xseg 
 {
   xseg    *next;
   uint8_t data[];
 };
+
+////////////////////////////////////////
 
 class xbuf: public Print 
 {
@@ -158,8 +180,7 @@ class xbuf: public Print
     
     String      peekString(int);
 
-    /*      In addition to the above functions,
-    the following inherited functions from the Print class are available.
+    /* In addition to the above functions, the following inherited functions from the Print class are available.
     
     size_t printf(const char * format, ...)  __attribute__ ((format (printf, 2, 3)));
     size_t printf_P(PGM_P format, ...) __attribute__((format(printf, 2, 3)));
@@ -203,13 +224,17 @@ class xbuf: public Print
 
 };
 
-////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////
 
 #define DEBUG_HTTP(format,...)  if(_debug){\
     DEBUG_IOTA_PORT.printf("Debug(%3ld): ", millis()-_requestStartTime);\
     DEBUG_IOTA_PORT.printf_P(PSTR(format),##__VA_ARGS__);}
 
-#define DEFAULT_RX_TIMEOUT 3                    // Seconds for timeout
+#if !defined(DEFAULT_RX_TIMEOUT)
+	#define DEFAULT_RX_TIMEOUT 					3					// Seconds for timeout
+#endif
+
+////////////////////////////////////////
 
 #define HTTPCODE_CONNECTION_REFUSED  (-1)
 #define HTTPCODE_SEND_HEADER_FAILED  (-2)
@@ -223,6 +248,8 @@ class xbuf: public Print
 #define HTTPCODE_STREAM_WRITE        (-10)
 #define HTTPCODE_TIMEOUT             (-11)
 
+////////////////////////////////////////
+
 typedef enum
 {
   readyStateUnsent      = 0,            // Client created, open not yet called
@@ -231,68 +258,70 @@ typedef enum
   readyStateLoading     = 3,            // receiving, partial data available
   readyStateDone        = 4             // Request complete, all data available.
 } reqStates;
-    
+
+////////////////////////////////////////
+
 class AsyncHTTPRequest
 {
-    struct header
+  struct header
+  {
+    header*   next;
+    char*     name;
+    char*     value;
+    
+    header(): next(nullptr), name(nullptr), value(nullptr)
+    {};
+    
+    ~header() 
     {
-      header*   next;
-      char*     name;
-      char*     value;
-      
-      header(): next(nullptr), name(nullptr), value(nullptr)
-      {};
-      
-      ~header() 
-      {
-        SAFE_DELETE_ARRAY(name)
-        SAFE_DELETE_ARRAY(value)
-        SAFE_DELETE(next)
-        //delete[] name;
-        //delete[] value;
-        //delete next;
-      }
-    };
+      SAFE_DELETE_ARRAY(name)
+      SAFE_DELETE_ARRAY(value)
+      SAFE_DELETE(next)
+    }
+  };
 
   struct  URL 
   {
-      char 		*buffer;
-      char 		*scheme;
-      char 		*host;
-      int 		port;
-      char 		*path;
-      char 		*query;
+    char     *buffer;
+    char    *scheme;
+    char    *host;
+    int     port;
+    char    *path;
+    char    *query;
+    
+    URL():  buffer(nullptr), scheme(nullptr), host(nullptr),
+            port(80), path(nullptr), query(nullptr)
+    {};
       
-      URL():	buffer(nullptr), scheme(nullptr), host(nullptr),
-        			port(80), path(nullptr), query(nullptr)
-      {};
-        
-      ~URL()
-      {
-        SAFE_DELETE_ARRAY(buffer)
-        SAFE_DELETE_ARRAY(scheme)
-        SAFE_DELETE_ARRAY(host)
-        SAFE_DELETE_ARRAY(path)
-        SAFE_DELETE_ARRAY(query)
-      }
-    };
+    ~URL()
+    {
+      SAFE_DELETE_ARRAY(buffer)
+      SAFE_DELETE_ARRAY(scheme)
+      SAFE_DELETE_ARRAY(host)
+      SAFE_DELETE_ARRAY(path)
+      SAFE_DELETE_ARRAY(query)
+    }
+  };
 
-    typedef std::function<void(void*, AsyncHTTPRequest*, int readyState)> readyStateChangeCB;
-    typedef std::function<void(void*, AsyncHTTPRequest*, size_t available)> onDataCB;
-
+  typedef std::function<void(void*, AsyncHTTPRequest*, int readyState)> readyStateChangeCB;
+  typedef std::function<void(void*, AsyncHTTPRequest*, size_t available)> onDataCB;
+    
+  ////////////////////////////////////////
+    
   public:
     AsyncHTTPRequest();
     ~AsyncHTTPRequest();
 
 
     //External functions in typical order of use:
-    //__________________________________________________________________________________________________________*/
+    
+    ////////////////////////////////////////
+
     void        setDebug(bool);                                         // Turn debug message on/off
     bool        debug();                                                // is debug on or off?
 
     bool        open(const char* /*GET/POST*/, const char* URL);        // Initiate a request
-    void        onReadyStateChange(readyStateChangeCB, void* arg = 0);  // Optional event handler for ready state change
-    // or you can simply poll readyState()
+    void        onReadyStateChange(readyStateChangeCB, void* arg = 0);  // Optional event handler for ready state change or you can simply poll readyState()
     void        setTimeout(int);                                        // overide default timeout (seconds)
 
     void        setReqHeader(const char* name, const char* value);      // add a request header
@@ -306,7 +335,7 @@ class AsyncHTTPRequest
 #endif
 
     bool        send();                                                 // Send the request (GET)
-    bool        send(const String& body);                                      // Send the request (POST)
+    bool        send(const String& body);                               // Send the request (POST)
     bool        send(const char* body);                                 // Send the request (POST)
     bool        send(const uint8_t* buffer, size_t len);                // Send the request (POST) (binary data?)
     bool        send(xbuf* body, size_t len);                           // Send the request (POST) data in an xbuf
@@ -340,16 +369,23 @@ class AsyncHTTPRequest
     size_t      responseRead(uint8_t* buffer, size_t len);              // Read response into buffer
     uint32_t    elapsedTime();                                          // Elapsed time of in progress transaction or last completed (ms)
     String      version();                                              // Version of AsyncHTTPRequest
-    //___________________________________________________________________________________________________________________________________
+    
+    ////////////////////////////////////////
 
   private:
 
-    // New in v1.1.1
     bool _requestReadyToSend;
-    //////
-    
-    // New in v1.1.0
-    typedef enum  { HTTPmethodGET, HTTPmethodPOST, HTTPmethodPUT, HTTPmethodPATCH, HTTPmethodDELETE, HTTPmethodHEAD, HTTPmethodMAX } HTTPmethod;
+
+    typedef enum  
+    { 
+      HTTPmethodGET, 
+      HTTPmethodPOST, 
+      HTTPmethodPUT, 
+      HTTPmethodPATCH, 
+      HTTPmethodDELETE, 
+      HTTPmethodHEAD, 
+      HTTPmethodMAX 
+    } HTTPmethod;
     
     HTTPmethod _HTTPmethod;
     
@@ -413,5 +449,7 @@ class AsyncHTTPRequest
     void        _onPoll(AsyncClient*);
     bool        _collectHeaders();
 };
+
+////////////////////////////////////////
 
 #endif    // ASYNC_HTTP_REQUEST_GENERIC_HPP

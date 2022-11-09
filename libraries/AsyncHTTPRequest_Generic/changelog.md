@@ -12,6 +12,9 @@
 ## Table of Contents
 
 * [Changelog](#changelog)
+	* [Releases v1.10.1](#releases-v1101)
+	* [Releases v1.10.0](#releases-v1100)
+	* [Releases v1.9.2](#releases-v192)
 	* [Releases v1.9.1](#releases-v191)
 	* [Releases v1.9.0](#releases-v190)
 	* [Releases v1.8.2](#releases-v182)
@@ -40,6 +43,21 @@
 ---
 
 ## Changelog
+
+### Releases v1.10.1
+
+1. Fix bug of wrong `reqStates`. Check [Release 1.9 breakes previously running code #39](https://github.com/khoih-prog/AsyncHTTPRequest_Generic/issues/39) and [Callback behaviour is buggy (ESP8266) #43](https://github.com/khoih-prog/AsyncHTTPRequest_Generic/issues/43)
+2. Optional larger `DEFAULT_RX_TIMEOUT` from default 3s, for slower networks
+
+### Releases v1.10.0
+
+1. Fix bug.
+2. Clean up
+
+### Releases v1.9.2
+
+1. Not try to reconnect to the same host:port after connected. Check [setReuse feature #12](https://github.com/khoih-prog/AsyncHTTPSRequest_Generic/issues/12)
+2. Update `Packages' Patches`
 
 ### Releases v1.9.1
 
