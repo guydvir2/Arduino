@@ -95,12 +95,12 @@ void homeCtl::create_SW(uint8_t _input_pins[], uint8_t _output_pins[], const cha
     _init_RF();
   }
 
-  SW_v[_swEntityCounter]->get_prefences();
+  // SW_v[_swEntityCounter]->get_prefences();
   _inIOCounter++;
   _swEntityCounter++;
 }
 
-char *homeCtl::get_ent_ver(uint8_t type)
+const char *homeCtl::get_ent_ver(uint8_t type)
 {
   if (type == WIN_ENT)
   {

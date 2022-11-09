@@ -11,7 +11,7 @@ homeCtl controller;
 #define DEBUG_MODE true
 #define RETAINED_MSG true
 #define MAN_MODE false
-#define PARAM_PRESET 6
+#define PARAM_PRESET 2
 
 #if MAN_MODE == true
 #include "manual_mode.h"

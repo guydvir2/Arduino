@@ -79,7 +79,7 @@ public:
     uint8_t get_ent_counter(uint8_t type);
     uint8_t get_ent_state(uint8_t type, uint8_t i);
     char *get_ent_name(uint8_t i, uint8_t ent_type);
-    char *get_ent_ver(uint8_t type);
+    const char *get_ent_ver(uint8_t type);
     void get_telemetry(Cotroller_Ent_telemetry &M);
     void get_entity_prop(uint8_t ent_type, uint8_t i, SW_props &sw_prop);
     void get_entity_prop(uint8_t ent_type, uint8_t i, Win_props &win_prop);
