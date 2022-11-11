@@ -1,23 +1,26 @@
 #include <Arduino.h>
-#include <smartSwitch.h>
+#include <myLOG.h>
 
-smartSwitch sw;
+flashLOG myLOG;
 
-char *func()
-{
-  return sw.ver;
-}
+const char *a="guydvir";
+
+int pins[] = {13, 14};
 
 void setup()
 {
   Serial.begin(115200);
   Serial.println("\n\nStart");
-  delay(2000);
+  for (uint8_t i = 0; i < 2; i++)
+  {
+    pinMode(pins[i], INPUT_PULLUP);
+  }
+  bool x=a=="guydvir";
+  Serial.println(x);
 }
 void loop()
 {
-  // sw_v[0]->loop();
-  // Serial.println(sw_v[0]->telemtryMSG.state);
-  Serial.println(func());
-  delay(200);
+//  char a[20];
+//  sprintf(a, "%d;%d", digitalRead(pins[0]), digitalRead(pins[1]));
+//  Serial.println(a);
 }

@@ -1,59 +1,82 @@
 #include <Arduino.h>
 #include <myIOT2.h>
 #include <smartSwitch.h>
-#include "myIOT_settings.h"
+
+#define MAX_SW 2
 
 smartSwitch smartSW;
-const char *ver = "smartSwitch_v0.1";
+smartSwitch smartSW2;
+smartSwitch *smartSwArray[MAX_SW] = {&smartSW, &smartSW2};
+
+uint8_t totSW = 1;
+const char *ver = "smartSwitch_v0.2";
+
+#include "myIOT_settings.h"
 
 void smartSW_defs(uint8_t id, const char *SWname, uint8_t butType, uint8_t output_pin,
                   uint8_t input_pin, uint8_t indic_pin, bool uselckd, int timeout, bool indic_on, bool onatboot)
 {
-        smartSW.set_id(id);
-        smartSW.set_name(SWname);
-        smartSW.set_output(output_pin); /* pin-255 calls a virtualCMD */
-        smartSW.set_input(input_pin, butType);
-        smartSW.set_indiction(indic_pin, indic_on);
-        smartSW.set_timeout(timeout * 60);
-        smartSW.set_useLockdown(uselckd);
+        if (id == 1)
+        {
+                totSW++;
+        }
+
+        smartSwArray[id]->set_id(id);
+        smartSwArray[id]->set_name(SWname);
+        smartSwArray[id]->set_output(output_pin); /* pin-255 calls a virtualCMD */
+        smartSwArray[id]->set_input(input_pin, butType);
+        smartSwArray[id]->set_indiction(indic_pin, indic_on);
+        smartSwArray[id]->set_timeout(timeout * 60);
+        smartSwArray[id]->set_useLockdown(uselckd);
 
         if (onatboot)
         {
-                smartSW.turnON_cb(3);
+                smartSwArray[id]->turnON_cb(3);
+        }
+        else
+        {
+                smartSwArray[id]->turnOFF_cb(3);
         }
 }
-void update_MQTT_state(uint8_t i)
+void update_MQTT_state(uint8_t i, uint8_t x = 0)
 {
         char a[5];
         sprintf(a, "%s", i == 0 ? "off" : "on");
-        iot.pub_state(a);
+        iot.pub_state(a, x);
 }
-void smartSW_telemetry2MQTT()
+void smartSW_telemetry2MQTT(uint8_t i)
 {
-        char msg[100];
-        char msg2[25];
-        char *sw_states[] = {"Off", "On"};
-        char *origins[] = {"Switch", "Timeout", "MQTT", "BOOT"};
+        char msg[150];
+        char msg2[30]{};
+        const char *sw_states[] = {"Off", "On"};
+        const char *origins[] = {"Switch", "Timeout", "MQTT", "BOOT"};
 
-        if ((smartSW.useTimeout() && smartSW.telemtryMSG.state == 1) || (smartSW.useTimeout() && smartSW.telemtryMSG.state == 0 && smartSW.get_remain_time() != 0))
+        if ((smartSwArray[i]->useTimeout() && smartSwArray[i]->telemtryMSG.state == 1) || (smartSwArray[i]->useTimeout() && smartSwArray[i]->telemtryMSG.state == 0 && smartSwArray[i]->get_remain_time() != 0))
         {
-                char a[15];
-                iot.convert_epoch2clock(smartSW.get_remain_time() / 1000, 0, a);
+                char a[10];
+                iot.convert_epoch2clock(smartSwArray[i]->get_remain_time() / 1000, 0, a);
                 sprintf(msg2, ", timeout [%s]", a);
         }
         else
         {
                 strcpy(msg2, "");
         }
-        sprintf(msg, "[%s]: turned [%s]%s", origins[smartSW.telemtryMSG.reason], sw_states[smartSW.telemtryMSG.state], msg2);
-        iot.pub_msg(msg);
 
-        update_MQTT_state(smartSW.telemtryMSG.state);
+        SW_props props;
+        smartSwArray[i]->get_SW_props(props);
+
+        sprintf(msg, "[%s]: [%s] turned [%s]%s", origins[smartSwArray[i]->telemtryMSG.reason], props.name, sw_states[smartSwArray[i]->telemtryMSG.state], msg2);
+        // sprintf(msg, "[%s]", props.name);
+        // Serial.println(msg);
+        // Serial.println(ESP.getFreeHeap());
+
+        iot.pub_msg(msg);
+        update_MQTT_state(smartSwArray[i]->telemtryMSG.state, i);
 }
-void print_props()
+void print_props(uint8_t i)
 {
         SW_props props;
-        smartSW.get_SW_props(props);
+        smartSwArray[i]->get_SW_props(props);
 
         Serial.print("<<<<<<< smartSwitch #");
         Serial.print(props.id);
@@ -85,9 +108,12 @@ void setup()
 void loop()
 {
         iot.looper();
-        if (smartSW.loop())
+        for (uint8_t i = 0; i < totSW; i++)
         {
-                smartSW_telemetry2MQTT();
-                smartSW.clear_newMSG();
+                if (smartSwArray[i]->loop())
+                {
+                        smartSW_telemetry2MQTT(i);
+                        smartSwArray[i]->clear_newMSG();
+                }
         }
 }

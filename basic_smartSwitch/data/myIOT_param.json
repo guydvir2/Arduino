@@ -1,11 +1,11 @@
 {
-    "useSerial": true,
+    "useSerial": false,
     "useFlashP": true,
-    "useDebugLog": true,
+    "useDebugLog": false,
     "useNetworkReset": true,
     "useBootClockLog": true,
     "ignore_boot_msg": false,
-    "debug_level": 0,
+    "debug_level": 2,
     "noNetwork_reset": 5,
     "ver": 0.8
 }

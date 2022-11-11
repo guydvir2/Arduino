@@ -34,7 +34,20 @@ void smartSwitch::set_output(uint8_t outpin)
     {
         _virtCMD = true;
     }
+    _output_pwm = false;
 }
+void smartSwitch::set_output(uint8_t outpin, uint8_t intense)
+{
+    _output_pwm = true;
+    _pwm_ints = intense;
+    _outputPin = outpin;
+    pinMode(outpin, OUTPUT);
+
+#if defined(ESP8266)
+    analogWriteRange(1023);
+#endif
+}
+
 void smartSwitch::set_input(uint8_t inpin, uint8_t t)
 {
     _button_type = t;
@@ -257,11 +270,11 @@ void smartSwitch::_timeout_loop()
 }
 void smartSwitch::_turn_indic_on()
 {
-    digitalWrite(_indicPin,_indic_on);
+    digitalWrite(_indicPin, _indic_on);
 }
 void smartSwitch::_turn_indic_off()
 {
-    digitalWrite(_indicPin,!_indic_on);
+    digitalWrite(_indicPin, !_indic_on);
 }
 void smartSwitch::_stop_timeout()
 {

@@ -11,25 +11,28 @@
 
 class flashLOG
 {
-    #ifndef PRNT
-#define PRNT(a)    \
-    if (_useDebug) \
+    bool _useDebug = false;
+
+#ifndef PRNt
+#define PRNt(a) \
+    if (_useDebug)      \
     Serial.print(a)
-#define PRNTL(a)   \
-    if (_useDebug) \
+#endif
+#ifndef PRNtl
+#define PRNtl(a) \
+    if (_useDebug)       \
     Serial.println(a)
-    #endif
-    
+#endif
+
 private:
     int _maxLOG_entries;
     String _logBuff = "";
     const char _EOL = '\n';
-    bool _useDebug = false;
     bool _useDelayedSave = true;
-    char *_logfilename = "/logfile1234567.txt";
+    const char *_logfilename = "/logfile1234567.txt";
 
 public:
-    char *VeR = "flashLOG v2.5";
+    const char *VeR = "flashLOG v2.5";
     unsigned long lastUpdate = 0;
 
 private:
@@ -43,7 +46,7 @@ private:
     int _getBuffer_records();
 
 public:
-    flashLOG(char *filename = "/logfile.txt");
+    flashLOG(const char *filename = "/logfile.txt");
     void rawPrintfile();
     void looper(uint8_t savePeriod = 10);
     bool delog();

@@ -1,16 +1,15 @@
 myIOT2 iot;
 #define MAX_TOPIC_SIZE 40
 
-extern smartSwitch smartSW;
 extern void smartSW_defs(uint8_t id, const char *SWname, uint8_t butType, uint8_t output_pin, uint8_t input_pin,
                          uint8_t indic_pin, bool uselckd, int timeout, bool indic_on, bool onatboot);
 
-char topics_sub[3][MAX_TOPIC_SIZE];
-char topics_pub[3][MAX_TOPIC_SIZE];
-char topics_gen_pub[3][MAX_TOPIC_SIZE];
+char topics_sub[3][MAX_TOPIC_SIZE]{};
+char topics_pub[3][MAX_TOPIC_SIZE]{};
+char topics_gen_pub[3][MAX_TOPIC_SIZE]{};
 
-char *MCUtypeIO[] = {"/io_fail.json", "/io_SONOFF_S26.json","/io_SONOFF_mini.json"};
-char *parameterFiles[] = {"/myIOT_param.json", "/myIOT2_topics.json", "/sketch_param.json"};
+const char *MCUtypeIO[] = {"/io_fail.json", "/io_SONOFF_S26.json", "/io_SONOFF_mini.json", "io_MCU.json"};
+const char *parameterFiles[] = {"/myIOT_param.json", "/myIOT2_topics.json", "/sketch_param.json"};
 
 void updateTopics_flash(JsonDocument &DOC, char ch_array[][MAX_TOPIC_SIZE], const char *dest_array[], const char *topic, const char *defaulttopic, uint8_t ar_size)
 {
@@ -25,6 +24,7 @@ void update_Parameters_flash()
     StaticJsonDocument<850> DOC;
 
     const char *SWname{};
+    uint8_t numS{};
     uint8_t mcuType{};
     uint8_t butType{};
     uint8_t input_pin{};
@@ -54,53 +54,73 @@ void update_Parameters_flash()
     }
     DOC.clear();
 
-    /* Part D: Read Sketch paramters from flash, and update Sketch */
-    if (iot.extract_JSON_from_flash(iot.parameter_filenames[2], DOC))
-    {
-        butType = DOC["SWtype"].as<uint8_t>();
-        mcuType = DOC["MCUtype"].as<uint8_t>();
-        timeout_duration = DOC["Timeout"].as<int>();
-        SWname = DOC["name"].as<const char *>();
-        onatboot = DOC["ONatBoot"].as<bool>();
-        useclkdown = DOC["useLockdown"].as<bool>();
-    }
-    DOC.clear();
+    uint8_t x = 0;
 
-    /* Part E: Read MCU IOs paramters from flash, and update Sketch */
-    if (iot.extract_JSON_from_flash(MCUtypeIO[mcuType], DOC))
+    while (x < MAX_SW)
     {
-        input_pin = DOC["inputPin"].as<uint8_t>();
-        output_pin = DOC["relayPin"].as<uint8_t>();
-        indic_pin = DOC["indicLED"].as<uint8_t>();
-        indic_on = DOC["indic_on"].as<bool>();
-    }
+        /* Part D: Read Sketch paramters from flash, and update Sketch */
+        if (iot.extract_JSON_from_flash(iot.parameter_filenames[2], DOC))
+        {
+            numS = DOC["numSW"].as<uint8_t>();
+            mcuType = DOC["MCUtype"].as<uint8_t>();
+            useclkdown = DOC["useLockdown"].as<bool>();
 
-    smartSW_defs(0, SWname, butType, output_pin, input_pin, indic_pin, useclkdown, timeout_duration, indic_on, onatboot);
-    DOC.clear();
+            onatboot = DOC["ONatBoot"][x].as<bool>();
+            butType = DOC["SWtype"][x].as<uint8_t>();
+            SWname = DOC["name"][x].as<const char *>();
+            timeout_duration = DOC["Timeout"][x].as<int>();
+        }
+        DOC.clear();
+
+        /* Part E: Read MCU IOs paramters from flash, and update Sketch */
+        if (iot.extract_JSON_from_flash(MCUtypeIO[mcuType], DOC))
+        {
+            input_pin = DOC["inputPin"][x].as<uint8_t>();
+            output_pin = DOC["relayPin"][x].as<uint8_t>();
+            indic_pin = DOC["indicLED"][x].as<uint8_t>();
+            indic_on = DOC["indic_on"][x].as<bool>();
+        }
+
+        smartSW_defs(x, SWname, butType, output_pin, input_pin, indic_pin, useclkdown, timeout_duration, indic_on, onatboot);
+        DOC.clear();
+
+        if (numS == 1)
+        {
+            x = MAX_SW;
+        }
+        else
+        {
+            x++;
+        }
+    }
 }
 
 void addiotnalMQTT(char *incoming_msg, char *_topic)
 {
     char msg[150];
+
     if (strcmp(incoming_msg, "status") == 0)
     {
         char a[30];
         char b[15];
-        if (smartSW.get_SWstate() == 1 && smartSW.useTimeout() && smartSW.get_remain_time() != 0)
+        for (uint8_t i = 0; i < totSW; i++)
         {
-            iot.convert_epoch2clock(smartSW.get_remain_time() / 1000, 0, b);
-            sprintf(a, ", timeout [%s]", b);
+            if (smartSwArray[i]->get_SWstate() == 1 && smartSwArray[i]->useTimeout() && smartSwArray[i]->get_remain_time() != 0)
+            {
+                iot.convert_epoch2clock(smartSwArray[i]->get_remain_time() / 1000, 0, b);
+                sprintf(a, ", timeout [%s]", b);
+            }
+            else
+            {
+                strcpy(a, "");
+            }
+            sprintf(msg, "[status]: [%d] turned [%s]%s", i, smartSwArray[i]->get_SWstate() == 1 ? "On" : "Off", a);
+            iot.pub_msg(msg);
         }
-        else
-        {
-            strcpy(a, "");
-        }
-        sprintf(msg, "status: turned [%s]%s", smartSW.get_SWstate() == 1 ? "On" : "Off", a);
-        iot.pub_msg(msg);
     }
     else if (strcmp(incoming_msg, "help2") == 0)
     {
-        sprintf(msg, "help #2: on, off, {timeout,MIN}");
+        sprintf(msg, "help #2: on, off, all_off, {timeout,MIN}");
         iot.pub_msg(msg);
     }
     else if (strcmp(incoming_msg, "ver2") == 0)
@@ -108,19 +128,30 @@ void addiotnalMQTT(char *incoming_msg, char *_topic)
         sprintf(msg, "ver #2:");
         iot.pub_msg(msg);
     }
-    else if (strcmp(incoming_msg, "off") == 0)
+    else if (strcmp(incoming_msg, "all_off") == 0)
     {
-        smartSW.turnOFF_cb(2);
-    }
-    else if (strcmp(incoming_msg, "on") == 0)
-    {
-        smartSW.turnON_cb(2);
+        for (uint8_t i = 0; i < totSW; i++)
+        {
+            smartSwArray[i]->turnOFF_cb(2);
+        }
     }
     else
     {
-        if (iot.num_p > 1 && strcmp(iot.inline_param[0], "timeout") == 0)
+        if (iot.num_p > 1)
         {
-            smartSW.turnON_cb(2, atoi(iot.inline_param[1]));
+            uint8_t i = atoi(iot.inline_param[0]);
+            if (strcmp(iot.inline_param[1], "timeout") == 0)
+            {
+                smartSwArray[i]->turnON_cb(2, 60 * atoi(iot.inline_param[2]));
+            }
+            else if (strcmp(iot.inline_param[1], "off") == 0)
+            {
+                smartSwArray[i]->turnOFF_cb(2);
+            }
+            else if (strcmp(iot.inline_param[1], "on") == 0)
+            {
+                smartSwArray[i]->turnON_cb(2);
+            }
         }
     }
 }

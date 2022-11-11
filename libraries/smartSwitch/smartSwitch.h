@@ -26,8 +26,8 @@ struct SW_act_telem
 };
 struct SW_props
 {
-    uint8_t id;
-    uint8_t type;
+    uint8_t id = 0;
+    uint8_t type = 0;
     uint8_t inpin = UNDEF_PIN;
     uint8_t outpin = UNDEF_PIN;
     uint8_t indicpin = UNDEF_PIN;
@@ -80,6 +80,7 @@ public:
     void init_lockdown();
     void release_lockdown();
     void set_output(uint8_t outpin = UNDEF_PIN);
+    void set_output(uint8_t outpin, uint8_t intense);
     void set_input(uint8_t inpin = UNDEF_PIN, uint8_t t = 0);
 
     void turnON_cb(uint8_t type, unsigned int temp_TO = 0);
@@ -97,6 +98,7 @@ public:
     Button2 _inputButton;
 
 private:
+    uint8_t _pwm_ints = 0;
     uint8_t _button_type = 255;
     uint8_t _outputPin = UNDEF_PIN;
     uint8_t _indicPin = UNDEF_PIN;
@@ -109,6 +111,7 @@ private:
     bool _use_indic = false;
     bool _in_lockdown = false;
     bool _indic_on = false;
+    bool _output_pwm = false;
 
     Chrono _timeout_clk;
     /* inputs only */

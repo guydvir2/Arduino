@@ -5,12 +5,12 @@
         "myHome/debug"
     ],
     "pub_topics": [
-        "myHome/Lights/int/greenLight/Avail",
-        "myHome/Lights/int/greenLight/State",
-        "myHome/Lights/int/greenLight/cmd"
+        "myHome/Lights/int/Sh_BED/Avail",
+        "myHome/Lights/int/Sh_BED/State",
+        "myHome/Lights/int/Sh_BED/cmd"
     ],
     "sub_topics": [
-        "myHome/Lights/int/greenLight",
+        "myHome/Lights/int/Sh_BED",
         "myHome/All",
         "myHome/Lights"
     ],

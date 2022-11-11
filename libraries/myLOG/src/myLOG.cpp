@@ -1,6 +1,6 @@
 #include "myLOG.h"
 
-flashLOG::flashLOG(char *filename)
+flashLOG::flashLOG(const char *filename)
 {
     _logfilename = filename;
 }
@@ -18,7 +18,7 @@ bool flashLOG::start(int max_entries, bool delyedSave, bool debugmode)
 
     if (!a)
     {
-        PRNTL("LittleFS mount failed");
+        PRNtl("LittleFS mount failed");
     }
     return a;
 }
@@ -27,8 +27,8 @@ void flashLOG::looper(uint8_t savePeriod)
     if (_delayed_save(savePeriod))
     {
         _write2file();
-        PRNT(_logfilename);
-        PRNTL(" - Saved");
+        PRNt(_logfilename);
+        PRNtl(" - Saved");
     }
 }
 void flashLOG::write(const char *message, bool NOW)
@@ -45,9 +45,9 @@ void flashLOG::write(const char *message, bool NOW)
         {
             lastUpdate = millis(); // Making sure update will be in delay to request.
         }
-        PRNTL("Buffer store: [");
-        PRNTL(_logBuff);
-        PRNTL("]");
+        PRNtl("Buffer store: [");
+        PRNtl(_logBuff);
+        PRNtl("]");
     }
 }
 void flashLOG::rawPrintfile()
@@ -56,28 +56,28 @@ void flashLOG::rawPrintfile()
     File file = LittleFS.open(_logfilename, "r");
     if (!file)
     {
-        PRNTL("Failed to open file for reading");
+        PRNtl("Failed to open file for reading");
     }
 
-    PRNT("~~~ Saved in ");
-    PRNT(_logfilename);
-    PRNTL("~~~");
+    PRNt("~~~ Saved in ");
+    PRNt(_logfilename);
+    PRNtl("~~~");
 
     while (file.available())
     {
         String line = file.readStringUntil(_EOL);
         String lineFormat = "row #" + String(row_counter) + " {" + line + "}";
-        PRNTL(lineFormat);
+        PRNtl(lineFormat);
         row_counter++;
     }
 
-    PRNTL("~~~ EOF ~~~");
+    PRNtl("~~~ EOF ~~~");
     file.close();
 }
 bool flashLOG::del_line(int line_index)
 {
     int row_counter = 0;
-    char *tfile = "/tempfile.txt";
+    const char *tfile = "/tempfile.txt";
     bool line_deleted = false;
     File file1 = LittleFS.open(_logfilename, "r");
     File file2 = LittleFS.open(tfile, "w");
@@ -100,10 +100,10 @@ bool flashLOG::del_line(int line_index)
     }
     else
     {
-        PRNT("Fail open files: ");
-        PRNT(tfile);
-        PRNT("; ");
-        PRNTL(_logfilename);
+        PRNt("Fail open files: ");
+        PRNt(tfile);
+        PRNt("; ");
+        PRNtl(_logfilename);
     }
     file1.close();
     file2.close();
@@ -133,8 +133,8 @@ bool flashLOG::readline(int r, char retLog[])
     }
     else
     {
-        PRNT("Fail open file- ");
-        PRNTL(_logfilename);
+        PRNt("Fail open file- ");
+        PRNtl(_logfilename);
         file.close();
         return 0;
     }
@@ -181,7 +181,7 @@ bool flashLOG::_chkFileOK(File &_file)
 {
     if (!_file)
     {
-        PRNTL("Failed to open file for appending");
+        PRNtl("Failed to open file for appending");
         return 0;
     }
     else
@@ -250,7 +250,7 @@ bool flashLOG::_write2file()
 bool flashLOG::_del_lines(int line_index)
 {
     int row_counter = 0;
-    char *tfile = "/tempfile.txt";
+    const char *tfile = "/tempfile.txt";
     bool _delted_lines = false;
     File file1 = LittleFS.open(_logfilename, "r");
     File file2 = LittleFS.open(tfile, "w");
@@ -276,7 +276,7 @@ bool flashLOG::_del_lines(int line_index)
 }
 void flashLOG::_printDebug(char *msg)
 {
-        PRNT(_logfilename);
-        PRNT(": ");
-        PRNTL(msg);
+        PRNt(_logfilename);
+        PRNt(": ");
+        PRNtl(msg);
 }
