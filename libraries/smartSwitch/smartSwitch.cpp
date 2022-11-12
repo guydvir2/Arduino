@@ -23,29 +23,32 @@ void smartSwitch::set_name(const char *Name)
 {
     strlcpy(name, Name, MAX_TOPIC_SIZE);
 }
-void smartSwitch::set_output(uint8_t outpin)
+void smartSwitch::set_output(uint8_t outpin, uint8_t intense)
 {
-    if (outpin != UNDEF_PIN)
+    if (intense > 0) /* PWM OUTOUT defined by intense >0 */
     {
+        _output_pwm = true;
+        _pwm_ints = intense;
         _outputPin = outpin;
         pinMode(outpin, OUTPUT);
+
+#if defined(ESP8266)
+        analogWriteRange(1023);
+#endif
     }
     else
     {
-        _virtCMD = true;
+        if (outpin != UNDEF_PIN)
+        {
+            _outputPin = outpin;
+            pinMode(outpin, OUTPUT);
+        }
+        else
+        {
+            _virtCMD = true;
+        }
+        _output_pwm = false;
     }
-    _output_pwm = false;
-}
-void smartSwitch::set_output(uint8_t outpin, uint8_t intense)
-{
-    _output_pwm = true;
-    _pwm_ints = intense;
-    _outputPin = outpin;
-    pinMode(outpin, OUTPUT);
-
-#if defined(ESP8266)
-    analogWriteRange(1023);
-#endif
 }
 
 void smartSwitch::set_input(uint8_t inpin, uint8_t t)
@@ -115,25 +118,42 @@ void smartSwitch::turnON_cb(uint8_t type, unsigned int temp_TO)
     {
         if (!_virtCMD)
         {
-            if (!_isON())
+            if (!_output_pwm) /* NOT PWM output*/
             {
-                HWturnON(_outputPin);
-                if (temp_TO != 0)
+                if (!_isON())
                 {
-                    _timeout_temp = temp_TO * 1000;
+                    _HWon();
                 }
-                _start_timeout();
-                unsigned long _t = 0;
-                if (_use_timeout)
+                else
                 {
-                    temp_TO == 0 ? _t = _timeout_duration : _t = _timeout_temp;
+                    Serial.println(" Already on");
+                    return;
                 }
-                _update_telemetry(SW_ON, type, _t);
             }
-            else
+            else /* PWM output*/
             {
-                Serial.println(" Already on");
+                if (!_PWM_ison)
+                {
+                    _HWon(_pwm_ints);
+                }
+                else
+                {
+                    Serial.println(" Already on");
+                    return;
+                }
             }
+
+            if (temp_TO != 0)
+            {
+                _timeout_temp = temp_TO * 1000;
+            }
+            _start_timeout();
+            unsigned long _t = 0;
+            if (_use_timeout)
+            {
+                temp_TO == 0 ? _t = _timeout_duration : _t = _timeout_temp;
+            }
+            _update_telemetry(SW_ON, type, _t);
         }
         else
         {
@@ -152,20 +172,24 @@ void smartSwitch::turnOFF_cb(uint8_t type)
     {
         if (!_virtCMD)
         {
-            if (_isON())
+            if (!_output_pwm)
             {
-                HWturnOFF(_outputPin);
-                _stop_timeout();
-                _update_telemetry(SW_OFF, type, 0);
-
-                // telemtryMSG.newMSG = true;
-                // telemtryMSG.state = 0;
-                // telemtryMSG.reason = type;
-                // telemtryMSG.clk_end = 0;
+                if (_isON())
+                {
+                    _HWoff();
+                    _stop_timeout();
+                    _update_telemetry(SW_OFF, type, 0);
+                }
+                else
+                {
+                    Serial.println(" Already off");
+                }
             }
             else
             {
-                Serial.println(" Already off");
+                _HWoff();
+                _stop_timeout();
+                _update_telemetry(SW_OFF, type, 0);
             }
         }
         else
@@ -211,6 +235,7 @@ void smartSwitch::get_SW_props(SW_props &props)
     props.timeout = _use_timeout;
     props.virtCMD = _virtCMD;
     props.lockdown = _use_lockdown;
+    props.PWM = _output_pwm;
     props.name = name;
 }
 
@@ -252,7 +277,44 @@ bool smartSwitch::is_useButton()
 
 bool smartSwitch::_isON()
 {
-    return (digitalRead(_outputPin) == OUTPUT_ON);
+    if (_output_pwm)
+    {
+        return _PWM_ison;
+    }
+    else
+    {
+        return (digitalRead(_outputPin) == OUTPUT_ON);
+    }
+}
+void smartSwitch::_HWoff()
+{
+    if (_output_pwm)
+    {
+        analogWrite(_outputPin, 0);
+        _PWM_ison = false;
+    }
+    else
+    {
+        digitalWrite(_outputPin, !OUTPUT_ON);
+    }
+}
+void smartSwitch::_HWon(uint8_t val)
+{
+    if (_output_pwm)
+    {
+        int res = 0;
+#if defined(ESP8266)
+        res = 256;
+#elif defined(ESP32)
+        res = 4097;
+#endif
+        analogWrite(_outputPin, (int)((res * val) / 100));
+        _PWM_ison = true;
+    }
+    else
+    {
+        digitalWrite(_outputPin, OUTPUT_ON);
+    }
 }
 void smartSwitch::_timeout_loop()
 {
@@ -298,16 +360,6 @@ void smartSwitch::_update_telemetry(uint8_t state, uint8_t type, unsigned long t
     telemtryMSG.state = state;
     telemtryMSG.reason = type;
     telemtryMSG.clk_end = te;
-
-    // Serial.println("Tele updated");
-
-    // Serial.println("AT LIB");
-    // Serial.print("state: ");
-    // Serial.println(telemtryMSG.state);
-    // Serial.print("reason: ");
-    // Serial.println(telemtryMSG.reason);
-    // Serial.print("clk_end: ");
-    // Serial.println(telemtryMSG.clk_end);
 }
 void smartSwitch::_OnOffSW_Relay(uint8_t i, bool state, uint8_t type)
 {

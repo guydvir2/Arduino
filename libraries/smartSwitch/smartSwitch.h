@@ -14,8 +14,6 @@
 
 #define OUTPUT_ON HIGH
 #define BUTTON_PRESSED LOW
-#define HWturnON(i) digitalWrite(i, OUTPUT_ON)
-#define HWturnOFF(i) digitalWrite(i, !OUTPUT_ON)
 
 struct SW_act_telem
 {
@@ -32,6 +30,7 @@ struct SW_props
     uint8_t outpin = UNDEF_PIN;
     uint8_t indicpin = UNDEF_PIN;
 
+    bool PWM = false;
     bool timeout = false;
     bool virtCMD = false;
     bool lockdown = false;
@@ -71,16 +70,15 @@ public:
 public:
     smartSwitch();
     void set_id(uint8_t i);
-    void set_name(const char *Name);
     void set_timeout(int t = 0);
+    void set_name(const char *Name);
     void set_lockSW();
     void set_unlockSW();
     void set_indiction(uint8_t pin = UNDEF_PIN, bool dir = 0);
     void set_useLockdown(bool t = true);
     void init_lockdown();
     void release_lockdown();
-    void set_output(uint8_t outpin = UNDEF_PIN);
-    void set_output(uint8_t outpin, uint8_t intense);
+    void set_output(uint8_t outpin = UNDEF_PIN, uint8_t intense = 0);
     void set_input(uint8_t inpin = UNDEF_PIN, uint8_t t = 0);
 
     void turnON_cb(uint8_t type, unsigned int temp_TO = 0);
@@ -111,6 +109,7 @@ private:
     bool _use_indic = false;
     bool _in_lockdown = false;
     bool _indic_on = false;
+    bool _PWM_ison = false;
     bool _output_pwm = false;
 
     Chrono _timeout_clk;
@@ -120,6 +119,8 @@ private:
 
 private:
     bool _isON();
+    void _HWon(uint8_t val = 0);
+    void _HWoff();
     void _timeout_loop();
     void _stop_timeout();
     void _start_timeout();

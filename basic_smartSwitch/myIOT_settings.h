@@ -1,8 +1,8 @@
 myIOT2 iot;
 #define MAX_TOPIC_SIZE 40
 
-extern void smartSW_defs(uint8_t id, const char *SWname, uint8_t butType, uint8_t output_pin, uint8_t input_pin,
-                         uint8_t indic_pin, bool uselckd, int timeout, bool indic_on, bool onatboot);
+extern void smartSW_defs(uint8_t id, const char *SWname, uint8_t butType, uint8_t output_pin, uint8_t pwm_pwr,
+                         uint8_t input_pin, uint8_t indic_pin, bool uselckd, int timeout, bool indic_on, bool onatboot);
 
 char topics_sub[3][MAX_TOPIC_SIZE]{};
 char topics_pub[3][MAX_TOPIC_SIZE]{};
@@ -30,6 +30,7 @@ void update_Parameters_flash()
     uint8_t input_pin{};
     uint8_t indic_pin{};
     uint8_t output_pin{};
+    uint8_t pwm_pwr{};
     int timeout_duration{};
     bool useclkdown = false;
     bool indic_on = false;
@@ -77,11 +78,12 @@ void update_Parameters_flash()
         {
             input_pin = DOC["inputPin"][x].as<uint8_t>();
             output_pin = DOC["relayPin"][x].as<uint8_t>();
-            indic_pin = DOC["indicLED"][x].as<uint8_t>();
-            indic_on = DOC["indic_on"][x].as<bool>();
+            indic_pin = DOC["indicLED"][x].as<uint8_t>() | 255;
+            indic_on = DOC["indic_on"][x].as<bool>() | false;
+            pwm_pwr = DOC["PWM_pwr"][x].as<uint8_t>() | 0;
         }
 
-        smartSW_defs(x, SWname, butType, output_pin, input_pin, indic_pin, useclkdown, timeout_duration, indic_on, onatboot);
+        smartSW_defs(x, SWname, butType, output_pin, pwm_pwr, input_pin, indic_pin, useclkdown, timeout_duration, indic_on, onatboot);
         DOC.clear();
 
         if (numS == 1)
@@ -120,7 +122,7 @@ void addiotnalMQTT(char *incoming_msg, char *_topic)
     }
     else if (strcmp(incoming_msg, "help2") == 0)
     {
-        sprintf(msg, "help #2: on, off, all_off, {timeout,MIN}");
+        sprintf(msg, "help #2: on, off, all_off,entities, {timeout,MIN}");
         iot.pub_msg(msg);
     }
     else if (strcmp(incoming_msg, "ver2") == 0)
@@ -133,6 +135,19 @@ void addiotnalMQTT(char *incoming_msg, char *_topic)
         for (uint8_t i = 0; i < totSW; i++)
         {
             smartSwArray[i]->turnOFF_cb(2);
+        }
+    }
+    else if (strcmp(incoming_msg, "entities") == 0)
+    {
+        for (uint8_t i = 0; i < totSW; i++)
+        {
+            SW_props prop;
+            smartSwArray[i]->get_SW_props(prop);
+
+            sprintf(msg, "[Entities]: #%d name[%s], timeout[%s], swType[%d], virtCMD[%s], PWM[%s], output_pin[%d], input_pin[%d], indication_pin[%d]",
+                    prop.id, prop.name, prop.timeout ? "Yes" : "No", prop.type, prop.virtCMD ? "Yes" : "No", prop.PWM ? "Yes" : "No",
+                    prop.outpin, prop.inpin, prop.indicpin);
+            iot.pub_msg(msg);
         }
     }
     else

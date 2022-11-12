@@ -13,7 +13,7 @@ const char *ver = "smartSwitch_v0.2";
 
 #include "myIOT_settings.h"
 
-void smartSW_defs(uint8_t id, const char *SWname, uint8_t butType, uint8_t output_pin,
+void smartSW_defs(uint8_t id, const char *SWname, uint8_t butType, uint8_t output_pin, uint8_t pwm_pwr,
                   uint8_t input_pin, uint8_t indic_pin, bool uselckd, int timeout, bool indic_on, bool onatboot)
 {
         if (id == 1)
@@ -21,13 +21,13 @@ void smartSW_defs(uint8_t id, const char *SWname, uint8_t butType, uint8_t outpu
                 totSW++;
         }
 
-        smartSwArray[id]->set_id(id);
         smartSwArray[id]->set_name(SWname);
-        smartSwArray[id]->set_output(output_pin); /* pin-255 calls a virtualCMD */
+        smartSwArray[id]->set_output(output_pin, pwm_pwr); /* pin-255 calls a virtualCMD, pwm_pwr>0 create PWM output */
         smartSwArray[id]->set_input(input_pin, butType);
         smartSwArray[id]->set_indiction(indic_pin, indic_on);
         smartSwArray[id]->set_timeout(timeout * 60);
         smartSwArray[id]->set_useLockdown(uselckd);
+        smartSwArray[id]->set_id(id); /* have to be here */
 
         if (onatboot)
         {
@@ -37,6 +37,7 @@ void smartSW_defs(uint8_t id, const char *SWname, uint8_t butType, uint8_t outpu
         {
                 smartSwArray[id]->turnOFF_cb(3);
         }
+        print_props(id);
 }
 void update_MQTT_state(uint8_t i, uint8_t x = 0)
 {
@@ -103,6 +104,7 @@ void print_props(uint8_t i)
 
 void setup()
 {
+        Serial.begin(115200);
         startIOTservices();
 }
 void loop()

@@ -1,5 +1,5 @@
 {
-    "numSW": 1,
+    "numSW": 2,
     "MCUtype": 3,
     "SWtype": [
         2,
@@ -7,7 +7,7 @@
     ],
     "Timeout": [
         120,
-        1
+        120
     ],
     "useLockdown": false,
     "ONatBoot": [
@@ -15,8 +15,8 @@
         false
     ],
     "name": [
-        "Bed",
-        "A"
+        "Bed1",
+        "Bed2"
     ],
     "ver": 0.2
 }
