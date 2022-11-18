@@ -304,7 +304,7 @@ void smartSwitch::_HWon(uint8_t val)
     {
         int res = 0;
 #if defined(ESP8266)
-        res = 256;
+        res = 1023;
 #elif defined(ESP32)
         res = 4097;
 #endif

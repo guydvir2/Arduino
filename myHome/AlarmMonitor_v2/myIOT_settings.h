@@ -1,17 +1,49 @@
 myIOT2 iot;
 #include <Arduino.h>
 
+// ±±±±±±± Genereal pub topic ±±±±±±±±±
+const char *topicLog = "myHome/log";
+const char *topicDebug = "myHome/debug";
+const char *topicmsg = "myHome/Messages";
+
+// ±±±±±±±±±±±± sub Topics ±±±±±±±±±±±±±±±±±±
+const char *topicClient = "myHome/alarmMonitor";
+// const char *topicSub1 = "myHome/test/Client2";
+const char *topicAll = "myHome/All";
+
+// ±±±±±±±±±±±±±±±± Client state pub topics ±±±±±±±±±±±±±±±±
+const char *topicClient_avail = "myHome/alarmMonitor/Avail";
+const char *topicClient_state = "myHome/alarmMonitor/State";
+
 extern void allOff();
 extern uint8_t get_systemState();
 extern void set_armState(uint8_t req_state);
 
-// ~~~~~~~ MQTT Topics ~~~~~~
-#define DEV_TOPIC "alarmMonitor"
-#define PREFIX_TOPIC "myHome"
-#define GROUP_TOPIC ""
-// ~~~~~~~~~~~~~~~~~~~~~~~~~~
+void updateTopics_local()
+{
+    iot.topics_gen_pub[0] = topicmsg;
+    iot.topics_gen_pub[1] = topicLog;
+    iot.topics_gen_pub[2] = topicDebug;
 
-void addiotnalMQTT(char *incoming_msg)
+    iot.topics_pub[0] = topicClient_avail;
+    iot.topics_pub[1] = topicClient_state;
+
+    iot.topics_sub[0] = topicClient;
+    iot.topics_sub[1] = topicAll;
+    // iot.topics_sub[2] = topicSub1;
+}
+void update_Parameters_local()
+{
+    iot.useSerial = true;
+    iot.useDebug = true;
+    iot.debug_level = 0;
+    iot.useFlashP = false;
+    iot.useNetworkReset = true;
+    iot.noNetwork_reset = 5;
+    iot.useBootClockLog = true;
+    iot.ignore_boot_msg = false;
+}
+void addiotnalMQTT(char *incoming_msg, char *_topic)
 {
     char msg[100];
 
@@ -76,21 +108,7 @@ void addiotnalMQTT(char *incoming_msg)
 }
 void startIOTservices()
 {
-    iot.useSerial = false;
-    iot.useWDT = true;
-    iot.useOTA = true;
-    iot.useResetKeeper = false;
-    iot.useextTopic = false;
-    iot.useDebug = true;
-    iot.debug_level = 0;
-    iot.useNetworkReset = true;
-    iot.noNetwork_reset = 10;
-    iot.useBootClockLog = true;
-    iot.ignore_boot_msg = false;
-
-    strcpy(iot.deviceTopic, DEV_TOPIC);
-    strcpy(iot.prefixTopic, PREFIX_TOPIC);
-    strcpy(iot.addGroupTopic, GROUP_TOPIC);
-
+    updateTopics_local();
+    update_Parameters_local();
     iot.start_services(addiotnalMQTT);
 }

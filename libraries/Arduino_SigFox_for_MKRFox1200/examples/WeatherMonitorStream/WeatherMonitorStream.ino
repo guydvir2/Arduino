@@ -1,7 +1,7 @@
 /*
   SigFox Simple Weather Station
 
-  This sketch demonstrates the usage of MKRFox1200 as a simple weather station.
+  This sketch demonstrates the usage of MKR Fox 1200 as a simple weather station.
   It uses
     the onboard temperature sensor
     HTU21D I2C sensor to get humidity
@@ -9,16 +9,16 @@
     TSL2561 Light Sensor to get luminosity
 
   Download the needed libraries from the following links
-  http://librarymanager/all#BMP280&Adafruit
-  http://librarymanager/all#HTU21D&Adafruit
-  http://librarymanager/all#TSL2561&Adafruit
-  http://librarymanager/all#adafruit&sensor&abstraction
+  http://librarymanager/All#BMP280&Adafruit
+  http://librarymanager/All#HTU21D&Adafruit
+  http://librarymanager/All#TSL2561&Adafruit
+  http://librarymanager/All#adafruit&sensor&abstraction
 
   Since the Sigfox network can send a maximum of 120 messages per day (depending on your plan)
   we'll optimize the readings and send data in compact binary format
 
   This sketch shows how to use the Stream APIs of the library.
-  Refer to WeatherMonitor sketch for an example using data structures.
+  Refer to the WeatherMonitor sketch for an example using data structures.
 
   This example code is in the public domain.
 */
@@ -31,7 +31,7 @@
 #include <Adafruit_TSL2561_U.h>
 #include "conversions.h"
 
-// Set oneshot to false to trigger continuous mode when you finisched setting up the whole flow
+// Set oneshot to false to trigger continuous mode when you finished setting up the whole flow
 int oneshot = true;
 
 Adafruit_BMP280  bmp;
@@ -93,7 +93,7 @@ void setup() {
 void loop() {
   // Every 15 minutes, read all the sensors and send them
   // Let's try to optimize the data format
-  // Only use floats as intermediate representaion, don't send them directly
+  // Only use floats as intermediate representation, don't send them directly
 
   sensors_event_t event;
 
@@ -106,7 +106,7 @@ void loop() {
 
   // Start the module
   SigFox.begin();
-  // Wait at least 30ms after first configuration (100ms before)
+  // Wait at least 30 ms after first configuration (100 ms before)
   delay(100);
 
   // Prepare the packet using the Stream APIs

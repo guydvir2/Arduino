@@ -27,7 +27,7 @@ void smartSW_defs(uint8_t id, const char *SWname, uint8_t butType, uint8_t outpu
         smartSwArray[id]->set_indiction(indic_pin, indic_on);
         smartSwArray[id]->set_timeout(timeout * 60);
         smartSwArray[id]->set_useLockdown(uselckd);
-        smartSwArray[id]->set_id(id); /* have to be here */
+        smartSwArray[id]->set_id(id); /* have to be here to avoid wrong ID number */
 
         if (onatboot)
         {

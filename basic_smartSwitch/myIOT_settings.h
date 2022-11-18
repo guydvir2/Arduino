@@ -8,8 +8,8 @@ char topics_sub[3][MAX_TOPIC_SIZE]{};
 char topics_pub[3][MAX_TOPIC_SIZE]{};
 char topics_gen_pub[3][MAX_TOPIC_SIZE]{};
 
-const char *MCUtypeIO[] = {"/io_fail.json", "/io_SONOFF_S26.json", "/io_SONOFF_mini.json", "io_MCU.json"};
-const char *parameterFiles[] = {"/myIOT_param.json", "/myIOT2_topics.json", "/sketch_param.json"};
+const char *MCUtypeIO[] = {"/io_fail.json", "/io_SONOFF_S26.json", "/io_SONOFF_mini.json", "/io_MCU.json"};
+const char *parameterFiles[] = {"/myIOT_param.json", "/myIOT2_topics.json", "/sketch_param.json", MCUtypeIO[0]}; /* MCUtypeIO value is updated from flash */
 
 void updateTopics_flash(JsonDocument &DOC, char ch_array[][MAX_TOPIC_SIZE], const char *dest_array[], const char *topic, const char *defaulttopic, uint8_t ar_size)
 {
@@ -70,6 +70,9 @@ void update_Parameters_flash()
             butType = DOC["SWtype"][x].as<uint8_t>();
             SWname = DOC["name"][x].as<const char *>();
             timeout_duration = DOC["Timeout"][x].as<int>();
+            iot.parameter_filenames[3] = MCUtypeIO[mcuType];
+            // parameterFiles[3] = MCUtypeIO[mcuType];
+            // iot.set_pFilenames(parameterFiles, sizeof(parameterFiles) / sizeof(parameterFiles[0]));
         }
         DOC.clear();
 

@@ -1,7 +1,0 @@
-    {
-        "inputPin": 255,
-        "relayPin": 12,
-        "indicLED": 13,
-        "indic_on": true,
-        "ver": 0.1
-    }

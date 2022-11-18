@@ -1,8 +1,8 @@
 /*
   SigFox First Configuration
 
-  This sketch demonstrates the usage of MKRFox1200 SigFox module.
-  Since the board is designed with low power in mind, it depends directly on ArduinoLowPower library
+  This sketch demonstrates the usage of MKR Fox 1200 Sigfox module.
+  Since the board is designed with low power in mind, it depends directly on the ArduinoLowPower library
 
   This example code is in the public domain.
 */
@@ -20,7 +20,7 @@ void setup() {
     Serial.println("Shield error or not present!");
     return;
   }
-  // Enable debug led and disable automatic deep sleep
+  // Enable debug LED and disable automatic deep sleep
   // Comment this line when shipping your project :)
   SigFox.debug();
 
@@ -28,8 +28,8 @@ void setup() {
   String ID = SigFox.ID();
   String PAC = SigFox.PAC();
 
-  // Display module informations
-  Serial.println("MKRFox1200 Sigfox first configuration");
+  // Display module information
+  Serial.println("MKR Fox 1200 Sigfox first configuration");
   Serial.println("SigFox FW version " + version);
   Serial.println("ID  = " + ID);
   Serial.println("PAC = " + PAC);
@@ -39,8 +39,10 @@ void setup() {
   Serial.print("Module temperature: ");
   Serial.println(SigFox.internalTemperature());
 
-  Serial.println("Register your board on https://backend.sigfox.com/activate with provided ID and PAC");
-
+  Serial.println("Register your board on https://buy.sigfox.com/activate with provided ID and PAC");
+  Serial.println("The displayed PAC is the factory value. It is a throw-away value, which can only be used once for registration.");
+  Serial.println("If this device has already been registered, you can retrieve the updated PAC value on https://backend.sigfox.com/device/list");  
+  Serial.println("Join the Sigfox Builders Slack community to exchange with other developers, get help .. and find new ideas! https://builders.iotagency.sigfox.com/");
   delay(100);
 
   // Send the module to the deepest sleep
@@ -134,8 +136,8 @@ void sendStringAndGetResponse(String str) {
     }
   } else {
     Serial.println("Could not get any response from the server");
-    Serial.println("Check the SigFox coverage in your area");
-    Serial.println("If you are indoor, check the 20dB coverage or move near a window");
+    Serial.println("Check the Sigfox coverage in your area");
+    Serial.println("If you are indoor, check the 20 dB coverage or move near a window");
   }
   Serial.println();
 
