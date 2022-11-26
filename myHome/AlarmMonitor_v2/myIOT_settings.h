@@ -7,13 +7,13 @@ const char *topicDebug = "myHome/debug";
 const char *topicmsg = "myHome/Messages";
 
 // ±±±±±±±±±±±± sub Topics ±±±±±±±±±±±±±±±±±±
-const char *topicClient = "myHome/alarmMonitor";
+const char *topicClient = "myHome/alarmMonitor2";
 // const char *topicSub1 = "myHome/test/Client2";
 const char *topicAll = "myHome/All";
 
 // ±±±±±±±±±±±±±±±± Client state pub topics ±±±±±±±±±±±±±±±±
-const char *topicClient_avail = "myHome/alarmMonitor/Avail";
-const char *topicClient_state = "myHome/alarmMonitor/State";
+const char *topicClient_avail = "myHome/alarmMonitor2/Avail";
+const char *topicClient_state = "myHome/alarmMonitor2/State";
 
 extern void allOff();
 extern uint8_t get_systemState();
@@ -35,7 +35,7 @@ void updateTopics_local()
 void update_Parameters_local()
 {
     iot.useSerial = true;
-    iot.useDebug = true;
+    iot.useDebug = false;
     iot.debug_level = 0;
     iot.useFlashP = false;
     iot.useNetworkReset = true;
