@@ -1,9 +1,9 @@
 /**
- * Google's Cloud Storage class, GCS.cpp version 1.1.20
+ * Google's Cloud Storage class, GCS.cpp version 1.2.2
  *
  * This library supports Espressif ESP8266 and ESP32
  *
- * Created November 1, 2022
+ * Created November 15, 2022
  *
  * This work is a part of Firebase ESP Client library
  * Copyright (c) 2022 K. Suwatchai (Mobizt)
@@ -109,8 +109,6 @@ bool GG_CloudStorage::sendRequest(FirebaseData *fbdo, struct fb_esp_gcs_req_t *r
     if (Signer.getCfg()->internal.fb_processing)
         return false;
 
-    Signer.getCfg()->internal.fb_processing = true;
-
     gcs_connect(fbdo);
 
     fbdo->session.gcs.meta.name.clear();
@@ -152,7 +150,12 @@ bool GG_CloudStorage::sendRequest(FirebaseData *fbdo, struct fb_esp_gcs_req_t *r
         }
     }
 
+    Signer.getCfg()->internal.fb_processing = true;
+
     bool ret = gcs_sendRequest(fbdo, req);
+
+    Signer.getCfg()->internal.fb_processing = false;
+
     if (!ret)
     {
         if (req->requestType == fb_esp_gcs_request_type_download || req->requestType == fb_esp_gcs_request_type_download_ota)
@@ -282,6 +285,9 @@ void GG_CloudStorage::reportUploadProgress(FirebaseData *fbdo, struct fb_esp_gcs
 
     int p = (float)readBytes / req->fileSize * 100;
 
+    if (readBytes == 0)
+        fbdo->tcpClient.dataStart = millis();
+
     if (req->progress != p && (p == 0 || p == 100 || req->progress + ESP_REPORT_PROGRESS_INTERVAL <= p))
     {
         req->progress = p;
@@ -305,6 +311,9 @@ void GG_CloudStorage::reportDownloadProgress(FirebaseData *fbdo, struct fb_esp_g
         return;
 
     int p = (float)readBytes / req->fileSize * 100;
+
+    if (readBytes == 0)
+        fbdo->tcpClient.dataStart = millis();
 
     if (req->progress != p && (p == 0 || p == 100 || req->progress + ESP_REPORT_PROGRESS_INTERVAL <= p))
     {
@@ -1661,12 +1670,20 @@ bool GG_CloudStorage::handleResponse(FirebaseData *fbdo, struct fb_esp_gcs_req_t
 
     if (req->requestType == fb_esp_gcs_request_type_download && strlen(ut->mbfs->name(mbfs_type req->storageType)) == 0)
     {
+
+#if defined(ESP32_GT_2_0_1_FS_MEMORY_FIX)
+        // Fix issue in ESP32 core v2.0.x filesystems
+        // We can't open file (flash or sd) to write here because of truncated result, only append is success.
+        // We have to remove existing file
+        ut->mbfs->remove(req->localFileName, mbfs_type req->storageType);
+#else
         int ret = ut->mbfs->open(req->localFileName, mbfs_type req->storageType, mb_fs_open_mode_write);
         if (ret < 0)
         {
             fbdo->session.response.code = ret;
             return false;
         }
+#endif
     }
 
     int availablePayload = chunkBufSize;
@@ -1915,14 +1932,35 @@ bool GG_CloudStorage::handleResponse(FirebaseData *fbdo, struct fb_esp_gcs_req_t
                                             {
                                                 if (error.code == 0)
                                                 {
+
+#if defined(ESP32_GT_2_0_1_FS_MEMORY_FIX)
+                                                    // We open file to append here
+                                                    int ret = ut->mbfs->open(req->localFileName, mbfs_type req->storageType, mb_fs_open_mode_append);
+
+                                                    if (ret < 0)
+                                                    {
+                                                        fbdo->tcpClient.flush();
+                                                        fbdo->session.response.code = ret;
+                                                        return false;
+                                                    }
+#endif
                                                     if (ut->mbfs->write(mbfs_type req->storageType, buf, read) != (int)read)
                                                         error.code = MB_FS_ERROR_FILE_IO_ERROR;
+
+
+#if defined(ESP32_GT_2_0_1_FS_MEMORY_FIX)
+                                                    // We close file here after append
+                                                    ut->mbfs->close(mbfs_type req->storageType);
+#endif
                                                 }
                                             }
                                         }
 
                                         payloadRead += available;
                                     }
+
+                                    if (payloadRead == response.contentLen)
+                                        break;
 
                                     available = fbdo->tcpClient.available();
                                 }

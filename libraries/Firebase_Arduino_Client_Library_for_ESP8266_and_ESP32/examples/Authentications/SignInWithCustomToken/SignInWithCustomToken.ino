@@ -10,7 +10,7 @@
  *
  */
 
-/* This example shows how to re-authenticate using the refresh token generated from other app via OAuth2.0 authentication. */
+/* This example shows how to authenticate using the Identity Platform custom token (custom claims signed JWT token) generated from other app. */
 
 #if defined(ESP32)
 #include <WiFi.h>
@@ -26,20 +26,33 @@
 // Provide the RTDB payload printing info and other helper functions.
 #include <addons/RTDBHelper.h>
 
-/* 1. Define the WiFi credentials */
+
+/** 1. Define the API key
+ *
+ * The API key can be obtained since you created the project and set up
+ * the Authentication in Firebase console.
+ *
+ * You may need to enable the Identity provider at https://console.cloud.google.com/customer-identity/providers
+ * Select your project, click at ENABLE IDENTITY PLATFORM button.
+ * The API key also available by click at the link APPLICATION SETUP DETAILS.
+ *
+ */
+#define API_KEY "API_KEY"
+
+/* 2. Define the WiFi credentials */
 #define WIFI_SSID "WIFI_AP"
 #define WIFI_PASSWORD "WIFI_PASSWORD"
 
-/* 2. If work with RTDB, define the RTDB URL */
+/* 3. If work with RTDB, define the RTDB URL */
 #define DATABASE_URL "URL" //<databaseName>.firebaseio.com or <databaseName>.<region>.firebasedatabase.app
 
-/* 3. Define the Firebase Data object */
+/* 4. Define the Firebase Data object */
 FirebaseData fbdo;
 
-/* 4. Define the FirebaseAuth data for authentication data */
+/* 5. Define the FirebaseAuth data for authentication data */
 FirebaseAuth auth;
 
-/* 5. Define the FirebaseConfig data for config data */
+/* 6. Define the FirebaseConfig data for config data */
 FirebaseConfig config;
 
 unsigned long dataMillis = 0;
@@ -64,6 +77,9 @@ void setup()
 
     Serial.printf("Firebase Client v%s\n\n", FIREBASE_CLIENT_VERSION);
 
+    /* Assign the api key (required) */
+    config.api_key = API_KEY;
+
     /* Assign the RTDB URL */
     config.database_url = DATABASE_URL;
 
@@ -75,14 +91,12 @@ void setup()
     // To refresh the token 5 minutes before expired
     config.signer.preRefreshSeconds = 5 * 60;
 
-    // Use refresh token and force token to refresh immediately
-    // Refresh token, Client ID and Client Secret are required for OAuth2.0 token refreshing.
-    // The Client ID and Client Secret can be taken from https://console.developers.google.com/apis/credentials
+    /* Set custom token */
+    // If the refresh token from Custom token verification or sign in, was assigned here instead of
+    // custom token (signed JWT token), the token refresh process will be performed immediately.
 
-    Firebase.setAccessToken(&config, "" /* set access token to empty to refresh token immediately */, 3600 /* expiry time */, "<Refresh Token>" /* refresh token */, "<Client ID>" /* client id */, "<Client Secret>" /* client secret */);
-    
-    // Or refresh token manually
-    // Firebase.refreshToken(&config);
+    // Any token that is not in the form header.payload.signature i.e., xxxxx.yyyyy.zzzzz will be treated as refresh token.
+    Firebase.setCustomToken(&config, "<Custom Token>" /* custom token */);
 
     Firebase.begin(&config, &auth);
 }

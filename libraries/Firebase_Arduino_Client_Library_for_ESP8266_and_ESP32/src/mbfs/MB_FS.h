@@ -1,9 +1,9 @@
 /**
- * The MB_FS, filesystems wrapper class v1.0.7.
+ * The MB_FS, filesystems wrapper class v1.0.9
  *
  * This wrapper class is for SD and Flash filesystems interface which supports SdFat (//https://github.com/greiman/SdFat)
  *
- *  Created July 5, 2022
+ *  Created November 10, 2022
  *
  * The MIT License (MIT)
  * Copyright (c) 2022 K. Suwatchai (Mobizt)
@@ -624,6 +624,9 @@ public:
     bool existed(const MB_String &filename, mbfs_file_type type)
     {
 
+        if (!checkStorageReady(type))
+            return false;
+
 #if defined(MBFS_FLASH_FS)
         if (type == mbfs_flash)
             return MBFS_FLASH_FS.exists(filename.c_str());
@@ -647,16 +650,19 @@ public:
     }
 
     // Seek to position in file.
-    void seek(mbfs_file_type type, int pos)
+    bool seek(mbfs_file_type type, int pos)
     {
+
 #if defined(MBFS_FLASH_FS)
         if (type == mbfs_flash && mb_flashFs)
-            mb_flashFs.seek(pos);
+            return mb_flashFs.seek(pos);
 #endif
 #if defined(MBFS_SD_FS)
         if (type == mbfs_sd && mb_sdFs)
-            mb_sdFs.seek(pos);
+            return mb_sdFs.seek(pos);
 #endif
+
+        return false;
     }
 
     // Read byte. Return the 1 for completed read or negative value for error.
@@ -689,6 +695,19 @@ public:
 
     bool remove(const MB_String &filename, mbfs_file_type type)
     {
+        if (!checkStorageReady(type))
+            return false;
+
+#if defined(MBFS_FLASH_FS)
+        if (type == mbfs_flash && !flashReady())
+            return false;
+#endif
+
+#if defined(MBFS_SD_FS)
+        if (type == mbfs_sd && !sdReady())
+            return false;
+#endif
+
         if (!existed(filename, type))
             return true;
 
@@ -935,7 +954,7 @@ private:
 
 #if defined(MBFS_SD_FS)
 
-        if (mode == mb_fs_open_mode_read || mode == mb_fs_open_mode_write)
+        if (mode == mb_fs_open_mode_read || mode == mb_fs_open_mode_write || mode == mb_fs_open_mode_append)
         {
             uint16_t crc = calCRC(filename.c_str());
 
@@ -960,9 +979,11 @@ private:
                 ret = mb_sdFs.size();
             }
         }
-        else if (mode == mb_fs_open_mode_write)
+        else if (mode == mb_fs_open_mode_write || mode == mb_fs_open_mode_append)
         {
-            remove(filename, mb_fs_mem_storage_type_sd);
+            if (mode == mb_fs_open_mode_write)
+                remove(filename, mb_fs_mem_storage_type_sd);
+
             createDirs(filename, mb_fs_mem_storage_type_sd);
             if (mb_sdFs.open(filename.c_str(), O_RDWR | O_CREAT | O_APPEND))
             {
@@ -986,11 +1007,21 @@ private:
                 ret = mb_sdFs.size();
             }
         }
-        else if (mode == mb_fs_open_mode_write)
+        else if (mode == mb_fs_open_mode_write || mode == mb_fs_open_mode_append)
         {
-            remove(filename, mb_fs_mem_storage_type_sd);
+            if (mode == mb_fs_open_mode_write)
+                remove(filename, mb_fs_mem_storage_type_sd);
+
             createDirs(filename, mb_fs_mem_storage_type_sd);
+#if defined(ESP32)
+            if (mode == mb_fs_open_mode_write)
+                mb_sdFs = MBFS_SD_FS.open(filename.c_str(), FILE_WRITE);
+            else
+                mb_sdFs = MBFS_SD_FS.open(filename.c_str(), FILE_APPEND);
+#elif defined(ESP8266)
             mb_sdFs = MBFS_SD_FS.open(filename.c_str(), FILE_WRITE);
+#endif
+
             if (mb_sdFs)
             {
                 sd_file = filename;
@@ -1011,7 +1042,7 @@ private:
 
 #if defined(MBFS_FLASH_FS)
 
-        if (mode == mb_fs_open_mode_read || mode == mb_fs_open_mode_write)
+        if (mode == mb_fs_open_mode_read || mode == mb_fs_open_mode_write || mode == mb_fs_open_mode_append)
         {
             uint16_t crc = calCRC(filename.c_str());
             if (mode == flash_open_mode && sd_filename_crc == crc && flash_opened) // same flash file opened, leave it
@@ -1034,11 +1065,17 @@ private:
                 ret = mb_flashFs.size();
             }
         }
-        else if (mode == mb_fs_open_mode_write)
+        else if (mode == mb_fs_open_mode_write || mode == mb_fs_open_mode_append)
         {
-            remove(filename, mb_fs_mem_storage_type_flash);
+            if (mode == mb_fs_open_mode_write)
+                remove(filename, mb_fs_mem_storage_type_flash);
+
             createDirs(filename, mb_fs_mem_storage_type_flash);
-            mb_flashFs = MBFS_FLASH_FS.open(filename.c_str(), "w");
+            if (mode == mb_fs_open_mode_write)
+                mb_flashFs = MBFS_FLASH_FS.open(filename.c_str(), "w");
+            else
+                mb_flashFs = MBFS_FLASH_FS.open(filename.c_str(), "a");
+
             if (mb_flashFs)
             {
                 flash_file = filename;

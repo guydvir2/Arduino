@@ -1,9 +1,9 @@
 /**
- * Google's Firebase Token Generation class, Signer.cpp version 1.3.0
+ * Google's Firebase Token Generation class, Signer.cpp version 1.3.2
  *
  * This library supports Espressif ESP8266 and ESP32
  *
- * Created November 1, 2022
+ * Created November 10, 2022
  *
  * This work is a part of Firebase ESP Client library
  * Copyright (c) 2022 K. Suwatchai (Mobizt)
@@ -211,6 +211,7 @@ bool Firebase_Signer::authChanged(FirebaseConfig *config, FirebaseAuth *auth)
         {
             config->signer.idTokenCustomSet = false;
             config->signer.accessTokenCustomSet = false;
+            config->signer.customTokenCustomSet = false;
 
             if (auth->token.uid.length() == 0)
                 Signer.setTokenType(token_type_oauth2_access_token);
@@ -255,6 +256,7 @@ bool Firebase_Signer::authChanged(FirebaseConfig *config, FirebaseAuth *auth)
             config->signer.tokens.expires = 0;
             config->signer.idTokenCustomSet = false;
             config->signer.accessTokenCustomSet = false;
+            config->signer.customTokenCustomSet = false;
         }
     }
 
@@ -295,7 +297,16 @@ bool Firebase_Signer::isExpired()
     if (config->signer.tokens.token_type == token_type_legacy_token)
         return false;
 
-    time_t now = getTime();
+    time_t now = 0;
+
+    adjustTime(now);
+
+    return (now > (int)(config->signer.tokens.expires - config->signer.preRefreshSeconds) || config->signer.tokens.expires == 0);
+}
+
+void Firebase_Signer::adjustTime(time_t &now)
+{
+    now = getTime();
 
     // if the time was set (changed) after token has been generated, update its expiration
     if (config->signer.tokens.expires > 0 && config->signer.tokens.expires < ESP_DEFAULT_TS && now > ESP_DEFAULT_TS)
@@ -303,8 +314,6 @@ bool Firebase_Signer::isExpired()
 
     if (config->signer.preRefreshSeconds > config->signer.tokens.expires && config->signer.tokens.expires > 0)
         config->signer.preRefreshSeconds = 60;
-
-    return (now > (int)(config->signer.tokens.expires - config->signer.preRefreshSeconds) || config->signer.tokens.expires == 0);
 }
 
 bool Firebase_Signer::handleToken()
@@ -319,14 +328,41 @@ bool Firebase_Signer::handleToken()
         return true;
     }
 
-    if (config->signer.accessTokenCustomSet && !isExpired())
+    bool exp = isExpired();
+
+    if (config->signer.customTokenCustomSet)
+    {
+        if (exp)
+        {
+            config->signer.tokens.status = token_status_uninitialized;
+            config->signer.tokens.token_type = token_type_custom_token;
+
+            bool ret = false;
+
+            if (millis() - config->signer.lastReqMillis > config->signer.reqTO || config->signer.lastReqMillis == 0)
+            {
+                config->signer.lastReqMillis = millis();
+
+                ret = requestTokens(false);
+
+                if (ret)
+                    config->signer.customTokenCustomSet = false;
+            }
+
+            return ret;
+        }
+
+        config->signer.tokens.status = token_status_ready;
+        return true;
+    }
+    else if (config->signer.accessTokenCustomSet && !exp)
     {
         config->signer.tokens.auth_type = fb_esp_pgm_str_209;
         config->signer.tokens.status = token_status_ready;
         return true;
     }
 
-    if (isAuthToken(true) && isExpired())
+    if (isAuthToken(true) && exp)
     {
         if (config->signer.tokens.expires > 0 && isAuthToken(false))
         {
@@ -562,7 +598,7 @@ bool Firebase_Signer::refreshToken()
 
     req.clear();
     if (response_code < 0)
-        return handleSignerError(2);
+        return handleSignerError(FIREBASE_ERROR_TCP_ERROR_CONNECTION_LOST);
 
     struct fb_esp_auth_token_error_t error;
 
@@ -608,13 +644,13 @@ bool Firebase_Signer::refreshToken()
             if (parseJsonResponse(fb_esp_pgm_str_187))
                 auth->token.uid = resultPtr->to<const char *>();
 
-            return handleSignerError(0);
+            return handleSignerError(FIREBASE_ERROR_TOKEN_COMPLETE_NOTIFY);
         }
 
-        return handleSignerError(4);
+        return handleSignerError(FIREBASE_ERROR_TOKEN_ERROR_UNNOTIFY);
     }
 
-    return handleSignerError(3, httpCode);
+    return handleSignerError(FIREBASE_ERROR_HTTP_CODE_REQUEST_TIMEOUT, httpCode);
 }
 
 void Firebase_Signer::setTokenError(int code)
@@ -638,38 +674,38 @@ void Firebase_Signer::setTokenError(int code)
 
 bool Firebase_Signer::handleSignerError(int code, int httpCode)
 {
+    // Close TCP connection and unlock use flag
+    tcpClient->stop();
+    tcpClient->reserved = false;
+    config->internal.fb_processing = false;
+
     switch (code)
     {
 
-    case 1:
+    case FIREBASE_ERROR_TCP_ERROR_CONNECTION_LOST:
+
+        // Show error based on connection status
         config->signer.tokens.error.message.clear();
-        setTokenError(FIREBASE_ERROR_TCP_ERROR_NOT_CONNECTED);
+        setTokenError(code);
         config->internal.fb_last_jwt_generation_error_cb_millis = 0;
         sendTokenStatusCB();
         break;
-    case 2:
+    case FIREBASE_ERROR_HTTP_CODE_REQUEST_TIMEOUT:
 
-        tcpClient->stop();
-
-        config->signer.tokens.error.message.clear();
-        setTokenError(FIREBASE_ERROR_TCP_ERROR_CONNECTION_LOST);
-        config->internal.fb_last_jwt_generation_error_cb_millis = 0;
-        sendTokenStatusCB();
-        break;
-    case 3:
-
-        tcpClient->stop();
-
+        // Request time out?
         if (httpCode == 0)
-        {
-            setTokenError(FIREBASE_ERROR_HTTP_CODE_REQUEST_TIMEOUT);
+        {  
+            // Show error based on request time out
+            setTokenError(code);
             config->signer.tokens.error.message.clear();
         }
         else
         {
+            // Show error from response http code
             errorToString(httpCode, config->signer.tokens.error.message);
             setTokenError(httpCode);
         }
+
         config->internal.fb_last_jwt_generation_error_cb_millis = 0;
         sendTokenStatusCB();
 
@@ -679,8 +715,7 @@ bool Firebase_Signer::handleSignerError(int code, int httpCode)
         break;
     }
 
-    tcpClient->reserved = false;
-
+    // Free memory
     if (tcpClient && intTCPClient)
     {
         delete tcpClient;
@@ -697,15 +732,15 @@ bool Firebase_Signer::handleSignerError(int code, int httpCode)
     jsonPtr = nullptr;
     resultPtr = nullptr;
 
-    config->internal.fb_processing = false;
+    
 
-    if (code <= 0)
+    if (code == FIREBASE_ERROR_TOKEN_COMPLETE_NOTIFY || code == FIREBASE_ERROR_TOKEN_COMPLETE_UNNOTIFY)
     {
         config->signer.tokens.error.message.clear();
         config->signer.tokens.status = token_status_ready;
         config->signer.step = fb_esp_jwt_generation_step_begin;
         config->internal.fb_last_jwt_generation_error_cb_millis = 0;
-        if (code == 0)
+        if (code == FIREBASE_ERROR_TOKEN_COMPLETE_NOTIFY)
             sendTokenStatusCB();
 
         return true;
@@ -1279,7 +1314,7 @@ bool Firebase_Signer::getIdToken(bool createUser, MB_StringPtr email, MB_StringP
 
     if (response_code < 0)
     {
-        return handleSignerError(2);
+        return handleSignerError(FIREBASE_ERROR_TCP_ERROR_CONNECTION_LOST);
     }
 
     jsonPtr->clear();
@@ -1343,13 +1378,13 @@ bool Firebase_Signer::getIdToken(bool createUser, MB_StringPtr email, MB_StringP
                 auth->token.uid = resultPtr->to<const char *>();
 
             if (!createUser)
-                return handleSignerError(0);
+                return handleSignerError(FIREBASE_ERROR_TOKEN_COMPLETE_NOTIFY);
             else
-                return handleSignerError(-1);
+                return handleSignerError(FIREBASE_ERROR_TOKEN_COMPLETE_UNNOTIFY);
         }
     }
 
-    return handleSignerError(3, httpCode);
+    return handleSignerError(FIREBASE_ERROR_HTTP_CODE_REQUEST_TIMEOUT, httpCode);
 }
 
 bool Firebase_Signer::deleteIdToken(MB_StringPtr idToken)
@@ -1399,7 +1434,7 @@ bool Firebase_Signer::deleteIdToken(MB_StringPtr idToken)
     tcpClient->send(req.c_str());
     req.clear();
     if (response_code < 0)
-        return handleSignerError(2);
+        return handleSignerError(FIREBASE_ERROR_TCP_ERROR_CONNECTION_LOST);
 
     jsonPtr->clear();
 
@@ -1436,7 +1471,7 @@ bool Firebase_Signer::deleteIdToken(MB_StringPtr idToken)
         }
     }
 
-    return handleSignerError(4, httpCode);
+    return handleSignerError(FIREBASE_ERROR_HTTP_CODE_REQUEST_TIMEOUT, httpCode);
 }
 
 void Firebase_Signer::setAutoReconnectWiFi(bool reconnect)
@@ -1520,7 +1555,7 @@ bool Firebase_Signer::initClient(PGM_P subDomain, fb_esp_auth_token_status statu
     }
 
     if (!tcpClient->isInitialized())
-        return handleSignerError(3, FIREBASE_ERROR_EXTERNAL_CLIENT_NOT_INITIALIZED);
+        return handleSignerError(FIREBASE_ERROR_HTTP_CODE_REQUEST_TIMEOUT, FIREBASE_ERROR_EXTERNAL_CLIENT_NOT_INITIALIZED);
 
 #if defined(ESP8266) && !defined(FB_ENABLE_EXTERNAL_CLIENT)
     tcpClient->setBufferSizes(1024, 1024);
@@ -1551,7 +1586,7 @@ bool Firebase_Signer::requestTokens(bool refresh)
 {
     time_t now = getTime();
 
-    if (config->signer.tokens.status == token_status_on_request || config->signer.tokens.status == token_status_on_refresh || ((unsigned long)now < ESP_DEFAULT_TS && !refresh) || config->internal.fb_processing)
+    if (config->signer.tokens.status == token_status_on_request || config->signer.tokens.status == token_status_on_refresh || ((unsigned long)now < ESP_DEFAULT_TS && !refresh && !config->signer.customTokenCustomSet) || config->internal.fb_processing)
         return false;
 
     if (!initClient(fb_esp_pgm_str_193, refresh ? token_status_on_refresh : token_status_on_request))
@@ -1562,8 +1597,11 @@ bool Firebase_Signer::requestTokens(bool refresh)
 
     if (config->signer.tokens.token_type == token_type_custom_token)
     {
+        if (config->signer.customTokenCustomSet)
+            jsonPtr->add(pgm2Str(fb_esp_pgm_str_233), config->internal.auth_token.c_str());
+        else
+            jsonPtr->add(pgm2Str(fb_esp_pgm_str_233), config->signer.tokens.jwt.c_str());
 
-        jsonPtr->add(pgm2Str(fb_esp_pgm_str_233), config->signer.tokens.jwt.c_str());
         jsonPtr->add(pgm2Str(fb_esp_pgm_str_198), true);
 
         req += fb_esp_pgm_str_194;
@@ -1614,10 +1652,11 @@ bool Firebase_Signer::requestTokens(bool refresh)
     req += jsonPtr->raw();
 
     tcpClient->send(req.c_str());
+
     req.clear();
 
     if (response_code < 0)
-        return handleSignerError(2);
+        return handleSignerError(FIREBASE_ERROR_TCP_ERROR_CONNECTION_LOST);
 
     struct fb_esp_auth_token_error_t error;
 
@@ -1642,7 +1681,7 @@ bool Firebase_Signer::requestTokens(bool refresh)
                 error.message = resultPtr->to<const char *>();
         }
 
-        if (error.code != 0 && (config->signer.tokens.token_type == token_type_custom_token || config->signer.tokens.token_type == token_type_oauth2_access_token))
+        if (error.code != 0 && !config->signer.customTokenCustomSet && (config->signer.tokens.token_type == token_type_custom_token || config->signer.tokens.token_type == token_type_oauth2_access_token))
         {
             // new jwt needed as it is already cleared
             config->signer.step = fb_esp_jwt_generation_step_encode_header_payload;
@@ -1653,11 +1692,13 @@ bool Firebase_Signer::requestTokens(bool refresh)
         tokenInfo.type = config->signer.tokens.token_type;
         tokenInfo.error = config->signer.tokens.error;
         config->internal.fb_last_jwt_generation_error_cb_millis = 0;
+
         if (error.code != 0)
             sendTokenStatusCB();
 
         if (error.code == 0)
         {
+
             if (config->signer.tokens.token_type == token_type_custom_token)
             {
 
@@ -1692,12 +1733,12 @@ bool Firebase_Signer::requestTokens(bool refresh)
                 if (parseJsonResponse(fb_esp_pgm_str_210))
                     getExpiration(resultPtr->to<const char *>());
             }
-            return handleSignerError(0);
+            return handleSignerError(FIREBASE_ERROR_TOKEN_COMPLETE_NOTIFY);
         }
-        return handleSignerError(4);
+        return handleSignerError(FIREBASE_ERROR_TOKEN_ERROR_UNNOTIFY);
     }
 
-    return handleSignerError(3, httpCode);
+    return handleSignerError(FIREBASE_ERROR_HTTP_CODE_REQUEST_TIMEOUT, httpCode);
 }
 
 void Firebase_Signer::getExpiration(const char *exp)
@@ -1776,7 +1817,7 @@ bool Firebase_Signer::handleEmailSending(MB_StringPtr payload, fb_esp_user_email
     tcpClient->send(req.c_str());
     req.clear();
     if (response_code < 0)
-        return handleSignerError(2);
+        return handleSignerError(FIREBASE_ERROR_TCP_ERROR_CONNECTION_LOST);
 
     jsonPtr->clear();
 
@@ -1799,13 +1840,13 @@ bool Firebase_Signer::handleEmailSending(MB_StringPtr payload, fb_esp_user_email
         if (error.code == 0)
         {
             jsonPtr->clear();
-            return handleSignerError(0);
+            return handleSignerError(FIREBASE_ERROR_TOKEN_COMPLETE_NOTIFY);
         }
 
-        return handleSignerError(4);
+        return handleSignerError(FIREBASE_ERROR_TOKEN_ERROR_UNNOTIFY);
     }
 
-    return handleSignerError(3, httpCode);
+    return handleSignerError(FIREBASE_ERROR_HTTP_CODE_REQUEST_TIMEOUT, httpCode);
 }
 
 void Firebase_Signer::checkToken()
@@ -1813,16 +1854,7 @@ void Firebase_Signer::checkToken()
     if (!config || !auth)
         return;
 
-    time_t now = getTime();
-
-    // if the time was set (changed) after token has been generated, update its expiration
-    if (config->signer.tokens.expires > 0 && config->signer.tokens.expires < ESP_DEFAULT_TS && now > ESP_DEFAULT_TS)
-        config->signer.tokens.expires += now - (millis() - config->signer.tokens.last_millis) / 1000 - 60;
-
-    if (config->signer.preRefreshSeconds > config->signer.tokens.expires && config->signer.tokens.expires > 0)
-        config->signer.preRefreshSeconds = 60;
-
-    if (isAuthToken(true) && ((unsigned long)now > config->signer.tokens.expires - config->signer.preRefreshSeconds || config->signer.tokens.expires == 0))
+    if (isAuthToken(true) && isExpired())
         handleToken();
 }
 
