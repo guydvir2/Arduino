@@ -238,6 +238,41 @@ void smartSwitch::get_SW_props(SW_props &props)
     props.PWM = _output_pwm;
     props.name = name;
 }
+void smartSwitch::print_preferences()
+{
+    Serial.print("\n >>>>>> Switch #:");
+    Serial.print(_inputButton.getID());
+    Serial.println(" <<<<<< ");
+
+    Serial.print("Output :\t");
+    Serial.println(_virtCMD ? "Virutal" : "Relay");
+
+    Serial.print("MQTT:\t\t");
+    Serial.println(name);
+
+    Serial.print("in_pins #:\t");
+    Serial.println(_inputButton.getPin());
+
+    Serial.print("input type:\t");
+    Serial.println(_button_type);
+
+    Serial.print("out_pin #:\t");
+    Serial.println(_outputPin);
+
+    Serial.print("PWM:\t\t");
+    Serial.println(_output_pwm);
+
+    Serial.print("use indic:\t");
+    Serial.println(_use_indic);
+
+    Serial.print("use timeout:\t");
+    Serial.println(_use_timeout);
+
+    Serial.print("use lockdown:\t");
+    Serial.println(_use_lockdown ? "YES" : "NO");
+
+    Serial.println(" >>>>>>>> END <<<<<<<< \n");
+}
 
 bool smartSwitch::loop()
 {

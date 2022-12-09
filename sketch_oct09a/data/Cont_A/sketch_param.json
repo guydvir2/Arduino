@@ -45,5 +45,6 @@
         255,
         255
     ],
-    "v_file": 0.5
+    "controller_type": 1,
+    "v_file": 0.6
 }

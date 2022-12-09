@@ -1,22 +1,20 @@
 {
     "entityType": [
         0,
-        1,
+        0,
         1
     ],
     "SWname": [
-        "myHome/Lights/int/gFloor/Sw_0",
-        "myHome/Lights/int/gFloor/Sw_1",
-        "myHome/Lights/int/gFloor/Sw_2",
-        "myHome/Lights/int/gFloor/Sw_3"
+        "myHome/Lights/int/tFloor/Sw_0",
+        "myHome/Lights/int/tFloor/Sw_1",
+        "myHome/Lights/int/tFloor/Sw_2",
+        "myHome/Lights/int/tFloor/Sw_1"
     ],
     "Winname": [
-        "myHome/Windows/gFloor/Win_0",
-        "myHome/Windows/gFloor/Win_1"
+        "myHome/Windows/tFloor/Win_0",
+        "myHome/Windows/tFloor/Win_1"
     ],
     "SWvirtCMD": [
-        false,
-        false,
         false,
         false
     ],
@@ -43,8 +41,8 @@
     "RF_2entity": [
         255,
         255,
-        0,
-        1
+        255,
+        255
     ],
     "v_file": 0.5
 }

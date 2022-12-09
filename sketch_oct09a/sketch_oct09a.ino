@@ -5,12 +5,14 @@ myIOT2 iot;
 homeCtl controller;
 
 // ~~~ Software Flags ~~~
+#define MAN_MODE true
+#define PARAM_PRESET 3
+
+// ~~~ Debug ~~~
 #define EN_WIFI true
 #define DEBUG_MODE true
 #define RETAINED_MSG true
-#define MAN_MODE false
-#define PARAM_PRESET 3
-#define BurnOUT false
+#define BurnOUT true
 
 #if BurnOUT
 #include "soc/soc.h"          // disable   detector

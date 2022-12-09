@@ -26,7 +26,7 @@ enum ENT_TYPE : const uint8_t
 
 class homeCtl
 {
-#define TOT_Relays 4
+#define TOT_Relays 8
 #define TOT_Inputs 12
 
 private:
@@ -52,7 +52,7 @@ public:
 private:
     RCSwitch *RF_v = nullptr;
     Cotroller_Ent_telemetry _MSG;
-    WinSW *winSW_V[TOT_Relays / 2] = {nullptr, nullptr};
+    WinSW *winSW_V[TOT_Relays / 2] = {nullptr, nullptr,nullptr, nullptr};
     smartSwitch *SW_v[TOT_Inputs] = {nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr};
 
     void _init_RF();

@@ -95,7 +95,7 @@ void homeCtl::create_SW(uint8_t _input_pins[], uint8_t _output_pins[], const cha
     _init_RF();
   }
 
-  // SW_v[_swEntityCounter]->get_prefences();
+  SW_v[_swEntityCounter]->print_preferences();
   _inIOCounter++;
   _swEntityCounter++;
 }

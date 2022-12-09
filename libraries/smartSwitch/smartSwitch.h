@@ -89,6 +89,7 @@ public:
     uint8_t get_SWstate();
     int get_remain_time();
     void get_SW_props(SW_props &props);
+    void print_preferences();
 
     bool useTimeout();
     bool is_virtCMD();

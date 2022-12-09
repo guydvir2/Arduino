@@ -6,11 +6,8 @@ char parameterFiles[4][30];
 void build_path_directory(uint8_t i = 0)
 {
     const char *dirs[] = {"Fail", "Cont_A", "Cont_B", "Cont_C", "Cont_D", "Cont_test", "SONOFF_P"};
-#if defined(ESP32)
-    const char *FileNames_common[2] = {"myIOT_param.json", "HardwareESP32.json"};
-#elif defined(ESP8266)
-    const char *FileNames_common[2] = {"myIOT_param.json", "HardwareESP8266.json"};
-#endif
+    const char *FileNames_common[2] = {"myIOT_param.json", "HW.json"};
+
     const char *FileNames_dedicated[2] = {"myIOT2_topics.json", "sketch_param.json"};
 
     Serial.println("~ Build filenames:");
@@ -26,6 +23,7 @@ void build_path_directory(uint8_t i = 0)
             sprintf(parameterFiles[x], "/%s/%s", dirs[i], FileNames_dedicated[x - 2]);
         }
         iot.parameter_filenames[x] = parameterFiles[x];
+        Serial.println(iot.parameter_filenames[x]);
     }
     Serial.println("~ builded OK");
 }
@@ -49,8 +47,8 @@ bool readTopics()
     StaticJsonDocument<1200> DOC;
 #if MAN_MODE == true
     Serial.println("~ Topics data-base - local");
-
     DeserializationError error0 = deserializeJson(DOC, topics);
+
     if (!error0)
     {
 #else
@@ -206,8 +204,8 @@ bool get_entities_parameters()
             uint8_t win_ents = 0;
             uint8_t sw_ents = 0;
 
-            controller.set_RF(RF_p);
-            controller.set_RFch(_RFcodes, actual_RFcodes_saved);
+            controller.set_RF(RF_p);                             /* Set RF HW Pin */
+            controller.set_RFch(_RFcodes, actual_RFcodes_saved); /* Set RF frequencies */
 
             for (uint8_t x = 0; x < entTypes.size(); x++)
             {
