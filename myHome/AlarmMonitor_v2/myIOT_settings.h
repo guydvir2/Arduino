@@ -7,13 +7,12 @@ const char *topicDebug = "myHome/debug";
 const char *topicmsg = "myHome/Messages";
 
 // ±±±±±±±±±±±± sub Topics ±±±±±±±±±±±±±±±±±±
-const char *topicClient = "myHome/alarmMonitor2";
-// const char *topicSub1 = "myHome/test/Client2";
+const char *topicClient = "myHome/alarmMonitor";
 const char *topicAll = "myHome/All";
 
 // ±±±±±±±±±±±±±±±± Client state pub topics ±±±±±±±±±±±±±±±±
-const char *topicClient_avail = "myHome/alarmMonitor2/Avail";
-const char *topicClient_state = "myHome/alarmMonitor2/State";
+const char *topicClient_avail = "myHome/alarmMonitor/Avail";
+const char *topicClient_state = "myHome/alarmMonitor/State";
 
 extern void allOff();
 extern uint8_t get_systemState();
@@ -30,17 +29,13 @@ void updateTopics_local()
 
     iot.topics_sub[0] = topicClient;
     iot.topics_sub[1] = topicAll;
-    // iot.topics_sub[2] = topicSub1;
 }
 void update_Parameters_local()
 {
-    iot.useSerial = true;
-    iot.useDebug = false;
-    iot.debug_level = 0;
+    iot.useSerial = false;
     iot.useFlashP = false;
     iot.useNetworkReset = true;
     iot.noNetwork_reset = 5;
-    iot.useBootClockLog = true;
     iot.ignore_boot_msg = false;
 }
 void addiotnalMQTT(char *incoming_msg, char *_topic)

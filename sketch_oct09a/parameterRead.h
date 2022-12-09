@@ -1,5 +1,4 @@
 extern bool getPins_manual(JsonDocument &DOC);
-
 extern bool bootProcess_OK;
 
 char parameterFiles[4][30];
@@ -14,6 +13,8 @@ void build_path_directory(uint8_t i = 0)
 #endif
     const char *FileNames_dedicated[2] = {"myIOT2_topics.json", "sketch_param.json"};
 
+    Serial.println("~ Build filenames:");
+
     for (uint8_t x = 0; x < 4; x++)
     {
         if (x < 2)
@@ -26,7 +27,7 @@ void build_path_directory(uint8_t i = 0)
         }
         iot.parameter_filenames[x] = parameterFiles[x];
     }
-    Serial.println("~ Path builded OK");
+    Serial.println("~ builded OK");
 }
 void _updateTopics_flash(JsonDocument &DOC, char ch_array[][MAX_TOPIC_SIZE], const char *dest_array[], const char *topic, uint8_t shift = 0) /* update local Topic array */
 {

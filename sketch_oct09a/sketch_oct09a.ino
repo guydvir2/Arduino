@@ -1,5 +1,3 @@
-// #include "soc/soc.h"          // disable   detector
-// #include "soc/rtc_cntl_reg.h" // disable   detector
 #include <myIOT2.h>
 #include <homeController.h>
 
@@ -12,6 +10,12 @@ homeCtl controller;
 #define RETAINED_MSG true
 #define MAN_MODE false
 #define PARAM_PRESET 3
+#define BurnOUT false
+
+#if BurnOUT
+#include "soc/soc.h"          // disable   detector
+#include "soc/rtc_cntl_reg.h" // disable   detector
+#endif
 
 #if MAN_MODE == true
 #include "manual_mode.h"
@@ -111,7 +115,9 @@ void new_telemetry_handler()
 
 void setup()
 {
-  // WRITE_PERI_REG(RTC_CNTL_BROWN_OUT_REG, 0); // disable   detector
+#if BurnOUT
+  WRITE_PERI_REG(RTC_CNTL_BROWN_OUT_REG, 0); // disable   detector
+#endif
 #if DEBUG_MODE
   init_Serial_DBG_MODE();
 #endif
