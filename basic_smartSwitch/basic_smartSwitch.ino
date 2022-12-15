@@ -9,7 +9,7 @@ smartSwitch smartSW2;
 smartSwitch *smartSwArray[MAX_SW] = {&smartSW, &smartSW2};
 
 uint8_t totSW = 1;
-const char *ver = "smartSwitch_v0.2";
+const char *ver = "smartSwitch_v0.3";
 
 #include "myIOT_settings.h"
 
@@ -65,11 +65,14 @@ void smartSW_telemetry2MQTT(uint8_t i)
 
         SW_props props;
         smartSwArray[i]->get_SW_props(props);
-
-        sprintf(msg, "[%s]: [%s] turned [%s]%s", origins[smartSwArray[i]->telemtryMSG.reason], props.name, sw_states[smartSwArray[i]->telemtryMSG.state], msg2);
-        // sprintf(msg, "[%s]", props.name);
-        // Serial.println(msg);
-        // Serial.println(ESP.getFreeHeap());
+        if (totSW > 1)
+        {
+                sprintf(msg, "[%s]: [%s] turned [%s]%s", origins[smartSwArray[i]->telemtryMSG.reason], props.name, sw_states[smartSwArray[i]->telemtryMSG.state], msg2);
+        }
+        else
+        {
+                sprintf(msg, "[%s]: turned [%s]%s", origins[smartSwArray[i]->telemtryMSG.reason], sw_states[smartSwArray[i]->telemtryMSG.state], msg2);
+        }
 
         iot.pub_msg(msg);
         update_MQTT_state(smartSwArray[i]->telemtryMSG.state, i);

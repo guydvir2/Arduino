@@ -288,7 +288,14 @@ bool smartSwitch::loop()
     }
     if (_use_indic)
     {
-        _isON() ? _turn_indic_on() : _turn_indic_off();
+        if (_isON())
+        {
+            _turn_indic_on();
+        }
+        else
+        {
+            _turn_indic_off();
+        }
     }
     return telemtryMSG.newMSG;
 }

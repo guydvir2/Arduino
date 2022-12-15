@@ -12,6 +12,7 @@ const char* ssid = STASSID;
 const char* password = STAPSK;
 
 void setup() {
+  pinMode(13,OUTPUT);
   Serial.begin(115200);
   Serial.println("Booting");
   WiFi.mode(WIFI_STA);
@@ -74,4 +75,6 @@ void setup() {
 
 void loop() {
   ArduinoOTA.handle();
+  digitalWrite(13,!digitalRead(13));
+  delay(100);
 }

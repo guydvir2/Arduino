@@ -4,7 +4,7 @@ myIOT2 iot;
 extern void smartSW_defs(uint8_t id, const char *SWname, uint8_t butType, uint8_t output_pin, uint8_t pwm_pwr,
                          uint8_t input_pin, uint8_t indic_pin, bool uselckd, int timeout, bool indic_on, bool onatboot);
 
-char topics_sub[3][MAX_TOPIC_SIZE]{};
+char topics_sub[4][MAX_TOPIC_SIZE]{};
 char topics_pub[3][MAX_TOPIC_SIZE]{};
 char topics_gen_pub[3][MAX_TOPIC_SIZE]{};
 
@@ -79,13 +79,13 @@ void update_Parameters_flash()
         /* Part E: Read MCU IOs paramters from flash, and update Sketch */
         if (iot.extract_JSON_from_flash(MCUtypeIO[mcuType], DOC))
         {
+            serializeJsonPretty(DOC, Serial);
             input_pin = DOC["inputPin"][x].as<uint8_t>();
             output_pin = DOC["relayPin"][x].as<uint8_t>();
-            indic_pin = DOC["indicLED"][x].as<uint8_t>() | 255;
-            indic_on = DOC["indic_on"][x].as<bool>() | false;
-            pwm_pwr = DOC["PWM_pwr"][x].as<uint8_t>() | 0;
+            indic_pin = DOC["indicLED"][x] | 255;
+            indic_on = DOC["indic_on"][x] | false;
+            pwm_pwr = DOC["PWM_pwr"][x] | 0;
         }
-
         smartSW_defs(x, SWname, butType, output_pin, pwm_pwr, input_pin, indic_pin, useclkdown, timeout_duration, indic_on, onatboot);
         DOC.clear();
 
