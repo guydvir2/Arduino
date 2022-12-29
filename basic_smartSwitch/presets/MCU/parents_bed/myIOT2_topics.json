@@ -6,13 +6,13 @@
     ],
     "pub_topics": [
         "myHome/Lights/int/parentLEDs/Avail",
-        "myHome/Lights/int/parentLEDs/State",
-        "myHome/Lights/int/parentLEDs/cmd"
+        "myHome/Lights/int/parentLEDs/State"
     ],
     "sub_topics": [
         "myHome/Lights/int/parentLEDs",
         "myHome/All",
-        "myHome/Lights"
+        "myHome/Lights",
+        "myHome/Lights/int"
     ],
     "ver": 0.1
 }

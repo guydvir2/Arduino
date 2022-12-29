@@ -119,7 +119,16 @@ void addiotnalMQTT(char *incoming_msg, char *_topic)
             {
                 strcpy(a, "");
             }
-            sprintf(msg, "[status]: [%d] turned [%s]%s", i, smartSwArray[i]->get_SWstate() == 1 ? "On" : "Off", a);
+            if (totSW > 1)
+            {
+                SW_props prop;
+                smartSwArray[i]->get_SW_props(prop);
+                sprintf(msg, "[status]: [%s] turned [%s]%s", prop.name, smartSwArray[i]->get_SWstate() == 1 ? "On" : "Off", a);
+            }
+            else
+            {
+                sprintf(msg, "[status]: turned [%s]%s", smartSwArray[i]->get_SWstate() == 1 ? "On" : "Off", a);
+            }
             iot.pub_msg(msg);
         }
     }

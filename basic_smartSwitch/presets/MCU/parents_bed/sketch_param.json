@@ -6,7 +6,7 @@
         2
     ],
     "Timeout": [
-        120,
+        600,
         60
     ],
     "useLockdown": false,

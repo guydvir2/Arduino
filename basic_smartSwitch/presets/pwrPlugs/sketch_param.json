@@ -6,7 +6,7 @@
         2
     ],
     "Timeout": [
-        180,
+        300,
         60
     ],
     "useLockdown": false,
@@ -15,8 +15,8 @@
         false
     ],
     "name": [
-        "myHome/pwrPlugs/iPhone",
-        "Oz"
+        "pwrPlug",
+        "Or"
     ],
     "ver": 0.2
 }

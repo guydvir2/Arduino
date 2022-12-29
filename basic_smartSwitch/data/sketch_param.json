@@ -1,22 +1,22 @@
 {
-    "numSW": 1,
-    "MCUtype": 1,
+    "numSW": 2,
+    "MCUtype": 3,
     "SWtype": [
         2,
         2
     ],
     "Timeout": [
-        300,
+        600,
         60
     ],
     "useLockdown": false,
     "ONatBoot": [
-        true,
+        false,
         false
     ],
     "name": [
-        "pwrPlug",
-        "Or"
+        "Bed",
+        "Mirror"
     ],
     "ver": 0.2
 }

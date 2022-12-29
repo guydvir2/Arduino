@@ -5,13 +5,14 @@
         "myHome/debug"
     ],
     "pub_topics": [
-        "myHome/pwrPlugs/iPhone/Avail",
-        "myHome/pwrPlugs/iPhone/State"
+        "myHome/Lights/int/parentLEDs/Avail",
+        "myHome/Lights/int/parentLEDs/State"
     ],
     "sub_topics": [
-        "myHome/pwrPlugs/iPhone",
+        "myHome/Lights/int/parentLEDs",
         "myHome/All",
-        "myHome/pwrPlugs"
+        "myHome/Lights",
+        "myHome/Lights/int"
     ],
     "ver": 0.1
 }

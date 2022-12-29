@@ -82,7 +82,7 @@ public:
     bool newMSGflag = false;
 
     char ver[14] = "WinSW_v0.4";
-    char name[MAX_TOPIC_SIZE] = {""};
+    char name[MAX_TOPIC_SIZE];
     uint8_t outpins[2];
 
     Win_act_telem MSG;

@@ -7,7 +7,6 @@ void build_path_directory(uint8_t i = 0)
 {
     const char *dirs[] = {"Fail", "Cont_A", "Cont_B", "Cont_C", "Cont_D", "Cont_test", "SONOFF_P"};
     const char *FileNames_common[2] = {"myIOT_param.json", "HW.json"};
-
     const char *FileNames_dedicated[2] = {"myIOT2_topics.json", "sketch_param.json"};
 
     Serial.println("~ Build filenames:");
@@ -241,7 +240,7 @@ void read_all_parameters()
 {
     Serial.println("\n<<<<<<<<<<<<<<<<< Start Reading Parameters >>>>>>>>>>>>>>>>\n");
     uint8_t fail_directory = 0;
-    build_path_directory(PARAM_PRESET);
+    build_path_directory(PARAM_PRESET); /* Needed for Flash & Local stored parameters */
     if (get_IOT2_parameters() && get_entities_parameters() && readTopics())
     {
         bootProcess_OK = true;
