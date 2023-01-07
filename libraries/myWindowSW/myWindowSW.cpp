@@ -21,7 +21,7 @@ void WinSW::set_name(const char *_name)
 void WinSW::set_input(uint8_t upin, uint8_t dpin)
 {
   _mainSW.set_input(upin, dpin);
-  _mainSW.get_SWstate(); // <--- To read init state at boot, and ignore switch state //
+  _mainSW.get_SWstate(); // <--- To read init state at boot, and ignore switch state // maybe it is not needed ?
 }
 void WinSW::set_output(uint8_t outup_pin, uint8_t outdown_pin)
 {
@@ -168,12 +168,18 @@ void WinSW::_allOff()
 void WinSW::_winUP()
 {
   _allOff();
-  winUP;
+  if (!virtCMD)
+  {
+    digitalWrite(outpins[0], RELAY_ON);
+  }
 }
 void WinSW::_winDOWN()
 {
   _allOff();
-  winDOWN;
+  if (!virtCMD)
+  {
+    digitalWrite(outpins[1], RELAY_ON);
+  }
 }
 void WinSW::_switch_cb(uint8_t state, uint8_t i)
 {

@@ -2,13 +2,16 @@
 #include "smartSwitch.h"
 
 smartSwitch::smartSwitch() : _inputButton(),
+                             _inSW(1),
                              _timeout_clk(Chrono::MILLIS)
 {
+    _id = _next_id++;
 }
 
 void smartSwitch::set_id(uint8_t i)
 {
-    _inputButton.setID(i);
+    // _inputButton.setID(i);
+    _id = i;
 }
 void smartSwitch::set_timeout(int t)
 {
@@ -61,18 +64,21 @@ void smartSwitch::set_input(uint8_t inpin, uint8_t t)
     else if (inpin != UNDEF_PIN && _button_type > NO_INPUT)
     {
         _useButton = true;
-        _inputButton.begin(inpin);
-        _inputButton.loop();
-    }
+        _inSW.add_switch(t, inpin, circuit_C2);
+        // _inputButton.begin(inpin);
+        // _inputButton.loop();
 
-    if (t == ON_OFF_SW)
-    {
-        _inputButton.setPressedHandler(std::bind(&smartSwitch::_OnOffSW_ON_handler, this, std::placeholders::_1));
-        _inputButton.setReleasedHandler(std::bind(&smartSwitch::_OnOffSW_OFF_handler, this, std::placeholders::_1));
-    }
-    else if (t == MOMENTARY_SW)
-    {
-        _inputButton.setPressedHandler(std::bind(&smartSwitch::_toggle_handle, this, std::placeholders::_1));
+        if (t == ON_OFF_SW)
+        {
+            _inSW.add_switch(toggle_switch, inpin, circuit_C2);
+            // _inputButton.setPressedHandler(std::bind(&smartSwitch::_OnOffSW_ON_handler, this, std::placeholders::_1));
+            // _inputButton.setReleasedHandler(std::bind(&smartSwitch::_OnOffSW_OFF_handler, this, std::placeholders::_1));
+        }
+        else if (t == MOMENTARY_SW)
+        {
+            _inSW.add_switch(button_switch, inpin, circuit_C2);
+            // _inputButton.setPressedHandler(std::bind(&smartSwitch::_toggle_handle, this, std::placeholders::_1));
+        }
     }
 }
 void smartSwitch::set_lockSW()
@@ -228,9 +234,9 @@ uint8_t smartSwitch::get_SWstate()
 }
 void smartSwitch::get_SW_props(SW_props &props)
 {
-    props.id = _inputButton.getID();
+    props.id = _id; //_inputButton.getID();
     props.type = _button_type;
-    props.inpin = _inputButton.getPin();
+    props.inpin = 255;//_inputButton.getPin();
     props.outpin = _outputPin;
     props.timeout = _use_timeout;
     props.virtCMD = _virtCMD;
@@ -241,7 +247,7 @@ void smartSwitch::get_SW_props(SW_props &props)
 void smartSwitch::print_preferences()
 {
     Serial.print("\n >>>>>> Switch #:");
-    Serial.print(_inputButton.getID());
+    Serial.print(_id);
     Serial.println(" <<<<<< ");
 
     Serial.print("Output :\t");
@@ -251,7 +257,7 @@ void smartSwitch::print_preferences()
     Serial.println(name);
 
     Serial.print("in_pins #:\t");
-    Serial.println(_inputButton.getPin());
+    // Serial.println(_inputButton.getPin());
 
     Serial.print("input type:\t");
     Serial.println(_button_type);

@@ -2,6 +2,7 @@
 #define smartSW_h
 #include <Arduino.h>
 #include <Button2.h> /* Button Entities */
+#include <ez_switch_lib.h>
 #include <Chrono.h>
 
 #ifndef UNDEF_PIN
@@ -95,12 +96,16 @@ public:
     bool is_virtCMD();
     bool is_useButton();
     Button2 _inputButton;
+    Switches _inSW;
 
 private:
     uint8_t _pwm_ints = 0;
     uint8_t _button_type = 255;
     uint8_t _outputPin = UNDEF_PIN;
     uint8_t _indicPin = UNDEF_PIN;
+
+    uint8_t _id = 0;
+    static uint8_t _next_id; /* Instance counter */
 
     bool _virtCMD = false;
     bool _useButton = false;

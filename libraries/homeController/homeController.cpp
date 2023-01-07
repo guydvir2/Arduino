@@ -217,7 +217,7 @@ void homeCtl::Win_release_lockdown()
 }
 void homeCtl::SW_init_lockdown(uint8_t i)
 {
-  if (i = 255)
+  if (i != 255)
   {
     for (uint8_t n = 0; n < get_ent_counter(SW_ENT); n++)
     {
@@ -234,7 +234,7 @@ void homeCtl::SW_init_lockdown(uint8_t i)
 }
 void homeCtl::SW_release_lockdown(uint8_t i)
 {
-  if (i = 255)
+  if (i != 255)
   {
     for (uint8_t n = 0; n < get_ent_counter(SW_ENT); n++)
     {
@@ -346,15 +346,15 @@ void homeCtl::_toggle_SW_RF(uint8_t i)
 
   if (sw_prop.virtCMD)
   {
-    if (sw_prop.type == 2) /* virtCMD + PushButton --> output state is unknown*/
-    {
-      char top[50];
-      sprintf(top, "%s/State", SW_v[i]->name);
-      // iot.mqttClient.subscribe(top);
-    }
-    else
-    {
-    }
+    // if (sw_prop.type == 2) /* virtCMD + PushButton --> output state is unknown*/
+    // {
+    //   char top[50];
+    //   sprintf(top, "%s/State", SW_v[i]->name);
+    //   // iot.mqttClient.subscribe(top);
+    // }
+    // else
+    // {
+    // }
   }
   else
   {

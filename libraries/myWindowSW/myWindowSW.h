@@ -20,14 +20,6 @@ Features:
 #define UNDEF_INPUT 255
 #endif
 
-#define winUP     \
-    if (!virtCMD) \
-    digitalWrite(outpins[0], RELAY_ON)
-
-#define winDOWN   \
-    if (!virtCMD) \
-    digitalWrite(outpins[1], RELAY_ON)
-
 class RockerSW
 {
 #define PRESSED LOW
@@ -81,7 +73,7 @@ public:
     bool useExtSW = false;
     bool newMSGflag = false;
 
-    char ver[14] = "WinSW_v0.4";
+    char ver[14] = "WinSW_v0.41";
     char name[MAX_TOPIC_SIZE];
     uint8_t outpins[2];
 
