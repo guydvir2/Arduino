@@ -1,23 +1,24 @@
 #ifndef FIREBASE_CLIENT_VERSION
-#define FIREBASE_CLIENT_VERSION "4.2.7"
+#define FIREBASE_CLIENT_VERSION "4.3.5"
 #endif
 
 /**
- * Google's Firebase ESP Client Main class, Firebase_ESP_Client.h v4.2.7
+ * Google's Firebase ESP Client Main class, Firebase_ESP_Client.h v4.3.5
  *
- * This library supports Espressif ESP8266 and ESP32 MCUs
+ * This library supports Espressif ESP8266 and ESP32 MCUs and Raspberry Pi RP2040 Pico MCUs.
  *
- * Created November 11, 2022
+ * Created January 27, 2023
  *
  *   Updates:
- * - Fix compilation error.
+ * - Fix ESP8266 SDK lwip driver with Ethernet.h compilation error.
+ * - Update examples.
  *
  *
  * This work is a part of Firebase ESP Client library
- * Copyright (c) 2022 K. Suwatchai (Mobizt)
+ * Copyright (c) 2023 K. Suwatchai (Mobizt)
  *
  * The MIT License (MIT)
- * Copyright (c) 2022 K. Suwatchai (Mobizt)
+ * Copyright (c) 2023 K. Suwatchai (Mobizt)
  *
  *
  * Permission is hereby granted, free of charge, to any person returning a copy of

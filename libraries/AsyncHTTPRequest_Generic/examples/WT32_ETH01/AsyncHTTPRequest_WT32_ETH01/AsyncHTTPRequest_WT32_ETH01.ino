@@ -1,21 +1,21 @@
 /****************************************************************************************************************************
   AsyncHTTPRequest_WT32_ETH01.ino - Dead simple AsyncHTTPRequest for ESP8266, ESP32 and currently STM32 with built-in LAN8742A Ethernet
-  
+
   For ESP8266, ESP32 and STM32 with built-in LAN8742A Ethernet (Nucleo-144, DISCOVERY, etc)
-  
+
   AsyncHTTPRequest_Generic is a library for the ESP8266, ESP32 and currently STM32 run built-in Ethernet WebServer
-  
+
   Based on and modified from asyncHTTPrequest Library (https://github.com/boblemaire/asyncHTTPrequest)
-  
+
   Built by Khoi Hoang https://github.com/khoih-prog/AsyncHTTPRequest_Generic
   Licensed under MIT license
-  
+
   Copyright (C) <2018>  <Bob Lemaire, IoTaWatt, Inc.>
-  This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License 
+  This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License
   as published bythe Free Software Foundation, either version 3 of the License, or (at your option) any later version.
   This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-  You should have received a copy of the GNU General Public License along with this program.  If not, see <https://www.gnu.org/licenses/>.  
+  You should have received a copy of the GNU General Public License along with this program.  If not, see <https://www.gnu.org/licenses/>.
  *****************************************************************************************************************************/
 //************************************************************************************************************
 //
@@ -57,8 +57,11 @@
 
 #include <WebServer_WT32_ETH01.h>               // https://github.com/khoih-prog/WebServer_WT32_ETH01
 
-#define ASYNC_HTTP_REQUEST_GENERIC_VERSION_MIN_TARGET      "AsyncHTTPRequest_Generic v1.10.1"
-#define ASYNC_HTTP_REQUEST_GENERIC_VERSION_MIN             1010001
+#define ASYNC_HTTP_REQUEST_GENERIC_VERSION_MIN_TARGET      "AsyncHTTPRequest_Generic v1.10.2"
+#define ASYNC_HTTP_REQUEST_GENERIC_VERSION_MIN             1010002
+
+// Uncomment for certain HTTP site to optimize
+//#define NOT_SEND_HEADER_AFTER_CONNECTED        true
 
 // To be included only in main(), .ino with setup() to avoid `Multiple Definitions` Linker Error
 #include <AsyncHTTPRequest_Generic.h>             // https://github.com/khoih-prog/AsyncHTTPRequest_Generic
@@ -101,15 +104,15 @@ void heartBeatPrint(void)
   }
 }
 
-void sendRequest() 
+void sendRequest()
 {
   static bool requestOpenResult;
-  
+
   if (request.readyState() == readyStateUnsent || request.readyState() == readyStateDone)
   {
     //requestOpenResult = request.open("GET", "http://worldtimeapi.org/api/timezone/Europe/London.txt");
     requestOpenResult = request.open("GET", "http://worldtimeapi.org/api/timezone/America/Toronto.txt");
-    
+
     if (requestOpenResult)
     {
       // Only send() if open() returns true, or crash
@@ -148,29 +151,34 @@ void setup()
 {
   // put your setup code here, to run once:
   Serial.begin(115200);
+
   while (!Serial && millis() < 5000);
 
   delay(200);
 
-  Serial.print("\nStart AsyncHTTPRequest_WT32_ETH01 on "); Serial.print(ARDUINO_BOARD);
-  Serial.print(" with ");  Serial.println(SHIELD_TYPE);
+  Serial.print("\nStart AsyncHTTPRequest_WT32_ETH01 on ");
+  Serial.print(ARDUINO_BOARD);
+  Serial.print(" with ");
+  Serial.println(SHIELD_TYPE);
   Serial.println(WEBSERVER_WT32_ETH01_VERSION);
   Serial.println(ASYNC_HTTP_REQUEST_GENERIC_VERSION);
 
   Serial.setDebugOutput(true);
 
 #if defined(ASYNC_HTTP_REQUEST_GENERIC_VERSION_MIN)
+
   if (ASYNC_HTTP_REQUEST_GENERIC_VERSION_INT < ASYNC_HTTP_REQUEST_GENERIC_VERSION_MIN)
   {
     Serial.print("Warning. Must use this example on Version equal or later than : ");
     Serial.println(ASYNC_HTTP_REQUEST_GENERIC_VERSION_MIN_TARGET);
   }
+
 #endif
 
   // To be called before ETH.begin()
   WT32_ETH01_onEvent();
 
-  //bool begin(uint8_t phy_addr=ETH_PHY_ADDR, int power=ETH_PHY_POWER, int mdc=ETH_PHY_MDC, int mdio=ETH_PHY_MDIO, 
+  //bool begin(uint8_t phy_addr=ETH_PHY_ADDR, int power=ETH_PHY_POWER, int mdc=ETH_PHY_MDC, int mdio=ETH_PHY_MDIO,
   //           eth_phy_type_t type=ETH_PHY_TYPE, eth_clock_mode_t clk_mode=ETH_CLK_MODE);
   //ETH.begin(ETH_PHY_ADDR, ETH_PHY_POWER, ETH_PHY_MDC, ETH_PHY_MDIO, ETH_PHY_TYPE, ETH_CLK_MODE);
   ETH.begin(ETH_PHY_ADDR, ETH_PHY_POWER);
@@ -183,18 +191,18 @@ void setup()
 
   Serial.print(F("\nHTTP WebClient is @ IP : "));
   Serial.println(ETH.localIP());
- 
+
   request.setDebug(false);
-  
+
   request.onReadyStateChange(requestCB);
   ticker.attach(HTTP_REQUEST_INTERVAL, sendRequest);
 
   ticker1.attach(HEARTBEAT_INTERVAL, heartBeatPrint);
-  
+
   // Send first request now
-  sendRequest();  
+  sendRequest();
 }
 
 void loop()
-{ 
+{
 }

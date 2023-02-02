@@ -1,10 +1,10 @@
 /**
- * The Firebase class, Firebase.cpp v1.2.0
+ * The Firebase class, Firebase.cpp v1.2.4
  *
- *  Created November 9, 2022
+ *  Created January 8, 2023
  *
  * The MIT License (MIT)
- * Copyright (c) 2022 K. Suwatchai (Mobizt)
+ * Copyright (c) 2023 K. Suwatchai (Mobizt)
  *
  *
  * Permission is hereby granted, free of charge, to any person returning a copy of
@@ -30,42 +30,27 @@
 
 #include "Firebase.h"
 
-#if defined(ESP8266) || defined(ESP32) || defined(FB_ENABLE_EXTERNAL_CLIENT)
+#if defined(ESP8266) || defined(ESP32) || defined(PICO_RP2040) || defined(FB_ENABLE_EXTERNAL_CLIENT)
 
 #if defined(FIREBASE_ESP_CLIENT)
 
 Firebase_ESP_Client::Firebase_ESP_Client()
 {
-
-    if (!mbfs)
-        mbfs = new MB_FS();
-
-    if (!ut)
-        ut = new UtilsClass(mbfs);
-
-    Signer.begin(ut, mbfs, nullptr, nullptr);
+    Signer.begin(nullptr, nullptr, nullptr, nullptr);
 }
 
 Firebase_ESP_Client::~Firebase_ESP_Client()
 {
-    if (ut)
-        delete ut;
-    ut = nullptr;
-
-    if (mbfs)
-        delete mbfs;
-    mbfs = nullptr;
-
     if (auth)
         delete auth;
     auth = nullptr;
 
-    if (cfg)
+    if (config)
     {
-        cfg->internal.fbdo_addr_list.clear();
-        cfg->internal.queue_addr_list.clear();
-        delete cfg;
-        cfg = nullptr;
+        config->internal.sessions.clear();
+        config->internal.queueSessions.clear();
+        delete config;
+        config = nullptr;
     }
 }
 
@@ -73,7 +58,7 @@ void Firebase_ESP_Client::begin(FirebaseConfig *config, FirebaseAuth *auth)
 {
     init(config, auth);
 
-    if (!cfg->signer.test_mode)
+    if (!config->signer.test_mode)
     {
 
         fb_esp_auth_token_type type = config->signer.tokens.token_type;
@@ -83,9 +68,9 @@ void Firebase_ESP_Client::begin(FirebaseConfig *config, FirebaseAuth *auth)
         bool ctoken_set = config->signer.customTokenCustomSet;
         uint32_t exp = config->signer.tokens.expires;
 
-        Signer.authChanged(config, auth);
+        Signer.checkAuthTypeChanged(config, auth);
 
-        if (cfg->internal.fb_rtoken_requested || atoken_set)
+        if (config->internal.fb_rtoken_requested || atoken_set)
             config->signer.tokens.token_type = type;
 
         if (atoken_set)
@@ -106,29 +91,27 @@ void Firebase_ESP_Client::begin(FirebaseConfig *config, FirebaseAuth *auth)
         }
 
         struct fb_esp_url_info_t uinfo;
-        cfg->internal.fb_auth_uri = cfg->signer.tokens.token_type == token_type_legacy_token || cfg->signer.tokens.token_type == token_type_id_token;
+        config->internal.fb_auth_uri = config->signer.tokens.token_type == token_type_legacy_token ||
+                                       config->signer.tokens.token_type == token_type_id_token;
 
-        if (cfg->host.length() > 0)
-            cfg->database_url = cfg->host;
+        if (config->host.length() > 0)
+            config->database_url = config->host;
 
-        if (cfg->database_url.length() > 0)
+        if (config->database_url.length() > 0)
         {
-            ut->getUrlInfo(cfg->database_url.c_str(), uinfo);
-            cfg->database_url = uinfo.host.c_str();
+            URLHelper::parse(&mbfs, config->database_url.c_str(), uinfo);
+            config->database_url = uinfo.host.c_str();
         }
-
-        if (cfg->cert.file.length() > 0)
-            mbfs->checkStorageReady(mbfs_type cfg->cert.file_storage);
     }
 
-    if (cfg->internal.fb_rtoken_requested)
+    if (config->internal.fb_rtoken_requested)
     {
-        if (cfg->signer.tokens.token_type == token_type_oauth2_access_token)
+        if (config->signer.tokens.token_type == token_type_oauth2_access_token)
             Signer.requestTokens(true);
         else
             Signer.refreshToken();
 
-        cfg->internal.fb_rtoken_requested = false;
+        config->internal.fb_rtoken_requested = false;
         return;
     }
 
@@ -142,24 +125,27 @@ struct token_info_t Firebase_ESP_Client::authTokenInfo()
 
 bool Firebase_ESP_Client::ready()
 {
-    // We need to close all data object TCP sessions when token was expired.
+#if defined(ESP32) || defined(ESP8266)
+    // Stop the session only for ESPs to free the memory when token 
+    // expired (actually nearly expired) as the Signer needs memory 
+    // to open another secure TCP session to request new orrefresh token.
+    // We don't stop session to free memory on other devices e,g, Pico as it uses 
+    // BearSSL engine that required less memory then it has enough free memory 
+    //to do other things. 
     if (Signer.isExpired())
     {
-        if (Signer.getCfg())
+        if (Signer.config)
         {
-            for (size_t id = 0; id < Signer.getCfg()->internal.fbdo_addr_list.size(); id++)
+            for (size_t id = 0; id < Signer.config->internal.sessions.size(); id++)
             {
-
-                FirebaseData *fbdo = addrTo<FirebaseData *>(Signer.getCfg()->internal.fbdo_addr_list[id]);
-
-                if (fbdo && !fbdo->tcpClient.reserved)
-                {
+                FirebaseData *fbdo = addrTo<FirebaseData *>(Signer.config->internal.sessions[id]);
+                // non-stream used session will stop
+                if (fbdo && !fbdo->tcpClient.reserved && fbdo->session.con_mode != fb_esp_con_mode_rtdb_stream) 
                     fbdo->closeSession();
-                }
             }
         }
     }
-
+#endif
     return Signer.tokenReady();
 }
 
@@ -193,7 +179,9 @@ bool Firebase_ESP_Client::mSendResetPassword(FirebaseConfig *config, MB_StringPt
     return Signer.handleEmailSending(email, fb_esp_user_email_sending_type_reset_psw);
 }
 
-void Firebase_ESP_Client::mSetAuthToken(FirebaseConfig *config, MB_StringPtr authToken, size_t expire, MB_StringPtr refreshToken, fb_esp_auth_token_type type, MB_StringPtr clientId, MB_StringPtr clientSecret)
+void Firebase_ESP_Client::mSetAuthToken(FirebaseConfig *config, MB_StringPtr authToken, size_t expire,
+                                        MB_StringPtr refreshToken, fb_esp_auth_token_type type,
+                                        MB_StringPtr clientId, MB_StringPtr clientSecret)
 {
     if (!config)
         return;
@@ -275,7 +263,7 @@ void Firebase_ESP_Client::refreshToken(FirebaseConfig *config)
         config->signer.lastReqMillis = 0;
         config->signer.tokens.expires = 0;
 
-        if (auth && cfg)
+        if (auth && config)
         {
             config->internal.fb_rtoken_requested = false;
 
@@ -322,45 +310,24 @@ void Firebase_ESP_Client::reset(FirebaseConfig *config)
 void Firebase_ESP_Client::init(FirebaseConfig *config, FirebaseAuth *auth)
 {
     this->auth = auth;
-    cfg = config;
+    this->config = config;
 
-    if (!cfg)
-        cfg = new FirebaseConfig();
+    if (!config)
+        config = new FirebaseConfig();
 
     if (!this->auth)
         this->auth = new FirebaseAuth();
 
-    ut->setConfig(cfg);
+    config->internal.fb_reconnect_wifi = Signer.autoReconnectWiFi;
 
-#ifdef ENABLE_RTDB
-    RTDB.begin(ut);
-#endif
-#ifdef ENABLE_FCM
-    FCM.begin(ut);
-#endif
-#ifdef ENABLE_FB_STORAGE
-    Storage.begin(ut);
-#endif
-#ifdef ENABLE_FIRESTORE
-    Firestore.begin(ut);
-#endif
-#ifdef ENABLE_FB_FUNCTIONS
-    Functions.begin(ut);
-#endif
-#ifdef ENABLE_GC_STORAGE
-    GCStorage.begin(ut);
-#endif
+    config->signer.lastReqMillis = 0;
 
-    cfg->internal.fb_reconnect_wifi = Signer.autoReconnectWiFi;
+    if (!config->signer.anonymous && !config->signer.signup)
+        config->signer.tokens.expires = 0;
 
-    cfg->signer.lastReqMillis = 0;
-
-    if (!cfg->signer.anonymous && !cfg->signer.signup)
-        cfg->signer.tokens.expires = 0;
-
-    cfg->signer.signup = false;
-    Signer.begin(ut, mbfs, cfg, auth);
-    cfg->signer.tokens.error.message.clear();
+    config->signer.signup = false;
+    Signer.begin(config, auth, &mbfs, &mb_ts);
+    config->signer.tokens.error.message.clear();
 }
 
 void Firebase_ESP_Client::reconnectWiFi(bool reconnect)
@@ -406,33 +373,33 @@ const char *Firebase_ESP_Client::getRefreshToken()
 
 void Firebase_ESP_Client::setFloatDigits(uint8_t digits)
 {
-    if (!cfg)
+    if (!config)
         return;
 
-    if (digits < 7 && cfg)
-        cfg->internal.fb_float_digits = digits;
+    if (digits < 7 && config)
+        config->internal.fb_float_digits = digits;
 }
 
 void Firebase_ESP_Client::setDoubleDigits(uint8_t digits)
 {
-    if (!cfg)
+    if (!config)
         return;
 
-    if (digits < 9 && cfg)
-        cfg->internal.fb_double_digits = digits;
+    if (digits < 9 && config)
+        config->internal.fb_double_digits = digits;
 }
 
 #if defined(MBFS_SD_FS) && defined(MBFS_CARD_TYPE_SD)
 
 bool Firebase_ESP_Client::sdBegin(int8_t ss, int8_t sck, int8_t miso, int8_t mosi, uint32_t frequency)
 {
-    return mbfs->sdBegin(ss, sck, miso, mosi, frequency);
+    return mbfs.sdBegin(ss, sck, miso, mosi, frequency);
 }
 
 #if defined(ESP8266)
 bool Firebase_ESP_Client::sdBegin(SDFSConfig *sdFSConfig)
 {
-    return mbfs->sdFatBegin(sdFSConfig);
+    return mbfs.sdFatBegin(sdFSConfig);
 }
 #endif
 
@@ -440,19 +407,19 @@ bool Firebase_ESP_Client::sdBegin(SDFSConfig *sdFSConfig)
 
 bool Firebase_ESP_Client::sdBegin(int8_t ss, SPIClass *spiConfig, uint32_t frequency)
 {
-    return mbfs->sdSPIBegin(ss, spiConfig, frequency);
+    return mbfs.sdSPIBegin(ss, spiConfig, frequency);
 }
 #endif
 
 #if defined(MBFS_ESP32_SDFAT_ENABLED) || defined(MBFS_SDFAT_ENABLED)
 bool Firebase_ESP_Client::sdBegin(SdSpiConfig *sdFatSPIConfig, int8_t ss, int8_t sck, int8_t miso, int8_t mosi)
 {
-    return mbfs->sdFatBegin(sdFatSPIConfig, ss, sck, miso, mosi);
+    return mbfs.sdFatBegin(sdFatSPIConfig, ss, sck, miso, mosi);
 }
 
 bool Firebase_ESP_Client::sdBegin(SdioConfig *sdFatSDIOConfig)
 {
-    return mbfs->sdFatBegin(sdFatSDIOConfig);
+    return mbfs.sdFatBegin(sdFatSDIOConfig);
 }
 #endif
 
@@ -462,7 +429,7 @@ bool Firebase_ESP_Client::sdBegin(SdioConfig *sdFatSDIOConfig)
 
 bool Firebase_ESP_Client::sdMMCBegin(const char *mountpoint, bool mode1bit, bool format_if_mount_failed)
 {
-    return mbfs->sdMMCBegin(mountpoint, mode1bit, format_if_mount_failed);
+    return mbfs.sdMMCBegin(mountpoint, mode1bit, format_if_mount_failed);
 }
 
 #endif
@@ -478,41 +445,21 @@ Firebase_ESP_Client Firebase = Firebase_ESP_Client();
 
 FIREBASE_CLASS::FIREBASE_CLASS()
 {
-    if (!mbfs)
-        mbfs = new MB_FS();
-
-    if (!ut)
-        ut = new UtilsClass(mbfs);
-
-    Signer.begin(ut, mbfs, nullptr, nullptr);
+    Signer.begin(nullptr, nullptr, nullptr, nullptr);
 }
 
 FIREBASE_CLASS::~FIREBASE_CLASS()
 {
-    if (ut)
-        delete ut;
-    ut = nullptr;
+    if (auth)
+        delete auth;
+    auth = nullptr;
 
-    if (mbfs)
-        delete mbfs;
-    mbfs = nullptr;
-
-    if (cfg)
+    if (config)
     {
-        cfg->internal.fbdo_addr_list.clear();
-        cfg->internal.queue_addr_list.clear();
-    }
-
-    if (!extConfig)
-    {
-        if (cfg)
-            delete cfg;
-
-        if (auth)
-            delete auth;
-
-        cfg = nullptr;
-        auth = nullptr;
+        config->internal.sessions.clear();
+        config->internal.queueSessions.clear();
+        delete config;
+        config = nullptr;
     }
 }
 
@@ -520,7 +467,7 @@ void FIREBASE_CLASS::begin(FirebaseConfig *config, FirebaseAuth *auth)
 {
     init(config, auth);
 
-    if (!cfg->signer.test_mode)
+    if (!config->signer.test_mode)
     {
 
         fb_esp_auth_token_type type = config->signer.tokens.token_type;
@@ -530,9 +477,9 @@ void FIREBASE_CLASS::begin(FirebaseConfig *config, FirebaseAuth *auth)
         bool ctoken_set = config->signer.customTokenCustomSet;
         uint32_t exp = config->signer.tokens.expires;
 
-        Signer.authChanged(config, auth);
+        Signer.checkAuthTypeChanged(config, auth);
 
-        if (cfg->internal.fb_rtoken_requested || atoken_set)
+        if (config->internal.fb_rtoken_requested || atoken_set)
             config->signer.tokens.token_type = type;
 
         if (atoken_set)
@@ -553,29 +500,27 @@ void FIREBASE_CLASS::begin(FirebaseConfig *config, FirebaseAuth *auth)
         }
 
         struct fb_esp_url_info_t uinfo;
-        cfg->internal.fb_auth_uri = cfg->signer.tokens.token_type == token_type_legacy_token || cfg->signer.tokens.token_type == token_type_id_token;
+        config->internal.fb_auth_uri = config->signer.tokens.token_type == token_type_legacy_token ||
+                                       config->signer.tokens.token_type == token_type_id_token;
 
-        if (cfg->host.length() > 0)
-            cfg->database_url = cfg->host;
+        if (config->host.length() > 0)
+            config->database_url = config->host;
 
-        if (cfg->database_url.length() > 0)
+        if (config->database_url.length() > 0)
         {
-            ut->getUrlInfo(cfg->database_url.c_str(), uinfo);
-            cfg->database_url = uinfo.host.c_str();
+            URLHelper::parse(&mbfs, config->database_url.c_str(), uinfo);
+            config->database_url = uinfo.host.c_str();
         }
-
-        if (cfg->cert.file.length() > 0)
-            mbfs->checkStorageReady(mbfs_type cfg->cert.file_storage);
     }
 
-    if (cfg->internal.fb_rtoken_requested)
+    if (config->internal.fb_rtoken_requested)
     {
-        if (cfg->signer.tokens.token_type == token_type_oauth2_access_token)
+        if (config->signer.tokens.token_type == token_type_oauth2_access_token)
             Signer.requestTokens(true);
         else
             Signer.refreshToken();
 
-        cfg->internal.fb_rtoken_requested = false;
+        config->internal.fb_rtoken_requested = false;
         return;
     }
 
@@ -598,22 +543,21 @@ struct token_info_t FIREBASE_CLASS::authTokenInfo()
 
 bool FIREBASE_CLASS::ready()
 {
+#if defined(ESP32) || defined(ESP8266)
     // We need to close all data object TCP sessions when token was expired.
     if (Signer.isExpired())
     {
-        if (Signer.getCfg())
+        if (Signer.config)
         {
-            for (size_t id = 0; id < Signer.getCfg()->internal.fbdo_addr_list.size(); id++)
+            for (size_t id = 0; id < Signer.config->internal.sessions.size(); id++)
             {
-
-                FirebaseData *fbdo = addrTo<FirebaseData *>(Signer.getCfg()->internal.fbdo_addr_list[id]);
-
-                if (fbdo)
+                FirebaseData *fbdo = addrTo<FirebaseData *>(Signer.config->internal.sessions[id]);
+                if (fbdo && !fbdo->tcpClient.reserved)
                     fbdo->closeSession();
             }
         }
     }
-
+#endif
     return Signer.tokenReady();
 }
 
@@ -647,10 +591,12 @@ bool FIREBASE_CLASS::mSendResetPassword(FirebaseConfig *config, MB_StringPtr ema
     return Signer.handleEmailSending(email, fb_esp_user_email_sending_type_reset_psw);
 }
 
-void FIREBASE_CLASS::mSetAuthToken(FirebaseConfig *config, MB_StringPtr authToken, size_t expire, MB_StringPtr refreshToken, fb_esp_auth_token_type type, MB_StringPtr clientId, MB_StringPtr clientSecret)
+void FIREBASE_CLASS::mSetAuthToken(FirebaseConfig *config, MB_StringPtr authToken,
+                                   size_t expire, MB_StringPtr refreshToken, fb_esp_auth_token_type type,
+                                   MB_StringPtr clientId, MB_StringPtr clientSecret)
 {
 
-     if (!config)
+    if (!config)
         return;
 
     this->reset(config);
@@ -730,7 +676,7 @@ void FIREBASE_CLASS::refreshToken(FirebaseConfig *config)
         config->signer.lastReqMillis = 0;
         config->signer.tokens.expires = 0;
 
-        if (auth && cfg)
+        if (auth && config)
         {
             config->internal.fb_rtoken_requested = false;
 
@@ -776,34 +722,25 @@ void FIREBASE_CLASS::reset(FirebaseConfig *config)
 
 void FIREBASE_CLASS::init(FirebaseConfig *config, FirebaseAuth *auth)
 {
-    if (!this->auth)
-        this->auth = auth;
+    this->auth = auth;
+    this->config = config;
 
-    if (!this->cfg)
-        this->cfg = config;
-
-    if (!this->cfg)
-        this->cfg = new FirebaseConfig();
+    if (!config)
+        config = new FirebaseConfig();
 
     if (!this->auth)
         this->auth = new FirebaseAuth();
 
-    ut->setConfig(cfg);
+    config->internal.fb_reconnect_wifi = Signer.autoReconnectWiFi;
 
-#ifdef ENABLE_RTDB
-    RTDB.begin(ut);
-#endif
+    config->signer.lastReqMillis = 0;
 
-    cfg->internal.fb_reconnect_wifi = Signer.autoReconnectWiFi;
+    if (!config->signer.anonymous && !config->signer.signup)
+        config->signer.tokens.expires = 0;
 
-    cfg->signer.lastReqMillis = 0;
-
-    if (!cfg->signer.anonymous && !cfg->signer.signup)
-        cfg->signer.tokens.expires = 0;
-
-    cfg->signer.signup = false;
-    Signer.begin(ut, mbfs, this->cfg, this->auth);
-    cfg->signer.tokens.error.message.clear();
+    config->signer.signup = false;
+    Signer.begin(config, auth, &mbfs, &mb_ts);
+    config->signer.tokens.error.message.clear();
 }
 
 void FIREBASE_CLASS::reconnectWiFi(bool reconnect)
@@ -844,20 +781,20 @@ time_t FIREBASE_CLASS::getCurrentTime()
 
 void FIREBASE_CLASS::setFloatDigits(uint8_t digits)
 {
-    if (!cfg)
+    if (!config)
         return;
 
     if (digits < 7)
-        cfg->internal.fb_float_digits = digits;
+        config->internal.fb_float_digits = digits;
 }
 
 void FIREBASE_CLASS::setDoubleDigits(uint8_t digits)
 {
-    if (!cfg)
+    if (!config)
         return;
 
     if (digits < 9)
-        cfg->internal.fb_double_digits = digits;
+        config->internal.fb_double_digits = digits;
 }
 
 #ifdef ENABLE_FCM
@@ -868,15 +805,12 @@ bool FIREBASE_CLASS::handleFCMRequest(FirebaseData &fbdo, fb_esp_fcm_msg_type me
     if (!fbdo.reconnect())
         return false;
 
-    if (!ut->waitIdle(fbdo.session.http_code))
-        return false;
-
     FirebaseJsonData data;
 
     FirebaseJson *json = fbdo.to<FirebaseJson *>();
     json->setJsonData(fbdo.fcm.raw);
 
-    MB_String s = fb_esp_pgm_str_577;
+    MB_String s = fb_esp_pgm_str_577; // "server_key"
 
     json->get(data, s.c_str());
 
@@ -901,7 +835,7 @@ bool FIREBASE_CLASS::handleFCMRequest(FirebaseData &fbdo, fb_esp_fcm_msg_type me
         return false;
     }
 
-    s = fb_esp_pgm_str_576;
+    s = fb_esp_pgm_str_576; // "topic"
 
     json->get(data, s.c_str());
 
@@ -941,13 +875,13 @@ bool FIREBASE_CLASS::sendTopic(FirebaseData &fbdo)
 
 bool FIREBASE_CLASS::sdBegin(int8_t ss, int8_t sck, int8_t miso, int8_t mosi, uint32_t frequency)
 {
-    return mbfs->sdBegin(ss, sck, miso, mosi, frequency);
+    return mbfs.sdBegin(ss, sck, miso, mosi, frequency);
 }
 
 #if defined(ESP8266)
 bool FIREBASE_CLASS::sdBegin(SDFSConfig *sdFSConfig)
 {
-    return mbfs->sdFatBegin(sdFSConfig);
+    return mbfs.sdFatBegin(sdFSConfig);
 }
 #endif
 
@@ -955,19 +889,19 @@ bool FIREBASE_CLASS::sdBegin(SDFSConfig *sdFSConfig)
 
 bool FIREBASE_CLASS::sdBegin(int8_t ss, SPIClass *spiConfig, uint32_t frequency)
 {
-    return mbfs->sdSPIBegin(ss, spiConfig, frequency);
+    return mbfs.sdSPIBegin(ss, spiConfig, frequency);
 }
 #endif
 
 #if defined(MBFS_ESP32_SDFAT_ENABLED) || defined(MBFS_SDFAT_ENABLED)
 bool FIREBASE_CLASS::sdBegin(SdSpiConfig *sdFatSPIConfig, int8_t ss, int8_t sck, int8_t miso, int8_t mosi)
 {
-    return mbfs->sdFatBegin(sdFatSPIConfig, ss, sck, miso, mosi);
+    return mbfs.sdFatBegin(sdFatSPIConfig, ss, sck, miso, mosi);
 }
 
 bool FIREBASE_CLASS::sdBegin(SdioConfig *sdFatSDIOConfig)
 {
-    return mbfs->sdFatBegin(sdFatSDIOConfig);
+    return mbfs.sdFatBegin(sdFatSDIOConfig);
 }
 #endif
 
@@ -977,7 +911,7 @@ bool FIREBASE_CLASS::sdBegin(SdioConfig *sdFatSDIOConfig)
 
 bool FIREBASE_CLASS::sdMMCBegin(const char *mountpoint, bool mode1bit, bool format_if_mount_failed)
 {
-    return mbfs->sdMMCBegin(mountpoint, mode1bit, format_if_mount_failed);
+    return mbfs.sdMMCBegin(mountpoint, mode1bit, format_if_mount_failed);
 }
 
 #endif
@@ -989,7 +923,7 @@ fb_esp_mem_storage_type FIREBASE_CLASS::getMemStorageType(uint8_t old_type)
 
 bool FIREBASE_CLASS::setSystemTime(time_t ts)
 {
-    return ut->setTimestamp(ts) == 0;
+    return Signer.setTime(ts);
 }
 
 FIREBASE_CLASS Firebase = FIREBASE_CLASS();

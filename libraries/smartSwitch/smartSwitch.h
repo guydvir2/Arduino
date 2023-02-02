@@ -1,9 +1,8 @@
 #ifndef swmartSW_h
 #define smartSW_h
 #include <Arduino.h>
-#include <Button2.h> /* Button Entities */
-#include <ez_switch_lib.h>
 #include <Chrono.h>
+#include <ez_switch_lib.h>
 
 #ifndef UNDEF_PIN
 #define UNDEF_PIN 255
@@ -12,9 +11,6 @@
 #ifndef MAX_TOPIC_SIZE
 #define MAX_TOPIC_SIZE 40
 #endif
-
-#define OUTPUT_ON HIGH
-#define BUTTON_PRESSED LOW
 
 struct SW_act_telem
 {
@@ -41,8 +37,8 @@ struct SW_props
 enum SWTypes : const uint8_t
 {
     NO_INPUT,
-    ON_OFF_SW,
-    MOMENTARY_SW
+    MOMENTARY_SW,
+    ON_OFF_SW
 };
 enum InputTypes : const uint8_t
 {
@@ -64,7 +60,7 @@ enum SWstates : const uint8_t
 class smartSwitch
 {
 public:
-    const char *ver = "smartSW_v0.4";
+    const char *ver = "smartSW_v0.5";
     char name[MAX_TOPIC_SIZE];
     SW_act_telem telemtryMSG;
 
@@ -72,17 +68,19 @@ public:
     smartSwitch();
     void set_id(uint8_t i);
     void set_timeout(int t = 0);
-    void set_name(const char *Name);
+    void set_name(const char *Name = "smartSW");
+    void set_input(uint8_t inpin = UNDEF_PIN, uint8_t t = 0, bool dir = LOW);
+    void set_indiction(uint8_t pin = UNDEF_PIN, bool dir = 0);
+    void set_output(uint8_t outpin = UNDEF_PIN, uint8_t intense = 0, bool dir = HIGH);
+
     void set_lockSW();
     void set_unlockSW();
-    void set_indiction(uint8_t pin = UNDEF_PIN, bool dir = 0);
+
     void set_useLockdown(bool t = true);
     void init_lockdown();
     void release_lockdown();
-    void set_output(uint8_t outpin = UNDEF_PIN, uint8_t intense = 0);
-    void set_input(uint8_t inpin = UNDEF_PIN, uint8_t t = 0);
 
-    void turnON_cb(uint8_t type, unsigned int temp_TO = 0);
+    void turnON_cb(uint8_t type, unsigned int temp_TO = 0, int intense = 0);
     void turnOFF_cb(uint8_t type);
     void clear_newMSG();
     bool loop();
@@ -92,13 +90,14 @@ public:
     void get_SW_props(SW_props &props);
     void print_preferences();
 
+    bool OUTPUT_ON = HIGH;     /* configurable */
+    bool BUTTON_PRESSED = LOW; /* configurable */
     bool useTimeout();
     bool is_virtCMD();
     bool is_useButton();
-    Button2 _inputButton;
-    Switches _inSW;
 
 private:
+    uint8_t _ez_sw_id = 0;
     uint8_t _pwm_ints = 0;
     uint8_t _button_type = 255;
     uint8_t _outputPin = UNDEF_PIN;
@@ -118,28 +117,23 @@ private:
     bool _PWM_ison = false;
     bool _output_pwm = false;
 
+    Switches _inSW;
     Chrono _timeout_clk;
+
     /* inputs only */
     unsigned long _timeout_duration = 1; // in seconds
     unsigned long _timeout_temp = 0;     // in seconds
 
 private:
-    bool _isON();
-    void _HWon(uint8_t val = 0);
-    void _HWoff();
+    bool _isOUTPUT_ON();
+    void _setOUTPUT_ON(uint8_t val = 0);
+    void _setOUTPUT_OFF();
     void _timeout_loop();
     void _stop_timeout();
     void _start_timeout();
     void _turn_indic_on();
     void _turn_indic_off();
-    void _toggleRelay(uint8_t i, uint8_t type);
-    void _OnOffSW_Relay(uint8_t i, bool state, uint8_t type);
     void _update_telemetry(uint8_t state, uint8_t type, unsigned long te = 0);
-
-    /* Button2 Handlers */
-    void _toggle_handle(Button2 &b);
-    void _OnOffSW_ON_handler(Button2 &b);
-    void _OnOffSW_OFF_handler(Button2 &b);
 };
 
 #endif

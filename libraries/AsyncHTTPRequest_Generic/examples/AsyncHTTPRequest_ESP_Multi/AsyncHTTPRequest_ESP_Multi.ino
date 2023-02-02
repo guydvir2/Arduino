@@ -1,21 +1,21 @@
 /****************************************************************************************************************************
   AsyncHTTPRequest_ESP_Multi.ino - Dead simple AsyncHTTPRequest for ESP8266, ESP32 and currently STM32 with built-in LAN8742A Ethernet
-  
+
   For ESP8266, ESP32 and STM32 with built-in LAN8742A Ethernet (Nucleo-144, DISCOVERY, etc)
-  
+
   AsyncHTTPRequest_Generic is a library for the ESP8266, ESP32 and currently STM32 run built-in Ethernet WebServer
-  
+
   Based on and modified from asyncHTTPrequest Library (https://github.com/boblemaire/asyncHTTPrequest)
-  
+
   Built by Khoi Hoang https://github.com/khoih-prog/AsyncHTTPRequest_Generic
   Licensed under MIT license
-  
+
   Copyright (C) <2018>  <Bob Lemaire, IoTaWatt, Inc.>
-  This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License 
+  This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License
   as published bythe Free Software Foundation, either version 3 of the License, or (at your option) any later version.
   This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-  You should have received a copy of the GNU General Public License along with this program.  If not, see <https://www.gnu.org/licenses/>.  
+  You should have received a copy of the GNU General Public License along with this program.  If not, see <https://www.gnu.org/licenses/>.
  *****************************************************************************************************************************/
 
 #if !( defined(ESP8266) ||  defined(ESP32) )
@@ -45,16 +45,19 @@ const char* password    = "your_pass";
 #endif
 
 // Seconds for timeout, default is 3s
-#define DEFAULT_RX_TIMEOUT           10      
+#define DEFAULT_RX_TIMEOUT           10
+
+// Uncomment for certain HTTP site to optimize
+//#define NOT_SEND_HEADER_AFTER_CONNECTED        true
 
 // To be included only in main(), .ino with setup() to avoid `Multiple Definitions` Linker Error
-#include <AsyncHTTPRequest_Generic.h>            // http://github.com/khoih-prog/AsyncHTTPRequest_Generic
+#include <AsyncHTTPRequest_Generic.h>             // https://github.com/khoih-prog/AsyncHTTPRequest_Generic
 
 #include <Ticker.h>
 
 #define NUM_DIFFERENT_SITES     2
 
-const char* addreses[][NUM_DIFFERENT_SITES] = 
+const char* addreses[][NUM_DIFFERENT_SITES] =
 {
   {"http://worldtimeapi.org/api/timezone/America/Toronto.txt", "http://worldtimeapi.org/api/timezone/Europe/Prague.txt"},
   {"http://www.myexternalip.com/raw"}
@@ -109,7 +112,7 @@ void sendRequest(uint16_t index)
 
   reqCount[index]--;
   readySend[index] = false;
-  
+
   requestOpenResult = request[index].open("GET", addreses[index][reqCount[index]]);
 
   if (requestOpenResult)
@@ -196,9 +199,11 @@ void setup()
 {
   // put your setup code here, to run once:
   Serial.begin(115200);
+
   while (!Serial && millis() < 5000);
 
-  Serial.print("\nStart AsyncHTTPRequest_ESP_Multi on "); Serial.println(ARDUINO_BOARD);
+  Serial.print("\nStart AsyncHTTPRequest_ESP_Multi on ");
+  Serial.println(ARDUINO_BOARD);
   Serial.println(ASYNC_HTTP_REQUEST_GENERIC_VERSION);
 
   WiFi.mode(WIFI_STA);
@@ -220,7 +225,7 @@ void setup()
   {
     request[index].setDebug(false);
 
-    request[index].onReadyStateChange(requestCB[index]); 
+    request[index].onReadyStateChange(requestCB[index]);
   }
 
   ticker.attach(HTTP_REQUEST_INTERVAL, sendRequests);

@@ -6,15 +6,12 @@
  *
  * Github: https://github.com/mobizt/Firebase-ESP-Client
  *
- * Copyright (c) 2022 mobizt
+ * Copyright (c) 2023 mobizt
  *
  */
 
 /** This example shows the basic RTDB usage with external Client.
- * This example used ESP32 and WIZnet W5500 (Etherner) devices which built-in SSL Client will be used as the external Client.
- *
- * For other non-espressif (ESP32 and ESP8266) devices, this SSL Client library can be used
- * https://github.com/OPEnSLab-OSU/SSLClient
+ * This example used ESP32 and WIZnet W5500 (Etherner) devices which ESP_SSLClient will be used as the external Client.
  *
  * Don't gorget to define this in FirebaseFS.h
  * #define FB_ENABLE_EXTERNAL_CLIENT
@@ -28,13 +25,11 @@
 // Provide the RTDB payload printing info and other helper functions.
 #include <addons/RTDBHelper.h>
 
-//https://github.com/arduino-libraries/Ethernet
+// https://github.com/arduino-libraries/Ethernet
 #include <Ethernet.h>
 
-// Include built-in SSL Client which supports other network interfaces
-#include "sslclient/esp32/MB_ESP32_SSLClient.h"
-
-// You can use MB_ESP32_SSLClient.h in your ESP32 project in the same way as normal WiFiClientSecure
+// https://github.com/mobizt/ESP_SSLClient
+#include <ESP_SSLClient.h>
 
 // For NTP time client
 #include "MB_NTP.h"
@@ -76,16 +71,18 @@ int count = 0;
 
 volatile bool dataChanged = false;
 
+// Define the basic client
+// The network interface devices that can be used to handle SSL data should
+// have large memory buffer up to 1k - 2k or more, otherwise the SSL/TLS handshake
+// will fail.
 EthernetClient basic_client;
 
-MB_ESP32_SSLClient ssl_client;
-
-// For NTP client
-EthernetUDP udpClient;
-
-MB_NTP ntpClient(&udpClient, "pool.ntp.org" /* NTP host */, 123 /* NTP port */, 0 /* timezone offset in seconds */);
-
-uint32_t timestamp = 0;
+// This is the wrapper client that utilized the basic client for io and
+// provides the mean for the data encryption and decryption before sending to or after read from the io.
+// The most probable failures are related to the basic client itself that may not provide the buffer
+// that large enough for SSL data.
+// The SSL client can do nothing for this case, you should increase the basic client buffer memory.
+ESP_SSLClient ssl_client;
 
 void ResetEthernet()
 {
@@ -122,7 +119,7 @@ void networkConnection()
     }
     else
     {
-        Serial.println("Can't connected");
+        Serial.println("Can't connect");
     }
 }
 
@@ -131,30 +128,6 @@ void networkStatusRequestCallback()
 {
     // Set the network status
     fbdo.setNetworkStatus(Ethernet.linkStatus() == LinkON);
-}
-
-// Define the callback function to handle server connection
-void tcpConnectionRequestCallback(const char *host, int port)
-{
-
-    // You may need to set the system timestamp to use for
-    // auth token expiration checking.
-
-    if (timestamp == 0)
-    {
-        timestamp = ntpClient.getTime(2000 /* wait 2000 ms */);
-
-        if (timestamp > 0)
-            Firebase.setSystemTime(timestamp);
-    }
-
-    Serial.print("Connecting to server via external Client... ");
-    if (!ssl_client.connect(host, port))
-    {
-        Serial.println("failed.");
-        return;
-    }
-    Serial.println("success.");
 }
 
 void setup()
@@ -191,7 +164,7 @@ void setup()
     fbdo.setExternalClient(&ssl_client);
 
     /* Assign the required callback functions */
-    fbdo.setExternalClientCallbacks(tcpConnectionRequestCallback, networkConnection, networkStatusRequestCallback);
+    fbdo.setExternalClientCallbacks(networkConnection, networkStatusRequestCallback);
 
     // Comment or pass false value when WiFi reconnection will control by your code or third party library
     Firebase.reconnectWiFi(true);
@@ -203,7 +176,6 @@ void setup()
 
 void loop()
 {
-
     // Firebase.ready() should be called repeatedly to handle authentication tasks.
 
     if (Firebase.ready() && (millis() - sendDataPrevMillis > 15000 || sendDataPrevMillis == 0))

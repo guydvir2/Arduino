@@ -6,7 +6,7 @@
  *
  * Github: https://github.com/mobizt/Firebase-ESP-Client
  *
- * Copyright (c) 2022 mobizt
+ * Copyright (c) 2023 mobizt
  *
  */
 
@@ -181,8 +181,6 @@ void setupFCM()
     fcmConfigReady = true;
 
     Serial.printf("Firebase Client v%s\n\n", FIREBASE_CLIENT_VERSION);
-
-    Firebase.reconnectWiFi(true);
 
     // required for legacy HTTP API
     Firebase.FCM.setServerKey(FIREBASE_FCM_SERVER_KEY);

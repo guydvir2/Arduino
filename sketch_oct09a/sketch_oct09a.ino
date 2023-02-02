@@ -6,7 +6,7 @@ homeCtl controller;
 
 // ~~~ Software Flags ~~~
 #define MAN_MODE true
-#define PARAM_PRESET 4
+#define PARAM_PRESET 5
 
 // ~~~ Debug ~~~
 #define EN_WIFI true
@@ -135,6 +135,6 @@ void loop()
     new_telemetry_handler();
   }
 #if EN_WIFI
-  iot.looper();
+  // iot.looper();
 #endif
 }

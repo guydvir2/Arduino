@@ -5,7 +5,7 @@
  *
  * Github: https://github.com/mobizt/Firebase-ESP-Client
  *
- * Copyright (c) 2022 mobizt
+ * Copyright (c) 2023 mobizt
  *
  */
 
@@ -24,7 +24,8 @@
 // https://github.com/firebase/quickstart-ios
 // https://github.com/firebase/quickstart-js
 
-#if defined(ESP32)
+#include <Arduino.h>
+#if defined(ESP32) || defined(PICO_RP2040)
 #include <WiFi.h>
 #elif defined(ESP8266)
 #include <ESP8266WiFi.h>
@@ -51,6 +52,10 @@ unsigned long lastTime = 0;
 
 int count = 0;
 
+#if defined(ARDUINO_RASPBERRY_PI_PICO_W)
+WiFiMulti multi;
+#endif
+
 void sendMessage();
 
 void setup()
@@ -58,12 +63,23 @@ void setup()
 
     Serial.begin(115200);
 
+#if defined(ARDUINO_RASPBERRY_PI_PICO_W)
+    multi.addAP(WIFI_SSID, WIFI_PASSWORD);
+    multi.run();
+#else
     WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+#endif
+
     Serial.print("Connecting to Wi-Fi");
+    unsigned long ms = millis();
     while (WiFi.status() != WL_CONNECTED)
     {
         Serial.print(".");
         delay(300);
+#if defined(ARDUINO_RASPBERRY_PI_PICO_W)
+        if (millis() - ms > 10000)
+            break;
+#endif
     }
     Serial.println();
     Serial.print("Connected with IP: ");
@@ -74,8 +90,6 @@ void setup()
 
     // required for legacy HTTP API
     Firebase.FCM.setServerKey(FIREBASE_FCM_SERVER_KEY);
-
-    Firebase.reconnectWiFi(true);
 
     sendMessage();
 }
@@ -99,7 +113,8 @@ void sendMessage()
     // Read more details about legacy HTTP API here https://firebase.google.com/docs/cloud-messaging/http-server-ref
     FCM_Legacy_HTTP_Message msg;
 
-    msg.targets.to = "/topics/myTopic";
+    // please change this topic name to your specific topic to prevent TOPICS_MESSAGE_RATE_EXCEEDED error
+    msg.targets.to = "/topics/my_esp_topic";
 
     msg.options.time_to_live = "1000";
     msg.options.priority = "high";

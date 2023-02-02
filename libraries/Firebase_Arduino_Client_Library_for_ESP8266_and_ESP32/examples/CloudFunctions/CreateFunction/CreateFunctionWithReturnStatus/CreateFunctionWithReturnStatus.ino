@@ -6,7 +6,7 @@
  *
  * Github: https://github.com/mobizt/Firebase-ESP-Client
  *
- * Copyright (c) 2022 mobizt
+ * Copyright (c) 2023 mobizt
  *
  */
 
@@ -40,8 +40,8 @@
  * the final result may fail due to bugs in the user function, missing dependencies,
  * and incorrect configurations.
  */
-
-#if defined(ESP32)
+#include <Arduino.h>
+#if defined(ESP32) || defined(PICO_RP2040)
 #include <WiFi.h>
 #elif defined(ESP8266)
 #include <ESP8266WiFi.h>
@@ -89,14 +89,18 @@ PolicyBuilder policy;
 Binding binding;
 FunctionsConfig function_config(FIREBASE_PROJECT_ID /* project id */, PROJECT_LOCATION /* location id */, STORAGE_BUCKET_ID /* bucket id */);
 
-int creationStep = 0;
-
 unsigned long dataMillis = 0;
 
 bool taskCompleted = false;
 
 /* Define the FunctionsOperationStatusInfo data to get the Cloud Function creation status */
 FunctionsOperationStatusInfo statusInfo;
+
+fb_esp_functions_operation_status last_status;
+
+#if defined(ARDUINO_RASPBERRY_PI_PICO_W)
+WiFiMulti multi;
+#endif
 
 /* The function to create and deploy Cloud Function */
 void creatFunction();
@@ -109,12 +113,23 @@ void setup()
 
     Serial.begin(115200);
 
+#if defined(ARDUINO_RASPBERRY_PI_PICO_W)
+    multi.addAP(WIFI_SSID, WIFI_PASSWORD);
+    multi.run();
+#else
     WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+#endif
+
     Serial.print("Connecting to Wi-Fi");
+    unsigned long ms = millis();
     while (WiFi.status() != WL_CONNECTED)
     {
         Serial.print(".");
         delay(300);
+#if defined(ARDUINO_RASPBERRY_PI_PICO_W)
+        if (millis() - ms > 10000)
+            break;
+#endif
     }
     Serial.println();
     Serial.print("Connected with IP: ");
@@ -127,6 +142,13 @@ void setup()
     config.service_account.data.client_email = FIREBASE_CLIENT_EMAIL;
     config.service_account.data.project_id = FIREBASE_PROJECT_ID;
     config.service_account.data.private_key = PRIVATE_KEY;
+
+    // The WiFi credentials are required for Pico W
+    // due to it does not have reconnect feature.
+#if defined(ARDUINO_RASPBERRY_PI_PICO_W)
+    config.wifi.clearAP();
+    config.wifi.addAP(WIFI_SSID, WIFI_PASSWORD);
+#endif
 
     /* Assign the RTDB URL */
     config.database_url = DATABASE_URL;
@@ -144,19 +166,18 @@ void loop()
 
     // Firebase.ready() should be called repeatedly to handle authentication tasks.
 
+#if defined(PICO_RP2040)
+    if (Firebase.ready())
+        Firebase.Functions.runDeployTasks();
+#endif
+
     if (Firebase.ready() && !taskCompleted)
     {
-        if (creationStep == 0)
-        {
-            creationStep = 1;
-            creatFunction();
-        }
-
-        if (creationStep == 1)
-            showFunctionCreationStatus(statusInfo);
-
+        creatFunction();
         taskCompleted = true;
     }
+
+    showFunctionCreationStatus(statusInfo);
 }
 
 /* The function to create and deploy Cloud Function */
@@ -201,6 +222,11 @@ void creatFunction()
 /* The function to show the Cloud Function deployment status */
 void showFunctionCreationStatus(FunctionsOperationStatusInfo statusInfo)
 {
+    if (last_status == statusInfo.status)
+        return;
+
+    last_status = statusInfo.status;
+
     if (statusInfo.status == fb_esp_functions_operation_status_unknown)
         Serial.printf("%s: Unknown\n", statusInfo.functionId.c_str());
     else if (statusInfo.status == fb_esp_functions_operation_status_generate_upload_url)
@@ -215,7 +241,6 @@ void showFunctionCreationStatus(FunctionsOperationStatusInfo statusInfo)
         Serial.printf("%s: Delete the function...\n", statusInfo.functionId.c_str());
     else if (statusInfo.status == fb_esp_functions_operation_status_finished)
     {
-        creationStep = 2;
         Serial.println("Status: success");
         Serial.print("Trigger Url: ");
         Serial.println(statusInfo.triggerUrl.c_str());
@@ -223,7 +248,6 @@ void showFunctionCreationStatus(FunctionsOperationStatusInfo statusInfo)
     }
     else if (statusInfo.status == fb_esp_functions_operation_status_error)
     {
-        creationStep = 2;
         Serial.print("Status: ");
         Serial.println(statusInfo.errorMsg.c_str());
         Serial.println();

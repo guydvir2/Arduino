@@ -6,7 +6,7 @@
  *
  * Github: https://github.com/mobizt/Firebase-ESP-Client
  *
- * Copyright (c) 2022 mobizt
+ * Copyright (c) 2023 mobizt
  *
  */
 
@@ -27,7 +27,7 @@
  * You need to upload the zip file "gcf.zip" in the data folder to the falsh memory at "/gcf.zip".
  *
  * File gcf.zip contains the sources of function firestoreImageDownloadTrigger.
- * 
+ *
  * The name of zip file should be short to avoid long file name image data upload error in IDE.
  *
  * After the firestoreImageDownloadTrigger function in gcf.zip was deployed successfully, create the collection "ImageList" and try to add the document in it which contains the field url and name fields.
@@ -54,8 +54,8 @@
  * the final result may fail due to bugs in the user function, missing dependencies,
  * and incorrect configurations.
  */
-
-#if defined(ESP32)
+#include <Arduino.h>
+#if defined(ESP32) || defined(PICO_RP2040)
 #include <WiFi.h>
 #elif defined(ESP8266)
 #include <ESP8266WiFi.h>
@@ -107,6 +107,10 @@ bool taskCompleted = false;
 
 unsigned long dataMillis = 0;
 
+#if defined(ARDUINO_RASPBERRY_PI_PICO_W)
+WiFiMulti multi;
+#endif
+
 /* The function to create and deploy Cloud Function */
 void creatFunction();
 
@@ -118,12 +122,23 @@ void setup()
 
     Serial.begin(115200);
 
+#if defined(ARDUINO_RASPBERRY_PI_PICO_W)
+    multi.addAP(WIFI_SSID, WIFI_PASSWORD);
+    multi.run();
+#else
     WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+#endif
+
     Serial.print("Connecting to Wi-Fi");
+    unsigned long ms = millis();
     while (WiFi.status() != WL_CONNECTED)
     {
         Serial.print(".");
         delay(300);
+#if defined(ARDUINO_RASPBERRY_PI_PICO_W)
+        if (millis() - ms > 10000)
+            break;
+#endif
     }
     Serial.println();
     Serial.print("Connected with IP: ");
@@ -136,6 +151,13 @@ void setup()
     config.service_account.data.client_email = FIREBASE_CLIENT_EMAIL;
     config.service_account.data.project_id = FIREBASE_PROJECT_ID;
     config.service_account.data.private_key = PRIVATE_KEY;
+
+    // The WiFi credentials are required for Pico W
+    // due to it does not have reconnect feature.
+#if defined(ARDUINO_RASPBERRY_PI_PICO_W)
+    config.wifi.clearAP();
+    config.wifi.addAP(WIFI_SSID, WIFI_PASSWORD);
+#endif
 
     /* Assign the RTDB URL */
     config.database_url = DATABASE_URL;
@@ -151,6 +173,11 @@ void setup()
 void loop()
 {
     // Firebase.ready() should be called repeatedly to handle authentication tasks.
+
+#if defined(PICO_RP2040)
+    if (Firebase.ready())
+        Firebase.Functions.runDeployTasks();
+#endif
 
     if (Firebase.ready() && !taskCompleted)
     {

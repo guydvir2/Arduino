@@ -5,18 +5,22 @@
  *
  * Github: https://github.com/mobizt/Firebase-ESP32
  *
- * Copyright (c) 2022 mobizt
+ * Copyright (c) 2023 mobizt
  *
  */
 
 // This example shows how to set and delete data with checking the matching between node path ETag (unique identifier string)
 // and provided Etag
 
+#include <Arduino.h>
 #if defined(ESP32)
 #include <WiFi.h>
 #include <FirebaseESP32.h>
 #elif defined(ESP8266)
 #include <ESP8266WiFi.h>
+#include <FirebaseESP8266.h>
+#elif defined(PICO_RP2040)
+#include <WiFi.h>
 #include <FirebaseESP8266.h>
 #endif
 
@@ -111,18 +115,18 @@ void loop()
 
     if (fbdo.httpCode() == FIREBASE_ERROR_HTTP_CODE_OK)
     {
-      Serial.printf("etag, %s\n\n", fbdo.ETag().c_str());
+      Serial.printf("ETag, %s\n\n", fbdo.ETag().c_str());
       ETag = fbdo.ETag();
     }
 
     Serial.printf("Set int with valid ETag... %s\n", Firebase.setInt(fbdo, "/test/int/data", 200, ETag.c_str()) ? "ok" : fbdo.errorReason().c_str());
 
     if (fbdo.httpCode() == FIREBASE_ERROR_HTTP_CODE_OK)
-      Serial.printf("etag, %s\n\n", fbdo.ETag().c_str());
+      Serial.printf("ETag, %s\n\n", fbdo.ETag().c_str());
 
     Serial.printf("Set int with invalid ETag... %s\n", Firebase.setInt(fbdo, "/test/int/data", 200, wrong_ETag.c_str()) ? "ok" : fbdo.errorReason().c_str());
 
     if (fbdo.httpCode() == FIREBASE_ERROR_HTTP_CODE_OK)
-      Serial.printf("etag, %s\n\n", fbdo.ETag().c_str());
+      Serial.printf("ETag, %s\n\n", fbdo.ETag().c_str());
   }
 }

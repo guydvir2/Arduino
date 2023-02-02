@@ -1,7 +1,8 @@
 #if MAN_MODE == true
 
 #if defined ESP32
-char pins[] = "{\"inputPins\": [19,17,16,5,4,2,23,18,15,14,13,12], \"relayPins\": [25,26,33,32],\"RF_keyboardCode\": [3135496,3135492,3135490,3135489],\"RFpin\": 27}";
+// char pins[] = "{\"inputPins\": [19,17,16,5,4,2,23,18,15,14,13,12], \"relayPins\": [25,26,33,32],\"RF_keyboardCode\": [3135496,3135492,3135490,3135489],\"RFpin\": 27}";
+char pins[] = "{\"inputPins\": [22,23,26,27,34,36,39,35,4,15,14,2], \"relayPins\": [33,32,13,12,21,19,18,5],\"RF_keyboardCode\": [3135496,3135492,3135490,3135489],\"RFpin\": 27}";
 #elif defined ESP8266
 char pins[] = "{\"inputPins\": [0,2,13,15,3,1], \"relayPins\": [4,5,14,12],\"RF_keyboardCode\": [3135496,3135492,3135490,3135489],\"RFpin\": 27}";
 #endif
@@ -33,10 +34,10 @@ char cont_params[] = "{\"entityType\": [1,1,1,1],\
                     \"SWname\": [\"myHome\/Lights\/int\/SW_0\",\"myHome\/Lights\/int\/SW_1\",\"myHome\/Lights\/int\/SW_2\",\"myHome\/Lights\/int\/SW_3\"],\
                     \"SW_buttonTypes\": [1,2,2,2],\
                     \"SW_timeout\": [0,5,10,10],\
-                    \"SWvirtCMD\":[0,0],\
+                    \"SWvirtCMD\":[0,0,0,0],\
                     \"Winname\": [],\
                     \"WextInputs\": [],\
-                    \"WinvirtCMD\":[0,0,0],\
+                    \"WinvirtCMD\":[],\
                     \"RF_2entity\": [0,1,2,3],\
                     \"v_file\": 0.5}";
 
@@ -79,7 +80,7 @@ char cont_params[] = "{\"entityType\": [0,0,0,0],\
                     \"SW_timeout\": [],\
                     \"SWvirtCMD\":[],\
                     \"Winname\": [\"myHome\/Windows\/tFloor\/Win_0\",\"myHome\/Windows\/tFloor\/Win_1\",\"myHome\/Windows\/tFloor\/Win_2\",\"myHome\/Windows\/tFloor\/Win_3\"],\
-                    \"WextInputs\": [0,0],\
+                    \"WextInputs\": [0,0,0,0],\
                     \"WinvirtCMD\":[1,1,1,1],\
                     \"RF_2entity\": [0,1,2,3],\
                     \"v_file\": 0.5}";
@@ -95,6 +96,26 @@ char topics[] = "{\
                     \"ver\" : 0.1}";
 
 #elif PARAM_PRESET == 5
+char cont_params[] = "{\"entityType\": [0,0,0,0],\
+                    \"SWname\": [],\
+                    \"SW_buttonTypes\": [],\
+                    \"SW_timeout\": [],\
+                    \"SWvirtCMD\":[],\
+                    \"Winname\": [\"myHome\/Windows\/2Floor\/Win_0\",\"myHome\/Windows\/2Floor\/Win_1\",\"myHome\/Windows\/2Floor\/Win_2\",\"myHome\/Windows\/2Floor\/Win_3\"],\
+                    \"WextInputs\": [1,1,0,0],\
+                    \"WinvirtCMD\":[0,0,0,0],\
+                    \"RF_2entity\": [0,1,2,3],\
+                    \"v_file\": 0.5}";
+
+char topics[] = "{\
+                    \"pub_gen_topics\" : [\"myHome\/Messages\",\"myHome\/log\",\"myHome\/debug\"],\
+                    \"pub_topics\" : [\"myHome\/Cont_5\/Avail\", \"myHome\/Cont_5\/State\"],\
+                    \"sub_topics\" : [\"myHome\/Cont_5\",\"myHome\/All\",\"myHome\/lockdown\"],\
+                    \"sub_topics_win\" : [\"myHome\/Windows\/2Floor\/Win_0\",\"myHome\/Windows\/2Floor\/Win_1\",\"myHome\/Windows\/2Floor\/Win_2\",\"myHome\/Windows\/2Floor\/Win_3\"],\
+                    \"sub_topics_SW\" : [],\
+                    \"sub_topics_win_g\" : [\"myHome\/Windows\",\"myHome\/Windows\/2Floor\"],\
+                    \"sub_topics_SW_g\" : [],\
+                    \"ver\" : 0.1}";
 
 #endif
 #endif

@@ -18,8 +18,8 @@
   You should have received a copy of the GNU General Public License along with this program.  
   If not, see <https://www.gnu.org/licenses/>.  
  
-  Version: 1.10.1
-  
+  Version: 1.13.0
+
   Version Modified By   Date      Comments
   ------- -----------  ---------- -----------
   1.0.0    K Hoang     14/09/2020 Initial coding to add support to STM32 using built-in Ethernet (Nucleo-144, DISCOVERY, etc).
@@ -34,6 +34,10 @@
   1.9.2    K Hoang     18/10/2022 Not try to reconnect to the same host:port after connected
   1.10.0   K Hoang     20/10/2022 Fix bug. Clean up
   1.10.1   K Hoang     21/10/2022 Fix bug of wrong reqStates
+  1.10.2   K Hoang     09/11/2022 Default to reconnect to the same host:port after connected for new HTTP sites
+  1.11.0   K Hoang     28/11/2022 Add support to ESP32 boards using LwIP ENC28J60 Ethernet
+  1.12.0   K Hoang     30/11/2022 Add support to ESP32 boards using LwIP W5500 Ethernet. Fix bug
+  1.13.0   K Hoang     01/02/2023 Add support to ESP32 using LwIP W6100 Ethernet. Fix _parseURL() bug
  *****************************************************************************************************************************/
 
 #pragma once
@@ -43,19 +47,27 @@
 
 ////////////////////////////////////////
 
-#define ASYNC_HTTP_REQUEST_GENERIC_VERSION            "AsyncHTTPRequest_Generic v1.10.1"
+#define ASYNC_HTTP_REQUEST_GENERIC_VERSION            "AsyncHTTPRequest_Generic v1.13.0"
 
 #define ASYNC_HTTP_REQUEST_GENERIC_VERSION_MAJOR      1
-#define ASYNC_HTTP_REQUEST_GENERIC_VERSION_MINOR      10
-#define ASYNC_HTTP_REQUEST_GENERIC_VERSION_PATCH      1
+#define ASYNC_HTTP_REQUEST_GENERIC_VERSION_MINOR      13
+#define ASYNC_HTTP_REQUEST_GENERIC_VERSION_PATCH      0
 
-#define ASYNC_HTTP_REQUEST_GENERIC_VERSION_INT        1010001
+#define ASYNC_HTTP_REQUEST_GENERIC_VERSION_INT        1013000
 
 ////////////////////////////////////////
 
 #include <Arduino.h>
 
 #include "AsyncHTTPRequest_Debug_Generic.h"
+
+
+////////////////////////////////////////
+
+#if !defined(NOT_SEND_HEADER_AFTER_CONNECTED)
+	// Default is false
+	#define NOT_SEND_HEADER_AFTER_CONNECTED				false
+#endif
 
 ////////////////////////////////////////
 

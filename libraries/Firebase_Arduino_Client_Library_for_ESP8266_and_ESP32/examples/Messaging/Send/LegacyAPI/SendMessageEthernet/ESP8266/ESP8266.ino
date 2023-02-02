@@ -5,7 +5,7 @@
  *
  * Github: https://github.com/mobizt/Firebase-ESP-Client
  *
- * Copyright (c) 2022 mobizt
+ * Copyright (c) 2023 mobizt
  *
  */
 
@@ -111,8 +111,6 @@ void setup()
     Serial.println(eth.localIP());
 
     Serial.printf("Firebase Client v%s\n\n", FIREBASE_CLIENT_VERSION);
-
-    Firebase.reconnectWiFi(true);
 
     // required for legacy HTTP API
     spi_ethernet_module.enc28j60 = &eth;

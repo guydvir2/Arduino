@@ -1,15 +1,15 @@
 /**
- * Google's IAM Policy Builder class, PolicyBuilder.h version 1.0.7
+ * Google's IAM Policy Builder class, PolicyBuilder.h version 1.0.8
  *
- * This library supports Espressif ESP8266 and ESP32
+ * This library supports Espressif ESP8266, ESP32 and RP2040 Pico
  *
- * Created February 28, 2022
+ * Created January 12, 2023
  *
  * This work is a part of Firebase ESP Client library
- * Copyright (c) 2022 K. Suwatchai (Mobizt)
+ * Copyright (c) 2023 K. Suwatchai (Mobizt)
  *
  * The MIT License (MIT)
- * Copyright (c) 2022 K. Suwatchai (Mobizt)
+ * Copyright (c) 2023 K. Suwatchai (Mobizt)
  *
  *
  * Permission is hereby granted, free of charge, to any person returning a copy of
@@ -51,7 +51,6 @@ class AuditLogConfig
     friend class AuditConfig;
 
 private:
-    UtilsClass *ut = nullptr;
     FirebaseJson json;
     FirebaseJsonArray arr;
 
@@ -115,7 +114,6 @@ class AuditConfig
     friend class PolicyBuilder;
 
 private:
-    UtilsClass *ut = nullptr;
     FirebaseJson json;
     FirebaseJsonArray arr;
 
@@ -162,7 +160,6 @@ class Binding
     friend class PolicyBuilder;
 
 private:
-    UtilsClass *ut = nullptr;
     FirebaseJsonArray arr;
     FirebaseJson json;
 
@@ -212,7 +209,10 @@ public:
      *
      */
     template <typename T1 = const char *, typename T2 = const char *, typename T3 = const char *, typename T4 = const char *>
-    void setCondition(T1 expression = "", T2 title = "", T3 description = "", T4 location = "") { mSetCondition(toStringPtr(expression), toStringPtr(title), toStringPtr(description), toStringPtr(location)); }
+    void setCondition(T1 expression = "", T2 title = "", T3 description = "", T4 location = "")
+    {
+        mSetCondition(toStringPtr(expression), toStringPtr(title), toStringPtr(description), toStringPtr(location));
+    }
 
     /**
      * Clear all members that were added.
@@ -246,7 +246,6 @@ class PolicyBuilder
     friend class PolicyInfo;
 
 private:
-    UtilsClass *ut = nullptr;
     FirebaseJsonArray arr;
     FirebaseJsonArray arr2;
     FirebaseJson json;

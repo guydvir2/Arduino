@@ -1,5 +1,3 @@
-#pragma once
-
 #ifndef FirebaseFS_H
 #define FirebaseFS_H
 
@@ -7,13 +5,15 @@
 
 #define FIREBASE_ESP_CLIENT 1
 
+#define FB_DEFAULT_DEBUG_PORT Serial
+
 /**
  * To use other flash file systems
  *
  * LittleFS File system
  *
  * #include <LittleFS.h>
- * #define DEFAULT_FLASH_FS LittleFS //For ESP8266 LitteFS
+ * #define DEFAULT_FLASH_FS LittleFS //For ESP8266 or RPI2040 LitteFS
  *
  *
  * FAT File system
@@ -27,6 +27,9 @@
 #endif
 #if defined(ESP32) || defined(ESP8266)
 #define DEFAULT_FLASH_FS SPIFFS
+#elif defined(PICO_RP2040)
+#include <LittleFS.h>
+#define DEFAULT_FLASH_FS LittleFS
 #endif
 
 /**
@@ -52,14 +55,19 @@ static SdFat sd_fat_fs;   // should declare as static here
 #define SD_FS_FILE SdFile
 #endif
 
-* The SdFat (https://github.com/greiman/SdFat) is already implemented as wrapper class in ESP8266 core library.
-* Do not include SdFat.h library in ESP8266 target code which it conflicts with the wrapper one.
+* The SdFat (https://github.com/greiman/SdFat) is already implemented as wrapper class in ESP8266 and RP2040 core libraries.
+* Do not include SdFat.h library in ESP8266 and RP2040 target codes which it conflicts with the wrapper one.
 
 */
 
 #if defined(ESP32) || defined(ESP8266)
 #include <SD.h>
 #define DEFAULT_SD_FS SD
+#define CARD_TYPE_SD 1
+#elif  defined(PICO_RP2040)
+// Use SDFS (ESP8266SdFat) instead of SD
+#include <SDFS.h>
+#define DEFAULT_SD_FS SDFS
 #define CARD_TYPE_SD 1
 #endif
 
@@ -94,11 +102,72 @@ static SdFat sd_fat_fs;   // should declare as static here
 // To enable OTA updates via RTDB, Firebase Storage and Google Cloud Storage buckets
 #define ENABLE_OTA_FIRMWARE_UPDATE
 
-// To enable external Client for ESP8266 and ESP32.
+// Use Keep Alive connection mode
+#define USE_CONNECTION_KEEP_ALIVE_MODE
+
+// To enable external Client for ESP8266, ESP32 and Raspberry Pi Pico.
 // This will enable automatically for other devices.
 // #define FB_ENABLE_EXTERNAL_CLIENT
+
+// For ESP8266 ENC28J60 Ethernet module
+// #define ENABLE_ESP8266_ENC28J60_ETH
 
 // For ESP8266 W5100 Ethernet module
 // #define ENABLE_ESP8266_W5100_ETH
 
+// For ESP8266 W5500 Ethernet module
+// #define ENABLE_ESP8266_W5500_ETH
+
+//::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::://
+// You can create your own header file "CustomFirebaseFS.h" in the same diectory of
+// "FirebaseFS.h" and put your own custom config to overwrite or
+// change the default config in "FirebaseFS.h".
+//::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::://
+
+/** This is an example of "CustomFirebaseFS.h"
+
+#pragma once
+
+#ifndef CustomFirebaseFS_H
+#define CustomFirebaseFS_H
+
+// Use external client instead of internal client
+#define FB_ENABLE_EXTERNAL_CLIENT // define to use external client
+
+// Use LittleFS instead of SPIFFS
+#include "LittleFS.h"
+#undef DEFAULT_FLASH_FS // remove Flash FS defined macro
+#define DEFAULT_FLASH_FS LittleFS
+
+// Use SD_MMC instead of SD
+#if defined(ESP32)
+#include <SD_MMC.h>
+#undef DEFAULT_SD_FS // remove SD defined macro
+#undef CARD_TYPE_SD // remove SD defined macro
+#define DEFAULT_SD_FS SD_MMC
+#define CARD_TYPE_SD_MMC 1
 #endif
+
+// Disable Error Queue, Firestore, FCM, Firebase Storage, Google Cloud Storage
+// and Functions for Firebase.
+#undef ENABLE_ERROR_QUEUE
+#undef ENABLE_FIRESTORE
+#undef ENABLE_FCM
+#undef ENABLE_FB_STORAGE
+#undef ENABLE_GC_STORAGE
+#undef ENABLE_FB_FUNCTIONS
+
+#endif
+
+*/
+#if __has_include("CustomFirebaseFS.h")
+#include "CustomFirebaseFS.h"
+#endif
+
+#endif
+
+/////////////////////////////////// WARNING ///////////////////////////////////
+// Using RP2040 Pico Arduino SDK, FreeRTOS with LittleFS will cause device hangs 
+// when write the data to flash filesystem.
+// Do not include free rtos dot h or even it excluded from compilation by using macro 
+// or even comment it out with "//"".

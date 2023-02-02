@@ -1,10 +1,10 @@
 /**
- * The custom TCP Client Class v1.0.1
+ * The custom TCP Client Class v1.0.2
  *
- * Created November 1, 2022
+ * Created December 19, 2022
  *
  * The MIT License (MIT)
- * Copyright (c) 2022 K. Suwatchai (Mobizt)
+ * Copyright (c) 2023 K. Suwatchai (Mobizt)
  *
  * TCPClient Arduino library for ESP32
  *
@@ -41,7 +41,7 @@ class FB_Custom_TCP_Client : public FB_TCP_Client_Base
 {
 
 public:
-    FB_Custom_TCP_Client(){};
+    FB_Custom_TCP_Client() { };
     ~FB_Custom_TCP_Client(){};
 
     void setCACert(const char *caCert) {}
@@ -93,7 +93,7 @@ public:
 
     bool connect()
     {
-       
+
         if (!client)
             return false;
 
@@ -102,7 +102,6 @@ public:
             flush();
             return true;
         }
-
 
 #if !defined(FB_ENABLE_EXTERNAL_CLIENT)
         return setError(FIREBASE_ERROR_EXTERNAL_CLIENT_DISABLED);

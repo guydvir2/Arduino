@@ -1,4 +1,4 @@
-# AsyncHTTPRequest_Generic
+# AsyncHTTPRequest_Generic Library
 
 [![arduino-library-badge](https://www.ardu-badge.com/badge/AsyncHTTPRequest_Generic.svg?)](https://www.ardu-badge.com/AsyncHTTPRequest_Generic)
 [![GitHub release](https://img.shields.io/github/release/khoih-prog/AsyncHTTPRequest_Generic.svg)](https://github.com/khoih-prog/AsyncHTTPRequest_Generic/releases)
@@ -6,12 +6,21 @@
 [![contributions welcome](https://img.shields.io/badge/contributions-welcome-brightgreen.svg?style=flat)](#Contributing)
 [![GitHub issues](https://img.shields.io/github/issues/khoih-prog/AsyncHTTPRequest_Generic.svg)](http://github.com/khoih-prog/AsyncHTTPRequest_Generic/issues)
 
+
+<a href="https://www.buymeacoffee.com/khoihprog6" title="Donate to my libraries using BuyMeACoffee"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Donate to my libraries using BuyMeACoffee" style="height: 50px !important;width: 181px !important;" ></a>
+<a href="https://www.buymeacoffee.com/khoihprog6" title="Donate to my libraries using BuyMeACoffee"><img src="https://img.shields.io/badge/buy%20me%20a%20coffee-donate-orange.svg?logo=buy-me-a-coffee&logoColor=FFDD00" style="height: 20px !important;width: 200px !important;" ></a>
+
+
 ---
 ---
 
 ## Table of Contents
 
 * [Changelog](#changelog)
+	* [Releases v1.13.0](#releases-v1130)
+	* [Releases v1.12.0](#releases-v1120)
+	* [Releases v1.11.0](#releases-v1110)
+	* [Releases v1.10.2](#releases-v1102)
 	* [Releases v1.10.1](#releases-v1101)
 	* [Releases v1.10.0](#releases-v1100)
 	* [Releases v1.9.2](#releases-v192)
@@ -44,9 +53,30 @@
 
 ## Changelog
 
+### Releases v1.13.0
+
+1. Add support to ESP32 boards using `LwIP W6100 Ethernet`
+2. Fix bug of `_parseURL()`. Check [Bug with _parseURL() #21](https://github.com/khoih-prog/AsyncHTTPSRequest_Generic/issues/21)
+3. Improve `README.md` so that links can be used in other sites, such as `PIO`
+
+### Releases v1.12.0
+
+1. Add support to ESP32 boards using `LwIP W5500 Ethernet`
+2. Fix bug. Check [Fix "blank new line in chunk" bug #50](https://github.com/khoih-prog/AsyncHTTPRequest_Generic/pull/50)
+
+### Releases v1.11.0
+
+1. Add support to ESP32 boards using `LwIP ENC28J60 Ethernet`
+2. Use `allman astyle` and add `utils`. Restyle the library
+
+### Releases v1.10.2
+
+1. Default to reconnect to the same `host:port` after connected for new HTTP sites. Check [Host/Headers not always sent with 1.10.1 #44](https://github.com/khoih-prog/AsyncHTTPRequest_Generic/issues44)
+2. Update `Packages' Patches`
+
 ### Releases v1.10.1
 
-1. Fix bug of wrong `reqStates`. Check [Release 1.9 breakes previously running code #39](https://github.com/khoih-prog/AsyncHTTPRequest_Generic/issues/39) and [Callback behaviour is buggy (ESP8266) #43](https://github.com/khoih-prog/AsyncHTTPRequest_Generic/issues/43)
+1. Fix bug of wrong `reqStates`. Check [Release 1.9 breaks previously running code #39](https://github.com/khoih-prog/AsyncHTTPRequest_Generic/issues/39) and [Callback behaviour is buggy (ESP8266) #43](https://github.com/khoih-prog/AsyncHTTPRequest_Generic/issues/43)
 2. Optional larger `DEFAULT_RX_TIMEOUT` from default 3s, for slower networks
 
 ### Releases v1.10.0

@@ -5,17 +5,21 @@
  *
  * Github: https://github.com/mobizt/Firebase-ESP32
  *
- * Copyright (c) 2022 mobizt
+ * Copyright (c) 2023 mobizt
  *
  */
 
 // This example shows how to backup and restore database data
 
+#include <Arduino.h>
 #if defined(ESP32)
 #include <WiFi.h>
 #include <FirebaseESP32.h>
 #elif defined(ESP8266)
 #include <ESP8266WiFi.h>
+#include <FirebaseESP8266.h>
+#elif defined(PICO_RP2040)
+#include <WiFi.h>
 #include <FirebaseESP8266.h>
 #endif
 
@@ -158,7 +162,7 @@ void loop()
       Serial.printf("file size, %d\n", fbdo.getBackupFileSize());
     }
     else
-      fbdo.fileTransferError().c_str();
+      Serial.println(fbdo.fileTransferError().c_str());
 
     // Restore data to defined database path using backup file on Flash memory.
     //<target node> is the full path of database to restore
@@ -168,6 +172,6 @@ void loop()
     Serial.println("\nRestore... \n");
 
     if (!Firebase.restore(fbdo, StorageType::FLASH, "/<target node>" /* node path to restore */, "/<file name>" /* backup file to restore */, rtdbUploadCallback /* callback function */))
-      fbdo.fileTransferError().c_str();
+      Serial.println(fbdo.fileTransferError().c_str());
   }
 }

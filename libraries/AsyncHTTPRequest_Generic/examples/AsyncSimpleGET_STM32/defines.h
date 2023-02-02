@@ -46,54 +46,54 @@
 
 
 #if defined(STM32F0)
-#warning STM32F0 board selected
-#define BOARD_TYPE  "STM32F0"
+  #warning STM32F0 board selected
+  #define BOARD_TYPE  "STM32F0"
 #elif defined(STM32F1)
-#warning STM32F1 board selected
-#define BOARD_TYPE  "STM32F1"
+  #warning STM32F1 board selected
+  #define BOARD_TYPE  "STM32F1"
 #elif defined(STM32F2)
-#warning STM32F2 board selected
-#define BOARD_TYPE  "STM32F2"
+  #warning STM32F2 board selected
+  #define BOARD_TYPE  "STM32F2"
 #elif defined(STM32F3)
-#warning STM32F3 board selected
-#define BOARD_TYPE  "STM32F3"
+  #warning STM32F3 board selected
+  #define BOARD_TYPE  "STM32F3"
 #elif defined(STM32F4)
-#warning STM32F4 board selected
-#define BOARD_TYPE  "STM32F4"
+  #warning STM32F4 board selected
+  #define BOARD_TYPE  "STM32F4"
 #elif defined(STM32F7)
-#warning STM32F7 board selected
-#define BOARD_TYPE  "STM32F7"
+  #warning STM32F7 board selected
+  #define BOARD_TYPE  "STM32F7"
 #elif defined(STM32L0)
-#warning STM32L0 board selected
-#define BOARD_TYPE  "STM32L0"
+  #warning STM32L0 board selected
+  #define BOARD_TYPE  "STM32L0"
 #elif defined(STM32L1)
-#warning STM32L1 board selected
-#define BOARD_TYPE  "STM32L1"
+  #warning STM32L1 board selected
+  #define BOARD_TYPE  "STM32L1"
 #elif defined(STM32L4)
-#warning STM32L4 board selected
-#define BOARD_TYPE  "STM32L4"
+  #warning STM32L4 board selected
+  #define BOARD_TYPE  "STM32L4"
 #elif defined(STM32H7)
-#warning STM32H7 board selected
-#define BOARD_TYPE  "STM32H7"
+  #warning STM32H7 board selected
+  #define BOARD_TYPE  "STM32H7"
 #elif defined(STM32G0)
-#warning STM32G0 board selected
-#define BOARD_TYPE  "STM32G0"
+  #warning STM32G0 board selected
+  #define BOARD_TYPE  "STM32G0"
 #elif defined(STM32G4)
-#warning STM32G4 board selected
-#define BOARD_TYPE  "STM32G4"
+  #warning STM32G4 board selected
+  #define BOARD_TYPE  "STM32G4"
 #elif defined(STM32WB)
-#warning STM32WB board selected
-#define BOARD_TYPE  "STM32WB"
+  #warning STM32WB board selected
+  #define BOARD_TYPE  "STM32WB"
 #elif defined(STM32MP1)
-#warning STM32MP1 board selected
-#define BOARD_TYPE  "STM32MP1"
+  #warning STM32MP1 board selected
+  #define BOARD_TYPE  "STM32MP1"
 #else
-#warning STM32 unknown board selected
-#define BOARD_TYPE  "STM32 Unknown"
+  #warning STM32 unknown board selected
+  #define BOARD_TYPE  "STM32 Unknown"
 #endif
 
 #ifndef BOARD_NAME
-#define BOARD_NAME    BOARD_TYPE
+  #define BOARD_NAME    BOARD_TYPE
 #endif
 
 #include <LwIP.h>

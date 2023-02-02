@@ -2,7 +2,7 @@
  * EMail Sender Arduino, esp8266, stm32 and esp32 library to send email
  *
  * AUTHOR:  Renzo Mischianti
- * VERSION: 3.0.6
+ * VERSION: 3.0.9
  *
  * https://www.mischianti.org/
  *
@@ -492,9 +492,13 @@ EMailSender::Response EMailSender::send(const char* to[], byte sizeOfTo,  byte s
 		//	  if (coreVersion.substring(1, coreVersion.indexOf('.', firstdot+1)).toFloat() >= 3.3f) {
 		//		  client.setInsecure();
 		//	  }
-			#include <core_version.h>
-			#if ((!defined(ARDUINO_ESP32_RELEASE_1_0_4)) && (!defined(ARDUINO_ESP32_RELEASE_1_0_3)) && (!defined(ARDUINO_ESP32_RELEASE_1_0_2)))
-				  client.setInsecure();
+			#ifndef ARDUINO_ARCH_RP2040
+				#include <core_version.h>
+				#if ((!defined(ARDUINO_ESP32_RELEASE_1_0_4)) && (!defined(ARDUINO_ESP32_RELEASE_1_0_3)) && (!defined(ARDUINO_ESP32_RELEASE_1_0_2)))
+					  client.setInsecure();
+				#endif
+			#else
+			    client.setInsecure();
 			#endif
 		#endif
 	#endif
@@ -812,8 +816,8 @@ EMailSender::Response EMailSender::send(const char* to[], byte sizeOfTo,  byte s
 		  DEBUG_PRINT(F("Readed filename: "));
 		  DEBUG_PRINTLN(attachments.fileDescriptor[i].filename);
 
-		  DEBUG_PRINT(F("Check if exist: "));
-		  DEBUG_PRINTLN(INTERNAL_STORAGE_CLASS.exists(attachments.fileDescriptor[i].url.c_str()));
+//		  DEBUG_PRINT(F("Check if exist: "));
+//		  DEBUG_PRINTLN(INTERNAL_STORAGE_CLASS.exists(attachments.fileDescriptor[i].url.c_str()));
 
 		  int clientCount = 0;
 
@@ -859,7 +863,6 @@ EMailSender::Response EMailSender::send(const char* to[], byte sizeOfTo,  byte s
 					spiffsActive = true;
 					DEBUG_PRINTLN("SPIFFS BEGIN, ACTIVE");
 				} // Close INTERNAL_STORAGE_CLASS.exists
-			} // Close storageType
 
 	#endif
 
@@ -892,6 +895,7 @@ EMailSender::Response EMailSender::send(const char* to[], byte sizeOfTo,  byte s
 
 					  return response;
 				  } // Close myfile
+				} // Close storageType
 
 #endif
 #ifdef STORAGE_EXTERNAL_ENABLED

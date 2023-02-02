@@ -40,7 +40,7 @@ private:
     int _RF_freq[4] = {3135496, 3135492, 3135490, 3135489};
 
 public:
-    const char *ver = "smartController_v0.1";
+    const char *ver = "smartController_v0.2";
 
     char *SW_MQTT_cmds[2] = {"off", "on"};
     char *winMQTTcmds[3] = {"off", "up", "down"};
@@ -53,7 +53,7 @@ private:
     RCSwitch *RF_v = nullptr;
     Cotroller_Ent_telemetry _MSG;
     WinSW *winSW_V[TOT_Relays / 2] = {nullptr, nullptr,nullptr, nullptr};
-    smartSwitch *SW_v[TOT_Inputs] = {nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr};
+    smartSwitch *SW_v[TOT_Inputs] = {nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr};
 
     void _init_RF();
     void _toggle_SW_RF(uint8_t i);

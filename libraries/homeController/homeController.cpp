@@ -134,7 +134,7 @@ uint8_t homeCtl::get_ent_state(uint8_t type, uint8_t i)
 {
   if (type == WIN_ENT)
   {
-    // return winSW_V[i]->get_winState();
+    return winSW_V[i]->get_winState();
   }
   else if (type == SW_ENT)
   {

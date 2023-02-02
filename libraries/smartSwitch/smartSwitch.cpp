@@ -1,8 +1,7 @@
 #include <Arduino.h>
 #include "smartSwitch.h"
 
-smartSwitch::smartSwitch() : _inputButton(),
-                             _inSW(1),
+smartSwitch::smartSwitch() : _inSW(1),
                              _timeout_clk(Chrono::MILLIS)
 {
     _id = _next_id++;
@@ -10,7 +9,6 @@ smartSwitch::smartSwitch() : _inputButton(),
 
 void smartSwitch::set_id(uint8_t i)
 {
-    // _inputButton.setID(i);
     _id = i;
 }
 void smartSwitch::set_timeout(int t)
@@ -21,13 +19,18 @@ void smartSwitch::set_timeout(int t)
         _timeout_duration = t * 1000;
         _stop_timeout();
     }
+    else
+    {
+        _use_timeout = false;
+    }
 }
 void smartSwitch::set_name(const char *Name)
 {
     strlcpy(name, Name, MAX_TOPIC_SIZE);
 }
-void smartSwitch::set_output(uint8_t outpin, uint8_t intense)
+void smartSwitch::set_output(uint8_t outpin, uint8_t intense, bool dir)
 {
+    OUTPUT_ON = dir;
     if (intense > 0) /* PWM OUTOUT defined by intense >0 */
     {
         _output_pwm = true;
@@ -54,9 +57,11 @@ void smartSwitch::set_output(uint8_t outpin, uint8_t intense)
     }
 }
 
-void smartSwitch::set_input(uint8_t inpin, uint8_t t)
+void smartSwitch::set_input(uint8_t inpin, uint8_t t, bool dir)
 {
     _button_type = t;
+    BUTTON_PRESSED = dir;
+
     if (_button_type == NO_INPUT || inpin == UNDEF_PIN)
     {
         _useButton = false;
@@ -64,21 +69,9 @@ void smartSwitch::set_input(uint8_t inpin, uint8_t t)
     else if (inpin != UNDEF_PIN && _button_type > NO_INPUT)
     {
         _useButton = true;
-        _inSW.add_switch(t, inpin, circuit_C2);
-        // _inputButton.begin(inpin);
-        // _inputButton.loop();
+        _inSW.set_debounce(50);
 
-        if (t == ON_OFF_SW)
-        {
-            _inSW.add_switch(toggle_switch, inpin, circuit_C2);
-            // _inputButton.setPressedHandler(std::bind(&smartSwitch::_OnOffSW_ON_handler, this, std::placeholders::_1));
-            // _inputButton.setReleasedHandler(std::bind(&smartSwitch::_OnOffSW_OFF_handler, this, std::placeholders::_1));
-        }
-        else if (t == MOMENTARY_SW)
-        {
-            _inSW.add_switch(button_switch, inpin, circuit_C2);
-            // _inputButton.setPressedHandler(std::bind(&smartSwitch::_toggle_handle, this, std::placeholders::_1));
-        }
+        _ez_sw_id = _inSW.add_switch(t, inpin, circuit_C2); /* pullup input */
     }
 }
 void smartSwitch::set_lockSW()
@@ -118,7 +111,7 @@ void smartSwitch::release_lockdown()
     }
 }
 
-void smartSwitch::turnON_cb(uint8_t type, unsigned int temp_TO)
+void smartSwitch::turnON_cb(uint8_t type, unsigned int temp_TO, int intense)
 {
     if (!_in_lockdown)
     {
@@ -126,9 +119,9 @@ void smartSwitch::turnON_cb(uint8_t type, unsigned int temp_TO)
         {
             if (!_output_pwm) /* NOT PWM output*/
             {
-                if (!_isON())
+                if (!_isOUTPUT_ON())
                 {
-                    _HWon();
+                    _setOUTPUT_ON();
                 }
                 else
                 {
@@ -140,7 +133,14 @@ void smartSwitch::turnON_cb(uint8_t type, unsigned int temp_TO)
             {
                 if (!_PWM_ison)
                 {
-                    _HWon(_pwm_ints);
+                    if (intense != 0) /* Intersity was defined locally*/
+                    {
+                        _setOUTPUT_ON(intense);
+                    }
+                    else
+                    {
+                        _setOUTPUT_ON(_pwm_ints);
+                    }
                 }
                 else
                 {
@@ -180,9 +180,9 @@ void smartSwitch::turnOFF_cb(uint8_t type)
         {
             if (!_output_pwm)
             {
-                if (_isON())
+                if (_isOUTPUT_ON())
                 {
-                    _HWoff();
+                    _setOUTPUT_OFF();
                     _stop_timeout();
                     _update_telemetry(SW_OFF, type, 0);
                 }
@@ -193,7 +193,7 @@ void smartSwitch::turnOFF_cb(uint8_t type)
             }
             else
             {
-                _HWoff();
+                _setOUTPUT_OFF();
                 _stop_timeout();
                 _update_telemetry(SW_OFF, type, 0);
             }
@@ -225,7 +225,7 @@ uint8_t smartSwitch::get_SWstate()
 {
     if (!_virtCMD)
     {
-        return _isON();
+        return _isOUTPUT_ON();
     }
     else
     {
@@ -234,9 +234,9 @@ uint8_t smartSwitch::get_SWstate()
 }
 void smartSwitch::get_SW_props(SW_props &props)
 {
-    props.id = _id; //_inputButton.getID();
+    props.id = _id;
     props.type = _button_type;
-    props.inpin = 255;//_inputButton.getPin();
+    props.inpin = _inSW.switches[_ez_sw_id].switch_pin;
     props.outpin = _outputPin;
     props.timeout = _use_timeout;
     props.virtCMD = _virtCMD;
@@ -246,55 +246,88 @@ void smartSwitch::get_SW_props(SW_props &props)
 }
 void smartSwitch::print_preferences()
 {
-    Serial.print("\n >>>>>> Switch #:");
+    Serial.print("\n >>>>>> Switch #");
     Serial.print(_id);
     Serial.println(" <<<<<< ");
 
-    Serial.print("Output :\t");
-    Serial.println(_virtCMD ? "Virutal" : "Relay");
-
-    Serial.print("MQTT:\t\t");
+    Serial.print("Output Type :\t");
+    Serial.println(_virtCMD ? "Virtual" : "Real-Switch");
+    Serial.print("Name:\t\t");
     Serial.println(name);
 
-    Serial.print("in_pins #:\t");
-    // Serial.println(_inputButton.getPin());
-
     Serial.print("input type:\t");
-    Serial.println(_button_type);
-
-    Serial.print("out_pin #:\t");
+    Serial.print(_button_type);
+    Serial.println(" ; 0:None; 1:Button, 2:Toggle");
+    Serial.print("input_pin:\t");
+    Serial.println(_inSW.switches[_ez_sw_id].switch_pin);
+    Serial.print("outout_pin:\t");
     Serial.println(_outputPin);
-
-    Serial.print("PWM:\t\t");
-    Serial.println(_output_pwm);
-
+    Serial.print("isPWM:\t\t");
+    Serial.println(_output_pwm == 0 ? "No" : "Yes");
     Serial.print("use indic:\t");
-    Serial.println(_use_indic);
+    Serial.println(_use_indic ? "Yes" : "No");
+    if (_use_indic)
+    {
+        Serial.print("indic_Pin:\t");
+        Serial.println(_indicPin);
+    }
 
     Serial.print("use timeout:\t");
-    Serial.println(_use_timeout);
+    Serial.println(_use_timeout ? "Yes" : "No");
+
+    if (_timeout_duration > 0)
+    {
+        Serial.print("timeout [sec]:\t");
+        Serial.println(_timeout_duration / 1000);
+    }
 
     Serial.print("use lockdown:\t");
     Serial.println(_use_lockdown ? "YES" : "NO");
 
     Serial.println(" >>>>>>>> END <<<<<<<< \n");
+    Serial.flush();
 }
 
 bool smartSwitch::loop()
 {
     bool lckdown = (_use_lockdown && !_in_lockdown) || (!_use_lockdown);
 
-    if (_useButton && lckdown)
+    if (_useButton && lckdown && _inSW.read_switch(_ez_sw_id) == switched) /* Input change*/
     {
-        _inputButton.loop();
+        if (_inSW.switches[_ez_sw_id].switch_type == toggle_switch) /* For Toggle only */
+        {
+            if (_inSW.switches[_ez_sw_id].switch_status == !on && (get_SWstate()==1||(get_SWstate()==255&&_guessState == SW_ON)))
+            {
+                turnOFF_cb(BUTTON_INPUT);
+            }
+            else if (_inSW.switches[_ez_sw_id].switch_status == on && (get_SWstate()==0||(get_SWstate()==255&&_guessState == SW_OFF)))
+            {
+                turnON_cb(BUTTON_INPUT);
+            }
+            else
+            {
+                yield();
+            }
+        }
+        else /* For Button only */
+        {
+            if (get_SWstate())
+            {
+                turnOFF_cb(BUTTON_INPUT);
+            }
+            else
+            {
+                turnON_cb(BUTTON_INPUT);
+            }
+        }
     }
-    if (_use_timeout && lckdown)
+    else if (_use_timeout && lckdown)
     {
         _timeout_loop();
     }
     if (_use_indic)
     {
-        if (_isON())
+        if (_isOUTPUT_ON())
         {
             _turn_indic_on();
         }
@@ -322,8 +355,8 @@ bool smartSwitch::is_useButton()
 {
     return _useButton;
 }
-
-bool smartSwitch::_isON()
+uint8_t smartSwitch::_next_id = 0;
+bool smartSwitch::_isOUTPUT_ON()
 {
     if (_output_pwm)
     {
@@ -334,7 +367,7 @@ bool smartSwitch::_isON()
         return (digitalRead(_outputPin) == OUTPUT_ON);
     }
 }
-void smartSwitch::_HWoff()
+void smartSwitch::_setOUTPUT_OFF()
 {
     if (_output_pwm)
     {
@@ -346,7 +379,7 @@ void smartSwitch::_HWoff()
         digitalWrite(_outputPin, !OUTPUT_ON);
     }
 }
-void smartSwitch::_HWon(uint8_t val)
+void smartSwitch::_setOUTPUT_ON(uint8_t val)
 {
     if (_output_pwm)
     {
@@ -408,54 +441,4 @@ void smartSwitch::_update_telemetry(uint8_t state, uint8_t type, unsigned long t
     telemtryMSG.state = state;
     telemtryMSG.reason = type;
     telemtryMSG.clk_end = te;
-}
-void smartSwitch::_OnOffSW_Relay(uint8_t i, bool state, uint8_t type)
-{
-    if (state == true)
-    {
-        turnON_cb(type);
-    }
-    else
-    {
-        turnOFF_cb(type);
-    }
-}
-void smartSwitch::_toggleRelay(uint8_t i, uint8_t type)
-{
-    if (!_virtCMD)
-    {
-        if (_isON())
-        {
-            turnOFF_cb(type);
-        }
-        else
-        {
-            turnON_cb(type);
-        }
-    }
-    else
-    {
-        if (_guessState == true)
-        {
-            turnOFF_cb(type);
-        }
-        else
-        {
-            turnON_cb(type);
-        }
-    }
-}
-
-/* Button2 Handlers */
-void smartSwitch::_OnOffSW_ON_handler(Button2 &b)
-{
-    _OnOffSW_Relay(b.getID(), OUTPUT_ON, BUTTON_INPUT);
-}
-void smartSwitch::_OnOffSW_OFF_handler(Button2 &b)
-{
-    _OnOffSW_Relay(b.getID(), !OUTPUT_ON, BUTTON_INPUT);
-}
-void smartSwitch::_toggle_handle(Button2 &b)
-{
-    _toggleRelay(b.getID(), BUTTON_INPUT);
 }

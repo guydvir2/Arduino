@@ -6,13 +6,14 @@
  *
  * Github: https://github.com/mobizt/Firebase-ESP-Client
  *
- * Copyright (c) 2022 mobizt
+ * Copyright (c) 2023 mobizt
  *
  */
 
 // This example shows how to run a query. This operation required Email/password, custom or OAUth2.0 authentication.
 
-#if defined(ESP32)
+#include <Arduino.h>
+#if defined(ESP32) || defined(PICO_RP2040)
 #include <WiFi.h>
 #elif defined(ESP8266)
 #include <ESP8266WiFi.h>
@@ -46,17 +47,32 @@ FirebaseConfig config;
 unsigned long dataMillis = 0;
 int count = 0;
 
+#if defined(ARDUINO_RASPBERRY_PI_PICO_W)
+WiFiMulti multi;
+#endif
+
 void setup()
 {
 
     Serial.begin(115200);
 
+#if defined(ARDUINO_RASPBERRY_PI_PICO_W)
+    multi.addAP(WIFI_SSID, WIFI_PASSWORD);
+    multi.run();
+#else
     WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+#endif
+
     Serial.print("Connecting to Wi-Fi");
+    unsigned long ms = millis();
     while (WiFi.status() != WL_CONNECTED)
     {
         Serial.print(".");
         delay(300);
+#if defined(ARDUINO_RASPBERRY_PI_PICO_W)
+        if (millis() - ms > 10000)
+            break;
+#endif
     }
     Serial.println();
     Serial.print("Connected with IP: ");
@@ -71,6 +87,13 @@ void setup()
     /* Assign the user sign in credentials */
     auth.user.email = USER_EMAIL;
     auth.user.password = USER_PASSWORD;
+
+    // The WiFi credentials are required for Pico W
+    // due to it does not have reconnect feature.
+#if defined(ARDUINO_RASPBERRY_PI_PICO_W)
+    config.wifi.clearAP();
+    config.wifi.addAP(WIFI_SSID, WIFI_PASSWORD);
+#endif
 
     /* Assign the callback function for the long running token generation task */
     config.token_status_callback = tokenStatusCallback; // see addons/TokenHelper.h
@@ -99,7 +122,7 @@ void loop()
 
         Serial.print("Query a Firestore database... ");
 
-        // If you have run the Create_Documents example, the document b0 (in collection a0) contains the document collection c0, and
+        // If you have run the CreateDocuments example, the document b0 (in collection a0) contains the document collection c0, and
         // c0 contains the collections d?.
 
         // The following query will query at collection c0 to get the 3 documents in the payload result with descending order.
@@ -107,13 +130,13 @@ void loop()
         // For the usage of FirebaseJson, see examples/FirebaseJson/BasicUsage/Create.ino
         FirebaseJson query;
 
-        query.set("select/fields/[0]/fieldPath", "count");
-        query.set("select/fields/[1]/fieldPath", "random");
-        // query.set("select/fields/[2]/fieldPath", "status");
+        query.set("select/fields/[0]/fieldPath", "myDouble");
+        query.set("select/fields/[1]/fieldPath", "myInteger");
+        // query.set("select/fields/[2]/fieldPath", "myTimestamp");
 
         query.set("from/collectionId", "c0");
         query.set("from/allDescendants", false);
-        query.set("orderBy/field/fieldPath", "count");
+        query.set("orderBy/field/fieldPath", "myInteger");
         query.set("orderBy/direction", "DESCENDING");
         query.set("limit", 3);
 

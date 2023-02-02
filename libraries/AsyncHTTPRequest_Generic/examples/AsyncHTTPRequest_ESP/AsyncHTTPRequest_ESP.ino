@@ -1,21 +1,21 @@
 /****************************************************************************************************************************
   AsyncHTTPRequest_ESP.ino - Dead simple AsyncHTTPRequest for ESP8266, ESP32 and currently STM32 with built-in LAN8742A Ethernet
-  
+
   For ESP8266, ESP32 and STM32 with built-in LAN8742A Ethernet (Nucleo-144, DISCOVERY, etc)
-  
+
   AsyncHTTPRequest_Generic is a library for the ESP8266, ESP32 and currently STM32 run built-in Ethernet WebServer
-  
+
   Based on and modified from asyncHTTPrequest Library (https://github.com/boblemaire/asyncHTTPrequest)
-  
+
   Built by Khoi Hoang https://github.com/khoih-prog/AsyncHTTPRequest_Generic
   Licensed under MIT license
-  
+
   Copyright (C) <2018>  <Bob Lemaire, IoTaWatt, Inc.>
-  This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License 
+  This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License
   as published bythe Free Software Foundation, either version 3 of the License, or (at your option) any later version.
   This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-  You should have received a copy of the GNU General Public License along with this program.  If not, see <https://www.gnu.org/licenses/>.  
+  You should have received a copy of the GNU General Public License along with this program.  If not, see <https://www.gnu.org/licenses/>.
  *****************************************************************************************************************************/
 //************************************************************************************************************
 //
@@ -65,11 +65,14 @@ const char* password    = "your_pass";
   #include <WiFi.h>
 #endif
 
-#define ASYNC_HTTP_REQUEST_GENERIC_VERSION_MIN_TARGET      "AsyncHTTPRequest_Generic v1.10.1"
-#define ASYNC_HTTP_REQUEST_GENERIC_VERSION_MIN             1010001
+#define ASYNC_HTTP_REQUEST_GENERIC_VERSION_MIN_TARGET      "AsyncHTTPRequest_Generic v1.10.2"
+#define ASYNC_HTTP_REQUEST_GENERIC_VERSION_MIN             1010002
 
 // Seconds for timeout, default is 3s
-#define DEFAULT_RX_TIMEOUT           10   
+#define DEFAULT_RX_TIMEOUT           10
+
+// Uncomment for certain HTTP site to optimize
+//#define NOT_SEND_HEADER_AFTER_CONNECTED        true
 
 // To be included only in main(), .ino with setup() to avoid `Multiple Definitions` Linker Error
 #include <AsyncHTTPRequest_Generic.h>             // https://github.com/khoih-prog/AsyncHTTPRequest_Generic
@@ -100,15 +103,15 @@ void heartBeatPrint()
   }
 }
 
-void sendRequest() 
+void sendRequest()
 {
   static bool requestOpenResult;
-  
+
   if (request.readyState() == readyStateUnsent || request.readyState() == readyStateDone)
   {
     //requestOpenResult = request.open("GET", "http://worldtimeapi.org/api/timezone/Europe/London.txt");
     requestOpenResult = request.open("GET", "http://worldtimeapi.org/api/timezone/America/Toronto.txt");
-    
+
     if (requestOpenResult)
     {
       // Only send() if open() returns true, or crash
@@ -147,16 +150,19 @@ void setup()
 {
   // put your setup code here, to run once:
   Serial.begin(115200);
+
   while (!Serial && millis() < 5000);
-  
-  Serial.print(F("\nStarting AsyncHTTPRequest_ESP using ")); Serial.println(ARDUINO_BOARD);
+
+  Serial.print(F("\nStarting AsyncHTTPRequest_ESP using "));
+  Serial.println(ARDUINO_BOARD);
   Serial.println(ASYNC_HTTP_REQUEST_GENERIC_VERSION);
 
   WiFi.mode(WIFI_STA);
 
   WiFi.begin(ssid, password);
-  
-  Serial.print(F("Connecting to WiFi SSID: ")); Serial.println(ssid);
+
+  Serial.print(F("Connecting to WiFi SSID: "));
+  Serial.println(ssid);
 
   while (WiFi.status() != WL_CONNECTED)
   {
@@ -166,18 +172,18 @@ void setup()
 
   Serial.print(F("\nAsyncHTTPRequest @ IP : "));
   Serial.println(WiFi.localIP());
- 
+
   request.setDebug(false);
-  
+
   request.onReadyStateChange(requestCB);
   ticker.attach(HTTP_REQUEST_INTERVAL, sendRequest);
 
   ticker1.attach(HEARTBEAT_INTERVAL, heartBeatPrint);
-  
+
   // Send first request now
-  sendRequest();  
+  sendRequest();
 }
 
 void loop()
-{ 
+{
 }
