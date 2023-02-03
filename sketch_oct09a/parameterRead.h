@@ -5,7 +5,7 @@ char parameterFiles[4][30];
 
 void build_path_directory(uint8_t i = 0)
 {
-    const char *dirs[] = {"Fail", "Cont_A", "Cont_B", "Cont_C", "Cont_D", "Cont_test", "SONOFF_P"};
+    const char *dirs[] = {"Fail", "Cont_A", "Cont_B", "Cont_C", "Cont_D", "Cont_test", "SONOFF_P"}; /* All directories have to be on MCU's flash */
     const char *FileNames_common[2] = {"myIOT_param.json", "HW.json"};
     const char *FileNames_dedicated[2] = {"myIOT2_topics.json", "sketch_param.json"};
 

@@ -52,8 +52,8 @@ public:
 private:
     RCSwitch *RF_v = nullptr;
     Cotroller_Ent_telemetry _MSG;
-    WinSW *winSW_V[TOT_Relays / 2] = {nullptr, nullptr,nullptr, nullptr};
-    smartSwitch *SW_v[TOT_Inputs] = {nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr};
+    WinSW *winSW_V[TOT_Relays / 2]{};// = {nullptr, nullptr,nullptr, nullptr};
+    smartSwitch *SW_v[TOT_Inputs]{};// = {nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr};
 
     void _init_RF();
     void _toggle_SW_RF(uint8_t i);

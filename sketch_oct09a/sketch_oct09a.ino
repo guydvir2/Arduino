@@ -15,8 +15,10 @@ homeCtl controller;
 #define BurnOUT true
 
 #if BurnOUT
+#if defined ESP32
 #include "soc/soc.h"          // disable   detector
 #include "soc/rtc_cntl_reg.h" // disable   detector
+#endif
 #endif
 
 #if MAN_MODE == true
@@ -100,6 +102,10 @@ void post_telemetry_2MQTT(Cotroller_Ent_telemetry &MSG) /* get telemetry from an
       MQTT_notify_virtCMD(sw_props.name, controller.SW_MQTT_cmds[MSG.state], controller.SW_Types[MSG.trig], msg);
     }
   }
+  else
+  {
+    Serial.println("Unclear entity");
+  }
 #endif
 }
 void new_telemetry_handler()
@@ -118,7 +124,9 @@ void new_telemetry_handler()
 void setup()
 {
 #if BurnOUT
+#ifdef ESP32
   WRITE_PERI_REG(RTC_CNTL_BROWN_OUT_REG, 0); // disable   detector
+#endif
 #endif
 #if DEBUG_MODE
   init_Serial_DBG_MODE();
@@ -130,11 +138,11 @@ void setup()
 }
 void loop()
 {
-  if (controller.loop())
+  if (controller.loop()) /* Switch activity or timeout */
   {
     new_telemetry_handler();
   }
 #if EN_WIFI
-  // iot.looper();
+  iot.looper();
 #endif
 }
