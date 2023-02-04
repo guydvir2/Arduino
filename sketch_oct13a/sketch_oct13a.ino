@@ -1,28 +1,26 @@
 #include <Arduino.h>
-// #include <ESP8266WiFi.h>
 
-int outpin = D1;
-int outpin2 = D2;
-int range = 1023;
+// int outpin[] = {22, 23, 26, 27, 34, 36, 39, 35, 4, 15, 14, 2};
+int outpin[] = {22, 23, 26, 27, 4, 15, 14, 2};
 
 void setup()
 {
   Serial.begin(115200);
   Serial.println("\n\nStart");
-  // analogWriteRange(range);
-
-  pinMode(outpin, OUTPUT);
-  pinMode(outpin2, OUTPUT);
+  for (uint8_t i = 0; i < sizeof(outpin) / sizeof(outpin[0]); i++)
+  {
+    pinMode(outpin[i], INPUT_PULLUP);
+    Serial.println(outpin[i]);
+  }
 }
 void loop()
 {
-  // digitalWrite(outpin, !digitalRead(outpin));
-  for (int i = 0; i < 255; i++)
+  delay(100);
+  for (uint8_t i = 0; i < sizeof(outpin) / sizeof(outpin[0]); i++)
   {
-    analogWrite(outpin, i);
-    analogWrite(outpin2, i);
-    delay(20);
-    Serial.println(i);
+    if (digitalRead(outpin[i]) == LOW)
+    {
+      Serial.println(outpin[i]);
+    }
   }
-  delay(1000);
 }

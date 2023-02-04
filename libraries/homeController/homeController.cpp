@@ -9,10 +9,10 @@ bool homeCtl::loop()
   _SW_loop();
   _Win_loop();
 
-  if (_use_RF)
-  {
-    _RF_loop();
-  }
+  // if (_use_RF)
+  // {
+  //   _RF_loop();
+  // }
   return _MSG.newMSG;
 }
 void homeCtl::Win_switchCB(uint8_t i, uint8_t state)
@@ -332,39 +332,39 @@ void homeCtl::_RF_loop()
 
 void homeCtl::_init_RF()
 {
-  if (_RF_ch_2_SW[_swEntityCounter] != 255 && RF_v == nullptr)
-  {
-    _use_RF = true;
-    RF_v = new RCSwitch();
-    RF_v->enableReceive(_RFpin);
-  }
+  // if (_RF_ch_2_SW[_swEntityCounter] != 255 && RF_v == nullptr)
+  // {
+  //   _use_RF = true;
+  //   RF_v = new RCSwitch();
+  //   RF_v->enableReceive(_RFpin);
+  // }
 }
 void homeCtl::_toggle_SW_RF(uint8_t i)
 {
-  SW_props sw_prop;
-  get_entity_prop(SW_ENT, i, sw_prop);
+  // SW_props sw_prop;
+  // get_entity_prop(SW_ENT, i, sw_prop);
 
-  if (sw_prop.virtCMD)
-  {
-    // if (sw_prop.type == 2) /* virtCMD + PushButton --> output state is unknown*/
-    // {
-    //   char top[50];
-    //   sprintf(top, "%s/State", SW_v[i]->name);
-    //   // iot.mqttClient.subscribe(top);
-    // }
-    // else
-    // {
-    // }
-  }
-  else
-  {
-    if (SW_v[i]->get_SWstate()) /* is output SW on ?*/
-    {
-      SW_v[i]->turnOFF_cb(EXT_1); /* # is RF remote indetifier */
-    }
-    else
-    {
-      SW_v[i]->turnON_cb(EXT_1);
-    }
-  }
+  // if (sw_prop.virtCMD)
+  // {
+  //   // if (sw_prop.type == 2) /* virtCMD + PushButton --> output state is unknown*/
+  //   // {
+  //   //   char top[50];
+  //   //   sprintf(top, "%s/State", SW_v[i]->name);
+  //   //   // iot.mqttClient.subscribe(top);
+  //   // }
+  //   // else
+  //   // {
+  //   // }
+  // }
+  // else
+  // {
+  //   if (SW_v[i]->get_SWstate()) /* is output SW on ?*/
+  //   {
+  //     SW_v[i]->turnOFF_cb(EXT_1); /* # is RF remote indetifier */
+  //   }
+  //   else
+  //   {
+  //     SW_v[i]->turnON_cb(EXT_1);
+  //   }
+  // }
 }

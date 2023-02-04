@@ -6,7 +6,7 @@ homeCtl controller;
 
 // ~~~ Software Flags ~~~
 #define MAN_MODE true
-#define PARAM_PRESET 5
+#define PARAM_PRESET 3
 
 // ~~~ Debug ~~~
 #define EN_WIFI true

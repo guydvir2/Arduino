@@ -383,8 +383,8 @@ bool EspAtDrvClass::joinAP(const char* ssid, const char* password, const uint8_t
  if (ssid) {
   cmd->print(F("=\""));
   cmd->print(ssid);
+  cmd->print((FSH_P) QOUT_COMMA_QOUT);
   if (password) {
-    cmd->print((FSH_P) QOUT_COMMA_QOUT);
     cmd->print(password);
     if (bssid) {
       cmd->print((FSH_P) QOUT_COMMA_QOUT);
@@ -553,15 +553,13 @@ bool EspAtDrvClass::softApIp(const IPAddress& ip, const IPAddress& gw, const IPA
   }
 #endif
   ip.printTo(*cmd);
-  cmd->print((FSH_P) QOUT_COMMA_QOUT);
   if (gw[0]) {
+    cmd->print((FSH_P) QOUT_COMMA_QOUT);
     gw.printTo(*cmd);
     if (nm[0]) {
       cmd->print((FSH_P) QOUT_COMMA_QOUT);
       nm.printTo(*cmd);
     }
-  } else {
-    ip.printTo(*cmd);
   }
   cmd->print('"');
   bool ok = sendCommand();

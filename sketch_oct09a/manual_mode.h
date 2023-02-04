@@ -2,11 +2,15 @@
 
 #if defined ESP32
 // char pins[] = "{\"inputPins\": [19,17,16,5,4,2,23,18,15,14,13,12], \"relayPins\": [25,26,33,32],\"RF_keyboardCode\": [3135496,3135492,3135490,3135489],\"RFpin\": 27}";
-char pins[] = "{\"inputPins\": [22,23,26,27,34,36,39,35,4,15,14,2], \"relayPins\": [33,32,13,12,21,19,18,5],\"RF_keyboardCode\": [3135496,3135492,3135490,3135489],\"RFpin\": 27}";
+// char pins[] = "{\"inputPins\": [22,23,26,27,34,36,39,35,4,15,14,2], \"relayPins\": [33,32,13,12,21,19,18,5],\"RF_keyboardCode\": [3135496,3135492,3135490,3135489],\"RFpin\": 27}";
+
+/* LilyGO 8 Relay module */
+char pins[] = "{\"inputPins\": [22,23,26,27,4,15,14,2], \"relayPins\": [33,32,13,12,21,19,18,5],\"RF_keyboardCode\": [3135496,3135492,3135490,3135489],\"RFpin\": 255}";
+
 #elif defined ESP8266
 char pins[] = "{\"inputPins\": [0,4,13,15,3,1], \"relayPins\": [5,2,14,12],\"RF_keyboardCode\": [3135496,3135492,3135490,3135489],\"RFpin\": 27}";
 #endif
-
+// ,\"myHome\/Lights\/2Floor\/SW_2\",\"myHome\/Lights\/2Floor\/SW_3\,\"myHome\/Lights\/2Floor\/SW_4\",\"myHome\/Lights\/2Floor\/SW_5\",\"myHome\/Lights\/2Floor\/SW_6\",\"myHome\/Lights\/2Floor\/SW_7\"
 #if PARAM_PRESET == 1
 char cont_params[] = "{\"entityType\": [0,0],\
                     \"SWname\": [],\
@@ -28,45 +32,45 @@ char topics[] = "{\
                     \"sub_topics_win_g\" : [\"myHome\/Windows\",\"myHome\/Windows\/gFloor\"],\
                     \"sub_topics_SW_g\" : [],\
                     \"ver\" : 0.1}";
-#elif PARAM_PRESET == 2
 
-char cont_params[] = "{\"entityType\": [1,1,1,1],\
-                    \"SWname\": [\"myHome\/Lights\/int\/SW_0\",\"myHome\/Lights\/int\/SW_1\",\"myHome\/Lights\/int\/SW_2\",\"myHome\/Lights\/int\/SW_3\"],\
-                    \"SW_buttonTypes\": [1,2,2,2],\
-                    \"SW_timeout\": [0,5,10,10],\
-                    \"SWvirtCMD\":[0,0,0,0],\
+#elif PARAM_PRESET == 2
+char cont_params[] = "{\"entityType\": [1,1,1,1,1,1,1,1],\
+                    \"SWname\": [\"SW_0\",\"SW_1\",\"SW_2\",\"SW_3\",\"SW_4\",\"SW_5\",\"SW_6\",\"SW_7\"],\
+                    \"SW_buttonTypes\": [2,1,1,1,2,1,1,1],\
+                    \"SW_timeout\": [0,0,0,0,0,0,0,0],\
+                    \"SWvirtCMD\":[],\
                     \"Winname\": [],\
                     \"WextInputs\": [],\
                     \"WinvirtCMD\":[],\
-                    \"RF_2entity\": [0,1,2,3],\
+                    \"RF_2entity\": [],\
                     \"v_file\": 0.5}";
 
 char topics[] = "{\
                     \"pub_gen_topics\" : [\"myHome\/Messages\",\"myHome\/log\",\"myHome\/debug\"],\
-                    \"pub_topics\" : [\"myHome\/Cont_2\/Avail\", \"myHome\/Cont_1\/State\"],\
-                    \"sub_topics\" : [\"myHome\/Cont_2\",\"myHome\/All\",\"myHome\/lockdown\"],\
+                    \"pub_topics\" : [\"myHome\/Cont_2M\/Avail\", \"myHome\/Cont_2M\/State\"],\
+                    \"sub_topics\" : [\"myHome\/Cont_2M\",\"myHome\/All\",\"myHome\/lockdown\"],\
                     \"sub_topics_win\" : [],\
-                    \"sub_topics_SW\" : [\"myHome\/Lights\/int\/SW_0\",\"myHome\/Lights\/int\/SW_1\",\"myHome\/Lights\/int\/SW_2\",\"myHome\/Lights\/int\/SW_3\"],\
+                    \"sub_topics_SW\" : [\"myHome\/Lights\/2Floor\/sw_0\",\"myHome\/Lights\/2Floor\/sw_1\",\"myHome\/Lights\/2Floor\/sw_2\",\"myHome\/Lights\/2Floor\/sw_3\",\"myHome\/Lights\/2Floor\/sw_4\",\"myHome\/Lights\/2Floor\/sw_5\",\"myHome\/Lights\/2Floor\/sw_6\",\"myHome\/Lights\/2Floor\/sw_7\"],\
                     \"sub_topics_win_g\" : [],\
-                    \"sub_topics_SW_g\" : [\"myHome\/Lights\",\"myHome\/Lights\/int\"],\
+                    \"sub_topics_SW_g\" : [\"myHome\/Lights\",\"myHome\/Lights\/2Floor\"],\
                     \"ver\" : 0.1}";
 
 #elif PARAM_PRESET == 3
-char cont_params[] = "{\"entityType\": [0,0,1,1],\
-                    \"SWname\": [\"myHome\/Lights\/int\/SW_0\",\"myHome\/Lights\/int\/SW_1\"],\
+char cont_params[] = "{\"entityType\": [0,0,1,1,1,1],\
+                    \"SWname\": [\"SW_0\",\"SW_1\",\"SW_2\",\"SW_3\"],\
                     \"Winname\": [\"myHome\/Windows\/tFloor\/Win_0\",\"myHome\/Windows\/tFloor\/Win_1\"],\
-                    \"SW_buttonTypes\": [1,2,2,2],\
-                    \"WextInputs\": [0,1],\
+                    \"SW_buttonTypes\": [2,2,2,2],\
+                    \"WextInputs\": [0,0],\
                     \"RF_2entity\": [0,1,2,3],\
-                    \"SW_timeout\": [5,5,10,10],\
+                    \"SW_timeout\": [10,10,10,10],\
                     \"SWvirtCMD\":[0,0],\
                     \"WinvirtCMD\":[0,0],\
                     \"v_file\": 0.5}";
 
 char topics[] = "{\
                     \"pub_gen_topics\" : [\"myHome\/Messages\",\"myHome\/log\",\"myHome\/debug\"],\
-                    \"pub_topics\" : [\"myHome\/Cont_3\/Avail\", \"myHome\/Cont_3\/State\"],\
-                    \"sub_topics\" : [\"myHome\/Cont_3\",\"myHome\/All\",\"myHome\/lockdown\"],\
+                    \"pub_topics\" : [\"myHome\/Cont_3M\/Avail\", \"myHome\/Cont_3M\/State\"],\
+                    \"sub_topics\" : [\"myHome\/Cont_3M\",\"myHome\/All\",\"myHome\/lockdown\"],\
                     \"sub_topics_win\" : [\"myHome\/Windows\/tFloor\/Win_0\",\"myHome\/Windows\/tFloor\/Win_1\"],\
                     \"sub_topics_SW\" : [\"myHome\/Lights\/int\/SW_0\",\"myHome\/Lights\/int\/SW_1\",\"myHome\/Lights\/int\/SW_2\",\"myHome\/Lights\/int\/SW_3\"],\
                     \"sub_topics_win_g\" : [\"myHome\/Windows\",\"myHome\/Windows\/tFloor\"],\

@@ -161,7 +161,7 @@ bool get_pins_parameters(JsonDocument &DOC, uint8_t _inpins[], uint8_t _outpins[
 }
 bool get_IOT2_parameters()
 {
-    StaticJsonDocument<400> DOC;
+    StaticJsonDocument<1400> DOC;
     if (iot.extract_JSON_from_flash(iot.parameter_filenames[0], DOC))
     {
         iot.update_vars_flash_parameters(DOC);
