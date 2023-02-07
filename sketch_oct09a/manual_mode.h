@@ -1,16 +1,19 @@
 #if MAN_MODE == true
 
 #if defined ESP32
-// char pins[] = "{\"inputPins\": [19,17,16,5,4,2,23,18,15,14,13,12], \"relayPins\": [25,26,33,32],\"RF_keyboardCode\": [3135496,3135492,3135490,3135489],\"RFpin\": 27}";
-// char pins[] = "{\"inputPins\": [22,23,26,27,34,36,39,35,4,15,14,2], \"relayPins\": [33,32,13,12,21,19,18,5],\"RF_keyboardCode\": [3135496,3135492,3135490,3135489],\"RFpin\": 27}";
+/* RobotDyn 4 Relay module + RF */
+// char pins[] = "{\"inputPins\": [23,19,18,17,16,15,14,13,12,5,4,2], \"relayPins\": [25,26,33,32],\"RF_keyboardCode\": [3135496,3135492,3135490,3135489],\"RFpin\": 27}";
+
+/* RobotDyn 4 Relay module + RF */
+// char pins[] = "{\"inputPins\": [23,19,18,17,16,15,14,13,12,5,4,2], \"relayPins\": [25,26,33,32],\"RF_keyboardCode\": [3135496,3135492,3135490,3135489],\"RFpin\": 27}";
 
 /* LilyGO 8 Relay module */
-char pins[] = "{\"inputPins\": [22,23,26,27,4,15,14,2], \"relayPins\": [33,32,13,12,21,19,18,5],\"RF_keyboardCode\": [3135496,3135492,3135490,3135489],\"RFpin\": 255}";
+char pins[] = "{\"inputPins\": [22,23,26,27,4,15,14,2], \"relayPins\": [33,32,13,12,21,19,18,5],\"RF_keyboardCode\": [3135496,3135492,3135490,3135489],\"RFpin\": 27}";
 
 #elif defined ESP8266
 char pins[] = "{\"inputPins\": [0,4,13,15,3,1], \"relayPins\": [5,2,14,12],\"RF_keyboardCode\": [3135496,3135492,3135490,3135489],\"RFpin\": 27}";
 #endif
-// ,\"myHome\/Lights\/2Floor\/SW_2\",\"myHome\/Lights\/2Floor\/SW_3\,\"myHome\/Lights\/2Floor\/SW_4\",\"myHome\/Lights\/2Floor\/SW_5\",\"myHome\/Lights\/2Floor\/SW_6\",\"myHome\/Lights\/2Floor\/SW_7\"
+
 #if PARAM_PRESET == 1
 char cont_params[] = "{\"entityType\": [0,0],\
                     \"SWname\": [],\
@@ -55,7 +58,7 @@ char topics[] = "{\
                     \"sub_topics_SW_g\" : [\"myHome\/Lights\",\"myHome\/Lights\/2Floor\"],\
                     \"ver\" : 0.1}";
 
-#elif PARAM_PRESET == 3
+#elif PARAM_PRESET == 3 /* 2_windows 4_Light Switches*/
 char cont_params[] = "{\"entityType\": [0,0,1,1,1,1],\
                     \"SWname\": [\"SW_0\",\"SW_1\",\"SW_2\",\"SW_3\"],\
                     \"Winname\": [\"myHome\/Windows\/tFloor\/Win_0\",\"myHome\/Windows\/tFloor\/Win_1\"],\
@@ -91,8 +94,8 @@ char cont_params[] = "{\"entityType\": [0,0,0,0],\
 
 char topics[] = "{\
                     \"pub_gen_topics\" : [\"myHome\/Messages\",\"myHome\/log\",\"myHome\/debug\"],\
-                    \"pub_topics\" : [\"myHome\/Cont_4\/Avail\", \"myHome\/Cont_4\/State\"],\
-                    \"sub_topics\" : [\"myHome\/Cont_4\",\"myHome\/All\",\"myHome\/lockdown\"],\
+                    \"pub_topics\" : [\"myHome\/Cont_4M\/Avail\", \"myHome\/Cont_4M\/State\"],\
+                    \"sub_topics\" : [\"myHome\/Cont_4M\",\"myHome\/All\",\"myHome\/lockdown\"],\
                     \"sub_topics_win\" : [],\
                     \"sub_topics_SW\" : [],\
                     \"sub_topics_win_g\" : [],\

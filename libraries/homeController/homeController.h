@@ -2,7 +2,7 @@
 #define _homeCTRL_H
 
 #include <Arduino.h>
-#include <RCSwitch.h>
+#include <RCSwitch.h>    /* RF Library */
 #include <myWindowSW.h>  /* WinSW Entities */
 #include <smartSwitch.h> /* smartSwitch Entities */
 
@@ -15,7 +15,7 @@ struct Cotroller_Ent_telemetry
     uint8_t state; /* Up/Down/ Off */
     uint8_t trig;  /* What triggered the button */
 
-    bool newMSG = false;
+    bool newMSG = false; /* NewMSG for loop function */
     unsigned long timeout = 0;
 };
 enum ENT_TYPE : const uint8_t
@@ -40,7 +40,7 @@ private:
     int _RF_freq[4] = {3135496, 3135492, 3135490, 3135489};
 
 public:
-    const char *ver = "smartController_v0.2";
+    const char *ver = "smartController_v0.3";
 
     char *SW_MQTT_cmds[2] = {"off", "on"};
     char *winMQTTcmds[3] = {"off", "up", "down"};
@@ -51,9 +51,10 @@ public:
 
 private:
     RCSwitch *RF_v = nullptr;
+    WinSW *winSW_V[TOT_Relays / 2]{};
+    smartSwitch *SW_v[TOT_Inputs]{};
+
     Cotroller_Ent_telemetry _MSG;
-    WinSW *winSW_V[TOT_Relays / 2]{};// = {nullptr, nullptr,nullptr, nullptr};
-    smartSwitch *SW_v[TOT_Inputs]{};// = {nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr};
 
     void _init_RF();
     void _toggle_SW_RF(uint8_t i);
@@ -66,31 +67,35 @@ private:
     void _Win_loop();
 
 public:
+    /* Create entity */
     homeCtl();
     bool loop();
-    void set_RF(uint8_t pin = 255);             /* IO that RF recv is connected to */
-    void set_RFch(int arr[], uint8_t arr_size); /* Radio freq to listen to. belong to a remote control */
-    void set_ent_name(uint8_t i, uint8_t ent_type, const char *name);
-    void Win_init_lockdown();
-    void SW_init_lockdown(uint8_t i = 255);
-    void Win_release_lockdown();
-    void SW_release_lockdown(uint8_t i = 255);
+    void set_RF(uint8_t pin = 255);                                                   /* IO that RF recv is connected to */
+    void set_RFch(int arr[], uint8_t arr_size);                                       /* Radio freq. belong to a remote control */
+    void set_ent_name(uint8_t i, uint8_t ent_type, const char *name);                 /* Entity Name (SW or Win) */
+    void create_Win(uint8_t _input_pins[], uint8_t _output_pins[], const char *topic, /* Create Win ent */
+                    bool is_virtual = false, bool use_ext_sw = false);
+    void create_SW(uint8_t _input_pins[], uint8_t _output_pins[], const char *topic, /* Create SW ent */
+                   uint8_t sw_type, bool is_virtual = false, int timeout_m = 1, uint8_t RF_ch = 255);
 
-    uint8_t get_ent_counter(uint8_t type);
-    uint8_t get_ent_state(uint8_t type, uint8_t i);
-    char *get_ent_name(uint8_t i, uint8_t ent_type);
-    const char *get_ent_ver(uint8_t type);
-    void get_telemetry(Cotroller_Ent_telemetry &M);
-    void get_entity_prop(uint8_t ent_type, uint8_t i, SW_props &sw_prop);
-    void get_entity_prop(uint8_t ent_type, uint8_t i, Win_props &win_prop);
+    /* Entity Information */
+    bool get_useRF();                                                       /* Using RF ? */
+    uint8_t get_ent_counter(uint8_t type);                                  /* Ent. counter */
+    uint8_t get_ent_state(uint8_t type, uint8_t i);                         /* Ent. State */
+    char *get_ent_name(uint8_t i, uint8_t ent_type);                        /* Ent. name */
+    const char *get_ent_ver(uint8_t type);                                  /* Ent. class version */
+    void get_telemetry(Cotroller_Ent_telemetry &M);                         /* System telemetry. constant updating */
+    void get_entity_prop(uint8_t ent_type, uint8_t i, SW_props &sw_prop);   /* SW Property */
+    void get_entity_prop(uint8_t ent_type, uint8_t i, Win_props &win_prop); /* Win Property */
 
-    void create_Win(uint8_t _input_pins[], uint8_t _output_pins[], const char *topic, bool is_virtual = false, bool use_ext_sw = false);
-    void create_SW(uint8_t _input_pins[], uint8_t _output_pins[], const char *topic, uint8_t sw_type, bool is_virtual = false, int timeout_m = 1, uint8_t RF_ch = 255);
-
-    void Win_switchCB(uint8_t i, uint8_t state);
-    void SW_switchCB(uint8_t i, uint8_t state, unsigned int TO = 0);
-
-    void clear_telemetryMSG();
+    /* Win & SW callbacks*/
+    void Win_switchCB(uint8_t i, uint8_t state);                     /* Win Opertional CB*/
+    void SW_switchCB(uint8_t i, uint8_t state, unsigned int TO = 0); /* SW Opertional CB*/
+    void Win_init_lockdown();                                        /* Win Lockdown */
+    void SW_init_lockdown(uint8_t i = 255);                          /* SW Lockdown */
+    void Win_release_lockdown();                                     /* Win release Lockdown */
+    void SW_release_lockdown(uint8_t i = 255);                       /* SW release Lockdown */
+    void clear_telemetryMSG();                                       /* Reset New telemetry notification*/
 };
 
 #endif

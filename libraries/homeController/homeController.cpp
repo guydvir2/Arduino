@@ -9,10 +9,10 @@ bool homeCtl::loop()
   _SW_loop();
   _Win_loop();
 
-  // if (_use_RF)
-  // {
-  //   _RF_loop();
-  // }
+  if (_use_RF)
+  {
+    _RF_loop();
+  }
   return _MSG.newMSG;
 }
 void homeCtl::Win_switchCB(uint8_t i, uint8_t state)
@@ -89,9 +89,9 @@ void homeCtl::create_SW(uint8_t _input_pins[], uint8_t _output_pins[], const cha
   }
 
   /* Assign RF to SW */
-  if (RF_ch != 255)
+  if (_RF_freq[RF_ch] != 255) /* Make sure freq is valid */
   {
-    _RF_ch_2_SW[_swEntityCounter] = RF_ch;
+    _RF_ch_2_SW[_swEntityCounter] = RF_ch; /* Which _RF_Chanel# goes to SW */
     _init_RF();
   }
 
@@ -99,7 +99,9 @@ void homeCtl::create_SW(uint8_t _input_pins[], uint8_t _output_pins[], const cha
   _inIOCounter++;
   _swEntityCounter++;
 }
-
+bool homeCtl::get_useRF(){
+  return _use_RF;
+}
 const char *homeCtl::get_ent_ver(uint8_t type)
 {
   if (type == WIN_ENT)
@@ -332,12 +334,13 @@ void homeCtl::_RF_loop()
 
 void homeCtl::_init_RF()
 {
-  // if (_RF_ch_2_SW[_swEntityCounter] != 255 && RF_v == nullptr)
-  // {
-  //   _use_RF = true;
-  //   RF_v = new RCSwitch();
-  //   RF_v->enableReceive(_RFpin);
-  // }
+  if (_RF_ch_2_SW[_swEntityCounter] != 255 && RF_v == nullptr && _RFpin != 255)
+  {
+    _use_RF = true;
+    RF_v = new RCSwitch();
+    RF_v->enableReceive(_RFpin);
+    Serial.println(" >>> RF services started <<<");
+  }
 }
 void homeCtl::_toggle_SW_RF(uint8_t i)
 {

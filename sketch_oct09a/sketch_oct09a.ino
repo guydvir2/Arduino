@@ -104,7 +104,7 @@ void post_telemetry_2MQTT(Cotroller_Ent_telemetry &MSG) /* get telemetry from an
   }
   else
   {
-    Serial.println("Unclear entity");
+    Serial.println(F("Unclear entity"));
   }
 #endif
 }
@@ -120,7 +120,49 @@ void new_telemetry_handler()
   post_telemetry_2MQTT(localMSG);
   controller.clear_telemetryMSG();
 }
+void print_endof_load_entities()
+{
+  Serial.println(F(" ~~~~~~~ HomeController Summary ~~~~~~~ "));
+  Serial.print("Boot Sequence: \t");
+  Serial.println(bootProcess_OK ? "OK" : "Fail");
+  Serial.print("Parameters:\tֿ\t");
+  Serial.println(DEBUG_MODE ? "inCode" : "Flash");
+  Serial.print("Preset#:\t\t");
+  Serial.println(PARAM_PRESET);
 
+  Serial.print(F("Window entites:\t"));
+  Serial.println(controller.get_ent_counter(WIN_ENT));
+  uint8_t v_ent = 0;
+  for (uint8_t i = 0; i < controller.get_ent_counter(WIN_ENT); i++)
+  {
+    Win_props wprops;
+    controller.get_entity_prop(WIN_ENT, i, wprops);
+    if (wprops.virtCMD)
+    {
+      v_ent++;
+    }
+  }
+  Serial.print(F("Virtual Windows:\t"));
+  Serial.println(v_ent);
+
+  Serial.print(F("Switch entites:\t"));
+  Serial.println(controller.get_ent_counter(SW_ENT));
+  for (uint8_t i = 0; i < controller.get_ent_counter(SW_ENT); i++)
+  {
+    SW_props swprops;
+    controller.get_entity_prop(SW_ENT, i, swprops);
+    if (swprops.virtCMD)
+    {
+      v_ent++;
+    }
+  }
+  Serial.print(F("Virtual Switches:\t"));
+  Serial.println(v_ent);
+  Serial.print(F("Using RF:\t\t"));
+  Serial.println(controller.get_useRF() ? "Yes" : "No");
+
+  Serial.println(F(" ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ "));
+}
 void setup()
 {
 #if BurnOUT
@@ -132,6 +174,8 @@ void setup()
   init_Serial_DBG_MODE();
 #endif
   read_all_parameters();
+  print_endof_load_entities();
+
 #if EN_WIFI
   startIOTservices();
 #endif
