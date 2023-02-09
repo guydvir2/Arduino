@@ -75,14 +75,14 @@ void WinSW::release_lockdown()
 }
 void WinSW::print_preferences()
 {
-  Serial.print("\n >>>>>> Window #:");
+  Serial.print("\n >>>>>> Window #");
   Serial.print(_id);
   Serial.println(" <<<<<< ");
 
   Serial.print("Output :\t");
   Serial.println(virtCMD ? "Virutal" : "Relay");
 
-  Serial.print("MQTT:\t\t");
+  Serial.print("MQTT:\t");
   Serial.println(name);
 
   Serial.print("in_pins #:\t");

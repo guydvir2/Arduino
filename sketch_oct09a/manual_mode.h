@@ -8,10 +8,10 @@
 // char pins[] = "{\"inputPins\": [23,19,18,17,16,15,14,13,12,5,4,2], \"relayPins\": [25,26,33,32],\"RF_keyboardCode\": [3135496,3135492,3135490,3135489],\"RFpin\": 27}";
 
 /* LilyGO 8 Relay module */
-char pins[] = "{\"inputPins\": [22,23,26,27,4,15,14,2], \"relayPins\": [33,32,13,12,21,19,18,5],\"RF_keyboardCode\": [3135496,3135492,3135490,3135489],\"RFpin\": 27}";
+char pins[] = "{\"inputPins\": [22,23,26,27,4,15,14,2], \"relayPins\": [33,32,13,12,21,19,18,5],\"RF_keyboardCode\": [255,255,255,255],\"RFpin\": 255}";
 
 #elif defined ESP8266
-char pins[] = "{\"inputPins\": [0,4,13,15,3,1], \"relayPins\": [5,2,14,12],\"RF_keyboardCode\": [3135496,3135492,3135490,3135489],\"RFpin\": 27}";
+char pins[] = "{\"inputPins\": [0,4,13,15,3,1], \"relayPins\": [5,2,14,12],\"RF_keyboardCode\": [255,255,255,255],\"RFpin\": 255}";
 #endif
 
 #if PARAM_PRESET == 1
@@ -19,11 +19,11 @@ char cont_params[] = "{\"entityType\": [0,0],\
                     \"SWname\": [],\
                     \"SW_buttonTypes\": [],\
                     \"SW_timeout\": [],\
-                    \"SWvirtCMD\":[],\
+                    \"SWvirtCMD\":[0,0],\
                     \"Winname\": [\"myHome\/Windows\/gFloor\/Win_0\",\"myHome\/Windows\/gFloor\/Win_1\"],\
                     \"WextInputs\": [0,0],\
                     \"WinvirtCMD\":[0,0],\
-                    \"RF_2entity\": [0,1,2,3],\
+                    \"RF_2entity\": [],\
                     \"v_file\": 0.5}";
 
 char topics[] = "{\
@@ -41,11 +41,11 @@ char cont_params[] = "{\"entityType\": [1,1,1,1,1,1,1,1],\
                     \"SWname\": [\"SW_0\",\"SW_1\",\"SW_2\",\"SW_3\",\"SW_4\",\"SW_5\",\"SW_6\",\"SW_7\"],\
                     \"SW_buttonTypes\": [2,1,1,1,2,1,1,1],\
                     \"SW_timeout\": [0,0,0,0,0,0,0,0],\
-                    \"SWvirtCMD\":[],\
+                    \"SWvirtCMD\":[0,0,0,0,0,0,0,0],\
                     \"Winname\": [],\
                     \"WextInputs\": [],\
                     \"WinvirtCMD\":[],\
-                    \"RF_2entity\": [],\
+                    \"RF_2entity\": [255,255,255,255,255,255,255,255],\
                     \"v_file\": 0.5}";
 
 char topics[] = "{\
@@ -66,7 +66,7 @@ char cont_params[] = "{\"entityType\": [0,0,1,1,1,1],\
                     \"WextInputs\": [0,0],\
                     \"RF_2entity\": [0,1,2,3],\
                     \"SW_timeout\": [10,10,10,10],\
-                    \"SWvirtCMD\":[0,0],\
+                    \"SWvirtCMD\":[0,0,0,0],\
                     \"WinvirtCMD\":[0,0],\
                     \"v_file\": 0.5}";
 

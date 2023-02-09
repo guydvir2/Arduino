@@ -252,7 +252,7 @@ void smartSwitch::print_preferences()
 
     Serial.print("Output Type :\t");
     Serial.println(_virtCMD ? "Virtual" : "Real-Switch");
-    Serial.print("Name:\t\t");
+    Serial.print("Name:\t");
     Serial.println(name);
 
     Serial.print("input type:\t");
@@ -262,7 +262,7 @@ void smartSwitch::print_preferences()
     Serial.println(_inSW.switches[_ez_sw_id].switch_pin);
     Serial.print("outout_pin:\t");
     Serial.println(_outputPin);
-    Serial.print("isPWM:\t\t");
+    Serial.print("isPWM:\t");
     Serial.println(_output_pwm == 0 ? "No" : "Yes");
     Serial.print("use indic:\t");
     Serial.println(_use_indic ? "Yes" : "No");

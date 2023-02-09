@@ -7,12 +7,13 @@ homeCtl controller;
 // ~~~ Software Flags ~~~
 #define MAN_MODE true
 #define PARAM_PRESET 3
+#define RETAINED_MSG true
+#define BurnOUT true
 
 // ~~~ Debug ~~~
 #define EN_WIFI true
 #define DEBUG_MODE true
-#define RETAINED_MSG true
-#define BurnOUT true
+
 
 #if BurnOUT
 #if defined ESP32
@@ -123,11 +124,11 @@ void new_telemetry_handler()
 void print_endof_load_entities()
 {
   Serial.println(F(" ~~~~~~~ HomeController Summary ~~~~~~~ "));
-  Serial.print("Boot Sequence: \t");
+  Serial.print(F("Boot Sequence: \t"));
   Serial.println(bootProcess_OK ? "OK" : "Fail");
-  Serial.print("Parameters:\tֿ\t");
-  Serial.println(DEBUG_MODE ? "inCode" : "Flash");
-  Serial.print("Preset#:\t\t");
+  Serial.print(F("Parameters:\tֿ\t"));
+  Serial.println(MAN_MODE ? "inCode" : "Flash");
+  Serial.print(F("Preset#:\t\t"));
   Serial.println(PARAM_PRESET);
 
   Serial.print(F("Window entites:\t"));

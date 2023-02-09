@@ -161,6 +161,16 @@ bool get_pins_parameters(JsonDocument &DOC, uint8_t _inpins[], uint8_t _outpins[
 }
 bool get_IOT2_parameters()
 {
+#if MAN_MODE
+  iot.useSerial = true;
+  iot.useFlashP = false;
+  iot.useNetworkReset = true;
+  iot.noNetwork_reset = 2;
+  iot.useBootClockLog = false;
+  iot.ignore_boot_msg = false;
+  Serial.println(F("~ IOT2 parameters    - local"));
+  return 1;
+#else
   StaticJsonDocument<1400> DOC;
   if (iot.extract_JSON_from_flash(iot.parameter_filenames[0], DOC))
   {
@@ -173,6 +183,7 @@ bool get_IOT2_parameters()
     Serial.println("~ IOT2 parameters read - Failed");
     return 0;
   }
+#endif
 }
 bool get_entities_parameters()
 {
@@ -238,16 +249,18 @@ bool get_entities_parameters()
 
 void read_all_parameters()
 {
-  Serial.println("\n<<<<<<<<<<<<<<<<< Start Reading Parameters >>>>>>>>>>>>>>>>\n");
+  Serial.println("\nn±±±±±±±±±±±± Start Reading Parameters n±±±±±±±±±±±±n");
+#if MAN_MODE == false
   build_path_directory(PARAM_PRESET); /* Needed for Flash & Local stored parameters */
+#endif
   if (get_IOT2_parameters() && get_entities_parameters() && readTopics())
   {
     bootProcess_OK = true;
-    Serial.println("\n<<<<<<<<<<<<<<<<< Reading Parameters -OK  >>>>>>>>>>>>>>>>\n");
+    Serial.println("\n±±±±±±±±±±±± Reading Parameters -OK  n±±±±±±±±±±±±n");
   }
   else
   {
-    Serial.println("\n<<<<<<<<<<<<<<<<< Reading Parameters -Failed  >>>>>>>>>>>>>>>>\n");
+    Serial.println("\nn±±±±±±±±±±±± Reading Parameters -Failed  n±±±±±±±±±±±±n");
 
     bootProcess_OK = false;
     uint8_t fail_directory = 0;
