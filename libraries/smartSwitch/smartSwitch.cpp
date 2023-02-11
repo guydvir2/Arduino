@@ -121,6 +121,7 @@ void smartSwitch::turnON_cb(uint8_t type, unsigned int temp_TO, int intense)
             {
                 if (!_isOUTPUT_ON())
                 {
+                    Serial.println("ONN");
                     _setOUTPUT_ON();
                 }
                 else
@@ -296,11 +297,11 @@ bool smartSwitch::loop()
     {
         if (_inSW.switches[_ez_sw_id].switch_type == toggle_switch) /* For Toggle only */
         {
-            if (_inSW.switches[_ez_sw_id].switch_status == !on && (get_SWstate()==1||(get_SWstate()==255&&_guessState == SW_ON)))
+            if (_inSW.switches[_ez_sw_id].switch_status == !on && (get_SWstate() == 1 || (get_SWstate() == 255 && _guessState == SW_ON)))
             {
                 turnOFF_cb(BUTTON_INPUT);
             }
-            else if (_inSW.switches[_ez_sw_id].switch_status == on && (get_SWstate()==0||(get_SWstate()==255&&_guessState == SW_OFF)))
+            else if (_inSW.switches[_ez_sw_id].switch_status == on && (get_SWstate() == 0 || (get_SWstate() == 255 && _guessState == SW_OFF)))
             {
                 turnON_cb(BUTTON_INPUT);
             }
@@ -394,7 +395,13 @@ void smartSwitch::_setOUTPUT_ON(uint8_t val)
     }
     else
     {
+        Serial.print("Pin: ");
+        Serial.println(_outputPin);
+        Serial.print("BEFORE: ");
+        Serial.println(digitalRead(_outputPin));
         digitalWrite(_outputPin, OUTPUT_ON);
+        Serial.print("AFTER: ");
+        Serial.println(digitalRead(_outputPin));
     }
 }
 void smartSwitch::_timeout_loop()

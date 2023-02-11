@@ -9,11 +9,11 @@ char SwGroupTopics[4][MAX_TOPIC_SIZE];  /* group topic array */
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ MQTT ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 /* MQTT handlers */
-void MQTT_clear_retained(char *topic)
+void MQTT_clear_retained(const char *topic)
 {
-    iot.pub_noTopic((char *)"", topic, true);
+    iot.pub_noTopic((char *)"", (char *)topic, true);
 }
-void MQTT_update_state(uint8_t state, char *name) /* Windows State MQTT update */
+void MQTT_update_state(uint8_t state, const char *name) /* Windows State MQTT update */
 {
     char t[60];
     char r[5];
@@ -21,14 +21,14 @@ void MQTT_update_state(uint8_t state, char *name) /* Windows State MQTT update *
     sprintf(r, "%d", state);
     iot.pub_noTopic(r, t, true);
 }
-void MQTT_notify_virtCMD(char *name, char *state, char *trig, char *msg)
+void MQTT_notify_virtCMD(const char *name, const char *state, const char *trig, char *msg)
 {
     sprintf(msg, "[%s]: Switched [%s] Virtual [%s]", trig, state, name);
     iot.pub_msg(msg);
 }
-void MQTT_send_virtCMD(char *msg, char *topic)
+void MQTT_send_virtCMD(const char *msg, const char *topic)
 {
-    iot.pub_noTopic(msg, topic, true);
+    iot.pub_noTopic(msg, (char *)topic, true);
 }
 
 /* CHECK TOPICS - for what entity it belongs */
@@ -221,7 +221,7 @@ void MQTT_SW_entity(uint8_t i, char *msg)
     SW_props sw_props;
     controller.get_entity_prop(SW_ENT, i, sw_props);
 
-    char *w[] = {"None", "On_off SW", "Push Button"};
+    const char *w[] = {"None", "On_off SW", "Push Button"};
     sprintf(msg, "[Entity]: [SW#%d] topic [%s], Virtual-out [%s], type [%s], timeout [%s]",
             sw_props.id, sw_props.name, sw_props.virtCMD ? "Yes" : "No", w[sw_props.type], sw_props.timeout ? "Yes" : "No");
     iot.pub_msg(msg);

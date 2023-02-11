@@ -31,7 +31,7 @@ struct SW_props
     bool timeout = false;
     bool virtCMD = false;
     bool lockdown = false;
-    char *name;
+    const char *name;
 };
 
 enum SWTypes : const uint8_t

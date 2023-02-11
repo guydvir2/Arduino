@@ -9,7 +9,7 @@ void build_path_directory(uint8_t i = 0)
   const char *FileNames_common[2] = {"myIOT_param.json", "HW.json"};
   const char *FileNames_dedicated[2] = {"myIOT2_topics.json", "sketch_param.json"};
 
-  Serial.println("~ Build filenames:");
+  Serial.println(F("~ Build filenames:"));
 
   for (uint8_t x = 0; x < 4; x++)
   {
@@ -24,7 +24,7 @@ void build_path_directory(uint8_t i = 0)
     iot.parameter_filenames[x] = parameterFiles[x];
     Serial.println(iot.parameter_filenames[x]);
   }
-  Serial.println("~ builded OK");
+  Serial.println(F("~ builded OK"));
 }
 void _updateTopics_flash(JsonDocument &DOC, char ch_array[][MAX_TOPIC_SIZE], const char *dest_array[], const char *topic, uint8_t shift = 0) /* update local Topic array */
 {
@@ -41,11 +41,12 @@ void _updateTopics_flash(JsonDocument &DOC, char ch_array[][MAX_TOPIC_SIZE], con
     }
   }
 }
+
 bool readTopics()
 {
   StaticJsonDocument<1500> DOC;
 #if MAN_MODE == true
-  Serial.println("~ Topics data-base - local");
+  Serial.println(F("~ Topics data-base - local"));
   DeserializationError error0 = deserializeJson(DOC, topics);
 
   if (!error0)
@@ -53,7 +54,7 @@ bool readTopics()
 #else
   if (iot.extract_JSON_from_flash(iot.parameter_filenames[2], DOC)) /* extract topics from flash */
   {
-    Serial.println("~ entities data-base - flash");
+    Serial.println(F("~ entities data-base - flash"));
 #endif
     _updateTopics_flash(DOC, topics_gen_pub, iot.topics_gen_pub, "pub_gen_topics");
     _updateTopics_flash(DOC, topics_pub, iot.topics_pub, "pub_topics");
@@ -111,26 +112,25 @@ bool readTopics()
         iot.topics_sub[accum_shift + i] = controller.get_ent_name(i, SW_ENT);
       }
     }
-    Serial.println("~ Topics build - OK ");
+    Serial.println(F("~ Topics build - OK "));
     return 1;
   }
   else
   {
-    Serial.println("~ Topics build - Failed ");
+    Serial.println(F("~ Topics build - Failed "));
     return 0;
   }
 }
-
-bool get_pins_parameters(JsonDocument &DOC, uint8_t _inpins[], uint8_t _outpins[], int _RFcodes[], uint8_t &in, uint8_t &out, uint8_t &RF, uint8_t &RFp)
+bool get_pins_parameters(JsonDocument &DOC, uint8_t _inpins[], uint8_t _outpins[], long _RFcodes[], uint8_t &in, uint8_t &out, uint8_t &RF, uint8_t &RFp)
 {
 #if MAN_MODE == true
   if (getPins_manual(DOC))
   {
-    Serial.println("~ Read pins hardware - local");
+    Serial.println(F("~ Read pins hardware - local"));
 #else
   if (iot.extract_JSON_from_flash(iot.parameter_filenames[1], DOC))
   {
-    Serial.println("~ Read pins hardware - flash");
+    Serial.println(F("~ Read pins hardware - flash"));
 #endif
     RFp = DOC["RFpin"];
     in = DOC["inputPins"].size();
@@ -139,7 +139,7 @@ bool get_pins_parameters(JsonDocument &DOC, uint8_t _inpins[], uint8_t _outpins[
 
     for (uint8_t i = 0; i < RF; i++)
     {
-      _RFcodes[i] = DOC["RF_keyboardCode"][i].as<int>() | 0;
+      _RFcodes[i] = DOC["RF_keyboardCode"][i] | 255;
     }
     for (uint8_t i = 0; i < in; i++)
     {
@@ -150,12 +150,12 @@ bool get_pins_parameters(JsonDocument &DOC, uint8_t _inpins[], uint8_t _outpins[
       _outpins[i] = DOC["relayPins"][i] | 255;
     }
 
-    Serial.println("~ Hardware pins read - OK ");
+    Serial.println(F("~ Hardware pins read - OK "));
     return 1;
   }
   else
   {
-    Serial.println("~ Hardware pins read - Failed ");
+    Serial.println(F("~ Hardware pins read - Failed "));
     return 0;
   }
 }
@@ -189,7 +189,7 @@ bool get_entities_parameters()
 {
   StaticJsonDocument<1500> DOC;
 
-  int _RFcodes[10]{};
+  long _RFcodes[10]{};
   uint8_t _inpins[12]{};
   uint8_t _outpins[8]{};
   uint8_t RF_p = 0;
@@ -201,12 +201,12 @@ bool get_entities_parameters()
   {
 
 #if MAN_MODE == true
-    Serial.println("~ entities data-base - local");
+    Serial.println(F("~ entities data-base - local"));
     DeserializationError error0 = deserializeJson(DOC, cont_params);
     if (!error0)
     {
 #else
-    Serial.println("~ entities data-base - flash");
+    Serial.println(F("~ entities data-base - flash"));
     if (iot.extract_JSON_from_flash(iot.parameter_filenames[3], DOC))
     {
 #endif
@@ -221,7 +221,7 @@ bool get_entities_parameters()
       {
         if (entTypes[x].as<uint8_t>() == WIN_ENT) /* win Entity */
         {
-          controller.create_Win(_inpins, _outpins, DOC["Winname"][win_ents].as<const char *>(), DOC["WinvirtCMD"][win_ents].as<bool>(), DOC["WextInputs"][win_ents].as<uint8_t>());
+          controller.create_Win(_inpins, _outpins, DOC["Winname"][win_ents].as<const char *>(), DOC["WinvirtCMD"][win_ents].as<bool>(), DOC["WextInputs"][win_ents].as<bool>());
           win_ents++;
         }
         else if (entTypes[x].as<uint8_t>() == SW_ENT) /* SW entity */
@@ -231,36 +231,38 @@ bool get_entities_parameters()
           sw_ents++;
         }
       }
-      Serial.println("~ Entities build - OK ");
+      Serial.println(F("~ Entities build - OK "));
       return 1;
     }
     else
     {
-      Serial.println("~ Entities read file - Failed ");
+      Serial.println(F("~ Entities read file - Failed "));
       return 0;
     }
   }
   else
   {
-    Serial.println("~ Entities build - Failed ");
+    Serial.println(F("~ Entities build - Failed "));
     return 0;
   }
 }
 
 void read_all_parameters()
 {
-  Serial.println("\nn±±±±±±±±±±±± Start Reading Parameters n±±±±±±±±±±±±n");
+  Serial.println(F("\n±±±±±±±±±±±± Start Reading Parameters n±±±±±±±±±±±±"));
+
 #if MAN_MODE == false
-  build_path_directory(PARAM_PRESET); /* Needed for Flash & Local stored parameters */
+  build_path_directory(PARAM_PRESET); /* Needed for Flash only */
 #endif
+
   if (get_IOT2_parameters() && get_entities_parameters() && readTopics())
   {
     bootProcess_OK = true;
-    Serial.println("\n±±±±±±±±±±±± Reading Parameters -OK  n±±±±±±±±±±±±n");
+    Serial.println(F("\n±±±±±±±±±±±± Reading Parameters -OK  n±±±±±±±±±±±±"));
   }
   else
   {
-    Serial.println("\nn±±±±±±±±±±±± Reading Parameters -Failed  n±±±±±±±±±±±±n");
+    Serial.println(F("\n±±±±±±±±±±±± Reading Parameters -Failed  n±±±±±±±±±±±±"));
 
     bootProcess_OK = false;
     uint8_t fail_directory = 0;

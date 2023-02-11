@@ -8,7 +8,7 @@ struct Win_act_telem
 };
 struct Win_props
 {
-    char *name;
+    const char *name;
     uint8_t id;
     uint8_t inpins[2];
     uint8_t outpins[2];

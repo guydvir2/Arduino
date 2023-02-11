@@ -6,7 +6,7 @@ homeCtl controller;
 
 // ~~~ Software Flags ~~~
 #define MAN_MODE true
-#define PARAM_PRESET 3
+#define PARAM_PRESET 1
 #define RETAINED_MSG true
 #define BurnOUT true
 
@@ -163,11 +163,12 @@ void print_endof_load_entities()
   Serial.println(controller.get_useRF() ? "Yes" : "No");
 
   Serial.println(F(" ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ "));
+  Serial.flush();
 }
 void setup()
 {
 #if BurnOUT
-#ifdef ESP32
+#if defined ESP32
   WRITE_PERI_REG(RTC_CNTL_BROWN_OUT_REG, 0); // disable   detector
 #endif
 #endif
@@ -183,7 +184,7 @@ void setup()
 }
 void loop()
 {
-  if (controller.loop()) /* Switch activity or timeout */
+  if (controller.loop()) /* Switch/Button Press/Release or timeout */
   {
     new_telemetry_handler();
   }

@@ -37,17 +37,17 @@ private:
     uint8_t _swEntityCounter = 0;
     uint8_t _winEntityCounter = 0;
     uint8_t _RF_ch_2_SW[4] = {255, 255, 255, 255};
-    int _RF_freq[4] = {3135496, 3135492, 3135490, 3135489};
+    long _RF_freq[4] = {3135496, 3135492, 3135490, 3135489};
 
 public:
     const char *ver = "smartController_v0.3";
 
-    char *SW_MQTT_cmds[2] = {"off", "on"};
-    char *winMQTTcmds[3] = {"off", "up", "down"};
-    char *WinStates[4] = {"Off", "Up", "Down", "Err"};
-    char *WinTrigs[5] = {"Timeout", "Button", "Button2", "Lockdown", "MQTT"};
-    char *SW_Types[4] = {"Button", "Timeout", "MQTT", "Remote"};
-    char *EntTypes[2] = {"win", "sw"}; /* Prefix to address client types when using MQTT */
+    const char *SW_MQTT_cmds[2] = {"off", "on"};
+    const char *winMQTTcmds[3] = {"off", "up", "down"};
+    const char *WinStates[4] = {"Off", "Up", "Down", "Err"};
+    const char *WinTrigs[5] = {"Timeout", "Button", "Button2", "Lockdown", "MQTT"};
+    const char *SW_Types[4] = {"Button", "Timeout", "MQTT", "Remote"};
+    const char *EntTypes[2] = {"win", "sw"}; /* Prefix to address client types when using MQTT */
 
 private:
     RCSwitch *RF_v = nullptr;
@@ -71,7 +71,7 @@ public:
     homeCtl();
     bool loop();
     void set_RF(uint8_t pin = 255);                                                   /* IO that RF recv is connected to */
-    void set_RFch(int arr[], uint8_t arr_size);                                       /* Radio freq. belong to a remote control */
+    void set_RFch(long arr[], uint8_t arr_size);                                       /* Radio freq. belong to a remote control */
     void set_ent_name(uint8_t i, uint8_t ent_type, const char *name);                 /* Entity Name (SW or Win) */
     void create_Win(uint8_t _input_pins[], uint8_t _output_pins[], const char *topic, /* Create Win ent */
                     bool is_virtual = false, bool use_ext_sw = false);
@@ -82,7 +82,7 @@ public:
     bool get_useRF();                                                       /* Using RF ? */
     uint8_t get_ent_counter(uint8_t type);                                  /* Ent. counter */
     uint8_t get_ent_state(uint8_t type, uint8_t i);                         /* Ent. State */
-    char *get_ent_name(uint8_t i, uint8_t ent_type);                        /* Ent. name */
+    const char *get_ent_name(uint8_t i, uint8_t ent_type);                        /* Ent. name */
     const char *get_ent_ver(uint8_t type);                                  /* Ent. class version */
     void get_telemetry(Cotroller_Ent_telemetry &M);                         /* System telemetry. constant updating */
     void get_entity_prop(uint8_t ent_type, uint8_t i, SW_props &sw_prop);   /* SW Property */

@@ -27,6 +27,7 @@ void homeCtl::SW_switchCB(uint8_t i, uint8_t state, unsigned int TO)
   if (state == 1) /* ON */
   {
     SW_v[i]->turnON_cb(EXT_0, TO);
+    Serial.println("ON");
   }
   else if (state == 0) /* OFF */
   {
@@ -36,7 +37,6 @@ void homeCtl::SW_switchCB(uint8_t i, uint8_t state, unsigned int TO)
   MQTT_clear_retained(SW_v[i]->name);
 #endif
 }
-
 void homeCtl::create_Win(uint8_t _input_pins[], uint8_t _output_pins[], const char *topic, bool is_virtual, bool use_ext_sw)
 {
   winSW_V[_winEntityCounter] = new WinSW;
@@ -99,7 +99,8 @@ void homeCtl::create_SW(uint8_t _input_pins[], uint8_t _output_pins[], const cha
   _inIOCounter++;
   _swEntityCounter++;
 }
-bool homeCtl::get_useRF(){
+bool homeCtl::get_useRF()
+{
   return _use_RF;
 }
 const char *homeCtl::get_ent_ver(uint8_t type)
@@ -165,7 +166,7 @@ void homeCtl::get_entity_prop(uint8_t ent_type, uint8_t i, Win_props &win_prop)
     winSW_V[i]->get_Win_props(win_prop);
   }
 }
-char *homeCtl::get_ent_name(uint8_t i, uint8_t ent_type)
+const char *homeCtl::get_ent_name(uint8_t i, uint8_t ent_type)
 {
   if (ent_type == WIN_ENT)
   {
@@ -175,6 +176,8 @@ char *homeCtl::get_ent_name(uint8_t i, uint8_t ent_type)
   {
     return SW_v[i]->name;
   }
+  else
+    return "Err";
 }
 void homeCtl::set_ent_name(uint8_t i, uint8_t ent_type, const char *name)
 {
@@ -191,7 +194,7 @@ void homeCtl::set_ent_name(uint8_t i, uint8_t ent_type, const char *name)
     return;
   }
 }
-void homeCtl::set_RFch(int arr[], uint8_t arr_size)
+void homeCtl::set_RFch(long arr[], uint8_t arr_size)
 {
   for (uint8_t i = 0; i < arr_size; i++)
   {
@@ -339,35 +342,35 @@ void homeCtl::_init_RF()
     _use_RF = true;
     RF_v = new RCSwitch();
     RF_v->enableReceive(_RFpin);
-    Serial.println(" >>> RF services started <<<");
+    Serial.println(F(" >>> RF services started <<<"));
   }
 }
 void homeCtl::_toggle_SW_RF(uint8_t i)
 {
-  // SW_props sw_prop;
-  // get_entity_prop(SW_ENT, i, sw_prop);
+  SW_props sw_prop;
+  get_entity_prop(SW_ENT, i, sw_prop);
 
-  // if (sw_prop.virtCMD)
-  // {
-  //   // if (sw_prop.type == 2) /* virtCMD + PushButton --> output state is unknown*/
-  //   // {
-  //   //   char top[50];
-  //   //   sprintf(top, "%s/State", SW_v[i]->name);
-  //   //   // iot.mqttClient.subscribe(top);
-  //   // }
-  //   // else
-  //   // {
-  //   // }
-  // }
-  // else
-  // {
-  //   if (SW_v[i]->get_SWstate()) /* is output SW on ?*/
-  //   {
-  //     SW_v[i]->turnOFF_cb(EXT_1); /* # is RF remote indetifier */
-  //   }
-  //   else
-  //   {
-  //     SW_v[i]->turnON_cb(EXT_1);
-  //   }
-  // }
+  if (sw_prop.virtCMD)
+  {
+    // if (sw_prop.type == 2) /* virtCMD + PushButton --> output state is unknown*/
+    // {
+    //   char top[50];
+    //   sprintf(top, "%s/State", SW_v[i]->name);
+    //   // iot.mqttClient.subscribe(top);
+    // }
+    // else
+    // {
+    // }
+  }
+  else
+  {
+    if (SW_v[i]->get_SWstate()) /* is output SW on ?*/
+    {
+      SW_v[i]->turnOFF_cb(EXT_1); /* # is RF remote indetifier */
+    }
+    else
+    {
+      SW_v[i]->turnON_cb(EXT_1);
+    }
+  }
 }
