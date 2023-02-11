@@ -221,13 +221,15 @@ bool get_entities_parameters()
       {
         if (entTypes[x].as<uint8_t>() == WIN_ENT) /* win Entity */
         {
-          controller.create_Win(_inpins, _outpins, DOC["Winname"][win_ents].as<const char *>(), DOC["WinvirtCMD"][win_ents].as<bool>(), DOC["WextInputs"][win_ents].as<bool>());
+          controller.create_Win(_inpins, _outpins, DOC["Winname"][win_ents].as<const char *>(),
+                                DOC["WinvirtCMD"][win_ents].as<bool>(), DOC["WextInputs"][win_ents].as<bool>());
           win_ents++;
         }
         else if (entTypes[x].as<uint8_t>() == SW_ENT) /* SW entity */
         {
-          controller.create_SW(_inpins, _outpins, DOC["SWname"][sw_ents].as<const char *>(), DOC["SW_buttonTypes"][sw_ents].as<uint8_t>(),
-                               DOC["SWvirtCMD"][sw_ents].as<bool>(), DOC["SW_timeout"][sw_ents].as<uint8_t>(), DOC["RF_2entity"][sw_ents].as<uint8_t>());
+          controller.create_SW(_inpins, _outpins, DOC["SWname"][sw_ents].as<const char *>(),
+                               DOC["SW_buttonTypes"][sw_ents].as<uint8_t>(), DOC["SWvirtCMD"][sw_ents].as<bool>(),
+                               DOC["SW_timeout"][sw_ents].as<uint8_t>(), DOC["RF_2entity"][sw_ents].as<uint8_t>());
           sw_ents++;
         }
       }

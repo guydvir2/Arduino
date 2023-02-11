@@ -6,9 +6,9 @@ homeCtl controller;
 
 // ~~~ Software Flags ~~~
 #define MAN_MODE true
-#define PARAM_PRESET 5
-#define RETAINED_MSG true
-#define BurnOUT true
+#define PARAM_PRESET 38
+#define RETAINED_MSG false
+#define BurnOUT true /* ESP32 only */
 
 // ~~~ Debug ~~~
 #define EN_WIFI true
