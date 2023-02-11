@@ -27,7 +27,6 @@ void homeCtl::SW_switchCB(uint8_t i, uint8_t state, unsigned int TO)
   if (state == 1) /* ON */
   {
     SW_v[i]->turnON_cb(EXT_0, TO);
-    Serial.println("ON");
   }
   else if (state == 0) /* OFF */
   {

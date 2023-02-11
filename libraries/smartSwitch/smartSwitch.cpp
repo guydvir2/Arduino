@@ -121,12 +121,11 @@ void smartSwitch::turnON_cb(uint8_t type, unsigned int temp_TO, int intense)
             {
                 if (!_isOUTPUT_ON())
                 {
-                    Serial.println("ONN");
                     _setOUTPUT_ON();
                 }
                 else
                 {
-                    Serial.println(" Already on");
+                    Serial.println(F("Already on"));
                     return;
                 }
             }
@@ -145,7 +144,7 @@ void smartSwitch::turnON_cb(uint8_t type, unsigned int temp_TO, int intense)
                 }
                 else
                 {
-                    Serial.println(" Already on");
+                    Serial.println(F("Already on"));
                     return;
                 }
             }
@@ -189,7 +188,7 @@ void smartSwitch::turnOFF_cb(uint8_t type)
                 }
                 else
                 {
-                    Serial.println(" Already off");
+                    Serial.println(F("Already off"));
                 }
             }
             else
@@ -247,45 +246,45 @@ void smartSwitch::get_SW_props(SW_props &props)
 }
 void smartSwitch::print_preferences()
 {
-    Serial.print("\n >>>>>> Switch #");
+    Serial.print(F("\n >>>>>> Switch #"));
     Serial.print(_id);
-    Serial.println(" <<<<<< ");
+    Serial.println(F(" <<<<<< "));
 
-    Serial.print("Output Type :\t");
+    Serial.print(F("Output Type :\t"));
     Serial.println(_virtCMD ? "Virtual" : "Real-Switch");
-    Serial.print("Name:\t");
+    Serial.print(F("Name:\t"));
     Serial.println(name);
 
-    Serial.print("input type:\t");
+    Serial.print(F("input type:\t"));
     Serial.print(_button_type);
-    Serial.println(" ; 0:None; 1:Button, 2:Toggle");
-    Serial.print("input_pin:\t");
+    Serial.println(F(" ; 0:None; 1:Button, 2:Toggle"));
+    Serial.print(F("input_pin:\t"));
     Serial.println(_inSW.switches[_ez_sw_id].switch_pin);
-    Serial.print("outout_pin:\t");
+    Serial.print(F("outout_pin:\t"));
     Serial.println(_outputPin);
-    Serial.print("isPWM:\t");
+    Serial.print(F("isPWM:\t"));
     Serial.println(_output_pwm == 0 ? "No" : "Yes");
-    Serial.print("use indic:\t");
+    Serial.print(F("use indic:\t"));
     Serial.println(_use_indic ? "Yes" : "No");
     if (_use_indic)
     {
-        Serial.print("indic_Pin:\t");
+        Serial.print(F("indic_Pin:\t"));
         Serial.println(_indicPin);
     }
 
-    Serial.print("use timeout:\t");
+    Serial.print(F("use timeout:\t"));
     Serial.println(_use_timeout ? "Yes" : "No");
 
     if (_timeout_duration > 0)
     {
-        Serial.print("timeout [sec]:\t");
+        Serial.print(F("timeout [sec]:\t"));
         Serial.println(_timeout_duration / 1000);
     }
 
-    Serial.print("use lockdown:\t");
+    Serial.print(F("use lockdown:\t"));
     Serial.println(_use_lockdown ? "YES" : "NO");
 
-    Serial.println(" >>>>>>>> END <<<<<<<< \n");
+    Serial.println(F(" >>>>>>>> END <<<<<<<< \n"));
     Serial.flush();
 }
 
@@ -395,13 +394,7 @@ void smartSwitch::_setOUTPUT_ON(uint8_t val)
     }
     else
     {
-        Serial.print("Pin: ");
-        Serial.println(_outputPin);
-        Serial.print("BEFORE: ");
-        Serial.println(digitalRead(_outputPin));
         digitalWrite(_outputPin, OUTPUT_ON);
-        Serial.print("AFTER: ");
-        Serial.println(digitalRead(_outputPin));
     }
 }
 void smartSwitch::_timeout_loop()

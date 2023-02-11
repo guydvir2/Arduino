@@ -6,7 +6,7 @@ homeCtl controller;
 
 // ~~~ Software Flags ~~~
 #define MAN_MODE true
-#define PARAM_PRESET 1
+#define PARAM_PRESET 5
 #define RETAINED_MSG true
 #define BurnOUT true
 

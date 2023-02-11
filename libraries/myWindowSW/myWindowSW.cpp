@@ -75,39 +75,39 @@ void WinSW::release_lockdown()
 }
 void WinSW::print_preferences()
 {
-  Serial.print("\n >>>>>> Window #");
+  Serial.print(F("\n >>>>>> Window #"));
   Serial.print(_id);
-  Serial.println(" <<<<<< ");
+  Serial.println(F(" <<<<<< "));
 
-  Serial.print("Output :\t");
+  Serial.print(F("Output :\t"));
   Serial.println(virtCMD ? "Virutal" : "Relay");
 
-  Serial.print("MQTT:\t");
+  Serial.print(F("MQTT:\t"));
   Serial.println(name);
 
-  Serial.print("in_pins #:\t");
+  Serial.print(F("in_pins #:\t"));
   Serial.print(_mainSW.get_pins(0));
-  Serial.print("; ");
+  Serial.print(F("; "));
   Serial.println(_mainSW.get_pins(1));
 
-  Serial.print("out_pins #:\t");
+  Serial.print(F("out_pins #:\t"));
   Serial.print(outpins[0]);
-  Serial.print("; ");
+  Serial.print(F("; "));
   Serial.println(outpins[1]);
 
-  Serial.print("ext_pins #:\t");
+  Serial.print(F("ext_pins #:\t"));
   Serial.print(_extSW.get_pins(0));
 
-  Serial.print("; ");
+  Serial.print(F("; "));
   Serial.println(_extSW.get_pins(1));
 
-  Serial.print("use timeout:\t");
+  Serial.print(F("use timeout:\t"));
   Serial.println(_timeout_clk);
 
-  Serial.print("use lockdown:\t");
+  Serial.print(F("use lockdown:\t"));
   Serial.println(_uselockdown ? "YES" : "NO");
 
-  Serial.println(" >>>>>>>> END <<<<<<<< \n");
+  Serial.println(F(" >>>>>>>> END <<<<<<<< \n"));
 }
 void WinSW::clear_newMSG()
 {
