@@ -1,9 +1,11 @@
 #include "myJflash.h"
 
-myJflash::myJflash()
+myJflash::myJflash(bool use_s)
 {
+	useSerial = use_s;
 }
-myJflash::~myJflash(){
+myJflash::~myJflash()
+{
 	_endFS();
 }
 void myJflash::set_filename(const char *filename)
@@ -81,7 +83,7 @@ void myJflash::_endFS()
 }
 const char *myJflash::_retFilename(const char *f)
 {
-	if (f == nullptr)
+	if (f != nullptr)
 	{
 		return f;
 	}

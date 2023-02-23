@@ -16,7 +16,7 @@ const char* password = "<YOUR-PASSWD>";
 uint8_t connection_state = 0;
 uint16_t reconnect_interval = 10000;
 
-EMailSender emailSend("account_login@gmail.com", "<YOUR-GMAIL-PASSWD>");
+EMailSender emailSend("guydvir.tech@gmail.com", "GdSd13100301!");
 
 uint8_t WiFiConnect(const char* nSSID = nullptr, const char* nPassword = nullptr)
 {

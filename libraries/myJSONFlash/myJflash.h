@@ -25,20 +25,22 @@ protected:
     const char *ver = "jFlash_v0.1";
 
 public:
-    bool useSerial = true;
-    
-    myJflash();
+    bool useSerial = false;
+
+    myJflash(bool use_s = false);
     ~myJflash();
     void set_filename(const char *filename);
     bool readFile(JsonDocument &DOC, const char *filename = nullptr);
     bool writeFile(JsonDocument &DOC, const char *filename = nullptr);
+    bool updateValue(JsonDocument &DOC, const char *filename = nullptr)
     String readFile2String(const char *fileName = nullptr);
 
 private:
     const char *_filename;
-    void _startFS();
+
     void _endFS();
+    void _startFS();
     bool _saveFile(JsonDocument &DOC, const char *filename = nullptr);
-    const char *_retFilename(const char* f);
+    const char *_retFilename(const char *f);
 };
 #endif

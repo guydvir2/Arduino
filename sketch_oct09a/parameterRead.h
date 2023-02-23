@@ -229,7 +229,7 @@ bool get_entities_parameters()
         {
           controller.create_SW(_inpins, _outpins, DOC["SWname"][sw_ents].as<const char *>(),
                                DOC["SW_buttonTypes"][sw_ents].as<uint8_t>(), DOC["SWvirtCMD"][sw_ents].as<bool>(),
-                               DOC["SW_timeout"][sw_ents].as<uint8_t>(), DOC["RF_2entity"][sw_ents].as<uint8_t>());
+                               DOC["SW_timeout"][sw_ents].as<int>(), DOC["RF_2entity"][sw_ents].as<uint8_t>());
           sw_ents++;
         }
       }

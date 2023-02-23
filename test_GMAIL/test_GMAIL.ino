@@ -9,7 +9,7 @@
 
 void sendEmail(char *outMsg, char *MsgSubj, char *sendTo)
 {
-        EMailSender emailSend("guydvir.tech@gmail.com", "GdSd13100301", "guyDvir");
+        EMailSender emailSend("smtp.guydvir.tech@gmail.com", "GdSd13100301!");
 
         EMailSender::EMailMessage message;
         message.subject = MsgSubj;

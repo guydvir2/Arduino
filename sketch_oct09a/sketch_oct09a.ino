@@ -47,7 +47,7 @@ void post_telemetry_2MQTT(Cotroller_Ent_telemetry &MSG) /* get telemetry from an
     controller.get_entity_prop(MSG.type /* window */, MSG.id /* win entity id */, win_props);
     if (!win_props.virtCMD)
     {
-      sprintf(msg, "[%s]: [WIN#%d] [%s] turned [%s]", controller.WinTrigs[MSG.trig], MSG.id, win_props.name, controller.WinStates[MSG.state]);
+      sprintf(msg, "[%s]: [%s] turned [%s]", controller.WinTrigs[MSG.trig], win_props.name, controller.WinStates[MSG.state]);
       iot.pub_msg(msg);
 
 #if RETAINED_MSG
@@ -55,7 +55,7 @@ void post_telemetry_2MQTT(Cotroller_Ent_telemetry &MSG) /* get telemetry from an
 #endif
       MQTT_update_state(MSG.state, win_props.name); /* Retain State */
     }
-    else
+    else 
     {
       MQTT_send_virtCMD(controller.winMQTTcmds[MSG.state], win_props.name);
       MQTT_notify_virtCMD(win_props.name, controller.winMQTTcmds[MSG.state], controller.WinTrigs[MSG.trig], msg);
@@ -73,7 +73,7 @@ void post_telemetry_2MQTT(Cotroller_Ent_telemetry &MSG) /* get telemetry from an
       if (MSG.state == 1 && MSG.timeout > 0) /* On, with timeout */
       {
         char t[20];
-        iot.convert_epoch2clock((int)((MSG.timeout + 250) / 1000), 0, t);
+        iot.convert_epoch2clock((int)((MSG.timeout + 250) / 1000), 0, t); /* Add timeout notation */
         sprintf(msg2, "timeout [%s]", t);
       }
       else if (MSG.state == 1 && MSG.timeout == 0) /* On, without timeout*/
@@ -89,7 +89,7 @@ void post_telemetry_2MQTT(Cotroller_Ent_telemetry &MSG) /* get telemetry from an
         strcpy(msg2, "err");
       }
 
-      sprintf(msg, "[%s]: [SW#%d] [%s] turned [%s] %s", controller.SW_Types[MSG.trig], sw_props.id, sw_props.name, controller.SW_MQTT_cmds[MSG.state], msg2);
+      sprintf(msg, "[%s]: [%s] turned [%s] %s", controller.SW_Types[MSG.trig], sw_props.name, controller.SW_MQTT_cmds[MSG.state], msg2);
       iot.pub_msg(msg);
 
 #if RETAINED_MSG
