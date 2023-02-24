@@ -2,7 +2,7 @@ myIOT2 iot;
 #include <myTimeoutSwitch.h>
 
 extern timeOUTSwitch TOswitch;
-extern void sec2clock(int sec, char *output_text);
+// extern void sec2clock(int sec, char *output_text);
 extern unsigned long onclk;
 
 #define MAX_TOPIC_SIZE 40 // <----- Verfy max Topic size
@@ -13,19 +13,19 @@ char topics_gen_pub[3][MAX_TOPIC_SIZE];
 
 void giveStatus(char *outputmsg)
 {
-    char t1[50];
+    char t1[100];
     char t2[50];
     char t3[50];
 
     if (TOswitch.remTime() > 0)
     {
-        sec2clock(TOswitch.remTime(), t2);
-        sec2clock(TOswitch.TO_duration, t3);
+        // sec2clock(TOswitch.remTime(), t2);
+        // sec2clock(TOswitch.TO_duration, t3);
         sprintf(t1, "timeLeft[%s], total[%s]", t2, t3);
     }
     else
     {
-        sprintf(t1, "");
+        sprintf(t1, " ");
     }
     sprintf(t2, "[%s] %s", TOswitch.inTO ? "ON" : "OFF", t1);
     sprintf(outputmsg, "Status: %s", t2);
@@ -41,7 +41,7 @@ void addiotnalMQTT(char *income_msg, char *topic)
     }
     else if (strcmp(income_msg, "ver2") == 0)
     {
-        sprintf(msg_MQTT, "ver #2: [%s], lib: [%s], timeoutSw[%s]", VEr, iot.ver, TOswitch.Ver);
+        sprintf(msg_MQTT, "ver #2: [%s], timeoutSw[%s]", VEr, TOswitch.Ver);
         iot.pub_msg(msg_MQTT);
     }
     else if (strcmp(income_msg, "help2") == 0)

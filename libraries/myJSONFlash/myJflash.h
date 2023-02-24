@@ -32,7 +32,7 @@ public:
     void set_filename(const char *filename);
     bool readFile(JsonDocument &DOC, const char *filename = nullptr);
     bool writeFile(JsonDocument &DOC, const char *filename = nullptr);
-    bool updateValue(JsonDocument &DOC, const char *filename = nullptr)
+    // bool updateValue(JsonDocument &DOC, const char *filename = nullptr);
     String readFile2String(const char *fileName = nullptr);
 
 private:

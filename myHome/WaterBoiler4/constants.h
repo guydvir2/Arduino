@@ -21,8 +21,3 @@
 // ********** Sketch Services  ***********
 #define VEr "theDude_v3.2"
 
-
-// // ~~~~~~~ MQTT Topics ~~~~~~
-// #define DEVICE_TOPIC "WaterBoiler"
-// #define MQTT_PREFIX "myHome"
-// #define MQTT_GROUP ""

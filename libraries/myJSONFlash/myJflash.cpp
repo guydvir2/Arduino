@@ -54,17 +54,6 @@ String myJflash::readFile2String(const char *fileName)
 		return "";
 	}
 }
-bool myJflash::_saveFile(JsonDocument &DOC, const char *filename)
-{
-	File writefile = LITFS.open(_retFilename(filename), "w");
-	if (!writefile || (serializeJson(DOC, writefile) == 0))
-	{
-		writefile.close();
-		return 0;
-	}
-	writefile.close();
-	return 1;
-}
 bool myJflash::writeFile(JsonDocument &DOC, const char *filename)
 {
 	return _saveFile(DOC, filename);
@@ -91,4 +80,15 @@ const char *myJflash::_retFilename(const char *f)
 	{
 		return _filename;
 	}
+}
+bool myJflash::_saveFile(JsonDocument &DOC, const char *filename)
+{
+	File writefile = LITFS.open(_retFilename(filename), "w");
+	if (!writefile || (serializeJson(DOC, writefile) == 0))
+	{
+		writefile.close();
+		return 0;
+	}
+	writefile.close();
+	return 1;
 }
