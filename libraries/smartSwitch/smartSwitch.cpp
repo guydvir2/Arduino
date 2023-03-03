@@ -16,12 +16,27 @@ void smartSwitch::set_timeout(int t)
     if (t > 0)
     {
         _use_timeout = true;
-        _timeout_duration = t * 1000;
+        _timeout_duration = t * TimeFactor;
         _stop_timeout();
     }
     else
     {
         _use_timeout = false;
+    }
+}
+void smartSwitch::set_additional_timeout(int t, uint8_t type)
+{
+    if (_use_timeout)
+    {
+        if (_timeout_temp != 0)
+        {
+            _timeout_temp += t * TimeFactor;
+        }
+        else if (_timeout_temp == 0 && _timeout_duration != 0)
+        {
+            _timeout_temp += t * TimeFactor + _timeout_duration;
+        }
+        _update_telemetry(SW_ON, type, _timeout_temp);
     }
 }
 void smartSwitch::set_name(const char *Name)
@@ -70,8 +85,15 @@ void smartSwitch::set_input(uint8_t inpin, uint8_t t, bool dir)
     {
         _useButton = true;
         _inSW.set_debounce(50);
-
-        _ez_sw_id = _inSW.add_switch(t, inpin, circuit_C2); /* pullup input */
+        if (_button_type == MULTI_PRESS_BUTTON)
+        {
+            // MultiPress Button is set up as Momentary SW
+            _ez_sw_id = _inSW.add_switch(MOMENTARY_SW, inpin, circuit_C2); /* pullup input */
+        }
+        else
+        {
+            _ez_sw_id = _inSW.add_switch(_button_type, inpin, circuit_C2); /* pullup input */
+        }
     }
 }
 void smartSwitch::set_lockSW()
@@ -125,7 +147,7 @@ void smartSwitch::turnON_cb(uint8_t type, unsigned int temp_TO, int intense)
                 }
                 else
                 {
-                    Serial.println(F("Already on"));
+                    Serial.println(F("Already on 1"));
                     return;
                 }
             }
@@ -144,14 +166,14 @@ void smartSwitch::turnON_cb(uint8_t type, unsigned int temp_TO, int intense)
                 }
                 else
                 {
-                    Serial.println(F("Already on"));
+                    Serial.println(F("Already on 2"));
                     return;
                 }
             }
 
             if (temp_TO != 0)
             {
-                _timeout_temp = temp_TO * 1000;
+                _timeout_temp = temp_TO * TimeFactor;
             }
             _start_timeout();
             unsigned long _t = 0;
@@ -220,7 +242,14 @@ int smartSwitch::get_remain_time()
         return 0;
     }
 }
-
+int smartSwitch::get_elapsed()
+{
+    return _timeout_clk.elapsed();
+}
+int smartSwitch::get_timeout()
+{
+    return _timeout_temp == 0 ? _timeout_duration : _timeout_temp;
+}
 uint8_t smartSwitch::get_SWstate()
 {
     if (!_virtCMD)
@@ -278,7 +307,7 @@ void smartSwitch::print_preferences()
     if (_timeout_duration > 0)
     {
         Serial.print(F("timeout [sec]:\t"));
-        Serial.println(_timeout_duration / 1000);
+        Serial.println(_timeout_duration / TimeFactor);
     }
 
     Serial.print(F("use lockdown:\t"));
@@ -290,52 +319,23 @@ void smartSwitch::print_preferences()
 
 bool smartSwitch::loop()
 {
-    bool lckdown = (_use_lockdown && !_in_lockdown) || (!_use_lockdown);
+    bool not_in_lockdown = (_use_lockdown && !_in_lockdown) || (!_use_lockdown);
 
-    if (_useButton && lckdown && _inSW.read_switch(_ez_sw_id) == switched) /* Input change*/
+    if (_useButton && not_in_lockdown && _inSW.read_switch(_ez_sw_id) == switched) /* Input change*/
     {
-        if (_inSW.switches[_ez_sw_id].switch_type == toggle_switch) /* For Toggle only */
-        {
-            if (_inSW.switches[_ez_sw_id].switch_status == !on && (get_SWstate() == 1 || (get_SWstate() == 255 && _guessState == SW_ON)))
-            {
-                turnOFF_cb(BUTTON_INPUT);
-            }
-            else if (_inSW.switches[_ez_sw_id].switch_status == on && (get_SWstate() == 0 || (get_SWstate() == 255 && _guessState == SW_OFF)))
-            {
-                turnON_cb(BUTTON_INPUT);
-            }
-            else
-            {
-                yield();
-            }
-        }
-        else /* For Button only */
-        {
-            if (get_SWstate())
-            {
-                turnOFF_cb(BUTTON_INPUT);
-            }
-            else
-            {
-                turnON_cb(BUTTON_INPUT);
-            }
-        }
+        _button_loop();
     }
-    else if (_use_timeout && lckdown)
+
+    if (_use_timeout && not_in_lockdown)
     {
         _timeout_loop();
     }
+
     if (_use_indic)
     {
-        if (_isOUTPUT_ON())
-        {
-            _turn_indic_on();
-        }
-        else
-        {
-            _turn_indic_off();
-        }
+        _indic_loop();
     }
+
     return telemtryMSG.newMSG;
 }
 void smartSwitch::clear_newMSG()
@@ -397,6 +397,76 @@ void smartSwitch::_setOUTPUT_ON(uint8_t val)
         digitalWrite(_outputPin, OUTPUT_ON);
     }
 }
+void smartSwitch::_button_loop()
+{
+    /* For Toggle only */
+    if (_inSW.switches[_ez_sw_id].switch_type == toggle_switch)
+    {
+        if (_inSW.switches[_ez_sw_id].switch_status == !on && (get_SWstate() == 1 || (get_SWstate() == 255 && _guessState == SW_ON)))
+        {
+            turnOFF_cb(BUTTON_INPUT);
+        }
+        else if (_inSW.switches[_ez_sw_id].switch_status == on && (get_SWstate() == 0 || (get_SWstate() == 255 && _guessState == SW_OFF)))
+        {
+            turnON_cb(BUTTON_INPUT);
+        }
+        else
+        {
+            yield();
+        }
+    }
+    /* For Button only */
+    else
+    {
+        const int _time_between_presses = 2000;
+        /* Is output ON ? */
+        if (get_SWstate())
+        {
+            if (_button_type == MOMENTARY_SW)
+            {
+                turnOFF_cb(BUTTON_INPUT);
+                // _last_button_press = 0;
+            }
+            else if (_button_type == MULTI_PRESS_BUTTON)
+            {
+                if (_last_button_press != 0 && millis() - _last_button_press > _time_between_presses)
+                {
+                    _multiPress_counter = 0;
+                    _last_button_press = 0;
+                    turnOFF_cb(BUTTON_INPUT);
+                }
+                else if (_last_button_press != 0 && millis() - _last_button_press < _time_between_presses)
+                {
+                    _multiPress_counter++;
+                    _last_button_press = millis();
+                    _update_telemetry(SW_ON, BUTTON_INPUT);
+                }
+                else
+                {
+                    /* any error ?*/
+                    yield();
+                }
+            }
+        }
+        else
+        {
+            _multiPress_counter = 1;
+            _last_button_press = millis();
+            turnON_cb(BUTTON_INPUT); /* Momentary & MultiPress */
+        }
+    }
+}
+void smartSwitch::_indic_loop()
+{
+    if (_isOUTPUT_ON())
+    {
+        _turn_indic_on();
+    }
+    else
+    {
+        _turn_indic_off();
+    }
+}
 void smartSwitch::_timeout_loop()
 {
     if (_timeout_clk.isRunning())
@@ -435,10 +505,11 @@ void smartSwitch::_start_timeout()
         _timeout_clk.start();
     }
 }
-void smartSwitch::_update_telemetry(uint8_t state, uint8_t type, unsigned long te)
+void smartSwitch::_update_telemetry(uint8_t state, uint8_t type, unsigned long te, uint8_t counter)
 {
     telemtryMSG.newMSG = true;
     telemtryMSG.state = state;
     telemtryMSG.reason = type;
     telemtryMSG.clk_end = te;
+    telemtryMSG.pressCount = _multiPress_counter;
 }

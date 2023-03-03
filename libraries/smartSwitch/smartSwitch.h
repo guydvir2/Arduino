@@ -17,6 +17,7 @@ struct SW_act_telem
     bool newMSG = false;
     uint8_t state = 255;  /* Up/Down/ Off */
     uint8_t reason = 255; /* What triggered the button */
+    uint8_t pressCount = 255;
     unsigned long clk_end = 0;
 };
 struct SW_props
@@ -38,7 +39,8 @@ enum SWTypes : const uint8_t
 {
     NO_INPUT,
     MOMENTARY_SW,
-    ON_OFF_SW
+    ON_OFF_SW,
+    MULTI_PRESS_BUTTON
 };
 enum InputTypes : const uint8_t
 {
@@ -57,10 +59,13 @@ enum SWstates : const uint8_t
    "useTimeout" is defined when set_timeout is set to t !=0
    "useButton" is defined when set_input is defined !=0;
 */
+#define SECONDS 1000
+#define MINUTES 60 * SECONDS
+#define TimeFactor SECONDS
 class smartSwitch
 {
 public:
-    const char *ver = "smartSW_v0.5";
+    const char *ver = "smartSW_v0.6";
     char name[MAX_TOPIC_SIZE];
     SW_act_telem telemtryMSG;
 
@@ -68,6 +73,7 @@ public:
     smartSwitch();
     void set_id(uint8_t i);
     void set_timeout(int t = 0);
+    void set_additional_timeout(int t, uint8_t type);
     void set_name(const char *Name = "smartSW");
     void set_input(uint8_t inpin = UNDEF_PIN, uint8_t t = 0, bool dir = LOW);
     void set_indiction(uint8_t pin = UNDEF_PIN, bool dir = 0);
@@ -87,6 +93,8 @@ public:
 
     uint8_t get_SWstate();
     int get_remain_time();
+    int get_elapsed();
+    int get_timeout();
     void get_SW_props(SW_props &props);
     void print_preferences();
 
@@ -102,6 +110,8 @@ private:
     uint8_t _button_type = 255;
     uint8_t _outputPin = UNDEF_PIN;
     uint8_t _indicPin = UNDEF_PIN;
+    uint8_t _multiPress_counter = 0;
+    unsigned long _total_pressed = 0;
 
     uint8_t _id = 0;
     static uint8_t _next_id; /* Instance counter */
@@ -123,17 +133,20 @@ private:
     /* inputs only */
     unsigned long _timeout_duration = 1; // in seconds
     unsigned long _timeout_temp = 0;     // in seconds
+    unsigned long _last_button_press = 0;
 
 private:
     bool _isOUTPUT_ON();
     void _setOUTPUT_ON(uint8_t val = 0);
     void _setOUTPUT_OFF();
+    void _button_loop();
+    void _indic_loop();
     void _timeout_loop();
     void _stop_timeout();
     void _start_timeout();
     void _turn_indic_on();
     void _turn_indic_off();
-    void _update_telemetry(uint8_t state, uint8_t type, unsigned long te = 0);
+    void _update_telemetry(uint8_t state, uint8_t type, unsigned long te = 0, uint8_t counter = 255);
 };
 
 #endif

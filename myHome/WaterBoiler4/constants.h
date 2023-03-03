@@ -19,5 +19,5 @@
 #define OLED_RESET LED_BUILTIN
 
 // ********** Sketch Services  ***********
-#define VEr "theDude_v3.2"
+#define VEr "theDude_v4"
 

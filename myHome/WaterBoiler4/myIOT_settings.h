@@ -1,33 +1,26 @@
-myIOT2 iot;
-#include <myTimeoutSwitch.h>
-
-extern timeOUTSwitch TOswitch;
-// extern void sec2clock(int sec, char *output_text);
-extern unsigned long onclk;
-
 #define MAX_TOPIC_SIZE 40 // <----- Verfy max Topic size
 
-char topics_sub[3][MAX_TOPIC_SIZE];
-char topics_pub[3][MAX_TOPIC_SIZE];
-char topics_gen_pub[3][MAX_TOPIC_SIZE];
+// char topics_sub[3][MAX_TOPIC_SIZE];
+// char topics_pub[3][MAX_TOPIC_SIZE];
+// char topics_gen_pub[3][MAX_TOPIC_SIZE];
 
-void giveStatus(char *outputmsg)
+void get_status(char *outputmsg)
 {
     char t1[100];
     char t2[50];
     char t3[50];
 
-    if (TOswitch.remTime() > 0)
+    if (SWitch.get_remain_time() > 0)
     {
-        // sec2clock(TOswitch.remTime(), t2);
-        // sec2clock(TOswitch.TO_duration, t3);
+        iot.convert_epoch2clock(SWitch.get_remain_time(), 0, t2);
+        iot.convert_epoch2clock(SWitch.get_timeout(), 0, t3);
         sprintf(t1, "timeLeft[%s], total[%s]", t2, t3);
     }
     else
     {
         sprintf(t1, " ");
     }
-    sprintf(t2, "[%s] %s", TOswitch.inTO ? "ON" : "OFF", t1);
+    sprintf(t2, "[%s] %s", SWitch.get_SWstate() ? "ON" : "OFF", t1);
     sprintf(outputmsg, "Status: %s", t2);
 }
 void addiotnalMQTT(char *income_msg, char *topic)
@@ -36,12 +29,12 @@ void addiotnalMQTT(char *income_msg, char *topic)
 
     if (strcmp(income_msg, "status") == 0)
     {
-        giveStatus(msg_MQTT);
+        get_status(msg_MQTT);
         iot.pub_msg(msg_MQTT);
     }
     else if (strcmp(income_msg, "ver2") == 0)
     {
-        sprintf(msg_MQTT, "ver #2: [%s], timeoutSw[%s]", VEr, TOswitch.Ver);
+        sprintf(msg_MQTT, "ver #2: [%s], timeoutSw[%s]", VEr, SWitch.ver);
         iot.pub_msg(msg_MQTT);
     }
     else if (strcmp(income_msg, "help2") == 0)
@@ -51,20 +44,19 @@ void addiotnalMQTT(char *income_msg, char *topic)
     }
     else if (strcmp(income_msg, "off") == 0)
     {
-        TOswitch.finish_TO(2);
+        SWitch.turnOFF_cb(EXT_0);
     }
     else if (strcmp(income_msg, "on") == 0)
     {
-        TOswitch.start_TO(maxTO, 2);
-        onclk = TOswitch.onClk();
+        SWitch.turnON_cb(EXT_0);
     }
     else if (strcmp(income_msg, "remain") == 0)
     {
-        char s1[15], s2[20];
+        char s1[15];
         char clk[60];
-        if (TOswitch.remTime() > 0)
+        if (SWitch.get_remain_time() > 0)
         {
-            iot.convert_epoch2clock(TOswitch.remTime(), 0, s1, s2);
+            iot.convert_epoch2clock(SWitch.get_remain_time(), 0, s1);
             sprintf(clk, "MQTT: remain [%s] ", s1);
             iot.pub_msg(clk);
         }
@@ -80,12 +72,12 @@ void addiotnalMQTT(char *income_msg, char *topic)
         {
             if (strcmp(iot.inline_param[0], "timeout") == 0)
             {
-                TOswitch.start_TO(atoi(iot.inline_param[1]), 2);
-                onclk = TOswitch.onClk();
+                SWitch.turnON_cb(2, atoi(iot.inline_param[1]));
+                iot.pub_msg(iot.inline_param[1]);
             }
             else if (strcmp(iot.inline_param[0], "addTO") == 0)
             {
-                TOswitch.add_TO(atoi(iot.inline_param[1]), 2);
+                // TOswitch.add_TO(atoi(iot.inline_param[1]), 2);
             }
         }
     }
@@ -100,7 +92,7 @@ void startIOTservices()
 
     iot.topics_gen_pub[0] = "myHome/Messages";
     iot.topics_gen_pub[1] = "myHome/log";
-    iot.topics_gen_pub[1] = "myHome/debug";
+    iot.topics_gen_pub[2] = "myHome/debug";
 
     iot.topics_pub[0] = "myHome/WaterBoiler";
     iot.topics_pub[0] = "myHome/WaterBoiler/Avail";
