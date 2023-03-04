@@ -11,9 +11,10 @@ const char *VEr = "theDude_v4";
 #define RELAY1 D5
 #define INPUT1 D6
 #define indic_LEDpin D7
+#define START_DURATION_TIMEOUT 30 //minutes
+#define ADDITIONAL_TIME_PRESS 15 // minutes
 
 unsigned long clock_noref = 0;
-const char *REASONS_OPER[] = {"Button", "Timeout", "MQTT"};
 
 void init_smartSwitch()
 {
@@ -22,7 +23,7 @@ void init_smartSwitch()
         SWitch.BUTTON_PRESSED = LOW;
 
         SWitch.set_id(1);
-        SWitch.set_timeout(5);
+        SWitch.set_timeout(START_DURATION_TIMEOUT);
         SWitch.set_name("boiler");
         SWitch.set_input(INPUT1, MULTI_PRESS_BUTTON);
         SWitch.set_output(RELAY1);
@@ -35,6 +36,8 @@ void smartSwitch_loop()
                 char clk[15];
                 char msg[100];
                 const char *states[] = {"Off", "On"};
+                const char *REASONS_OPER[] = {"Button", "Timeout", "MQTT"};
+
                 if (SWitch.telemtryMSG.state == 0)
                 {
                         iot.convert_epoch2clock(SWitch.get_elapsed() / 1000, 0, clk);
@@ -46,7 +49,7 @@ void smartSwitch_loop()
                 {
                         if (SWitch.telemtryMSG.pressCount > 1)
                         {
-                                const int add_time = 12;
+                                const int add_time = ADDITIONAL_TIME_PRESS;
                                 SWitch.set_additional_timeout(add_time, SWitch.telemtryMSG.reason);
                                 iot.convert_epoch2clock(SWitch.get_timeout() / 1000, 0, clk);
                                 sprintf(msg, "[%s]: added [%d] minutes, updated timeout [%s]", REASONS_OPER[SWitch.telemtryMSG.reason],
@@ -172,7 +175,7 @@ void display_on_duration()
 }
 void display_clock()
 {
-        const int timeQoute = 250;
+        const int timeQoute = 500;
         const uint8_t screen_lines = 4;
 
         char timeStamp[15];

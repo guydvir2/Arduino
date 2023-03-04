@@ -61,7 +61,7 @@ enum SWstates : const uint8_t
 */
 #define SECONDS 1000
 #define MINUTES 60 * SECONDS
-#define TimeFactor SECONDS
+#define TimeFactor MINUTES
 
 #ifndef DBG
 #define DBG(a)                    \
