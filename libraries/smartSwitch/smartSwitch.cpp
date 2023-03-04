@@ -36,7 +36,14 @@ void smartSwitch::set_additional_timeout(int t, uint8_t type)
         {
             _timeout_temp += t * TimeFactor + _timeout_duration;
         }
-        _update_telemetry(SW_ON, type, _timeout_temp);
+        if (!get_remain_time())
+        {
+            turnON_cb(type, _timeout_temp/1000);
+        }
+        else
+        {
+            _update_telemetry(SW_ON, type, _timeout_temp);
+        }
     }
 }
 void smartSwitch::set_name(const char *Name)
@@ -378,6 +385,7 @@ void smartSwitch::_setOUTPUT_OFF()
     {
         digitalWrite(_outputPin, !OUTPUT_ON);
     }
+    DBGL(F("OUTPUT_OFF"));
 }
 void smartSwitch::_setOUTPUT_ON(uint8_t val)
 {
@@ -391,10 +399,12 @@ void smartSwitch::_setOUTPUT_ON(uint8_t val)
 #endif
         analogWrite(_outputPin, (int)((res * val) / 100));
         _PWM_ison = true;
+        DBGL(F("PWM_ON"));
     }
     else
     {
         digitalWrite(_outputPin, OUTPUT_ON);
+        DBGL(F("OUTPUT_ON"));
     }
 }
 void smartSwitch::_button_loop()
@@ -402,6 +412,8 @@ void smartSwitch::_button_loop()
     /* For Toggle only */
     if (_inSW.switches[_ez_sw_id].switch_type == toggle_switch)
     {
+        DBGL(F("TOGGLE"));
+
         if (_inSW.switches[_ez_sw_id].switch_status == !on && (get_SWstate() == 1 || (get_SWstate() == 255 && _guessState == SW_ON)))
         {
             turnOFF_cb(BUTTON_INPUT);
@@ -413,19 +425,20 @@ void smartSwitch::_button_loop()
         else
         {
             yield();
+            DBGL(F("ERR1"));
         }
     }
     /* For Button only */
     else
     {
         const int _time_between_presses = 2000;
+        DBGL(F("BUTTON_PRESS"));
         /* Is output ON ? */
         if (get_SWstate())
         {
             if (_button_type == MOMENTARY_SW)
             {
                 turnOFF_cb(BUTTON_INPUT);
-                // _last_button_press = 0;
             }
             else if (_button_type == MULTI_PRESS_BUTTON)
             {
@@ -445,6 +458,7 @@ void smartSwitch::_button_loop()
                 {
                     /* any error ?*/
                     yield();
+                    DBGL(F("ERR2"));
                 }
             }
         }
@@ -495,6 +509,7 @@ void smartSwitch::_stop_timeout()
     {
         _timeout_clk.stop();
         _timeout_temp = 0;
+        DBGL(F("TIMEOUT_STOPPED"));
     }
 }
 void smartSwitch::_start_timeout()
@@ -503,6 +518,7 @@ void smartSwitch::_start_timeout()
     {
         _timeout_clk.stop();
         _timeout_clk.start();
+        DBGL(F("TIMEOUT_START"));
     }
 }
 void smartSwitch::_update_telemetry(uint8_t state, uint8_t type, unsigned long te, uint8_t counter)
@@ -512,4 +528,5 @@ void smartSwitch::_update_telemetry(uint8_t state, uint8_t type, unsigned long t
     telemtryMSG.reason = type;
     telemtryMSG.clk_end = te;
     telemtryMSG.pressCount = _multiPress_counter;
+    DBGL(F("TELEMETRY_UPDATE"));
 }

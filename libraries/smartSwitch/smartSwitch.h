@@ -62,6 +62,20 @@ enum SWstates : const uint8_t
 #define SECONDS 1000
 #define MINUTES 60 * SECONDS
 #define TimeFactor SECONDS
+
+#ifndef DBG
+#define DBG(a)                    \
+    if (useDebug)                 \
+    {                             \
+        Serial.print(F("DBG: ")); \
+        Serial.print(a);          \
+    }
+#endif
+#ifndef DBGL
+#define DBGL(a) \
+    DBG(a)      \
+    Serial.print("\n")
+#endif
 class smartSwitch
 {
 public:
@@ -100,6 +114,7 @@ public:
 
     bool OUTPUT_ON = HIGH;     /* configurable */
     bool BUTTON_PRESSED = LOW; /* configurable */
+    bool useDebug = false;
     bool useTimeout();
     bool is_virtCMD();
     bool is_useButton();

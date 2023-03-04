@@ -12,8 +12,8 @@ void get_status(char *outputmsg)
 
     if (SWitch.get_remain_time() > 0)
     {
-        iot.convert_epoch2clock(SWitch.get_remain_time(), 0, t2);
-        iot.convert_epoch2clock(SWitch.get_timeout(), 0, t3);
+        iot.convert_epoch2clock(SWitch.get_remain_time() / 1000, 0, t2);
+        iot.convert_epoch2clock(SWitch.get_timeout() / 1000, 0, t3);
         sprintf(t1, "timeLeft[%s], total[%s]", t2, t3);
     }
     else
@@ -39,7 +39,7 @@ void addiotnalMQTT(char *income_msg, char *topic)
     }
     else if (strcmp(income_msg, "help2") == 0)
     {
-        sprintf(msg_MQTT, "Help2: Commands #1 - [on, off, remain, {addTO,minutes}, {timeout,minutes}]");
+        sprintf(msg_MQTT, "Help2: Commands - [on, off, remain, {addTO,minutes}, {timeout,minutes}]");
         iot.pub_msg(msg_MQTT);
     }
     else if (strcmp(income_msg, "off") == 0)
@@ -73,11 +73,10 @@ void addiotnalMQTT(char *income_msg, char *topic)
             if (strcmp(iot.inline_param[0], "timeout") == 0)
             {
                 SWitch.turnON_cb(2, atoi(iot.inline_param[1]));
-                iot.pub_msg(iot.inline_param[1]);
             }
             else if (strcmp(iot.inline_param[0], "addTO") == 0)
             {
-                // TOswitch.add_TO(atoi(iot.inline_param[1]), 2);
+                SWitch.set_additional_timeout(atoi(iot.inline_param[1]), 2);
             }
         }
     }
@@ -85,7 +84,7 @@ void addiotnalMQTT(char *income_msg, char *topic)
 
 void startIOTservices()
 {
-    iot.useSerial = false;
+    iot.useSerial = true;
     iot.useFlashP = false;
     iot.noNetwork_reset = 6;
     iot.ignore_boot_msg = false;

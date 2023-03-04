@@ -1,21 +1,23 @@
-#include <SPI.h>
-#include <Wire.h>
-#include <Adafruit_GFX.h>
-#include <Adafruit_SSD1306.h>
-
 #include <myIOT2.h>
 #include <smartSwitch.h>
 
 myIOT2 iot;
 smartSwitch SWitch;
 
-#include "constants.h"
+const char *VEr = "theDude_v4";
+
 #include "myIOT_settings.h"
+
+#define RELAY1 D5
+#define INPUT1 D6
+#define indic_LEDpin D7
 
 unsigned long clock_noref = 0;
 const char *REASONS_OPER[] = {"Button", "Timeout", "MQTT"};
+
 void init_smartSwitch()
 {
+        SWitch.useDebug = false;
         SWitch.OUTPUT_ON = HIGH;
         SWitch.BUTTON_PRESSED = LOW;
 
@@ -37,7 +39,7 @@ void smartSwitch_loop()
                 {
                         iot.convert_epoch2clock(SWitch.get_elapsed() / 1000, 0, clk);
                         clock_noref = millis();
-                        sprintf(msg, "[%s]: turned [%s], timeout [%s]", REASONS_OPER[SWitch.telemtryMSG.reason],
+                        sprintf(msg, "[%s]: turned [%s], ON time [%s]", REASONS_OPER[SWitch.telemtryMSG.reason],
                                 states[SWitch.telemtryMSG.state], clk);
                 }
                 else if (SWitch.telemtryMSG.state == 1)
@@ -45,9 +47,9 @@ void smartSwitch_loop()
                         if (SWitch.telemtryMSG.pressCount > 1)
                         {
                                 const int add_time = 12;
-                                iot.convert_epoch2clock(SWitch.get_timeout() / 1000, 0, clk);
                                 SWitch.set_additional_timeout(add_time, SWitch.telemtryMSG.reason);
-                                sprintf(msg, "[%s]: added [%d] minutes, timeout [%s]", REASONS_OPER[SWitch.telemtryMSG.reason],
+                                iot.convert_epoch2clock(SWitch.get_timeout() / 1000, 0, clk);
+                                sprintf(msg, "[%s]: added [%d] minutes, updated timeout [%s]", REASONS_OPER[SWitch.telemtryMSG.reason],
                                         add_time, clk);
                         }
                         else
@@ -63,6 +65,19 @@ void smartSwitch_loop()
 }
 
 // ~~~~~~~~~~~~~~ OLED display ~~~~~~~~~~~~~~~~~
+#define USE_OLED_SCREEN true
+
+#if USE_OLED_SCREEN
+
+#include <SPI.h>
+#include <Wire.h>
+#include <Adafruit_GFX.h>
+#include <Adafruit_SSD1306.h>
+
+#define SCREEN_WIDTH 128
+#define SCREEN_HEIGHT 64 // double screen size
+#define OLED_RESET LED_BUILTIN
+
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 
 void startOLED()
@@ -157,6 +172,9 @@ void display_on_duration()
 }
 void display_clock()
 {
+        const int timeQoute = 250;
+        const uint8_t screen_lines = 4;
+
         char timeStamp[15];
         char dateStamp[15];
         static long swapLines_counter = 0;
@@ -166,23 +184,29 @@ void display_clock()
         sprintf(timeStamp, "%02d:%02d:%02d", tm->tm_hour, tm->tm_min, tm->tm_sec);
         sprintf(dateStamp, "%04d-%02d-%02d", tm->tm_year + 1900, tm->tm_mon + 1, tm->tm_mday);
 
-        int timeQoute = 5000;
-
-        if (swapLines_counter == 0)
+        if (millis() - swapLines_counter > (2 * screen_lines - 2) * timeQoute)
         {
                 swapLines_counter = millis();
         }
-        if (millis() - swapLines_counter < timeQoute)
+
+        for (uint8_t n = 0; n < 2 * screen_lines - 1; n++)
         {
-                OLED_CenterTXT(2, nullptr, timeStamp, dateStamp, nullptr);
-        }
-        else if (millis() - swapLines_counter >= timeQoute && millis() - swapLines_counter < 2 * timeQoute)
-        {
-                OLED_CenterTXT(2, timeStamp, nullptr, nullptr, dateStamp);
-        }
-        else if (millis() - swapLines_counter > 2 * timeQoute)
-        {
-                swapLines_counter = 0;
+                if (millis() - swapLines_counter > n * timeQoute && millis() - swapLines_counter < (n + 1) * timeQoute)
+                {
+                        char *_lines[screen_lines] = {nullptr, nullptr, nullptr, nullptr};
+                        if (n < screen_lines)
+                        {
+                                _lines[n] = timeStamp;
+                                _lines[screen_lines - 1 - n] = dateStamp;
+                        }
+                        else
+                        {
+                                _lines[2 * screen_lines - n - 2] = timeStamp;
+                                _lines[n - screen_lines + 1] = dateStamp;
+                        }
+                        OLED_CenterTXT(2, _lines[0], _lines[1], _lines[2], _lines[3]);
+                        return;
+                }
         }
 }
 void OLED_display_looper()
@@ -193,7 +217,7 @@ void OLED_display_looper()
         }
         else
         { // OFF state - clock only
-                if (clock_noref != 0 && millis() - clock_noref < time_NOref_OLED * 1000)
+                if (clock_noref != 0 && millis() - clock_noref < 5 * 1000)
                 { // time in millis without screen refresh
                         display_totalOnTime();
                 }
@@ -204,17 +228,23 @@ void OLED_display_looper()
                 }
         }
 }
+
+#endif
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 void setup()
 {
         startIOTservices();
+#if USE_OLED_SCREEN
         startOLED();
+#endif
         init_smartSwitch();
 }
 void loop()
 {
         iot.looper();
+#if USE_OLED_SCREEN
         OLED_display_looper();
+#endif
         smartSwitch_loop();
 }
