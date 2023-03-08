@@ -1,6 +1,6 @@
 {
-    "numSW": 2,
-    "MCUtype": 3,
+    "numSW": 1,
+    "MCUtype": 4,
     "SWtype": [
         2,
         2
@@ -11,12 +11,12 @@
     ],
     "useLockdown": false,
     "ONatBoot": [
-        false,
+        true,
         false
     ],
     "name": [
-        "Bed",
-        "Mirror"
+        "Corridor",
+        "X"
     ],
     "ver": 0.2
 }

@@ -3,15 +3,18 @@
 #include <smartSwitch.h>
 
 #define MAX_SW 2
+#define MAN_MODE false
 
 smartSwitch smartSW;
 smartSwitch smartSW2;
 smartSwitch *smartSwArray[MAX_SW] = {&smartSW, &smartSW2};
 
 uint8_t totSW = 1;
-const char *ver = "smartSwitch_v0.3";
+bool bootProcess_OK = false;
+const char *ver = "smartSwitch_v0.4";
 
 #include "myIOT_settings.h"
+#include "parameterRead.h"
 
 void smartSW_defs(uint8_t id, const char *SWname, uint8_t butType, uint8_t output_pin, uint8_t pwm_pwr,
                   uint8_t input_pin, uint8_t indic_pin, bool uselckd, int timeout, bool indic_on, bool onatboot)
@@ -20,7 +23,6 @@ void smartSW_defs(uint8_t id, const char *SWname, uint8_t butType, uint8_t outpu
         {
                 totSW++;
         }
-
         smartSwArray[id]->set_name(SWname);
         smartSwArray[id]->set_output(output_pin, pwm_pwr); /* pin-255 calls a virtualCMD, pwm_pwr>0 create PWM output */
         smartSwArray[id]->set_input(input_pin, butType);
@@ -103,11 +105,13 @@ void print_props(uint8_t i)
 
         Serial.print("<<<<<<< END ");
         Serial.println(">>>>>>");
+        Serial.flush();
 }
 
 void setup()
 {
         Serial.begin(115200);
+        read_all_parameters();
         startIOTservices();
 }
 void loop()

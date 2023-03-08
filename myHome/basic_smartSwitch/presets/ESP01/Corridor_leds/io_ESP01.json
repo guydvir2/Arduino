@@ -1,0 +1,23 @@
+    {
+        "inputPin": [
+            2,
+            13
+        ],
+        "relayPin": [
+            1,
+            12
+        ],
+        "indicLED": [
+            255,
+            255
+        ],
+        "indic_on": [
+            false,
+            false
+        ],
+        "PWM_pwr": [
+            30,
+            50
+        ],
+        "ver": 0.3
+    }

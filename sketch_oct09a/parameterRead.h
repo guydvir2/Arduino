@@ -52,7 +52,7 @@ bool readTopics()
   if (!error0)
   {
 #else
-  if (iot.extract_JSON_from_flash(iot.parameter_filenames[2], DOC)) /* extract topics from flash */
+  if (iot.readJson_inFlash(DOC,iot.parameter_filenames[2])) /* extract topics from flash */
   {
     Serial.println(F("~ entities data-base - flash"));
 #endif
@@ -128,7 +128,7 @@ bool get_pins_parameters(JsonDocument &DOC, uint8_t _inpins[], uint8_t _outpins[
   {
     Serial.println(F("~ Read pins hardware - local"));
 #else
-  if (iot.extract_JSON_from_flash(iot.parameter_filenames[1], DOC))
+  if (iot.readJson_inFlash(DOC, iot.parameter_filenames[1]))
   {
     Serial.println(F("~ Read pins hardware - flash"));
 #endif
@@ -164,17 +164,14 @@ bool get_IOT2_parameters()
 #if MAN_MODE
   iot.useSerial = true;
   iot.useFlashP = false;
-  iot.useNetworkReset = true;
   iot.noNetwork_reset = 2;
-  iot.useBootClockLog = false;
   iot.ignore_boot_msg = false;
   Serial.println(F("~ IOT2 parameters    - local"));
   return 1;
 #else
   StaticJsonDocument<1400> DOC;
-  if (iot.extract_JSON_from_flash(iot.parameter_filenames[0], DOC))
+  if (iot.readFlashParameters(DOC, iot.parameter_filenames[0]))
   {
-    iot.update_vars_flash_parameters(DOC);
     Serial.println("~ IOT2 parameters read - OK");
     return 1;
   }
@@ -207,7 +204,7 @@ bool get_entities_parameters()
     {
 #else
     Serial.println(F("~ entities data-base - flash"));
-    if (iot.extract_JSON_from_flash(iot.parameter_filenames[3], DOC))
+    if (iot.readJson_inFlash(DOC, iot.parameter_filenames[3]))
     {
 #endif
       JsonArray entTypes = DOC["entityType"];
