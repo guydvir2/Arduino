@@ -5,11 +5,79 @@ char topics_sub[4][MAX_TOPIC_SIZE]{};
 char topics_pub[3][MAX_TOPIC_SIZE]{};
 char topics_gen_pub[3][MAX_TOPIC_SIZE]{};
 
+
+void create_rem_timeout_msg(uint8_t i, char ret_msg[])
+{
+    bool sw_is_turned_on_with_timeout = smartSwArray[i]->useTimeout() &&
+                                        smartSwArray[i]->telemtryMSG.state == 1;
+    bool sw_is_turned_off_before_end_timeout = smartSwArray[i]->useTimeout() &&
+                                               smartSwArray[i]->telemtryMSG.state == 0 && smartSwArray[i]->get_remain_time() != 0;
+
+    if (sw_is_turned_on_with_timeout || sw_is_turned_off_before_end_timeout)
+    {
+        char a[10];
+        iot.convert_epoch2clock(smartSwArray[i]->get_remain_time() / 1000, 0, a);
+        sprintf(ret_msg, ", timeout [%s]", a);
+    }
+    else
+    {
+        strcpy(ret_msg, "");
+    }
+}
+void create_pwm_msg(uint8_t i, char ret_msg[], SW_props &props)
+{
+    bool sw_is_turned_on_pwm = props.PWM && smartSwArray[i]->telemtryMSG.state == 1;
+
+    if (sw_is_turned_on_pwm)
+    {
+        sprintf(ret_msg, ", Power[%d%%]", smartSwArray[i]->telemtryMSG.pwm);
+    }
+    else
+    {
+        strcpy(ret_msg, "");
+    }
+}
+void create_status_msg(uint8_t i, char ret_msg[])
+{
+    char msg2[30];
+    char msg3[30];
+    const char *sw_states[] = {"Off", "On"};
+    const char *origins[] = {"Switch", "Timeout", "MQTT", "BOOT"};
+
+    SW_props props;
+    smartSwArray[i]->get_SW_props(props);
+
+    create_rem_timeout_msg(i, msg2); /* Using timeout ?*/
+    create_pwm_msg(i, msg3, props);  /* PWM output ?*/
+
+    sprintf(ret_msg, "[Status]: [%s] is [%s] by [%s]%s%s", props.name, sw_states[smartSwArray[i]->telemtryMSG.state],
+            origins[smartSwArray[i]->telemtryMSG.reason], msg3, msg2);
+}
 void update_MQTT_state(uint8_t i, uint8_t x = 0)
 {
     char a[5];
     sprintf(a, "%s", i == 0 ? "off" : "on");
     iot.pub_state(a, x);
+}
+void smartSW_telemetry2MQTT(uint8_t i)
+{
+    char msg[150];
+    char msg2[30];
+    char msg3[30];
+    const char *sw_states[] = {"Off", "On"};
+    const char *origins[] = {"Switch", "Timeout", "MQTT", "BOOT"};
+
+    SW_props props;
+    smartSwArray[i]->get_SW_props(props);
+
+    create_rem_timeout_msg(i, msg2); /* Using timeout ?*/
+    create_pwm_msg(i, msg3, props);  /* PWM output ?*/
+
+    sprintf(msg, "[%s]: [%s] turned [%s]%s%s", origins[smartSwArray[i]->telemtryMSG.reason],
+            props.name, sw_states[smartSwArray[i]->telemtryMSG.state], msg3, msg2);
+
+    iot.pub_msg(msg);
+    update_MQTT_state(smartSwArray[i]->telemtryMSG.state, i);
 }
 void addiotnalMQTT(char *incoming_msg, char *_topic)
 {
@@ -21,31 +89,13 @@ void addiotnalMQTT(char *incoming_msg, char *_topic)
         char b[15];
         for (uint8_t i = 0; i < totSW; i++)
         {
-            if (smartSwArray[i]->get_SWstate() == 1 && smartSwArray[i]->useTimeout() && smartSwArray[i]->get_remain_time() != 0)
-            {
-                iot.convert_epoch2clock(smartSwArray[i]->get_remain_time() / 1000, 0, b);
-                sprintf(a, ", timeout [%s]", b);
-            }
-            else
-            {
-                strcpy(a, "");
-            }
-            if (totSW > 1)
-            {
-                SW_props prop;
-                smartSwArray[i]->get_SW_props(prop);
-                sprintf(msg, "[status]: [%s] turned [%s]%s", prop.name, smartSwArray[i]->get_SWstate() == 1 ? "On" : "Off", a);
-            }
-            else
-            {
-                sprintf(msg, "[status]: turned [%s]%s", smartSwArray[i]->get_SWstate() == 1 ? "On" : "Off", a);
-            }
+            create_status_msg(i, msg);
             iot.pub_msg(msg);
         }
     }
     else if (strcmp(incoming_msg, "help2") == 0)
     {
-        sprintf(msg, "help #2: on, off, all_off,entities, {timeout,MIN}");
+        sprintf(msg, "help #2: {i,on,power}, {i,timeout,MINUTES,power}, off, all_off, entities");
         iot.pub_msg(msg);
     }
     else if (strcmp(incoming_msg, "ver2") == 0)
@@ -88,7 +138,7 @@ void addiotnalMQTT(char *incoming_msg, char *_topic)
             }
             else if (strcmp(iot.inline_param[1], "on") == 0)
             {
-                smartSwArray[i]->turnON_cb(2, NULL, atoi(iot.inline_param[2]));
+                smartSwArray[i]->turnON_cb(2, 0, atoi(iot.inline_param[2]));
             }
         }
     }

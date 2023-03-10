@@ -90,8 +90,11 @@ void OLED_SideTXT(uint8_t char_size, const char *line1, const char *line2 = null
 void display_totalOnTime()
 {
     char msg[50];
+    char tot_time[30];
     iot.convert_epoch2clock(SWitch.get_elapsed() / 1000, 0, msg);
-    OLED_CenterTXT(2, "Total", "ON time:", msg);
+    iot.convert_epoch2clock(saver.day_accum, 0, tot_time);
+
+    OLED_CenterTXT(2,"ON time:", msg, "Daily", tot_time);
 }
 void display_on_duration()
 {

@@ -53,7 +53,7 @@ void smartSwitch::set_name(const char *Name)
 void smartSwitch::set_output(uint8_t outpin, uint8_t intense, bool dir)
 {
     OUTPUT_ON = dir;
-    if (intense > 0) /* PWM OUTOUT defined by intense >0 */
+    if (intense > 0 && intense <= 100) /* PWM OUTOUT defined by intense >0 */
     {
         _output_pwm = true;
         _pwm_ints = intense;

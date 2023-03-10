@@ -14,16 +14,39 @@ const char *VEr = "theDude_v4";
 #define START_DURATION_TIMEOUT 30 // minutes
 #define ADDITIONAL_TIME_PRESS 15  // minutes
 
-#define USE_OLED_SCREEN true
-#if USE_OLED_SCREEN
-#include "oled.h"
-#endif
-
 struct saveOper
 {
         unsigned long day_accum = 0;
         time_t date = 0;
 };
+saveOper saver;
+
+#define USE_OLED_SCREEN true
+#if USE_OLED_SCREEN
+#include "oled.h"
+#endif
+
+void update_logs(unsigned long onTime)
+{
+        time_t t = iot.now();
+        struct tm *tm = localtime(&t);
+        uint8_t now_month = tm->tm_mon;
+        uint8_t now_day = tm->tm_mday;
+
+        struct tm *tm_saved = localtime(&saver.date);
+        uint8_t save_month = tm_saved->tm_mon;
+        uint8_t save_day = tm_saved->tm_mday;
+
+        if (now_month == save_month && now_day == save_day)
+        {
+                saver.day_accum += onTime;
+        }
+        else // if (saver.date == 0) or any other situation
+        {
+                saver.date = t;
+                saver.day_accum = onTime;
+        }
+}
 void init_smartSwitch()
 {
         SWitch.useDebug = false;
@@ -52,6 +75,8 @@ void smartSwitch_loop()
                         clock_noref = millis();
                         sprintf(msg, "[%s]: turned [%s], ON time [%s]", REASONS_OPER[SWitch.telemtryMSG.reason],
                                 states[SWitch.telemtryMSG.state], clk);
+
+                        update_logs(SWitch.get_elapsed() / 1000);
                 }
                 else if (SWitch.telemtryMSG.state == 1)
                 {
