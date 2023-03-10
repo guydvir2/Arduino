@@ -1,8 +1,8 @@
 {
     "numSW": 1,
-    "MCUtype": 3,
+    "MCUtype": 4,
     "SWtype": [
-        2,
+        0,
         2
     ],
     "Timeout": [

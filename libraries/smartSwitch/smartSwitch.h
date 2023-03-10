@@ -18,6 +18,7 @@ struct SW_act_telem
     uint8_t state = 255;  /* Up/Down/ Off */
     uint8_t reason = 255; /* What triggered the button */
     uint8_t pressCount = 255;
+    uint8_t pwm = 255; /* PWM precentage */
     unsigned long clk_end = 0;
 };
 struct SW_props
@@ -60,7 +61,7 @@ enum SWstates : const uint8_t
    "useButton" is defined when set_input is defined !=0;
 */
 #define SECONDS 1000
-#define MINUTES 60 * SECONDS
+#define MINUTES (60 * SECONDS)
 #define TimeFactor MINUTES
 
 #ifndef DBG
@@ -72,9 +73,12 @@ enum SWstates : const uint8_t
     }
 #endif
 #ifndef DBGL
-#define DBGL(a) \
-    DBG(a)      \
-    Serial.print("\n")
+#define DBGL(a)                   \
+    if (useDebug)                 \
+    {                             \
+        Serial.print(F("DBG: ")); \
+        Serial.println(a);        \
+    }
 #endif
 class smartSwitch
 {
@@ -100,15 +104,15 @@ public:
     void init_lockdown();
     void release_lockdown();
 
-    void turnON_cb(uint8_t type, unsigned int temp_TO = 0, int intense = 0);
+    void turnON_cb(uint8_t type, unsigned int temp_TO = 0, int intense = 255);
     void turnOFF_cb(uint8_t type);
     void clear_newMSG();
     bool loop();
 
     uint8_t get_SWstate();
-    int get_remain_time();
-    int get_elapsed();
-    int get_timeout();
+    unsigned long get_remain_time();
+    unsigned long get_elapsed();
+    unsigned long get_timeout();
     void get_SW_props(SW_props &props);
     void print_preferences();
 
@@ -161,7 +165,7 @@ private:
     void _start_timeout();
     void _turn_indic_on();
     void _turn_indic_off();
-    void _update_telemetry(uint8_t state, uint8_t type, unsigned long te = 0, uint8_t counter = 255);
+    void _update_telemetry(uint8_t state, uint8_t type, unsigned long te = 0, uint8_t counter = 255, uint8_t pwm = 255);
 };
 
 #endif

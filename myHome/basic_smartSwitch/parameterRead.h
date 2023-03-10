@@ -156,7 +156,7 @@ void read_all_parameters()
   if (get_IOT2_parameters() && get_entities_parameters() && readTopics())
   {
     bootProcess_OK = true;
-    Serial.println(F("\n±±±±±±±±±±±± Reading Parameters -OK  n±±±±±±±±±±±±"));
+    Serial.println(F("\n\n±±±±±±±±±±±± Reading Parameters -OK  n±±±±±±±±±±±±"));
     Serial.flush();
   }
   else

@@ -38,11 +38,11 @@ void smartSwitch::set_additional_timeout(int t, uint8_t type)
         }
         if (!get_remain_time())
         {
-            turnON_cb(type, _timeout_temp/1000);
+            turnON_cb(type, _timeout_temp / 1000);
         }
         else
         {
-            _update_telemetry(SW_ON, type, _timeout_temp);
+            _update_telemetry(SW_ON, type, _timeout_temp, telemtryMSG.pressCount, telemtryMSG.pwm);
         }
     }
 }
@@ -154,7 +154,7 @@ void smartSwitch::turnON_cb(uint8_t type, unsigned int temp_TO, int intense)
                 }
                 else
                 {
-                    Serial.println(F("Already on 1"));
+                    DBGL(F("Already on 1"));
                     return;
                 }
             }
@@ -162,7 +162,7 @@ void smartSwitch::turnON_cb(uint8_t type, unsigned int temp_TO, int intense)
             {
                 if (!_PWM_ison)
                 {
-                    if (intense != 0) /* Intersity was defined locally*/
+                    if (intense != 255) /* Intersity was defined locally*/
                     {
                         _setOUTPUT_ON(intense);
                     }
@@ -173,7 +173,7 @@ void smartSwitch::turnON_cb(uint8_t type, unsigned int temp_TO, int intense)
                 }
                 else
                 {
-                    Serial.println(F("Already on 2"));
+                    DBGL(F("Already on 2"));
                     return;
                 }
             }
@@ -188,7 +188,7 @@ void smartSwitch::turnON_cb(uint8_t type, unsigned int temp_TO, int intense)
             {
                 temp_TO == 0 ? _t = _timeout_duration : _t = _timeout_temp;
             }
-            _update_telemetry(SW_ON, type, _t);
+            _update_telemetry(SW_ON, type, _t, telemtryMSG.pressCount, intense == 255 ? _pwm_ints : intense);
         }
         else
         {
@@ -196,7 +196,7 @@ void smartSwitch::turnON_cb(uint8_t type, unsigned int temp_TO, int intense)
             {
                 _start_timeout();
                 _guessState = !_guessState;
-                _update_telemetry(SW_ON, type);
+                _update_telemetry(SW_ON, type, get_remain_time(), telemtryMSG.pressCount);
             }
         }
     }
@@ -213,18 +213,18 @@ void smartSwitch::turnOFF_cb(uint8_t type)
                 {
                     _setOUTPUT_OFF();
                     _stop_timeout();
-                    _update_telemetry(SW_OFF, type, 0);
+                    _update_telemetry(SW_OFF, type, 0, telemtryMSG.pressCount, 0);
                 }
                 else
                 {
-                    Serial.println(F("Already off"));
+                    DBGL(F("Already off"));
                 }
             }
             else
             {
                 _setOUTPUT_OFF();
                 _stop_timeout();
-                _update_telemetry(SW_OFF, type, 0);
+                _update_telemetry(SW_OFF, type, 0, telemtryMSG.pressCount, 0);
             }
         }
         else
@@ -233,12 +233,12 @@ void smartSwitch::turnOFF_cb(uint8_t type)
             {
                 _stop_timeout();
                 _guessState = !_guessState;
-                _update_telemetry(SW_OFF, type);
+                _update_telemetry(SW_OFF, type, 0, telemtryMSG.pressCount, 0);
             }
         }
     }
 }
-int smartSwitch::get_remain_time()
+unsigned long smartSwitch::get_remain_time()
 {
     if (_timeout_clk.isRunning() && _use_timeout)
     {
@@ -249,11 +249,11 @@ int smartSwitch::get_remain_time()
         return 0;
     }
 }
-int smartSwitch::get_elapsed()
+unsigned long smartSwitch::get_elapsed()
 {
     return _timeout_clk.elapsed();
 }
-int smartSwitch::get_timeout()
+unsigned long smartSwitch::get_timeout()
 {
     return _timeout_temp == 0 ? _timeout_duration : _timeout_temp;
 }
@@ -282,46 +282,45 @@ void smartSwitch::get_SW_props(SW_props &props)
 }
 void smartSwitch::print_preferences()
 {
-    Serial.print(F("\n >>>>>> Switch #"));
-    Serial.print(_id);
-    Serial.println(F(" <<<<<< "));
+    DBG(F("\n >>>>>> Switch #"));
+    DBGL(_id);
+    DBGL(F(" <<<<<< "));
 
-    Serial.print(F("Output Type :\t"));
-    Serial.println(_virtCMD ? "Virtual" : "Real-Switch");
-    Serial.print(F("Name:\t"));
-    Serial.println(name);
+    DBG(F("Output Type :\t"));
+    DBGL(_virtCMD ? "Virtual" : "Real-Switch");
+    DBG(F("Name:\t"));
+    DBGL(name);
 
-    Serial.print(F("input type:\t"));
-    Serial.print(_button_type);
-    Serial.println(F(" ; 0:None; 1:Button, 2:Toggle"));
-    Serial.print(F("input_pin:\t"));
-    Serial.println(_inSW.switches[_ez_sw_id].switch_pin);
-    Serial.print(F("outout_pin:\t"));
-    Serial.println(_outputPin);
-    Serial.print(F("isPWM:\t"));
-    Serial.println(_output_pwm == 0 ? "No" : "Yes");
-    Serial.print(F("use indic:\t"));
-    Serial.println(_use_indic ? "Yes" : "No");
+    DBG(F("input type:\t"));
+    DBGL(_button_type);
+    DBGL(F(" ; 0:None; 1:Button, 2:Toggle"));
+    DBG(F("input_pin:\t"));
+    DBGL(_inSW.switches[_ez_sw_id].switch_pin);
+    DBG(F("outout_pin:\t"));
+    DBGL(_outputPin);
+    DBG(F("isPWM:\t"));
+    DBGL(_output_pwm == 0 ? "No" : "Yes");
+    DBG(F("use indic:\t"));
+    DBGL(_use_indic ? "Yes" : "No");
     if (_use_indic)
     {
-        Serial.print(F("indic_Pin:\t"));
-        Serial.println(_indicPin);
+        DBG(F("indic_Pin:\t"));
+        DBGL(_indicPin);
     }
 
-    Serial.print(F("use timeout:\t"));
-    Serial.println(_use_timeout ? "Yes" : "No");
+    DBG(F("use timeout:\t"));
+    DBGL(_use_timeout ? "Yes" : "No");
 
     if (_timeout_duration > 0)
     {
-        Serial.print(F("timeout [sec]:\t"));
-        Serial.println(_timeout_duration / TimeFactor);
+        DBG(F("timeout [sec]:\t"));
+        DBGL(_timeout_duration / TimeFactor);
     }
 
-    Serial.print(F("use lockdown:\t"));
-    Serial.println(_use_lockdown ? "YES" : "NO");
+    DBG(F("use lockdown:\t"));
+    DBGL(_use_lockdown ? "YES" : "NO");
 
-    Serial.println(F(" >>>>>>>> END <<<<<<<< \n"));
-    Serial.flush();
+    DBGL(F(" >>>>>>>> END <<<<<<<< \n"));
 }
 
 bool smartSwitch::loop()
@@ -442,17 +441,17 @@ void smartSwitch::_button_loop()
             }
             else if (_button_type == MULTI_PRESS_BUTTON)
             {
-                if (_last_button_press != 0 && millis() - _last_button_press > _time_between_presses)
+                if (_last_button_press != 0 && millis() - _last_button_press > _time_between_presses) /* press after time- turns off*/
                 {
                     _multiPress_counter = 0;
                     _last_button_press = 0;
                     turnOFF_cb(BUTTON_INPUT);
                 }
-                else if (_last_button_press != 0 && millis() - _last_button_press < _time_between_presses)
+                else if (_last_button_press != 0 && millis() - _last_button_press < _time_between_presses) /* inc counter */
                 {
                     _multiPress_counter++;
                     _last_button_press = millis();
-                    _update_telemetry(SW_ON, BUTTON_INPUT);
+                    _update_telemetry(SW_ON, BUTTON_INPUT, telemtryMSG.clk_end, _multiPress_counter, telemtryMSG.pwm);
                 }
                 else
                 {
@@ -521,12 +520,13 @@ void smartSwitch::_start_timeout()
         DBGL(F("TIMEOUT_START"));
     }
 }
-void smartSwitch::_update_telemetry(uint8_t state, uint8_t type, unsigned long te, uint8_t counter)
+void smartSwitch::_update_telemetry(uint8_t state, uint8_t type, unsigned long te, uint8_t counter, uint8_t pwm)
 {
     telemtryMSG.newMSG = true;
     telemtryMSG.state = state;
     telemtryMSG.reason = type;
     telemtryMSG.clk_end = te;
     telemtryMSG.pressCount = _multiPress_counter;
+    telemtryMSG.pwm = pwm;
     DBGL(F("TELEMETRY_UPDATE"));
 }

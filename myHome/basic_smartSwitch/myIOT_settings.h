@@ -5,8 +5,12 @@ char topics_sub[4][MAX_TOPIC_SIZE]{};
 char topics_pub[3][MAX_TOPIC_SIZE]{};
 char topics_gen_pub[3][MAX_TOPIC_SIZE]{};
 
-// const char *MCUtypeIO[] = {"/io_fail.json", "/io_SONOFF_S26.json", "/io_SONOFF_mini.json", "/io_MCU.json","/io_ESP01.json"};
-// const char *parameterFiles[] = {"/myIOT_param.json", "/myIOT2_topics.json", "/sketch_param.json", MCUtypeIO[0]}; /* MCUtypeIO value is updated from flash */
+void update_MQTT_state(uint8_t i, uint8_t x = 0)
+{
+    char a[5];
+    sprintf(a, "%s", i == 0 ? "off" : "on");
+    iot.pub_state(a, x);
+}
 void addiotnalMQTT(char *incoming_msg, char *_topic)
 {
     char msg[150];
@@ -76,7 +80,7 @@ void addiotnalMQTT(char *incoming_msg, char *_topic)
             uint8_t i = atoi(iot.inline_param[0]);
             if (strcmp(iot.inline_param[1], "timeout") == 0)
             {
-                smartSwArray[i]->turnON_cb(2, 60 * atoi(iot.inline_param[2]));
+                smartSwArray[i]->turnON_cb(2, atoi(iot.inline_param[2]), atoi(iot.inline_param[3]));
             }
             else if (strcmp(iot.inline_param[1], "off") == 0)
             {
@@ -84,7 +88,7 @@ void addiotnalMQTT(char *incoming_msg, char *_topic)
             }
             else if (strcmp(iot.inline_param[1], "on") == 0)
             {
-                smartSwArray[i]->turnON_cb(2);
+                smartSwArray[i]->turnON_cb(2, NULL, atoi(iot.inline_param[2]));
             }
         }
     }
