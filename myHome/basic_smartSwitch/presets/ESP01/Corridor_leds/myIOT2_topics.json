@@ -12,6 +12,7 @@
     "sub_topics": [
         "myHome/Lights/int/Corr_LEDs",
         "myHome/All",
+        "myHome/Lights/int",
         "myHome/Lights"
     ],
     "ver": 0.1

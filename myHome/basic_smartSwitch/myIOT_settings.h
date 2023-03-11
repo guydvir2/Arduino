@@ -84,8 +84,6 @@ void addiotnalMQTT(char *incoming_msg, char *_topic)
 
     if (strcmp(incoming_msg, "status") == 0)
     {
-        char a[30];
-        char b[15];
         for (uint8_t i = 0; i < totSW; i++)
         {
             create_status_msg(i, msg);
@@ -117,7 +115,7 @@ void addiotnalMQTT(char *incoming_msg, char *_topic)
             smartSwArray[i]->get_SW_props(prop);
 
             sprintf(msg, "[Entities]: #%d name[%s], timeout[%s], swType[%d], virtCMD[%s], PWM[%s], output_pin[%d], input_pin[%d], indication_pin[% d] ",
-                    prop.id, prop.name, prop.timeout ? String((smartSwArray[i]->get_timeout() / 1000)) + String(" sec") : " No ", prop.type,
+                    prop.id, prop.name, prop.timeout ? String((smartSwArray[i]->get_timeout() / 1000)+" sec").c_str() : " No ", prop.type,
                     prop.virtCMD ? "Yes" : "No", prop.PWM ? "Yes" : "No", prop.outpin, prop.inpin, prop.indicpin);
             iot.pub_msg(msg);
         }

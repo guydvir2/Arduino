@@ -1,10 +1,10 @@
-extern bool getPins_manual(JsonDocument &DOC);
-extern bool bootProcess_OK;
+bool bootProcess_OK = false;
+
 extern void smartSW_defs(uint8_t id, const char *SWname, uint8_t butType, uint8_t output_pin, uint8_t pwm_pwr,
                          uint8_t input_pin, uint8_t indic_pin, bool uselckd, int timeout, bool indic_on, bool onatboot);
 const char *MCUtypeIO[] = {"/io_fail.json", "/io_SONOFF_S26.json", "/io_SONOFF_mini.json", "/io_MCU.json", "/io_ESP01.json"};
 
-void build_path_directory()
+void assign_filenames()
 {
   iot.parameter_filenames[0] = "/myIOT_param.json";
   iot.parameter_filenames[1] = MCUtypeIO[0];
@@ -12,7 +12,7 @@ void build_path_directory()
   iot.parameter_filenames[3] = "/sketch_param.json";
   Serial.println(F("~ builded OK"));
 }
-void _updateTopics_flash(JsonDocument &DOC, char ch_array[][MAX_TOPIC_SIZE], const char *dest_array[], const char *topic, uint8_t shift = 0) /* update local Topic array */
+void _storeTopics_in_array(JsonDocument &DOC, char ch_array[][MAX_TOPIC_SIZE], const char *dest_array[], const char *topic, uint8_t shift = 0) /* update local Topic array */
 {
   uint8_t i = 0;
   JsonArray array = DOC[topic];
@@ -27,29 +27,42 @@ void _updateTopics_flash(JsonDocument &DOC, char ch_array[][MAX_TOPIC_SIZE], con
     }
   }
 }
-bool readTopics()
+void update_hardCoded_topics()
+{
+  iot.topics_gen_pub[0] = "myHome/Messages";
+  iot.topics_gen_pub[1] = "myHome/log";
+  iot.topics_gen_pub[2] = "myHome/debug";
+
+  iot.topics_pub[0] = "myHome/smartSW";
+  iot.topics_pub[0] = "myHome/smartSW/Avail";
+  iot.topics_pub[1] = "myHome/smartSW/State";
+
+  iot.topics_sub[0] = "myHome/smartSW";
+  iot.topics_sub[1] = "myHome/All";
+}
+bool readTopics_inFlash()
 {
   StaticJsonDocument<1500> DOC;
 #if MAN_MODE == true
-  Serial.println(F("~ Topics data-base - local"));
+  Serial.println(F("~ Topics database - local"));
   DeserializationError error0 = deserializeJson(DOC, topics);
   if (!error0)
   {
 #else
   if (iot.readJson_inFlash(DOC, iot.parameter_filenames[2])) /* extract topics from flash */
   {
-    Serial.println(F("~ entities data-base - flash"));
+    Serial.println(F("~ Topics data base - flash"));
 #endif
-    _updateTopics_flash(DOC, topics_gen_pub, iot.topics_gen_pub, "pub_gen_topics");
-    _updateTopics_flash(DOC, topics_pub, iot.topics_pub, "pub_topics");
-    _updateTopics_flash(DOC, topics_sub, iot.topics_sub, "sub_topics");
+    _storeTopics_in_array(DOC, topics_gen_pub, iot.topics_gen_pub, "pub_gen_topics");
+    _storeTopics_in_array(DOC, topics_pub, iot.topics_pub, "pub_topics");
+    _storeTopics_in_array(DOC, topics_sub, iot.topics_sub, "sub_topics");
 
     Serial.println(F("~ Topics build - OK "));
     return 1;
   }
   else
   {
-    Serial.println(F("~ Topics build - Failed "));
+    Serial.println(F("~ Topics build from Flash - Failed "));
     return 0;
   }
 }
@@ -60,19 +73,18 @@ bool get_IOT2_parameters()
   iot.useFlashP = false;
   iot.noNetwork_reset = 2;
   iot.ignore_boot_msg = false;
-  Serial.println(F("~ IOT2 parameters    - local"));
+  Serial.println(F("~ IOT2 parameters - local"));
   return 1;
 #else
   StaticJsonDocument<250> DOC;
   if (iot.readFlashParameters(DOC, iot.parameter_filenames[0]))
   {
-    // serializeJsonPretty(DOC,Serial);
     Serial.println("~ IOT2 parameters read - OK");
     return 1;
   }
   else
   {
-    Serial.println("~ IOT2 parameters read - Failed");
+    Serial.println("~ IOT2 parameters read - Failed. Using defaults.");
     return 0;
   }
 #endif
@@ -100,16 +112,15 @@ bool get_entities_parameters()
     /* Part 1: Read Sketch paramters from flash, and update Sketch */
     if (iot.readJson_inFlash(DOC, iot.parameter_filenames[3]))
     {
+      numS = DOC["numSW"];
+      mcuType = DOC["MCUtype"];
+      useclkdown = DOC["useLockdown"];
 
-      numS = DOC["numSW"].as<uint8_t>();
-      mcuType = DOC["MCUtype"].as<uint8_t>();
-      useclkdown = DOC["useLockdown"].as<bool>();
-
-      onatboot = DOC["ONatBoot"][x].as<bool>();
-      butType = DOC["SWtype"][x].as<uint8_t>();
+      onatboot = DOC["ONatBoot"][x];
+      butType = DOC["SWtype"][x];
       SWname = DOC["name"][x].as<const char *>();
-      timeout_duration = DOC["Timeout"][x].as<int>();
-      iot.parameter_filenames[1] = MCUtypeIO[mcuType];
+      timeout_duration = DOC["Timeout"][x];
+      iot.parameter_filenames[1] = MCUtypeIO[mcuType]; /* update filename of MCU type */
     }
     else
     {
@@ -118,7 +129,7 @@ bool get_entities_parameters()
     DOC.clear();
 
     /* Part 2: Read MCU IOs paramters from flash, and update Sketch */
-    if (iot.readJson_inFlash(DOC, MCUtypeIO[mcuType]))
+    if (iot.readJson_inFlash(DOC, iot.parameter_filenames[1]))
     {
       input_pin = DOC["inputPin"][x].as<uint8_t>();
       output_pin = DOC["relayPin"][x].as<uint8_t>();
@@ -144,16 +155,12 @@ bool get_entities_parameters()
   }
   return 1;
 }
-void read_all_parameters()
+void getStored_parameters()
 {
   Serial.println(F("\n±±±±±±±±±±±± Start Reading Parameters n±±±±±±±±±±±±"));
   Serial.flush();
-
-#if MAN_MODE == false
-  build_path_directory(); /* Needed for Flash only */
-#endif
-
-  if (get_IOT2_parameters() && get_entities_parameters() && readTopics())
+  assign_filenames();
+  if (get_IOT2_parameters() && get_entities_parameters() && readTopics_inFlash())
   {
     bootProcess_OK = true;
     Serial.println(F("\n\n±±±±±±±±±±±± Reading Parameters -OK  n±±±±±±±±±±±±"));
@@ -163,9 +170,8 @@ void read_all_parameters()
   {
     Serial.println(F("\n±±±±±±±±±±±± Reading Parameters -Failed  n±±±±±±±±±±±±"));
     Serial.flush();
-    bootProcess_OK = false;
-    build_path_directory();
     get_IOT2_parameters();
-    readTopics();
+    update_hardCoded_topics();
+    bootProcess_OK = false;
   }
 }

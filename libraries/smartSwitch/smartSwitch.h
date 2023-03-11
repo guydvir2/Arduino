@@ -15,10 +15,10 @@
 struct SW_act_telem
 {
     bool newMSG = false;
+    uint8_t pwm = 255; /* PWM precentage */
     uint8_t state = 255;  /* Up/Down/ Off */
     uint8_t reason = 255; /* What triggered the button */
     uint8_t pressCount = 255;
-    uint8_t pwm = 255; /* PWM precentage */
     unsigned long clk_end = 0;
 };
 struct SW_props

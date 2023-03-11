@@ -5,14 +5,15 @@
         "myHome/debug"
     ],
     "pub_topics": [
-        "myHome/Lights/int/parentLEDs/Avail",
-        "myHome/Lights/int/parentLEDs/State"
+        "myHome/Lights/int/Corr_LEDs/Avail",
+        "myHome/Lights/int/Corr_LEDs/State",
+        "myHome/Lights/int/Corr_LEDs/cmd"
     ],
     "sub_topics": [
-        "myHome/Lights/int/parentLEDs",
+        "myHome/Lights/int/Corr_LEDs",
         "myHome/All",
-        "myHome/Lights",
-        "myHome/Lights/int"
+        "myHome/Lights/int",
+        "myHome/Lights"
     ],
     "ver": 0.1
 }

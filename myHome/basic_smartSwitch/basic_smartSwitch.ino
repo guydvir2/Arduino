@@ -10,8 +10,7 @@ smartSwitch smartSW2;
 smartSwitch *smartSwArray[MAX_SW] = {&smartSW, &smartSW2};
 
 uint8_t totSW = 1;
-bool bootProcess_OK = false;
-const char *ver = "smartSwitch_v0.5";
+const char *ver = "smartSwitch_v0.57";
 
 #include "myIOT_settings.h"
 #include "parameterRead.h"
@@ -44,19 +43,22 @@ void smartSW_defs(uint8_t id, const char *SWname, uint8_t butType, uint8_t outpu
 }
 void smartSW_loop()
 {
-        for (uint8_t i = 0; i < totSW; i++)
+        if (bootProcess_OK)
         {
-                if (smartSwArray[i]->loop())
+                for (uint8_t i = 0; i < totSW; i++)
                 {
-                        smartSW_telemetry2MQTT(i);
-                        smartSwArray[i]->clear_newMSG();
+                        if (smartSwArray[i]->loop())
+                        {
+                                smartSW_telemetry2MQTT(i);
+                                smartSwArray[i]->clear_newMSG();
+                        }
                 }
         }
 }
 
 void setup()
 {
-        read_all_parameters();
+        getStored_parameters();
         startIOTservices();
 }
 void loop()
