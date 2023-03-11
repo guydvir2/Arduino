@@ -1,9 +1,9 @@
 {
-    "numSW": 1,
-    "MCUtype": 4,
+    "numSW": 2,
+    "MCUtype": 3,
     "SWtype": [
-        0,
-        2
+        1,
+        1
     ],
     "Timeout": [
         600,
@@ -11,12 +11,12 @@
     ],
     "useLockdown": false,
     "ONatBoot": [
-        true,
+        false,
         false
     ],
     "name": [
-        "Corridor",
-        "X"
+        "Bed",
+        "Mirror"
     ],
     "ver": 0.2
 }

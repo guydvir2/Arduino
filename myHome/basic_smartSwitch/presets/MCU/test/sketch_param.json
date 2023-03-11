@@ -2,11 +2,11 @@
     "numSW": 1,
     "MCUtype": 3,
     "SWtype": [
-        3,
+        0,
         2
     ],
     "Timeout": [
-        120,
+        600,
         60
     ],
     "useLockdown": false,

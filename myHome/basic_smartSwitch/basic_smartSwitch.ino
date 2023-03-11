@@ -42,8 +42,6 @@ void smartSW_defs(uint8_t id, const char *SWname, uint8_t butType, uint8_t outpu
         }
         smartSwArray[id]->print_preferences();
 }
-
-
 void smartSW_loop()
 {
         for (uint8_t i = 0; i < totSW; i++)
