@@ -2,7 +2,7 @@
     "numSW": 1,
     "MCUtype": 3,
     "SWtype": [
-        1,
+        0,
         2
     ],
     "Timeout": [

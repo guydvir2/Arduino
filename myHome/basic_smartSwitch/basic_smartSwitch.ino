@@ -58,6 +58,7 @@ void smartSW_loop()
 
 void setup()
 {
+        // Serial.begin(115200);
         getStored_parameters();
         startIOTservices();
 }

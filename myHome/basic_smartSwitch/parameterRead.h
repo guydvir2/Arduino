@@ -10,7 +10,7 @@ void assign_filenames()
   iot.parameter_filenames[1] = MCUtypeIO[0];
   iot.parameter_filenames[2] = "/myIOT2_topics.json";
   iot.parameter_filenames[3] = "/sketch_param.json";
-  Serial.println(F("~ builded OK"));
+  Serial.println(F("~ Assign filenames - OK"));
 }
 void _storeTopics_in_array(JsonDocument &DOC, char ch_array[][MAX_TOPIC_SIZE], const char *dest_array[], const char *topic, uint8_t shift = 0) /* update local Topic array */
 {
@@ -66,41 +66,26 @@ bool readTopics_inFlash()
     return 0;
   }
 }
-bool get_IOT2_parameters()
+void get_IOT2_parameters()
 {
-#if MAN_MODE
-  iot.useSerial = true;
+  iot.useSerial = false;
   iot.useFlashP = false;
   iot.noNetwork_reset = 2;
   iot.ignore_boot_msg = false;
   Serial.println(F("~ IOT2 parameters - local"));
-  return 1;
-#else
-  StaticJsonDocument<250> DOC;
-  if (iot.readFlashParameters(DOC, iot.parameter_filenames[0]))
-  {
-    Serial.println("~ IOT2 parameters read - OK");
-    return 1;
-  }
-  else
-  {
-    Serial.println("~ IOT2 parameters read - Failed. Using defaults.");
-    return 0;
-  }
-#endif
 }
 bool get_entities_parameters()
 {
   StaticJsonDocument<1200> DOC;
   const char *SWname{};
-  uint8_t numS{};
-  uint8_t mcuType{};
-  uint8_t butType{};
-  uint8_t input_pin{};
-  uint8_t indic_pin{};
-  uint8_t output_pin{};
-  uint8_t pwm_pwr{};
-  int timeout_duration{};
+  uint8_t numS = 1;
+  uint8_t mcuType = 0;
+  uint8_t butType = 0;
+  uint8_t input_pin = 255;
+  uint8_t indic_pin = 255;
+  uint8_t output_pin = 255;
+  uint8_t pwm_pwr = 0;
+  int timeout_duration = 0;
   bool useclkdown = false;
   bool indic_on = false;
   bool onatboot = false;
@@ -131,8 +116,8 @@ bool get_entities_parameters()
     /* Part 2: Read MCU IOs paramters from flash, and update Sketch */
     if (iot.readJson_inFlash(DOC, iot.parameter_filenames[1]))
     {
-      input_pin = DOC["inputPin"][x];
-      output_pin = DOC["relayPin"][x];
+      input_pin = DOC["inputPin"][x].as<uint8_t>();
+      output_pin = DOC["relayPin"][x].as<uint8_t>();
       indic_pin = DOC["indicLED"][x] | 255;
       indic_on = DOC["indic_on"][x] | false;
       pwm_pwr = DOC["PWM_pwr"][x] | 0;
@@ -160,7 +145,8 @@ void getStored_parameters()
   Serial.println(F("\n±±±±±±±±±±±± Start Reading Parameters ±±±±±±±±±±±±"));
   Serial.flush();
   assign_filenames();
-  if (get_IOT2_parameters() && get_entities_parameters() && readTopics_inFlash())
+  get_IOT2_parameters();
+  if (get_entities_parameters() && readTopics_inFlash())
   {
     bootProcess_OK = true;
     Serial.println(F("\n\n±±±±±±±±±±±± Reading Parameters -OK  ±±±±±±±±±±±±"));
@@ -170,7 +156,6 @@ void getStored_parameters()
   {
     Serial.println(F("\n±±±±±±±±±±±± Reading Parameters -Failed  ±±±±±±±±±±±±"));
     Serial.flush();
-    get_IOT2_parameters();
     update_hardCoded_topics();
     bootProcess_OK = false;
   }
