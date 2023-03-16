@@ -14,7 +14,7 @@ void create_rem_timeout_msg(uint8_t i, char ret_msg[])
 
     if (sw_is_turned_on_with_timeout || sw_is_turned_off_before_end_timeout)
     {
-        char a[10];
+        char a[15];
         iot.convert_epoch2clock(smartSwArray[i]->get_remain_time() / 1000, 0, a);
         sprintf(ret_msg, ", timeout [%s]", a);
     }
@@ -54,7 +54,7 @@ void create_status_msg(uint8_t i, char ret_msg[])
 }
 void update_MQTT_state(uint8_t i, uint8_t x = 0)
 {
-    char a[5];
+    char a[10];
     sprintf(a, "%s", i == 0 ? "off" : "on");
     iot.pub_state(a, x);
 }
@@ -114,10 +114,10 @@ void addiotnalMQTT(char *incoming_msg, char *_topic)
             SW_props prop;
             smartSwArray[i]->get_SW_props(prop);
 
-            sprintf(msg, "[Entities]: #%d name[%s], timeout[%s], swType[%d], virtCMD[%s], PWM[%s], output_pin[%d], input_pin[%d], indication_pin[% d] ",
-                    prop.id, prop.name, prop.timeout ? String((smartSwArray[i]->get_timeout() / 1000)+" sec").c_str() : " No ", prop.type,
-                    prop.virtCMD ? "Yes" : "No", prop.PWM ? "Yes" : "No", prop.outpin, prop.inpin, prop.indicpin);
-            iot.pub_msg(msg);
+            // sprintf(msg, "[Entities]: #%d name[%s], timeout[%s], swType[%d], virtCMD[%s], PWM[%s], output_pin[%d], input_pin[%d], indication_pin[% d] ",
+            //         prop.id, prop.name, prop.timeout ? String((smartSwArray[i]->get_timeout() / 1000) + " sec").c_str() : " No ", prop.type,
+            //         prop.virtCMD ? "Yes" : "No", prop.PWM ? "Yes" : "No", prop.outpin, prop.inpin, prop.indicpin);
+            // iot.pub_msg(msg);
         }
     }
     else
@@ -127,13 +127,13 @@ void addiotnalMQTT(char *incoming_msg, char *_topic)
             uint8_t i = atoi(iot.inline_param[0]);
             if (strcmp(iot.inline_param[1], "timeout") == 0)
             {
-                if (atoi(iot.inline_param[2]) != 0) /* specifing PWR for PWM instance*/
+                if (atoi(iot.inline_param[3]) != 0) /* specifing PWR for PWM instance*/
                 {
-                    smartSwArray[i]->turnON_cb(2, atoi(iot.inline_param[2]), atoi(iot.inline_param[3]));
+                    smartSwArray[i]->turnON_cb(2, atoi(iot.inline_param[2]) /* timoeut */, atoi(iot.inline_param[3]) /* PWM power */);
                 }
                 else
                 {
-                    smartSwArray[i]->turnON_cb(2, atoi(iot.inline_param[2]));
+                    smartSwArray[i]->turnON_cb(2, atoi(iot.inline_param[2]) /* timoeut */);
                 }
             }
             else if (strcmp(iot.inline_param[1], "off") == 0)
@@ -144,11 +144,11 @@ void addiotnalMQTT(char *incoming_msg, char *_topic)
             {
                 if (atoi(iot.inline_param[2]) != 0) /* specifing PWR for PWM instance*/
                 {
-                    smartSwArray[i]->turnON_cb(2, 0, atoi(iot.inline_param[2]));
+                    smartSwArray[i]->turnON_cb(2, 0/* timeout default value */, atoi(iot.inline_param[2])/* PWM */);
                 }
                 else
                 {
-                    smartSwArray[i]->turnON_cb(2, 0);
+                    smartSwArray[i]->turnON_cb(2, 0 /* timeout default value */);
                 }
             }
         }

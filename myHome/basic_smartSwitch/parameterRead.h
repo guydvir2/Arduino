@@ -131,8 +131,8 @@ bool get_entities_parameters()
     /* Part 2: Read MCU IOs paramters from flash, and update Sketch */
     if (iot.readJson_inFlash(DOC, iot.parameter_filenames[1]))
     {
-      input_pin = DOC["inputPin"][x].as<uint8_t>();
-      output_pin = DOC["relayPin"][x].as<uint8_t>();
+      input_pin = DOC["inputPin"][x];
+      output_pin = DOC["relayPin"][x];
       indic_pin = DOC["indicLED"][x] | 255;
       indic_on = DOC["indic_on"][x] | false;
       pwm_pwr = DOC["PWM_pwr"][x] | 0;
@@ -157,18 +157,18 @@ bool get_entities_parameters()
 }
 void getStored_parameters()
 {
-  Serial.println(F("\n±±±±±±±±±±±± Start Reading Parameters n±±±±±±±±±±±±"));
+  Serial.println(F("\n±±±±±±±±±±±± Start Reading Parameters ±±±±±±±±±±±±"));
   Serial.flush();
   assign_filenames();
   if (get_IOT2_parameters() && get_entities_parameters() && readTopics_inFlash())
   {
     bootProcess_OK = true;
-    Serial.println(F("\n\n±±±±±±±±±±±± Reading Parameters -OK  n±±±±±±±±±±±±"));
+    Serial.println(F("\n\n±±±±±±±±±±±± Reading Parameters -OK  ±±±±±±±±±±±±"));
     Serial.flush();
   }
   else
   {
-    Serial.println(F("\n±±±±±±±±±±±± Reading Parameters -Failed  n±±±±±±±±±±±±"));
+    Serial.println(F("\n±±±±±±±±±±±± Reading Parameters -Failed  ±±±±±±±±±±±±"));
     Serial.flush();
     get_IOT2_parameters();
     update_hardCoded_topics();
