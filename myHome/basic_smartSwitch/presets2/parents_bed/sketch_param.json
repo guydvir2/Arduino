@@ -1,26 +1,33 @@
 {
-    "numSW": 1,
-    "MCUtype": 4,
+    "numSW": 2,
+    "MCUtype": 3,
     "useLockdown": false,
     "SWtype": [
+        1,
         1
     ],
     "Timeout": [
-        600
+        600,
+        60
     ],
     "ONatBoot": [
-        true
+        false,
+        false
     ],
     "name": [
-        "Corridor"
+        "Bed",
+        "Mirror"
     ],
     "indic_on": [
+        false,
         false
     ],
     "PWM_pwr": [
-        5
+        20,
+        20
     ],
     "virtOutput": [
+        0,
         0
     ],
     "ver": 0.4

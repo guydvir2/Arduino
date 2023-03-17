@@ -53,29 +53,56 @@ void smartSwitch::set_name(const char *Name)
 void smartSwitch::set_output(uint8_t outpin, uint8_t intense, bool dir)
 {
     OUTPUT_ON = dir;
-    if (intense > 0 && intense <= 100) /* PWM OUTOUT defined by intense >0 */
-    {
-        _output_pwm = true;
-        _pwm_ints = intense;
-        _outputPin = outpin;
-        pinMode(outpin, OUTPUT);
+    //     if (intense > 0 && intense <= 100) /* PWM OUTOUT defined by intense >0 */
+    //     {
+    //         _output_pwm = true;
+    //         _pwm_ints = intense;
+    //         _outputPin = outpin;
+    //         pinMode(outpin, OUTPUT);
 
-#if defined(ESP8266)
-        analogWriteRange(1023);
-#endif
+    // #if defined(ESP8266)
+    //         analogWriteRange(1023);
+    // #endif
+    //     }
+    //     else
+    //     {
+    //         if (outpin != UNDEF_PIN)
+    //         {
+    //             _outputPin = outpin;
+    //             pinMode(outpin, OUTPUT);
+    //         }
+    //         else
+    //         {
+    //             _virtCMD = true;
+    //         }
+    //         _output_pwm = false;
+    //     }
+
+    if (outpin == UNDEF_PIN) // VirtCmd
+    {
+        _virtCMD = true;
     }
     else
     {
-        if (outpin != UNDEF_PIN)
+        _outputPin = outpin;
+        pinMode(outpin, OUTPUT);
+        if (intense > 0 && intense <= 100) /* PWM OUTOUT defined by intense >0 */
         {
-            _outputPin = outpin;
-            pinMode(outpin, OUTPUT);
+            _output_pwm = true;
+            _pwm_ints = intense;
+            telemtryMSG.pwm = _pwm_ints;
+            telemtryMSG.state = 0;
+
+#if defined(ESP8266)
+            analogWriteRange(1023);
+#endif
         }
-        else
+        else /* Relay Output*/
         {
-            _virtCMD = true;
+            _output_pwm = false;
+            telemtryMSG.pwm = 0;
+            telemtryMSG.state = digitalRead(_outputPin);
         }
-        _output_pwm = false;
     }
 }
 

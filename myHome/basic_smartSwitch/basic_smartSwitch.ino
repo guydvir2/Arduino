@@ -4,14 +4,16 @@
 
 #define MAX_SW 2
 #define MAN_MODE false
+#define DEBUG_MODE false
 
 smartSwitch smartSW;
 smartSwitch smartSW2;
 smartSwitch *smartSwArray[MAX_SW] = {&smartSW, &smartSW2};
 
 uint8_t totSW = 1;
-const char *ver = "smartSwitch_v0.57";
+const char *ver = "smartSwitch_v0.6";
 
+#include "pins.h"
 #include "myIOT_settings.h"
 #include "parameterRead.h"
 
@@ -22,7 +24,7 @@ void smartSW_defs(uint8_t id, const char *SWname, uint8_t butType, uint8_t outpu
         {
                 totSW++;
         }
-        smartSwArray[id]->useDebug = false;
+        smartSwArray[id]->useDebug = DEBUG_MODE;
         smartSwArray[id]->set_name(SWname);
         smartSwArray[id]->set_output(output_pin, pwm_pwr); /* pin-255 calls a virtualCMD, pwm_pwr>0 create PWM output */
         smartSwArray[id]->set_input(input_pin, butType);
@@ -58,7 +60,9 @@ void smartSW_loop()
 
 void setup()
 {
-        // Serial.begin(115200);
+#if DEBUG_MODE
+        Serial.begin(115200);
+#endif
         getStored_parameters();
         startIOTservices();
 }

@@ -1,24 +1,24 @@
 {
     "numSW": 1,
-    "MCUtype": 4,
+    "MCUtype": 5,
     "useLockdown": false,
     "SWtype": [
-        1
+        0
     ],
     "Timeout": [
         600
     ],
     "ONatBoot": [
-        true
+        false
     ],
     "name": [
-        "Corridor"
+        "LEDstrip"
     ],
     "indic_on": [
         false
     ],
     "PWM_pwr": [
-        5
+        0
     ],
     "virtOutput": [
         0

@@ -10,7 +10,8 @@ void create_rem_timeout_msg(uint8_t i, char ret_msg[])
     bool sw_is_turned_on_with_timeout = smartSwArray[i]->useTimeout() &&
                                         smartSwArray[i]->telemtryMSG.state == 1;
     bool sw_is_turned_off_before_end_timeout = smartSwArray[i]->useTimeout() &&
-                                               smartSwArray[i]->telemtryMSG.state == 0 && smartSwArray[i]->get_remain_time() != 0;
+                                               smartSwArray[i]->telemtryMSG.state == 0 && 
+                                               smartSwArray[i]->get_remain_time() != 0;
 
     if (sw_is_turned_on_with_timeout || sw_is_turned_off_before_end_timeout)
     {
@@ -78,6 +79,14 @@ void smartSW_telemetry2MQTT(uint8_t i)
     iot.pub_msg(msg);
     update_MQTT_state(smartSwArray[i]->telemtryMSG.state, i);
 }
+void set_IOT2_Parameters()
+{
+    iot.useSerial = DEBUG_MODE;
+    iot.useFlashP = false;
+    iot.noNetwork_reset = 2;
+    iot.ignore_boot_msg = false;
+    Serial.println(F("~ IOT2 parameters - local"));
+}
 void addiotnalMQTT(char *incoming_msg, char *_topic)
 {
     char msg[200];
@@ -111,13 +120,23 @@ void addiotnalMQTT(char *incoming_msg, char *_topic)
     {
         for (uint8_t i = 0; i < totSW; i++)
         {
+            char a[30];
+            char clk[15];
             SW_props prop;
             smartSwArray[i]->get_SW_props(prop);
+            if (prop.timeout)
+            {
+                iot.convert_epoch2clock(smartSwArray[i]->get_timeout() / 1000,0,clk);
+                sprintf(a, "%s", clk);
+            }
+            else
+            {
+                sprintf(a, "No");
+            }
 
-            // sprintf(msg, "[Entities]: #%d name[%s], timeout[%s], swType[%d], virtCMD[%s], PWM[%s], output_pin[%d], input_pin[%d], indication_pin[% d] ",
-            //         prop.id, prop.name, prop.timeout ? String((smartSwArray[i]->get_timeout() / 1000) + " sec").c_str() : " No ", prop.type,
-            //         prop.virtCMD ? "Yes" : "No", prop.PWM ? "Yes" : "No", prop.outpin, prop.inpin, prop.indicpin);
-            // iot.pub_msg(msg);
+            sprintf(msg, "[Entities]: [#%d][%s], timeout[%s], swType[%d], virtCMD[%s], PWM[%s], output_pin[%d], input_pin[%d], indication_pin[%d] ",
+                    prop.id, prop.name, a, prop.type, prop.virtCMD ? "Yes" : "No", prop.PWM ? "Yes" : "No", prop.outpin, prop.inpin, prop.indicpin);
+            iot.pub_msg(msg);
         }
     }
     else
@@ -144,7 +163,7 @@ void addiotnalMQTT(char *incoming_msg, char *_topic)
             {
                 if (atoi(iot.inline_param[2]) != 0) /* specifing PWR for PWM instance*/
                 {
-                    smartSwArray[i]->turnON_cb(2, 0/* timeout default value */, atoi(iot.inline_param[2])/* PWM */);
+                    smartSwArray[i]->turnON_cb(2, 0 /* timeout default value */, atoi(iot.inline_param[2]) /* PWM */);
                 }
                 else
                 {

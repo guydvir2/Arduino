@@ -5,14 +5,14 @@
         "myHome/debug"
     ],
     "pub_topics": [
-        "myHome/Lights/int/boys_BEDs/Avail",
-        "myHome/Lights/int/boys_BEDs/State",
-        "myHome/Lights/int/boys_BEDs/cmd"
+        "myHome/Lights/int/parentLEDs/Avail",
+        "myHome/Lights/int/parentLEDs/State"
     ],
     "sub_topics": [
-        "myHome/Lights/int/boys_BEDs",
+        "myHome/Lights/int/parentLEDs",
         "myHome/All",
-        "myHome/Lights"
+        "myHome/Lights",
+        "myHome/Lights/int"
     ],
     "ver": 0.1
 }

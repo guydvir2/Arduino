@@ -17,8 +17,8 @@ struct SW_act_telem
     bool newMSG = false;
     uint8_t pwm = 255; /* PWM precentage */
     uint8_t state = 255;  /* Up/Down/ Off */
-    uint8_t reason = 255; /* What triggered the button */
-    uint8_t pressCount = 255;
+    uint8_t reason = 3; /* What triggered the button */
+    uint8_t pressCount = 0;
     unsigned long clk_end = 0;
 };
 struct SW_props
@@ -83,7 +83,7 @@ enum SWstates : const uint8_t
 class smartSwitch
 {
 public:
-    const char *ver = "smartSW_v0.6";
+    const char *ver = "smartSW_v0.7";
     char name[MAX_TOPIC_SIZE];
     SW_act_telem telemtryMSG;
 

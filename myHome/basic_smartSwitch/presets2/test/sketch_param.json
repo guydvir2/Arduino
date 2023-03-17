@@ -1,26 +1,33 @@
 {
-    "numSW": 1,
-    "MCUtype": 4,
+    "numSW": 2,
+    "MCUtype": 5,
     "useLockdown": false,
     "SWtype": [
-        1
+        0,
+        2
     ],
     "Timeout": [
-        600
+        600,
+        60
     ],
     "ONatBoot": [
-        true
+        false,
+        false
     ],
     "name": [
-        "Corridor"
+        "Test1",
+        "Test2"
     ],
     "indic_on": [
+        false,
         false
     ],
     "PWM_pwr": [
-        5
+        0,
+        0
     ],
     "virtOutput": [
+        0,
         0
     ],
     "ver": 0.4

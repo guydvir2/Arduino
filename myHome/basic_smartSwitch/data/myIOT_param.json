@@ -1,6 +1,0 @@
-{
-    "useSerial": false,
-    "ignore_boot_msg": false,
-    "noNetwork_reset": 5,
-    "ver": 1.1
-}

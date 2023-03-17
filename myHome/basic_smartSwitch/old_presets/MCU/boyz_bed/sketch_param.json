@@ -1,12 +1,12 @@
 {
-    "numSW": 1,
+    "numSW": 2,
     "MCUtype": 3,
     "SWtype": [
-        3,
-        2
+        1,
+        1
     ],
     "Timeout": [
-        120,
+        60,
         60
     ],
     "useLockdown": false,
@@ -15,7 +15,7 @@
         false
     ],
     "name": [
-        "LEDstrip",
+        "Or",
         "Oz"
     ],
     "ver": 0.2

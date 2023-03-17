@@ -1,24 +1,24 @@
 {
     "numSW": 1,
-    "MCUtype": 4,
+    "MCUtype": 1,
     "useLockdown": false,
     "SWtype": [
         1
     ],
     "Timeout": [
-        600
+        300
     ],
     "ONatBoot": [
         true
     ],
     "name": [
-        "Corridor"
+        "pwrPlug"
     ],
     "indic_on": [
-        false
+        true
     ],
     "PWM_pwr": [
-        5
+        0
     ],
     "virtOutput": [
         0
