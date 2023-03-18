@@ -83,7 +83,7 @@ enum SWstates : const uint8_t
 class smartSwitch
 {
 public:
-    const char *ver = "smartSW_v0.7";
+    const char *ver = "smartSwitch_Libv0.71";
     char name[MAX_TOPIC_SIZE];
     SW_act_telem telemtryMSG;
 
@@ -104,7 +104,7 @@ public:
     void init_lockdown();
     void release_lockdown();
 
-    void turnON_cb(uint8_t type, unsigned int temp_TO = 0, int intense = 255);
+    void turnON_cb(uint8_t type, unsigned int temp_TO = 0, uint8_t intense = 255);
     void turnOFF_cb(uint8_t type);
     void clear_newMSG();
     bool loop();
@@ -125,12 +125,11 @@ public:
 
 private:
     uint8_t _ez_sw_id = 0;
-    uint8_t _pwm_ints = 0;
+    uint8_t _DEFAULT_PWM_INTENSITY = 0;
     uint8_t _button_type = 255;
     uint8_t _outputPin = UNDEF_PIN;
     uint8_t _indicPin = UNDEF_PIN;
     uint8_t _multiPress_counter = 0;
-    unsigned long _total_pressed = 0;
 
     uint8_t _id = 0;
     static uint8_t _next_id; /* Instance counter */
@@ -150,22 +149,22 @@ private:
     Chrono _timeout_clk;
 
     /* inputs only */
-    unsigned long _timeout_duration = 1; // in seconds
-    unsigned long _timeout_temp = 0;     // in seconds
+    unsigned long _DEFAULT_TIMEOUT_DUARION = 1; // in seconds
+    unsigned long _adHoc_timeout_duration = 0;  // in seconds
     unsigned long _last_button_press = 0;
 
 private:
     bool _isOUTPUT_ON();
-    void _setOUTPUT_ON(uint8_t val = 0);
+    void _setOUTPUT_ON(uint8_t val = 255);
     void _setOUTPUT_OFF();
     void _button_loop();
     void _indic_loop();
     void _timeout_loop();
     void _stop_timeout();
-    void _start_timeout();
     void _turn_indic_on();
     void _turn_indic_off();
-    void _update_telemetry(uint8_t state, uint8_t type, unsigned long te = 0, uint8_t counter = 255, uint8_t pwm = 255);
+    void _start_timeout_clock();
+    void _update_telemetry(uint8_t state, uint8_t type, unsigned long te = 0, uint8_t pwm = 255);
 };
 
 #endif

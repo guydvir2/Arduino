@@ -16,7 +16,7 @@ void smartSwitch::set_timeout(int t)
     if (t > 0)
     {
         _use_timeout = true;
-        _timeout_duration = t * TimeFactor;
+        _DEFAULT_TIMEOUT_DUARION = t * TimeFactor; /* default timeout */
         _stop_timeout();
     }
     else
@@ -28,21 +28,21 @@ void smartSwitch::set_additional_timeout(int t, uint8_t type)
 {
     if (_use_timeout)
     {
-        if (_timeout_temp != 0)
+        if (_adHoc_timeout_duration != 0)
         {
-            _timeout_temp += t * TimeFactor;
+            _adHoc_timeout_duration += t * TimeFactor;
         }
-        else if (_timeout_temp == 0 && _timeout_duration != 0)
+        else if (_adHoc_timeout_duration == 0 && _DEFAULT_TIMEOUT_DUARION != 0)
         {
-            _timeout_temp += t * TimeFactor + _timeout_duration;
+            _adHoc_timeout_duration += t * TimeFactor + _DEFAULT_TIMEOUT_DUARION;
         }
         if (!get_remain_time())
         {
-            turnON_cb(type, _timeout_temp / 1000);
+            turnON_cb(type, _adHoc_timeout_duration / 1000);
         }
         else
         {
-            _update_telemetry(SW_ON, type, _timeout_temp, telemtryMSG.pressCount, telemtryMSG.pwm);
+            _update_telemetry(SW_ON, type, _adHoc_timeout_duration, telemtryMSG.pwm);
         }
     }
 }
@@ -64,8 +64,8 @@ void smartSwitch::set_output(uint8_t outpin, uint8_t intense, bool dir)
         if (intense > 0 && intense <= 100) /* PWM OUTOUT defined by intense >0 */
         {
             _output_pwm = true;
-            _pwm_ints = intense;
-            telemtryMSG.pwm = _pwm_ints;
+            _DEFAULT_PWM_INTENSITY = intense;
+            telemtryMSG.pwm = _DEFAULT_PWM_INTENSITY;
             telemtryMSG.state = 0;
 
 #if defined(ESP8266)
@@ -142,63 +142,45 @@ void smartSwitch::release_lockdown()
     }
 }
 
-void smartSwitch::turnON_cb(uint8_t type, unsigned int temp_TO, int intense)
+void smartSwitch::turnON_cb(uint8_t type, unsigned int temp_TO, uint8_t intense)
 {
     if (!_in_lockdown)
     {
         if (!_virtCMD)
         {
-            if (!_output_pwm) /* NOT PWM output*/
+            if (!_isOUTPUT_ON())
             {
-                if (!_isOUTPUT_ON())
-                {
-                    _setOUTPUT_ON();
-                }
-                else
-                {
-                    DBGL(F("Already on 1"));
-                    return;
-                }
+                _setOUTPUT_ON(intense); /* Both PWM and Switch */
             }
-            else /* PWM output*/
+            else
             {
-                if (!_PWM_ison)
-                {
-                    if (intense != 255) /* Intersity was defined locally*/
-                    {
-                        _setOUTPUT_ON(intense);
-                    }
-                    else
-                    {
-                        _setOUTPUT_ON(_pwm_ints);
-                    }
-                }
-                else
-                {
-                    DBGL(F("Already on 2"));
-                    return;
-                }
+                DBGL(F("Already on"));
+                return;
             }
 
-            if (temp_TO != 0)
-            {
-                _timeout_temp = temp_TO * TimeFactor;
-            }
-            _start_timeout();
             unsigned long _t = 0;
             if (_use_timeout)
             {
-                temp_TO == 0 ? _t = _timeout_duration : _t = _timeout_temp;
+                if (temp_TO != 0) /* timeout was defined - not using default timeout */
+                {
+                    _adHoc_timeout_duration = temp_TO * TimeFactor; /* Define timeout */
+                    _t = _adHoc_timeout_duration;
+                }
+                else
+                {
+                    _t = _DEFAULT_TIMEOUT_DUARION;
+                }
+                _start_timeout_clock(); /* start clock - no matter if it is default or not */
             }
-            _update_telemetry(SW_ON, type, _t, telemtryMSG.pressCount, intense == 255 ? _pwm_ints : intense);
+            _update_telemetry(SW_ON, type, _t, intense == 255 ? _DEFAULT_PWM_INTENSITY : intense);
         }
         else
         {
             if (_guessState == SW_OFF)
             {
-                _start_timeout();
+                _start_timeout_clock();
                 _guessState = !_guessState;
-                _update_telemetry(SW_ON, type, get_remain_time(), telemtryMSG.pressCount);
+                _update_telemetry(SW_ON, type, get_remain_time());
             }
         }
     }
@@ -209,24 +191,34 @@ void smartSwitch::turnOFF_cb(uint8_t type)
     {
         if (!_virtCMD)
         {
-            if (!_output_pwm)
-            {
-                if (_isOUTPUT_ON())
-                {
-                    _setOUTPUT_OFF();
-                    _stop_timeout();
-                    _update_telemetry(SW_OFF, type, 0, telemtryMSG.pressCount, 0);
-                }
-                else
-                {
-                    DBGL(F("Already off"));
-                }
-            }
-            else
+            // if (!_output_pwm)
+            // {
+            //     if (_isOUTPUT_ON())
+            //     {
+            //         _setOUTPUT_OFF();
+            //         _stop_timeout();
+            //         _update_telemetry(SW_OFF, type, 0, 0);
+            //     }
+            //     else
+            //     {
+            //         DBGL(F("Already off"));
+            //     }
+            // }
+            // else
+            // {
+            //     _setOUTPUT_OFF();
+            //     _stop_timeout();
+            //     _update_telemetry(SW_OFF, type, 0, 0);
+            // }
+            if (_isOUTPUT_ON())
             {
                 _setOUTPUT_OFF();
                 _stop_timeout();
-                _update_telemetry(SW_OFF, type, 0, telemtryMSG.pressCount, 0);
+                _update_telemetry(SW_OFF, type, 0, 0);
+            }
+            else
+            {
+                DBGL(F("Already off"));
             }
         }
         else
@@ -235,7 +227,7 @@ void smartSwitch::turnOFF_cb(uint8_t type)
             {
                 _stop_timeout();
                 _guessState = !_guessState;
-                _update_telemetry(SW_OFF, type, 0, telemtryMSG.pressCount, 0);
+                _update_telemetry(SW_OFF, type, 0, 0);
             }
         }
     }
@@ -244,7 +236,7 @@ unsigned long smartSwitch::get_remain_time()
 {
     if (_timeout_clk.isRunning() && _use_timeout)
     {
-        return _timeout_temp == 0 ? _timeout_duration - _timeout_clk.elapsed() : _timeout_temp - _timeout_clk.elapsed();
+        return _adHoc_timeout_duration == 0 ? _DEFAULT_TIMEOUT_DUARION - _timeout_clk.elapsed() : _adHoc_timeout_duration - _timeout_clk.elapsed();
     }
     else
     {
@@ -257,7 +249,7 @@ unsigned long smartSwitch::get_elapsed()
 }
 unsigned long smartSwitch::get_timeout()
 {
-    return _timeout_temp == 0 ? _timeout_duration : _timeout_temp;
+    return _adHoc_timeout_duration == 0 ? _DEFAULT_TIMEOUT_DUARION : _adHoc_timeout_duration;
 }
 uint8_t smartSwitch::get_SWstate()
 {
@@ -313,10 +305,10 @@ void smartSwitch::print_preferences()
     DBG(F("use timeout:\t"));
     DBGL(_use_timeout ? "Yes" : "No");
 
-    if (_timeout_duration > 0)
+    if (_DEFAULT_TIMEOUT_DUARION > 0)
     {
         DBG(F("timeout [sec]:\t"));
-        DBGL(_timeout_duration / TimeFactor);
+        DBGL(_DEFAULT_TIMEOUT_DUARION / TimeFactor);
     }
 
     DBG(F("use lockdown:\t"));
@@ -398,7 +390,8 @@ void smartSwitch::_setOUTPUT_ON(uint8_t val)
 #elif defined(ESP32)
         res = 4097;
 #endif
-        analogWrite(_outputPin, (int)((res * val) / 100));
+        int _val = val == 255 ? (res * _DEFAULT_PWM_INTENSITY) / 100 : (res * val) / 100;
+        analogWrite(_outputPin, _val);
         _PWM_ison = true;
         DBGL(F("PWM_ON"));
     }
@@ -453,7 +446,7 @@ void smartSwitch::_button_loop()
                 {
                     _multiPress_counter++;
                     _last_button_press = millis();
-                    _update_telemetry(SW_ON, BUTTON_INPUT, telemtryMSG.clk_end, _multiPress_counter, telemtryMSG.pwm);
+                    _update_telemetry(SW_ON, BUTTON_INPUT, telemtryMSG.clk_end, telemtryMSG.pwm);
                 }
                 else
                 {
@@ -486,11 +479,11 @@ void smartSwitch::_timeout_loop()
 {
     if (_timeout_clk.isRunning())
     {
-        if (_timeout_temp != 0 && _timeout_clk.hasPassed(_timeout_temp)) /* ad-hoc timeout*/
+        if (_adHoc_timeout_duration != 0 && _timeout_clk.hasPassed(_adHoc_timeout_duration)) /* ad-hoc timeout*/
         {
             turnOFF_cb(SW_TIMEOUT);
         }
-        else if (_timeout_temp == 0 && _timeout_clk.hasPassed(_timeout_duration)) /* preset timeout */
+        else if (_adHoc_timeout_duration == 0 && _timeout_clk.hasPassed(_DEFAULT_TIMEOUT_DUARION)) /* preset timeout */
         {
             turnOFF_cb(SW_TIMEOUT);
         }
@@ -509,11 +502,11 @@ void smartSwitch::_stop_timeout()
     if (_use_timeout)
     {
         _timeout_clk.stop();
-        _timeout_temp = 0;
+        _adHoc_timeout_duration = 0;
         DBGL(F("TIMEOUT_STOPPED"));
     }
 }
-void smartSwitch::_start_timeout()
+void smartSwitch::_start_timeout_clock()
 {
     if (_use_timeout)
     {
@@ -522,7 +515,7 @@ void smartSwitch::_start_timeout()
         DBGL(F("TIMEOUT_START"));
     }
 }
-void smartSwitch::_update_telemetry(uint8_t state, uint8_t type, unsigned long te, uint8_t counter, uint8_t pwm)
+void smartSwitch::_update_telemetry(uint8_t state, uint8_t type, unsigned long te, uint8_t pwm)
 {
     telemtryMSG.newMSG = true;
     telemtryMSG.state = state;

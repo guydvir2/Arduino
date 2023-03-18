@@ -1,6 +1,6 @@
 {
     "numSW": 1,
-    "MCUtype": 3,
+    "MCUtype": 6,
     "useLockdown": false,
     "SWtype": [
         1
