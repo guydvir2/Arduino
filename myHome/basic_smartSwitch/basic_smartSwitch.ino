@@ -4,7 +4,7 @@
 
 #define MAX_SW 2
 #define MAN_MODE false
-#define DEBUG_MODE false
+#define DEBUG_MODE true
 
 smartSwitch smartSW;
 smartSwitch smartSW2;

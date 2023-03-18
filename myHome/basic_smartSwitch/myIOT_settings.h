@@ -171,6 +171,7 @@ void addiotnalMQTT(char *incoming_msg, char *_topic)
                 }
             }
         }
+        iot.clear_inline_read();
     }
 }
 void startIOTservices()
