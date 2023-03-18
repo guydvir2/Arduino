@@ -15,9 +15,9 @@
 struct SW_act_telem
 {
     bool newMSG = false;
-    uint8_t pwm = 255; /* PWM precentage */
-    uint8_t state = 255;  /* Up/Down/ Off */
-    uint8_t reason = 3; /* What triggered the button */
+    uint8_t pwm = 255;   /* PWM precentage */
+    uint8_t state = 255; /* Up/Down/ Off */
+    uint8_t reason = 3;  /* What triggered the button */
     uint8_t pressCount = 0;
     unsigned long clk_end = 0;
 };
@@ -91,8 +91,8 @@ public:
     smartSwitch();
     void set_id(uint8_t i);
     void set_timeout(int t = 0);
-    void set_additional_timeout(int t, uint8_t type);
     void set_name(const char *Name = "smartSW");
+    void set_additional_timeout(int t, uint8_t type);
     void set_input(uint8_t inpin = UNDEF_PIN, uint8_t t = 0, bool dir = LOW);
     void set_indiction(uint8_t pin = UNDEF_PIN, bool dir = 0);
     void set_output(uint8_t outpin = UNDEF_PIN, uint8_t intense = 0, bool dir = HIGH);

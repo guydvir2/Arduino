@@ -10,7 +10,7 @@ void create_rem_timeout_msg(uint8_t i, char ret_msg[])
     bool sw_is_turned_on_with_timeout = smartSwArray[i]->useTimeout() &&
                                         smartSwArray[i]->telemtryMSG.state == 1;
     bool sw_is_turned_off_before_end_timeout = smartSwArray[i]->useTimeout() &&
-                                               smartSwArray[i]->telemtryMSG.state == 0 && 
+                                               smartSwArray[i]->telemtryMSG.state == 0 &&
                                                smartSwArray[i]->get_remain_time() != 0;
 
     if (sw_is_turned_on_with_timeout || sw_is_turned_off_before_end_timeout)
@@ -126,7 +126,7 @@ void addiotnalMQTT(char *incoming_msg, char *_topic)
             smartSwArray[i]->get_SW_props(prop);
             if (prop.timeout)
             {
-                iot.convert_epoch2clock(smartSwArray[i]->get_timeout() / 1000,0,clk);
+                iot.convert_epoch2clock(smartSwArray[i]->get_timeout() / 1000, 0, clk);
                 sprintf(a, "%s", clk);
             }
             else
