@@ -5,12 +5,12 @@
         "myHome/debug"
     ],
     "pub_topics": [
-        "myHome/Lights/int/Kitchen/Avail",
-        "myHome/Lights/int/Kitchen/State",
-        "myHome/Lights/int/Kitchen/cmd"
+        "myHome/Lights/int/Corr_LEDs/Avail",
+        "myHome/Lights/int/Corr_LEDs/State",
+        "myHome/Lights/int/Corr_LEDs/cmd"
     ],
     "sub_topics": [
-        "myHome/Lights/int/Kitchen",
+        "myHome/Lights/int/Corr_LEDs",
         "myHome/All",
         "myHome/Lights/int",
         "myHome/Lights"

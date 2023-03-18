@@ -154,7 +154,7 @@ void smartSwitch::turnON_cb(uint8_t type, unsigned int temp_TO, uint8_t intense)
             }
             else
             {
-                DBGL(F("Already on 1"));
+                DBGL(F("Already on"));
                 return;
             }
 
@@ -170,58 +170,15 @@ void smartSwitch::turnON_cb(uint8_t type, unsigned int temp_TO, uint8_t intense)
                 {
                     _t = _DEFAULT_TIMEOUT_DUARION;
                 }
-                _start_timeout(); /* start clock - no matter if it is default or not */
+                _start_timeout_clock(); /* start clock - no matter if it is default or not */
             }
             _update_telemetry(SW_ON, type, _t, intense == 255 ? _DEFAULT_PWM_INTENSITY : intense);
-            // if (!_output_pwm) /* NOT PWM output*/
-            // {
-            //     if (!_isOUTPUT_ON())
-            //     {
-            //         _setOUTPUT_ON();
-            //     }
-            //     else
-            //     {
-            //         DBGL(F("Already on 1"));
-            //         return;
-            //     }
-            // }
-            // else /* PWM output*/
-            // {
-            //     if (!_PWM_ison)
-            //     {
-            //         if (intense != 255) /* Intersity was defined locally*/
-            //         {
-            //             _setOUTPUT_ON(intense);
-            //         }
-            //         else
-            //         {
-            //             _setOUTPUT_ON(_DEFAULT_PWM_INTENSITY);
-            //         }
-            //     }
-            //     else
-            //     {
-            //         DBGL(F("Already on 2"));
-            //         return;
-            //     }
-            // }
-
-            // if (temp_TO != 0)
-            // {
-            //     _adHoc_timeout_duration = temp_TO * TimeFactor; /* Define timeout */
-            // }
-            // _start_timeout();
-            // unsigned long _t = 0;
-            // if (_use_timeout)
-            // {
-            //     temp_TO == 0 ? _t = _DEFAULT_TIMEOUT_DUARION : _t = _adHoc_timeout_duration;
-            // }
-            // _update_telemetry(SW_ON, type, _t, telemtryMSG.pressCount, intense == 255 ? _DEFAULT_PWM_INTENSITY : intense);
         }
         else
         {
             if (_guessState == SW_OFF)
             {
-                _start_timeout();
+                _start_timeout_clock();
                 _guessState = !_guessState;
                 _update_telemetry(SW_ON, type, get_remain_time());
             }
@@ -234,24 +191,34 @@ void smartSwitch::turnOFF_cb(uint8_t type)
     {
         if (!_virtCMD)
         {
-            if (!_output_pwm)
-            {
-                if (_isOUTPUT_ON())
-                {
-                    _setOUTPUT_OFF();
-                    _stop_timeout();
-                    _update_telemetry(SW_OFF, type, 0, 0);
-                }
-                else
-                {
-                    DBGL(F("Already off"));
-                }
-            }
-            else
+            // if (!_output_pwm)
+            // {
+            //     if (_isOUTPUT_ON())
+            //     {
+            //         _setOUTPUT_OFF();
+            //         _stop_timeout();
+            //         _update_telemetry(SW_OFF, type, 0, 0);
+            //     }
+            //     else
+            //     {
+            //         DBGL(F("Already off"));
+            //     }
+            // }
+            // else
+            // {
+            //     _setOUTPUT_OFF();
+            //     _stop_timeout();
+            //     _update_telemetry(SW_OFF, type, 0, 0);
+            // }
+            if (_isOUTPUT_ON())
             {
                 _setOUTPUT_OFF();
                 _stop_timeout();
                 _update_telemetry(SW_OFF, type, 0, 0);
+            }
+            else
+            {
+                DBGL(F("Already off"));
             }
         }
         else
@@ -424,7 +391,7 @@ void smartSwitch::_setOUTPUT_ON(uint8_t val)
         res = 4097;
 #endif
         int _val = val == 255 ? (res * _DEFAULT_PWM_INTENSITY) / 100 : (res * val) / 100;
-        analogWrite(_outputPin, _val); //(int)((res * val) / 100));
+        analogWrite(_outputPin, _val);
         _PWM_ison = true;
         DBGL(F("PWM_ON"));
     }
@@ -539,7 +506,7 @@ void smartSwitch::_stop_timeout()
         DBGL(F("TIMEOUT_STOPPED"));
     }
 }
-void smartSwitch::_start_timeout()
+void smartSwitch::_start_timeout_clock()
 {
     if (_use_timeout)
     {

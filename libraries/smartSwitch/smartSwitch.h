@@ -15,9 +15,9 @@
 struct SW_act_telem
 {
     bool newMSG = false;
-    uint8_t pwm = 255; /* PWM precentage */
-    uint8_t state = 255;  /* Up/Down/ Off */
-    uint8_t reason = 3; /* What triggered the button */
+    uint8_t pwm = 255;   /* PWM precentage */
+    uint8_t state = 255; /* Up/Down/ Off */
+    uint8_t reason = 3;  /* What triggered the button */
     uint8_t pressCount = 0;
     unsigned long clk_end = 0;
 };
@@ -150,7 +150,7 @@ private:
 
     /* inputs only */
     unsigned long _DEFAULT_TIMEOUT_DUARION = 1; // in seconds
-    unsigned long _adHoc_timeout_duration = 0;     // in seconds
+    unsigned long _adHoc_timeout_duration = 0;  // in seconds
     unsigned long _last_button_press = 0;
 
 private:
@@ -161,9 +161,9 @@ private:
     void _indic_loop();
     void _timeout_loop();
     void _stop_timeout();
-    void _start_timeout();
     void _turn_indic_on();
     void _turn_indic_off();
+    void _start_timeout_clock();
     void _update_telemetry(uint8_t state, uint8_t type, unsigned long te = 0, uint8_t pwm = 255);
 };
 
