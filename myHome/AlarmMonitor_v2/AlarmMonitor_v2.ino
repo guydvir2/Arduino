@@ -126,6 +126,7 @@ enum sys_state : const uint8_t
         DISARMED,
         ARMED_KEYPAD,
         ALARMING,
+        ARM_ERR,
 };
 
 bool indication_ARMED_lastState = false;
@@ -145,10 +146,10 @@ void notify_systemState(uint8_t state = 5)
 }
 void startGPIOs()
 {
-        pinMode(SET_SYSTEM_ARMED_HOME_PIN, OUTPUT);
-        pinMode(SET_SYSTEM_ARMED_AWAY_PIN, OUTPUT);
-        pinMode(SYSTEM_STATE_ARM_PIN, INPUT_PULLUP);
-        pinMode(SYSTEM_STATE_ALARM_PIN, INPUT_PULLUP);
+        pinMode(SET_SYSTEM_ARMED_HOME_PIN, OUTPUT);    /* Pin to switch system state*/
+        pinMode(SET_SYSTEM_ARMED_AWAY_PIN, OUTPUT);    /* Pin to switch system state*/
+        pinMode(SYSTEM_STATE_ARM_PIN, INPUT_PULLUP);   /* Pin to get system state*/
+        pinMode(SYSTEM_STATE_ALARM_PIN, INPUT_PULLUP); /* Pin to get system state*/
 
         _detect_state_change(SYSTEM_STATE_ARM_PIN, indication_ARMED_lastState);
         _detect_state_change(SYSTEM_STATE_ALARM_PIN, indication_ALARMED_lastState);
@@ -169,31 +170,35 @@ void allOff()
 }
 uint8_t get_systemState()
 {
+        /* Alarm can be in one of three state:
+        Alarming, Armed, disarmed
+         */
         if (digitalRead(SYSTEM_STATE_ALARM_PIN) == SYSTEM_STATE_ON) /* Check if alarm pin is ON */
         {
                 return ALARMING;
         }
-        else
+        else if (digitalRead(SYSTEM_STATE_ARM_PIN) == SYSTEM_STATE_ON) /* Check if Armed pin is ON */
         {
-                if (digitalRead(SYSTEM_STATE_ARM_PIN) == SYSTEM_STATE_ON) /* Check if Armed pin is ON */
+                if (digitalRead(SET_SYSTEM_ARMED_HOME_PIN) == STATE_ON && digitalRead(SET_SYSTEM_ARMED_AWAY_PIN) == !STATE_ON) /* set by code TO home_Armed ?*/
                 {
-                        if (digitalRead(SET_SYSTEM_ARMED_HOME_PIN) == STATE_ON) /* set by code TO home_Armed ?*/
-                        {
-                                return ARMED_HOME_CODE;
-                        }
-                        else if (digitalRead(SET_SYSTEM_ARMED_AWAY_PIN) == STATE_ON) /* set by code TO away_Armed ?*/
-                        {
-                                return ARMED_AWAY_CODE;
-                        }
-                        else
-                        {
-                                return ARMED_KEYPAD;
-                        }
+                        return ARMED_HOME_CODE;
+                }
+                else if (digitalRead(SET_SYSTEM_ARMED_AWAY_PIN) == STATE_ON && digitalRead(SET_SYSTEM_ARMED_HOME_PIN) == !STATE_ON) /* set by code TO away_Armed ?*/
+                {
+                        return ARMED_AWAY_CODE;
+                }
+                else if (digitalRead(SET_SYSTEM_ARMED_AWAY_PIN) == STATE_ON && digitalRead(SET_SYSTEM_ARMED_HOME_PIN) == STATE_ON)
+                {
+                        return ARM_ERR;
                 }
                 else
                 {
-                        return DISARMED;
+                        return ARMED_KEYPAD;
                 }
+        }
+        else
+        {
+                return DISARMED;
         }
 }
 void set_armState(uint8_t req_state)
@@ -201,13 +206,12 @@ void set_armState(uint8_t req_state)
         uint8_t curState = get_systemState();
         if (req_state != curState)
         {
-                if (req_state == DISARMED)
+                if (req_state == DISARMED && curState == ARMED_KEYPAD) /* disarm when armed using keybaord */
                 {
-                        if (curState == ARMED_KEYPAD)
-                        {
-                                digitalWrite(SET_SYSTEM_ARMED_HOME_PIN, STATE_ON);
-                                delay(DELAY_TO_REACT); // Time for system to react to fake state change
-                        }
+                        /* Armed by keypad. Can't disarm without any of setter set to arm.
+                        Have to fake an input by system in order to turn off */
+                        digitalWrite(SET_SYSTEM_ARMED_HOME_PIN, STATE_ON);
+                        delay(DELAY_TO_REACT); // Time for system to react to fake state change
                         allOff();
                 }
                 else if (req_state == ARMED_HOME_CODE || req_state == ARMED_AWAY_CODE)
@@ -234,6 +238,7 @@ void set_armState(uint8_t req_state)
                                 char a[50];
                                 digitalWrite(armstates[1], !STATE_ON); // verify not in that state
                                 delay(DELAY_TO_REACT);
+                                
                                 digitalWrite(armstates[0], STATE_ON); // switch to desired arm state
                                 sprintf(a, "System change: [Disarmed] using [Code]");
                                 iot.pub_msg(a);

@@ -1,18 +1,18 @@
 myIOT2 iot;
-#include <Arduino.h>
+// #include <Arduino.h>
 
 // ±±±±±±± Genereal pub topic ±±±±±±±±±
-const char *topicLog = "myHome/log";
-const char *topicDebug = "myHome/debug";
-const char *topicmsg = "myHome/Messages";
+// const char *topicLog = "myHome/log";
+// const char *topicDebug = "myHome/debug";
+// const char *topicmsg = "myHome/Messages";
 
-// ±±±±±±±±±±±± sub Topics ±±±±±±±±±±±±±±±±±±
-const char *topicClient = "myHome/alarmMonitor";
-const char *topicAll = "myHome/All";
+// // ±±±±±±±±±±±± sub Topics ±±±±±±±±±±±±±±±±±±
+// const char *topicClient = "myHome/alarmMonitor";
+// const char *topicAll = "myHome/All";
 
-// ±±±±±±±±±±±±±±±± Client state pub topics ±±±±±±±±±±±±±±±±
-const char *topicClient_avail = "myHome/alarmMonitor/Avail";
-const char *topicClient_state = "myHome/alarmMonitor/State";
+// // ±±±±±±±±±±±±±±±± Client state pub topics ±±±±±±±±±±±±±±±±
+// const char *topicClient_avail = "myHome/alarmMonitor/Avail";
+// const char *topicClient_state = "myHome/alarmMonitor/State";
 
 extern void allOff();
 extern uint8_t get_systemState();
@@ -20,21 +20,20 @@ extern void set_armState(uint8_t req_state);
 
 void updateTopics_local()
 {
-    iot.topics_gen_pub[0] = topicmsg;
-    iot.topics_gen_pub[1] = topicLog;
-    iot.topics_gen_pub[2] = topicDebug;
+    iot.topics_gen_pub[0] = "myHome/Messages";
+    iot.topics_gen_pub[1] = "myHome/log";
+    iot.topics_gen_pub[2] = "myHome/debug";
 
-    iot.topics_pub[0] = topicClient_avail;
-    iot.topics_pub[1] = topicClient_state;
+    iot.topics_pub[0] = "myHome/alarmMonitor/Avail";
+    iot.topics_pub[1] = "myHome/alarmMonitor/State;
 
-    iot.topics_sub[0] = topicClient;
-    iot.topics_sub[1] = topicAll;
+    iot.topics_sub[0] = "myHome/alarmMonitor";
+    iot.topics_sub[1] = "myHome/All";
 }
 void update_Parameters_local()
 {
     iot.useSerial = false;
     iot.useFlashP = false;
-    iot.useNetworkReset = true;
     iot.noNetwork_reset = 5;
     iot.ignore_boot_msg = false;
 }
