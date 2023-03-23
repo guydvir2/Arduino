@@ -1,23 +1,17 @@
 myIOT2 iot;
-// #include <Arduino.h>
-
-// ±±±±±±± Genereal pub topic ±±±±±±±±±
-// const char *topicLog = "myHome/log";
-// const char *topicDebug = "myHome/debug";
-// const char *topicmsg = "myHome/Messages";
-
-// // ±±±±±±±±±±±± sub Topics ±±±±±±±±±±±±±±±±±±
-// const char *topicClient = "myHome/alarmMonitor";
-// const char *topicAll = "myHome/All";
-
-// // ±±±±±±±±±±±±±±±± Client state pub topics ±±±±±±±±±±±±±±±±
-// const char *topicClient_avail = "myHome/alarmMonitor/Avail";
-// const char *topicClient_state = "myHome/alarmMonitor/State";
-
-extern void allOff();
+extern void disarm();
 extern uint8_t get_systemState();
 extern void set_armState(uint8_t req_state);
 
+void pub_systemState(uint8_t state = 5)
+{
+    if (state == 5) /* Not having any valid / input*/
+    {
+        state = get_systemState();
+    }
+
+    iot.pub_state(sys_states[state]);
+}
 void updateTopics_local()
 {
     iot.topics_gen_pub[0] = "myHome/Messages";
@@ -25,7 +19,7 @@ void updateTopics_local()
     iot.topics_gen_pub[2] = "myHome/debug";
 
     iot.topics_pub[0] = "myHome/alarmMonitor/Avail";
-    iot.topics_pub[1] = "myHome/alarmMonitor/State;
+    iot.topics_pub[1] = "myHome/alarmMonitor/State";
 
     iot.topics_sub[0] = "myHome/alarmMonitor";
     iot.topics_sub[1] = "myHome/All";
@@ -46,15 +40,15 @@ void addiotnalMQTT(char *incoming_msg, char *_topic)
         sprintf(msg, "Status: [%s]", sys_states[get_systemState()]);
         iot.pub_msg(msg);
     }
-    else if (strcmp(incoming_msg, sys_states[ARMED_HOME_CODE]) == 0)
+    else if (strcmp(incoming_msg, sys_states[ARMED_HOME_CODE]) == 0) /* arm Home */
     {
         set_armState(ARMED_HOME_CODE);
     }
-    else if (strcmp(incoming_msg, sys_states[ARMED_AWAY_CODE]) == 0)
+    else if (strcmp(incoming_msg, sys_states[ARMED_AWAY_CODE]) == 0) /* arm Away */
     {
         set_armState(ARMED_AWAY_CODE);
     }
-    else if (strcmp(incoming_msg, sys_states[DISARMED]) == 0)
+    else if (strcmp(incoming_msg, sys_states[DISARMED]) == 0) /* disarmed */
     {
         set_armState(DISARMED);
     }
@@ -79,7 +73,7 @@ void addiotnalMQTT(char *incoming_msg, char *_topic)
     }
     else if (strcmp(incoming_msg, "all_off") == 0)
     {
-        allOff();
+        disarm();
         sprintf(msg, "All OFF: Received from %s", "MQTT");
         iot.pub_msg(msg);
     }

@@ -41,7 +41,7 @@ void update_logs(unsigned long onTime)
         {
                 saver.day_accum += onTime;
         }
-        else // if (saver.date == 0) or any other situation
+        else
         {
                 saver.date = t;
                 saver.day_accum = onTime;
@@ -69,28 +69,27 @@ void smartSwitch_loop()
                 const char *states[] = {"Off", "On"};
                 const char *REASONS_OPER[] = {"Button", "Timeout", "MQTT"};
 
-                if (SWitch.telemtryMSG.state == 0)
+                if (SWitch.telemtryMSG.state == 0) /* Turn off by button */
                 {
-                        iot.convert_epoch2clock(SWitch.get_elapsed() / 1000, 0, clk);
                         clock_noref = millis();
+                        iot.convert_epoch2clock(SWitch.get_elapsed() / 1000, 0, clk);
                         sprintf(msg, "[%s]: turned [%s], ON time [%s]", REASONS_OPER[SWitch.telemtryMSG.reason],
                                 states[SWitch.telemtryMSG.state], clk);
 
                         update_logs(SWitch.get_elapsed() / 1000);
                 }
-                else if (SWitch.telemtryMSG.state == 1)
+                else
                 {
-                        if (SWitch.telemtryMSG.pressCount > 1)
+                        iot.convert_epoch2clock(SWitch.get_timeout() / 1000, 0, clk);
+                        if (SWitch.telemtryMSG.pressCount > 1) /* Add time using button */
                         {
                                 const int add_time = ADDITIONAL_TIME_PRESS;
                                 SWitch.set_additional_timeout(add_time, SWitch.telemtryMSG.reason);
-                                iot.convert_epoch2clock(SWitch.get_timeout() / 1000, 0, clk);
                                 sprintf(msg, "[%s]: added [%d] minutes, updated timeout [%s]", REASONS_OPER[SWitch.telemtryMSG.reason],
                                         add_time, clk);
                         }
                         else
                         {
-                                iot.convert_epoch2clock(SWitch.get_timeout() / 1000, 0, clk);
                                 sprintf(msg, "[%s]: turned [%s], timeout [%s]", REASONS_OPER[SWitch.telemtryMSG.reason],
                                         states[SWitch.telemtryMSG.state], clk);
                         }

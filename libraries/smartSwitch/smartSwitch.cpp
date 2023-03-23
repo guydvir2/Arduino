@@ -148,6 +148,7 @@ void smartSwitch::turnON_cb(uint8_t type, unsigned int temp_TO, uint8_t intense)
     {
         if (!_virtCMD)
         {
+            /* Turn ON */
             if (!_isOUTPUT_ON())
             {
                 _setOUTPUT_ON(intense); /* Both PWM and Switch */
@@ -157,7 +158,7 @@ void smartSwitch::turnON_cb(uint8_t type, unsigned int temp_TO, uint8_t intense)
                 DBGL(F("Already on"));
                 return;
             }
-
+            /* Timeout */
             unsigned long _t = 0;
             if (_use_timeout)
             {
@@ -191,25 +192,6 @@ void smartSwitch::turnOFF_cb(uint8_t type)
     {
         if (!_virtCMD)
         {
-            // if (!_output_pwm)
-            // {
-            //     if (_isOUTPUT_ON())
-            //     {
-            //         _setOUTPUT_OFF();
-            //         _stop_timeout();
-            //         _update_telemetry(SW_OFF, type, 0, 0);
-            //     }
-            //     else
-            //     {
-            //         DBGL(F("Already off"));
-            //     }
-            // }
-            // else
-            // {
-            //     _setOUTPUT_OFF();
-            //     _stop_timeout();
-            //     _update_telemetry(SW_OFF, type, 0, 0);
-            // }
             if (_isOUTPUT_ON())
             {
                 _setOUTPUT_OFF();

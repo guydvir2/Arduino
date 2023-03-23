@@ -1,9 +1,5 @@
 #define MAX_TOPIC_SIZE 40 // <----- Verfy max Topic size
 
-// char topics_sub[3][MAX_TOPIC_SIZE];
-// char topics_pub[3][MAX_TOPIC_SIZE];
-// char topics_gen_pub[3][MAX_TOPIC_SIZE];
-
 void get_status(char *outputmsg)
 {
     char t1[100];
