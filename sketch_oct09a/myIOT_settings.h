@@ -1,6 +1,6 @@
 /* ±±±±±±±±±±±±±± Receiving and handling MQTT CMDs ±±±±±±±±±±±±±±±± */
 
-char topics_sub[3][MAX_TOPIC_SIZE];     /* generic topic array */
+char topics_sub[4][MAX_TOPIC_SIZE];     /* generic topic array */
 char topics_pub[2][MAX_TOPIC_SIZE];     /* generic topic array */
 char topics_gen_pub[3][MAX_TOPIC_SIZE]; /* generic topic array */
 char winGroupTopics[4][MAX_TOPIC_SIZE]; /* group topic array */
