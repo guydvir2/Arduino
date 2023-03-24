@@ -5,8 +5,8 @@ myIOT2 iot;
 homeCtl controller;
 
 // ~~~ Software Flags ~~~
-#define MAN_MODE false
-#define PARAM_PRESET 38
+#define MAN_MODE true
+#define PARAM_PRESET 6
 #define RETAINED_MSG false
 #define BurnOUT true /* ESP32 only */
 
@@ -165,6 +165,7 @@ void print_endof_load_entities()
   Serial.println(F(" ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ "));
   Serial.flush();
 }
+
 void setup()
 {
 #if BurnOUT
