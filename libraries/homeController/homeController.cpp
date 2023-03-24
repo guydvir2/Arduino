@@ -144,7 +144,7 @@ uint8_t homeCtl::get_ent_state(uint8_t type, uint8_t i)
   }
   else
   {
-    return 0;
+    return 255;
   }
 }
 void homeCtl::get_telemetry(Cotroller_Ent_telemetry &M)

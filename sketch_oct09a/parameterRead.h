@@ -52,7 +52,7 @@ bool readTopics()
   if (!error0)
   {
 #else
-  if (iot.readJson_inFlash(DOC,iot.parameter_filenames[2])) /* extract topics from flash */
+  if (iot.readJson_inFlash(DOC, iot.parameter_filenames[2])) /* extract topics from flash */
   {
     Serial.println(F("~ entities data-base - flash"));
 #endif
@@ -216,17 +216,16 @@ bool get_entities_parameters()
 
       for (uint8_t x = 0; x < entTypes.size(); x++) /* Creating Entities */
       {
-        if (entTypes[x].as<uint8_t>() == WIN_ENT) /* win Entity */
+        uint8_t _type = entTypes[x];
+        if (_type == WIN_ENT) /* win Entity */
         {
-          controller.create_Win(_inpins, _outpins, DOC["Winname"][win_ents].as<const char *>(),
-                                DOC["WinvirtCMD"][win_ents].as<bool>(), DOC["WextInputs"][win_ents].as<bool>());
+          controller.create_Win(_inpins, _outpins, DOC["Winname"][win_ents].as<const char *>(), DOC["WinvirtCMD"][win_ents], DOC["WextInputs"][win_ents]);
           win_ents++;
         }
-        else if (entTypes[x].as<uint8_t>() == SW_ENT) /* SW entity */
+        else if (_type == SW_ENT) /* SW entity */
         {
-          controller.create_SW(_inpins, _outpins, DOC["SWname"][sw_ents].as<const char *>(),
-                               DOC["SW_buttonTypes"][sw_ents].as<uint8_t>(), DOC["SWvirtCMD"][sw_ents].as<bool>(),
-                               DOC["SW_timeout"][sw_ents].as<int>(), DOC["RF_2entity"][sw_ents].as<uint8_t>());
+          controller.create_SW(_inpins, _outpins, DOC["SWname"][sw_ents].as<const char *>(), DOC["SW_buttonTypes"][sw_ents], DOC["SWvirtCMD"][sw_ents],
+                               DOC["SW_timeout"][sw_ents], DOC["RF_2entity"][sw_ents]);
           sw_ents++;
         }
       }
