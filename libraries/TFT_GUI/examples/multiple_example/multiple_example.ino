@@ -2,7 +2,7 @@
 
 #define SCREEN_ROT 0
 
-#define CASE 5
+#define CASE 4
 
 #if CASE == 1 /* Simple MsgBox - No Touch */
 MessageTFT MsgBox;
@@ -14,7 +14,7 @@ ButtonTFT butt;
 keypadTFT keypad;
 
 #elif CASE == 4 /* Button Array - equally spaced buttons */
-char *a[] = {"All Windows", "Saloon", "Room", "Specific"};
+const char *a[] = {"All Windows", "Saloon", "Room", "Specific"};
 buttonArrayTFT<4> mainWindows;
 #elif CASE == 5 /* Shifted Array and 2 single Buttons */
 char *a[] = {"F1", "F2"};

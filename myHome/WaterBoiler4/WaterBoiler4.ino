@@ -95,6 +95,7 @@ void smartSwitch_loop()
                         }
                 }
                 iot.pub_msg(msg);
+                post_MQTTstate(SWitch.telemtryMSG.state);
                 SWitch.clear_newMSG();
         }
 }

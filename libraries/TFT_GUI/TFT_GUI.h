@@ -41,18 +41,19 @@ public:
   uint16_t border_color = ILI9341_RED;
   char txt_buf[30];
   bool roundRect = false;
+  bool useBorder = false;
 
   Adafruit_ILI9341 *TFT[1];
 
 public:
   MessageTFT(Adafruit_ILI9341 &_tft = tft);
-  void createMSG(char *txt, bool center_txt = true);
-  void createPage(char *txt[], uint8_t r, bool center_txt = true); // Multiple Lines in MSG
-  void updateTXT(char *txt, bool center_txt = true);
+  void createMSG(const char *txt, bool center_txt = true);
+  void createPage(const char *txt[], uint8_t r, bool center_txt = true); // Multiple Lines in MSG
+  void updateTXT(const char *txt, bool center_txt = true);
   void clear_screen(uint8_t c = 0);
 
 private:
-  void _put_text(char *txt, uint16_t color = NULL, bool center_txt = true);
+  void _put_text(const char *txt, uint16_t color = 0, bool center_txt = true);
   void _drawFace();
   void _drawBorder(uint8_t _radius);
 };
@@ -67,7 +68,7 @@ public:
 
 public:
   ButtonTFT(XPT2046_Touchscreen &_ts = ts, Adafruit_ILI9341 &_tft = tft);
-  void createButton(char *txt);
+  void createButton(const char *txt);
   bool wait4press();
   bool checkPress(TS_Point &p);
 
@@ -76,8 +77,7 @@ private:
   uint16_t _face_color_t;
 
 private:
-  void
-  _put_text();
+  void _put_text();
   void _press_cb();
   void _conv_ts_tft(TS_Point &p);
   bool _check_press_geometry(TS_Point &p);
@@ -112,7 +112,7 @@ public:
 
 public:
   buttonArrayTFT(XPT2046_Touchscreen &_ts = ts, Adafruit_ILI9341 &_tft = tft);
-  void create_array(uint8_t R, uint8_t C, char *but_txt[]);
+  void create_array(uint8_t R, uint8_t C, const char *but_txt[]);
   uint8_t checkPress(TS_Point &p);
   ButtonTFT &operator[](uint8_t index)
   {
@@ -134,7 +134,7 @@ buttonArrayTFT<N>::buttonArrayTFT(XPT2046_Touchscreen &_ts, Adafruit_ILI9341 &_t
 }
 
 template <uint8_t N>
-void buttonArrayTFT<N>::create_array(uint8_t R, uint8_t C, char *but_txt[])
+void buttonArrayTFT<N>::create_array(uint8_t R, uint8_t C, const char *but_txt[])
 {
   uint8_t x_margin = 0;
   uint8_t y_margin = 0;
@@ -254,3 +254,24 @@ private:
 };
 
 #endif
+/*
+#define ILI9341_BLACK 0x0000       ///<   0,   0,   0
+#define ILI9341_NAVY 0x000F        ///<   0,   0, 123
+#define ILI9341_DARKGREEN 0x03E0   ///<   0, 125,   0
+#define ILI9341_DARKCYAN 0x03EF    ///<   0, 125, 123
+#define ILI9341_MAROON 0x7800      ///< 123,   0,   0
+#define ILI9341_PURPLE 0x780F      ///< 123,   0, 123
+#define ILI9341_OLIVE 0x7BE0       ///< 123, 125,   0
+#define ILI9341_LIGHTGREY 0xC618   ///< 198, 195, 198
+#define ILI9341_DARKGREY 0x7BEF    ///< 123, 125, 123
+#define ILI9341_BLUE 0x001F        ///<   0,   0, 255
+#define ILI9341_GREEN 0x07E0       ///<   0, 255,   0
+#define ILI9341_CYAN 0x07FF        ///<   0, 255, 255
+#define ILI9341_RED 0xF800         ///< 255,   0,   0
+#define ILI9341_MAGENTA 0xF81F     ///< 255,   0, 255
+#define ILI9341_YELLOW 0xFFE0      ///< 255, 255,   0
+#define ILI9341_WHITE 0xFFFF       ///< 255, 255, 255
+#define ILI9341_ORANGE 0xFD20      ///< 255, 165,   0
+#define ILI9341_GREENYELLOW 0xAFE5 ///< 173, 255,  41
+#define ILI9341_PINK 0xFC18        ///< 255, 130, 198
+*/

@@ -2,13 +2,13 @@
 
 #if defined ESP32
 /* RobotDyn 4 Relay module + RF */
-char pins[] = "{\"inputPins\": [23,19,18,17,16,15,14,13,5,4,2], \"relayPins\": [25,26,33,32],\"RF_keyboardCode\": [3135496,3135492,3135490,3135489],\"RFpin\": 27}";
+// char pins[] = "{\"inputPins\": [23,19,18,17,16,15,14,13,5,4,2], \"relayPins\": [25,26,33,32],\"RF_keyboardCode\": [3135496,3135492,3135490,3135489],\"RFpin\": 27}";
 
 /* RobotDyn 4 Relay module - NO RF */
 // char pins[] = "{\"inputPins\": [23,19,18,17,16,15,14,13,5,4,2], \"relayPins\": [25,26,33,32],\"RF_keyboardCode\": [255,255,255,255],\"RFpin\": 255}";
 
 /* LilyGO 8 Relay module */
-// char pins[] = "{\"inputPins\": [22,23,26,27,4,15,14,2], \"relayPins\": [33,32,13,12,21,19,18,5],\"RF_keyboardCode\": [255,255,255,255],\"RFpin\": 255}";
+char pins[] = "{\"inputPins\": [22,23,26,27,4,15,14,2], \"relayPins\": [33,32,13,12,21,19,18,5],\"RF_keyboardCode\": [255,255,255,255],\"RFpin\": 255}";
 
 #elif defined ESP8266
 char pins[] = "{\"inputPins\": [0,4,13,15,3,1], \"relayPins\": [5,2,14,12],\"RF_keyboardCode\": [255,255,255,255],\"RFpin\": 255}";

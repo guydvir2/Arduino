@@ -6,7 +6,7 @@ homeCtl controller;
 
 // ~~~ Software Flags ~~~
 #define MAN_MODE true
-#define PARAM_PRESET 6
+#define PARAM_PRESET 18
 #define RETAINED_MSG false
 #define BurnOUT true /* ESP32 only */
 

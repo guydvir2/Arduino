@@ -146,6 +146,10 @@ void addiotnalMQTT(char *incoming_msg, char *_topic)
             uint8_t i = atoi(iot.inline_param[0]);
             if (strcmp(iot.inline_param[1], "timeout") == 0)
             {
+                if (smartSwArray[i]->get_remain_time() > 0)
+                {
+                    smartSwArray[i]->turnOFF_cb(2);
+                }
                 if (atoi(iot.inline_param[3]) != 0) /* specifing PWR for PWM instance*/
                 {
                     smartSwArray[i]->turnON_cb(2, atoi(iot.inline_param[2]) /* timoeut */, atoi(iot.inline_param[3]) /* PWM power */);
@@ -161,8 +165,13 @@ void addiotnalMQTT(char *incoming_msg, char *_topic)
             }
             else if (strcmp(iot.inline_param[1], "on") == 0)
             {
+                if (smartSwArray[i]->get_remain_time() > 0)
+                {
+                    smartSwArray[i]->turnOFF_cb(2);
+                }
                 if (atoi(iot.inline_param[2]) != 0) /* specifing PWR for PWM instance*/
                 {
+
                     smartSwArray[i]->turnON_cb(2, 0 /* timeout default value */, atoi(iot.inline_param[2]) /* PWM */);
                 }
                 else

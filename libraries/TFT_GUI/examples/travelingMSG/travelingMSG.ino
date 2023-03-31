@@ -42,10 +42,9 @@ void create_MSG()
   MSGwindow.b = MSG_size_y;
   MSGwindow.xc = tft.width() / 2;
   MSGwindow.yc = MSGwindow.b / 2;
-  MSGwindow.border_thickness = 5;
+  MSGwindow.border_thickness = 2;
   MSGwindow.roundRect = true;
-  MSGwindow.text("Hello World");
-  MSGwindow.drawMSG();
+  MSGwindow.createMSG("Hello World");
 }
 void MSG_travel()
 {
@@ -74,7 +73,7 @@ void MSG_travel()
   Serial.println(MSGwindow.yc);
   tft.fillScreen(ILI9341_BLUE);
 
-  MSGwindow.drawMSG();
+  MSGwindow.createMSG(MSGwindow.txt_buf);
   delay(2000);
 }
 void setup()

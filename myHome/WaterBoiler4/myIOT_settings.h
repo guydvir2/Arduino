@@ -1,5 +1,11 @@
 #define MAX_TOPIC_SIZE 40 // <----- Verfy max Topic size
 
+void post_MQTTstate(uint8_t i)
+{
+    char a[10];
+    sprintf(a, "%s", i == 0 ? "off" : "on");
+    iot.pub_state(a);
+}
 void get_status(char *outputmsg)
 {
     char t1[100];

@@ -4,13 +4,13 @@ MessageTFT::MessageTFT(Adafruit_ILI9341 &_tft)
 {
   TFT[0] = &_tft;
 }
-void MessageTFT::createMSG(char *txt, bool center_txt)
+void MessageTFT::createMSG(const char *txt, bool center_txt)
 {
   screen_rotation = TFT[0]->getRotation();
   _drawFace();
   _put_text(txt, txt_color, center_txt);
 }
-void MessageTFT::createPage(char *txt[], uint8_t r, bool center_txt)
+void MessageTFT::createPage(const char *txt[], uint8_t r, bool center_txt)
 {
   createMSG("", false);
   const uint8_t shiftxy = 5;
@@ -20,7 +20,7 @@ void MessageTFT::createPage(char *txt[], uint8_t r, bool center_txt)
     TFT[0]->println(txt[i]);
   }
 }
-void MessageTFT::updateTXT(char *txt, bool center_txt)
+void MessageTFT::updateTXT(const char *txt, bool center_txt)
 {
   _put_text(txt_buf, face_color, center_txt); // faster to change color txt to face color, than redraw (mostly for clks)
   _put_text(txt, txt_color, center_txt);
@@ -42,7 +42,7 @@ void MessageTFT::clear_screen(uint8_t c)
 }
 void MessageTFT::_drawFace()
 {
-  const uint8_t _radius = 5;
+  const uint8_t _radius = 2;
 
   if (roundRect == false)
   {
@@ -68,11 +68,11 @@ void MessageTFT::_drawBorder(uint8_t _radius)
     }
     else
     {
-      TFT[0]->drawRoundRect((xc - a / 2) + t / 2, (yc - b / 2) + t / 2, a - t, b - t, _radius, border_color);
+      TFT[0]->drawRoundRect((xc - a / 2) + t / 2, (yc - b / 2) + t / 2, a - t, b - t, /*_radius - t*/2, border_color);
     }
   }
 }
-void MessageTFT::_put_text(char *txt, uint16_t color, bool center_txt)
+void MessageTFT::_put_text(const char *txt, uint16_t color, bool center_txt)
 {
   strcpy(txt_buf, txt);
   uint8_t x = strlen(txt_buf);
@@ -84,7 +84,7 @@ void MessageTFT::_put_text(char *txt, uint16_t color, bool center_txt)
   {
     TFT[0]->setCursor(xc - a / 2, yc - b / 2);
   }
-  if (color != NULL)
+  if (color != 0)
   {
     TFT[0]->setTextColor(color);
   }
@@ -101,7 +101,7 @@ ButtonTFT::ButtonTFT(XPT2046_Touchscreen &_ts, Adafruit_ILI9341 &_tft)
   TFT[0] = &_tft;
   TS[0] = &_ts;
 }
-void ButtonTFT::createButton(char *txt)
+void ButtonTFT::createButton(const char *txt)
 {
   createMSG(txt);
 }
@@ -249,7 +249,7 @@ keypadTFT::keypadTFT(XPT2046_Touchscreen &_ts, Adafruit_ILI9341 &_tft)
 }
 void keypadTFT::create_keypad()
 {
-  char *txt_buttons[] = {"1", "2", "3", "4", "5", "6", "7", "8", "9", "*", "0", "#"};
+  const char *txt_buttons[] = {"1", "2", "3", "4", "5", "6", "7", "8", "9", "*", "0", "#"};
   _butarray.create_array(4, 3, txt_buttons);
 }
 bool keypadTFT::getPasscode(TS_Point &p)
@@ -307,6 +307,6 @@ bool keypadTFT::_check_pressed_in(TS_Point &p)
   }
   else
   {
-    false;
+    return false;
   }
 }

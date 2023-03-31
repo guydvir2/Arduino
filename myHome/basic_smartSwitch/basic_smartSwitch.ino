@@ -11,7 +11,7 @@ smartSwitch smartSW2;
 smartSwitch *smartSwArray[MAX_SW] = {&smartSW, &smartSW2};
 
 uint8_t totSW = 1;
-const char *ver = "smartSwitch_v0.6";
+const char *ver = "smartSwitch_v0.65";
 
 #include "pins.h"
 #include "myIOT_settings.h"
