@@ -1,0 +1,27 @@
+{
+    "numSW": 1,
+    "MCUtype": 2,
+    "useLockdown": false,
+    "SWtype": [
+        0
+    ],
+    "Timeout": [
+        720
+    ],
+    "ONatBoot": [
+        true
+    ],
+    "name": [
+        "greenLight"
+    ],
+    "indic_on": [
+        false
+    ],
+    "PWM_pwr": [
+        0
+    ],
+    "virtOutput": [
+        0
+    ],
+    "ver": 0.4
+}

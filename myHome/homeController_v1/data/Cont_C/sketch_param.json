@@ -1,0 +1,48 @@
+{
+    "entityType": [
+        0,
+        0,
+        1
+    ],
+    "SWname": [
+        "myHome/Lights/int/tFloor/Sw_0",
+        "myHome/Lights/int/tFloor/Sw_1",
+        "myHome/Lights/int/tFloor/Sw_2",
+        "myHome/Lights/int/tFloor/Sw_1"
+    ],
+    "Winname": [
+        "myHome/Windows/tFloor/Win_0",
+        "myHome/Windows/tFloor/Win_1"
+    ],
+    "SWvirtCMD": [
+        false,
+        false
+    ],
+    "WinvirtCMD": [
+        false,
+        false
+    ],
+    "WextInputs": [
+        1,
+        0
+    ],
+    "SW_buttonTypes": [
+        2,
+        1,
+        2,
+        0
+    ],
+    "SW_timeout": [
+        10,
+        20,
+        30,
+        0
+    ],
+    "RF_2entity": [
+        255,
+        255,
+        255,
+        255
+    ],
+    "v_file": 0.5
+}

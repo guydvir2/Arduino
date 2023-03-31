@@ -1,0 +1,5 @@
+2 windows, 1 ext input.
+0 switches
+no RF
+no virtCMDs
+no SW Timeout
