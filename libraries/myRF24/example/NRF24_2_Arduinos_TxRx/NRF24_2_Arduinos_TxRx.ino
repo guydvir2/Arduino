@@ -56,12 +56,26 @@ void setup()
 
 void loop()
 {
-  if (BOTH_TX_RX)
-  {
-    RF24_Rx_looper();
-    send_timely_msgs();
-  }
-  else if (ROLE == 0)
+  // if (BOTH_TX_RX)
+  // {
+  //   RF24_Rx_looper();
+  //   send_timely_msgs();
+  // }
+  // else if (ROLE == 0)
+  // {
+  //   RF24_Rx_looper();
+  // }
+  // else if (ROLE == 1)
+  // {
+  //   send_timely_msgs();
+  // }
+
+  // if (millis() > 30000)
+  // {
+  //   resetFunc();
+  // }
+
+  if (ROLE == 0)
   {
     RF24_Rx_looper();
   }
@@ -69,11 +83,5 @@ void loop()
   {
     send_timely_msgs();
   }
-
-  if (millis() > 30000)
-  {
-    resetFunc();
-  }
-
   radio.wellness_Watchdog();
 }
