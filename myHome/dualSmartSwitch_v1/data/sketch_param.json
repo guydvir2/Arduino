@@ -1,26 +1,33 @@
 {
-    "numSW": 1,
-    "MCUtype": 2,
+    "numSW": 2,
+    "MCUtype": 3,
     "useLockdown": false,
     "SWtype": [
-        0
+        1,
+        1
     ],
     "Timeout": [
-        720
+        60,
+        60
     ],
     "ONatBoot": [
-        true
+        false,
+        false
     ],
     "name": [
-        "greenLight"
+        "Or",
+        "Oz"
     ],
     "indic_on": [
+        false,
         false
     ],
     "PWM_pwr": [
-        0
+        50,
+        50
     ],
     "virtOutput": [
+        0,
         0
     ],
     "ver": 0.4
