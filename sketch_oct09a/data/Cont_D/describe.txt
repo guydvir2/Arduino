@@ -1,6 +1,0 @@
-1 windows
-2 switches
-0 RF
-3 virtCMDs
-0 SW Timeout
-2 input types

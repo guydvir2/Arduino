@@ -49,7 +49,7 @@ char cont_params[] = "{\"entityType\": [0,0,0,0],\
 char topics[] = "{\
                     \"pub_gen_topics\" : [\"myHome/Messages\",\"myHome/log\",\"myHome/debug\"],\
                     \"pub_topics\" : [\"myHome/Cont_18M/Avail\", \"myHome/Cont_18M/State\"],\
-                    \"sub_topics\" : [\"myHome/Cont_18M\",\"myHome/All\",\"myHome/lockdown\"],\
+                    \"sub_topics\" : [\"myHome/Cont_18M\",\"myHome/All\",\"myHome/lockdown\",\"myHome/Cont\"],\
                     \"sub_topics_win\" : [\"myHome/Windows/2Floor/Win0\",\"myHome/Windows/2Floor/Win1\",\"myHome/Windows/2Floor/Win2\",\"myHome/Windows/2Floor/Win3\"],\
                     \"sub_topics_SW\" : [],\
                     \"sub_topics_win_g\" : [\"myHome/Windows\",\"myHome/Windows/2Floor\"],\

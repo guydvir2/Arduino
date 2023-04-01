@@ -1,9 +1,0 @@
-{
-    "MCUtype": 2,
-    "SWtype": 2,
-    "Timeout": 420,
-    "useLockdown": false,
-    "ONatBoot": true,
-    "name": "myHome/Lights/int/greenLight",
-    "ver":0.1
-}
