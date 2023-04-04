@@ -1,6 +1,6 @@
 {
     "numSW": 1,
-    "MCUtype": 2,
+    "MCUtype": 3,
     "useLockdown": false,
     "SWtype": [
         0
@@ -12,13 +12,13 @@
         true
     ],
     "name": [
-        "greenLight"
+        "Hive"
     ],
     "indic_on": [
         false
     ],
     "PWM_pwr": [
-        0
+        10
     ],
     "virtOutput": [
         0
