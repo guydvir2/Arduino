@@ -5,16 +5,11 @@
         "myHome/debug"
     ],
     "pub_topics": [
-        "myHome/Lights/int/Hive/Avail",
-<<<<<<< HEAD
-        "myHome/Lights/int/Hive/State",
-        "myHome/Lights/int/Hive/cmd"
-=======
-        "myHome/Lights/int/Hive/State"
->>>>>>> check_branch
+        "myHome/Lights/int/parentLEDs/Avail",
+        "myHome/Lights/int/parentLEDs/State"
     ],
     "sub_topics": [
-        "myHome/Lights/int/Hive",
+        "myHome/Lights/int/parentLEDs",
         "myHome/All",
         "myHome/Lights",
         "myHome/Lights/int"

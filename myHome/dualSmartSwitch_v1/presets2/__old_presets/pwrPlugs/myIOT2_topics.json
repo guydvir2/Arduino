@@ -1,0 +1,17 @@
+{
+    "pub_gen_topics": [
+        "myHome/Messages",
+        "myHome/log",
+        "myHome/debug"
+    ],
+    "pub_topics": [
+        "myHome/pwrPlugs/iPhone/Avail",
+        "myHome/pwrPlugs/iPhone/State"
+    ],
+    "sub_topics": [
+        "myHome/pwrPlugs/iPhone",
+        "myHome/All",
+        "myHome/pwrPlugs"
+    ],
+    "ver": 0.1
+}

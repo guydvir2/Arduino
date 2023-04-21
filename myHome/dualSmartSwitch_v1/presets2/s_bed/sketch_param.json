@@ -3,39 +3,24 @@
     "MCUtype": 3,
     "useLockdown": false,
     "SWtype": [
-        1,
         1
     ],
     "Timeout": [
-        720,
-        60
+        120
     ],
     "ONatBoot": [
-        false,
         false
     ],
     "name": [
-<<<<<<< HEAD
-        "Hive"
-=======
-        "LEDs",
-        "Mirror"
->>>>>>> check_branch
+        "LEDstrip"
     ],
     "indic_on": [
-        false,
         false
     ],
     "PWM_pwr": [
-<<<<<<< HEAD
-        10
-=======
-        15,
-        20
->>>>>>> check_branch
+        0
     ],
     "virtOutput": [
-        0,
         0
     ],
     "ver": 0.4

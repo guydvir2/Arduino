@@ -1,0 +1,19 @@
+{
+    "pub_gen_topics": [
+        "myHome/Messages",
+        "myHome/log",
+        "myHome/debug"
+    ],
+    "pub_topics": [
+        "myHome/Lights/int/boys_BEDs/Avail",
+        "myHome/Lights/int/boys_BEDs/State",
+        "myHome/Lights/int/boys_BEDs/cmd"
+    ],
+    "sub_topics": [
+        "myHome/Lights/int/boys_BEDs",
+        "myHome/All",
+        "myHome/Lights/int",
+        "myHome/Lights"
+    ],
+    "ver": 0.1
+}

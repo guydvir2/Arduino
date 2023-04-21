@@ -1,13 +1,13 @@
 {
-    "numSW": 1,
-    "MCUtype": 3,
+    "numSW": 2,
+    "MCUtype": 5,
     "useLockdown": false,
     "SWtype": [
-        1,
-        1
+        0,
+        2
     ],
     "Timeout": [
-        720,
+        600,
         60
     ],
     "ONatBoot": [
@@ -15,24 +15,16 @@
         false
     ],
     "name": [
-<<<<<<< HEAD
-        "Hive"
-=======
-        "LEDs",
-        "Mirror"
->>>>>>> check_branch
+        "Test1",
+        "Test2"
     ],
     "indic_on": [
         false,
         false
     ],
     "PWM_pwr": [
-<<<<<<< HEAD
-        10
-=======
-        15,
-        20
->>>>>>> check_branch
+        0,
+        0
     ],
     "virtOutput": [
         0,

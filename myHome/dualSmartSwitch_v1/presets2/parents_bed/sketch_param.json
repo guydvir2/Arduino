@@ -1,5 +1,5 @@
 {
-    "numSW": 1,
+    "numSW": 2,
     "MCUtype": 3,
     "useLockdown": false,
     "SWtype": [
@@ -7,7 +7,7 @@
         1
     ],
     "Timeout": [
-        720,
+        600,
         60
     ],
     "ONatBoot": [
@@ -15,24 +15,16 @@
         false
     ],
     "name": [
-<<<<<<< HEAD
-        "Hive"
-=======
-        "LEDs",
+        "Bed",
         "Mirror"
->>>>>>> check_branch
     ],
     "indic_on": [
         false,
         false
     ],
     "PWM_pwr": [
-<<<<<<< HEAD
-        10
-=======
-        15,
+        20,
         20
->>>>>>> check_branch
     ],
     "virtOutput": [
         0,

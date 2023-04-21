@@ -1,0 +1,19 @@
+{
+    "pub_gen_topics": [
+        "myHome/Messages",
+        "myHome/log",
+        "myHome/debug"
+    ],
+    "pub_topics": [
+        "myHome/Lights/int/Sh_BED/Avail",
+        "myHome/Lights/int/Sh_BED/State",
+        "myHome/Lights/int/Sh_BED/cmd"
+    ],
+    "sub_topics": [
+        "myHome/Lights/int/Sh_BED",
+        "myHome/All",
+        "myHome/Lights/int",
+        "myHome/Lights"
+    ],
+    "ver": 0.1
+}

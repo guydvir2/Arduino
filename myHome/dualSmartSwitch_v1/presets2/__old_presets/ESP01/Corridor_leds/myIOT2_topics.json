@@ -1,0 +1,19 @@
+{
+    "pub_gen_topics": [
+        "myHome/Messages",
+        "myHome/log",
+        "myHome/debug"
+    ],
+    "pub_topics": [
+        "myHome/Lights/int/Corr_LEDs/Avail",
+        "myHome/Lights/int/Corr_LEDs/State",
+        "myHome/Lights/int/Corr_LEDs/cmd"
+    ],
+    "sub_topics": [
+        "myHome/Lights/int/Corr_LEDs",
+        "myHome/All",
+        "myHome/Lights/int",
+        "myHome/Lights"
+    ],
+    "ver": 0.1
+}

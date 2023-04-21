@@ -1,0 +1,22 @@
+{
+    "numSW": 1,
+    "MCUtype": 3,
+    "SWtype": [
+        1,
+        2
+    ],
+    "Timeout": [
+        120,
+        60
+    ],
+    "useLockdown": false,
+    "ONatBoot": [
+        false,
+        false
+    ],
+    "name": [
+        "LEDstrip",
+        "Oz"
+    ],
+    "ver": 0.2
+}

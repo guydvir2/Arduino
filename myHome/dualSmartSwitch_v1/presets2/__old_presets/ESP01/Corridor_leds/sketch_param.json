@@ -1,0 +1,22 @@
+{
+    "numSW": 1,
+    "MCUtype": 4,
+    "SWtype": [
+        1,
+        2
+    ],
+    "Timeout": [
+        600,
+        60
+    ],
+    "useLockdown": false,
+    "ONatBoot": [
+        true,
+        false
+    ],
+    "name": [
+        "Corridor",
+        "X"
+    ],
+    "ver": 0.2
+}

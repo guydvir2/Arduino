@@ -15,24 +15,16 @@
         false
     ],
     "name": [
-<<<<<<< HEAD
-        "Hive"
-=======
         "LEDs",
         "Mirror"
->>>>>>> check_branch
     ],
     "indic_on": [
         false,
         false
     ],
     "PWM_pwr": [
-<<<<<<< HEAD
-        10
-=======
         15,
         20
->>>>>>> check_branch
     ],
     "virtOutput": [
         0,

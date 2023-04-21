@@ -6,12 +6,7 @@
     ],
     "pub_topics": [
         "myHome/Lights/int/Hive/Avail",
-<<<<<<< HEAD
-        "myHome/Lights/int/Hive/State",
-        "myHome/Lights/int/Hive/cmd"
-=======
         "myHome/Lights/int/Hive/State"
->>>>>>> check_branch
     ],
     "sub_topics": [
         "myHome/Lights/int/Hive",
