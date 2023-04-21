@@ -85,7 +85,6 @@ void set_IOT2_Parameters()
     iot.useFlashP = false;
     iot.noNetwork_reset = 2;
     iot.ignore_boot_msg = false;
-    Serial.println(F("~ IOT2 parameters - local"));
 }
 void addiotnalMQTT(char *incoming_msg, char *_topic)
 {
@@ -101,7 +100,7 @@ void addiotnalMQTT(char *incoming_msg, char *_topic)
     }
     else if (strcmp(incoming_msg, "help2") == 0)
     {
-        sprintf(msg, "help #2: {i,on,power}, {i,timeout,MINUTES,power}, off, all_off, entities");
+        sprintf(msg, "help #2: {<i>,on,<power>}, {<i>,timeout,<minutes>,<power>}, off, all_off, entities");
         iot.pub_msg(msg);
     }
     else if (strcmp(incoming_msg, "ver2") == 0)

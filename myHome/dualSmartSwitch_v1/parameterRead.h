@@ -8,7 +8,6 @@ void assign_filenames()
 {
   iot.parameter_filenames[0] = "/myIOT2_topics.json";
   iot.parameter_filenames[1] = "/sketch_param.json";
-  Serial.println(F("~ Assign filenames - OK"));
 }
 bool _storeTopics_in_array(JsonDocument &DOC, char ch_array[][MAX_TOPIC_SIZE], const char *dest_array[], const char *topic, uint8_t shift = 0) /* update local Topic array */
 {
@@ -100,7 +99,7 @@ bool get_entities_parameters()
     numS = DOC["numSW"];
     mcuType = DOC["MCUtype"];
     useclkdown = DOC["useLockdown"];
-    set_Pins_to_MCU(mcuType, inputPins, outputPins, indicPins);
+    set_Pins_to_MCU(mcuType, inputPins, outputPins, indicPins); /* Go to defined pin list */
 
     for (uint8_t x = 0; x < numS; x++)
     {
