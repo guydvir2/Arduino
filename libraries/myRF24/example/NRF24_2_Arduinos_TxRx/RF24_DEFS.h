@@ -50,12 +50,12 @@ void RF24_Rx_looper()
 void RF24_init()
 {
     char a[20];
-    char *b[]={"Reciever","Sender"};
+    const char *b[]={"Reciever","Sender"};
     radio.use_ack = USE_ACK;
     radio.debug_mode = DEBUG_MODE;
     delay(200);
     bool startOK = radio.startRF24(w_address, r_address, dev_name, RF24_PA_MIN, RF24_1MBPS, 1);
-    sprintf(a, "RF24 started [%s]", startOK ? "OK" : "FAIL");
+    sprintf(a, "RF24 init [%s]", startOK ? "OK" : "FAIL");
     Serial.print(a);
     Serial.print("\t ROLE:");
     Serial.print(b[ROLE]);
