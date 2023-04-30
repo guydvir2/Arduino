@@ -1,24 +1,27 @@
 #include "myLOG.h"
 
-flashLOG::flashLOG(const char *filename)
+flashLOG::flashLOG(char *filename)
 {
     _logfilename = filename;
 }
-bool flashLOG::start(int max_entries, bool delyedSave, bool debugmode)
+bool flashLOG::start(uint8_t max_entries, bool delyedSave, bool debugmode)
 {
     _maxLOG_entries = max_entries;
     _useDelayedSave = delyedSave;
     _useDebug = debugmode;
 
-#if defined(ESP32)
-    bool a = LittleFS.begin(true);
-#elif defined(ESP8266)
-    bool a = LittleFS.begin();
+#if isESP32
+    bool a = LITFS.begin(true);
+#elif isESP8266
+    bool a = LITFS.begin();
 #endif
 
     if (!a)
     {
-        PRNtl("LittleFS mount failed");
+        if (_useDebug)
+        {
+            Serial.println("LittleFS mount failed");
+        }
     }
     return a;
 }
@@ -27,8 +30,6 @@ void flashLOG::looper(uint8_t savePeriod)
     if (_delayed_save(savePeriod))
     {
         _write2file();
-        PRNt(_logfilename);
-        PRNtl(" - Saved");
     }
 }
 void flashLOG::write(const char *message, bool NOW)
@@ -41,46 +42,43 @@ void flashLOG::write(const char *message, bool NOW)
     }
     else
     {
-        if (lastUpdate == 0)
-        {
-            lastUpdate = millis(); // Making sure update will be in delay to request.
-        }
-        PRNtl("Buffer store: [");
-        PRNtl(_logBuff);
-        PRNtl("]");
+        lastUpdate = millis(); // Making sure update will be in delay to request.
     }
 }
 void flashLOG::rawPrintfile()
 {
     int row_counter = 0;
-    File file = LittleFS.open(_logfilename, "r");
+    File file = LITFS.open(_logfilename, "r");
     if (!file)
     {
-        PRNtl("Failed to open file for reading");
+        if (_useDebug)
+        {
+            Serial.println("Failed to open file for reading");
+        }
     }
 
-    PRNt("~~~ Saved in ");
-    PRNt(_logfilename);
-    PRNtl("~~~");
+    Serial.print("~~~ Saved in ");
+    Serial.print(_logfilename);
+    Serial.println(" ~~~");
 
     while (file.available())
     {
         String line = file.readStringUntil(_EOL);
         String lineFormat = "row #" + String(row_counter) + " {" + line + "}";
-        PRNtl(lineFormat);
+        Serial.println(lineFormat);
         row_counter++;
     }
 
-    PRNtl("~~~ EOF ~~~");
+    Serial.println("~~~ EOF ~~~");
     file.close();
 }
-bool flashLOG::del_line(int line_index)
+bool flashLOG::del_line(uint8_t line_index)
 {
-    int row_counter = 0;
-    const char *tfile = "/tempfile.txt";
+    uint8_t row_counter = 0;
+    char *tfile = "/tempfile.txt";
     bool line_deleted = false;
-    File file1 = LittleFS.open(_logfilename, "r");
-    File file2 = LittleFS.open(tfile, "w");
+    File file1 = LITFS.open(_logfilename, "r");
+    File file2 = LITFS.open(tfile, "w");
 
     if (file1 && file2)
     {
@@ -100,21 +98,21 @@ bool flashLOG::del_line(int line_index)
     }
     else
     {
-        PRNt("Fail open files: ");
-        PRNt(tfile);
-        PRNt("; ");
-        PRNtl(_logfilename);
+        if (_useDebug)
+        {
+            Serial.println("Fail open files");
+        }
     }
     file1.close();
     file2.close();
-    LittleFS.remove(_logfilename);
-    LittleFS.rename(tfile, _logfilename);
+    LITFS.remove(_logfilename);
+    LITFS.rename(tfile, _logfilename);
     return line_deleted;
 }
-bool flashLOG::readline(int r, char retLog[])
+bool flashLOG::readline(uint8_t r, char retLog[])
 {
-    int row_counter = 0;
-    File file = LittleFS.open(_logfilename, "r");
+    uint8_t row_counter = 0;
+    File file = LITFS.open(_logfilename, "r");
 
     if (file)
     {
@@ -133,21 +131,22 @@ bool flashLOG::readline(int r, char retLog[])
     }
     else
     {
-        PRNt("Fail open file- ");
-        PRNtl(_logfilename);
+        if (_useDebug)
+        {
+            Serial.println("Fail open file");
+        }
         file.close();
         return 0;
     }
-    return 1;
 }
 bool flashLOG::delog()
 {
-    return LittleFS.remove(_logfilename);
+    return LITFS.remove(_logfilename);
 }
 int flashLOG::get_num_saved_records()
 {
     int row_counter = 0;
-    File file = LittleFS.open(_logfilename, "r");
+    File file = LITFS.open(_logfilename, "r");
 
     if (file)
     {
@@ -158,6 +157,8 @@ int flashLOG::get_num_saved_records()
             {
                 row_counter++;
             }
+            // file.readStringUntil(_EOL);
+            // row_counter++;
         }
     }
     file.close();
@@ -165,7 +166,7 @@ int flashLOG::get_num_saved_records()
 }
 unsigned long flashLOG::sizelog()
 {
-    File file = LittleFS.open(_logfilename, "r");
+    File file = LITFS.open(_logfilename, "r");
 
     unsigned long f = file.size();
     file.close();
@@ -181,7 +182,10 @@ bool flashLOG::_chkFileOK(File &_file)
 {
     if (!_file)
     {
-        PRNtl("Failed to open file for appending");
+        if (_useDebug)
+        {
+            Serial.println("Failed to open file for appending");
+        }
         return 0;
     }
     else
@@ -224,7 +228,7 @@ bool flashLOG::_write2file()
         _del_lines(num_lines + _m + 1 - _maxLOG_entries);
     }
 
-    File file1 = LittleFS.open(_logfilename, "a+");
+    File file1 = LITFS.open(_logfilename, "a+");
 
     int _start = 0;
 
@@ -247,13 +251,13 @@ bool flashLOG::_write2file()
     }
     return _line_added;
 }
-bool flashLOG::_del_lines(int line_index)
+bool flashLOG::_del_lines(uint8_t line_index)
 {
-    int row_counter = 0;
-    const char *tfile = "/tempfile.txt";
+    uint8_t row_counter = 0;
+    char *tfile = "/tempfile.txt";
     bool _delted_lines = false;
-    File file1 = LittleFS.open(_logfilename, "r");
-    File file2 = LittleFS.open(tfile, "w");
+    File file1 = LITFS.open(_logfilename, "r");
+    File file2 = LITFS.open(tfile, "w");
 
     if (_chkFileOK(file1) && _chkFileOK(file2))
     {
@@ -270,13 +274,16 @@ bool flashLOG::_del_lines(int line_index)
     }
     file1.close();
     file2.close();
-    LittleFS.remove(_logfilename);
-    LittleFS.rename(tfile, _logfilename);
+    LITFS.remove(_logfilename);
+    LITFS.rename(tfile, _logfilename);
     return _delted_lines;
 }
 void flashLOG::_printDebug(char *msg)
 {
-        PRNt(_logfilename);
-        PRNt(": ");
-        PRNtl(msg);
+    if (_useDebug)
+    {
+        Serial.print(_logfilename);
+        Serial.print(": ");
+        Serial.println(msg);
+    }
 }

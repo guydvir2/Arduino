@@ -1,2 +1,2 @@
 # myLOG
-ESP8266 ESP32 LOG write to flash
+ESP8266 ESP32 LOG 'rite to flash
