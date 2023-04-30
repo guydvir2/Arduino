@@ -5,14 +5,15 @@
         "myHome/debug"
     ],
     "pub_topics": [
-        "myHome/Lights/int/Hive/Avail",
-        "myHome/Lights/int/Hive/State"
+        "myHome/Lights/test_unit/Avail",
+        "myHome/Lights/test_unit/State",
+        "myHome/Lights/test_unit/cmd"
     ],
     "sub_topics": [
-        "myHome/Lights/int/Hive",
+        "myHome/Lights/test_unit",
         "myHome/All",
-        "myHome/Lights",
-        "myHome/Lights/int"
+        "myHome/Lights/int",
+        "myHome/Lights"
     ],
     "ver": 0.1
 }

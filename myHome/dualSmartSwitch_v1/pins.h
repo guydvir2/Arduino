@@ -35,8 +35,11 @@ void set_Pins_to_MCU(uint8_t a, uint8_t inputPins[], uint8_t outputPins[], uint8
     else if (a == 5) /* WEMOS */
     {
         inputPins[0] = 5;
+        inputPins[1] = 12;
         outputPins[0] = 4;
+        outputPins[1] = 14;
         indicPins[0] = 255;
+        indicPins[1] = 13;
     }
     else if (a == 6) /* MCU */
     {

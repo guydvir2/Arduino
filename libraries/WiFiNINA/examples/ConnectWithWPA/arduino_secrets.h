@@ -1,2 +1,2 @@
-#define SECRET_SSID "dvirz_iot"
-#define SECRET_PASS "GdSd13100301"
+#define SECRET_SSID ""
+#define SECRET_PASS ""
